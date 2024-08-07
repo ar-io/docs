@@ -10,7 +10,7 @@ tags: [testnet, join, application, jwk, qty, fqdn, label, note, properties]
 
 1. Must have a fully functional AR.IO gateway.
     - This includes the ability to resolve ArNS subdomains.
-    - Follow installation instructions for [windows](/gateways/ar-io-node/windows-setup) or [linux](/gateways/ar-io-node/linux-setup) and get help from the [ar.io community](https://discord.gg/7zUPfN4D6g).
+    - Follow installation instructions for [windows](/gateways/ar-io-node/windows-setup.html) or [linux](/gateways/ar-io-node/linux-setup.html) and get help from the [ar.io community](https://discord.gg/7zUPfN4D6g).
 
 2. Gateway must be associated with an Arweave Wallet.
     - Learn about creating Arweave wallets [here](https://ar.io/wallet)
