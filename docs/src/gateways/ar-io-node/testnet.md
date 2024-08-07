@@ -19,7 +19,7 @@ tags: [testnet, join, application, jwk, qty, fqdn, label, note, properties]
 
 ## Submit an Application
 
-Joining the ar.io Testnet requires staking a minimum of 10,000 Test IO Tokens. You must have Test IO Tokens before you are able to join. Test IO Tokens are currently not being distributed.
+Joining the ar.io Testnet requires staking a minimum of 50,000 Test IO Tokens. You must have Test IO Tokens before you are able to join. Test IO Tokens are currently not being distributed.
 
 New applications for joining the Testnet are not currently being accepted. Be sure to join the [ar.io Discord](https://discord.com/invite/7zUPfN4D6g) to stay up to date on Testnet status and possible future availability prior to the launch of the Mainnet. -->
 
@@ -68,7 +68,7 @@ After running the command, several questions will appear in your terminal in ord
 
 - **Enter your a friendly name for your gateway**: This is a name or `label` for your gateway. 
 - **Enter your domain for this gateway**: This is the domain name for your gateway. It should be the full domain, without any protocol ("http/https") prefix. For example: "vilenarios.com".
-- **Enter the amount of tokens you want to stake against your gateway - min 10,000 IO**: The number of tokens you want to stake on your gateway. It has to be a minimum of 10,000. Enter the number without commas (",") or dots (".").
+- **Enter the amount of tokens you want to stake against your gateway - min 50,000 IO**: The number of tokens you want to stake on your gateway. It has to be a minimum of 50,000. Enter the number without commas (",") or dots (".").
 - **Enter port used for this gateway**: The primary access port people should use to access your gateway. Except for some advanced use cases, this value should be 443.
 - **Enter protocol used for this gateway**: http or https. Most users will want to use https.
 - **Enter gateway properties transaction ID (use default if not sure)**: Arweave TxId for your gateway properties setting. This is not a widely implemented feature yet, so most people will just press `ENTER` to accept the default value.
