@@ -35,6 +35,7 @@ AWS_ENDPOINT='http://localstack:4566'
 
 - `BUNDLER_ARWEAVE_WALLET` must be the entire jwk of an Arweave wallet's keyfile, stringified. All uploads of bundled data items to Arweave will be signed and paid for by this wallet, so it must maintain a balance of AR tokens sufficient to handle the uploads. 
 - `BUNDLER_ARWEAVE_ADDRESS` must be the normalized public address for the provided Arweave wallet.
+- `APP_NAME` is a GraphQL tag that will be added to uploaded bundles.
 
 The remaining lines in the `.env.bundler.example` file control settings that allow the bundler service to share data with the ar.io gateway. Data sharing of contiguous data between a bundler and a gateway allows the gateway to serve optimistically cached data without waiting for it to fully settle on chain.
 
