@@ -10,9 +10,9 @@ A [Turbo ANS-104](https://github.com/ardriveapp/turbo-upload-service/) data item
 
 The bundler service can be easily run inside Docker in the same way that the gateway is. It utilizes a separate docker compose file for configuration and deployment, which also allows for the use of a separate file for environmental variables specific to the bundler service. Additionally, the separation allows operators to spin their bundler service up or down at any time without affecting their core gateway service. Despite the use of separate docker compose files, the bundler service shares a docker network with the ar.io gateway, and so is able to directly interact with the gateway service and data.
 
-**NOTE**: The bundler service relies on GraphQL indexing of recently bundled and uploaded data to manage its pipeline operations. The ar.io gateway should have its indexes synced up to Arweave's current block height before starting the bundler's service stack.
-
 ## Getting Started
+
+**NOTE**: The bundler service relies on GraphQL indexing of recently bundled and uploaded data to manage its pipeline operations. The ar.io gateway should have its indexes synced up to Arweave's current block height before starting the bundler's service stack.
 
 ### Environmental Variables
 
@@ -34,14 +34,14 @@ AWS_ENDPOINT='http://localstack:4566'
 ```
 
 - `BUNDLER_ARWEAVE_WALLET` must be the entire jwk of an Arweave wallet's keyfile, stringified. All uploads of bundled data items to Arweave will be signed and paid for by this wallet, so it must maintain a balance of AR tokens sufficient to handle the uploads. 
-- `BUNDLER_ARWEAVE_ADDRESS` must be the normalized public address for the provided Arweave wallet.
+- `BUNDLER_ARWEAVE_ADDRESS` must be the [normalized public address](../../glossary.md#normalized-address) for the provided Arweave wallet.
 - `APP_NAME` is a GraphQL tag that will be added to uploaded bundles.
 
 The remaining lines in the `.env.bundler.example` file control settings that allow the bundler service to share data with the ar.io gateway. Data sharing of contiguous data between a bundler and a gateway allows the gateway to serve optimistically cached data without waiting for it to fully settle on chain.
 
 ### Managing Bundler Access
 
-By default, the bundler will only accept data items uploaded by data item signers whose normalized wallet addresses are in the `ALLOW_LISTED_ADDRESSES` list. This is an additional environmental variable that can be added to your `.env.bundler` file, and must be a comma separated list of normalized public wallet addresses for wallets that should be allowed to bundle and upload data through your gateway.
+By default, the bundler will only accept data items uploaded by data item signers whose [normalized wallet addresses](../../glossary.md#normalized-address) are in the `ALLOW_LISTED_ADDRESSES` list. This is an additional environmental variable that can be added to your `.env.bundler` file, and must be a comma separated list of normalized public wallet addresses for wallets that should be allowed to bundle and upload data through your gateway.
 
 ```bash
 ALLOW_LISTED_ADDRESSES=<address1>,<address2>
@@ -105,7 +105,23 @@ ANS104_INDEX_FILTER={ "always": true }
 ANS104_UNBUNDLE_FILTER={ "attributes": { "owner_address": "$BUNDLER_ARWEAVE_ADDRESS" } }
 ```
 
-`$BUNDLER_ARWEAVE_ADDRESS` should be replaced with the normalized public wallet address associated with the bundler.
+`$BUNDLER_ARWEAVE_ADDRESS` should be replaced with the [normalized public wallet address](../../glossary.md#normalized-address) associated with the bundler.
+
+**NOTE**: The above filters must be placed in the `.env` file for the core gateway service, not the bundler.
+
+Gateways handle data item indexing asynchronously. This means they establish a que of items to index, and work on processing the que in the background while the gateway continues with its normal operations. If a gateway has broad indexing filters, there can be some latency in indexing data items from the bundler while the gateway works through its que.
+
+#### Optimistic Indexing
+
+Gateway operators can prioritize indexing specific data items, putting them at the front of the que. The bundler service can submit data items for prioritized indexing on their associated gateway. 
+
+Only gateway operators are able to prioritize indexing, so an admin key is required for the request to be successful. This key should be made available in the environmental files for BOTH the core gateway, and the bundler, and should be provided as `AR_IO_ADMIN_KEY`:
+
+```bash
+AR_IO_ADMIN_KEY="Admin password"
+```
+
+**NOTE**: If a gateway is started without providing the admin key, a random string will be generated to protect the gateway's admin endpoints. This can be reset by restarting the gateway with the admin key provided in the `.env` file.
 
 ## Starting and Stopping the Bundler
 
