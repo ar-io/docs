@@ -109,13 +109,11 @@ ANS104_UNBUNDLE_FILTER={ "attributes": { "owner_address": "$BUNDLER_ARWEAVE_ADDR
 
 **NOTE**: The above filters must be placed in the `.env` file for the core gateway service, not the bundler.
 
-Gateways handle data item indexing asynchronously. This means they establish a que of items to index, and work on processing the que in the background while the gateway continues with its normal operations. If a gateway has broad indexing filters, there can be some latency in indexing data items from the bundler while the gateway works through its que.
+Gateways handle data item indexing asynchronously. This means they establish a queue of items to index, and work on processing the queue in the background while the gateway continues with its normal operations. If a gateway has broad indexing filters, there can be some latency in indexing data items from the bundler while the gateway works through its queue.
 
 #### Optimistic Indexing
 
-Gateway operators can prioritize indexing specific data items, putting them at the front of the que. The bundler service can submit data items for prioritized indexing on their associated gateway. 
-
-Only gateway operators are able to prioritize indexing, so an admin key is required for the request to be successful. This key should be made available in the environmental files for BOTH the core gateway, and the bundler, and should be provided as `AR_IO_ADMIN_KEY`:
+Gateway operators control access to their [optimistic data item indexing](../../glossary.md#optimistic-indexing) API via an admin key that must be supplied by all bundling clients in order for their requests to be accepted. This key should be made available in the environment configuration files for BOTH the core gateway, and the bundler, and should be provided as `AR_IO_ADMIN_KEY`:
 
 ```bash
 AR_IO_ADMIN_KEY="Admin password"

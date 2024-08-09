@@ -95,6 +95,10 @@ The way public addresses are commonly (or by spec) represented in their native b
 
 A gateway selected to evaluate the performance of peer gateways in resolving ArNS names. Observers assess and report on the operational efficacy of other gateways. 
 
+## **Optimistic Indexing**:
+
+Indexing transaction or data item headers before the associated L1 transaction has been accepted and confirmed in a chain block.
+
 ## **Owner**:
 
 Generally, the public key of the signer.
