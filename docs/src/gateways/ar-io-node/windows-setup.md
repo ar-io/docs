@@ -1,6 +1,7 @@
 ---
 prev: false
-next: "./testnet"
+next: "/gateways/ar-io-node/testnet.html"
+permalink: '/gateways/ar-io-node/windows-setup/'
 ---
 
 # Windows Installation Instructions

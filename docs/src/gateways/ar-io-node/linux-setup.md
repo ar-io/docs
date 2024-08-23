@@ -1,7 +1,8 @@
 ---
 prev: false
-next: "./testnet"
+next: "/gateways/ar-io-node/testnet.html"
 tags: [domain, url, setup, start, help, how to, ubuntu, testnet]
+permalink: '/gateways/ar-io-node/linux-setup/'
 ---
 
 # Linux Installation Instructions
