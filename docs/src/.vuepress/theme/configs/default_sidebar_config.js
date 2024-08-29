@@ -188,6 +188,10 @@ module.exports = [
         path: "/guides/delegated-staking",
       },
       {
+        title: "Github Workflows",
+        path: "/guides/github-flow"
+      },
+      {
         title: "Experimental",
         children: [
           {
