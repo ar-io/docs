@@ -1,5 +1,5 @@
 ---
-permalink: "/guides/deploy-a-website"
+permalink: "/guides/perma-deploy"
 ---
 
 # Deploy a Website or Application
