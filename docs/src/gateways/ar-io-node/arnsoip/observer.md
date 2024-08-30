@@ -102,15 +102,15 @@ These results will determine how reward distributions are made for that epoch. R
 
 ## Reward Distribution
 
-Each epoch, a defined portion of the protocol balance (e.g., 0.25%) is earmarked for distribution as rewards. From this allocation, two distinct reward categories are derived: 
+Each epoch, a defined portion of the protocol balance (e.g., 0.05%) is earmarked for distribution as rewards. From this allocation, two distinct reward categories are derived: 
 
 1. Base Gateway Reward: This is the portion of the reward allocated to each Functional Gateway within the network and is calculated as: 
 
-      `[Epoch Reward Allocation x 95% / Total Gateways in the Network]` 
+      `[Epoch Reward Allocation x 90% / Total Gateways in the Network]` 
 
 2. Base Observer Reward: Observers, due to their additional responsibilities, have a separate reward calculated as:  
 
-      `[Epoch Reward Allocation x 5% / Total Selected Observers for the Epoch]` 
+      `[Epoch Reward Allocation x 10% / Total Selected Observers for the Epoch]` 
 
 ### Distribution Based on Performance 
 
