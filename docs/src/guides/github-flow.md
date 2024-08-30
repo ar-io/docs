@@ -2,7 +2,7 @@
 permalink: "/guides/deploy-a-website"
 ---
 
-# Github Actions Deployment
+# Deploy a Website or Application
 
 ## Overview
 
