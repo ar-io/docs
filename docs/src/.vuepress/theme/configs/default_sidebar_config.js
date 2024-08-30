@@ -188,7 +188,7 @@ module.exports = [
         path: "/guides/delegated-staking",
       },
       {
-        title: "Github Workflows",
+        title: "Deploy a Website or Application",
         path: "/guides/github-flow"
       },
       {

@@ -1,14 +1,14 @@
 ---
-permalink: "/guides/github-workflows"
+permalink: "/guides/deploy-a-website"
 ---
 
 # Github Actions Deployment
 
 ## Overview
 
-With the growing popularity of permanently deployed apps, hosted on arweave, along with the growing list of tools offered by ar.io, several methods have been developed to automate the process of deploying a website and updating the ArNS name pointed at it. A particularly useful tool for this is [permaweb-deploy](https://github.com/permaweb/permaweb-deploy) from fwd research.
+With the growing popularity of permanently deployed apps, hosted on Arweave, along with the growing list of tools offered by ar.io, several methods have been developed to automate the process of deploying a website and updating the ArNS name pointed at it. A particularly useful tool for this is [permaweb-deploy](https://github.com/permaweb/permaweb-deploy) from Forward Research.
 
-permaweb-deploy is a cli tool that handles uploading a build folder to Arweave using Turbo, creating a [manifest](../concepts/manifests.md), and then updating an ArNS name to point at the new manifest. It being a cli tool makes it very easy to incorporate into a github actions flow. Setting up an automated deployment with permaweb-deploy is simple, but does require a few steps.
+permaweb-deploy is a cli tool that handles uploading a build folder to Arweave using [Turbo](https://docs.ardrive.io/docs/turbo/what-is-turbo.html), creating a [manifest](../concepts/manifests.md), and then updating an ArNS name to point at the new manifest. It being a cli tool makes it very easy to incorporate into a github actions flow. Setting up an automated deployment with permaweb-deploy is simple, but does require a few steps.
 
 ## Getting Started
 
@@ -63,7 +63,7 @@ There is also the additional, optional flag `--undername`. If you want to deploy
 
 ### Providing Arweave Wallet Keys
 
-While using permaweb-deploy, you will be uploading data to Arweave using Turbo, as well as performing protected actions on an Arweave Name Token. Because of this, you will need to provide the keys to an arweave wallet in order for the actions to be successful. The wallet must contain [Turbo Credits](https://ardrive.io/turbo-bundler/) to pay for the upload, and it must either be a controller or the owner of the ArNS name you are trying to update.
+While using permaweb-deploy, you will be uploading data to Arweave using Turbo, as well as performing protected actions on an Arweave Name Token. Because of this, you will need to provide the keys to an Arweave wallet in order for the actions to be successful. The wallet must contain [Turbo Credits](https://ardrive.io/turbo-bundler/) to pay for the upload, and it must either be a controller or the owner of the ArNS name you are trying to update.
 
 permaweb-deploy requires your wallet keyfile be encoded in base64 format. You can convert a local keyfile to base64, and copy the new value to your clipboard by using one of the below commands, depending on your operating system:
 
@@ -93,7 +93,7 @@ Anyone who has your wallet keyfile (including the base64 formatted keyfile) has 
 
 You will need to create 2 secrets"
 
-- `DEPLOY_KEY`: This is the base64 encoded version of your arweave wallet keyfile.
+- `DEPLOY_KEY`: This is the base64 encoded version of your Arweave wallet keyfile.
 
 - `ANT_PROCESS`: This is the process id of the Arweave Name Token for your ArNS name. This value is not as sensitive, and may be provided in your package.json without issue, but it is a very long hashed string, and it is much easier to work with the variable name than the string itself.
 
@@ -138,4 +138,4 @@ It then sets up a vps with nodejs v 20. When that is complete, it installs depen
 
 ## Deploying App
 
-With the above setup complete, the only thing you need to do to deploy a new version of a permasite app to arweave is push the updated code to branch `main` on github. Everything else is fully automated.
+With the above setup complete, the only thing you need to do to deploy a new version of a permasite app to Arweave is push the updated code to branch `main` on github. Everything else is fully automated.
