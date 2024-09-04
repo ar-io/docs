@@ -52,7 +52,7 @@ Data in paradise. The AR.IO ecosystem is dedicated to cultivating products and p
 <a href="./arcss">
 <img class="smaller-image" :src="$withBase('/images/6-ARCSS.png')">
 <h3>ar://</h3>
-<p>The ARCSS protocol transforms traditional Arweave URLs into more concise and user-friendly forms.</p>
+<p>The Wayfinder protocol transforms traditional Arweave URLs into more concise and user-friendly forms.</p>
 </a>
 </div>
 
