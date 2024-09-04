@@ -132,8 +132,8 @@ module.exports = [
     // sidebarDepth: 3,
     children: [
       {
-        title: "ar:// (ARCSS)",
-        path: "/concepts/arcss",
+        title: "Wayfinder Protocol",
+        path: "/concepts/wayfinder",
       },
       {
         title: "manifests",
