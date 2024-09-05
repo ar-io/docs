@@ -29,14 +29,16 @@ export default ({
     // Normalize the path by removing any trailing slash for easier matching
     const normalizedPath = to.path.replace(/\/$/, '');
 
-    // Check if we are on the staging site hosted on GitHub Pages
-    const isStaging = window.location.hostname === 'ar-io.github.io';
-
-    // Adjust the redirect paths based on the base URL
     let redirectPath = redirects[normalizedPath];
-    if (redirectPath && isStaging) {
-      // Prepend '/docs' to the redirect path for the GitHub Pages base
-      redirectPath = `/docs${redirectPath}`;
+
+    // Only check for the staging environment in the browser
+    if (typeof window !== 'undefined') {
+      const isStaging = window.location.hostname === 'ar-io.github.io';
+
+      // Adjust the redirect paths based on the base URL for staging
+      if (redirectPath && isStaging) {
+        redirectPath = `/docs${redirectPath}`;
+      }
     }
 
     if (redirectPath) {
