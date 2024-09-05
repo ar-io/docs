@@ -42,8 +42,8 @@ export default ({
     }
 
     if (redirectPath) {
-      // Preserve the hash in the URL
-      next({ path: redirectPath, hash: to.hash });
+      // Use router.push to ensure Vue Router handles the navigation properly
+      router.push({ path: redirectPath, hash: to.hash });
     } else {
       next(); // Proceed to the requested page if no redirect is found
     }
