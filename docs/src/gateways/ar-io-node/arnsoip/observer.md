@@ -1,4 +1,5 @@
 ﻿---
+permalink: "/gateways/ar-io-node/arnsoip/observer"
 next: false
 ---
 
@@ -130,7 +131,7 @@ In cases where rewards are not distributed, either due to the inactivity or defi
 
 ## Handling Inactive Gateways
 
-To maintain network efficiency and reduce contract state bloat, gateways that are consistently offline, specifically for six (6) consecutive epochs, and thus fail to receive rewards, will be automatically removed from the Gateway Active Registry (GAR) as well as have their staked IO tokens unlocked and returned to the gateway operator. 
+To maintain network efficiency and reduce contract state bloat, gateways that are consistently offline, specifically for thirty (30) consecutive epochs, and thus fail to receive rewards, will be automatically removed from the Gateway Active Registry (GAR) as well as have their staked IO tokens unlocked and returned to the gateway operator. 
 
 ## Observer Report Details
 
