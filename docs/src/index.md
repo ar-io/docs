@@ -49,7 +49,7 @@ Data in paradise. The AR.IO ecosystem is dedicated to cultivating products and p
 </div>
 
 <div class="home-box">
-<a href="./arcss">
+<a href="./wayfinder">
 <img class="smaller-image" :src="$withBase('/images/6-ARCSS.png')">
 <h3>ar://</h3>
 <p>The Wayfinder protocol transforms traditional Arweave URLs into more concise and user-friendly forms.</p>
