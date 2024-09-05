@@ -43,7 +43,8 @@ export default ({
 
     if (redirectPath) {
       // Use router.push to ensure Vue Router handles the navigation properly
-      router.push({ path: redirectPath, hash: to.hash });
+      // router.push({ path: redirectPath, hash: to.hash });
+      window.location.replace(redirectPath)
     } else {
       next(); // Proceed to the requested page if no redirect is found
     }
