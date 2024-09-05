@@ -19,6 +19,26 @@ export default ({
     },
   });
 
+  router.beforeEach((to, from, next) => {
+    // List of redirects (old path to new path)
+    const redirects = {
+      '/arcss': '/wayfinder',  // Add more as needed
+      '/gateways/ar-io-node/arnsoip/observer.html': '/gateways/ar-io-node/arnsoip/observer'
+    };
+
+    // Normalize the path by removing any trailing slash for easier matching
+    const normalizedPath = to.path.replace(/\/$/, '');
+
+    // Check if the normalized path has a redirect
+    const redirectPath = redirects[normalizedPath];
+
+    if (redirectPath) {
+      // Preserve the hash in the URL and add trailing slash if necessary
+      next({ path: redirectPath, hash: to.hash });
+    } else {
+      next(); // Proceed to the requested page if no redirect is found
+    }
+  });
+
   // ...apply other enhancements for the site.
 }
-
