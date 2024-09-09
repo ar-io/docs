@@ -8,6 +8,64 @@ next: false
 
 Welcome to the documentation page for the ar.io gateway release notes. Here, you will find detailed information about each version of the ar.io gateway, including the enhancements, bug fixes, and any other changes introduced in every release. This page serves as a comprehensive resource to keep you informed about the latest developments and updates in the ar.io gateway. For those interested in exploring the source code, each release's code is readily accessible at our GitHub repository: ar.io gateway [change logs](https://github.com/ar-io/ar-io-node/blob/main/CHANGELOG.md). Stay updated with the continuous improvements and advancements in the ar.io gateway by referring to this page for all release-related information.
 
+## [Release 17] - 2024-09-09
+
+### Fixed
+
+- Use the correct environment variable to populate WEBHOOK_BLOCK_FILTER in
+  `docker-compose.yaml`.
+- Don't cache data regions retrieved to satisfy range requests to avoid
+  unnecessary storage overhead and prevent inserting invalid ID to hash
+  mappings into the data DB.
+
+### Added
+
+- Added a new ClickHouse based DB backend. It can be used in combination with
+  the SQLite DB backend to enable batch loading of historical data from
+  Parquet. It also opens up the possibility of higher DB performance and
+  scalability. In its current state it should be considered a technology
+  preview. It won't be useful to most users until we either provide Parquet
+  files to load into it or automate flushing of the SQLite DB to it (both are
+  planned in future release). It is not intended to be standalone solution. It
+  supports bulk loading and efficient GraphQL querying of transactions and data
+  items, but it relies on SQLite (or potentially another OLTP in the future) to
+  index recent data. These limitations allow greatly simplified schema and
+  query construction. Querying the new ClickHouse DB for transaction and data
+  items via GraphQL is enabled by setting the 'CLICKHOUSE_URL' environment
+  variable.
+- Added the ability to skip storing transaction signatures in the DB by setting
+  WRITE_TRANSACTION_DB_SIGNATURES to false. Missing signatures are fetched from
+  the trusted Arweave node when needed for GraphQL results.
+- Added a Redis backed signature cache to support retrieving optimistically
+  indexed data item signatures in GraphQL queries when writing data items
+  signatures to the DB has been disabled.
+- Added on-demand and composite ArNS resolvers. The on-demand resolver
+  fetches results directly from an AO CU. The composite resolver attempts
+  resolution in the order specified by the ARNS_RESOLVER_PRIORITY_ORDER
+  environment variable (defaults to 'on-demand,gateway').
+- Added a queue_length Prometheus metric to facilitate monitoring queues and
+  inform future optimizations
+- Added SQLite WAL cleanup worker to help manage the size of the `data.db-wal`
+  file. Future improvements to `data.db` usage are also planned to further
+  improve WAL management.
+
+### Changed
+
+- Handle data requests by ID on ArNS sites. This enables ArNS sites to use
+  relative links to data by ID.
+- Replaced ARNS_RESOLVER_TYPE with ARNS_RESOLVER_PRIORITY_ORDER (defaults to
+  'on-demand,gateway').
+- Introduced unbundling back pressure. When either data item data or GraphQL
+  indexing queue depths are more than the value specified by the
+  MAX_DATA_ITEM_QUEUE_SIZE environment variable (defaults to 100000),
+  unbundling is paused until the queues length falls bellow that threshold.
+  This prevents the gateway from running out of memory when the unbundling rate
+  exceeds the indexing rate while avoiding wasteful bundle reprocessing.
+- Prioritized optimistic data item indexing by inserting optimistic data items
+  at the front of the indexing queues.
+- Prioritized nested bundle indexing by inserting nested bundles at the front
+  of the unbundling queue.
+
 ## [Release 16] - 2024-08-09
 
 - **Fixed**
@@ -35,26 +93,26 @@ Welcome to the documentation page for the ar.io gateway release notes. Here, you
 
 - **Fixed**
 
-    - Fixed query error that was preventing bundles from being marked as fully imported in the database.
+  - Fixed query error that was preventing bundles from being marked as fully imported in the database.
 
 - **Added**
 
-    - Adjusted data item indexing to record data item signature types in the DB. This helps distinguish between signatures using different key formats, and will enable querying by signature type in the future.
-    - Adjusted data item indexing to record offsets for data items within bundles and signatures and owners within data items. In the future this will allow us to avoid saving owners and signatures in the DB and thus considerably reduce the size of the bundles DB.
-    - Added `ARNS_CACHE_TTL_MS` environment variable to control the TTL of ARNS cache entries (defaults to 1 hour).
-    - Added support for multiple ranges in a single HTTP range request.
-    - Added experimental chunk POST endpoint that broadcasts chunks to the comma-separate list of URLS in the `CHUNK_BROADCAST_URLS` environment variable. It is available at `/chunk` on the internal gateway service port (4000 by default) but is not yet exposed through Envoy.
-    - Added support for running an AO CU adjacent to the gateway (see README.md for details).
-    - Added `X-ArNS-Process-Id` to ArNS resolved name headers.
-    - Added a set of `AO_...` environment variables for specifying which AO URLs should be used (see `docker-compose.yaml` for the complete list). The `AO_CU_URL` is of particular use since the core and resolver services only perform AO reads and only the CU is needed for reads.
+  - Adjusted data item indexing to record data item signature types in the DB. This helps distinguish between signatures using different key formats, and will enable querying by signature type in the future.
+  - Adjusted data item indexing to record offsets for data items within bundles and signatures and owners within data items. In the future this will allow us to avoid saving owners and signatures in the DB and thus considerably reduce the size of the bundles DB.
+  - Added `ARNS_CACHE_TTL_MS` environment variable to control the TTL of ARNS cache entries (defaults to 1 hour).
+  - Added support for multiple ranges in a single HTTP range request.
+  - Added experimental chunk POST endpoint that broadcasts chunks to the comma-separate list of URLS in the `CHUNK_BROADCAST_URLS` environment variable. It is available at `/chunk` on the internal gateway service port (4000 by default) but is not yet exposed through Envoy.
+  - Added support for running an AO CU adjacent to the gateway (see README.md for details).
+  - Added `X-ArNS-Process-Id` to ArNS resolved name headers.
+  - Added a set of `AO_...` environment variables for specifying which AO URLs should be used (see `docker-compose.yaml` for the complete list). The `AO_CU_URL` is of particular use since the core and resolver services only perform AO reads and only the CU is needed for reads.
 
 - **Changed**
 
-    - Split the monolithic `docker-compose.yaml` into `docker-compose.yaml`, `docker-compose.bundler.yaml`, and `docker-compose.ao.yaml` (see README for details).
-    - Replaced references to 'docker-compose' with 'docker compose' in the docs since the former is mostly deprecated.
-    - Reduce max fork depth from 50 to 18 inline to reflect Arweave 2.7.2 protocol changes.
-    - Increased the aggressiveness of bundle reprocessing by reducing reprocessing interval from 10 minutes to 5 minutes and raising reprocessing batch size from 100 to 1000.
-    - Use a patched version of Litestream to work around insufficient S3 multipart upload size in the upstream version.
+  - Split the monolithic `docker-compose.yaml` into `docker-compose.yaml`, `docker-compose.bundler.yaml`, and `docker-compose.ao.yaml` (see README for details).
+  - Replaced references to 'docker-compose' with 'docker compose' in the docs since the former is mostly deprecated.
+  - Reduce max fork depth from 50 to 18 inline to reflect Arweave 2.7.2 protocol changes.
+  - Increased the aggressiveness of bundle reprocessing by reducing reprocessing interval from 10 minutes to 5 minutes and raising reprocessing batch size from 100 to 1000.
+  - Use a patched version of Litestream to work around insufficient S3 multipart upload size in the upstream version.
 
 ## [Release 14] - 2024-06-26
 
