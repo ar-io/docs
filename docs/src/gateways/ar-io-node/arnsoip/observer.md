@@ -1,5 +1,5 @@
 ﻿---
-permalink: "/gateways/ar-io-node/arnsoip/observer"
+permalink: "/gateways/ar-io-node/arnsoip/observer/"
 next: false
 ---
 

@@ -36,7 +36,7 @@ module.exports = [
       },
       {
         title: "Observation and Incentive Protocol",
-        path: "/gateways/ar-io-node/arnsoip/observer",
+        path: "/gateways/ar-io-node/arnsoip/observer.md",
       },
     ],
   },
