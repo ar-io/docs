@@ -39,12 +39,17 @@ export default ({
       if (redirectPath && isStaging) {
         redirectPath = `/docs${redirectPath}`;
       }
+
+      // Specific handling for `.html` pages to force a reload
+      if (normalizedPath.endsWith('.html') && redirectPath) {
+        window.location.href = redirectPath + (to.hash || '');
+        return; // Ensure further navigation is prevented after reload
+      }
     }
 
     if (redirectPath) {
-      // Use router.push to ensure Vue Router handles the navigation properly
-      // router.push({ path: redirectPath, hash: to.hash });
-      window.location.replace(redirectPath)
+      // For regular non-`.html` redirects
+      window.location.replace(redirectPath + (to.hash || ''));
     } else {
       next(); // Proceed to the requested page if no redirect is found
     }
