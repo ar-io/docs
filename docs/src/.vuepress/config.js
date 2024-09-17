@@ -26,14 +26,14 @@ module.exports = {
       "meta",
       {
         property: "og:title",
-        content: "ar.io Docs Portal", // Replace 'Your Page Title' with the actual title of the page
+        content: "ar.io Network Docs", // Replace 'Your Page Title' with the actual title of the page
       },
     ],
     [
       "meta",
       {
         name: "twitter:title",
-        content: "ar.io Docs Portal", // Ensure this matches your page title
+        content: "ar.io Network Docs", // Ensure this matches your page title
       },
     ],
 
