@@ -181,6 +181,10 @@ module.exports = [
               },
             ],
           },
+          {
+            title: "ANTs on Bazar",
+            path: "/guides/ants-on-bazar"
+          },
         ],
       },
       {
