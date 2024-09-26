@@ -27,6 +27,7 @@ export default ({
         "/arcss": "/wayfinder", // Add more as needed
         "/gateways/ar-io-node/arnsoip/observer.html":
           "/gateways/ar-io-node/arnsoip/observer",
+          "/guides/delegated-staking": "/delegated-staking"
       };
 
       // Normalize the path by removing any trailing slash for easier matching

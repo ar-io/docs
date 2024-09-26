@@ -31,6 +31,10 @@ module.exports = [
         path: "/gateway-network",
       },
       {
+        title: "Delegated Staking",
+        path: "/guides/delegated-staking",
+      },
+      {
         title: "Arweave name System (ArNS)",
         path: "/arns.md",
       },
@@ -182,10 +186,6 @@ module.exports = [
       {
         title: "GraphQL",
         path: "/guides/gql",
-      },
-      {
-        title: "Delegated Staking",
-        path: "/guides/delegated-staking",
       },
       {
         title: "Deploy a Website or Application",

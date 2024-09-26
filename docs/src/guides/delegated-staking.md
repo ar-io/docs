@@ -1,5 +1,5 @@
 ---
-permalink: "/guides/delegated-staking"
+permalink: "/delegated-staking"
 ---
 
 # Delegated Staking
@@ -11,7 +11,9 @@ In exchange, the person who delegates the tokens will receive a share of the gat
 
 You can find more specific information about delegated staking and how rewards are distributed in the [ar.io whitepaper](https://whitepaper_ar-io.arweave.dev/). 
 
-## Installing the Testnet Contract repo
+You can easily delegate stake to a gateway by using the Gateway Portal at [ar://gateways](https://gateways.arweave.net/#/staking)
+
+<!-- ## Installing the Testnet Contract repo
 
 Delegating tokens can be accomplished very easily by running a script found in the [testnet-contract repo](https://github.com/ar-io/testnet-contract) on Github. 
 
@@ -80,7 +82,7 @@ You can find the wallet address of a gateway by going to `https://<gateway-domai
 
 Save and exit your editor. -->
 
-## Running the Script
+<!-- ## Running the Script
 
 Once the repo is installed and your wallet is provided, all that is left is to run the script. This can be done with a single command in your terminal. 
 
@@ -105,4 +107,4 @@ You will again be prompted for the number of tokens you want to withdraw and the
 Only the wallet that owns the staked tokens can withdraw, so make sure you are using the same wallet to run the script as you used to stake the tokens initially.
 
 **NOTE**: Token withdrawals are not instant, and there is a period where the tokens will remain unavailable after you run the script. The length of this hold may vary a bit during testnet while optimal times are iterated upon.
-
+ --> 
