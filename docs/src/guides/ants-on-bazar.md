@@ -18,25 +18,33 @@ Bazar relies on [profiles](https://bazar.g8way.io/#/docs/overview/profiles) for 
 
 If you do not already have a profile associated with your wallet, you can easily create one on using the "Create your profile" button on bazar after connecting your wallet:
 
-//TODO: image
+<img class="amazingdiagram" :src="$withBase('/images/bazar-create-profile1.png')">
 
 You will be prompted to add, at a minimum, a name and handle (nickname) to associate with the profile. These values can be changed later.
 
-//TODO: image
+<img class="amazingdiagram" :src="$withBase('/images/bazar-create-profile2.png')">
 
 Click "Save" at the bottom to finish creation of your profile.
 
 Once your profile is created, you can get its ao process Id at any time by clicking on the user icon in Bazar, and then the "Copy profile address" button from the menu.
 
-//TODO: image
+<img class="amazingdiagram" :src="$withBase('/images/bazar-create-profile3.png')">
 
 ## Transfer ANT to the Profile
 
 Bazar profiles only track assets that are held in the profile process, not in a user wallet. In order for an ANT to be displayed and transferred on Bazar, it must first be transferred into the Bazar profile. This can be done easily using [arns.app](https://arns.app) in your manage page for a given name.
 
-//TODO: 2 images
+<img class="amazingdiagram" :src="$withBase('/images/bazar-transfer-name1.png')">
+</br></br>
+<img class="amazingdiagram" :src="$withBase('/images/bazar-transfer-name2.png')">
+
+Once an ANT is transferred into the profile process, it will automatically be detected and displayed by Bazar. It can be transferred or sold just like any other atomic asset on the marketplace, with no additional steps required.
 
 ## Restore Controllers
+
+::: tip Optional
+This is an optional step that will enable updating an ANT's Target Id without transferring it back into your wallet. This step may be safely skipped without affecting the ANT's functionality or tradability on Bazar.
+:::
 
 Transferring an ANT to a new wallet or ao process resets all authorized controllers, or non-owner entities that are allowed to update some settings on the ArNS name. It does not reset the Target Id that the ArNS name is pointing to. If you want to be able to update the Target ID and undernames from your wallet using arns.app, you will need to set your wallet address as a controller for the ANT while it is in your profile. The easiest way to do this is using aos.
 
