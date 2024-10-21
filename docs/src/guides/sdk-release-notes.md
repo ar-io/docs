@@ -4,6 +4,79 @@
 
 Welcome to the documentation page for the ar.io SDK release notes. Here, you will find detailed information about each version of the ar.io SDK, including the enhancements, bug fixes, and any other changes introduced in every release. This page serves as a comprehensive resource to keep you informed about the latest developments and updates in the ar.io SDK. For those interested in exploring the source code, each release's code is readily accessible at our GitHub repository: ar.io SDK [change logs](https://github.com/ar-io/ar-io-sdk/blob/main/CHANGELOG.md). Stay updated with the continuous improvements and advancements in the ar.io SDK by referring to this page for all release-related information.
 
+## [2.3.2](https://github.com/ar-io/ar-io-sdk/compare/v2.3.1...v2.3.2) (2024-10-16)
+
+
+### Bug Fixes
+
+* **io:** add getDemandFactor api ([feab461](https://github.com/ar-io/ar-io-sdk/commit/feab4612d4e95b0fea14a4e0fa9f17a5c57779e1))
+* **io:** update `getTokenSupply` to type that returns full breakdown of tokens ([e790055](https://github.com/ar-io/ar-io-sdk/commit/e790055d03df0786c93db54d4d3294160fac1ad5))
+* **types:** add `totalEligibleGateways` to `AoEpochDistributionData` type ([9a35d39](https://github.com/ar-io/ar-io-sdk/commit/9a35d39ed811076a03a392cd5ac7b8f2ce878d98))
+* **types:** update gateways to include services ([a3fe5b4](https://github.com/ar-io/ar-io-sdk/commit/a3fe5b41725d1648f19d8e72d71e59d41bed91fe))
+
+## [2.3.1](https://github.com/ar-io/ar-io-sdk/compare/v2.3.0...v2.3.1) (2024-10-09)
+
+
+### Bug Fixes
+
+* use AoEpochObservationData type to match what is coming back from contract ([684abf3](https://github.com/ar-io/ar-io-sdk/commit/684abf34607e62e3b9e8bb92fa4da6e202b84061))
+
+# [2.3.0](https://github.com/ar-io/ar-io-sdk/compare/v2.2.5...v2.3.0) (2024-10-08)
+
+
+### Bug Fixes
+
+* **ao:** check messages is not empty to avoid `.length` error when evaluating outputs of `dryrun` ([a7b4953](https://github.com/ar-io/ar-io-sdk/commit/a7b495334f5d3962807de9f630518a270a6e35a6))
+* **logs:** enable logging in spawn and evolve utils ([08ce71a](https://github.com/ar-io/ar-io-sdk/commit/08ce71a2cfed30b09138194d8841ff1b1adccde4))
+* **luaID:** update lua id to latest for ant source code ([9c13dd3](https://github.com/ar-io/ar-io-sdk/commit/9c13dd37b5feec69cd0a5f7dba64f85b5285888b))
+* **main:** merge main back to alpha, release hotfixes on alpha ([9299427](https://github.com/ar-io/ar-io-sdk/commit/929942755b09204e4d142e673b82f6400b8fe596))
+* **types:** add source code tx id to ant state type ([8949f04](https://github.com/ar-io/ar-io-sdk/commit/8949f04889741cc2c895bacea4ef3831c9c2ac15))
+* **types:** fix types on ant ([3bdb3a6](https://github.com/ar-io/ar-io-sdk/commit/3bdb3a6e8c30fc55780b716ea9a05619b19bfcee))
+* **types:** remove restricted type ([b1fac75](https://github.com/ar-io/ar-io-sdk/commit/b1fac7505484bf62fde044ca0c6c9895b3678859))
+* **types:** update type and tests ([877b03f](https://github.com/ar-io/ar-io-sdk/commit/877b03f4124894cafbd0bc60b9d55b8803365cec))
+* **types:** update types ([883ffb3](https://github.com/ar-io/ar-io-sdk/commit/883ffb35549d8fe40963489d93a6423f534d29e8))
+
+
+### Features
+
+* **delegates:** add cancel delegate withdrawal method ([a3827dc](https://github.com/ar-io/ar-io-sdk/commit/a3827dcd83f35e9fc9fbde26e6dbb38f88ab9f36))
+* **io:** add api for querying get registration fees handler to AoIORead class ([7b3909f](https://github.com/ar-io/ar-io-sdk/commit/7b3909fb9def0e864dc59d87d1d78c9718feb830))
+
+## [2.2.5](https://github.com/ar-io/ar-io-sdk/compare/v2.2.4...v2.2.5) (2024-09-26)
+
+
+### Bug Fixes
+
+* **ant:** allow sending tags on ant write interactions ([99c24f8](https://github.com/ar-io/ar-io-sdk/commit/99c24f85e7e5829fb009f23702fa25243cf603da))
+
+## [2.2.4](https://github.com/ar-io/ar-io-sdk/compare/v2.2.3...v2.2.4) (2024-09-26)
+
+
+### Bug Fixes
+
+* **types:** update getInfo types on IO ([7a0d20d](https://github.com/ar-io/ar-io-sdk/commit/7a0d20da45373ef370617db9dc07e7bf54feab4f))
+
+## [2.2.3](https://github.com/ar-io/ar-io-sdk/compare/v2.2.2...v2.2.3) (2024-09-25)
+
+### Bug Fixes
+
+* **types:** update type and tests ([877b03f](https://github.com/ar-io/ar-io-sdk/commit/877b03f4124894cafbd0bc60b9d55b8803365cec))
+
+
+## [2.2.2](https://github.com/ar-io/ar-io-sdk/compare/v2.2.1...v2.2.2) (2024-09-23)
+
+
+### Bug Fixes
+
+* **deps:** update arbundles to @dha-team/arbundles ([c41e4e4](https://github.com/ar-io/ar-io-sdk/commit/c41e4e42057698a9a2895c2ac9e78a01c69bc2d5))
+
+## [2.2.1](https://github.com/ar-io/ar-io-sdk/compare/v2.2.0...v2.2.1) (2024-09-16)
+
+
+### Bug Fixes
+
+* **types:** correct totalEpochCount for gateway stats ([f82fed8](https://github.com/ar-io/ar-io-sdk/commit/f82fed8bc54b8d3f1a17ff78a72712709858952e))
+
 ## [2.2.0](https://github.com/ar-io/ar-io-sdk/compare/v2.1.0...v2.2.0) (2024-08-30)
 
 
