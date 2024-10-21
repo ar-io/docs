@@ -8,103 +8,71 @@ next: false
 
 Welcome to the documentation page for the ar.io gateway release notes. Here, you will find detailed information about each version of the ar.io gateway, including the enhancements, bug fixes, and any other changes introduced in every release. This page serves as a comprehensive resource to keep you informed about the latest developments and updates in the ar.io gateway. For those interested in exploring the source code, each release's code is readily accessible at our GitHub repository: ar.io gateway [change logs](https://github.com/ar-io/ar-io-node/blob/main/CHANGELOG.md). Stay updated with the continuous improvements and advancements in the ar.io gateway by referring to this page for all release-related information.
 
+## [Release 19] - 2024-10-21
+
+- **Fixed**
+
+  - Adjusted data item flushing to use the bundle DB worker instead of the core DB worker to prevent write contention and failed flushes under heavy unbundling load.
+
+- **Added**
+
+  - Added `X-AR-IO-Digest`, `X-AR-IO-Stable`, `X-AR-IO-Verified`, and `ETag` headers. `X-AR-IO-Digest` contains a base64 URL encoded representation of the SHA-256 hash of the data item data. It may be empty if the gateway has not previously cached the data locally. `X-AR-IO-Stable` contains either `true` or `false` depending on whether the associated Arweave transaction is more than 18 blocks old or not. `X-AR-IO-Verified` contains either `true` if the gateway has verified the data root of the L1 transaction or the L1 root parent of the data item or `false` if it has not. `ETag` contains the same value a `X-AR-IO-Digest` and is used to improve HTTP caching efficiency.
+  - Added support for using a different data source for on-demand and background data retrieval. Background data retrieval is used when unbundling. The background retrieval data source order is configurable using the `BACKGROUND_RETRIEVAL_ORDER` environment variable and defaults to `chunks,s3,trusted-gateway,tx-data`. Priority is given to chunk retrieval since chunks are verifiable.
+  - Added an `/ar-io/admin/export-parquet/status` to support monitoring of in-progress Parquet export status.
+  - Added `sqlite_in_flight_ops` Prometheus metric with `worker` (`core`, `bundles`, `data`, or `moderation`) and `role` (`read` or `write`) labels to support monitoring the number of in-flight DB operations.
+  - Added experimental Grafana and Prometheus based observability stack. See the "Monitoring and Observability" section of the README for more details.
+
+- **Changed**
+
+  - Bundle data is now retrieved as chunks from Arweave nodes by default so that data roots can be compared against the chain (see entry about background retrieval above).
+  - Changed observer configuration to use 8 instead of 5 chosen names. These are combined with 2 names prescribed from the contract for a total of 10 names observed each epoch to provide increased ArNS observation coverage.
+  - Verification status is set on data items when unbundling a parent that has already been verified.
 
 ## [Release 18] - 2024-10-01
 
 - **Fixed**
 
-  - Improved performance of data attributes query that was preventing `data.db`
-  WAL flushing.
+  - Improved performance of data attributes query that was preventing `data.db` WAL flushing.
 
 - **Added**
 
-  - Added WAL `sqlite_wal_checkpoint_pages` Prometheus metric to help monitor WAL
-  flushing.
-  - Added a POST `/ar-io/admin/export-parquet` endpoint that can be used to
-  export the contents of the SQLite3 core and bundle DBs as Parquet. To trigger
-  an export, POST JSON containing `outputDir`, `startHeight`, `endHeight`, and
-  `maxFileRows` keys. The resulting Parquet files can then be queried directly
-  using DuckDB or loaded into another system (e.g. ClickHouse). Scripts will be
-  provided to help automate the latter in a future release.
-  - Added `ARNS_RESOLVER_OVERRIDE_TTL_SECONDS` that can be used to force ArNS
-  names to refresh before their TTLs expire.
-  - Added a GET `/ar-io/resolver/:name` endpoint that returns an ArNS resolution
-  for the given name.
+  - Added WAL `sqlite_wal_checkpoint_pages` Prometheus metric to help monitor WAL flushing.
+  - Added a POST `/ar-io/admin/export-parquet` endpoint that can be used to export the contents of the SQLite3 core and bundle DBs as Parquet. To trigger an export, POST JSON containing `outputDir`, `startHeight`, `endHeight`, and `maxFileRows` keys. The resulting Parquet files can then be queried directly using DuckDB or loaded into another system (e.g. ClickHouse). Scripts will be provided to help automate the latter in a future release.
+  - Added `ARNS_RESOLVER_OVERRIDE_TTL_SECONDS` that can be used to force ArNS names to refresh before their TTLs expire.
+  - Added a GET `/ar-io/resolver/:name` endpoint that returns an ArNS resolution for the given name.
 
 - **Changed**
 
-  - Removed ArNS resolver service in favor of integrated resolver. If a
-  standalone resolver is still desired, the core service can be run with the
-  `START_WRITERS` environment variable set to `false`. This will disable
-  indexing while preserving resolver functionality.
-  - Deduplicated writes to `data.db` to improve performance and reduce WAL growth
-  rate.
+  - Removed ArNS resolver service in favor of integrated resolver. If a standalone resolver is still desired, the core service can be run with the `START_WRITERS` environment variable set to `false`. This will disable indexing while preserving resolver functionality.
+  - Deduplicated writes to `data.db` to improve performance and reduce WAL growth rate.
 
 ## [Release 17] - 2024-09-09
 
 - **Notes**
 
-  - This release includes a **LONG RUNNING MIGRATION**. Your node may appear
-  unresponsive while it is running. It is best to wait for it to complete. If
-  it fails or is interrupted, removing your SQLite DBs (in `data/sqlite` by
-  default) should resolve the issue, provided you are willing to lose your
-  GraphQL index and let your node rebuild it.
+  - This release includes a **LONG RUNNING MIGRATION**. Your node may appear unresponsive while it is running. It is best to wait for it to complete. If it fails or is interrupted, removing your SQLite DBs (in `data/sqlite` by default) should resolve the issue, provided you are willing to lose your GraphQL index and let your node rebuild it.
 
 - **Fixed**
 
-  - Use the correct environment variable to populate `WEBHOOK_BLOCK_FILTER` in
-  `docker-compose.yaml`.
-  - Don't cache data regions retrieved to satisfy range requests to avoid
-  unnecessary storage overhead and prevent inserting invalid ID to hash
-  mappings into the data DB.
+  - Use the correct environment variable to populate `WEBHOOK_BLOCK_FILTER` in `docker-compose.yaml`.
+  - Don't cache data regions retrieved to satisfy range requests to avoid unnecessary storage overhead and prevent inserting invalid ID to hash mappings into the data DB.
 
 - **Added**
 
-  - Added a new ClickHouse based DB backend. It can be used in combination with
-  the SQLite DB backend to enable batch loading of historical data from
-  Parquet. It also opens up the possibility of higher DB performance and
-  scalability. In its current state it should be considered a technology
-  preview. It won't be useful to most users until we either provide Parquet
-  files to load into it or automate flushing of the SQLite DB to it (both are
-  planned in future release). It is not intended to be standalone solution. It
-  supports bulk loading and efficient GraphQL querying of transactions and data
-  items, but it relies on SQLite (or potentially another OLTP in the future) to
-  index recent data. These limitations allow greatly simplified schema and
-  query construction. Querying the new ClickHouse DB for transaction and data
-  items via GraphQL is enabled by setting the `CLICKHOUSE_URL` environment
-  variable.
-  - Added the ability to skip storing transaction signatures in the DB by setting
-  WRITE_TRANSACTION_DB_SIGNATURES to false. Missing signatures are fetched from
-  the trusted Arweave node when needed for GraphQL results.
-  - Added a Redis backed signature cache to support retrieving optimistically
-  indexed data item signatures in GraphQL queries when writing data items
-  signatures to the DB has been disabled.
-  - Added on-demand and composite ArNS resolvers. The on-demand resolver
-  fetches results directly from an AO CU. The composite resolver attempts
-  resolution in the order specified by the `ARNS_RESOLVER_PRIORITY_ORDER`
-  environment variable (defaults to `on-demand,gateway`).
-  - Added a queue_length Prometheus metric to fasciliate monitoring queues and
-  inform future optimizations
-  - Added SQLite WAL cleanup worker to help manage the size of the `data.db-wal`
-  file. Future improvements to `data.db` usage are also planned to further
-  improve WAL management.
+  - Added a new ClickHouse based DB backend. It can be used in combination with the SQLite DB backend to enable batch loading of historical data from Parquet. It also opens up the possibility of higher DB performance and scalability. In its current state it should be considered a technology preview. It won't be useful to most users until we either provide Parquet files to load into it or automate flushing of the SQLite DB to it (both are planned in future release). It is not intended to be standalone solution. It supports bulk loading and efficient GraphQL querying of transactions and data items, but it relies on SQLite (or potentially another OLTP in the future) to index recent data. These limitations allow greatly simplified schema and query construction. Querying the new ClickHouse DB for transaction and data items via GraphQL is enabled by setting the `CLICKHOUSE_URL` environment variable.
+  - Added the ability to skip storing transaction signatures in the DB by setting `WRITE_TRANSACTION_DB_SIGNATURES` to false. Missing signatures are fetched from the trusted Arweave node when needed for GraphQL results.
+  - Added a Redis backed signature cache to support retrieving optimistically indexed data item signatures in GraphQL queries when writing data items signatures to the DB has been disabled.
+  - Added on-demand and composite ArNS resolvers. The on-demand resolver fetches results directly from an AO CU. The composite resolver attempts resolution in the order specified by the `ARNS_RESOLVER_PRIORITY_ORDER` environment variable (defaults to `on-demand,gateway`).
+  - Added a queue_length Prometheus metric to fasciliate monitoring queues and inform future optimizations
+  - Added SQLite WAL cleanup worker to help manage the size of the `data.db-wal` file. Future improvements to `data.db` usage are also planned to further improve WAL management.
 
 - **Changed**
 
-  - Handle data requests by ID on ArNS sites. This enables ArNS sites to use
-  relative links to data by ID.
-  - Replaced `ARNS_RESOLVER_TYPE` with `ARNS_RESOLVER_PRIORITY_ORDER` (defaults to
-  `on-demand,gateway`).
-  - Introduced unbundling back pressure. When either data item data or GraphQL
-  indexing queue depths are more than the value specified by the
-  `MAX_DATA_ITEM_QUEUE_SIZE` environment variable (defaults to 100000),
-  unbundling is paused until the queues length falls bellow that threshold.
-  This prevents the gateway from running out of memory when the unbundling rate
-  exceeds the indexing rate while avoiding wasteful bundle reprocessing.
-  - Prioritized optimistic data item indexing by inserting optimistic data items
-  at the front of the indexing queues.
-  - Prioritized nested bundle indexing by inserting nested bundles at the front
-  of the unbundling queue.
+  - Handle data requests by ID on ArNS sites. This enables ArNS sites to use relative links to data by ID.
+  - Replaced `ARNS_RESOLVER_TYPE` with `ARNS_RESOLVER_PRIORITY_ORDER` (defaults to `on-demand,gateway`).
+  - Introduced unbundling back pressure. When either data item data or GraphQL indexing queue depths are more than the value specified by the `MAX_DATA_ITEM_QUEUE_SIZE` environment variable (defaults to 100000), unbundling is paused until the queues length falls bellow that threshold. This prevents the gateway from running out of memory when the unbundling rate exceeds the indexing rate while avoiding wasteful bundle reprocessing.
+  - Prioritized optimistic data item indexing by inserting optimistic data items at the front of the indexing queues.
+  - Prioritized nested bundle indexing by inserting nested bundles at the front of the unbundling queue.
 
 ## [Release 16] - 2024-08-09
 
