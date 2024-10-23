@@ -212,6 +212,15 @@ module.exports = [
           },
         ],
       },
+      {
+        title: "Projects",
+        children: [
+          {
+            title: "ArNS Viewer",
+            path: "/guides/projects/arns-viewer"
+          },
+        ]
+      },
       // {
       //   title: "Contribute to Docs",
       //   path: "/contribute",
