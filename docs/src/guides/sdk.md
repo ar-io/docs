@@ -23,8 +23,10 @@ npm install @ar.io/sdk
 or
 
 ```shell
-yarn add @ar.io/sdk
+yarn add @ar.io/sdk --ignore-engines
 ```
+
+***NOTE***: The `--ignore-engines` flag i required when using yarn, as [permaweb/aoconnect](https://github.com/permaweb/aoconnect) recommends only the use of npm. Alternatively, you can add a `.yarnrc.yml` file to your project containing `ignore-engines true` to ignore the engine check.
 
 ## Quick Start
 
@@ -191,15 +193,49 @@ const info = await io.getInfo();
 
 <details><summary>Output</summary>
 
-```typescript
+```json
 {
-  "name": "Testnet IO",
-  "ticker": "tIO",
-  "owner": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
-  "denomination": "IO"
+  "Name": "Testnet IO",
+  "Ticker": "tIO",
+  "Owner": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
+  "Denomination": 6,
+  "Handlers": ["_eval", "_default_"], // full list of handlers, useful for debugging
+  "LastTickedEpochIndex": 31 // epoch index of the last tick
 }
 ```
 </details>
+
+#### `getTokenSupply()`
+
+Retrieves the total supply of tokens, returned in mIO. The total supply includes the following:
+
+- `total` - the total supply of all tokens
+- `circulating` - the total supply minus locked, withdrawn, delegated, and staked
+- `locked` - tokens that are locked in the protocol (a.k.a. vaulted)
+- `withdrawn` - tokens that have been withdrawn from the protocol by operators and delegators
+- `delegated` - tokens that have been delegated to gateways
+- `staked` - tokens that are staked in the protocol by gateway operators
+- `protocolBalance` - tokens that are held in the protocol's treasury. This is included in the circulating supply
+
+```typescript
+const io = IO.init();
+const supply = await io.getTokenSupply();
+```
+<details><summary>Output</summary>
+
+```json
+{
+  "total": 1000000000000000000,
+  "circulating": 998094653842520,
+  "locked": 0,
+  "withdrawn": 560563387278,
+  "delegated": 1750000000,
+  "staked": 1343032770199,
+  "protocolBalance": 46317263683761
+}
+```
+</details>
+
 
 #### `getBalance({ address })`
 
@@ -210,11 +246,9 @@ const io = IO.init();
 // the balance will be returned in mIO as a value
 const balance = await io
   .getBalance({
-    address: 'INSERT_WALLET_ADDRESS',
+    address: 'QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ',
   })
-  .then((balance) => new mIOToken().toIO());
-
-console.log(balance.valueOf());
+  .then((balance: number) => new mIOToken(balance).toIO()); // convert it to IO for readability
 ```
 
 <details><summary>Output</summary>
@@ -273,9 +307,8 @@ const gateway = await io.getGateway({
 
 ```json
 {
-  "end": 0,
-  "observerWallet": "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs",
-  "operatorStake": 250000000000, // value in mIO
+  "observerAddress": "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs",
+  "operatorStake": 250000000000,
   "settings": {
     "fqdn": "ar-io.dev",
     "label": "AR.IO Test",
@@ -284,16 +317,24 @@ const gateway = await io.getGateway({
     "properties": "raJgvbFU-YAnku-WsupIdbTsqqGLQiYpGzoqk9SCVgY",
     "protocol": "https"
   },
-  "start": 1256694,
+  "startTimestamp": 1720720620813,
   "stats": {
     "failedConsecutiveEpochs": 0,
     "passedEpochCount": 30,
     "submittedEpochCount": 30,
-    "totalEpochParticipationCount": 31,
+    "totalEpochCount": 31,
     "totalEpochsPrescribedCount": 31
   },
   "status": "joined",
-  "vaults": {}
+  "vaults": {},
+  "weights": {
+    "compositeWeight": 0.97688888893556,
+    "gatewayRewardRatioWeight": 1,
+    "tenureWeight": 0.19444444444444,
+    "observerRewardRatioWeight": 1,
+    "normalizedCompositeWeight": 0.19247316211083,
+    "stakeWeight": 5.02400000024
+  }
 }
 ```
 </details>
@@ -335,11 +376,19 @@ Available `sortBy` options are any of the keys on the gateway object, e.g. `oper
         "failedConsecutiveEpochs": 0,
         "passedEpochCount": 30,
         "submittedEpochCount": 30,
-        "totalEpochParticipationCount": 31,
+        "totalEpochCount": 31,
         "totalEpochsPrescribedCount": 31
       },
       "status": "joined",
-      "vaults": {}
+      "vaults": {},
+      "weights": {
+        "compositeWeight": 0.97688888893556,
+        "gatewayRewardRatioWeight": 1,
+        "tenureWeight": 0.19444444444444,
+        "observerRewardRatioWeight": 1,
+        "normalizedCompositeWeight": 0.19247316211083,
+        "stakeWeight": 5.02400000024
+      }
     }
   ],
   "hasMore": true,
@@ -444,6 +493,22 @@ Available `sortBy` options are any of the keys on the record object, e.g. `name`
 ```
 </details>
 
+#### `getDemandFactor()`
+
+Retrieves the current demand factor of the network. The demand factor is a multiplier applied to the cost of ArNS interactions based on the current network demand.
+
+```typescript
+const io = IO.init();
+const demandFactor = await io.getDemandFactor();
+```
+<details><summary>Output</summary>
+
+```json
+1.05256
+```
+</details>
+
+
 #### `getObservations({ epochIndex })`
 
 Returns the epoch-indexed observation list.
@@ -477,29 +542,41 @@ const observations = await io.getObservations();
 
 #### `getDistributions({ epochIndex })`
 
-Returns the current rewards distribution information.
+Returns the current rewards distribution information. If no epoch index is provided, the current epoch is used.
 
 ```typescript
 const io = IO.init();
-const distributions = await io.getDistributions();
+const distributions = await io.getDistributions({ epochIndex: 0 });
 ```
 
 <details><summary>Output</summary>
 
 ```json
 {
-  "epochEndHeight": 1382379,
-  "epochPeriod": 43,
-  "epochStartHeight": 1381660,
-  "epochZeroStartHeight": 1350700,
-  "nextDistributionHeight": 1382394
+  "totalEligibleGateways": 1,
+  "totalEligibleRewards": 100000000,
+  "totalEligibleObserverReward": 100000000,
+  "totalEligibleGatewayReward": 100000000,
+  "totalDistributedRewards": 100000000,
+  "distributedTimestamp": 1720720621424,
+  "rewards": {
+    "eligible": {
+      "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs": {
+        "operatorReward": 100000000,
+        "delegateRewards": {}
+      }
+    },
+    "distributed": {
+      "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs": 100000000
+    }
+  }
 }
 ```
 </details>
 
 #### `getEpoch({ epochIndex })`
 
-Returns the epoch data for the specified block height.
+Returns the epoch data for the specified block height. If no epoch index is provided, the current epoch is used.
 
 ```typescript
 const io = IO.init();
@@ -511,10 +588,10 @@ const epoch = await io.getEpoch({ epochIndex: 0 });
 ```json
 {
   "epochIndex": 0,
-  "startTimestamp": 1694101828,
-  "endTimestamp": 1711122739,
+  "startTimestamp": 1720720620813,
+  "endTimestamp": 1752256702026,
   "startHeight": 1350700,
-  "distributionTimestamp": 1711122739,
+  "distributionTimestamp": 1752256702026,
   "observations": {
     "failureSummaries": {
       "-Tk2DDk8k4zkwtppp_XFKKI5oUgh6IEHygAoN7mD-w8": [
@@ -531,7 +608,7 @@ const epoch = await io.getEpoch({ epochIndex: 0 });
       "gatewayAddress": "2Fk8lCmDegPg6jjprl57-UCpKmNgYiKwyhkU4vMNDnE",
       "observerAddress": "2Fk8lCmDegPg6jjprl57-UCpKmNgYiKwyhkU4vMNDnE",
       "stake": 10000000000, // value in mIO
-      "start": 1292450,
+      "startTimestamp": 1720720620813,
       "stakeWeight": 1,
       "tenureWeight": 0.4494598765432099,
       "gatewayRewardRatioWeight": 1,
@@ -541,10 +618,22 @@ const epoch = await io.getEpoch({ epochIndex: 0 });
     }
   ],
   "distributions": {
-    "distributedTimestamp": 1711122739,
+    "totalEligibleGateways": 1,
     "totalEligibleRewards": 100000000,
+    "totalEligibleObserverReward": 100000000,
+    "totalEligibleGatewayReward": 100000000,
+    "totalDistributedRewards": 100000000,
+    "distributedTimestamp": 1720720621424,
     "rewards": {
-      "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs": 100000000
+      "eligible": {
+        "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs": {
+          "operatorReward": 100000000,
+          "delegateRewards": {}
+        }
+      },
+      "distributed": {
+        "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs": 100000000
+      }
     }
   }
 }
@@ -565,8 +654,8 @@ const epoch = await io.getCurrentEpoch();
 ```json
 {
   "epochIndex": 0,
-  "startTimestamp": 1694101828,
-  "endTimestamp": 1711122739,
+  "startTimestamp": 1720720621424,
+  "endTimestamp": 1752256702026,
   "startHeight": 1350700,
   "distributionTimestamp": 1711122739,
   "observations": {
@@ -584,7 +673,7 @@ const epoch = await io.getCurrentEpoch();
     {
       "gatewayAddress": "2Fk8lCmDegPg6jjprl57-UCpKmNgYiKwyhkU4vMNDnE",
       "observerAddress": "2Fk8lCmDegPg6jjprl57-UCpKmNgYiKwyhkU4vMNDnE",
-      "stake": 10000000000, // value in mIO
+      "stake": 10000000000,
       "start": 1292450,
       "stakeWeight": 1,
       "tenureWeight": 0.4494598765432099,
@@ -645,15 +734,13 @@ const price = await io
     name: 'ar-io',
     type: 'permabuy',
   })
-  .then((p) => new mIOToken(p).toIO());
-// Price is returned as mio, convert to IO and log it out
-console.log({ price: price.valueOf() });
+  .then((p) => new mIOToken(p).toIO()); // convert to IO for readability
 ```
 
 <details><summary>Output</summary>
 
 ```json
-{ "price": 1642.62 }
+1642.34
 ```
 
 </details>
@@ -717,7 +804,6 @@ const { id: txId } = await io.updateGatewaySettings(
   // optional additional tags
   { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
 );
-// t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3
 ```
 
 #### `increaseDelegateStake({ target, qty })`
@@ -814,7 +900,7 @@ const { id: txId } = await io.saveObservations(
 
 #### `transfer({ target, qty, denomination })`
 
-Transfers `IO` or `mIO` depending on the `denomination` selected, defaulting as `IO`, to the designated `target` recipient address. 
+Transfers `mIO` to the designated `target` recipient address. 
 
 **NOTE**: Requires `signer` to be provided on `IO.init` to sign the transaction.
 
@@ -824,7 +910,6 @@ const { id: txId } = await io.transfer(
   {
     target: '-5dV7nk7waR8v4STuwPnTck1zFVkQqJh5K9q9Zik4Y5',
     qty: new IOToken(1000).toMIO(),
-    denomination: 'IO',
   },
   // optional additional tags
   { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
@@ -865,6 +950,28 @@ const { id: txId } = await io.extendLease(
 );
 ```
 
+#### `cancelDelegateWithdrawal({ address, vaultId })`
+
+Cancels a pending delegate withdrawal.
+
+**NOTE**: Requires `signer` to be provided on `IO.init` to sign the transaction.
+
+```typescript
+const io = IO.init({ signer: new ArweaveSigner(jwk) });
+const { id: txId } = await io.cancelDelegateWithdrawal(
+  {
+    // gateway address where vault exists
+    address: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
+    // vault id to cancel
+    vaultId: 'fDrr0_J4Iurt7caNST02cMotaz2FIbWQ4Kcj616RHl3',
+  },
+  // optional additional tags
+  { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+);
+```
+
+
+
 ### Configuration
 
 The IO client class exposes APIs relevenat to the ar.io process. It can be configured to use any AO Process ID that adheres to the [IO Network Spec](https://github.com/ar-io/ar-io-network-process?tab=readme-ov-file#contract-spec). By default, it will use the current [IO testnet process](https://www.ao.link/#/entity/agYcCFJtrMG6cqMuZfskIkFTGvUPddICmtQSBIoPdiA). Refer to [AO Connect](https://github.com/permaweb/ao/tree/main/connect) for more information on how to configure an IO process to use specific AO infrastructure.
@@ -890,7 +997,7 @@ The ANT client class exposes APIs relevant to compliant Arweave Name Token proce
 
 ### APIs
 
-#### `init({signer, processId })`
+#### `init({ processId, signer })`
 
 Factory function to that creates a read-only or writeable client. By providing a `signer` additional write APIs that require signing, like `setRecord` and `transfer` are available. By default, a read-only client is returned and no write APIs are available.
 
@@ -923,6 +1030,47 @@ const info = await ant.getInfo();
   "name": "Ardrive",
   "ticker": "ANT-ARDRIVE",
   "owner": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ"
+}
+```
+</details>
+
+#### `getState()`
+
+Retrieves the state of the ANT process.
+
+```typescript
+const state = await ant.getState();
+```
+
+<details><summary>Output</summary>
+
+```json
+{
+  "TotalSupply": 1,
+  "Balances": {
+    "98O1_xqDLrBKRfQPWjF5p7xZ4Jx6GM8P5PeJn26xwUY": 1
+  },
+  "Controllers": [],
+  "Records": {
+    "v1-0-0_whitepaper": {
+      "transactionId": "lNjWn3LpyhKC95Kqe-x8X2qgju0j98MhucdDKK85vc4",
+      "ttlSeconds": 900
+    },
+    "@": {
+      "transactionId": "2rMLb2uHAyEt7jSu6bXtKx8e-jOfIf7E-DOgQnm8EtU",
+      "ttlSeconds": 3600
+    },
+    "whitepaper": {
+      "transactionId": "lNjWn3LpyhKC95Kqe-x8X2qgju0j98MhucdDKK85vc4",
+      "ttlSeconds": 900
+    }
+  },
+  "Initialized": true,
+  "Ticker": "ANT-AR-IO",
+  "Logo": "Sie_26dvgyok0PZD_-iQAFOhOd5YxDTkczOLoqTTL_A",
+  "Denomination": 0,
+  "Name": "AR.IO Foundation",
+  "Owner": "98O1_xqDLrBKRfQPWjF5p7xZ4Jx6GM8P5PeJn26xwUY"
 }
 ```
 </details>
@@ -1043,7 +1191,7 @@ const { id: txId } = await ant.removeController(
 );
 ```
 
-#### `setRecord({ subDomain, transactionId, ttlSeconds })`
+#### `setRecord({ undername, transactionId, ttlSeconds })`
 
 Updates or creates a record in the ANT process.
 
@@ -1167,6 +1315,29 @@ while (hasMore) {
   hasMore = page.hasMore;
 }
 ```
+
+## Resources
+
+### Bundling
+
+For [ANS-104](https://github.com/ArweaveTeam/arweave-standards/blob/master/ans/ANS-104.md) bundling compatible with ar.io gateways, we recommend using [turbo-sdk](https://github.com/ardriveapp/turbo-sdk). Turbo SDK provides efficient and reliable methods for creating and uploading data bundles to the Arweave network, which are fully compatible with ar.io gateways. Turbo supports fiat and crypto bundling and uploading with a focus on ease of use and reliability.
+
+### Gateways
+
+#### Running a Gateway
+
+To run your own ar.io gateway, you can refer to the following resources:
+
+- [ar-io-node repository](https://github.com/ar-io/ar-io-node): This repository contains the source code and instructions for setting up and running an ar.io gateway node.
+- [ar.io Gateway Documentation](https://docs.ar.io/gateways/ar-io-node/overview/): This comprehensive guide provides detailed information on gateway setup, configuration, and management.
+
+Running your own gateway allows you to participate in the ar.io network, serve Arweave data, and potentially earn rewards. Make sure to follow the official documentation for the most up-to-date and accurate information on gateway operation.
+
+### AO
+
+This library integrates with [AO](https://github.com/permaweb/ao), a decentralized compute platform built on Arweave. We utilize [AO Connect](https://github.com/permaweb/ao/tree/main/connect) to interact with AO processes and messages. This integration allows for seamless communication with the AO network, enabling developers to leverage decentralized computation and storage capabilities in their applications.
+
+For more information on how to use AO and AO Connect within this library, please refer to our documentation and examples.
 
 ## Developers
 
