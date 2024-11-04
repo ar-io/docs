@@ -23,29 +23,21 @@ By the end of this guide, you will have a complete, functional project that not 
 
 ### Install ARNext
 
-ARNext is a brand new framework that is still in development. It doesnt **_yet_** support installation using npx or yarn like many other established frameworks do. Instead, you will need to clone the github repository directly. Users who are familiar with git and github can fork the repository into their own account before cloning, but that is not required.
+ARNext is a brand new framework that is still in development. It supports installation using npx, and you will need the proper Node version for the installation to be successful.
 
-To clone the repository, in a terminal navigate to where you want to put the files, and then run:
 
 ```bash
-git clone https://github.com/weavedb/arnext
+npx create-arnext-app arnext
+
 ```
 
-This will copy all of the core files for the framework into a new folder on your computer. You can then move your terminal into that new folder with:
+You can then move your terminal into that newly created folder with:
 
 ```bash
 cd arnext
 ```
 
 or open the folder in an IDE like VSCode, and open a new terminal inside that IDE in order to complete the next steps.
-
-### Install Dependencies
-
-Because ARNext is so new, and still under development, it currently only contains a lock file for npm, not yarn. It is recommended you install all of the project's dependencies using npm.
-
-```bash
-npm install
-```
 
 ### Sanity Check
 
@@ -61,8 +53,6 @@ or, if you prefer yarn:
 yarn dev
 ```
 
-Running scripts using yarn will not cause any conflicts with dependencies installled with npm.
-
 By default, the project will be served on port 3000, so you can access it by navigating to `localhost:3000` in any browser. You should see something that looks like this:
 
 //TODO: get pictures when its not broken
@@ -71,11 +61,19 @@ With this complete, you are ready to move on to customizing for your own project
 
 ## Install ar.io SDK
 
-Next, install the ar.io SDK using npm to avoid conflicts with the existing npm packages.
+Next, install the ar.io SDK.
 
 ```bash
 npm install @ar.io/sdk
 ```
+
+or 
+
+```bash
+yarn add @ar.io/sdk --ignore-engines
+```
+
+
 
 ### Polyfills
 
@@ -91,42 +89,30 @@ The below command will install several packages as development dependencies, whi
 npm install webpack browserify-fs process buffer --save-dev
 ```
 
-#### Next Config
+or
 
-With the polyfill packages installed, we need to tell our app how to use them. In NextJS, which ARNext is built on, this is done in the `next.config.mjs` file in the root of the project. The default config file will look like this:
-
-```typescript
-/** @type {import('next').NextConfig} */
-const isArweave = process.env.NEXT_PUBLIC_DEPLOY_TARGET === "arweave";
-let env = {};
-for (const k in process.env) {
-  if (/^NEXT_PUBLIC_/.test(k)) env[k] = process.env[k];
-}
-const nextConfig = {
-  reactStrictMode: true,
-  ...(isArweave ? { output: "export", publicRuntimeConfig: env } : {}),
-  images: { unoptimized: isArweave },
-};
-
-export default nextConfig;
+```bash
+yarn add webpack browserify-fs process buffer --dev
 ```
 
-This configuration allows the app to determine if it is being served via an Arweave transaction Id, or through a more traditional method. From here, we need to add in the additional configurations for resolving our polyfills. The updated `next.config.mjs` will look like this:
+#### Next Config
+
+With the polyfill packages installed, we need to tell our app how to use them. In NextJS, which ARNext is built on, this is done in the `next.config.js` file in the root of the project. The default config file will look like this:
 
 ```typescript
-// next.config.mjs
-import webpack from "webpack";
+const arnext = require("arnext/config")
+const nextConfig = { reactStrictMode: true }
+module.exports = arnext(nextConfig)
+```
 
-const isArweave = process.env.NEXT_PUBLIC_DEPLOY_TARGET === "arweave";
-let env = {};
-for (const k in process.env) {
-  if (/^NEXT_PUBLIC_/.test(k)) env[k] = process.env[k];
-}
+This configuration allows the app to determine if it is being served via an Arweave transaction Id, or through a more traditional method. From here, we need to add in the additional configurations for resolving our polyfills. The updated `next.config.js` will look like this:
+
+```typescript
+const arnext = require("arnext/config");
+const webpack = require("webpack");
 
 const nextConfig = {
   reactStrictMode: true,
-  ...(isArweave ? { output: "export", publicRuntimeConfig: env } : {}),
-  images: { unoptimized: isArweave },
   webpack: (config) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,
@@ -143,8 +129,7 @@ const nextConfig = {
     return config;
   },
 };
-
-export default nextConfig;
+module.exports = arnext(nextConfig);
 ```
 
 With that, you are ready to start customizing your app.
