@@ -23,29 +23,21 @@ By the end of this guide, you will have a complete, functional project that not 
 
 ### Install ARNext
 
-ARNext is a brand new framework that is still in development. It doesnt **_yet_** support installation using npx or yarn like many other established frameworks do. Instead, you will need to clone the github repository directly. Users who are familiar with git and github can fork the repository into their own account before cloning, but that is not required.
+ARNext is a brand new framework that is still in development. It supports installation using npx, and you will need the proper Node version for the installation to be successful.
 
-To clone the repository, in a terminal navigate to where you want to put the files, and then run:
 
 ```bash
-git clone https://github.com/weavedb/arnext
+npx create-arnext-app arnext
+
 ```
 
-This will copy all of the core files for the framework into a new folder on your computer. You can then move your terminal into that new folder with:
+You can then move your terminal into that newly created folder with:
 
 ```bash
 cd arnext
 ```
 
 or open the folder in an IDE like VSCode, and open a new terminal inside that IDE in order to complete the next steps.
-
-### Install Dependencies
-
-Because ARNext is so new, and still under development, it currently only contains a lock file for npm, not yarn. It is recommended you install all of the project's dependencies using npm.
-
-```bash
-npm install
-```
 
 ### Sanity Check
 
@@ -61,21 +53,27 @@ or, if you prefer yarn:
 yarn dev
 ```
 
-Running scripts using yarn will not cause any conflicts with dependencies installled with npm.
-
 By default, the project will be served on port 3000, so you can access it by navigating to `localhost:3000` in any browser. You should see something that looks like this:
 
-//TODO: get pictures when its not broken
+<img class="demoImage" :src="$withBase('/images/sanity-home.png')">
 
 With this complete, you are ready to move on to customizing for your own project.
 
 ## Install ar.io SDK
 
-Next, install the ar.io SDK using npm to avoid conflicts with the existing npm packages.
+Next, install the ar.io SDK.
 
 ```bash
 npm install @ar.io/sdk
 ```
+
+or 
+
+```bash
+yarn add @ar.io/sdk --ignore-engines
+```
+
+
 
 ### Polyfills
 
@@ -91,42 +89,30 @@ The below command will install several packages as development dependencies, whi
 npm install webpack browserify-fs process buffer --save-dev
 ```
 
-#### Next Config
+or
 
-With the polyfill packages installed, we need to tell our app how to use them. In NextJS, which ARNext is built on, this is done in the `next.config.mjs` file in the root of the project. The default config file will look like this:
-
-```typescript
-/** @type {import('next').NextConfig} */
-const isArweave = process.env.NEXT_PUBLIC_DEPLOY_TARGET === "arweave";
-let env = {};
-for (const k in process.env) {
-  if (/^NEXT_PUBLIC_/.test(k)) env[k] = process.env[k];
-}
-const nextConfig = {
-  reactStrictMode: true,
-  ...(isArweave ? { output: "export", publicRuntimeConfig: env } : {}),
-  images: { unoptimized: isArweave },
-};
-
-export default nextConfig;
+```bash
+yarn add webpack browserify-fs process buffer --dev --ignore-engines
 ```
 
-This configuration allows the app to determine if it is being served via an Arweave transaction Id, or through a more traditional method. From here, we need to add in the additional configurations for resolving our polyfills. The updated `next.config.mjs` will look like this:
+#### Next Config
+
+With the polyfill packages installed, we need to tell our app how to use them. In NextJS, which ARNext is built on, this is done in the `next.config.js` file in the root of the project. The default config file will look like this:
 
 ```typescript
-// next.config.mjs
-import webpack from "webpack";
+const arnext = require("arnext/config")
+const nextConfig = { reactStrictMode: true }
+module.exports = arnext(nextConfig)
+```
 
-const isArweave = process.env.NEXT_PUBLIC_DEPLOY_TARGET === "arweave";
-let env = {};
-for (const k in process.env) {
-  if (/^NEXT_PUBLIC_/.test(k)) env[k] = process.env[k];
-}
+This configuration allows the app to determine if it is being served via an Arweave transaction Id, or through a more traditional method. From here, we need to add in the additional configurations for resolving our polyfills. The updated `next.config.js` will look like this:
+
+```typescript
+const arnext = require("arnext/config");
+const webpack = require("webpack");
 
 const nextConfig = {
   reactStrictMode: true,
-  ...(isArweave ? { output: "export", publicRuntimeConfig: env } : {}),
-  images: { unoptimized: isArweave },
   webpack: (config) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,
@@ -143,8 +129,7 @@ const nextConfig = {
     return config;
   },
 };
-
-export default nextConfig;
+module.exports = arnext(nextConfig);
 ```
 
 With that, you are ready to start customizing your app.
@@ -166,9 +151,14 @@ The first step in building your custom app is to remove the default content and 
 
    - The folder `pages > posts > [id].js` will not be used in this project. Delete the entire `posts` folder to keep the project organized and free of unnecessary files.
 
-3. **Update Routes**
+3. **Create Header**
 
-   - The `components > ArweaveRoutes.js` file includes a reference to the page we just deleted. Update this file to remove the reference and ensure it reflects the current project structure. The updated `ArweaveRoutes.js` should look like this:
+   - Create a new `components` folder
+   - Inside that, create a `Header.js` file, leave it blank for now.
+
+4. **Create Routes**
+
+   - Create a new file at `components > ArweaveRoutes.js` to handle routing between pages. Leave it simple for now.
 
    ```typescript
    import { Routes, Route } from "react-router-dom";
@@ -185,19 +175,8 @@ The first step in building your custom app is to remove the default content and 
 
    export default ArweaveRoutes;
    ```
-
-4. **Update Header**
-
-   - The `components > Header.js` file will be used, so we should strip it down as well.
-   - Similarly to `index.js` file, we can delete everything and replace it with the following placeholder:
-
-   ```typescript
-   const Header = () => {};
-
-   export default Header;
-   ```
-
 Your project is now a blank slate, ready for your own custom design and functionality. This clean setup will make it easier to build and maintain your application as you move forward.
+
 
 ## Add Utilities
 
@@ -361,7 +340,7 @@ Our home page is going to fetch a list of all ArNS names and display them. To ma
 
 ```javascript
 import React from "react";
-import { Link } from "@/arnext";
+import { Link } from "arnext";
 
 /**
  * RecordsGrid component for displaying a grid of record keys.
@@ -389,7 +368,7 @@ const RecordsGrid = ({ keys }) => {
 export default RecordsGrid;
 ```
 
-This will take an individual ArNS record and display it as a button that logs the record name when clicked. We will update this later to make the button act as a link to the more detailed record page after we build that, which is why we are importing `Link` from `@/arnext`
+This will take an individual ArNS record and display it as a button that logs the record name when clicked. We will update this later to make the button act as a link to the more detailed record page after we build that, which is why we are importing `Link` from `arnext`
 
 ## Home Page
 
@@ -454,7 +433,7 @@ The finished page will look like this:
 
 ```javascript
 import Header from "@/components/Header";
-import { useParams, Link } from "@/arnext"; // Import from ARNext, not NextJS
+import { useParams, Link } from "arnext"; // Import from ARNext, not NextJS
 import { useEffect, useState } from "react";
 import { IO } from "@ar.io/sdk/web";
 import { fetchRecordDetails, setANTRecord } from "@/utils/arweave";
@@ -632,7 +611,7 @@ Now that we have a path for our main page displays to link to, we can update the
 
 ```javascript
 import React from "react";
-import { Link } from "@/arnext";
+import { Link } from "arnext";
 
 /**
  * RecordsGrid component for displaying a grid of record keys.
@@ -643,7 +622,7 @@ const RecordsGrid = ({ keys }) => {
   return (
     <div className="records-grid">
       {keys.map((key, index) => (
-        <Link href={`/names/${key}`} key={index}> // Added Link
+        <Link href={`/names/${key}`} key={index}>
         <button
           key={index}
           className="record-key"
@@ -665,7 +644,7 @@ export default RecordsGrid;
 The ArNS viewer should be fully functional now. You can view it locally in your browser using the same steps as the initial [Sanity Check](#sanity-check) 
 
 - Run `yarn dev` in your terminal
-- Navigate to `localhost:880` in a browser
+- Navigate to `localhost:3000` in a browser
 
 ## CSS
 
@@ -673,7 +652,7 @@ You will likely notice that everything functions correctly, but it doesnt look v
 
 The primary css file for this project is `css > App.css`. You can make whatever css rules here that you like to make the page look the way you want.
 
-//TODO: Get a picture of this code's main page with no css changes
+<img class="demoImage" :src="$withBase('/images/no-css.png')">
 
 ## Deploy With Turbo
 
@@ -691,7 +670,6 @@ Find the section in the print out `manifestResponse` which will have a key named
 
 You can view a permanently deployed version of your project at `https://arweave.net/<transaction-id>`
 
-//TODO: Should I include ArNS instructions here, or just link to other docs?
 
 ## References
 
