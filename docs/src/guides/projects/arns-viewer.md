@@ -55,7 +55,7 @@ yarn dev
 
 By default, the project will be served on port 3000, so you can access it by navigating to `localhost:3000` in any browser. You should see something that looks like this:
 
-//TODO: get pictures when its not broken
+<img class="demoImage" :src="$withBase('/images/sanity-home.png')">
 
 With this complete, you are ready to move on to customizing for your own project.
 
@@ -92,7 +92,7 @@ npm install webpack browserify-fs process buffer --save-dev
 or
 
 ```bash
-yarn add webpack browserify-fs process buffer --dev
+yarn add webpack browserify-fs process buffer --dev --ignore-engines
 ```
 
 #### Next Config
@@ -151,9 +151,14 @@ The first step in building your custom app is to remove the default content and 
 
    - The folder `pages > posts > [id].js` will not be used in this project. Delete the entire `posts` folder to keep the project organized and free of unnecessary files.
 
-3. **Update Routes**
+3. **Create Header**
 
-   - The `components > ArweaveRoutes.js` file includes a reference to the page we just deleted. Update this file to remove the reference and ensure it reflects the current project structure. The updated `ArweaveRoutes.js` should look like this:
+   - Create a new `components` folder
+   - Inside that, create a `Header.js` file, leave it blank for now.
+
+4. **Create Routes**
+
+   - Create a new file at `components > ArweaveRoutes.js` to handle routing between pages. Leave it simple for now.
 
    ```typescript
    import { Routes, Route } from "react-router-dom";
@@ -170,19 +175,8 @@ The first step in building your custom app is to remove the default content and 
 
    export default ArweaveRoutes;
    ```
-
-4. **Update Header**
-
-   - The `components > Header.js` file will be used, so we should strip it down as well.
-   - Similarly to `index.js` file, we can delete everything and replace it with the following placeholder:
-
-   ```typescript
-   const Header = () => {};
-
-   export default Header;
-   ```
-
 Your project is now a blank slate, ready for your own custom design and functionality. This clean setup will make it easier to build and maintain your application as you move forward.
+
 
 ## Add Utilities
 
@@ -346,7 +340,7 @@ Our home page is going to fetch a list of all ArNS names and display them. To ma
 
 ```javascript
 import React from "react";
-import { Link } from "@/arnext";
+import { Link } from "arnext";
 
 /**
  * RecordsGrid component for displaying a grid of record keys.
@@ -374,7 +368,7 @@ const RecordsGrid = ({ keys }) => {
 export default RecordsGrid;
 ```
 
-This will take an individual ArNS record and display it as a button that logs the record name when clicked. We will update this later to make the button act as a link to the more detailed record page after we build that, which is why we are importing `Link` from `@/arnext`
+This will take an individual ArNS record and display it as a button that logs the record name when clicked. We will update this later to make the button act as a link to the more detailed record page after we build that, which is why we are importing `Link` from `arnext`
 
 ## Home Page
 
@@ -439,7 +433,7 @@ The finished page will look like this:
 
 ```javascript
 import Header from "@/components/Header";
-import { useParams, Link } from "@/arnext"; // Import from ARNext, not NextJS
+import { useParams, Link } from "arnext"; // Import from ARNext, not NextJS
 import { useEffect, useState } from "react";
 import { IO } from "@ar.io/sdk/web";
 import { fetchRecordDetails, setANTRecord } from "@/utils/arweave";
@@ -617,7 +611,7 @@ Now that we have a path for our main page displays to link to, we can update the
 
 ```javascript
 import React from "react";
-import { Link } from "@/arnext";
+import { Link } from "arnext";
 
 /**
  * RecordsGrid component for displaying a grid of record keys.
@@ -628,7 +622,7 @@ const RecordsGrid = ({ keys }) => {
   return (
     <div className="records-grid">
       {keys.map((key, index) => (
-        <Link href={`/names/${key}`} key={index}> // Added Link
+        <Link href={`/names/${key}`} key={index}>
         <button
           key={index}
           className="record-key"
@@ -650,7 +644,7 @@ export default RecordsGrid;
 The ArNS viewer should be fully functional now. You can view it locally in your browser using the same steps as the initial [Sanity Check](#sanity-check) 
 
 - Run `yarn dev` in your terminal
-- Navigate to `localhost:880` in a browser
+- Navigate to `localhost:3000` in a browser
 
 ## CSS
 
@@ -658,7 +652,7 @@ You will likely notice that everything functions correctly, but it doesnt look v
 
 The primary css file for this project is `css > App.css`. You can make whatever css rules here that you like to make the page look the way you want.
 
-//TODO: Get a picture of this code's main page with no css changes
+<img class="demoImage" :src="$withBase('/images/no-css.png')">
 
 ## Deploy With Turbo
 
@@ -676,7 +670,6 @@ Find the section in the print out `manifestResponse` which will have a key named
 
 You can view a permanently deployed version of your project at `https://arweave.net/<transaction-id>`
 
-//TODO: Should I include ArNS instructions here, or just link to other docs?
 
 ## References
 
