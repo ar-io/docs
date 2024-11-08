@@ -142,5 +142,6 @@ module.exports = {
     "@vuepress/plugin-medium-zoom",
     "vuepress-plugin-code-copy",
     "fulltext-search",
+    require('./plugins/permalinkCollector')
   ],
 };
