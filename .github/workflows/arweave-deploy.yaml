@@ -27,11 +27,16 @@ jobs:
           yarn build
           cd ..
 
+      - name: Install dependencies for deployment script
+        run: |
+          cd .github/workflows/scripts
+          yarn install
+          cd ../..
+
       - name: Run deployment script
         env:
           DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
-          DEPLOY_ANT_PROCESS_ID: ${{ secrets.DEPLOY_ANT_PROCESS_ID}}
+          DEPLOY_ANT_PROCESS_ID: ${{ secrets.DEPLOY_ANT_PROCESS_ID }}
         run: |
-          cd docs
-          yarn deploy
-          
+          cd .github/workflows/scripts
+          node arweave-deploy.js
