@@ -101,6 +101,19 @@ module.exports = [
         path: "/gateways/ar-io-node/observer-upgrade",
       },
       {
+        title: "Certbot Setup",
+        children: [
+          {
+            title: "Cloudflare",
+            path: "/gateways/ar-io-node/certbot/certbot-renewal-cloudflare",
+          },
+          {
+            title: "Namecheap",
+            path: "/gateways/ar-io-node/certbot/certbot-renewal-namecheap",
+          },
+        ],
+      },
+      {
         title: "Troubleshooting",
         path: "/gateways/ar-io-node/troubleshooting",
       },
