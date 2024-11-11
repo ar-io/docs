@@ -138,6 +138,7 @@ export default {
   },
 
   mounted() {
+    
     this.setupKeyboardShortcuts();
     this.$router.afterEach(() => {
       this.isSidebarOpen = false;
