@@ -108,12 +108,6 @@ export default {
 
     shouldShowSidebar() {
       const { frontmatter } = this.$page;
-      if (this.$page.path == ""){
-        this.$page.path = "/"
-        this.sidebarItems
-        console.log("sidebarItems: ", this.sidebarItems)
-        return resolveSidebarItems(this.$page, "/", this.$site, "/")
-      }
       return (
         !frontmatter.home &&
         frontmatter.sidebar !== false &&
@@ -150,7 +144,6 @@ export default {
       this.isSidebarOpen = false;
     });
     this.updateTheme();
-    console.log("Layout: ", this.$page)
   },
 
   async created() {
