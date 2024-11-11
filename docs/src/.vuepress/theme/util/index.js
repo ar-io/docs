@@ -121,31 +121,39 @@ function resolvePath (relative, base, append) {
  * @param { string } localePath
  * @returns { SidebarGroup }
  */
-export function resolveSidebarItems (page, regularPath, site, localePath) {
-  const { pages, themeConfig } = site
+export function resolveSidebarItems(page, regularPath, site, localePath) {
+  const { pages, themeConfig } = site;
 
   const localeConfig = localePath && themeConfig.locales
     ? themeConfig.locales[localePath] || themeConfig
-    : themeConfig
+    : themeConfig;
 
-  const pageSidebarConfig = page.frontmatter.sidebar || localeConfig.sidebar || themeConfig.sidebar
-  if (pageSidebarConfig === 'auto') {
-    return resolveHeaders(page)
+  // Fallback: If page or regularPath is missing, use root ("/") sidebar config directly
+  if (!page || !regularPath) {
+    console.warn("[vuepress] No page or regularPath found. Falling back to root sidebar.");
+    const fallbackSidebarConfig = themeConfig.sidebar["/"] || [];
+    return fallbackSidebarConfig.map(item => resolveItem(item, pages, '/'));
   }
 
-  const sidebarConfig = localeConfig.sidebar || themeConfig.sidebar
+  const pageSidebarConfig = page.frontmatter.sidebar || localeConfig.sidebar || themeConfig.sidebar;
+  if (pageSidebarConfig === 'auto') {
+    return resolveHeaders(page);
+  }
+
+  const sidebarConfig = localeConfig.sidebar || themeConfig.sidebar;
   if (!sidebarConfig) {
-    return []
+    return [];
   } else {
-    const { base, config } = resolveMatchingConfig(regularPath, sidebarConfig)
+    const { base, config } = resolveMatchingConfig(regularPath, sidebarConfig);
     if (config === 'auto') {
-      return resolveHeaders(page)
+      return resolveHeaders(page);
     }
     return config
       ? config.map(item => resolveItem(item, pages, base))
-      : []
+      : [];
   }
 }
+
 
 /**
  * @param { Page } page
