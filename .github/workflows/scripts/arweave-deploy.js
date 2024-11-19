@@ -48,8 +48,8 @@ async function main() {
     }
   }
 
-  console.log(manifest);
-  console.log(manifestResponse)
+  // console.log(manifest);
+  // console.log(manifestResponse)
 
   async function uploadManifest(manifest) {
 		try {
@@ -83,10 +83,10 @@ async function main() {
   console.log(manifestId)
 
   const signer = new ArweaveSigner(jwk)
-  const ant = ANT.init({processId: process.env.ANT_PROCESS, signer})
+  const ant = ANT.init({processId: process.env.DEPLOY_ANT_PROCESS_ID, signer})
 
   const response = await ant.setRecord({
-    undername: "test",
+    undername: undername,
     transactionId: manifestId,
     ttlSeconds: 900
   })

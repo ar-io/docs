@@ -1,5 +1,5 @@
 ---
-next: false
+
 ---
 
 # Browser Sandboxing

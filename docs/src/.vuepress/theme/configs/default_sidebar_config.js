@@ -161,6 +161,10 @@ module.exports = [
         title: "Browser Sandboxing",
         path: "/concepts/sandboxing",
       },
+      {
+        title: "Normalized Addresses",
+        path: "/concepts/normalized"
+      },
     ],
   },
   {
