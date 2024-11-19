@@ -8,6 +8,8 @@ next: false
 
 Different blockchains use different formats for the [public keys](../glossary.md#public-key) of wallets, and the [native addresses](../glossary.md#native-address) for those wallets. In most cases, when a system in the Arweave ecosystem needs to display the wallet address of a wallet from a different blockchain, for instance in the `owner` value of a data item signed by an ETH wallet, that address will be normalized into the format recognized by Arweave. Specifically, a 43 character base64url representation of the sha256 hash of the public key. This is done to prevent potential errors by systems in the Arweave ecosystem that expect these values to be a certain size and conform to a specific format.
 
+Essentially, normalized addresses are a way to represent public keys and wallet addresses from other blockchains in a way that is familiar to systems in the Arweave ecosystem.
+
 ## Public Keys and Addresses
 
 Crypto wallets consist of two separate components. The public keys, which are public knowledge and can be seen by anyone, and the private keys, which only the owner of a wallet should have access to. Crypto wallet addresses are derived from the public key. 
