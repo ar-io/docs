@@ -1,3 +1,7 @@
+---
+permalink: "/concepts/normalized-addresses"
+next: false
+---
 # Normalized Addresses
 
 ## Overview
