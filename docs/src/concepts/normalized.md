@@ -10,6 +10,8 @@ Different blockchains use different formats for the [public keys](../glossary.md
 
 Essentially, normalized addresses are a way to represent public keys and wallet addresses from other blockchains in a way that is familiar to systems in the Arweave ecosystem.
 
+A tool for easily obtaining a normalized addresses from public keys can be found at [ar://normalize-my-key](https://normalize-my-key.arweave.net/)
+
 ## Public Keys and Addresses
 
 Crypto wallets consist of two separate components. The public keys, which are public knowledge and can be seen by anyone, and the private keys, which only the owner of a wallet should have access to. Crypto wallet addresses are derived from the public key. 
