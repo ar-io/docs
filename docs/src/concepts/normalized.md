@@ -12,6 +12,45 @@ Essentially, normalized addresses are a way to represent public keys and wallet 
 
 A tool for easily obtaining a normalized addresses from public keys can be found at [ar://normalize-my-key](https://normalize-my-key.arweave.net/)
 
+## At A Glance
+
+<div style="text-align: center">
+    <table class="inline-table" id="address-table"  style="text-align: left;">
+    <thead>
+        <tr style="text-align: center">
+            <th></th>
+            <th>Arweave</th>
+            <th>ETH/POL</th>
+            <th>Solana</th>
+        </tr>
+        </thead>
+        </tbody>
+        <tr>
+            <th>Native Address</th>
+            <td>9ODOd-_ZT9oWoRMVmmD4G5f9Z6MjvYxO3Nen-T5OXvU</td>
+            <td>0x084af408C8E492aC52dc0Ec76514A7deF8D5F03f</td>
+            <td>Cd5yb4mvbuQyyJgAkriFZbWQivh2zM68KGZX8Ksn1L85</td>
+        </tr>
+        </tbody>
+        <tbody>
+        <tr>
+            <th>base64url Encoded Public Key</th>
+            <td class="scrollable-cell" >0jkGWDFYI3DHEWaXhZitjTg67T-enQwXs50lTDrMhy2qb619_91drv_50J5PwrOYJiMmYhiEA5ojMvrrAFY-Dm1bJbJfVBU1kIsPho2tFcXnbSOa2_1bovAys0ckJU07wkbmIUpzp3trdxYReB4jayMMOXWw9B8xS0v81zFmK3IbCtL9N6WNTMONOSMATHFQrGqtDhDUqKyIsQZCBPFvfGykRWaLWzbtAUrApprqG9hfExQzppNsw0gsftNSHZ1emC5tC2fuib6FhQw9TE2ge9tUjEZNALcVZvopTtTX0H2gEfnRJ48UNeV3SKggjXcoPVeivmqXuPBGncXWWq1pHR-Xs4zSLA5Mgcw_tQJc4FIER0i7hUlZXoc991ZHyOvAC-GlHWzQwvrlY11oD38pB47NkHN2WVPtUCAtyYQe5TE6Xznd9kPgqqvVUkV0s0suh5vINGoiPEnMjyhYEN7eOmJRIJ_A87IJesbdPRV4ZzBsqPbd02RG3ZuVpc3gI1xKvwH1WS05XI8eWK-BbvB3oxB7WjaQTWcfBWhMEULiwx-SucuyAzPAw3i6Wjtq61TcL9SdWhmOf9_yo-Np052tj7MQ66nmgdOH_MEKYjAdFypxTsRQoSLbv28HEcSjwx8u3pY0q0gKMK_5X2XKJrp2i2GB_fVgbcpH9YsgrYxh1Q8</td>
+            <td class="scrollable-cell">2W5VMzNKYwr51QsiYBHUS5h5wxZf_uBgG7C6xiHgBHwwLUty5LHKFFBDlAxTCTAhglcmys2_HQoOj_LnCkA3</td>
+            <td>rK8XXxd8JqsZFPXVOwkSWS5Gh1SJzftfCOLpLk4i1FY</td>
+        </tr>
+        </tbody>
+        <tbody>
+        <tr>
+            <th>Normalized Address</th>
+            <td>9ODOd-_ZT9oWoRMVmmD4G5f9Z6MjvYxO3Nen-T5OXvU</td>
+            <td>5JtuS4yOFtUX2Rg3UU7AgBaUqh4s8wyyNTZk9UrzI-Q</td>
+            <td>K8kpPM1RID8ZM2sjF5mYy0rP4gXSRDbrwPUd9Qths64</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
 ## Public Keys and Addresses
 
 Crypto wallets consist of two separate components. The public keys, which are public knowledge and can be seen by anyone, and the private keys, which only the owner of a wallet should have access to. Crypto wallet addresses are derived from the public key. 
@@ -69,41 +108,3 @@ Again, this value is used for the GraphQl tag `owner` when uploading data. It ca
 
 `K8kpPM1RID8ZM2sjF5mYy0rP4gXSRDbrwPUd9Qths64`
 
-## At A Glance
-
-<div style="text-align: center">
-    <table class="inline-table" id="address-table"  style="text-align: left;">
-    <thead>
-        <tr style="text-align: center">
-            <th></th>
-            <th>Arweave</th>
-            <th>ETH/POL</th>
-            <th>Solana</th>
-        </tr>
-        </thead>
-        </tbody>
-        <tr>
-            <th>Native Address</th>
-            <td>9ODOd-_ZT9oWoRMVmmD4G5f9Z6MjvYxO3Nen-T5OXvU</td>
-            <td>0x084af408C8E492aC52dc0Ec76514A7deF8D5F03f</td>
-            <td>Cd5yb4mvbuQyyJgAkriFZbWQivh2zM68KGZX8Ksn1L85</td>
-        </tr>
-        </tbody>
-        <tbody>
-        <tr>
-            <th>base64url Encoded Public Key</th>
-            <td class="scrollable-cell" >0jkGWDFYI3DHEWaXhZitjTg67T-enQwXs50lTDrMhy2qb619_91drv_50J5PwrOYJiMmYhiEA5ojMvrrAFY-Dm1bJbJfVBU1kIsPho2tFcXnbSOa2_1bovAys0ckJU07wkbmIUpzp3trdxYReB4jayMMOXWw9B8xS0v81zFmK3IbCtL9N6WNTMONOSMATHFQrGqtDhDUqKyIsQZCBPFvfGykRWaLWzbtAUrApprqG9hfExQzppNsw0gsftNSHZ1emC5tC2fuib6FhQw9TE2ge9tUjEZNALcVZvopTtTX0H2gEfnRJ48UNeV3SKggjXcoPVeivmqXuPBGncXWWq1pHR-Xs4zSLA5Mgcw_tQJc4FIER0i7hUlZXoc991ZHyOvAC-GlHWzQwvrlY11oD38pB47NkHN2WVPtUCAtyYQe5TE6Xznd9kPgqqvVUkV0s0suh5vINGoiPEnMjyhYEN7eOmJRIJ_A87IJesbdPRV4ZzBsqPbd02RG3ZuVpc3gI1xKvwH1WS05XI8eWK-BbvB3oxB7WjaQTWcfBWhMEULiwx-SucuyAzPAw3i6Wjtq61TcL9SdWhmOf9_yo-Np052tj7MQ66nmgdOH_MEKYjAdFypxTsRQoSLbv28HEcSjwx8u3pY0q0gKMK_5X2XKJrp2i2GB_fVgbcpH9YsgrYxh1Q8</td>
-            <td class="scrollable-cell">2W5VMzNKYwr51QsiYBHUS5h5wxZf_uBgG7C6xiHgBHwwLUty5LHKFFBDlAxTCTAhglcmys2_HQoOj_LnCkA3</td>
-            <td>rK8XXxd8JqsZFPXVOwkSWS5Gh1SJzftfCOLpLk4i1FY</td>
-        </tr>
-        </tbody>
-        <tbody>
-        <tr>
-            <th>Normalized Address</th>
-            <td>9ODOd-_ZT9oWoRMVmmD4G5f9Z6MjvYxO3Nen-T5OXvU</td>
-            <td>5JtuS4yOFtUX2Rg3UU7AgBaUqh4s8wyyNTZk9UrzI-Q</td>
-            <td>K8kpPM1RID8ZM2sjF5mYy0rP4gXSRDbrwPUd9Qths64</td>
-        </tr>
-        </tbody>
-    </table>
-</div>
