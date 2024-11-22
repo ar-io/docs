@@ -8,11 +8,23 @@ export interface NavGroup {
   
   export const navigation: Array<NavGroup> = [
 {
-    title: 'General',
+    title: 'Concepts',
     links: [
         {
-            title: 'Token',
-            href: '/token'
+            title: 'Manifests',
+            href: "/learn/concepts/manifests"
+        },
+        {
+            title: "Normalized Addresses",
+            href: "/learn/concepts/normalized-addresses"
+        },
+        {
+            title: "Sandboxing",
+            href: "/learn/concepts/sandboxing"
+        },
+        {
+            title: "Wayfinder",
+            href: "/learn/concepts/wayfinder"
         }
     ]
 },
