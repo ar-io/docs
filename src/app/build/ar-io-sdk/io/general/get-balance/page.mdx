@@ -1,0 +1,77 @@
+import { CodeGroup } from '@/components/Code'
+
+# getBalance
+
+`getBalance` is a method on the `IO` class that retrieves the balance of the specified wallet address.
+
+`getBalance` does not require authentication.
+
+## Parameters
+
+{
+
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>address</th>
+        <td>String</td>
+        <td>The wallet's public address used to check its balance</td>
+        <td>false</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+}
+
+## Examples
+
+<CodeGroup title="getBalance">
+
+    ```typescript {{title: 'NodeJS'}}
+    const {IO, mIOToken} = require('@ar.io/sdk');
+
+    async function main(){
+        const io = IO.init();
+        const balance = await io.getBalance({
+        address: 'QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ',
+        })
+        .then((balance: number) => new mIOToken(balance).toIO()); // convert it to IO for readability
+
+        console.log(balance)
+    }
+
+    main()
+    ```
+    ```typescript {{ title: 'Web' }}
+    import { IO } from '@ar.io/sdk/web';
+
+    async function main() {
+        const io = IO.init();
+        const balance = await io.getBalance({
+        address: 'QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ',
+        })
+        .then((balance: number) => new mIOToken(balance).toIO()); // convert it to IO for readability
+
+        console.log(balance)
+    }
+
+    main();
+    ```
+
+</CodeGroup>
+
+## Output
+
+```typescript
+100000
+```
+
