@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import clsx from 'clsx'
@@ -12,20 +12,26 @@ import { useSectionStore } from '@/components/SectionProvider'
 import { Tag } from '@/components/Tag'
 import { remToPx } from '@/lib/remToPx'
 
-import { mainNavigation } from '@/navConfigs/sidebarConfig'
-
+import { mainNavigation, secondaryNavigation } from '@/navConfigs/sidebarConfig'
 
 function useInitialValue<T>(value: T, condition = true) {
   let initialValue = useRef(value).current
   return condition ? initialValue : value
 }
 
-
 export interface NavGroup {
   title: string;
   links: Array<{
     title: string;
-    href: string;
+    href?: string;
+    children?: Array<{
+      title: string;
+      href?: string;
+      children?: Array<{
+        title: string;
+        href?: string; // Made href optional
+      }>;
+    }>;
   }>;
 }
 
@@ -55,12 +61,14 @@ function NavLink({
   active = false,
   isAnchorLink = false,
 }: {
-  href: string
+  href?: string
   children: React.ReactNode
   tag?: string
   active?: boolean
   isAnchorLink?: boolean
 }) {
+  if (!href) return null // Only render if href is defined
+
   return (
     <Link
       href={href}
@@ -83,6 +91,16 @@ function NavLink({
   )
 }
 
+function isLinkActive(
+  link: { href?: string; children?: { href?: string; children?: any[] }[] },
+  pathname: string
+): boolean {
+  return (
+    link.href === pathname ||
+    (link.children?.some((child) => isLinkActive(child, pathname)) ?? false)
+  );
+}
+
 function VisibleSectionHighlight({
   group,
   pathname,
@@ -90,6 +108,8 @@ function VisibleSectionHighlight({
   group: NavGroup
   pathname: string
 }) {
+  const [highlightTop, setHighlightTop] = useState(0)
+  const [highlightHeight, setHighlightHeight] = useState(remToPx(2))
   let [sections, visibleSections] = useInitialValue(
     [
       useSectionStore((s) => s.sections),
@@ -109,9 +129,32 @@ function VisibleSectionHighlight({
   let height = isPresent
     ? Math.max(1, visibleSections.length) * itemHeight
     : itemHeight
-  let top =
-    group.links.findIndex((link) => link.href === pathname) * itemHeight +
-    firstVisibleSectionIndex * itemHeight
+
+  useEffect(() => {
+    const updateHighlightPosition = () => {
+      const activeLink = findActiveLink(group.links, pathname)
+      if (activeLink) {
+        const linkElement = document.querySelector(`[href='${activeLink.link.href}']`)
+        if (linkElement) {
+          const offsetTop = linkElement.getBoundingClientRect().top + window.scrollY
+          const parentOffsetTop = linkElement.closest('.relative')?.getBoundingClientRect().top ?? 0
+          setHighlightTop(offsetTop - parentOffsetTop)
+        } else {
+          const linkIndex = activeLink.index
+          setHighlightTop(linkIndex * itemHeight + firstVisibleSectionIndex * itemHeight)
+        }
+        setHighlightHeight(height)
+      }
+    }
+
+    updateHighlightPosition()
+    window.addEventListener('scroll', updateHighlightPosition)
+    window.addEventListener('resize', updateHighlightPosition)
+    return () => {
+      window.removeEventListener('scroll', updateHighlightPosition)
+      window.removeEventListener('resize', updateHighlightPosition)
+    }
+  }, [pathname, sections, visibleSections])
 
   return (
     <motion.div
@@ -120,9 +163,19 @@ function VisibleSectionHighlight({
       animate={{ opacity: 1, transition: { delay: 0.2 } }}
       exit={{ opacity: 0 }}
       className="absolute inset-x-0 top-0 bg-zinc-800/2.5 will-change-transform dark:bg-white/2.5"
-      style={{ borderRadius: 8, height, top }}
+      style={{ borderRadius: 8, height: highlightHeight, top: highlightTop }}
     />
   )
+}
+
+function findActiveLink(links: Array<{ href?: string; children?: any[] }>, pathname: string): { link: { href?: string; children?: any[] }; index: number } | null {
+  let activeLink: { link: { href?: string; children?: any[] }; index: number } | null = null
+  links.forEach((link, index) => {
+    if (isLinkActive(link, pathname)) {
+      activeLink = { link, index }
+    }
+  })
+  return activeLink
 }
 
 function ActivePageMarker({
@@ -134,8 +187,9 @@ function ActivePageMarker({
 }) {
   let itemHeight = remToPx(2)
   let offset = remToPx(0.25)
-  let activePageIndex = group.links.findIndex((link) => link.href === pathname)
-  let top = offset + activePageIndex * itemHeight
+
+  const activeLink = findActiveLink(group.links, pathname)
+  let top = activeLink ? offset + activeLink.index * itemHeight : 0
 
   return (
     <motion.div
@@ -156,9 +210,6 @@ function NavigationGroup({
   group: NavGroup
   className?: string
 }) {
-  // If this is the mobile navigation then we always render the initial
-  // state, so that the state does not change during the close animation.
-  // The state will still update when we re-open (re-render) the navigation.
   let isInsideMobileNavigation = useIsInsideMobileNavigation()
   let [pathname, sections] = useInitialValue(
     [usePathname(), useSectionStore((s) => s.sections)],
@@ -166,7 +217,7 @@ function NavigationGroup({
   )
 
   let isActiveGroup =
-    group.links.findIndex((link) => link.href === pathname) !== -1
+    group.links.some((link) => isLinkActive(link, pathname))
 
   return (
     <li className={clsx('relative mt-6', className)}>
@@ -193,38 +244,128 @@ function NavigationGroup({
         </AnimatePresence>
         <ul role="list" className="border-l border-transparent">
           {group.links.map((link) => (
-            <motion.li key={link.href} layout="position" className="relative">
-              <NavLink href={link.href} active={link.href === pathname}>
-                {link.title}
-              </NavLink>
-              <AnimatePresence mode="popLayout" initial={false}>
-                {link.href === pathname && sections.length > 0 && (
-                  <motion.ul
-                    role="list"
-                    initial={{ opacity: 0 }}
-                    animate={{
-                      opacity: 1,
-                      transition: { delay: 0.1 },
-                    }}
-                    exit={{
-                      opacity: 0,
-                      transition: { duration: 0.15 },
-                    }}
-                  >
-                    {sections.map((section) => (
-                      <li key={section.id}>
-                        <NavLink
-                          href={`${link.href}#${section.id}`}
-                          tag={section.tag}
-                          isAnchorLink
-                        >
-                          {section.title}
+            <motion.li key={link.href ?? link.title} layout="position" className="relative">
+              {link.href ? (
+                <NavLink href={link.href} active={isLinkActive(link, pathname)}>
+                  {link.title}
+                </NavLink>
+              ) : (
+                <span className="pl-4 text-sm text-zinc-900 dark:text-white">
+                  {link.title}
+                </span>
+              )}
+              {isLinkActive(link, pathname) && sections.length > 0 && link.href === pathname && (
+                <motion.ul
+                  role="list"
+                  initial={{ opacity: 0 }}
+                  animate={{
+                    opacity: 1,
+                    transition: { delay: 0.1 },
+                  }}
+                  exit={{
+                    opacity: 0,
+                    transition: { duration: 0.15 },
+                  }}
+                >
+                  {sections.map((section) => (
+                    <li key={section.id}>
+                      <NavLink
+                        href={`${link.href}#${section.id}`}
+                        tag={section.tag}
+                        isAnchorLink
+                      >
+                        {section.title}
+                      </NavLink>
+                    </li>
+                  ))}
+                </motion.ul>
+              )}
+              {link.children && (
+                <ul role="list" className="pl-4">
+                  {link.children.map((child) => (
+                    <li key={child.href ?? child.title} className="mt-2">
+                      {child.href ? (
+                        <NavLink href={child.href} active={isLinkActive(child, pathname)}>
+                          {child.title}
                         </NavLink>
-                      </li>
-                    ))}
-                  </motion.ul>
-                )}
-              </AnimatePresence>
+                      ) : (
+                        <span className="pl-4 text-sm text-zinc-900 dark:text-white">
+                          {child.title}
+                        </span>
+                      )}
+                      {isLinkActive(child, pathname) && sections.length > 0 && child.href === pathname && (
+                        <motion.ul
+                          role="list"
+                          initial={{ opacity: 0 }}
+                          animate={{
+                            opacity: 1,
+                            transition: { delay: 0.1 },
+                          }}
+                          exit={{
+                            opacity: 0,
+                            transition: { duration: 0.15 },
+                          }}
+                        >
+                          {sections.map((section) => (
+                            <li key={section.id}>
+                              <NavLink
+                                href={`${child.href}#${section.id}`}
+                                tag={section.tag}
+                                isAnchorLink
+                              >
+                                {section.title}
+                              </NavLink>
+                            </li>
+                          ))}
+                        </motion.ul>
+                      )}
+                      {child.children && (
+                        <ul role="list" className="pl-4">
+                          {child.children.map((subChild) => (
+                            <li key={subChild.href ?? subChild.title} className="mt-2">
+                              {subChild.href ? (
+                                <NavLink href={subChild.href} active={isLinkActive(subChild, pathname)}>
+                                  {subChild.title}
+                                </NavLink>
+                              ) : (
+                                <span className="pl-4 text-sm text-zinc-900 dark:text-white">
+                                  {subChild.title}
+                                </span>
+                              )}
+                              {isLinkActive(subChild, pathname) && sections.length > 0 && subChild.href === pathname && (
+                                <motion.ul
+                                  role="list"
+                                  initial={{ opacity: 0 }}
+                                  animate={{
+                                    opacity: 1,
+                                    transition: { delay: 0.1 },
+                                  }}
+                                  exit={{
+                                    opacity: 0,
+                                    transition: { duration: 0.15 },
+                                  }}
+                                >
+                                  {sections.map((section) => (
+                                    <li key={section.id}>
+                                      <NavLink
+                                        href={`${subChild.href}#${section.id}`}
+                                        tag={section.tag}
+                                        isAnchorLink
+                                      >
+                                        {section.title}
+                                      </NavLink>
+                                    </li>
+                                  ))}
+                                </motion.ul>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </motion.li>
           ))}
         </ul>
@@ -233,15 +374,17 @@ function NavigationGroup({
   )
 }
 
-
 export function Navigation(props: React.ComponentPropsWithoutRef<'nav'>) {
+  const pathname = usePathname()
+  const currentNavigation = pathname.startsWith('/build') ? secondaryNavigation : mainNavigation
+
   return (
     <nav {...props}>
       <ul role="list">
         <TopLevelNavItem href="/">API</TopLevelNavItem>
         <TopLevelNavItem href="#">Documentation</TopLevelNavItem>
         <TopLevelNavItem href="#">Support</TopLevelNavItem>
-        {mainNavigation.map((group, groupIndex) => (
+        {currentNavigation.map((group, groupIndex) => (
           <NavigationGroup
             key={group.title}
             group={group}
