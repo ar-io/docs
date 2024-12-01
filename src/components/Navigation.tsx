@@ -12,12 +12,21 @@ import { useSectionStore } from '@/components/SectionProvider'
 import { Tag } from '@/components/Tag'
 import { remToPx } from '@/lib/remToPx'
 
-import { NavGroup, navigation } from '@/navConfigs/sidebarConfig'
+import { mainNavigation } from '@/navConfigs/sidebarConfig'
 
 
 function useInitialValue<T>(value: T, condition = true) {
   let initialValue = useRef(value).current
   return condition ? initialValue : value
+}
+
+
+export interface NavGroup {
+  title: string;
+  links: Array<{
+    title: string;
+    href: string;
+  }>;
 }
 
 function TopLevelNavItem({
@@ -232,7 +241,7 @@ export function Navigation(props: React.ComponentPropsWithoutRef<'nav'>) {
         <TopLevelNavItem href="/">API</TopLevelNavItem>
         <TopLevelNavItem href="#">Documentation</TopLevelNavItem>
         <TopLevelNavItem href="#">Support</TopLevelNavItem>
-        {navigation.map((group, groupIndex) => (
+        {mainNavigation.map((group, groupIndex) => (
           <NavigationGroup
             key={group.title}
             group={group}

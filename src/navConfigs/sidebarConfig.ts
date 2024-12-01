@@ -1,12 +1,6 @@
-export interface NavGroup {
-    title: string;
-    links: Array<{
-      title: string;
-      href: string;
-    }>;
-  }
-  
-  export const navigation: Array<NavGroup> = [
+import { NavGroup } from "@/components/Navigation"
+
+export const mainNavigation: Array<NavGroup> = [
 {
     title: 'Concepts',
     links: [
