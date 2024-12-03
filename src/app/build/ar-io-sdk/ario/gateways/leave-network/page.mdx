@@ -1,0 +1,79 @@
+import { CodeGroup } from '@/components/Code'
+import {HeroPattern} from "@/components/HeroPattern"
+
+<HeroPattern />
+
+# leaveNetwork
+
+`leaveNetwork` is a method on the `ARIO` class that sets the gateway as `leaving` on the ar.io network. The gateways operator and delegate stakes are vaulted and will be returned after the leave periods. The gateway will be removed from the network after the leave period.
+
+`leaveNetwork` requires authentication.
+
+## Parameters
+
+{
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>tags</th>
+        <td>array</td>
+        <td>
+          An array of GQL tag objects to attach to the leaveNetwork AO message.
+        </td>
+        <td>true</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+}
+
+## Example
+
+<CodeGroup title="leaveNetwork">
+
+       ```typescript {{title: "NodeJS"}}
+        const fs = require("fs");
+        const { ARIO, ArweaveSigner } = require("@ar.io/sdk");
+
+        async function main() {
+        const jwk = JSON.parse(fs.readFileSync("KeyFile.json"));
+        const ario = ARIO.init({
+            signer: new ArweaveSigner(jwk),
+        });
+
+        const { id: txId } = await ario.leaveNetwork(
+                // optional additional tags
+                { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+            );
+        }
+
+        main();
+
+    ```
+
+    ```typescript {{ title: 'Web' }}
+    import { ARIO, ArConnectSigner } from '@ar.io/sdk/web';
+
+    async function main() {
+        const ario = ARIO.init({
+            signer: new ArConnectSigner(window.arweaveWallet)
+        })
+        const { id: txId } = await ario.leaveNetwork(
+                // optional additional tags
+                { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+            );
+    }
+
+    main();
+    ```
+
+</CodeGroup>

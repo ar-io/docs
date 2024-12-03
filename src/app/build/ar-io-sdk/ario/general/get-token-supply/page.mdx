@@ -1,0 +1,82 @@
+import {CodeGroup} from "@/components/Code"
+import {HeroPattern} from "@/components/HeroPattern"
+
+<HeroPattern />
+
+# getTokenSupply
+
+`getTokenSupply` is a method on the `ARIO` class that retrieves the total supply of tokens, returned in mARIO. The total supply includes the following:
+
+- `total` - the total supply of all tokens
+- `circulating` - the total supply minus locked, withdrawn, delegated, and staked
+- `locked` - tokens that are locked in the protocol (a.k.a. vaulted)
+- `withdrawn` - tokens that have been withdrawn from the protocol by operators and delegators
+- `delegated` - tokens that have been delegated to gateways
+- `protocolBalance` - tokens that are held in the protocol's treasury. This is included in the circulating supply.
+
+`getTokenSupply` does not require authentication.
+
+## Parameters
+
+`getTokenSupply` does not accept Parameters
+
+## Examples
+
+<CodeGroup title="getInfo">
+
+    ```typescript {{title: 'NodeJS'}}
+    const { ARIO } = require('@ar.io/sdk');
+
+    async function main(){
+        const ario = ARIO.init();
+        const info = await ario.getTokenSupply()
+
+        console.log(info)
+    }
+
+    main()
+    ```
+    ```typescript {{ title: 'Web' }}
+    import { ARIO } from '@ar.io/sdk/web';
+
+    async function main() {
+      const ario = ARIO.init();
+      const info = await ario.getTokenSupply()
+
+      console.log(info);
+    }
+
+    main();
+    ```
+
+</CodeGroup>
+
+## Output
+
+```typescript
+{
+  "total": 1000000000000000000,
+  "circulating": 998094653842520,
+  "locked": 0,
+  "withdrawn": 560563387278,
+  "delegated": 1750000000,
+  "staked": 1343032770199,
+  "protocolBalance": 46317263683761
+}
+```
+
+## Types
+
+### AOTokenSupplyData
+
+```typescript
+{
+  total: number;
+  circulating: number;
+  locked: number;
+  withdrawn: number;
+  delegated: number;
+  staked: number;
+  protocolBalance: number;
+};
+```

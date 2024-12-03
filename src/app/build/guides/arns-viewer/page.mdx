@@ -213,21 +213,21 @@ There are a few functions that we might end up wanting to use in multiple differ
 2. `arweave.js`: This is where we will put most of our ar.io SDK functions for interacting with Arweave
 
    ```typescript
-   import { IO, ANT, ArconnectSigner } from "@ar.io/sdk/web";
+   import { ARIO, ANT, ArconnectSigner } from "@ar.io/sdk/web";
 
    /**
     * Initialize ArIO and fetch all ArNS records.
     * @returns {Promise<Object>} All ArNS records.
     */
    export const fetchArNSRecords = async () => {
-     const arIO = IO.init();
+     const ario = ARIO.init();
      let allRecords = [];
      let hasMore = true;
      let cursor;
 
      // Paginates through all records to get the full registry.
      while (hasMore) {
-       const response = await arIO.getArNSRecords({
+       const response = await ario.getArNSRecords({
          limit: 10000, // You can adjust the limit as needed
          sortBy: "name",
          sortOrder: "asc",
@@ -435,7 +435,7 @@ The finished page will look like this:
 import Header from "@/components/Header";
 import { useParams, Link } from "arnext"; // Import from ARNext, not NextJS
 import { useEffect, useState } from "react";
-import { IO } from "@ar.io/sdk/web";
+import { ARIO } from "@ar.io/sdk/web";
 import { fetchRecordDetails, setANTRecord } from "@/utils/arweave";
 
 export async function getStaticPaths() {
@@ -463,8 +463,8 @@ export default function NamePage() {
       const fetchRecord = async () => {
         console.log("fetching records");
         try {
-          const io = IO.init();
-          const newRecord = await io.getArNSRecord({ name });
+          const ario = ARIO.init();
+          const newRecord = await ario.getArNSRecord({ name });
           console.log(newRecord);
           setNameRecord(newRecord);
         } catch (error) {

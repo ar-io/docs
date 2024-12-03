@@ -1,0 +1,89 @@
+import {CodeGroup} from "@/components/Code"
+import {HeroPattern} from "@/components/HeroPattern"
+
+<HeroPattern />
+
+# getVault
+
+`getVault` is a method on the `ARIO` class that retrieves the locked-balance user vault of the ARIO process by the specified wallet address and vault ID.
+
+`getVault` does not require authentication.
+
+## Parameters
+
+{
+<div style={{textAlign: "center"}}>
+    <table className="inline-table">
+    <thead>
+    <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <th>address</th>
+        <td>string - WalletAddress</td>
+        <td>The public wallet address of the vault owner.</td>
+        <td>false</td>
+    </tr>
+    <tr>
+        <th>vaultId</th>
+        <td>string</td>
+        <td>The public wallet address of the vault owner.</td>
+        <td>false</td>
+    </tr>
+    </tbody>
+    </table>
+</div>
+}
+
+## Examples
+
+<CodeGroup title="getVault">
+
+    ```typescript {{ title: 'NodeJS' }}
+    const { ARIO } = require('@ar.io/sdk');
+
+    async function main() {
+      const ario = ARIO.init();
+      const vault = await ario.getVault({
+        address: 'QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ',
+        vaultId: 'vaultIdOne',
+      });
+
+      console.log(vault);
+    }
+
+    main();
+    ```
+
+    ```typescript {{ title: 'Web' }}
+    import { ARIO } from '@ar.io/sdk/web';
+
+    async function main() {
+      const ario = ARIO.init();
+      const vault = await ario.getVault({
+        address: 'QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ',
+        vaultId: 'vaultIdOne',
+      });
+
+      console.log(vault);
+    }
+
+    main();
+    ```
+
+</CodeGroup>
+
+## Output
+
+```js
+{
+  "balance": 1000000,
+  "startTimestamp": 123,
+  "endTimestamp": 4567
+}
+```

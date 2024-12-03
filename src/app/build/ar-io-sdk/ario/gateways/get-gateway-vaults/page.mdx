@@ -1,0 +1,117 @@
+import {CodeGroup} from "@/components/Code"
+import {HeroPattern} from "@/components/HeroPattern"
+
+<HeroPattern />
+
+# getGatewayVaults
+
+`getGatewayVaults` is a method on the `ARIO` class that retrieves all vaults across all gateways for a specific address, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last vaultId from the previous request.
+
+`getGatewayVaults` does not require authentication.
+
+## Parameters
+
+{
+<div style={{textAlign: "center"}}>
+    <table className="inline-table">
+    <thead>
+    <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+    </tr>
+    </thead>
+    <tbody>
+        <tr>
+        <th>address</th>
+        <td>string - WalletAddress</td>
+        <td>Public wallet address for which to receive vaults.</td>
+        <td>false</td>
+    </tr>
+    <tr>
+        <th>cursor</th>
+        <td>string</td>
+        <td>Cursor used for paginated results</td>
+        <td>true</td>
+    </tr>
+    <tr>
+        <th>limit</th>
+        <td>number</td>
+        <td>Max number of results to return in a single search</td>
+        <td>true</td>
+    </tr>
+    <tr>
+        <th>sortBy</th>
+        <td>string</td>
+        <td>Property used to sort returned results</td>
+        <td>true</td>
+    </tr>
+    <tr>
+        <th>sortOrder</th>
+        <td>string</td>
+        <td>Order in which sorted results are returned. valid values are `desc` or `asc`</td>
+        <td>true</td>
+    </tr>
+    </tbody>
+    </table>
+</div>
+}
+
+## Example
+
+<CodeGroup title="getGatewayVaults">
+
+    ```javascript {{ title: 'NodeJS' }}
+    const { ARIO } = require('@ar.io/sdk');
+
+    async function main() {
+      const ario = ARIO.init();
+      const vaults = await ario.getGatewayVaults({
+            address: '"PZ5vIhHf8VY969TxBPQN-rYY9CNFP9ggNsMBqlWUzWM',
+        });
+
+      console.log(vaults);
+    }
+
+    main();
+    ```
+
+    ```javascript {{ title: 'Web' }}
+    import { ARIO } from '@ar.io/sdk/web';
+
+    async function main() {
+      const ario = ARIO.init();
+      const vaults = await ario.getGatewayVaults({
+            address: '"PZ5vIhHf8VY969TxBPQN-rYY9CNFP9ggNsMBqlWUzWM',
+        });
+
+      console.log(vaults);
+    }
+
+    main();
+    ```
+
+</CodeGroup>
+
+
+## Output
+
+```typescript
+{
+  "sortOrder": "desc",
+  "hasMore": false,
+  "totalItems": 1,
+  "limit": 100,
+  "sortBy": "endTimestamp",
+  "items": [
+    {
+      "cursorId": "PZ5vIhHf8VY969TxBPQN-rYY9CNFP9ggNsMBqlWUzWM_1728067635857",
+      "startTimestamp": 1728067635857,
+      "balance": 50000000000,
+      "vaultId": "PZ5vIhHf8VY969TxBPQN-rYY9CNFP9ggNsMBqlWUzWM",
+      "endTimestamp": 1735843635857
+    }
+  ]
+}
+```

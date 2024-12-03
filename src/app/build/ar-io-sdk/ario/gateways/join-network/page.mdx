@@ -1,0 +1,179 @@
+import { CodeGroup } from '@/components/Code'
+import {HeroPattern} from "@/components/HeroPattern"
+
+<HeroPattern />
+
+# joinNetwork
+
+`joinNetwork` is a method on the `ARIO` class that joins a gateway to the ar.io network via its associated wallet.
+
+`joinNetwork` requires authentication.
+
+## Parameters
+
+{
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>qty</th>
+        <td>number</td>
+        <td>Number of tokens, in `mARIO` to stake when joining network.</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>autoStake</th>
+        <td>boolean</td>
+        <td>If true, automatically stakes gateway rewards.</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>allowDelegatedStaking</th>
+        <td>boolean</td>
+        <td>If true, allows third parties to delegate stake to the gateway.</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>minDelegatedStake</th>
+        <td>number</td>
+        <td>Minimum number of tokens, in `mARIO` that can be delegated to the gateway.</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>delegateRewardShareRatio</th>
+        <td>number</td>
+        <td>Percentage of gateway rewards to share with delegates. e.g. 10%</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>label</th>
+        <td>string</td>
+        <td>Friendly name for gateway, min 1 character, max 64 characters.</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>note</th>
+        <td>string</td>
+        <td>A note to be associated with gateway, max 256 characters.</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>properties</th>
+        <td>string - ArweaveTxId</td>
+        <td>ArweaveTxId to properties object containing additional gateway configuration details.</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>observerWallet</th>
+        <td>string - WalletAddress</td>
+        <td>Public wallet address for wallet used to upload network observations.</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>fqdn</th>
+        <td>string</td>
+        <td>Fully qualified domain name, must be valid domain owned by gateway operator.</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>port</th>
+        <td>number</td>
+        <td>Port number to use when accessing gateway, generally 443 (https)</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>protocol</th>
+        <td>string - "http" || "https"</td>
+        <td>Protocol to use when accessing gateway, only "https" is supported for network participation.</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>tags</th>
+        <td>array</td>
+        <td>
+          An array of GQL tag objects to attach to the joinNetwork AO message.
+        </td>
+        <td>true</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+}
+
+## Example
+
+<CodeGroup title="joinNetwork">
+
+       ```typescript {{title: "NodeJS"}}
+        const fs = require("fs");
+        const { ARIO, ArweaveSigner, ARIOToken } = require("@ar.io/sdk");
+
+        async function main() {
+        const jwk = JSON.parse(fs.readFileSync("KeyFile.json"));
+        const ario = ARIO.init({
+            signer: new ArweaveSigner(jwk),
+        });
+
+        const { id: txId } = await ario.joinNetwork(
+            {
+                qty: new ARIOToken(10_000).toMARIO(), // minimum operator stake allowed
+                autoStake: true, // auto-stake operator rewards to the gateway
+                allowDelegatedStaking: true, // allows delegated staking
+                minDelegatedStake: new ARIOToken(100).toMARIO(), // minimum delegated stake allowed
+                delegateRewardShareRatio: 10, // percentage of rewards to share with delegates (e.g. 10%)
+                label: 'john smith', // min 1, max 64 characters
+                note: 'The example gateway', // max 256 characters
+                properties: 'FH1aVetOoulPGqgYukj0VE0wIhDy90WiQoV3U2PeY44', // Arweave transaction ID containing additional properties of the Gateway
+                observerWallet: '0VE0wIhDy90WiQoV3U2PeY44FH1aVetOoulPGqgYukj', // wallet address of the observer, must match OBSERVER_WALLET on the observer
+                fqdn: 'example.com', // fully qualified domain name - note: you must own the domain and set the OBSERVER_WALLET on your gateway to match `observerWallet`
+                port: 443, // port number
+                protocol: 'https', // only 'https' is supported
+            },
+            // optional additional tags
+            { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+            );
+        }
+
+        main();
+
+    ```
+
+    ```typescript {{ title: 'Web' }}
+    import { ARIO, ARIOToken, ArConnectSigner } from '@ar.io/sdk/web';
+
+    async function main() {
+        const ario = ARIO.init({
+            signer: new ArConnectSigner(window.arweaveWallet)
+        })
+        const { id: txId } = await ario.joinNetwork(
+            {
+                qty: new ARIOToken(10_000).toMARIO(), // minimum operator stake allowed
+                autoStake: true, // auto-stake operator rewards to the gateway
+                allowDelegatedStaking: true, // allows delegated staking
+                minDelegatedStake: new ARIOToken(100).toMARIO(), // minimum delegated stake allowed
+                delegateRewardShareRatio: 10, // percentage of rewards to share with delegates (e.g. 10%)
+                label: 'john smith', // min 1, max 64 characters
+                note: 'The example gateway', // max 256 characters
+                properties: 'FH1aVetOoulPGqgYukj0VE0wIhDy90WiQoV3U2PeY44', // Arweave transaction ID containing additional properties of the Gateway
+                observerWallet: '0VE0wIhDy90WiQoV3U2PeY44FH1aVetOoulPGqgYukj', // wallet address of the observer, must match OBSERVER_WALLET on the observer
+                fqdn: 'example.com', // fully qualified domain name - note: you must own the domain and set the OBSERVER_WALLET on your gateway to match `observerWallet`
+                port: 443, // port number
+                protocol: 'https', // only 'https' is supported
+            },
+            // optional additional tags
+            { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+            );
+    }
+
+    main();
+    ```
+
+</CodeGroup>

@@ -1,0 +1,95 @@
+import { CodeGroup } from '@/components/Code'
+import {HeroPattern} from "@/components/HeroPattern"
+
+<HeroPattern />
+
+# increaseOperatorStake
+
+`increaseOperatorStake` is a method on the `ARIO` class that increases the callers operator stake. Must be executed with a wallet registered as a gateway operator.
+
+`increaseOperatorStake` requires authentication.
+
+## Parameters
+
+{
+
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>qty</th>
+        <td>number</td>
+        <td>The number of `mARIO` tokens to add to operator stake.</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>tags</th>
+        <td>array</td>
+        <td>
+          An array of GQL tag objects to attach to the transfer AO message.
+        </td>
+        <td>true</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+}
+
+## Examples
+
+<CodeGroup title="increaseOperatorStake">
+
+       ```typescript {{title: "NodeJS"}}
+        const fs = require("fs");
+        const { ARIO, ArweaveSigner, ARIOToken } = require("@ar.io/sdk");
+
+        async function main() {
+        const jwk = JSON.parse(fs.readFileSync("KeyFile.json"));
+        const ario = ARIO.init({
+            signer: new ArweaveSigner(jwk),
+        });
+
+        const { id: txId } = await ario.increaseOperatorStake(
+                {
+                    qty: new ARIOToken(100).toMARIO(),
+                },
+                {
+                    tags: [{ name: 'App-Name', value: 'My-Awesome-App' }],
+                },
+            );
+        }
+
+        main();
+
+    ```
+
+    ```typescript {{ title: 'Web' }}
+    import { ARIO, ARIOToken, ArConnectSigner } from '@ar.io/sdk/web';
+
+    async function main() {
+        const ario = ARIO.init({
+            signer: new ArConnectSigner(window.arweaveWallet)
+        })
+        const { id: txId } = await ario.increaseOperatorStake(
+                {
+                    qty: new ARIOToken(100).toMARIO(),
+                },
+                {
+                    tags: [{ name: 'App-Name', value: 'My-Awesome-App' }],
+                },
+            );
+        }
+
+    main();
+    ```
+
+</CodeGroup>
+

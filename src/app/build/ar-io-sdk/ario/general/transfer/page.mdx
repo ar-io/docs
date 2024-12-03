@@ -1,0 +1,115 @@
+import { CodeGroup } from '@/components/Code'
+import {HeroPattern} from "@/components/HeroPattern"
+
+<HeroPattern />
+
+# transfer
+
+`transfer` is a method on the `ARIO` class that transfers `mARIO` to the designated `target` recipient address.
+
+`transfer` requires authentication.
+
+## Parameters
+
+{
+
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>target</th>
+        <td>String - WalletAddress</td>
+        <td>Recipient wallet address to send `mARIO` to.</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>qty</th>
+        <td>number</td>
+        <td>The number of `mARIO` tokens to transfer.</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>tags</th>
+        <td>array</td>
+        <td>
+          An array of GQL tag objects to attach to the transfer AO message.
+        </td>
+        <td>true</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+}
+
+## Examples
+
+<CodeGroup title="transfer">
+
+       ```typescript {{title: "NodeJS"}}
+        const fs = require("fs");
+        const { ARIO, ArweaveSigner, ARIOToken } = require("@ar.io/sdk");
+
+        async function main() {
+        const jwk = JSON.parse(fs.readFileSync("KeyFile.json"));
+        const ario = ARIO.init({
+            signer: new ArweaveSigner(jwk),
+        });
+
+        const result = await ario.transfer(
+            {
+            target: "nszYSUJvtlFXssccPaQWZaVpkXgJHcVM7XhcP5NEt7w",
+            qty: new ARIOToken(1000).toMARIO(), //converts ARIO to mARIO
+            },
+            // Optional tags
+            {
+            tags: [{ name: "App-Name", value: "My-Awesome-App" }],
+            }
+        );
+        console.log(result);
+        }
+
+        main();
+
+    ```
+
+    ```typescript {{ title: 'Web' }}
+    import { ARIO, ARIOToken, ArConnectSigner } from '@ar.io/sdk/web';
+
+    async function main() {
+        const ario = ARIO.init({
+            signer: new ArConnectSigner(window.arweaveWallet)
+        })
+        const result = await ario.transfer(
+            {
+            target: "nszYSUJvtlFXssccPaQWZaVpkXgJHcVM7XhcP5NEt7w",
+            qty: new ARIOToken(1000).toMARIO(), //converts ARIO to mARIO
+            },
+            // Optional tags
+            {
+            tags: [{ name: "App-Name", value: "My-Awesome-App" }],
+            }
+        );
+        console.log(result);
+    }
+
+    main();
+    ```
+
+</CodeGroup>
+
+## Output
+
+```typescript
+{
+  id: 'Q44fpJLfq8wt-3RXA5a7ReiN7wmwkgxQA2jPYW51R-Q',
+  result: 'You transferred 1000000000 to nszYSUJvtlFXssccPaQWZaVpkXgJHcVM7XhcP5NEt7w'
+}
+```

@@ -1,0 +1,135 @@
+import {CodeGroup} from "@/components/Code"
+import {HeroPattern} from "@/components/HeroPattern"
+
+<HeroPattern />
+
+# getDelegations
+
+`getDelegations` is a method on the `ARIO` class that retrieves all active and vaulted stakes across all gateways for a specific address, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last delegationId (concatenated gateway and startTimestamp of the delegation) from the previous request.
+
+`getDelegations` does not require authentication.
+
+## Parameters
+
+{
+<div style={{textAlign: "center"}}>
+    <table className="inline-table">
+    <thead>
+    <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <th>address</th>
+        <td>string - WalletAddress</td>
+        <td>Public wallet address of target gateway.</td>
+        <td>false</td>
+    </tr>
+    <tr>
+        <th>cursor</th>
+        <td>string</td>
+        <td>Cursor used for paginated results</td>
+        <td>true</td>
+    </tr>
+    <tr>
+        <th>limit</th>
+        <td>number</td>
+        <td>Max number of results to return in a single search</td>
+        <td>true</td>
+    </tr>
+    <tr>
+        <th>sortBy</th>
+        <td>string</td>
+        <td>Property used to sort returned results</td>
+        <td>true</td>
+    </tr>
+    <tr>
+        <th>sortOrder</th>
+        <td>string</td>
+        <td>Order in which sorted results are returned. valid values are `desc` or `asc`</td>
+        <td>true</td>
+    </tr>
+    </tbody>
+    </table>
+</div>
+}
+
+## Example
+
+<CodeGroup title="getDelegations">
+
+    ```javascript {{ title: 'NodeJS' }}
+    const { ARIO } = require('@ar.io/sdk');
+
+    async function main() {
+      const ario = ARIO.init();
+      const vaults = await ario.getDelegations({
+            address: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
+            cursor: 'QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ_123456789',
+            limit: 2,
+            sortBy: 'startTimestamp',
+            sortOrder: 'asc',
+        });
+
+      console.log(vaults);
+    }
+
+    main();
+    ```
+
+    ```javascript {{ title: 'Web' }}
+    import { ARIO } from '@ar.io/sdk/web';
+
+    async function main() {
+      const ario = ARIO.init();
+      const vaults = await ario.getDelegations({
+            address: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
+            cursor: 'QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ_123456789',
+            limit: 2,
+            sortBy: 'startTimestamp',
+            sortOrder: 'asc',
+        });
+
+      console.log(vaults);
+    }
+
+    main();
+    ```
+
+</CodeGroup>
+
+
+## Output
+
+```typescript
+{
+  "sortOrder": "asc",
+  "hasMore": true,
+  "totalItems": 95,
+  "limit": 2,
+  "sortBy": "startTimestamp",
+  "items": [
+    {
+      "type": "stake",
+      "startTimestamp": 1727815440632,
+      "gatewayAddress": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
+      "delegationId": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ_1727815440632",
+      "balance": 1383212512
+    },
+    {
+      "type": "vault",
+      "startTimestamp": 1730996691117,
+      "gatewayAddress": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
+      "delegationId": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ_1730996691117",
+      "vaultId": "_sGDS7X1hyLCVpfe40GWioH9BSOb7f0XWbhHBa1q4-g",
+      "balance": 50000000,
+      "endTimestamp": 1733588691117
+    }
+  ],
+  "nextCursor": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ_1730996691117"
+}
+```
