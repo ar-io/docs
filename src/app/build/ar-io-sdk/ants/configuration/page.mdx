@@ -5,7 +5,7 @@ import {HeroPattern} from "@/components/HeroPattern"
 
 # init
 
-`init` is a factory function that creates a read-only or writeable client. By providing a `signer` additional write APIs that require signing, like `joinNetwork` and `delegateStake` are available. By default, a read-only client is returned and no write APIs are available.
+`init` is a factory function that creates a read-only or writeable client. By providing a `signer` additional write APIs that require signing, like `setRecord` and `transfer` are available. By default, a read-only client is returned and no write APIs are available.
 
 ## Parameters
 
@@ -21,18 +21,18 @@ import {HeroPattern} from "@/components/HeroPattern"
       </tr>
     </thead>
     <tbody>
+        <tr>
+        <th>processId</th>
+        <td>String</td>
+        <td>The AO process ID of the ANT to connect to.</td>
+        <td>false</td>
+      </tr>
       <tr>
         <th>process</th>
         <td>AOProcess</td>
         <td>
           A pre-configured AOProcess instance used to initialize the ARIO class
         </td>
-        <td>true</td>
-      </tr>
-      <tr>
-        <th>processId</th>
-        <td>String</td>
-        <td>The ID of the process used to initialize the ARIO class</td>
         <td>true</td>
       </tr>
       <tr>
@@ -54,38 +54,47 @@ import {HeroPattern} from "@/components/HeroPattern"
 <CodeGroup title="init">
 
     ```typescript {{title: "NodeJS - unauthorized"}}
-    import { ARIO } from "@ar.io/sdk"
+    const { ANT } = require("@ar.io/sdk")
 
-    const ario = ARIO.init()
+    const ant = ANT.init(
+        {
+            processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM"
+        }
+    )
     ```
 
     ```typescript {{title: "NodeJS - authorized"}}
-    import { ARIO, ArweaveSigner} from "@ar.io/sdk"
+    const { ANT, ArweaveSigner} = require("@ar.io/sdk")
 
-    const ario = ARIO.init({
-        signer: new ArweaveSigner(jwk)
+    const jwk = JSON.parse(fs.readFileSync("KeyFile.json"));
+
+    const ant = ANT.init({
+        signer: new ArweaveSigner(jwk),
+        processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM"
     })
     ```
 
     ```typescript {{title: "Web - unauthorized"}}
-    import { ARIO } from "@ar.io/sdk/web"
+    import { ANT } from "@ar.io/sdk/web"
 
-    const ario = ARIO.init()
+    const ant = ANT.init({ processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM" })
     ```
 
     ```typescript {{title: "Web - authorized"}}
-    import { ARIO, ArConnectSigner } from "@ar.io/sdk/web"
+    import { ANT, ArConnectSigner } from "@ar.io/sdk/web"
 
-    const ario = ARIO.init({
-        signer: new ArConnectSigner(window.arweaveWallet)
+    const ant = ANT.init({
+        signer: new ArConnectSigner(window.arweaveWallet),
+        processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM"
     })
     ```
 
     ```typescript {{title: "Custom AO"}}
-    import {AOProcess, ARIO} from "@ar.io/sdk"
+    import {AOProcess, ANT} from "@ar.io/sdk"
     import {connect} from "@permaweb/aoconnect"
 
-    const ario = ARIO.init({
+    const ant = ANT.init({
+        processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM",
         process: new AOProcess ({
             processId: '<ARIO_PROCESS_ID>'
             ao: connect({
@@ -95,15 +104,6 @@ import {HeroPattern} from "@/components/HeroPattern"
                 GATEWAY_URL: 'https://arweave.net', //customizable
             })
         })
-    })
-    ```
-
-    ```typescript {{title: "custom process ID"}}
-    // This is used to connect to an AO process OTHER than IO, and does not interact with the ar.io network
-    import{ ARIO } from "@ar.io/sdk"
-
-    const ario = ARIO.init({
-        processId: '<Custom_AO_ProcessId>'
     })
     ```
 
