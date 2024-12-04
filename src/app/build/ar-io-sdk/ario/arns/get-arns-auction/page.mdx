@@ -1,0 +1,86 @@
+import {CodeGroup} from "@/components/Code"
+import {HeroPattern} from "@/components/HeroPattern"
+
+<HeroPattern />
+
+# getArNSAuction
+
+`getArNSAuction` is a method on the `ARIO` class that retrieves the auction data for the specified auction name.
+
+`getArNSAuction` does not require authentication.
+
+## Parameters
+
+{
+<div style={{textAlign: "center"}}>
+    <table className="inline-table">
+    <thead>
+    <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <th>name</th>
+        <td>string</td>
+        <td>The ArNS name for which auction data is to be received.</td>
+        <td>false</td>
+    </tr>
+    </tbody>
+    </table>
+</div>
+}
+
+## Examples
+
+<CodeGroup title="getArNSAuction">
+
+    ```typescript {{ title: 'NodeJS' }}
+    const { ARIO } = require('@ar.io/sdk');
+
+    async function main() {
+      const ario = ARIO.init();
+      const auction = await ario.getArNSAuction({ name: 'permalink' });
+
+      console.log(auction);
+    }
+
+    main();
+    ```
+
+    ```typescript {{ title: 'Web' }}
+    import { ARIO } from '@ar.io/sdk/web';
+
+    async function main() {
+      const ario = ARIO.init();
+      const auction = await ario.getArNSAuction({ name: 'permalink' });
+
+      console.log(auction);
+    }
+
+    main();
+    ```
+
+</CodeGroup>
+
+## Output
+
+```js
+{
+  "name": "permalink",
+  "endTimestamp": 1730985241349,
+  "startTimestamp": 1729775641349,
+  "baseFee": 250000000,
+  "demandFactor": 1.05256,
+  "initiator": "GaQrvEMKBpkjofgnBi_B3IgIDmY_XYelVLB6GcRGrHc",
+  "settings": {
+    "durationMs": 1209600000,
+    "decayRate": 0.000000000016847809193121693,
+    "scalingExponent": 190,
+    "startPriceMultiplier": 50
+  }
+}
+```

@@ -1,0 +1,92 @@
+import { CodeGroup } from '@/components/Code'
+import {HeroPattern} from "@/components/HeroPattern"
+
+<HeroPattern />
+
+# getDistributionss
+
+`getDistributions` is a method on the `ARIO` class that returns the rewards distribution information for the specified epoch. If no epoch index is provided, the current epoch is used.
+
+`getDistributions` does not require authentication.
+
+## Parameters
+
+{
+
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>epochIndex</th>
+        <td>number</td>
+        <td>Epoch index for the requested distribution data.</td>
+        <td>true</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+}
+
+## Examples
+
+<CodeGroup title="getDistributions">
+
+    ```typescript {{ title: 'NodeJS' }}
+    const { ARIO } = require('@ar.io/sdk');
+
+    async function main() {
+      const ario = ARIO.init();
+      const distributions = await ario.getDistributions({ epochIndex: 0 });
+
+      console.log(distributions);
+    }
+
+    main();
+    ```
+
+    ```typescript {{ title: 'Web' }}
+    import { ARIO } from '@ar.io/sdk/web';
+
+    async function main() {
+      const ario = ARIO.init();
+      const distributions = await ario.getDistributions({ epochIndex: 0 });
+
+      console.log(distributions);
+    }
+
+    main();
+    ```
+
+</CodeGroup>
+
+## Output
+
+```js
+{
+  "totalEligibleGateways": 1,
+  "totalEligibleRewards": 100000000,
+  "totalEligibleObserverReward": 100000000,
+  "totalEligibleGatewayReward": 100000000,
+  "totalDistributedRewards": 100000000,
+  "distributedTimestamp": 1720720621424,
+  "rewards": {
+    "eligible": {
+      "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs": {
+        "operatorReward": 100000000,
+        "delegateRewards": {}
+      }
+    },
+    "distributed": {
+      "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs": 100000000
+    }
+  }
+}
+```

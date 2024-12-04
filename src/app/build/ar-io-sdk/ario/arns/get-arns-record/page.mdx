@@ -1,0 +1,79 @@
+import {CodeGroup} from "@/components/Code"
+import {HeroPattern} from "@/components/HeroPattern"
+
+<HeroPattern />
+
+# getArNSRecord
+
+`getArNSRecord` is a method on the `ARIO` class that retrieves the record info of the specified ArNS name.
+
+`getArNSRecord` does not require authentication.
+
+## Parameters
+
+{
+<div style={{textAlign: "center"}}>
+    <table className="inline-table">
+    <thead>
+    <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <th>name</th>
+        <td>string</td>
+        <td>The ArNS name for which to receive record info.</td>
+        <td>false</td>
+    </tr>
+    </tbody>
+    </table>
+</div>
+}
+
+## Examples
+
+<CodeGroup title="getArNSRecord">
+
+    ```typescript {{ title: 'NodeJS' }}
+    const { ARIO } = require('@ar.io/sdk');
+
+    async function main() {
+      const ario = ARIO.init();
+      const record = await ario.getArNSRecord({ name: 'ardrive' });
+
+      console.log(record);
+    }
+
+    main();
+    ```
+
+    ```typescript {{ title: 'Web' }}
+    import { ARIO } from '@ar.io/sdk/web';
+
+    async function main() {
+      const ario = ARIO.init();
+      const record = await ario.getArNSRecord({ name: 'ardrive' });
+
+      console.log(record);
+    }
+
+    main();
+    ```
+
+</CodeGroup>
+
+## Output
+
+```js
+{
+  "processId": "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM",
+  "endTimestamp": 1752256702026,
+  "startTimestamp": 1720720819969,
+  "type": "lease",
+  "undernames": 100
+}
+```

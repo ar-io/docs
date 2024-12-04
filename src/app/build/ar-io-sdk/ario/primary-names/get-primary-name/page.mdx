@@ -1,0 +1,95 @@
+import {CodeGroup} from "@/components/Code"
+import {HeroPattern} from "@/components/HeroPattern"
+
+<HeroPattern />
+
+# getPrimaryName
+
+`getPrimaryName` is a method on the `ARIO` class that retrieves the primary name for a given name or address.
+
+`getPrimaryName` does not require authentication.
+
+## Parameters
+
+{
+<div style={{textAlign: "center"}}>
+    <table className="inline-table">
+    <thead>
+    <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <th>name</th>
+        <td>string</td>
+        <td>The ArNS name for which to receive primary name data.</td>
+        <td>true</td>
+    </tr>
+    <tr>
+        <th>address</th>
+        <td>string - WalletAddress</td>
+        <td>The public wallet address for which to receive primary name data.</td>
+        <td>true</td>
+    </tr>
+    </tbody>
+    </table>
+</div>
+}
+
+## Examples
+
+<CodeGroup title="getPrimaryName">
+
+    ```typescript {{ title: 'NodeJS' }}
+    const { ARIO } = require('@ar.io/sdk');
+
+    async function main() {
+      const ario = ARIO.init();
+      const name = await ario.getPrimaryName({
+                name: 'arns',
+            });
+                // or
+        const name = await io.getPrimaryName({
+                address: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
+            });
+
+      console.log(name);
+    }
+
+    main();
+    ```
+
+    ```typescript {{ title: 'Web' }}
+    import { ARIO } from '@ar.io/sdk/web';
+
+    async function main() {
+      const ario = ARIO.init();
+      const name = await ario.getPrimaryName({
+                name: 'arns',
+            });
+                // or
+        const name = await io.getPrimaryName({
+                address: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
+            });
+
+      console.log(name);
+    }
+
+    main();
+    ```
+
+</CodeGroup>
+
+## Output
+
+```js
+{
+  "owner": "HwFceQaMQnOBgKDpnFqCqgwKwEU5LBme1oXRuQOWSRA",
+  "startTimestamp": 1719356032297,
+  "name": "arns"
+}
+```

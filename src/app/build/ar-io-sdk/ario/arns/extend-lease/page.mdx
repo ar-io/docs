@@ -1,0 +1,100 @@
+import { CodeGroup } from '@/components/Code'
+import {HeroPattern} from "@/components/HeroPattern"
+
+<HeroPattern />
+
+# extendLease
+
+`extendLease` is a method on the `ARIO` class that extends the lease of a registered ArNS domain, with an extension of 1-5 years depending on grace period status. Permanently registered domains cannot be extended.
+
+`extendLease` requires authentication.
+
+## Parameters
+
+{
+
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>name</th>
+        <td>String</td>
+        <td>Target ArNS name to extend lease.</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>years</th>
+        <td>number</td>
+        <td>The number of years to extend lease.</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>tags</th>
+        <td>array</td>
+        <td>
+          An array of GQL tag objects to attach to the transfer AO message.
+        </td>
+        <td>true</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+}
+
+## Examples
+
+<CodeGroup title="increaseUndernameLimit">
+
+       ```typescript {{title: "NodeJS"}}
+        const fs = require("fs");
+        const { ARIO, ArweaveSigner, ARIOToken } = require("@ar.io/sdk");
+
+        async function main() {
+        const jwk = JSON.parse(fs.readFileSync("KeyFile.json"));
+        const ario = ARIO.init({
+            signer: new ArweaveSigner(jwk),
+        });
+
+        const { id: txId } = await ario.increaseUndernameLimit(
+                {
+                    name: 'ar-io',
+                    years: 1,
+                },
+                // optional additional tags
+                { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+            );
+        }
+
+        main();
+
+    ```
+
+    ```typescript {{ title: 'Web' }}
+    import { ARIO, ARIOToken, ArConnectSigner } from '@ar.io/sdk/web';
+
+    async function main() {
+        const ario = ARIO.init({
+            signer: new ArConnectSigner(window.arweaveWallet)
+        })
+        const { id: txId } = await ario.increaseUndernameLimit(
+                {
+                    name: 'ar-io',
+                    years: 1,
+                },
+                // optional additional tags
+                { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+            );
+        }
+
+    main();
+    ```
+
+</CodeGroup>
