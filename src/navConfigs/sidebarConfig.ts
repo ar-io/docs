@@ -109,35 +109,71 @@ export const mainNavigation: Array<NavGroup> = [
                         href: "/build/ar-io-sdk/getting-started"
                     },
                     {
-                        title: "IO",
-                        href: "/build/ar-io-sdk/io/general/init",
-                        children: [
-                            {
-                                title: "init",
-                                href: "/build/ar-io-sdk/io/general/init"
-                            },
-                            {
-                                title: "getBalance",
-                                href: "/build/ar-io-sdk/io/general/get-balance"
-                            },
-                            {
-                                title: "getBalances",
-                                href: "/build/ar-io-sdk/io/general/get-balances"
-                            },
-                            {
-                                title: "getInfo",
-                                href: "/build/ar-io-sdk/io/general/get-info"
-                            },
-                            {
-                                title: "getTokenSupply",
-                                href: "/build/ar-io-sdk/io/general/get-token-supply"
-                            },
-                            {
-                                title: "transfer",
-                                href: "/build/ar-io-sdk/io/general/transfer"
-                            }
-                        ]
+                        title: "Configurations",
+                        href: "/build/ar-io-sdk/configurations"
                     },
+                    {
+                        title: "Tokens",
+                        href: "/build/ar-io-sdk/tokens"
+                    },
+                    {
+                        title: "APIs",
+                        href: "/build/ar-io-sdk/APIs"
+                    },
+                    {
+                        title: "ANTs",
+                        href: "/build/ar-io-sdk/ANTs"
+                    },
+                    {
+                        title: "Logging",
+                        href: "/build/ar-io-sdk/logging"
+                    },
+                    {
+                        title: "Pagination",
+                        href: "/build/ar-io-sdk/pagination"
+                    },
+                    {
+                        title: "Resources",
+                        href: "/build/ar-io-sdk/resources"
+                    },
+                    {
+                        title: "Examples",
+                        href: "/build/ar-io-sdk/examples"
+                    },
+                    {
+                        title: "Upgrade Guides",
+                        href: "/build/ar-io-sdk/upgrade-guides"
+                    },
+                    // {
+                    //     title: "IO",
+                    //     href: "/build/ar-io-sdk/io/general/init",
+                    //     children: [
+                    //         {
+                    //             title: "init",
+                    //             href: "/build/ar-io-sdk/io/general/init"
+                    //         },
+                    //         {
+                    //             title: "getBalance",
+                    //             href: "/build/ar-io-sdk/io/general/get-balance"
+                    //         },
+                    //         {
+                    //             title: "getBalances",
+                    //             href: "/build/ar-io-sdk/io/general/get-balances"
+                    //         },
+                    //         {
+                    //             title: "getInfo",
+                    //             href: "/build/ar-io-sdk/io/general/get-info"
+                    //         },
+                    //         {
+                    //             title: "getTokenSupply",
+                    //             href: "/build/ar-io-sdk/io/general/get-token-supply"
+                    //         },
+                    //         {
+                    //             title: "transfer",
+                    //             href: "/build/ar-io-sdk/io/general/transfer"
+                    //         }
+                    //     ]
+                    // },
                     {
                         title: "Release Notes",
                         href: "/build/ar-io-sdk/release-notes"
