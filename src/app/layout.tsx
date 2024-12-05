@@ -9,10 +9,39 @@ import '@/styles/tailwind.css'
 
 export const metadata: Metadata = {
   title: {
-    template: '%s - Protocol API Reference',
-    default: 'Protocol API Reference',
+    template: 'ar.io Network Docs - %s',
+    default: 'ar.io Network Docs',
+  },
+  icons: {
+    icon: "https://arweave.net/IXl1JBlE_gsOaXGa6yE1eifPu7ekH-qSaGR9b5GU88Y"
+  },
+  description: "Documentation, guides, and other resources for ar.io developers and gateway operators.",
+  openGraph: {
+    title: {
+      template: 'ar.io Network Docs - %s',
+      default: 'ar.io Network Docs',
+    },
+    images: [
+      {
+        url: 'https://res.cloudinary.com/dopbvlqgc/image/upload/v1706802732/ario_v2nv53.png',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: {
+      template: 'ar.io Network Docs - %s',
+      default: 'ar.io Network Docs',
+    },
+    site: '@ar_io_network',
+    images: [
+      {
+        url: 'https://res.cloudinary.com/dopbvlqgc/image/upload/v1706802732/ario_v2nv53.png',
+      },
+    ],
   },
 }
+
 
 export default async function RootLayout({
   children,
