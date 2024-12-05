@@ -1,10 +1,11 @@
-import {HeroPattern} from "@/components/HeroPattern"
-
-
+import { HeroPattern } from '@/components/HeroPattern'
 
 export const metadata = {
-  title: "Manifests",
-  description: "Manifests do cool stuff."
+  title: 'Manifests',
+  description: 'Manifests do cool stuff.',
+  openGraph: {
+    title: 'Manifests',
+  },
 }
 
 <HeroPattern />
@@ -41,13 +42,13 @@ http://<gateway domain>/<txId of NFT collection image manifest>/2.png
 ar.io gateways are capable of resolving manifest paths in a relative manner. An HTML page loading assets from Arweave would be very difficult to develop, maintain, and harden against hosting domains leaving existence if assets had to be linked to by a fully qualified domain name and an Arweave data item ID as the path. For example:
 
 ```html
-<img src="https://arweave.dev/3zFsd7bkCAUtXUKBQ4XiPiQvpLVKfZ6kiLNt2XVSfoV">
+<img src="https://arweave.dev/3zFsd7bkCAUtXUKBQ4XiPiQvpLVKfZ6kiLNt2XVSfoV" />
 ```
 
 Manifests allow HTML pages to use relative paths to assets with friendly names so that the document is easy to read, maintain, and host across any ar.io domain. For example:
 
 ```html
-<img src="./logo.png">
+<img src="./logo.png" />
 ```
 
 Relative routing eliminates the need for every link to contain the full Arweave transaction ID and fully qualified domain name. This makes the HTML more readable and ensures that links remain valid even if the hosting domain changes. If `index.html` needed to access `js/style.css`, the relative link `./js/style.css` could be used instead of `<txId>/js/style.css`. This relative routing is incredibly useful for linking together files in a way that allows functional websites to be hosted entirely on Arweave.
@@ -105,37 +106,47 @@ A resolver, typically an ar.io gateway, resolves URLs requesting content based o
 Assume the manifest above is uploaded to Arweave with the transaction ID `UyC5P5qKPZaltMmmZAWdakhlDXsBF6qmyrbWYFchRTk`. The below table shows https requests to the ar.io gateway `arweave.dev` requesting various endpoints on the manifest transaction Id, the manifest path where the gateway will find the data to return, and the resulting Arweave txId.
 
 <div style={{ textAlign: 'center' }}>
-    <table className="inline-table" id="gateway-table"  style={{textAlign: "left"}}>
+  <table
+    className="inline-table"
+    id="gateway-table"
+    style={{ textAlign: 'left' }}
+  >
     <thead>
-        <tr style={{ textAlign: 'center' }}>
-            <th>Request Path</th>
-            <th>Manifest Path</th>
-            <th>Data served from txID</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr>
-            <td>https://arweave.dev/UyC5P5qKPZaltMmmZAWdakhlDXsBF6qmyrbWYFchRTk</td>
-            <td>index</td>
-            <td>cG7Hdi_iTQPoEYgQJFqJ8NMpN4KoZ-vH_j7pG4iP7NI</td>
-        </tr>
-        <tr>
-            <td>https://arweave.dev/UyC5P5qKPZaltMmmZAWdakhlDXsBF6qmyrbWYFchRTk/index.html</td>
-            <td>index.html</td>
-            <td>cG7Hdi_iTQPoEYgQJFqJ8NMpN4KoZ-vH_j7pG4iP7NI</td>
-        </tr>
-        <tr>
-            <td>https://arweave.dev/UyC5P5qKPZaltMmmZAWdakhlDXsBF6qmyrbWYFchRTk/js/style.css</td>
-            <td>js/style.css</td>
-            <td>3zFsd7bkCAUtXUKBQ4XiPiQvpLVKfZ6kiLNt2XVSfoV</td>
-        </tr>
-        <tr>
-            <td>https://arweave.dev/UyC5P5qKPZaltMmmZAWdakhlDXsBF6qmyrbWYFchRTk/foobar</td>
-            <td>fallback</td>
-            <td>iXo3LSfVKVtXUKBzfZ4d7bkCAp6kiLNt2XVUFsPiQvQ</td>
-        </tr>
-        </tbody>
-    </table>
+      <tr style={{ textAlign: 'center' }}>
+        <th>Request Path</th>
+        <th>Manifest Path</th>
+        <th>Data served from txID</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>https://arweave.dev/UyC5P5qKPZaltMmmZAWdakhlDXsBF6qmyrbWYFchRTk</td>
+        <td>index</td>
+        <td>cG7Hdi_iTQPoEYgQJFqJ8NMpN4KoZ-vH_j7pG4iP7NI</td>
+      </tr>
+      <tr>
+        <td>
+          https://arweave.dev/UyC5P5qKPZaltMmmZAWdakhlDXsBF6qmyrbWYFchRTk/index.html
+        </td>
+        <td>index.html</td>
+        <td>cG7Hdi_iTQPoEYgQJFqJ8NMpN4KoZ-vH_j7pG4iP7NI</td>
+      </tr>
+      <tr>
+        <td>
+          https://arweave.dev/UyC5P5qKPZaltMmmZAWdakhlDXsBF6qmyrbWYFchRTk/js/style.css
+        </td>
+        <td>js/style.css</td>
+        <td>3zFsd7bkCAUtXUKBQ4XiPiQvpLVKfZ6kiLNt2XVSfoV</td>
+      </tr>
+      <tr>
+        <td>
+          https://arweave.dev/UyC5P5qKPZaltMmmZAWdakhlDXsBF6qmyrbWYFchRTk/foobar
+        </td>
+        <td>fallback</td>
+        <td>iXo3LSfVKVtXUKBzfZ4d7bkCAp6kiLNt2XVUFsPiQvQ</td>
+      </tr>
+    </tbody>
+  </table>
 </div>
 
 ## Specifications
