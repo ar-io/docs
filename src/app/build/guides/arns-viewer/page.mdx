@@ -1,0 +1,677 @@
+# ArNS Viewer
+
+## Overview
+
+This guide will walk you through creating a project that uses the ar.io SDK to interact with ArNS names in a web environment. It provides all the steps and context needed to help you get up and running smoothly, allowing you to effectively use these technologies.
+
+We will be using [ARNext](https://github.com/weavedb/arnext), a new framework based on Next.js, to simplify deployment to the Arweave permaweb. ARNext provides flexibility for deploying seamlessly to Arweave using an ArNS name, an Arweave transaction ID, or traditional services like Vercel—all without requiring major code modifications. This means you can deploy the same project across different environments with minimal effort.
+
+The guide will focus on the following core functionalities of the ar.io SDK:
+
+1. **Retrieving a List of All Active ArNS Names**: Learn how to use the SDK to get and display a list of active ArNS names.
+2. **Querying Detailed Records for a Specific ArNS Name**: Learn how to access detailed records for a specific ArNS name using its ANT (Arweave Name Token).
+3. **Updating and Creating Records on an ArNS Name**: Learn how to modify and add records to an ArNS name, showcasing the capabilities of ANT for dynamic web content.
+
+By the end of this guide, you will have a complete, functional project that not only demonstrates how to use the ar.io SDK but also shows the ease and flexibility of deploying applications to the Arweave permaweb. Whether you are an experienced developer or just starting out, this guide will help you understand the key aspects of building and deploying on Arweave.
+
+## Getting Started
+
+### Prerequisites
+
+- Node v20.17 or greater
+- git
+
+### Install ARNext
+
+ARNext is a brand new framework that is still in development. It supports installation using npx, and you will need the proper Node version for the installation to be successful.
+
+
+```bash
+npx create-arnext-app arnext
+
+```
+
+You can then move your terminal into that newly created folder with:
+
+```bash
+cd arnext
+```
+
+or open the folder in an IDE like VSCode, and open a new terminal inside that IDE in order to complete the next steps.
+
+### Sanity Check
+
+It is good practice when starting a new project to view it in localhost without any changes, to make sure everything is installed and working correctly. To do this, run:
+
+```bash
+npm run dev
+```
+
+or, if you prefer yarn:
+
+```bash
+yarn dev
+```
+
+By default, the project will be served on port 3000, so you can access it by navigating to `localhost:3000` in any browser. You should see something that looks like this:
+
+<img className="demoImage" src="https://arweave.net/irRwKfKZ4JsvZrjx7orkuDoQ9BqQWoJoIZKikkQVcLE"></img>
+
+With this complete, you are ready to move on to customizing for your own project.
+
+## Install ar.io SDK
+
+Next, install the ar.io SDK.
+
+```bash
+npm install @ar.io/sdk
+```
+
+or 
+
+```bash
+yarn add @ar.io/sdk --ignore-engines
+```
+
+
+
+### Polyfills
+
+Polyfills are used to provide missing functionality in certain environments. For example, browsers do not have direct access to a computer's file system, but many JavaScript libraries are designed to work in both browser and Node.js environments. These libraries might include references to `fs`, the module used by Node.js to interact with the file system. Since fs is not available in browsers, we need a polyfill to handle these references and ensure the application runs properly in a browser environment.
+
+<p style={{display: "none"}}>Polyfills are actually evil voodoo curse magic. No one understands what they are or how they work, but front end devs sell their souls to Bill Gates in exchange for their stuff working properly in browsers. The below polyfill instructions were stolen, at great personal cost, from one of these front end devs in order to save your soul. This is one of many convenient services offered by ar.io</p>
+
+#### Installation
+
+The below command will install several packages as development dependencies, which should be sufficient to handle most polyfill needs for projects that interact with Arweave.
+
+```bash
+npm install webpack browserify-fs process buffer --save-dev
+```
+
+or
+
+```bash
+yarn add webpack browserify-fs process buffer --dev --ignore-engines
+```
+
+#### Next Config
+
+With the polyfill packages installed, we need to tell our app how to use them. In NextJS, which ARNext is built on, this is done in the `next.config.js` file in the root of the project. The default config file will look like this:
+
+```typescript
+const arnext = require("arnext/config")
+const nextConfig = { reactStrictMode: true }
+module.exports = arnext(nextConfig)
+```
+
+This configuration allows the app to determine if it is being served via an Arweave transaction Id, or through a more traditional method. From here, we need to add in the additional configurations for resolving our polyfills. The updated `next.config.js` will look like this:
+
+```typescript
+const arnext = require("arnext/config");
+const webpack = require("webpack");
+
+const nextConfig = {
+  reactStrictMode: true,
+  webpack: (config) => {
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      fs: false,
+      process: "process/browser",
+      buffer: "buffer/",
+    };
+    config.plugins.push(
+      new webpack.ProvidePlugin({
+        process: "process/browser",
+        Buffer: ["buffer", "Buffer"],
+      })
+    );
+    return config;
+  },
+};
+module.exports = arnext(nextConfig);
+```
+
+With that, you are ready to start customizing your app.
+
+## Strip Default Content
+
+The first step in building your custom app is to remove the default content and create a clean slate. Follow these steps:
+
+1. **Update the Home Page**
+
+   - Navigate to `pages > index.js`, which serves as the main home page.
+   - Delete everything in this file and replace it with the following placeholder:
+
+   ```typescript
+   export default function Home() {}
+   ```
+
+2. **Remove Unused Pages**
+
+   - The folder `pages > posts > [id].js` will not be used in this project. Delete the entire `posts` folder to keep the project organized and free of unnecessary files.
+
+3. **Create Header**
+
+   - Create a new `components` folder
+   - Inside that, create a `Header.js` file, leave it blank for now.
+
+4. **Create Routes**
+
+   - Create a new file at `components > ArweaveRoutes.js` to handle routing between pages. Leave it simple for now.
+
+   ```typescript
+   import { Routes, Route } from "react-router-dom";
+   import { createBrowserRouter, RouterProvider } from "react-router-dom";
+   import Home from "../pages/index";
+   import NotFound from "../pages/404";
+
+   const ArweaveRoutes = () => (
+     <Routes>
+       <Route path="/" element={<Home />} />
+       <Route path="*" element={<NotFound />} />
+     </Routes>
+   );
+
+   export default ArweaveRoutes;
+   ```
+Your project is now a blank slate, ready for your own custom design and functionality. This clean setup will make it easier to build and maintain your application as you move forward.
+
+
+## Add Utilities
+
+There are a few functions that we might end up wanting to use in multiple different pages in our finished product. So we can put these in a separate file and export them, so that other pages can import them to use. Start by creating a `utils` folder in the root of the project, then create 2 files inside of it:
+
+1. `auth.js`: This will contain the functions required for connecting an Arweave wallet using ArConnect
+
+   ```typescript
+   /**
+    * Connect to the Arweave wallet using ArConnect and request permissions.
+    * @returns {Promise<string>} The active wallet address.
+    */
+   export const connectWallet = async () => {
+     await window.arweaveWallet.connect([
+       "ACCESS_ADDRESS",
+       "SIGN_TRANSACTION",
+       "ACCESS_PUBLIC_KEY",
+       "SIGNATURE",
+     ]);
+     const address = await window.arweaveWallet.getActiveAddress();
+     return address;
+   };
+
+   /**
+    * Truncate a wallet address for display purposes.
+    * @param {string} address - The wallet address to truncate.
+    * @returns {string} The truncated address.
+    */
+   export const truncateAddress = (address) => {
+     return `${address.slice(0, 3)}...${address.slice(-3)}`;
+   };
+   ```
+
+2. `arweave.js`: This is where we will put most of our ar.io SDK functions for interacting with Arweave
+
+   ```typescript
+   import { ARIO, ANT, ArconnectSigner } from "@ar.io/sdk/web";
+
+   /**
+    * Initialize ArIO and fetch all ArNS records.
+    * @returns {Promise<Object>} All ArNS records.
+    */
+   export const fetchArNSRecords = async () => {
+     const ario = ARIO.init();
+     let allRecords = [];
+     let hasMore = true;
+     let cursor;
+
+     // Paginates through all records to get the full registry.
+     while (hasMore) {
+       const response = await ario.getArNSRecords({
+         limit: 10000, // You can adjust the limit as needed
+         sortBy: "name",
+         sortOrder: "asc",
+         cursor: cursor,
+       });
+
+       allRecords = [...allRecords, ...response.items];
+       cursor = response.nextCursor;
+       hasMore = response.hasMore;
+     }
+
+     // console.log(allRecords);
+     return allRecords;
+   };
+
+   /**
+    * Initialize ANT with the given processId.
+    * @param {string} processId - The processId.
+    * @returns {Object} ANT instance.
+    */
+   export const initANT = (processId) => {
+     return ANT.init({ processId });
+   };
+
+   /**
+    * Fetch detailed records, owner, and controllers for a given processId.
+    * @param {string} contractTxId - The processId.
+    * @returns {Promise<Object>} Detailed records, owner, and controllers.
+    */
+   export const fetchRecordDetails = async (processId) => {
+     const ant = initANT(processId);
+     const detailedRecords = await ant.getRecords();
+     const owner = await ant.getOwner();
+     const controllers = await ant.getControllers();
+     return { detailedRecords, owner, controllers };
+   };
+
+   /**
+    * Set a new record in the ANT process.
+    * @param {string} processId - The processId.
+    * @param {string} subDomain - The subdomain for the record.
+    * @param {string} transactionId - The transaction ID the record should resolve to.
+    * @param {number} ttlSeconds - The Time To Live (TTL) in seconds.
+    * @returns {Promise<Object>} Result of the record update.
+    */
+   export const setANTRecord = async (
+     processId,
+     name,
+     transactionId,
+     ttlSeconds
+   ) => {
+     console.log(`Pid: ${processId}`);
+     console.log(`name: ${name}`);
+     console.log(`txId: ${transactionId}`);
+     const browserSigner = new ArconnectSigner(window.arweaveWallet);
+     const ant = ANT.init({ processId, signer: browserSigner });
+     const result = await ant.setRecord({
+       undername: name,
+       transactionId,
+       ttlSeconds,
+     });
+     console.log(result);
+     return result;
+   };
+   ```
+
+## Build Home Page
+
+### Header
+
+We want the Header component to contain a button for users to connect their wallet to the site, and display their wallet address when Connected. To do this, we will use the functions we exported from the `utils > auth.js` file, and pass in a state and set state function from each page rendering the header:
+
+```typescript
+import React from "react";
+import { connectWallet, truncateAddress } from "../utils/auth";
+
+/**
+ * Header component for displaying the connect wallet button and navigation.
+ * @param {Object} props - Component props.
+ * @param {string} props.address - The connected wallet address.
+ * @param {function} props.setAddress - Function to set the connected wallet address.
+ */
+const Header = ({ address, setAddress }) => {
+  const handleConnectWallet = async () => {
+    try {
+      const walletAddress = await connectWallet();
+      setAddress(walletAddress);
+    } catch (error) {
+      console.error("Failed to connect wallet:", error);
+    }
+  };
+
+  return (
+    <div className="header">
+      <button className="connect-wallet" onClick={handleConnectWallet}>
+        {address ? `Connected: ${truncateAddress(address)}` : "Connect Wallet"}
+      </button>
+    </div>
+  );
+};
+
+export default Header;
+```
+
+## Grid Component
+
+Our home page is going to fetch a list of all ArNS names and display them. To make this display cleaner and more organized, we are going to create a component to display the names as a grid.
+
+- Create a new file in `components` named `RecordsGrid.js`
+
+```javascript
+import React from "react";
+import { Link } from "arnext";
+
+/**
+ * RecordsGrid component for displaying a grid of record keys.
+ * @param {Object} props - Component props.
+ * @param {Array<string>} props.keys - Array of record keys to display.
+ */
+const RecordsGrid = ({ keys }) => {
+  return (
+    <div className="records-grid">
+      {keys.map((key, index) => (
+        <button
+          key={index}
+          className="record-key"
+          onClick={() => {
+            console.log(`clicked on ${key}`); 
+          }}
+        >
+          {key}
+        </button>
+      ))}
+    </div>
+  );
+};
+
+export default RecordsGrid;
+```
+
+This will take an individual ArNS record and display it as a button that logs the record name when clicked. We will update this later to make the button act as a link to the more detailed record page after we build that, which is why we are importing `Link` from `arnext`
+
+## Home Page
+
+Go back to `pages > index.js` and lets build out our home page. We want to fetch the list of ArNS names when the page loads, and then feed the list into the grid component we just created. Because there are so many names, we also want to include a simple search bar to filter out displayed names. We will also need several states in order to manage all of this info:
+
+```javascript
+"use client";
+import { useEffect, useState } from "react";
+import Header from "@/components/Header";
+import { fetchArNSRecords } from "@/utils/arweave";
+import RecordsGrid from "@/components/RecordsGrid";
+
+export default function Home() {
+  const [arnsRecords, setArnsRecords] = useState(null); // State for storing all ArNS records
+  const [isProcessing, setIsProcessing] = useState(true); // State for processing indicator
+  const [searchTerm, setSearchTerm] = useState("") // used to filter displayed results by search input
+  const [address, setAddress] = useState(null); // State for wallet address
+  
+
+  useEffect(() => {
+    const fetchRecords = async () => {
+      const allRecords = await fetchArNSRecords();
+      setArnsRecords(allRecords);
+      setIsProcessing(false);
+    };
+
+    fetchRecords();
+  }, []);
+
+  return (
+    <div>
+      <Header address={address} setAddress={setAddress} />
+      {isProcessing ? (
+        "processing"
+      ) : (
+        <div>
+          <h2>Search</h2>
+          <input 
+          type="text"
+          value={searchTerm}
+          className ="search-bar"
+          onChange = {(e) => {setSearchTerm(e.target.value)}}
+          />
+        <RecordsGrid
+          keys={arnsRecords
+            .map((r) => r.name)
+            .filter((key) => key.toLowerCase().includes(searchTerm?.toLowerCase()))}
+        /></div>
+      )}
+    </div>
+  );
+}
+```
+
+## Names Page
+
+NextJS, and ARNext by extension, supports dynamic routing, allowing us to create dedicated pages for any ArNS name without needing to use query strings, which makes the sharable urls much cleaner and more intuitive. We can do this by creating a page file with the naming convention `[variable].js`. Since we want to make a page for specific ArNS names we will create a new folder inside the `pages` folder named `names`, and then a new file `pages > names > [name].js`.
+
+This will be our largest file so far, including different logic for the displayed content depending on if the connected wallet is authorized to make changes the the name. We also need to make the page see what the name being looked at is, based on the url. We can do this using the custom `useParams` function from ARNext.
+
+The finished page will look like this:
+
+```javascript
+import Header from "@/components/Header";
+import { useParams, Link } from "arnext"; // Import from ARNext, not NextJS
+import { useEffect, useState } from "react";
+import { ARIO } from "@ar.io/sdk/web";
+import { fetchRecordDetails, setANTRecord } from "@/utils/arweave";
+
+export async function getStaticPaths() {
+  return { paths: [], fallback: "blocking" };
+}
+
+export async function getStaticProps({ params }) {
+  const { name } = params;
+  return { props: { name } }; // No initial record, just returning name
+}
+
+export default function NamePage() {
+  const { name } = useParams();
+  const [nameState, setNameState] = useState("");
+  const [nameRecord, setNameRecord] = useState(null); // Initialize record to null
+  const [arnsRecord, setArnsRecord] = useState(null);
+  const [resultMessage, setResultMessage] = useState("");
+  const [address, setAddress] = useState(null); // State for wallet address
+
+  useEffect(() => {
+    if (name && name !== nameState) {
+      setNameState(name);
+
+      // Fetch the record dynamically whenever routeName changes
+      const fetchRecord = async () => {
+        console.log("fetching records");
+        try {
+          const ario = ARIO.init();
+          const newRecord = await ario.getArNSRecord({ name });
+          console.log(newRecord);
+          setNameRecord(newRecord);
+        } catch (error) {
+          console.error("Failed to fetch record:", error);
+          setRecord(null);
+        }
+      };
+
+      fetchRecord();
+    }
+    if (nameRecord && nameRecord.processId) {
+      const fetchArnsRecord = async () => {
+        try {
+          const arnsRecord = await fetchRecordDetails(nameRecord.processId);
+          console.log(arnsRecord);
+          setArnsRecord(arnsRecord);
+        } catch (error) {
+          console.error(error);
+        }
+      };
+      fetchArnsRecord();
+    }
+  }, [nameState, nameRecord]);
+
+  const handleUpdateRecord = async (key, txId) => {
+    const result = await setANTRecord(nameRecord.processId, key, txId, 900)
+  console.log(`result Message: ${result}`)
+  console.log(result)
+    setResultMessage(result.id)
+  };
+
+  if (nameRecord === null) {
+    return (
+      <div>
+        <Header address={address} setAddress={setAddress} />
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  const owner = arnsRecord?.owner || "N/A";
+  const controllers = arnsRecord?.controllers || [];
+
+  return (
+    <div>
+      <Header address={address} setAddress={setAddress} />
+      <div className="record-details">
+        <h3>Record Details for {nameState}</h3>
+        <div>
+          {arnsRecord?.detailedRecords &&
+            Object.keys(arnsRecord.detailedRecords).map((recordKey, index) => (
+              <div key={index} className="record-txid">
+                <strong>{recordKey}:</strong>{" "}
+                <a
+                  href={`https://arweave.net/${arnsRecord.detailedRecords[recordKey].transactionId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {arnsRecord.detailedRecords[recordKey].transactionId}
+                </a>
+              </div>
+            ))}
+        </div>
+        <p>Owner: {owner}</p>
+        <p>
+          Controllers: {controllers.length > 0 ? controllers.join(", ") : "N/A"}
+        </p>
+        {owner === address && ( 
+          <>
+            {arnsRecord?.detailedRecords &&
+              Object.keys(arnsRecord.detailedRecords).map(
+                (recordKey, index) => (
+                  <div key={index} className="record-update">
+                    <label>
+                      {recordKey}:
+                      <input
+                        type="text"
+                        placeholder="Enter new TxID"
+                        id={`input-${index}`}
+                      />
+                      <button
+                        onClick={() => {
+                          const inputElement = document.getElementById(`input-${index}`);
+                          const inputValue = inputElement ? inputElement.value : "";
+                          handleUpdateRecord(
+                            recordKey === "@" ? "@" : `${recordKey}`,
+                            inputValue
+                          );
+                        }}
+                      >
+                        Update
+                      </button>
+                    </label>
+                  </div>
+                )
+              )}
+            <div className="new-record">
+              <input
+                type="text"
+                placeholder="New Subdomain"
+                id={`new-subdomain-input`}
+              />
+              <input
+                type="text"
+                placeholder="New TxID"
+                id={`new-txid-input`}
+              />
+              <button
+                onClick={() => {
+                  const subdomainElement = document.getElementById("new-subdomain-input");
+                  const txIdElement = document.getElementById("new-txid-input");
+            
+                  const newSubdomainValue = subdomainElement ? subdomainElement.value : "";
+                  const newTxIdValue = txIdElement ? txIdElement.value : "";
+            
+                  console.log(newSubdomainValue)
+                  console.log(newTxIdValue)
+                  handleUpdateRecord(newSubdomainValue, newTxIdValue);
+                }}
+              >
+                Set New Record
+              </button>
+            </div>
+          </>
+        )}
+        <Link href="/">
+          <button>Back to list</button>
+        </Link>
+
+        {resultMessage && <p>Successfully updated with message ID: {resultMessage}</p>}
+      </div>
+    </div>
+  );
+}
+```
+
+When this page loads, it gets the name being queried by using `useParams` and our custom `getStaticPaths` and `getStaticProps` functions. It then uses the ar.io sdk to get the process Id of the ANT that controls the name, and queries the ANT for its info and detailed records list. 
+
+Once the page has that info, it renders the ArNS name, its owner address, any addresses authorized to make changes, and every record that name contains. If the user has connected a wallet authorized to make changes, the page also renders input fields for each record for making those updates. It also provides the option to create an entirely new undername record.
+
+## Finish the Grid Component
+
+Now that we have a path for our main page displays to link to, we can update the `components > RecordsGrid.js` file to include that link when clicked.
+
+```javascript
+import React from "react";
+import { Link } from "arnext";
+
+/**
+ * RecordsGrid component for displaying a grid of record keys.
+ * @param {Object} props - Component props.
+ * @param {Array<string>} props.keys - Array of record keys to display.
+ */
+const RecordsGrid = ({ keys }) => {
+  return (
+    <div className="records-grid">
+      {keys.map((key, index) => (
+        <Link href={`/names/${key}`} key={index}>
+        <button
+          key={index}
+          className="record-key"
+          onClick={() => {console.log(`clicked on ${key}`)}}
+        >
+          {key}
+        </button>
+        </Link>
+      ))}
+    </div>
+  );
+};
+
+export default RecordsGrid;
+```
+
+## View Project
+
+The ArNS viewer should be fully functional now. You can view it locally in your browser using the same steps as the initial [Sanity Check](#sanity-check) 
+
+- Run `yarn dev` in your terminal
+- Navigate to `localhost:3000` in a browser
+
+## CSS
+
+You will likely notice that everything functions correctly, but it doesnt look very nice. This is because we havent updated our css at all. 
+
+The primary css file for this project is `css > App.css`. You can make whatever css rules here that you like to make the page look the way you want.
+
+<img className="demoImage" src="https://arweave.net/VZGmzcLwNn-x9lKDpUdlLGyW81Xnnq5lNuD341XZEtY"></img>
+
+## Deploy With Turbo
+
+Once your app is looking the way you want it, you can deploy it to the permaweb using Turbo. For this, you will need an Arweave wallet with some [Turbo Credits](https://docs.ardrive.io/docs/turbo/credits/). Make sure you don't place your keyfile for the wallet inside the project directory, or you risk it getting uploaded to Arweave by mistake.
+
+In your terminal, run the command: 
+
+```bash
+yarn deploy:turbo -w <path-to-your-wallet>
+```
+
+Make sure to replace `<path-to-your-wallet>` with the actual path to your Arweave wallet. This will create a static build of your entire project, upload it to Arweave, and print out in the terminal all of the details of the upload. 
+
+Find the section in the print out `manifestResponse` which will have a key named `id`. That will be the Arweave transaction id for your project.
+
+You can view a permanently deployed version of your project at `https://arweave.net/<transaction-id>`
+
+
+## References
+
+- Completed Project example: [github](https://github.com/Bobinstein/arnext)
+- Deployed Project: [transaction id](https://arweave.net/ePbdRQrSyOqOVm3GhqmtGK2jm4fUf7Ohd3cJ9yNu-Y8/)

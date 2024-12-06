@@ -1,0 +1,124 @@
+import { CodeGroup } from '@/components/Code'
+import {HeroPattern} from "@/components/HeroPattern"
+
+<HeroPattern />
+
+# getEpoch
+
+`getEpoch` is a method on the `ARIO` class that returns the epoch data for the specified block height. If no epoch index is provided, the current epoch is used.
+
+`getEpoch` does not require authentication.
+
+## Parameters
+
+{
+
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>epochIndex</th>
+        <td>number</td>
+        <td>Epoch index for the requested Epoch data.</td>
+        <td>true</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+}
+
+## Examples
+
+<CodeGroup title="getGateway">
+
+    ```typescript {{ title: 'NodeJS' }}
+    const { ARIO } = require('@ar.io/sdk');
+
+    async function main() {
+      const ario = ARIO.init();
+      const epoch = await ario.getEpoch({ epochIndex: 0 });
+
+      console.log(epoch);
+    }
+
+    main();
+    ```
+
+    ```typescript {{ title: 'Web' }}
+    import { ARIO } from '@ar.io/sdk/web';
+
+    async function main() {
+      const ario = ARIO.init();
+      const epoch = await ario.getEpoch({ epochIndex: 0 });
+
+      console.log(epoch);
+    }
+
+    main();
+    ```
+
+</CodeGroup>
+
+## Output
+
+```js
+{
+  "epochIndex": 0,
+  "startTimestamp": 1720720620813,
+  "endTimestamp": 1752256702026,
+  "startHeight": 1350700,
+  "distributionTimestamp": 1752256702026,
+  "observations": {
+    "failureSummaries": {
+      "-Tk2DDk8k4zkwtppp_XFKKI5oUgh6IEHygAoN7mD-w8": [
+        "Ie2wEEUDKoU26c7IuckHNn3vMFdNQnMvfPBrFzAb3NA"
+      ]
+    },
+    "reports": {
+      "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs": "B6UUjKWjjEWDBvDSMXWNmymfwvgR9EN27z5FTkEVlX4"
+    }
+  },
+  "prescribedNames": ["ardrive", "ar-io", "arweave", "fwd", "ao"],
+  "prescribedObservers": [
+    {
+      "gatewayAddress": "2Fk8lCmDegPg6jjprl57-UCpKmNgYiKwyhkU4vMNDnE",
+      "observerAddress": "2Fk8lCmDegPg6jjprl57-UCpKmNgYiKwyhkU4vMNDnE",
+      "stake": 10000000000, // value in mARIO
+      "startTimestamp": 1720720620813,
+      "stakeWeight": 1,
+      "tenureWeight": 0.4494598765432099,
+      "gatewayRewardRatioWeight": 1,
+      "observerRewardRatioWeight": 1,
+      "compositeWeight": 0.4494598765432099,
+      "normalizedCompositeWeight": 0.002057032496835938
+    }
+  ],
+  "distributions": {
+    "totalEligibleGateways": 1,
+    "totalEligibleRewards": 100000000,
+    "totalEligibleObserverReward": 100000000,
+    "totalEligibleGatewayReward": 100000000,
+    "totalDistributedRewards": 100000000,
+    "distributedTimestamp": 1720720621424,
+    "rewards": {
+      "eligible": {
+        "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs": {
+          "operatorReward": 100000000,
+          "delegateRewards": {}
+        }
+      },
+      "distributed": {
+        "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs": 100000000
+      }
+    }
+  }
+}
+```

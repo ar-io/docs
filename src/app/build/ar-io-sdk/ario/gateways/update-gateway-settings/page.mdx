@@ -1,0 +1,170 @@
+import { CodeGroup } from '@/components/Code'
+import {HeroPattern} from "@/components/HeroPattern"
+
+<HeroPattern />
+
+# updateGatewaySettings
+
+`updateGatewaySettings` is a method on the `ARIO` class that writes new gateway settings to the caller's gateway configuration.
+
+`updateGatewaySettings` requires authentication.
+
+## Parameters
+
+{
+
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>autoStake</th>
+        <td>boolean</td>
+        <td>If true, automatically stakes gateway rewards.</td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <th>allowDelegatedStaking</th>
+        <td>boolean</td>
+        <td>If true, allows third parties to delegate stake to the gateway.</td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <th>minDelegatedStake</th>
+        <td>number</td>
+        <td>
+          Minimum number of tokens, in `mARIO` that can be delegated to the
+          gateway.
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <th>delegateRewardShareRatio</th>
+        <td>number</td>
+        <td>Percentage of gateway rewards to share with delegates. e.g. 10%</td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <th>label</th>
+        <td>string</td>
+        <td>Friendly name for gateway, min 1 character, max 64 characters.</td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <th>note</th>
+        <td>string</td>
+        <td>A note to be associated with gateway, max 256 characters.</td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <th>properties</th>
+        <td>string - ArweaveTxId</td>
+        <td>
+          ArweaveTxId to properties object containing additional gateway
+          configuration details.
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <th>observerWallet</th>
+        <td>string - WalletAddress</td>
+        <td>
+          Public wallet address for wallet used to upload network observations.
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <th>fqdn</th>
+        <td>string</td>
+        <td>
+          Fully qualified domain name, must be valid domain owned by gateway
+          operator.
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <th>port</th>
+        <td>number</td>
+        <td>
+          Port number to use when accessing gateway, generally 443 (https)
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <th>protocol</th>
+        <td>string - "http" || "https"</td>
+        <td>
+          Protocol to use when accessing gateway, only "https" is supported for
+          network participation.
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <th>tags</th>
+        <td>array</td>
+        <td>
+          An array of GQL tag objects to attach to the joinNetwork AO message.
+        </td>
+        <td>true</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+}
+
+## Example
+
+<CodeGroup title="updateGatewaySettings">
+
+       ```typescript {{title: "NodeJS"}}
+        const fs = require("fs");
+        const { ARIO, ArweaveSigner, ARIOToken } = require("@ar.io/sdk");
+
+        async function main() {
+        const jwk = JSON.parse(fs.readFileSync("KeyFile.json"));
+        const ario = ARIO.init({
+            signer: new ArweaveSigner(jwk),
+        });
+
+       const { id: txId } = await ario.updateGatewaySettings(
+                {
+                    // any other settings you want to update
+                    minDelegatedStake: new ARIOToken(100).toMARIO(),
+                },
+                // optional additional tags
+                { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+            );
+        }
+
+        main();
+
+    ```
+
+    ```typescript {{ title: 'Web' }}
+    import { ARIO, ARIOToken, ArConnectSigner } from '@ar.io/sdk/web';
+
+    async function main() {
+        const ario = ARIO.init({
+            signer: new ArConnectSigner(window.arweaveWallet)
+        })
+       const { id: txId } = await ario.updateGatewaySettings(
+                {
+                    // any other settings you want to update
+                    minDelegatedStake: new ARIOToken(100).toMARIO(),
+                },
+                // optional additional tags
+                { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+            );
+        }
+
+    main();
+    ```
+
+</CodeGroup>

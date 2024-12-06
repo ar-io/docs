@@ -1,0 +1,121 @@
+import {CodeGroup} from "@/components/Code"
+import {HeroPattern} from "@/components/HeroPattern"
+
+<HeroPattern />
+
+# getPrimaryNames
+
+`getPrimaryNames` is a method on the `ARIO` class that retrieves all primary names paginated and sorted by the specified criteria. the `cursor` used for pagination is the last name from the previous request.
+
+`getPrimaryNames` does not require authentication.
+
+## Parameters
+
+{
+<div style={{textAlign: "center"}}>
+    <table className="inline-table">
+    <thead>
+    <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <th>cursor</th>
+        <td>String</td>
+        <td>Cursor used for paginated results</td>
+        <td>true</td>
+        <td>None</td>
+    </tr>
+    <tr>
+        <th>limit</th>
+        <td>Number</td>
+        <td>Max number of results to return in a single search</td>
+        <td>true</td>
+        <td>100</td>
+    </tr>
+    <tr>
+        <th>sortBy</th>
+        <td>String</td>
+        <td>Property used to sort returned results</td>
+        <td>true</td>
+        <td>startTimestamp</td>
+    </tr>
+    <tr>
+        <th>sortOrder</th>
+        <td>String</td>
+        <td>Order in which sorted results are returned. valid values are `desc` or `asc`</td>
+        <td>true</td>
+        <td>desc</td>
+    </tr>
+    </tbody>
+    </table>
+</div>
+}
+
+## Example
+
+<CodeGroup title="getPrimaryNames">
+
+    ```javascript {{ title: 'NodeJS' }}
+    const { ARIO } = require('@ar.io/sdk');
+
+    async function main() {
+      const ario = ARIO.init();
+      const names = await ario.getPrimaryNames({
+            cursor: 'ao', // this is the last name from the previous request
+            limit: 1,
+            sortBy: 'startTimestamp',
+            sortOrder: 'desc',
+        });
+
+      console.log(names);
+    }
+
+    main();
+    ```
+
+    ```javascript {{ title: 'Web' }}
+    import { ARIO } from '@ar.io/sdk/web';
+
+    async function main() {
+      const ario = ARIO.init();
+      const names = await ario.getPrimaryNames({
+            cursor: 'ao', // this is the last name from the previous request
+            limit: 1,
+            sortBy: 'startTimestamp',
+            sortOrder: 'desc',
+        });
+
+      console.log(names);
+    }
+
+    main();
+    ```
+
+</CodeGroup>
+
+
+## Output
+
+```typescript
+{
+  "sortOrder": "desc",
+  "hasMore": true,
+  "totalItems": 100,
+  "limit": 1,
+  "sortBy": "startTimestamp",
+  "cursor": "arns",
+  "items": [
+    {
+      "owner": "HwFceQaMQnOBgKDpnFqCqgwKwEU5LBme1oXRuQOWSRA",
+      "startTimestamp": 1719356032297,
+      "name": "arns"
+    }
+  ]
+}
+```

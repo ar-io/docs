@@ -1,0 +1,135 @@
+import { CodeGroup } from '@/components/Code'
+import {HeroPattern} from "@/components/HeroPattern"
+
+<HeroPattern />
+
+# getGatewayDelegates
+
+`getGatewayDelegates` is a method on the `ARIO` class that retrieves all delegates for a specific gateway, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last delegate address from the previous request.
+
+`getGatewayDelegates` does not require authentication.
+
+## Parameters
+
+{
+
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>address</th>
+        <td>string - WalletAddress</td>
+        <td>Gateway wallet address to receive delegates for.</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>cursor</th>
+        <td>string</td>
+        <td>Cursor used for paginated results</td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <th>limit</th>
+        <td>number</td>
+        <td>Max number of results to return in a single search</td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <th>sortBy</th>
+        <td>string</td>
+        <td>Property used to sort returned results</td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <th>sortOrder</th>
+        <td>string</td>
+        <td>
+          Order in which sorted results are returned. valid values are `desc` or
+          `asc`
+        </td>
+        <td>true</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+}
+
+## Example
+
+<CodeGroup title="getGatewayDelegates">
+
+    ```javascript {{ title: 'NodeJS' }}
+    const { ARIO } = require('@ar.io/sdk');
+
+    async function main() {
+      const ario = ARIO.init();
+      const delegates = await ario.getGatewayDelegates({
+        address: 'QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ',
+        limit: 3,
+        sortBy: 'startTimestamp',
+        sortOrder: 'desc',
+      });
+
+      console.log(delegates);
+    }
+
+    main();
+    ```
+
+    ```javascript {{ title: 'Web' }}
+    import { ARIO } from '@ar.io/sdk/web';
+
+    async function main() {
+      const ario = ARIO.init();
+      const delegates = await ario.getGatewayDelegates({
+        address: 'QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ',
+        limit: 3,
+        sortBy: 'startTimestamp',
+        sortOrder: 'desc',
+      });
+
+      console.log(delegates);
+    }
+
+    main();
+    ```
+
+</CodeGroup>
+
+## Output
+
+```typescript
+{
+  "nextCursor": "ScEtph9-vfY7lgqlUWwUwOmm99ySeZGQhOX0MFAyFEs",
+  "limit": 3,
+  "sortBy": "startTimestamp",
+  "totalItems": 32,
+  "sortOrder": "desc",
+  "hasMore": true,
+  "items": [
+    {
+      "delegatedStake": 600000000,
+      "address": "qD5VLaMYyIHlT6vH59TgYIs6g3EFlVjlPqljo6kqVxk",
+      "startTimestamp": 1732716956301
+    },
+    {
+      "delegatedStake": 508999038,
+      "address": "KG8TlcWk-8pvroCjiLD2J5zkG9rqC6yYaBuZNqHEyY4",
+      "startTimestamp": 1731828123742
+    },
+    {
+      "delegatedStake": 510926479,
+      "address": "ScEtph9-vfY7lgqlUWwUwOmm99ySeZGQhOX0MFAyFEs",
+      "startTimestamp": 1731689356040
+    }
+  ]
+}
+```

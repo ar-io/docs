@@ -1,0 +1,120 @@
+import { CodeGroup } from '@/components/Code'
+import {HeroPattern} from "@/components/HeroPattern"
+
+<HeroPattern />
+
+# getBalances
+
+`getBalances` is a method on the `ARIO` class that retrieves the balances of the ARIO process in `mARIO`, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last wallet address from the previous request.
+
+`getBalances` does not require authentication.
+
+## Parameters
+
+{
+
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>cursor</th>
+        <td>string - WalletAddress</td>
+        <td>The last wallet address from previous page of results.</td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <th>limit</th>
+        <td>number</td>
+        <td>The number of results to return per page.</td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <th>sortBy</th>
+        <td>string</td>
+        <td>Attribute to sort results by, i.e. `balance`</td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <th>sortOrder</th>
+        <td>string</td>
+        <td>Order to return sorted results, `asc` or `desc`</td>
+        <td>true</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+}
+
+## Examples
+
+<CodeGroup title="getBalance">
+
+    ```typescript {{title: 'NodeJS'}}
+    const { ARIO, mARIOToken } = require('@ar.io/sdk');
+
+    async function main(){
+        const ario = ARIO.init();
+        const balances = await ario.getBalances({
+        cursor: '-4xgjroXENKYhTWqrBo57HQwvDL51mMdfsdsxJy6Y2Z_sA',
+        limit: 100,
+        sortBy: 'balance',
+        sortOrder: 'desc',
+        });
+
+        console.log(balances)
+    }
+
+    main()
+    ```
+
+    ```typescript {{ title: 'Web' }}
+    import { ARIO } from '@ar.io/sdk/web';
+
+    async function main() {
+        const ario = ARIO.init();
+        const balances = await ario.getBalances({
+        cursor: '-4xgjroXENKYhTWqrBo57HQwvDL51mMdfsdsxJy6Y2Z_sA',
+        limit: 100,
+        sortBy: 'balance',
+        sortOrder: 'desc',
+        });
+
+        console.log(balances)
+    }
+
+    main();
+    ```
+
+</CodeGroup>
+
+## Output
+
+```typescript
+{
+  "items": [
+    {
+      "address": "-4xgjroXENKYhTWqrBo57HQwvDL51mMvSxJy6Y2Z_sA",
+      "balance": 1000000
+    },
+    {
+      "address": "-7vXsQZQDk8TMDlpiSLy3CnLi5PDPlAaN2DaynORpck",
+      "balance": 1000000
+    }
+    // ...98 other balances
+  ],
+  "hasMore": true,
+  "nextCursor": "-7vXsQZQDk8TMDlpiSLy3CnLi5PDPlAaN2DaynORpck",
+  "totalItems": 1789,
+  "sortBy": "balance",
+  "sortOrder": "desc"
+}
+```
+

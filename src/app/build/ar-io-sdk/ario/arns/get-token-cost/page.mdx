@@ -1,0 +1,87 @@
+import {CodeGroup} from "@/components/Code"
+import {HeroPattern} from "@/components/HeroPattern"
+
+<HeroPattern />
+
+# getTokenCost
+
+`getTokenCost` is a method on the `ARIO` class that calculates the price in `mARIO` to perform the interaction in question. e.g. a `Buy-Record` interaction, where args are the specific params for that interaction.
+
+`getTokenCost` does not require authentication.
+
+## Parameters
+
+{
+<div style={{textAlign: "center"}}>
+    <table className="inline-table">
+    <thead>
+    <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <th>intent</th>
+        <td>string</td>
+        <td>The action to check the token cost for.</td>
+        <td>false</td>
+    </tr>
+    <tr>
+        <th>args</th>
+        <td>varied</td>
+        <td>The parameters for the action being checked</td>
+        <td>false</td>
+    </tr>
+    </tbody>
+    </table>
+</div>
+}
+
+## Examples
+
+<CodeGroup title="getTokenCost">
+
+    ```typescript {{ title: 'NodeJS' }}
+    const { ARIO } = require('@ar.io/sdk');
+
+    async function main() {
+      const ario = ARIO.init();
+      const price = await ario
+        .getTokenCost({
+            intent: 'Buy-Record',
+            name: 'ar-io',
+            type: 'permabuy',
+        })
+        .then((p) => new mIOToken(p).toIO()); // convert to ARIO for readability
+    }
+
+    main();
+    ```
+
+    ```typescript {{ title: 'Web' }}
+    import { ARIO } from '@ar.io/sdk/web';
+
+    async function main() {
+      const ario = ARIO.init();
+      const price = await ario
+        .getTokenCost({
+            intent: 'Buy-Record',
+            name: 'ar-io',
+            type: 'permabuy',
+        })
+        .then((p) => new mIOToken(p).toIO()); // convert to ARIO for readability
+    }
+
+    main();
+    ```
+
+</CodeGroup>
+
+## Output
+
+```js
+1642.34
+```

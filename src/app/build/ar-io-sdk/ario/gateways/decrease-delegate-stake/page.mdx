@@ -1,0 +1,147 @@
+import { CodeGroup } from '@/components/Code'
+import {HeroPattern} from "@/components/HeroPattern"
+
+<HeroPattern />
+
+# decreaseDelegateStake
+
+`decreaseDelegateStake` is a method on the `ARIO` class that increases the caller's stake on the target gateway.
+
+`decreaseDelegateStake` requires authentication.
+
+## Parameters
+
+{
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>qty</th>
+        <td>number</td>
+        <td>Number of tokens, in `mARIO` to remove from delegate stake.</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>target</th>
+        <td>string - WalletAddress</td>
+        <td>Public Wallet address of gateway.</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>instant</th>
+        <td>boolean</td>
+        <td>If true, pays a fee to make the withdrawn stake available instantly.</td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <th>tags</th>
+        <td>array</td>
+        <td>
+          An array of GQL tag objects to attach to the joinNetwork AO message.
+        </td>
+        <td>true</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+}
+
+## Example
+
+<CodeGroup title="increaseDelegateStake">
+
+       ```typescript {{title: "NodeJS - standard"}}
+        const fs = require("fs");
+        const { ARIO, ArweaveSigner, ARIOToken } = require("@ar.io/sdk");
+
+        async function main() {
+        const jwk = JSON.parse(fs.readFileSync("KeyFile.json"));
+        const ario = ARIO.init({
+            signer: new ArweaveSigner(jwk),
+        });
+
+        const { id: txId } = await ario.decreaseDelegateStake(
+                {
+                    target: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
+                    qty: new ARIOToken(100).toMARIO(),
+                },
+                {
+                    tags: [{ name: 'App-Name', value: 'My-Awesome-App' }],
+                },
+            );
+        }
+
+        main();
+
+        ```
+
+       ```typescript {{title: "NodeJS - instant"}}
+        const fs = require("fs");
+        const { ARIO, ArweaveSigner, ARIOToken } = require("@ar.io/sdk");
+
+        async function main() {
+        const jwk = JSON.parse(fs.readFileSync("KeyFile.json"));
+        const ario = ARIO.init({
+            signer: new ArweaveSigner(jwk),
+        });
+
+        const { id: txId } = await io.decreaseDelegateStake({
+                target: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
+                qty: new ARIOToken(100).toMARIO(),
+                instant: true, // Immediately withdraw this stake and pay the instant withdrawal fee
+            });
+        }
+
+        main();
+
+    ```
+
+    ```typescript {{ title: 'Web - standard' }}
+    import { ARIO, ARIOToken, ArConnectSigner } from '@ar.io/sdk/web';
+
+    async function main() {
+        const ario = ARIO.init({
+            signer: new ArConnectSigner(window.arweaveWallet)
+        })
+
+        const { id: txId } = await ario.decreaseDelegateStake(
+                {
+                    target: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
+                    qty: new ARIOToken(100).toMARIO(),
+                },
+                {
+                    tags: [{ name: 'App-Name', value: 'My-Awesome-App' }],
+                },
+            );
+        }
+
+    main();
+    ```
+
+    ```typescript {{ title: 'Web - instant' }}
+    import { ARIO, ARIOToken, ArConnectSigner } from '@ar.io/sdk/web';
+
+    async function main() {
+        const ario = ARIO.init({
+            signer: new ArConnectSigner(window.arweaveWallet)
+        })
+
+        const { id: txId } = await ario.decreaseDelegateStake({
+                target: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
+                qty: new ARIOToken(100).toMARIO(),
+                instant: true, // Immediately withdraw this stake and pay the instant withdrawal fee
+            });
+        }
+
+    main();
+    ```
+
+</CodeGroup>

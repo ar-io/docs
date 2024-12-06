@@ -1,0 +1,77 @@
+import { CodeGroup } from '@/components/Code'
+import {HeroPattern} from "@/components/HeroPattern"
+
+<HeroPattern />
+
+# requestPrimaryName
+
+`requestPrimaryName` is a method on the `ARIO` class that requests a primary name for the caller's address. The request must be approved by the new owner of the requested name via the `approvePrimaryNameRequest` API.
+
+`requestPrimaryName` requires authentication.
+
+## Parameters
+
+{
+
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>name</th>
+        <td>string</td>
+        <td>Primary name being requested.</td>
+        <td>false</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+}
+
+## Examples
+
+<CodeGroup title="transfer">
+
+       ```typescript {{title: "NodeJS"}}
+        const fs = require("fs");
+        const { ARIO, ArweaveSigner } = require("@ar.io/sdk");
+
+        async function main() {
+        const jwk = JSON.parse(fs.readFileSync("KeyFile.json"));
+        const ario = ARIO.init({
+            signer: new ArweaveSigner(jwk),
+        });
+
+        const { id: txId } = await io.requestPrimaryName({
+                 name: 'arns',
+            });
+        }
+
+        main();
+
+    ```
+
+    ```typescript {{ title: 'Web' }}
+    import { ARIO, ArConnectSigner } from '@ar.io/sdk/web';
+
+    async function main() {
+        const ario = ARIO.init({
+            signer: new ArConnectSigner(window.arweaveWallet)
+        })
+        const { id: txId } = await io.requestPrimaryName({
+                 name: 'arns',
+            });
+        }
+
+    main();
+    ```
+
+</CodeGroup>
+

@@ -1,0 +1,209 @@
+import {CodeGroup} from "@/components/Code"
+import {HeroPattern} from "@/components/HeroPattern"
+
+<HeroPattern />
+
+# getGateway
+
+`getGateway` is a method on the `ARIO` class that retrieves a gateway's information by its staking wallet address.
+
+`getGateway` does not require authentication.
+
+## Parameters
+
+{
+<div style={{textAlign: "center"}}>
+    <table className="inline-table">
+    <thead>
+    <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <th>address</th>
+        <td>string - WalletAddress</td>
+        <td>The public staking wallet addressed associated with a gateway</td>
+        <td>false</td>
+    </tr>
+    </tbody>
+    </table>
+</div>
+}
+
+## Examples
+
+<CodeGroup title="getGateway">
+
+    ```typescript {{ title: 'NodeJS' }}
+    const { ARIO } = require('@ar.io/sdk');
+
+    async function main() {
+      const ario = ARIO.init();
+      const gateway = await ario.getGateway({
+        address: 'f_EcJ8tYOFYjBMCIi-dlmzg8AiWZ2hELrXRFWPKCv9I',
+      });
+
+      console.log(gateway);
+    }
+
+    main();
+    ```
+
+    ```typescript {{ title: 'Web' }}
+    import { ARIO } from '@ar.io/sdk/web';
+
+    async function main() {
+      const ario = ARIO.init();
+      const gateway = await ario.getGateway({
+        address: 'f_EcJ8tYOFYjBMCIi-dlmzg8AiWZ2hELrXRFWPKCv9I',
+      });
+
+      console.log(gateway);
+    }
+
+    main();
+    ```
+
+</CodeGroup>
+
+## Output
+
+```js
+{
+  settings: {
+    port: 443,
+    protocol: 'https',
+    allowDelegatedStaking: true,
+    fqdn: 'weaversnodes.info',
+    delegateRewardShareRatio: 10,
+    note: 'Owned and operated by f_EcJ8tYOFYjBMCIi-dlmzg8AiWZ2hELrXRFWPKCv9I',
+    autoStake: true,
+    minDelegatedStake: 500000000,
+    label: 'weavernodes',
+    properties: 'FH1aVetOoulPGqgYukj0VE0wIhDy90WiQoV3U2PeY44'
+  },
+  operatorStake: 56071915251,
+  stats: {
+    failedConsecutiveEpochs: 0,
+    observedEpochCount: 16,
+    passedConsecutiveEpochs: 19,
+    totalEpochCount: 89,
+    prescribedEpochCount: 17,
+    passedEpochCount: 82,
+    failedEpochCount: 7
+  },
+  observerAddress: 'f_EcJ8tYOFYjBMCIi-dlmzg8AiWZ2hELrXRFWPKCv9I',
+  vaults: [],
+  startTimestamp: 1719295200000,
+  weights: {
+    compositeWeight: 0.57441434373064,
+    observerRewardRatioWeight: 0.94444444444444,
+    stakeWeight: 1.14143830502,
+    tenureWeight: 0.57777777777778,
+    gatewayRewardRatioWeight: 0.92222222222222,
+    normalizedCompositeWeight: 0.0057318232088434
+  },
+  delegates: {
+    '1gQCULHEJg2dryFHqRvqHpy0TYC39xu0Vm6XImGsJn0': {
+      vaults: [],
+      delegatedStake: 500000000,
+      startTimestamp: 1726944660898
+    },
+    '6Z-ifqgVi1jOwMvSNwKWs6ewUEQ0gU9eo4aHYC3rN1M': {
+      vaults: [],
+      delegatedStake: 500000000,
+      startTimestamp: 1725387299092
+    }
+  },
+  totalDelegatedStake: 1000000000,
+  status: 'joined'
+}
+```
+
+## Types
+
+### AoGateway
+
+```typescript
+{
+  settings: AoGatewaySettings;
+  stats: AoGatewayStats;
+  delegates: Record<WalletAddress, AoGatewayDelegate>;
+  totalDelegatedStake: number;
+  vaults: Record<WalletAddress, AoVaultData>;
+  startTimestamp: Timestamp;
+  endTimestamp: Timestamp;
+  observerAddress: WalletAddress;
+  operatorStake: number;
+  status: 'joined' | 'leaving';
+  weights: AoGatewayWeights;
+};
+```
+
+### AoGatewaySettings
+
+```typescript
+{
+  allowDelegatedStaking: boolean;
+  delegateRewardShareRatio: number;
+  minDelegatedStake: number;
+  autoStake: boolean;
+  label: string;
+  note: string;
+  properties: string;
+  fqdn: string;
+  port: number;
+  protocol: 'https';
+};
+```
+
+### AoGatewayStats
+
+```typescript
+{
+  passedConsecutiveEpochs: number;
+  failedConsecutiveEpochs: number;
+  totalEpochCount: number;
+  passedEpochCount: number;
+  failedEpochCount: number;
+  observedEpochCount: number;
+  prescribedEpochCount: number;
+};
+```
+
+### AoGatewayDelegate
+
+```typescript
+{
+  delegatedStake: number;
+  startTimestamp: Timestamp;
+  vaults: Record<WalletAddress, AoVaultData>;
+};
+```
+
+### AoVaultData
+
+```typescript
+{
+  balance: number;
+  locked: number;
+  endTimestamp: Timestamp;
+};
+```
+
+### AoGatewayWeights
+
+```typescript
+{
+  stakeWeight: number;
+  tenureWeight: number;
+  gatewayRewardRatioWeight: number;
+  observerRewardRatioWeight: number;
+  compositeWeight: number;
+  normalizedCompositeWeight: number;
+};
+```

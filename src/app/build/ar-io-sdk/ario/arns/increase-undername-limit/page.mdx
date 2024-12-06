@@ -1,0 +1,100 @@
+import { CodeGroup } from '@/components/Code'
+import {HeroPattern} from "@/components/HeroPattern"
+
+<HeroPattern />
+
+# increaseUndernameLimit
+
+`increaseUndernameLimit` is a method on the `ARIO` class that increases the undername support of a domain up to a maximum 10,000. Domains, by default, support up to 10 undernames.
+
+`increaseUndernameLimit` requires authentication.
+
+## Parameters
+
+{
+
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>name</th>
+        <td>string</td>
+        <td>Target ArNS name to increase undername limit.</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>qty</th>
+        <td>number</td>
+        <td>The number of additional undername slots to purchase.</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>tags</th>
+        <td>array</td>
+        <td>
+          An array of GQL tag objects to attach to the transfer AO message.
+        </td>
+        <td>true</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+}
+
+## Examples
+
+<CodeGroup title="increaseUndernameLimit">
+
+       ```typescript {{title: "NodeJS"}}
+        const fs = require("fs");
+        const { ARIO, ArweaveSigner, ARIOToken } = require("@ar.io/sdk");
+
+        async function main() {
+        const jwk = JSON.parse(fs.readFileSync("KeyFile.json"));
+        const ario = ARIO.init({
+            signer: new ArweaveSigner(jwk),
+        });
+
+        const { id: txId } = await ario.increaseUndernameLimit(
+                {
+                    name: 'ar-io',
+                    qty: 420,
+                },
+                // optional additional tags
+                { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+            );
+        }
+
+        main();
+
+    ```
+
+    ```typescript {{ title: 'Web' }}
+    import { ARIO, ARIOToken, ArConnectSigner } from '@ar.io/sdk/web';
+
+    async function main() {
+        const ario = ARIO.init({
+            signer: new ArConnectSigner(window.arweaveWallet)
+        })
+        const { id: txId } = await ario.increaseUndernameLimit(
+                {
+                    name: 'ar-io',
+                    qty: 420,
+                },
+                // optional additional tags
+                { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+            );
+        }
+
+    main();
+    ```
+
+</CodeGroup>

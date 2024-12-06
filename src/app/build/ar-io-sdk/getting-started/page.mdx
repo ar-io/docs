@@ -1,0 +1,134 @@
+import { CodeGroup } from '@/components/Code'
+import {HeroPattern} from "@/components/HeroPattern"
+
+<HeroPattern />
+
+# Getting Started
+
+## Prerequisites
+
+- `node >= v18.0.0`
+- `npm` or `yarn`
+
+## Installation
+
+<CodeGroup title="Installation Methods">
+
+    ```bash {{ title: 'npm' }}
+    npm install @ar.io/sdk
+    ```
+
+    ```bash {{ title: 'yarn' }}
+    yarn add @ar.io/sdk --ignore-engines
+    ```
+
+</CodeGroup>
+
+
+
+
+
+## Quick Start
+
+The following examples demonstrate how to use the ar.io SDK to retrieve a list of active gateways from the Gateway Address Registry (GAR) across different environments.
+
+### Node
+
+<CodeGroup title="Example Usage">
+
+    ```typescript {{ title: 'ESM' }}
+    import { ARIO } from '@ar.io/sdk/node'
+
+    // set up client
+    const ario = ARIO.init()
+    // fetch gateways
+    const gateways = await ario.getGateways()
+    ```
+
+    ```typescript {{ title: 'CJS' }}
+    import { ARIO } from '@ar.io/sdk'
+
+    // set up client
+    const ario = ARIO.init()
+    // fetch gateways
+    const gateways = await ario.getGateways()
+    ```
+
+</CodeGroup>
+
+### Web
+
+:::warning Polyfills
+Polyfills are not provided by default for bundled web projects (Vite, ESBuild, Webpack, Rollup, etc.) . Depending on your apps bundler configuration and plugins, you will need to provide polyfills for various imports including crypto, process and buffer. Refer to examples/webpack and examples/vite for examples. For other project configurations, refer to your bundler's documentation for more information on how to provide the necessary polyfills.
+:::
+
+<CodeGroup title="Environment Setup">
+
+    ```typescript {{ title: 'Bundlers' }}
+    import { ARIO } from '@ar.io/sdk/web'
+
+    // set up client
+    const ario = ARIO.init()
+    // fetch gateways
+    const gateways = await ario.getGateways()
+    ```
+
+    ```html {{ title: 'Browser' }}
+    <script type="module">
+      import { ARIO } from 'https://unpkg.com/@ar.io/sdk';
+
+      // set up client
+      const ario = ARIO.init();
+      // fetch gateways
+      const gateways = await ario.getGateways();
+    </script>
+    ```
+
+</CodeGroup>
+
+### Output
+
+The output for obtaining a list of gateways, regardless of the environment used, will follow the structure outlined below:
+
+```json
+{
+  "items": [
+    {
+      "gatewayAddress": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
+      "observerAddress": "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs",
+      "operatorStake": 250000000000,
+      "settings": {
+        "fqdn": "ar-io.dev",
+        "label": "AR.IO Test",
+        "note": "Test Gateway operated by PDS for the AR.IO ecosystem.",
+        "port": 443,
+        "properties": "raJgvbFU-YAnku-WsupIdbTsqqGLQiYpGzoqk9SCVgY",
+        "protocol": "https"
+      },
+      "startTimestamp": 1720720620813,
+      "stats": {
+        "failedConsecutiveEpochs": 0,
+        "passedEpochCount": 30,
+        "submittedEpochCount": 30,
+        "totalEpochCount": 31,
+        "totalEpochsPrescribedCount": 31
+      },
+      "status": "joined",
+      "vaults": {},
+      "weights": {
+        "compositeWeight": 0.97688888893556,
+        "gatewayRewardRatioWeight": 1,
+        "tenureWeight": 0.19444444444444,
+        "observerRewardRatioWeight": 1,
+        "normalizedCompositeWeight": 0.19247316211083,
+        "stakeWeight": 5.02400000024
+      }
+    }
+  ],
+  "hasMore": true,
+  "nextCursor": "-4xgjroXENKYhTWqrBo57HQwvDL51mMdfsdsxJy6Y2Z_sA",
+  "totalItems": 316,
+  "sortBy": "operatorStake",
+  "sortOrder": "desc"
+}
+```

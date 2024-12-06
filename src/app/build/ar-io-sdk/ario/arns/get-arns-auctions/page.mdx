@@ -1,0 +1,126 @@
+import {CodeGroup} from "@/components/Code"
+import {HeroPattern} from "@/components/HeroPattern"
+
+<HeroPattern />
+
+# getGateways
+
+`getArNSAuctions` is a method on the `ARIO` class that retrieves all active auctions of the ARIO process, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last auction name from the previous request.
+
+`getArNSAuctions` does not require authentication.
+
+## Parameters
+
+{
+<div style={{textAlign: "center"}}>
+    <table className="inline-table">
+    <thead>
+    <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+        <th>Default</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <th>cursor</th>
+        <td>String</td>
+        <td>Cursor used for paginated results</td>
+        <td>true</td>
+        <td>None</td>
+    </tr>
+    <tr>
+        <th>limit</th>
+        <td>Number</td>
+        <td>Max number of results to return in a single search</td>
+        <td>true</td>
+        <td>100</td>
+    </tr>
+    <tr>
+        <th>sortBy</th>
+        <td>String</td>
+        <td>Property used to sort returned results</td>
+        <td>true</td>
+        <td>startTimestamp</td>
+    </tr>
+    <tr>
+        <th>sortOrder</th>
+        <td>String</td>
+        <td>Order in which sorted results are returned. valid values are `desc` or `asc`</td>
+        <td>true</td>
+        <td>desc</td>
+    </tr>
+    </tbody>
+    </table>
+</div>
+}
+
+## Example
+
+<CodeGroup title="getArNSAuctions">
+
+    ```javascript {{ title: 'NodeJS' }}
+    const { ARIO } = require('@ar.io/sdk');
+
+    async function main() {
+      const ario = ARIO.init();
+      const auctions = await ario.getArNSAuctions({
+            limit: 100,
+            sortBy: 'endTimestamp',
+            sortOrder: 'asc', // return the auctions ending soonest first
+        });
+
+      console.log(auctions);
+    }
+
+    main();
+    ```
+
+    ```javascript {{ title: 'Web' }}
+    import { ARIO } from '@ar.io/sdk/web';
+
+    async function main() {
+      const ario = ARIO.init();
+      const auctions = await ario.getArNSAuctions({
+            limit: 100,
+            sortBy: 'endTimestamp',
+            sortOrder: 'asc', // return the auctions ending soonest first
+        });
+
+      console.log(auctions);
+    }
+
+    main();
+    ```
+
+</CodeGroup>
+
+
+## Output
+
+```typescript
+{
+  "items": [
+    {
+      "name": "permalink",
+      "endTimestamp": 1730985241349,
+      "startTimestamp": 1729775641349,
+      "baseFee": 250000000,
+      "demandFactor": 1.05256,
+      "initiator": "GaQrvEMKBpkjofgnBi_B3IgIDmY_XYelVLB6GcRGrHc",
+      "settings": {
+        "durationMs": 1209600000,
+        "decayRate": 0.000000000016847809193121693,
+        "scalingExponent": 190,
+        "startPriceMultiplier": 50
+      }
+    }
+  ],
+  "hasMore": false,
+  "totalItems": 1,
+  "sortBy": "endTimestamp",
+  "sortOrder": "asc"
+}
+```

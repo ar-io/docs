@@ -1,0 +1,91 @@
+import { CodeGroup } from '@/components/Code'
+import {HeroPattern} from "@/components/HeroPattern"
+
+<HeroPattern />
+
+# setTicker
+
+`setTicker` is a method on the `ANT` class that sets the ticker of the ANT process.
+
+`setTicker` requires authentication.
+
+## Parameters
+
+{
+
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>ticker</th>
+        <td>String</td>
+        <td>Ticker to set on ANT process.</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>tags</th>
+        <td>array</td>
+        <td>
+          An array of GQL tag objects to attach to the transfer AO message.
+        </td>
+        <td>true</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+}
+
+## Examples
+
+<CodeGroup title="setTicker">
+
+       ```typescript {{title: "NodeJS"}}
+        const fs = require("fs");
+        const { ANT, ArweaveSigner } = require("@ar.io/sdk");
+
+        async function main() {
+        const jwk = JSON.parse(fs.readFileSync("KeyFile.json"));
+        const ant = ANT.init({
+            signer: new ArweaveSigner(jwk),
+            processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM"
+        });
+
+        const { id: txId } = await ant.setTicker(
+                { ticker: 'ANT-NEW-TICKER' },
+                // optional tags
+                { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+            );
+        }
+
+        main();
+
+    ```
+
+    ```typescript {{ title: 'Web' }}
+    import { ANT, ArConnectSigner } from '@ar.io/sdk/web';
+
+    async function main() {
+        const ant = ANT.init({
+            signer: new ArConnectSigner(window.arweaveWallet),
+            processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM"
+        })
+
+        const { id: txId } = await ant.setTicker(
+                { ticker: 'ANT-NEW-TICKER' },
+                // optional tags
+                { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+            );
+        }
+
+    main();
+    ```
+
+</CodeGroup>

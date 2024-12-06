@@ -1,0 +1,113 @@
+import {CodeGroup} from "@/components/Code"
+import {HeroPattern} from "@/components/HeroPattern"
+
+<HeroPattern />
+
+# getAllowedDelegates
+
+`getAllowedDelegates` is a method on the `ARIO` class that retrieves all allowed delegates for a specific address. The `cursor` used for pagination is the last address from the previous request.
+
+`getAllowedDelegates` does not require authentication.
+
+## Parameters
+
+{
+<div style={{textAlign: "center"}}>
+    <table className="inline-table">
+    <thead>
+    <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+    </tr>
+    </thead>
+    <tbody>
+        <tr>
+        <th>address</th>
+        <td>string - WalletAddress</td>
+        <td>Target gateway address to receive allowed delegates.</td>
+        <td>false</td>
+    </tr>
+    <tr>
+        <th>cursor</th>
+        <td>string</td>
+        <td>Cursor used for paginated results</td>
+        <td>true</td>
+    </tr>
+    <tr>
+        <th>limit</th>
+        <td>number</td>
+        <td>Max number of results to return in a single search</td>
+        <td>true</td>
+    </tr>
+    <tr>
+        <th>sortBy</th>
+        <td>string</td>
+        <td>Property used to sort returned results</td>
+        <td>true</td>
+    </tr>
+    <tr>
+        <th>sortOrder</th>
+        <td>string</td>
+        <td>Order in which sorted results are returned. valid values are `desc` or `asc`</td>
+        <td>true</td>
+    </tr>
+    </tbody>
+    </table>
+</div>
+}
+
+## Example
+
+<CodeGroup title="getAllowedDelegates">
+
+    ```javascript {{ title: 'NodeJS' }}
+    const { ARIO } = require('@ar.io/sdk');
+
+    async function main() {
+      const ario = ARIO.init();
+      const allowedDelegates = await ario.getAllowedDelegates({
+            address: 'QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ',
+        });
+
+      console.log(allowdDelegates);
+    }
+
+    main();
+    ```
+
+    ```javascript {{ title: 'Web' }}
+    import { ARIO } from '@ar.io/sdk/web';
+
+    async function main() {
+      const ario = ARIO.init();
+      const allowedDelegates = await ario.getAllowedDelegates({
+            address: 'QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ',
+        });
+
+      console.log(allowdDelegates);
+    }
+
+    main();
+    ```
+
+</CodeGroup>
+
+
+## Output
+
+```typescript
+{
+  "sortOrder": "desc",
+  "hasMore": false,
+  "totalItems": 4,
+  "limit": 100,
+  "items": [
+    "PZ5vIhHf8VY969TxBPQN-rYY9CNFP9ggNsMBqlWUzWM",
+    "N4h8M9A9hasa3tF47qQyNvcKjm4APBKuFs7vqUVm-SI",
+    "JcC4ZLUY76vmWha5y6RwKsFqYTrMZhbockl8iM9p5lQ",
+    "31LPFYoow2G7j-eSSsrIh8OlNaARZ84-80J-8ba68d8"
+  ]
+}
+```

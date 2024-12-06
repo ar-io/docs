@@ -1,0 +1,47 @@
+
+
+# ar.io SDK 
+
+{/* //TODO: add all the link urls */}
+
+## Overview
+
+The ar.io SDK provides functionality for interacting with the ar.io ecosystem of services and protocols. This includes, [the ar.io Network](), [gateways](), [the ARIO token](),  and [ArNS domains](). The ar.io SDK is available for both NodeJS and web environments.
+
+## ar.io Network
+
+The ar.io Network is the AO smart contract process that controls all child services and protocols. 
+
+The ar.io SDK supports read operations to access various details about the current or historical state of the network. It also provides write operations for managing features such as the Gateway Address Registry and ARIO token.
+
+## Gateways
+
+ar.io gateways are open source nodes that index and serve Arweave transaction headers and data items. Gateway operators may join their gateway to the [Gateway Address Registry]() (GAR), which makes the gateway discoverable using the ar.io SDK. The gateway information is stored in the ar.io AO contract as a JSON object with the following attributes:
+
+```json
+{
+    "operatorStake": "number",               // The amount of ARIO tokens staked by the operator, 50,000 minimum
+    "totalDelegatedStake": "number",         // Total amount of ARIO tokens staked to the gateway by wallets other than the operator
+    "vaults": "object",                      // Details of tokens vaults (locked tokens) associated with the gateway (object)
+    "delegates": "object",                   // Details of non-operator wallets who staked ARIO tokens on the gateway (object)
+    "startTimestamp": "number (unix)",       // Unix timestamp indicating start time
+    "stats": "object",                       // Statistical information related to gateway performance (object)
+    "settings": "object",                    // Configuration settings (object)
+    "status": "string (e.g., joined)",       // The current status of the operator
+    "observerAddress": "string"              // The public wallet address of the observer for the gateway
+}
+```
+
+The ar.io SDK supports write operations for gateway management, including joining, leaving, and updating settings. It also provides read operations for discovering gateways in the GAR and retrieving details about specific gateways.
+
+## IO Token
+
+IO (ɸ) is an AO token that powers the ar.io Network and and its suite of permaweb applications. It is used to join the GAR, as payment for services like ArNS, as incentives for participation in the ar.io Network, and more.
+
+The ar.io SDK supports read and write operations for getting token information and balances, or transferring tokens.
+
+## ArNS
+
+The Arweave Name System (ArNS) is a protocol which allows for assigning friendly names to Arweave transactions or data items. Powered by [Arweave Name Tokens]() (ANTs), AO tokens that manage settings for individual ArNS domains, ArNS enables easy interaction with data stored on Arweave.
+
+The ar.io SDK supports read and write operations for managing ArNS domains, including retrieving domain information, leasing, purchasing, and extending leases. Additionally, it allows direct read and write access to ANTs.

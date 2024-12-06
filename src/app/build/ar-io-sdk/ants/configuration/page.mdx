@@ -1,0 +1,110 @@
+import { CodeGroup } from '@/components/Code'
+import {HeroPattern} from "@/components/HeroPattern"
+
+<HeroPattern />
+
+# init
+
+`init` is a factory function that creates a read-only or writeable client. By providing a `signer` additional write APIs that require signing, like `setRecord` and `transfer` are available. By default, a read-only client is returned and no write APIs are available.
+
+## Parameters
+
+{
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+        <th>processId</th>
+        <td>String</td>
+        <td>The AO process ID of the ANT to connect to.</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>process</th>
+        <td>AOProcess</td>
+        <td>
+          A pre-configured AOProcess instance used to initialize the ARIO class
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <th>signer</th>
+        <td>ContractSigner</td>
+        <td>
+          An optional signer instance, used to enable write operations on the
+          blockchain
+        </td>
+        <td>true</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+}
+
+## Examples
+
+<CodeGroup title="init">
+
+    ```typescript {{title: "NodeJS - unauthorized"}}
+    const { ANT } = require("@ar.io/sdk")
+
+    const ant = ANT.init(
+        {
+            processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM"
+        }
+    )
+    ```
+
+    ```typescript {{title: "NodeJS - authorized"}}
+    const { ANT, ArweaveSigner} = require("@ar.io/sdk")
+
+    const jwk = JSON.parse(fs.readFileSync("KeyFile.json"));
+
+    const ant = ANT.init({
+        signer: new ArweaveSigner(jwk),
+        processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM"
+    })
+    ```
+
+    ```typescript {{title: "Web - unauthorized"}}
+    import { ANT } from "@ar.io/sdk/web"
+
+    const ant = ANT.init({ processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM" })
+    ```
+
+    ```typescript {{title: "Web - authorized"}}
+    import { ANT, ArConnectSigner } from "@ar.io/sdk/web"
+
+    const ant = ANT.init({
+        signer: new ArConnectSigner(window.arweaveWallet),
+        processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM"
+    })
+    ```
+
+    ```typescript {{title: "Custom AO"}}
+    import {AOProcess, ANT} from "@ar.io/sdk"
+    import {connect} from "@permaweb/aoconnect"
+
+    const ant = ANT.init({
+        processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM",
+        process: new AOProcess ({
+            processId: '<ARIO_PROCESS_ID>'
+            ao: connect({
+                MU_URL: 'https://mu-testnet.xyz', //customizable
+                CU_URL: 'https://cu-testnet.xyz', //customizable
+                GRAPHQL_URL: 'https://arweave.net/graphql', //customizable
+                GATEWAY_URL: 'https://arweave.net', //customizable
+            })
+        })
+    })
+    ```
+
+</CodeGroup>
