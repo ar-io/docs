@@ -843,6 +843,175 @@ const { id: txId } = await io.decreaseDelegateStake(
 );
 ```
 
+#### `getDelegations({ address, cursor, limit, sortyBy })`
+
+Retrieves all active and vaulted stakes across all gateways for a specific address, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last delegationId (concatenated gateway and startTimestamp of the delegation) from the previous request.
+
+```typescript
+const io = IO.init();
+const vaults = await io.getDelegations({
+  address: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
+  cursor: 'QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ_123456789',
+  limit: 2,
+  sortBy: 'startTimestamp',
+  sortOrder: 'asc',
+});
+```
+
+<details><summary>Output</summary>
+
+```json
+{
+  "sortOrder": "asc",
+  "hasMore": true,
+  "totalItems": 95,
+  "limit": 2,
+  "sortBy": "startTimestamp",
+  "items": [
+    {
+      "type": "stake",
+      "startTimestamp": 1727815440632,
+      "gatewayAddress": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
+      "delegationId": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ_1727815440632",
+      "balance": 1383212512
+    },
+    {
+      "type": "vault",
+      "startTimestamp": 1730996691117,
+      "gatewayAddress": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
+      "delegationId": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ_1730996691117",
+      "vaultId": "_sGDS7X1hyLCVpfe40GWioH9BSOb7f0XWbhHBa1q4-g",
+      "balance": 50000000,
+      "endTimestamp": 1733588691117
+    }
+  ],
+  "nextCursor": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ_1730996691117"
+}
+```
+
+</details>
+
+#### `instantWithdrawal({ gatewayAddress, vaultId})`
+
+Instantly withdraws an existing vault on a gateway. If no `gatewayAddress` is provided, the signer's address will be used.
+
+**NOTE**: Requires `signer` to be provided on `IO.init` to sign the transaction.
+
+```typescript
+const io = IO.init({ signer: new ArweaveSigner(jwk) });
+// removes a delegated vault from a gateway
+const { id: txId } = await io.instantWithdrawal(
+  {
+    // gateway address where delegate vault exists
+    gatewayAddress: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
+    // delegated vault id to cancel
+    vaultId: 'fDrr0_J4Iurt7caNST02cMotaz2FIbWQ4Kcj616RHl3',
+  },
+  // optional additional tags
+  {
+    tags: [{ name: 'App-Name', value: 'My-Awesome-App' }],
+  },
+);
+// removes an operator vault from a gateway
+const { id: txId } = await io.instantWithdrawal(
+  {
+    vaultId: 'fDrr0_J4Iurt7caNST02cMotaz2FIbWQ4Kcj616RHl3',
+  },
+);
+```
+
+#### `cancelWithdrawal({ gatewayAddress, vaultId })`
+
+Cancels an existing vault on a gateway. The vaulted stake will be returned to the caller's stake. if no `gatewayAddress` is provided, the signer's address will be used.
+
+**NOTE**: Requires `signer` to be provided on `IO.init` to sign the transaction.
+
+```typescript
+const io = IO.init({ signer: new ArweaveSigner(jwk) });
+// cancels a delegated vault from a gateway
+const { id: txId } = await io.cancelWithdrawal(
+  {
+    // gateway address where vault exists
+    gatewayAddress: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
+    // vault id to cancel
+    vaultId: 'fDrr0_J4Iurt7caNST02cMotaz2FIbWQ4Kcj616RHl3',
+  },
+  // optional additional tags
+  { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+);
+// cancels an operator vault from a gateway
+const { id: txId } = await io.cancelWithdrawal(
+  {
+    // operator vault id to cancel
+    vaultId: 'fDrr0_J4Iurt7caNST02cMotaz2FIbWQ4Kcj616RHl3',
+  },
+);
+```
+
+#### `getAllowedDelegates({ address, cursor, limit, sortBy, sortOrder })`
+
+Retrieves all allowed delegates for a specific address. The `cursor` used for pagination is the last address from the previous request.
+
+```typescript
+const io = IO.init();
+const allowedDelegates = await io.getAllowedDelegates({
+  address: 'QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ',
+});
+```
+
+<details><summary>Output</summary>
+
+```json
+{
+  "sortOrder": "desc",
+  "hasMore": false,
+  "totalItems": 4,
+  "limit": 100,
+  "items": [
+    "PZ5vIhHf8VY969TxBPQN-rYY9CNFP9ggNsMBqlWUzWM",
+    "N4h8M9A9hasa3tF47qQyNvcKjm4APBKuFs7vqUVm-SI",
+    "JcC4ZLUY76vmWha5y6RwKsFqYTrMZhbockl8iM9p5lQ",
+    "31LPFYoow2G7j-eSSsrIh8OlNaARZ84-80J-8ba68d8"
+  ]
+}
+```
+
+</details>
+
+#### `getGatewayVaults({ address, cursor, limit, sortyBy, sortOrder })`
+
+Retrieves all vaults accross all gateways for a specific address, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last vaultId from the previous request.
+
+```typescript
+const io = IO.init();
+const vaults = await io.getGatewayVaults({
+  address: '"PZ5vIhHf8VY969TxBPQN-rYY9CNFP9ggNsMBqlWUzWM',
+});
+```
+
+<details><summary>Output</summary>
+
+```json
+{
+  "sortOrder": "desc",
+  "hasMore": false,
+  "totalItems": 1,
+  "limit": 100,
+  "sortBy": "endTimestamp",
+  "items": [
+    {
+      "cursorId": "PZ5vIhHf8VY969TxBPQN-rYY9CNFP9ggNsMBqlWUzWM_1728067635857",
+      "startTimestamp": 1728067635857,
+      "balance": 50000000000,
+      "vaultId": "PZ5vIhHf8VY969TxBPQN-rYY9CNFP9ggNsMBqlWUzWM",
+      "endTimestamp": 1735843635857
+    }
+  ]
+}
+```
+
+</details>
+
 #### `increaseOperatorStake({ qty })`
 
 Increases the caller's operator stake. Must be executed with a wallet registered as a gateway operator. 
@@ -878,6 +1047,46 @@ const { id: txId } = await io.decreaseOperatorStake(
   },
 );
 ```
+
+#### `redelegateStake({ target, source, stakeQty, vaultId })`
+
+Redelegates the stake of a specific address to a new gateway. Vault ID may be optionally included in order to redelegate from an existing withdrawal vault. The redelegation fee is calculated based on the fee rate and the stake amount. Users are allowed one free redelegation every seven epochs. Each additional redelegation beyond the free redelegation will increase the fee by 10%, capping at a 60% redelegation fee.
+
+e.g: If 1000 mIO is redelegated and the fee rate is 10%, the fee will be 100 mIO. Resulting in 900 mIO being redelegated to the new gateway and 100 mIO being deducted back to the protocol balance.
+
+```typescript
+const io = IO.init({ signer: new ArweaveSigner(jwk) });
+
+const { id: txId } = await io.redelegateStake({
+  target: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
+  source: 'HwFceQaMQnOBgKDpnFqCqgwKwEU5LBme1oXRuQOWSRA',
+  stakeQty: new IOToken(1000).toMIO(),
+  vaultId: 'fDrr0_J4Iurt7caNST02cMotaz2FIbWQ4Kcj616RHl3',
+});
+```
+
+#### `getRedelegationFee({ address })`
+
+Retrieves the fee rate as percentage required to redelegate the stake of a specific address. Fee rate ranges from 0% to 60% based on the number of redelegations since the last fee reset.
+
+```typescript
+const io = IO.init();
+
+const fee = await io.getRedelegationFee({
+  address: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
+});
+```
+
+<details><summary>Output</summary>
+
+```json
+{
+  "redelegationFeeRate": 10,
+  "feeResetTimestamp": 1730996691117
+}
+```
+
+</details>
 
 #### `saveObservations({ reportTxId, failedGateways })`
 
@@ -950,26 +1159,74 @@ const { id: txId } = await io.extendLease(
 );
 ```
 
-#### `cancelDelegateWithdrawal({ address, vaultId })`
+#### `getVault({ address, vaultId })`
 
-Cancels a pending delegate withdrawal.
-
-**NOTE**: Requires `signer` to be provided on `IO.init` to sign the transaction.
+Retrieves the locked-balance user vault of the IO process by the specified wallet address and vault ID.
 
 ```typescript
-const io = IO.init({ signer: new ArweaveSigner(jwk) });
-const { id: txId } = await io.cancelDelegateWithdrawal(
-  {
-    // gateway address where vault exists
-    address: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
-    // vault id to cancel
-    vaultId: 'fDrr0_J4Iurt7caNST02cMotaz2FIbWQ4Kcj616RHl3',
-  },
-  // optional additional tags
-  { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
-);
+const io = IO.init();
+const vault = await io.getVault({
+  address: 'QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ',
+  vaultId: 'vaultIdOne',
+});
 ```
 
+<details><summary>Output</summary>
+
+```json
+{
+  "balance": 1000000,
+  "startTimestamp": 123,
+  "endTimestamp": 4567
+}
+```
+
+</details>
+
+#### `getVaults({ cursor, limit, sortBy, sortOrder })`
+
+Retrieves all locked-balance user vaults of the IO process, paginated and sorted by the specifed criteria. The `cursor` used for pagination is the last wallet address from the previous request.
+
+```typescript
+const io = IO.init();
+const vaults = await io.getVaults({
+  cursor: '0',
+  limit: 100,
+  sortBy: 'balance',
+  sortOrder: 'desc',
+});
+```
+
+<details><summary>Output</summary>
+
+```json
+{
+  "items": [
+    {
+      "address": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
+      "vaultId": "vaultIdOne",
+      "balance": 1000000,
+      "startTimestamp": 123,
+      "endTimestamp": 4567
+    },
+    {
+      "address": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
+      "vaultId": "vaultIdTwo",
+      "balance": 1000000,
+      "startTimestamp": 123,
+      "endTimestamp": 4567
+    }
+    // ...98 other addresses with vaults
+  ],
+  "hasMore": true,
+  "nextCursor": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
+  "totalItems": 1789,
+  "sortBy": "balance",
+  "sortOrder": "desc"
+}
+```
+
+</details>
 
 
 ### Configuration
