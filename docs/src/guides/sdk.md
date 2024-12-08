@@ -1228,6 +1228,264 @@ const vaults = await io.getVaults({
 
 </details>
 
+#### `buyRecord({ name, type, years, processId })`
+
+Purchases a new ArNS record with the specified name, type, and duration.
+
+```typescript
+const io = IO.init({ processId: IO_DEVNET_PROCESS_ID, signer });
+const record = await io.buyRecord(
+  { name: 'ardrive', type: 'lease', years: 1 },
+  {
+    // optional tags
+    tags: [{ name: 'App-Name', value: 'ArNS-App' }],
+  },
+);
+```
+
+#### `getArNSAuctions({ cursor, limit, sortBy, sortOrder })`
+
+Retrieves all active auctions of the IO process, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last auction name from the previous request.
+
+```typescript
+const io = IO.init();
+const auctions = await io.getArNSAuctions({
+  limit: 100,
+  sortBy: 'endTimestamp',
+  sortOrder: 'asc', // return the auctions ending soonest first
+});
+```
+
+<details><summary>Output</summary>
+
+```json
+{
+  "items": [
+    {
+      "name": "permalink",
+      "endTimestamp": 1730985241349,
+      "startTimestamp": 1729775641349,
+      "baseFee": 250000000,
+      "demandFactor": 1.05256,
+      "initiator": "GaQrvEMKBpkjofgnBi_B3IgIDmY_XYelVLB6GcRGrHc",
+      "settings": {
+        "durationMs": 1209600000,
+        "decayRate": 0.000000000016847809193121693,
+        "scalingExponent": 190,
+        "startPriceMultiplier": 50
+      }
+    }
+  ],
+  "hasMore": false,
+  "totalItems": 1,
+  "sortBy": "endTimestamp",
+  "sortOrder": "asc"
+}
+```
+
+</details>
+
+#### `getArNSAuction({ name })`
+
+Retrieves the auction data for the specified auction name.
+
+```typescript
+const io = IO.init();
+const auction = await io.getArNSAuction({ name: 'permalink' });
+```
+
+<details><summary>Output</summary>
+
+```json
+{
+  "name": "permalink",
+  "endTimestamp": 1730985241349,
+  "startTimestamp": 1729775641349,
+  "baseFee": 250000000,
+  "demandFactor": 1.05256,
+  "initiator": "GaQrvEMKBpkjofgnBi_B3IgIDmY_XYelVLB6GcRGrHc",
+  "settings": {
+    "durationMs": 1209600000,
+    "decayRate": 0.000000000016847809193121693,
+    "scalingExponent": 190,
+    "startPriceMultiplier": 50
+  }
+}
+```
+
+</details>
+
+#### `getArNSAuctionPrices({ name, type, years, intervalMs })`
+
+Retrieves the auction price curve of the specified auction name for the specified type, duration, and interval. The `intervalMs` is the number of miliseconds between price points on the curve. The default interval is 15 minutes.
+
+```typescript
+const io = IO.init();
+const priceCurve = await io.getArNSAuctionPrices({
+  name: 'permalink',
+  type: 'lease',
+  years: 1,
+  intervalMs: 3600000, // 1 hour price intervals (default is 15 minutes)
+});
+```
+
+<details><summary>Output</summary>
+
+```json
+{
+  "name": "permalink",
+  "type": "lease",
+  "currentPrice": 12582015000,
+  "years": 1,
+  "prices": {
+    "1730412841349": 1618516789,
+    "1729908841349": 8210426826,
+    "1730722441349": 592768907,
+    "1730859241349": 379659914,
+    "1730866441349": 370850139,
+    "1730884441349": 349705277,
+    "1730150041349": 3780993370,
+    "1730031241349": 5541718397,
+    "1730603641349": 872066253,
+    "1730715241349": 606815377,
+    "1730942041349": 289775172,
+    "1730916841349": 314621977,
+    "1730484841349": 1281957300,
+    "1730585641349": 924535164,
+    "1730232841349": 2895237473,
+    "1730675641349": 690200977,
+    "1730420041349": 1581242331,
+    "1729786441349": 12154428186,
+    "1730308441349": 2268298483,
+    "1730564041349": 991657913,
+    "1730081641349": 4712427282,
+    "1730909641349": 322102563,
+    "1730945641349": 286388732,
+    "1730024041349": 5671483398,
+    "1729937641349": 7485620175
+    // ...
+  }
+}
+```
+
+#### `submitAuctionBid({ name, type, years, processId })`
+
+Submit a bid for the current auction. If the bid is accepted, the name will be leased for the specified duration and assigned the specified type and processId.
+
+```typescript
+const io = IO.init({ signer: new ArweaveSigner(jwk) });
+
+const auction = await io.getArNSAuction({ name: 'permalink' });
+
+// check the current price is under some threshold
+if (auction && auction.currentPrice <= new IOToken(20_000).toMIO().valueOf()) {
+  const { id: txId } = await io.submitAuctionBid(
+    {
+      name: 'permalink',
+      type: 'lease',
+      years: 1,
+      processId: 'bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM',
+    },
+    // optional additional tags
+    { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+  );
+}
+```
+
+#### `getPrimaryNames({ cursor, limit, sortyBy, sortOrder })`
+
+Retrieves all primary names paginated and sorted by the specified criteria. the `cursor` used for pagination is the last name from the previous request.
+
+```typescript
+const io = IO.init();
+const names = await io.getPrimaryNames({
+  cursor: 'ao', // this is the last name from the previous request
+  limit: 1,
+  sortBy: 'startTimestamp',
+  sortOrder: 'desc',
+});
+```
+
+<details><summary>Output</summary>
+
+```json
+{
+  "sortOrder": "desc",
+  "hasMore": true,
+  "totalItems": 100,
+  "limit": 1,
+  "sortBy": "startTimestamp",
+  "cursor": "arns",
+  "items": [
+    {
+      "owner": "HwFceQaMQnOBgKDpnFqCqgwKwEU5LBme1oXRuQOWSRA",
+      "startTimestamp": 1719356032297,
+      "name": "arns"
+    }
+  ]
+}
+```
+
+#### `getPrimaryName({ name, address })`
+
+Retrieves the primary name for a given name or address.
+
+```typescript
+const io = IO.init();
+const name = await io.getPrimaryName({
+  name: 'arns',
+});
+// or
+const name = await io.getPrimaryName({
+  address: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
+});
+```
+
+<details><summary>Output</summary>
+
+```json
+{
+  "owner": "HwFceQaMQnOBgKDpnFqCqgwKwEU5LBme1oXRuQOWSRA",
+  "startTimestamp": 1719356032297,
+  "name": "arns"
+}
+```
+
+#### `requestPrimaryName({ name, address })`
+
+Requests a primary name for the caller's address. The request must be approved b the new owner of the requested name via the `approvePrimaryNameRequest` API.
+
+```typescript
+const io = IO.init({ signer: new ArweaveSigner(jwk) });
+const { id: txId } = await io.requestPrimaryName({
+  name: 'arns',
+});
+```
+
+#### `getPrimaryNameRequest({ initiator })`
+
+Retrieves the primary name request for a wallet address.
+
+```typescript
+const io = IO.init();
+const request = await io.getPrimaryNameRequest({
+  initiator: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
+});
+```
+
+<details><summary>Output</summary>
+
+```json
+{
+  "initiator": "t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3",
+  "name": "arns",
+  "startTimestamp": 1728067635857,
+  "endTimestamp": 1735843635857
+}
+```
+
+
+
 
 ### Configuration
 
@@ -1290,6 +1548,39 @@ const info = await ant.getInfo();
 }
 ```
 </details>
+
+#### `getHandlers()`
+
+Retrieves the handlers supported on the ANT.
+
+```typescript
+const handlers = await ant.getHandlers();
+```
+
+<details><summary>Output</summmary>
+
+```json
+[
+  "_eval",
+  "_default",
+  "transfer",
+  "balance",
+  "balances",
+  "totalSupply",
+  "info",
+  "addController",
+  "removeController",
+  "controllers",
+  "setRecord",
+  "removeRecord",
+  "record",
+  "records",
+  "setName",
+  "setTicker",
+  "initializeState",
+  "state"
+]
+```
 
 #### `getState()`
 
@@ -1510,7 +1801,87 @@ const { id: txId } = await ant.setTicker(
 );
 ```
 
+#### `setDescription({ description })`
 
+Sets the description of the ANT process.
+
+```typescript
+const { id: txId } = await ant.setDescription(
+  { description: 'A friendly description of this ANT' },
+  // optional tags
+  { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+);
+```
+
+#### `setKeywords({ keywords })`
+
+Sets the keywords of the ANT process.
+
+```typescript
+const { id: txId } = await ant.setDescription(
+  { keywords: ['Game', 'FPS', 'AO'] },
+  // optional tags
+  { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+);
+```
+
+#### `setLogo({ txId })`
+
+Sets the Logo of the ANT - logo should be an Arweave transaction ID.
+
+```typescript
+const { id: txId } = await ant.setLogo(
+  { txId: 'U7RXcpaVShG4u9nIcPVmm2FJSM5Gru9gQCIiRaIPV7f' },
+  // optional tags
+  { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+);
+```
+
+#### `releasename({ name, ioProcessId })`
+
+Releases a name from the auction and makes it available for auction on the IO contract. The name must be permanently owned by the releasing wallet. 50% of the winning bid will be distributed to the ANT owner at the time of release. If no bids, the name will be released and can be reregistered by anyone.
+
+```typescript
+const { id: txId } = await ant.releaseName({
+  name: 'permalink',
+  ioProcessId: IO_TESTNET_PROCESS_ID, // releases the name owned by the ANT and sends it to auction on the IO contract
+});
+```
+
+#### `reassignName({ name, ioProcessId, antProcessId })`
+
+Reassigns a name to a new ANT. This can only be done by the current owner of the ANT.
+
+```typescript
+const { id: txId } = await ant.reassignName({
+  name: 'ardrive',
+  ioProcessId: IO_TESTNET_PROCESS_ID,
+  antProcessId: NEW_ANT_PROCESS_ID, // the new ANT process id that will take over ownership of the name
+});
+```
+
+#### `approvePrimaryNameRequest({ name, address, ioProcessId })`
+
+Approves a primary name request for a given name or address.
+
+```typescript
+const { id: txId } = await ant.approvePrimaryNameRequest({
+  name: 'arns',
+  address: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3', // must match the request initiator address
+  ioProcessId: IO_TESTNET_PROCESS_ID, // the IO process id to use for the request
+});
+```
+
+#### `removePrimaryNames({ names, ioProcessId })`
+
+Removes primary names from the ANT process.
+
+```typescript
+const { id: txId } = await ant.removePrimaryNames({
+  names: ['arns', 'test_arns'], // any primary names associated with a base name controlled by this ANT will be removed
+  ioProcessId: IO_TESTNET_PROCESS_ID,
+});
+```
 
 ### Configuration
 
