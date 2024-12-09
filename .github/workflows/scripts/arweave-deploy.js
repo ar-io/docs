@@ -13,7 +13,7 @@ const { Readable } = require("stream");
 
 const undername = process.env.UNDERNAME || '@'
 async function main() {
-  const distFolderPath = path.resolve(__dirname, '../../out');
+  const distFolderPath = path.resolve(__dirname, '../../../out');
 
   // Load the contents of permalinks.json
 //   const permalinksPath = path.join(distFolderPath, 'permalinks.json');
