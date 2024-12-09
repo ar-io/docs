@@ -13,7 +13,7 @@ In this protocol, observers evaluate their gateway peers' performance to resolve
 
 A key component of the protocol is its reward mechanism. This system is predicated on gateway performance and compliance with observation duties. Gateways that excel are tagged as "Functional Gateways" and earn rewards, while those that do not meet the criteria, “Deficient Gateways” risk facing penalties – namely, the lack of rewards. 
 
-Funds for incentive rewards are derived from the protocol balance, which consists of IO tokens collected from ArNS asset purchases. Every epoch, this balance is utilized to distribute rewards to qualifying gateways and observers based on certain performance metrics. 
+Funds for incentive rewards are derived from the protocol balance, which consists of ARIO tokens collected from ArNS asset purchases. Every epoch, this balance is utilized to distribute rewards to qualifying gateways and observers based on certain performance metrics. 
 
 ## Observation Protocol 
 
@@ -22,7 +22,7 @@ The Observation protocol is organized around epochs, periods of time that are br
 <img class="amazingdiagram" :src="$withBase('/images/observer-1.png')">
 <div class="caption">Observation and Incentive Protocol</div>
 
-- To participate in the epoch, a gateway must have already staked IO tokens and joined the network before it starts. 
+- To participate in the epoch, a gateway must have already staked ARIO tokens and joined the network before it starts. 
 - Each epoch (approximately 7 block-days), a random pool of active gateways will be selected (prescribed) to perform observation duties.  
 - Within the epoch, observers are tasked with evaluating a subset of ArNS names for each gateway in the network.  
 - By the end of the epoch’s observation reporting period, the observer must upload its standardized health observation report to Arweave. 
@@ -59,7 +59,7 @@ Up to 50 gateways can be chosen as observers per epoch. If the GAR contains 50 o
 
 The weighted selection criteria will consider the following for each gateway: 
 
-- Stake Weight (SW): This factor considers how financially committed a gateway is to the network. It is the ratio of the amount of IO tokens staked by the gateway relative to the network minimum and is expressed as SW = Gateway Stake / Minimum Stake. 
+- Stake Weight (SW): This factor considers how financially committed a gateway is to the network. It is the ratio of the amount of ARIO tokens staked by the gateway relative to the network minimum and is expressed as SW = Gateway Stake / Minimum Stake. 
 
 - Tenure Weight (TW): This factor considers how long a gateway has been part of the network, with a maximum value capped at 4. It is calculated as TW = Gateway Network Tenure / 6 block-months. This means that the maximum value is achieved after 2 block-years of participation in the network. 
 
@@ -131,7 +131,7 @@ In cases where rewards are not distributed, either due to the inactivity or defi
 
 ## Handling Inactive Gateways
 
-To maintain network efficiency and reduce contract state bloat, gateways that are consistently offline, specifically for thirty (30) consecutive epochs, and thus fail to receive rewards, will be automatically removed from the Gateway Active Registry (GAR) as well as have their staked IO tokens unlocked and returned to the gateway operator. 
+To maintain network efficiency and reduce contract state bloat, gateways that are consistently offline, specifically for thirty (30) consecutive epochs, and thus fail to receive rewards, will be automatically removed from the Gateway Active Registry (GAR) as well as have their staked ARIO tokens unlocked and returned to the gateway operator. 
 
 ## Observer Report Details
 

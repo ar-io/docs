@@ -31,6 +31,6 @@ The solution will be applied in two directions:
 
 1. By reducing gateway overhead costs with open source, efficient modular networked architecture.
 
-2. By creating an economic incentive layer with the IO Token.
+2. By creating an economic incentive layer with the ARIO Token.
 
 Our goal is to create a framework for a healthy and sustainable decentralized gateway network.

@@ -47,7 +47,7 @@ You can also use this page to assign the name to an existing [Arweave Name Token
 
 <img class="amazingdiagram" :src="$withBase('/images/arns-name-configure.jpeg')">
 
-Towards the bottom of the page, you can also see the cost of your currently configured purchase in [IO tokens](../../token.md), and the AR required to pay for gas for the transaction.
+Towards the bottom of the page, you can also see the cost of your currently configured purchase in [ARIO tokens](../../token.md), and the AR required to pay for gas for the transaction.
 
 ## Confirm Your Purchase
 
@@ -65,6 +65,6 @@ No additional steps are necessary to initiate a purchase that requires an auctio
 
 <img class="amazingdiagram" :src="$withBase('/images/arns-auction-started.jpeg')">
 
-The IO cost displayed on the confirmation page will be frozen by the aoComputer contract, and used to finalize the purchase once the the auction drops to the floor price. You, or anyone else, may purchase the name at any time for the current auction price. You can click on the "View Auction" button from your confirmation page, or find your auction in the "Live Auctions" tab at the top of the screen to view the current auction price, and how it will change over time. If someone else purchases the name prior to the auction reaching the floor price, your frozen tokens will be released to you.
+The ARIO cost displayed on the confirmation page will be frozen by the aoComputer contract, and used to finalize the purchase once the the auction drops to the floor price. You, or anyone else, may purchase the name at any time for the current auction price. You can click on the "View Auction" button from your confirmation page, or find your auction in the "Live Auctions" tab at the top of the screen to view the current auction price, and how it will change over time. If someone else purchases the name prior to the auction reaching the floor price, your frozen tokens will be released to you.
 
 <img class="amazingdiagram" :src="$withBase('/images/arns-auction-chart.jpeg')">

@@ -27,7 +27,7 @@ Being part of the network grants AR.IO Gateways an array of advantages, such as:
 
 ## Gateway Address Registry (GAR)
 
-Any Gateway operator that whishes to join the AR.IO Network must register their node in the AR.IO smart contract's "Gateway Address Registry", known as the GAR. Registration involves staking a minimum amount of IO tokens and providing additional metadata describing the Gateway service offered.
+Any Gateway operator that whishes to join the AR.IO Network must register their node in the AR.IO smart contract's "Gateway Address Registry", known as the GAR. Registration involves staking a minimum amount of ARIO tokens and providing additional metadata describing the Gateway service offered.
 
 <!-- This metadata includes details such as:
 
@@ -78,10 +78,10 @@ Staking tokens serves a dual purpose in the AR.IO Network:
 
 - It qualifies participants for reward distribution.
 
-In the AR.IO Network, "staking" designates the act of locking a specified amount of IO tokens into a protocol-controlled vault. These tokens act as a form of collateral and public commitment, encouraging network participants to act in the network's best interests. Once tokens are deposited in the vault, they remain locked until either the participant triggers the "unstake" function or the vault's predetermined lock period expires.
+In the AR.IO Network, "staking" designates the act of locking a specified amount of ARIO tokens into a protocol-controlled vault. These tokens act as a form of collateral and public commitment, encouraging network participants to act in the network's best interests. Once tokens are deposited in the vault, they remain locked until either the participant triggers the "unstake" function or the vault's predetermined lock period expires.
 
 
-It is important to note that unlike other protocols, the IO token is non-inflationary. Therefore, the staking mechanism in the AR.IO Network is not designed to function as a yield-generation tool. By staking their tokens, participants become eligible for potential rewards, fostering an atmosphere of mutual trust within the network. Specifically, Gateway operators stake tokens to facilitate their Gateway integration and establish public trust. Once connected, they become eligible for rewards driven by the protocol and gain access to the network's shared resources.
+It is important to note that unlike other protocols, the ARIO token is non-inflationary. Therefore, the staking mechanism in the AR.IO Network is not designed to function as a yield-generation tool. By staking their tokens, participants become eligible for potential rewards, fostering an atmosphere of mutual trust within the network. Specifically, Gateway operators stake tokens to facilitate their Gateway integration and establish public trust. Once connected, they become eligible for rewards driven by the protocol and gain access to the network's shared resources.
 
 ## Schema
 
@@ -130,12 +130,12 @@ It is important to note that unlike other protocols, the IO token is non-inflati
         <tr>
             <th>delegates</th>
             <td>object</td>
-            <td class="align-left">Wallets that have delegated a stake of IO tokens to the Gateway.</td>
+            <td class="align-left">Wallets that have delegated a stake of ARIO tokens to the Gateway.</td>
         </tr>
         <tr>
             <th>totalDelegatedStake</th>
             <td>number</td>
-            <td class="align-left">The total number of IO tokens delegated to the Gateway</td>
+            <td class="align-left">The total number of ARIO tokens delegated to the Gateway</td>
         </tr>
         <tr>
             <th>observerWallet</th>
@@ -165,7 +165,7 @@ It is important to note that unlike other protocols, the IO token is non-inflati
         <tr>
             <th>balance</th>
             <td>number</td>
-            <td class="align-left">Positive integer, the number of IO tokens locked.</td>
+            <td class="align-left">Positive integer, the number of ARIO tokens locked.</td>
         </tr>
         <tr>
             <th>start</th>
@@ -233,7 +233,7 @@ It is important to note that unlike other protocols, the IO token is non-inflati
             <th>allowDelegatedStaking</th>
             <td>boolean</td>
             <td>no</td>
-            <td class="align-left">The Gateway Operator can allow or disallow other wallets to stake IO tokens on the Gateway.</td>
+            <td class="align-left">The Gateway Operator can allow or disallow other wallets to stake ARIO tokens on the Gateway.</td>
         </tr>
         <tr>
             <th>delegatedRewardShareRatio</th>

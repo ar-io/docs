@@ -19,7 +19,7 @@ tags: [testnet, join, application, jwk, qty, fqdn, label, note, properties]
 
 ## Submit an Application
 
-Joining the ar.io Testnet requires staking a minimum of 50,000 Test IO Tokens. You must have Test IO Tokens before you are able to join. Test IO Tokens are currently not being distributed.
+Joining the ar.io Testnet requires staking a minimum of 10,000 Test ARIO Tokens. You must have Test ARIO Tokens before you are able to join. Test ARIO Tokens are currently not being distributed.
 
 New applications for joining the Testnet are not currently being accepted. Be sure to join the [ar.io Discord](https://discord.com/invite/7zUPfN4D6g) to stay up to date on Testnet status and possible future availability prior to the launch of the Mainnet. -->
 

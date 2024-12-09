@@ -48,7 +48,7 @@ console.log(gateways);
   "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ": {
     "end": 0,
     "observerWallet": "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs",
-    "operatorStake": 250000000000, // value in mIO
+    "operatorStake": 250000000000, // value in mARIO
     "settings": {
       "fqdn": "ar-io.dev",
       "label": "AR.IO Test",
@@ -143,27 +143,27 @@ The SDK provides TypeScript types. When you import the SDK in a TypeScript proje
 
 **NOTE**: Typescript version 5.3 or higher is recommended.
 
-## IOToken & mIOToken
+## ARIOToken & mARIOToken
 
-The ArIO contract stores all values as mIO (milli-IO) to avoid floating-point arithmetic issues. The SDK provides an `IOToken` and `mIOToken` classes to handle the conversion between IO and mIO, along with rounding logic for precision.
+The ArIO contract stores all values as mARIO (milli-ARIO) to avoid floating-point arithmetic issues. The SDK provides an `IOToken` and `mIOToken` classes to handle the conversion between ARIO and mARIO, along with rounding logic for precision.
 
-**All contract interactions expect values in mIO. If numbers are provided as inputs, they are assumed to be in raw mIO values.**
+**All contract interactions expect values in mARIO. If numbers are provided as inputs, they are assumed to be in raw mARIO values.**
 
-### Converting IO to mIO
+### Converting ARIO to mARIO
 
 ```typescript
 import { IOToken, mIOToken } from '@ar.io/sdk';
 
 const ioValue = 1;
 const mIOValue = new IOToken(ioValue).toMIO();
-console.log(mIOValue); // 1000000 (mIO)
+console.log(mIOValue); // 1000000 (mARIO)
 
 const mIOValue = 1_000_000;
 const ioValue = new mIOToken(mIOValue).toIO();
 console.log(ioValue); // 1 (IO)
 ```
 
-## IO Process
+## ARIO Process
 
 ### APIs
 
@@ -184,7 +184,7 @@ const io = IO.init({ signer: new ArweaveSigner(JWK) });
 
 #### `getInfo()`
 
-Retrieves the information of the IO process.
+Retrieves the information of the ARIO process.
 
 ```typescript
 const io = IO.init();
@@ -207,7 +207,7 @@ const info = await io.getInfo();
 
 #### `getTokenSupply()`
 
-Retrieves the total supply of tokens, returned in mIO. The total supply includes the following:
+Retrieves the total supply of tokens, returned in mARIO. The total supply includes the following:
 
 - `total` - the total supply of all tokens
 - `circulating` - the total supply minus locked, withdrawn, delegated, and staked
@@ -243,25 +243,25 @@ Retrieves the balance of the specified wallet address.
 
 ```typescript
 const io = IO.init();
-// the balance will be returned in mIO as a value
+// the balance will be returned in mARIO as a value
 const balance = await io
   .getBalance({
     address: 'QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ',
   })
-  .then((balance: number) => new mIOToken(balance).toIO()); // convert it to IO for readability
+  .then((balance: number) => new mIOToken(balance).toIO()); // convert it to ARIO for readability
 ```
 
 <details><summary>Output</summary>
 
 ```json
-// value in IO
+// value in ARIO
 1_000_000
 ```
 </details>
 
 #### `getBalances({ cursor, limit, sortBy, sortOrder })`
 
-Retrieves the balances of the IO process in `mIO`, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last wallet address from the previous request.
+Retrieves the balances of the ARIO process in `mARIO`, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last wallet address from the previous request.
 
 ```typescript
 const io = IO.init();
@@ -341,7 +341,7 @@ const gateway = await io.getGateway({
 
 #### `getGateways({ cursor, limit, sortBy, sortOrder })`
 
-Retrieves registered gateways of the IO process, using pagination and sorting by the specified criteria. The `cursor` used for pagination is the last gateway address from the previous request.
+Retrieves registered gateways of the ARIO process, using pagination and sorting by the specified criteria. The `cursor` used for pagination is the last gateway address from the previous request.
 
 ```typescript
 const io = IO.init();
@@ -424,7 +424,7 @@ const record = await io.getArNSRecord({ name: 'ardrive' });
 
 #### `getArNSRecords({ cursor, limit, sortBy, sortOrder })`
 
-Retrieves all registered ArNS records of the IO process, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last ArNS name from the previous request.
+Retrieves all registered ArNS records of the ARIO process, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last ArNS name from the previous request.
 
 ```typescript
 const io = IO.init();
@@ -607,7 +607,7 @@ const epoch = await io.getEpoch({ epochIndex: 0 });
     {
       "gatewayAddress": "2Fk8lCmDegPg6jjprl57-UCpKmNgYiKwyhkU4vMNDnE",
       "observerAddress": "2Fk8lCmDegPg6jjprl57-UCpKmNgYiKwyhkU4vMNDnE",
-      "stake": 10000000000, // value in mIO
+      "stake": 10000000000, // value in mARIO
       "startTimestamp": 1720720620813,
       "stakeWeight": 1,
       "tenureWeight": 0.4494598765432099,
@@ -696,7 +696,7 @@ const epoch = await io.getCurrentEpoch();
 
 #### `getPrescribedObservers({ epochIndex })`
 
-Retrieves the prescribed observers of the IO process. To fetch prescribed observers for a previous epoch set the `epochIndex` to the desired epoch.
+Retrieves the prescribed observers of the ARIO process. To fetch prescribed observers for a previous epoch set the `epochIndex` to the desired epoch.
 
 ```typescript
 const io = IO.init();
@@ -710,7 +710,7 @@ const observers = await io.getPrescribedObservers({ epochIndex: 0 });
   {
     "gatewayAddress": "BpQlyhREz4lNGS-y3rSS1WxADfxPpAuing9Lgfdrj2U",
     "observerAddress": "2Fk8lCmDegPg6jjprl57-UCpKmNgYiKwyhkU4vMNDnE",
-    "stake": 10000000000, // value in mIO
+    "stake": 10000000000, // value in mARIO
     "start": 1296976,
     "stakeWeight": 1,
     "tenureWeight": 0.41453703703703704,
@@ -725,7 +725,7 @@ const observers = await io.getPrescribedObservers({ epochIndex: 0 });
 
 #### `getTokenCost({ intent, ...args })`
 
-Calculates the price in mIO to perform the interaction in question, e.g. a `Buy-record` interaction, where args are the specific params for that interaction.
+Calculates the price in mARIO to perform the interaction in question, e.g. a `Buy-record` interaction, where args are the specific params for that interaction.
 
 ```typescript
 const price = await io
@@ -734,7 +734,7 @@ const price = await io
     name: 'ar-io',
     type: 'permabuy',
   })
-  .then((p) => new mIOToken(p).toIO()); // convert to IO for readability
+  .then((p) => new mIOToken(p).toIO()); // convert to ARIO for readability
 ```
 
 <details><summary>Output</summary>
@@ -1052,7 +1052,7 @@ const { id: txId } = await io.decreaseOperatorStake(
 
 Redelegates the stake of a specific address to a new gateway. Vault ID may be optionally included in order to redelegate from an existing withdrawal vault. The redelegation fee is calculated based on the fee rate and the stake amount. Users are allowed one free redelegation every seven epochs. Each additional redelegation beyond the free redelegation will increase the fee by 10%, capping at a 60% redelegation fee.
 
-e.g: If 1000 mIO is redelegated and the fee rate is 10%, the fee will be 100 mIO. Resulting in 900 mIO being redelegated to the new gateway and 100 mIO being deducted back to the protocol balance.
+e.g: If 1000 mARIO is redelegated and the fee rate is 10%, the fee will be 100 mARIO. Resulting in 900 mARIO being redelegated to the new gateway and 100 mARIO being deducted back to the protocol balance.
 
 ```typescript
 const io = IO.init({ signer: new ArweaveSigner(jwk) });
@@ -1109,7 +1109,7 @@ const { id: txId } = await io.saveObservations(
 
 #### `transfer({ target, qty, denomination })`
 
-Transfers `mIO` to the designated `target` recipient address. 
+Transfers `mARIO` to the designated `target` recipient address. 
 
 **NOTE**: Requires `signer` to be provided on `IO.init` to sign the transaction.
 
@@ -1161,7 +1161,7 @@ const { id: txId } = await io.extendLease(
 
 #### `getVault({ address, vaultId })`
 
-Retrieves the locked-balance user vault of the IO process by the specified wallet address and vault ID.
+Retrieves the locked-balance user vault of the ARIO process by the specified wallet address and vault ID.
 
 ```typescript
 const io = IO.init();
@@ -1185,7 +1185,7 @@ const vault = await io.getVault({
 
 #### `getVaults({ cursor, limit, sortBy, sortOrder })`
 
-Retrieves all locked-balance user vaults of the IO process, paginated and sorted by the specifed criteria. The `cursor` used for pagination is the last wallet address from the previous request.
+Retrieves all locked-balance user vaults of the ARIO process, paginated and sorted by the specifed criteria. The `cursor` used for pagination is the last wallet address from the previous request.
 
 ```typescript
 const io = IO.init();
@@ -1245,7 +1245,7 @@ const record = await io.buyRecord(
 
 #### `getArNSAuctions({ cursor, limit, sortBy, sortOrder })`
 
-Retrieves all active auctions of the IO process, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last auction name from the previous request.
+Retrieves all active auctions of the ARIO process, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last auction name from the previous request.
 
 ```typescript
 const io = IO.init();
@@ -1489,7 +1489,7 @@ const request = await io.getPrimaryNameRequest({
 
 ### Configuration
 
-The IO client class exposes APIs relevenat to the ar.io process. It can be configured to use any AO Process ID that adheres to the [IO Network Spec](https://github.com/ar-io/ar-io-network-process?tab=readme-ov-file#contract-spec). By default, it will use the current [IO testnet process](https://www.ao.link/#/entity/agYcCFJtrMG6cqMuZfskIkFTGvUPddICmtQSBIoPdiA). Refer to [AO Connect](https://github.com/permaweb/ao/tree/main/connect) for more information on how to configure an IO process to use specific AO infrastructure.
+The ARIO client class exposes APIs relevenat to the ar.io process. It can be configured to use any AO Process ID that adheres to the [ARIO Network Spec](https://github.com/ar-io/ar-io-network-process?tab=readme-ov-file#contract-spec). By default, it will use the current [ARIO testnet process](https://www.ao.link/#/entity/agYcCFJtrMG6cqMuZfskIkFTGvUPddICmtQSBIoPdiA). Refer to [AO Connect](https://github.com/permaweb/ao/tree/main/connect) for more information on how to configure an ARIO process to use specific AO infrastructure.
 
 ```typescript
 // provide a custom ao infrastructure and process id
@@ -1839,12 +1839,12 @@ const { id: txId } = await ant.setLogo(
 
 #### `releasename({ name, ioProcessId })`
 
-Releases a name from the auction and makes it available for auction on the IO contract. The name must be permanently owned by the releasing wallet. 50% of the winning bid will be distributed to the ANT owner at the time of release. If no bids, the name will be released and can be reregistered by anyone.
+Releases a name from the auction and makes it available for auction on the ARIO contract. The name must be permanently owned by the releasing wallet. 50% of the winning bid will be distributed to the ANT owner at the time of release. If no bids, the name will be released and can be reregistered by anyone.
 
 ```typescript
 const { id: txId } = await ant.releaseName({
   name: 'permalink',
-  ioProcessId: IO_TESTNET_PROCESS_ID, // releases the name owned by the ANT and sends it to auction on the IO contract
+  ioProcessId: IO_TESTNET_PROCESS_ID, // releases the name owned by the ANT and sends it to auction on the ARIO contract
 });
 ```
 
@@ -1868,7 +1868,7 @@ Approves a primary name request for a given name or address.
 const { id: txId } = await ant.approvePrimaryNameRequest({
   name: 'arns',
   address: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3', // must match the request initiator address
-  ioProcessId: IO_TESTNET_PROCESS_ID, // the IO process id to use for the request
+  ioProcessId: IO_TESTNET_PROCESS_ID, // the ARIO process id to use for the request
 });
 ```
 

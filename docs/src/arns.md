@@ -25,15 +25,15 @@ Users can easily reference these friendly names in their browsers, and other app
 
 ## Name Registry
 
-The ArNS Registry is a list of all the registered names and their associated ANT AO process Ids. Registering a name requires spending IO tokens based upon the name length and purchase type. The system shall allow users to either lease a name on a yearly basis (maximum up to 5 years) or purchase that name permanently.
+The ArNS Registry is a list of all the registered names and their associated ANT AO process Ids. Registering a name requires spending ARIO tokens based upon the name length and purchase type. The system shall allow users to either lease a name on a yearly basis (maximum up to 5 years) or purchase that name permanently.
 
 The registry uses the following key rules, embedded within the AR.IO AO process:
 
 - The genesis prices of names are set within the contract itself; these are the starting conditions.
 - Name prices vary based on name length, purchase type (lease vs buy), lease duration, and the current Demand Factor. See the Dynamic Pricing section for more details.
 - Name records in the registry each include a pointer to its Arweave Name Token Smart Contract process address, its lease end time, and undername allocation.
-- Anyone with available IO Tokens can extend any name’s active lease.
-- Anyone with available IO Tokens can purchase undername space for any name.
+- Anyone with available ARIO Tokens can extend any name’s active lease.
+- Anyone with available ARIO Tokens can purchase undername space for any name.
 - When a lease expires, there is a grace period where it can still be extended before anyone else can repurchase the name with a new ANT.
 
 Once added, name records cannot be removed from the registry. A leased name’s associated ANT smart contract address cannot be changed until the lease has expired and a new one is purchased. Care must be taken by the owners of permanent name purchases to ensure that their ANT supports an `evolve` ability should it be desired to add or modify functionality in the future as these name purchases are permanently tied to the associated ANT. Owners of permanently purchased names must understand the consequences of private key loss, which results in not being able to update any data pointers for this name.
@@ -69,7 +69,7 @@ The table below indicates some of the possible interactions with an ANT and who 
     <th>Type</th>
     <th>ANT Owner</th>
     <th>ANT Controller</th>
-    <th>Any IO Token Holder</th>
+    <th>Any ARIO Token Holder</th>
   </tr>
   <tr>
     <td>Transfer ANT</td>
@@ -142,7 +142,7 @@ ArNS is designed to ensure that name valuations are always in sync with their tr
 
 The Arweave Name System (ArNS) introduces an adaptive pricing model for registering names within the AR.IO Network. The core objective is to strike a balance between market demand and pricing fairness, leveraging both static and dynamic pricing elements. The system differentiates prices based on character lengths of names and offers varied purchasing options such as leasing, permanent acquisition, and undernames.
 
-A unique feature of the ArNS pricing mechanism is the integration of a Demand Factor (DF), a dynamic multiplier that adjusts name prices in response to market demand. The DF is determined by comparing the total revenue in IO tokens from the current period to a moving average of revenues from the preceding period window. Depending on whether revenue is above, below, or equal to this average, the DF can increase or decrease. These adjustments are contained within boundaries to prevent extreme pricing variations.
+A unique feature of the ArNS pricing mechanism is the integration of a Demand Factor (DF), a dynamic multiplier that adjusts name prices in response to market demand. The DF is determined by comparing the total revenue in ARIO tokens from the current period to a moving average of revenues from the preceding period window. Depending on whether revenue is above, below, or equal to this average, the DF can increase or decrease. These adjustments are contained within boundaries to prevent extreme pricing variations.
 
 This comprehensive approach ensures that ArNS names are accessible and reasonably priced, adapting to market trends while maintaining an equitable and maintenance-free registration environment.
 

@@ -4,7 +4,7 @@ homepage: true
 
 # Welcome to the Permaweb
 
-Data in paradise. The AR.IO ecosystem is dedicated to cultivating products and protocols for sustaining access to digital permanence, making the permaweb available to everyone. Powered by the IO Token, this global network of Gateways connects users to permanently stored data, files, applications, and web pages on the Arweave decentralized storage network.
+Data in paradise. The AR.IO ecosystem is dedicated to cultivating products and protocols for sustaining access to digital permanence, making the permaweb available to everyone. Powered by the ARIO Token, this global network of Gateways connects users to permanently stored data, files, applications, and web pages on the Arweave decentralized storage network.
 
 <div id="block-container" class="home-container">
 
@@ -27,8 +27,8 @@ Data in paradise. The AR.IO ecosystem is dedicated to cultivating products and p
 <div class="home-box">
 <a href="./token">
 <img class="smaller-image" :src="$withBase('/images/3-Token.png')">
-<h3>IO Token</h3>
-<p>IO powers the AR.IO Network and its suite of permaweb applications as a permissionless and censorship resistant medium of common value for the network.</p>
+<h3>ARIO Token</h3>
+<p>ARIO powers the AR.IO Network and its suite of permaweb applications as a permissionless and censorship resistant medium of common value for the network.</p>
 </a>
 </div>
 

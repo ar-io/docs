@@ -117,11 +117,11 @@ The permaweb is the permanent and decentralized web of files and applications bu
 
 ## **Protocol Balance**: 
 
-The primary sink and source of IO tokens circulating through the AR.IO Network. This balance is akin to a central vault or wallet programmatically encoded into the network’s smart contract from which ArNS revenue is accumulated and incentive rewards are distributed. 
+The primary sink and source of ARIO tokens circulating through the AR.IO Network. This balance is akin to a central vault or wallet programmatically encoded into the network’s smart contract from which ArNS revenue is accumulated and incentive rewards are distributed. 
 
 ## **Protocol Rewards**: 
 
-IO Token incentive rewards distributed by the protocol to the network’s eligible users and gateway operators. 
+ARIO Token incentive rewards distributed by the protocol to the network’s eligible users and gateway operators. 
 
 ## **Public Key**:
 
@@ -133,7 +133,7 @@ Refers to the act of propagating new data throughout the network. Miner nodes se
 
 ## **Staking (of tokens)**: 
 
-Refers to the process of locking IO tokens into a protocol-facilitated vault, temporarily removing them from circulation until unlocked. This action represents an opportunity cost for the gateway operator and serves as a motivator to prioritize the network's collective interests.  
+Refers to the process of locking ARIO tokens into a protocol-facilitated vault, temporarily removing them from circulation until unlocked. This action represents an opportunity cost for the gateway operator and serves as a motivator to prioritize the network's collective interests.  
 
 ## **Transaction ID (txID)**: 
 

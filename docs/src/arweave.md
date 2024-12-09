@@ -64,7 +64,7 @@ AO is a global supercomputer built on Arweave. This actor-oriented machine is a 
 
 <div class="caption">Diagram 4: AO - The Supercomputer and Smart Contract Protocol</div>
 
-With AO, developers can create processes that act as smart contracts with token-like properties which can then be  used to incorporate incentive structures into applications and infrastructure. The AR.IO Network leverages this technology for development of its network protocol and IO token.
+With AO, developers can create processes that act as smart contracts with token-like properties which can then be  used to incorporate incentive structures into applications and infrastructure. The AR.IO Network leverages this technology for development of its network protocol and ARIO token.
 
 ## The Permaweb
 
