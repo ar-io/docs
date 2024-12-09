@@ -8,7 +8,7 @@ permalink: "/token/"
 
 ## Overview
 
-ARIO is the multifunction aoComputer based token that powers The AR.IO Network and its suite of permaweb applications. The ARIO Token (ɸ) has many uses, including:
+ARIO is the multifunction aoComputer based token that powers The AR.IO Network and its suite of permaweb applications. The ARIO Token has many uses, including:
 
 - Protocol incentives,
 

@@ -83,6 +83,7 @@ In the AR.IO Network, "staking" designates the act of locking a specified amount
 
 It is important to note that unlike other protocols, the ARIO token is non-inflationary. Therefore, the staking mechanism in the AR.IO Network is not designed to function as a yield-generation tool. By staking their tokens, participants become eligible for potential rewards, fostering an atmosphere of mutual trust within the network. Specifically, Gateway operators stake tokens to facilitate their Gateway integration and establish public trust. Once connected, they become eligible for rewards driven by the protocol and gain access to the network's shared resources.
 
+<!-- 
 ## Schema
 
 ### Gateway Schema
@@ -249,4 +250,4 @@ It is important to note that unlike other protocols, the ARIO token is non-infla
         </tr>
     </table>
 </div>
-
+ -->

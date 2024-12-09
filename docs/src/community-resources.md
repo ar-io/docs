@@ -11,4 +11,4 @@ next: false
 
 [ar.io Discord](https://discord.gg/7zUPfN4D6g)
 
-[Contact Us Directly](mailto:info@ar.io)
+<!-- [Contact Us Directly](mailto:info@ar.io) -->

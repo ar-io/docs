@@ -33,7 +33,7 @@ Data in paradise. The AR.IO ecosystem is dedicated to cultivating products and p
 </div>
 
 <div class="home-box">
-<a href="https://arweave.net/lNjWn3LpyhKC95Kqe-x8X2qgju0j98MhucdDKK85vc4" target="_blank">
+<a href="https://whitepaper_ar-io.arweave.net" target="_blank">
 <img class="smaller-image" :src="$withBase('/images/4-White-Paper.png')">
 <h3>White Paper</h3>
 <p>A comprehensive document that details a decentralized and incentivized gateway network aimed at making the permaweb more accessible to all.</p>

@@ -5,7 +5,7 @@ module.exports = [
   },
   {
     title: "White Paper",
-    path: "https://arweave.net/lNjWn3LpyhKC95Kqe-x8X2qgju0j98MhucdDKK85vc4",
+    path: "https://whitepaper_ar-io.arweave.net",
   },
   {
     title: "Network Overview",
@@ -19,7 +19,7 @@ module.exports = [
         path: "/arweave",
       },
       {
-        title: "The IO Token",
+        title: "The ARIO Token",
         path: "/token.md",
       },
       {
@@ -96,10 +96,10 @@ module.exports = [
         title: "AR.IO Admin API",
         path: "/gateways/ar-io-node/admin/admin-api",
       },
-      {
-        title: "Upgrading to Observer",
-        path: "/gateways/ar-io-node/observer-upgrade",
-      },
+      // {
+      //   title: "Upgrading to Observer",
+      //   path: "/gateways/ar-io-node/observer-upgrade",
+      // },
       {
         title: "Certbot Setup",
         children: [
@@ -178,32 +178,32 @@ module.exports = [
   {
     title: "Guides",
     children: [
-      {
-        title: "Arweave Name System (ArNS)",
-        children: [
-          {
-            title: "ArNS App",
-            children: [
-              {
-                title: "Overview",
-                path: "/guides/arns/overview",
-              },
-              {
-                title: "Registering a Name",
-                path: "/guides/arns/registering",
-              },
-              {
-                title: "Managing Assets",
-                path: "/guides/arns/managing",
-              },
-            ],
-          },
-          {
-            title: "ANTs on Bazar",
-            path: "/guides/ants-on-bazar"
-          },
-        ],
-      },
+      // {
+      //   title: "Arweave Name System (ArNS)",
+      //   children: [
+      //     {
+      //       title: "ArNS App",
+      //       children: [
+      //         {
+      //           title: "Overview",
+      //           path: "/guides/arns/overview",
+      //         },
+      //         {
+      //           title: "Registering a Name",
+      //           path: "/guides/arns/registering",
+      //         },
+      //         {
+      //           title: "Managing Assets",
+      //           path: "/guides/arns/managing",
+      //         },
+      //       ],
+      //     },
+      //     {
+      //       title: "ANTs on Bazar",
+      //       path: "/guides/ants-on-bazar"
+      //     },
+      //   ],
+      // },
       {
         title: "GraphQL",
         path: "/guides/gql",
@@ -212,23 +212,23 @@ module.exports = [
         title: "Deploy a Website or Application",
         path: "/guides/github-flow"
       },
-      {
-        title: "Experimental",
-        children: [
-          {
-            title: "AO ArNS Resolver",
-            path: "/experimental/ao-resolver",
-          },
-          {
-            title: "AO ANT",
-            path: "/experimental/ao-ant",
-          },
-          {
-            title: "Farcaster Frames",
-            path: "/gateways/ar-io-node/experimental/frames",
-          },
-        ],
-      },
+      // {
+      //   title: "Experimental",
+      //   children: [
+      //     {
+      //       title: "AO ArNS Resolver",
+      //       path: "/experimental/ao-resolver",
+      //     },
+      //     {
+      //       title: "AO ANT",
+      //       path: "/experimental/ao-ant",
+      //     },
+      //     {
+      //       title: "Farcaster Frames",
+      //       path: "/gateways/ar-io-node/experimental/frames",
+      //     },
+      //   ],
+      // },
       {
         title: "Projects",
         children: [

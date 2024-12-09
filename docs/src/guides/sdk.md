@@ -143,7 +143,7 @@ The SDK provides TypeScript types. When you import the SDK in a TypeScript proje
 
 **NOTE**: Typescript version 5.3 or higher is recommended.
 
-## ARIOToken & mARIOToken
+## ARIO Token & mARIO Token
 
 The ArIO contract stores all values as mARIO (milli-ARIO) to avoid floating-point arithmetic issues. The SDK provides an `IOToken` and `mIOToken` classes to handle the conversion between ARIO and mARIO, along with rounding logic for precision.
 

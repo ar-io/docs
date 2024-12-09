@@ -15,13 +15,13 @@ tags: [testnet, join, application, jwk, qty, fqdn, label, note, properties]
 2. Gateway must be associated with an Arweave Wallet.
     - Learn about creating Arweave wallets [here](https://ar.io/wallet)
 
-3. Arweave wallet must be funded with enough AR tokens to pay for transaction gas.
+3. Arweave wallet must be funded with enough [ARIO tokens](https://ar.io/test-ario) to meet the minimum stake for gateway operators.
 
-## Submit an Application
+<!-- ## Submit an Application
 
 Joining the ar.io Testnet requires staking a minimum of 10,000 Test ARIO Tokens. You must have Test ARIO Tokens before you are able to join. Test ARIO Tokens are currently not being distributed.
 
-New applications for joining the Testnet are not currently being accepted. Be sure to join the [ar.io Discord](https://discord.com/invite/7zUPfN4D6g) to stay up to date on Testnet status and possible future availability prior to the launch of the Mainnet. -->
+New applications for joining the Testnet are not currently being accepted. Be sure to join the [ar.io Discord](https://discord.com/invite/7zUPfN4D6g) to stay up to date on Testnet status and possible future availability prior to the launch of the Mainnet. --> -->
 
 <!-- ## Setting up and Running the Join Script
 
