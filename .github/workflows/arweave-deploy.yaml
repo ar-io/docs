@@ -1,0 +1,41 @@
+name: Arweave Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  Arweave-build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Node.js environment for docs build
+        uses: actions/setup-node@v2
+        with:
+          node-version: "20"
+
+      - name: Install Yarn
+        run: npm install -g yarn
+
+      - name: Build Docs Portal
+        run: |
+          yarn install --frozen-lockfile --ignore-engines
+          yarn build
+
+      - name: Install dependencies for deployment script
+        run: |
+          cd .github/workflows/scripts
+          yarn install
+          cd ../..
+
+      - name: Run deployment script
+        env:
+          DEPLOY_KEY: ${{ secrets.TEST_DEPLOY_KEY }}
+          DEPLOY_ANT_PROCESS_ID: ${{ secrets.TEST_DEPLOY_ANT_PROCESS_ID }}
+          UNDERNAME: ${{ secrets.MAIN_ARNS_UNDERNAME }}
+        run: |
+          cd .github/workflows/scripts
+          node arweave-deploy.js
