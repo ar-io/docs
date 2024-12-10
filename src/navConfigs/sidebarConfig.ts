@@ -41,20 +41,20 @@ export const mainNavigation: Array<NavGroup> = [
         {
             title: "Guides",
             children: [
-                {
-                    title: "ANTs",
-                    href: "/learn/guides/ants",
-                    children: [
-                        {
-                            title: "Registering",
-                            href: "/learn/guides/ants/registering"
-                        },
-                        {
-                            title: "Managing",
-                            href: "/learn/guides/ants/managing"
-                        }
-                    ]
-                },
+                // {
+                //     title: "ANTs",
+                //     href: "/learn/guides/ants",
+                //     children: [
+                //         {
+                //             title: "Registering",
+                //             href: "/learn/guides/ants/registering"
+                //         },
+                //         {
+                //             title: "Managing",
+                //             href: "/learn/guides/ants/managing"
+                //         }
+                //     ]
+                // },
                 {
                     title: "ANTs on Bazar",
                     href: "/learn/guides/ants-on-bazar"
