@@ -91,15 +91,32 @@ function NavLink({
   )
 }
 
+function normalizePath(path: string): string {
+  return path.endsWith('/') ? path : `${path}/`;
+}
+
 function isLinkActive(
   link: { href?: string; children?: { href?: string; children?: any[] }[] },
   pathname: string
 ): boolean {
+  // console.log("Link mark", link);
+  // console.log("IsLinkActiveMark: ", pathname);
+
+ 
+  
+  const normalizedHref = link.href ? normalizePath(link.href) : null;
+  const normalizedPathname = normalizePath(pathname);
+
+   if ((normalizedPathname && normalizedHref) && normalizedPathname === normalizedHref ){
+    console.log("found matching link ", normalizedHref)
+   }
+
   return (
-    link.href === pathname ||
+    normalizedHref === normalizedPathname ||
     (link.children?.some((child) => isLinkActive(child, pathname)) ?? false)
   );
 }
+
 
 function VisibleSectionHighlight({
   group,
@@ -168,15 +185,26 @@ function VisibleSectionHighlight({
   )
 }
 
-function findActiveLink(links: Array<{ href?: string; children?: any[] }>, pathname: string): { link: { href?: string; children?: any[] }; index: number } | null {
-  let activeLink: { link: { href?: string; children?: any[] }; index: number } | null = null
+function findActiveLink(
+  links: Array<{ href?: string; children?: any[] }>,
+  pathname: string
+): { link: { href?: string; children?: any[] }; index: number } | null {
+  let activeLink: { link: { href?: string; children?: any[] }; index: number } | null = null;
+
+  const normalizedPathname = normalizePath(pathname); // Normalize the current pathname
+console.log("Entering findActiveLink: ", pathname)
   links.forEach((link, index) => {
-    if (isLinkActive(link, pathname)) {
-      activeLink = { link, index }
+    console.log("in a link: ", link)
+    const normalizedHref = link.href ? normalizePath(link.href) : null; // Normalize the link href
+    if (normalizedHref === normalizedPathname || isLinkActive(link, normalizedPathname)) {
+      console.log("Active Link found: ", activeLink)
+      activeLink = { link, index };
     }
-  })
-  return activeLink
+  });
+
+  return activeLink;
 }
+
 
 function ActivePageMarker({
   group,
