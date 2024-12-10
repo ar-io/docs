@@ -215,6 +215,14 @@ function NavigationGroup({
     [usePathname(), useSectionStore((s) => s.sections)],
     isInsideMobileNavigation,
   )
+  const [collapsedState, setCollapsedState] = useState<Record<string, boolean>>({});
+
+  const toggleCollapse = (key: string) => {
+    setCollapsedState((prevState) => ({
+      ...prevState,
+      [key]: !prevState[key],
+    }));
+  };
 
   let isActiveGroup =
     group.links.some((link) => isLinkActive(link, pathname))
@@ -223,156 +231,121 @@ function NavigationGroup({
     <li className={clsx('relative mt-6', className)}>
       <motion.h2
         layout="position"
-        className="text-xs font-semibold text-zinc-900 dark:text-white"
+        className="flex items-center justify-between text-xs font-semibold text-zinc-900 dark:text-white cursor-pointer"
+        onClick={() => toggleCollapse(group.title)}
       >
         {group.title}
+        <span
+          className={clsx(
+            'ml-2 transform transition-transform',
+            collapsedState[group.title] ? '-rotate-0' : 'rotate-90'
+          )}
+        >
+          ▶ {/* Unicode for right-pointing triangle */}
+        </span>
       </motion.h2>
-      <div className="relative mt-3 pl-2">
-        <AnimatePresence initial={!isInsideMobileNavigation}>
-          {isActiveGroup && (
-            <VisibleSectionHighlight group={group} pathname={pathname} />
-          )}
-        </AnimatePresence>
-        <motion.div
-          layout
-          className="absolute inset-y-0 left-2 w-px bg-zinc-900/10 dark:bg-white/5"
-        />
-        <AnimatePresence initial={false}>
-          {isActiveGroup && (
-            <ActivePageMarker group={group} pathname={pathname} />
-          )}
-        </AnimatePresence>
-        <ul role="list" className="border-l border-transparent">
-          {group.links.map((link) => (
-            <motion.li key={link.href ?? link.title} layout="position" className="relative">
-              {link.href ? (
-                <NavLink href={link.href} active={isLinkActive(link, pathname)}>
-                  {link.title}
-                </NavLink>
-              ) : (
-                <span className="pl-4 text-sm text-zinc-900 dark:text-white">
-                  {link.title}
-                </span>
-              )}
-              {isLinkActive(link, pathname) && sections.length > 0 && link.href === pathname && (
-                <motion.ul
-                  role="list"
-                  initial={{ opacity: 0 }}
-                  animate={{
-                    opacity: 1,
-                    transition: { delay: 0.1 },
-                  }}
-                  exit={{
-                    opacity: 0,
-                    transition: { duration: 0.15 },
-                  }}
-                >
-                  {sections.map((section) => (
-                    <li key={section.id}>
-                      <NavLink
-                        href={`${link.href}#${section.id}`}
-                        tag={section.tag}
-                        isAnchorLink
-                      >
-                        {section.title}
-                      </NavLink>
-                    </li>
-                  ))}
-                </motion.ul>
-              )}
-              {link.children && (
-                <ul role="list" className="pl-4">
-                  {link.children.map((child) => (
-                    <li key={child.href ?? child.title} className="mt-2">
-                      {child.href ? (
-                        <NavLink href={child.href} active={isLinkActive(child, pathname)}>
-                          {child.title}
-                        </NavLink>
-                      ) : (
-                        <span className="pl-4 text-sm text-zinc-900 dark:text-white">
-                          {child.title}
-                        </span>
-                      )}
-                      {isLinkActive(child, pathname) && sections.length > 0 && child.href === pathname && (
-                        <motion.ul
-                          role="list"
-                          initial={{ opacity: 0 }}
-                          animate={{
-                            opacity: 1,
-                            transition: { delay: 0.1 },
-                          }}
-                          exit={{
-                            opacity: 0,
-                            transition: { duration: 0.15 },
-                          }}
+      {!collapsedState[group.title] && (
+        <div className="relative mt-3 pl-2">
+          <AnimatePresence initial={!isInsideMobileNavigation}>
+            {isActiveGroup && (
+              <VisibleSectionHighlight group={group} pathname={pathname} />
+            )}
+          </AnimatePresence>
+          <motion.div
+            layout
+            className="absolute inset-y-0 left-2 w-px bg-zinc-900/10 dark:bg-white/5"
+          />
+          <AnimatePresence initial={false}>
+            {isActiveGroup && (
+              <ActivePageMarker group={group} pathname={pathname} />
+            )}
+          </AnimatePresence>
+          <ul role="list" className="border-l border-transparent">
+            {group.links.map((link) => (
+              <motion.li key={link.href ?? link.title} layout="position" className="relative">
+                {link.href ? (
+                  <NavLink href={link.href} active={isLinkActive(link, pathname)}>
+                    {link.title}
+                  </NavLink>
+                ) : (
+                  <span className="pl-4 text-sm text-zinc-900 dark:text-white">
+                    {link.title}
+                  </span>
+                )}
+                {link.href === pathname && sections.length > 0 && (
+                  <motion.ul
+                    role="list"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1, transition: { delay: 0.1 } }}
+                    exit={{ opacity: 0, transition: { duration: 0.15 } }}
+                  >
+                    {sections.map((section) => (
+                      <li key={section.id}>
+                        <NavLink
+                          href={`${link.href}#${section.id}`}
+                          tag={section.tag}
+                          isAnchorLink
                         >
-                          {sections.map((section) => (
-                            <li key={section.id}>
-                              <NavLink
-                                href={`${child.href}#${section.id}`}
-                                tag={section.tag}
-                                isAnchorLink
-                              >
-                                {section.title}
+                          {section.title}
+                        </NavLink>
+                      </li>
+                    ))}
+                  </motion.ul>
+                )}
+                {link.children && (
+                  <>
+                    <span
+                      className="cursor-pointer pl-4 text-sm text-zinc-900 dark:text-white"
+                      onClick={() => toggleCollapse(link.title)}
+                    >
+                      {collapsedState[link.title] ? '▶' : '▼'}
+                    </span>
+                    {!collapsedState[link.title] && (
+                      <ul role="list" className="pl-4">
+                        {link.children.map((child) => (
+                          <li key={child.href ?? child.title} className="mt-2">
+                            {child.href ? (
+                              <NavLink href={child.href} active={isLinkActive(child, pathname)}>
+                                {child.title}
                               </NavLink>
-                            </li>
-                          ))}
-                        </motion.ul>
-                      )}
-                      {child.children && (
-                        <ul role="list" className="pl-4">
-                          {child.children.map((subChild) => (
-                            <li key={subChild.href ?? subChild.title} className="mt-2">
-                              {subChild.href ? (
-                                <NavLink href={subChild.href} active={isLinkActive(subChild, pathname)}>
-                                  {subChild.title}
-                                </NavLink>
-                              ) : (
-                                <span className="pl-4 text-sm text-zinc-900 dark:text-white">
-                                  {subChild.title}
-                                </span>
-                              )}
-                              {isLinkActive(subChild, pathname) && sections.length > 0 && subChild.href === pathname && (
-                                <motion.ul
-                                  role="list"
-                                  initial={{ opacity: 0 }}
-                                  animate={{
-                                    opacity: 1,
-                                    transition: { delay: 0.1 },
-                                  }}
-                                  exit={{
-                                    opacity: 0,
-                                    transition: { duration: 0.15 },
-                                  }}
-                                >
-                                  {sections.map((section) => (
-                                    <li key={section.id}>
-                                      <NavLink
-                                        href={`${subChild.href}#${section.id}`}
-                                        tag={section.tag}
-                                        isAnchorLink
-                                      >
-                                        {section.title}
+                            ) : (
+                              <span className="pl-4 text-sm text-zinc-900 dark:text-white">
+                                {child.title}
+                              </span>
+                            )}
+                            {child.children && (
+                              <ul role="list" className="pl-4">
+                                {child.children.map((subChild) => (
+                                  <li key={subChild.href ?? subChild.title} className="mt-2">
+                                    {subChild.href ? (
+                                      <NavLink href={subChild.href} active={isLinkActive(subChild, pathname)}>
+                                        {subChild.title}
                                       </NavLink>
-                                    </li>
-                                  ))}
-                                </motion.ul>
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </motion.li>
-          ))}
-        </ul>
-      </div>
+                                    ) : (
+                                      <span className="pl-4 text-sm text-zinc-900 dark:text-white">
+                                        {subChild.title}
+                                      </span>
+                                    )}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </>
+                )}
+              </motion.li>
+            ))}
+          </ul>
+        </div>
+      )}
     </li>
   )
 }
+
+
 
 export function Navigation(props: React.ComponentPropsWithoutRef<'nav'>) {
   const pathname = usePathname()
