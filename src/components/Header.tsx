@@ -16,14 +16,17 @@ import { ThemeToggle } from '@/components/ThemeToggle'
 function TopLevelNavItem({
   href,
   children,
+  target = "_self"
 }: {
   href: string
-  children: React.ReactNode
+  children: React.ReactNode,
+  target?: string
 }) {
   return (
     <li>
       <Link
         href={href}
+        target={target}
         className="text-sm leading-5 text-zinc-600 transition hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
       >
         {children}
@@ -80,6 +83,7 @@ export const Header = forwardRef<
       <div className="flex items-center gap-5">
         <nav className="hidden md:block">
           <ul role="list" className="flex items-center gap-8">
+          <TopLevelNavItem href="https://whitepaper_ar-io.arweave.net" target='_blank'>Whitepaper</TopLevelNavItem>
             <TopLevelNavItem href="/learn/introduction">Learn</TopLevelNavItem>
             <TopLevelNavItem href="/build/ar-io-sdk">build</TopLevelNavItem>
             <TopLevelNavItem href="/community-resources">

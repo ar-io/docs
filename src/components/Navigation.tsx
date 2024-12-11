@@ -38,14 +38,17 @@ export interface NavGroup {
 function TopLevelNavItem({
   href,
   children,
+  target = "_self"
 }: {
   href: string
   children: React.ReactNode
+  target: string
 }) {
   return (
     <li>
       <Link
         href={href}
+        target={target}
         className="block py-1 text-sm text-zinc-600 transition hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
       >
         {children}
