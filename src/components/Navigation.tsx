@@ -43,7 +43,7 @@ function TopLevelNavItem({
   children: React.ReactNode
 }) {
   return (
-    <li className="md:hidden">
+    <li>
       <Link
         href={href}
         className="block py-1 text-sm text-zinc-600 transition hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
@@ -382,9 +382,8 @@ export function Navigation(props: React.ComponentPropsWithoutRef<'nav'>) {
   return (
     <nav {...props}>
       <ul role="list">
-        <TopLevelNavItem href="/">API</TopLevelNavItem>
-        <TopLevelNavItem href="#">Documentation</TopLevelNavItem>
-        <TopLevelNavItem href="#">Support</TopLevelNavItem>
+        <TopLevelNavItem href="/">Learn</TopLevelNavItem>
+        <TopLevelNavItem href="/build/ar-io-sdk/getting-started/">build</TopLevelNavItem>
         {currentNavigation.map((group, groupIndex) => (
           <NavigationGroup
             key={group.title}
