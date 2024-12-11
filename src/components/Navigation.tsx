@@ -260,7 +260,25 @@ function NavigationGroup({
     [usePathname(), useSectionStore((s) => s.sections)],
     isInsideMobileNavigation,
   )
-  const [collapsedState, setCollapsedState] = useState<Record<string, boolean>>({});
+
+  const [collapsedState, setCollapsedState] = useState<Record<string, boolean>>(() => {
+    const initialState: Record<string, boolean> = {};
+
+    const expandParents = (links: Array<{ title: string; href?: string; children?: any[] }>, isActive: boolean) => {
+      links.forEach((link) => {
+        const isLinkActive = isActive || normalizePath(link.href || '') === normalizePath(pathname);
+        initialState[link.title] = !isLinkActive; // Expand active links and their parents
+
+        if (link.children) {
+          expandParents(link.children, isLinkActive);
+        }
+      });
+    };
+
+    expandParents(group.links, false);
+
+    return initialState;
+  });
 
   const toggleCollapse = (key: string) => {
     setCollapsedState((prevState) => ({
@@ -291,20 +309,20 @@ function NavigationGroup({
       </motion.h2>
       {!collapsedState[group.title] && (
         <div className="relative mt-3 pl-2">
-          {/* <AnimatePresence initial={!isInsideMobileNavigation}>
+          <AnimatePresence initial={!isInsideMobileNavigation}>
             {isActiveGroup && (
               <VisibleSectionHighlight group={group} pathname={pathname} />
             )}
-          </AnimatePresence> */}
+          </AnimatePresence>
           <motion.div
             layout
             className="absolute inset-y-0 left-2 w-px bg-zinc-900/10 dark:bg-white/5"
           />
-          {/* <AnimatePresence initial={false}>
+          <AnimatePresence initial={false}>
             {isActiveGroup && (
               <ActivePageMarker group={group} pathname={pathname} />
             )}
-          </AnimatePresence> */}
+          </AnimatePresence>
           <ul role="list" className="border-l border-transparent">
             {group.links.map((link) => (
               <motion.li key={link.href ?? link.title} layout="position" className="relative">
@@ -409,9 +427,7 @@ export function Navigation(props: React.ComponentPropsWithoutRef<'nav'>) {
   return (
     <nav {...props}>
       <ul role="list">
-        <TopLevelNavItem href="/learn/introduction">Learn</TopLevelNavItem>
-        <TopLevelNavItem href="/build/ar-io-sdk">build</TopLevelNavItem>
-        <TopLevelNavItem href="/community-resources">Community Resources</TopLevelNavItem>
+
         {currentNavigation.map((group, groupIndex) => (
           <NavigationGroup
             key={group.title}

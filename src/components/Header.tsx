@@ -78,6 +78,17 @@ export const Header = forwardRef<
         </Link>
       </div>
       <div className="flex items-center gap-5">
+        <nav className="hidden md:block">
+          <ul role="list" className="flex items-center gap-8">
+            <TopLevelNavItem href="/learn/introduction">Learn</TopLevelNavItem>
+            <TopLevelNavItem href="/build/ar-io-sdk">build</TopLevelNavItem>
+            <TopLevelNavItem href="/community-resources">
+              Community Resources
+            </TopLevelNavItem>
+          </ul>
+        </nav>
+      </div>
+      <div className="flex items-center gap-5">
         <div className="hidden md:block md:h-5 md:w-px md:bg-zinc-900/10 md:dark:bg-white/15" />
         <div className="flex gap-4">
           <MobileSearch />

@@ -9,16 +9,6 @@ export const mainNavigation: Array<NavGroup> = [
         title: 'Introduction',
         href: '/learn/introduction',
       },
-
-      {
-        title: 'Guides',
-        children: [
-          {
-            title: 'ANTs on Bazar',
-            href: '/learn/guides/ants-on-bazar',
-          },
-        ],
-      },
       {
         title: 'Foundation',
         href: '/learn/foundation',
@@ -90,8 +80,12 @@ export const secondaryNavigation: Array<NavGroup> = [
         href: "/build/ar-io-sdk/release-notes"
       },
       {
-        title: "ARIO class",
+        title: "ARIO Class",
         children: [
+            {
+                title: "Configuration",
+                href: "/build/ar-io-sdk/ario/configuration"
+            },
             {
                 title: "General",
                 children: [
@@ -190,10 +184,304 @@ export const secondaryNavigation: Array<NavGroup> = [
                     },
                 ]
             },
+            {
+                title: "Vaults",
+                children: [
+                    {
+                        title: "getVault",
+                        href: "/build/ar-io-sdk/ario/vaults/get-vault"
+                    },
+                    {
+                        title: "getVaults",
+                        href: "/build/ar-io-sdk/ario/vaults/get-vaults"
+                    },
+                ]
+            },
+            {
+                title: "Epochs",
+                children: [
+                    {
+                        title: "getEpoch",
+                        href: "/build/ar-io-sdk/ario/epochs/get-epoch"
+                    },
+                    {
+                        title: "getCurrentEpoch",
+                        href: "/build/ar-io-sdk/ario/epochs/get-current-epoch"
+                    },
+                    {
+                        title: "getDistributions",
+                        href: "/build/ar-io-sdk/ario/epochs/get-distributions"
+                    },
+                    {
+                        title: "getPrescribedObservers",
+                        href: "/build/ar-io-sdk/ario/epochs/get-prescribed-observers"
+                    },
+                    {
+                        title: "getObservations",
+                        href: "/build/ar-io-sdk/ario/epochs/get-observations"
+                    },
+                    {
+                        title: "saveObservations",
+                        href: "/build/ar-io-sdk/ario/epochs/save-observations"
+                    },
+                ]
+            },
+            {
+                title: "ArNS",
+                children: [
+                    {
+                        title: "buyRecord",
+                        href: "/build/ar-io-sdk/ario/arns/buy-record"
+                    },
+                    {
+                        title: "extendLease",
+                        href: "/build/ar-io-sdk/ario/arns/extend-lease"
+                    },
+                    {
+                        title: "getArNSRecord",
+                        href: "/build/ar-io-sdk/ario/arns/get-arns-record"
+                    },
+                    {
+                        title: "getArNSRecords",
+                        href: "/build/ar-io-sdk/ario/arns/get-arns-records"
+                    },
+                    {
+                        title: "getTokenCost",
+                        href: "/build/ar-io-sdk/ario/arns/get-token-cost"
+                    },
+                    {
+                        title: "getDemandFactor",
+                        href: "/build/ar-io-sdk/ario/arns/get-demand-factor"
+                    },
+                    {
+                        title: "increaseUndernameLimit",
+                        href: "/build/ar-io-sdk/ario/arns/increase-undername-limit"
+                    },
+                    {
+                        title: "getArNSAuction",
+                        href: "/build/ar-io-sdk/ario/arns/get-arns-auction"
+                    },
+                    {
+                        title: "getArNSAuctions",
+                        href: "/build/ar-io-sdk/ario/arns/get-arns-auctions"
+                    },
+                    {
+                        title: "getArNSAuctionPrices",
+                        href: "/build/ar-io-sdk/ario/arns/get-arns-auction-prices"
+                    },
+                    {
+                        title: "submitAuctionBid",
+                        href: "/build/ar-io-sdk/ario/arns/submit-auction-bid"
+                    },
+                ]
+            },
+            {
+                title: "Primary Names",
+                children: [
+                    {
+                        title: "getPrimaryName",
+                        href: "/build/ar-io-sdk/ario/primary-names/get-primary-name"
+                    },
+                    {
+                        title: "getPrimaryNames",
+                        href: "/build/ar-io-sdk/ario/primary-names/get-primary-names"
+                    },
+                    {
+                        title: "getPrimaryNameRequest",
+                        href: "/build/ar-io-sdk/ario/primary-names/get-primary-name-request"
+                    },
+                    {
+                        title: "requestPrimaryName",
+                        href: "/build/ar-io-sdk/ario/primary-names/request-primary-name"
+                    },
+                ]
+            }
             
         ]
       },
+      {
+        title: "ANT Class",
+        children: [
+            {
+                title: "Configuration",
+                href: "/build/ar-io-sdk/ants/configuration"
+            },
+            {
+                title: "getInfo",
+                href: "/build/ar-io-sdk/ants/get-info"
+            },
+            {
+                title: "getState",
+                href: "/build/ar-io-sdk/ants/get-state"
+            },
+            {
+                title: "getOwner",
+                href: "/build/ar-io-sdk/ants/get-owner"
+            },
+            {
+                title: "getControllers",
+                href: "/build/ar-io-sdk/ants/get-controllers"
+            },
+            {
+                title: "getHandlers",
+                href: "/build/ar-io-sdk/ants/get-handlers"
+            },
+            {
+                title: "getRecords",
+                href: "/build/ar-io-sdk/ants/get-records"
+            },
+            {
+                title: "setRecord",
+                href: "/build/ar-io-sdk/ants/set-record"
+            },
+            {
+                title: "setName",
+                href: "/build/ar-io-sdk/ants/set-name"
+            },
+            {
+                title: "setLogo",
+                href: "/build/ar-io-sdk/ants/set-logo"
+            },
+            {
+                title: "setTicker",
+                href: "/build/ar-io-sdk/ants/set-ticker"
+            },
+            {
+                title: "setDescription",
+                href: "/build/ar-io-sdk/ants/set-description"
+            },
+            {
+                title: "setKeywords",
+                href: "/build/ar-io-sdk/ants/set-keywords"
+            },
+            {
+                title: "setController",
+                href: "/build/ar-io-sdk/ants/set-controller"
+            },
+            {
+                title: "removeController",
+                href: "/build/ar-io-sdk/ants/remove-controller"
+            },
+            {
+                title: "removeRecord",
+                href: "/build/ar-io-sdk/ants/remove-record"
+            },
+            {
+                title: "removePrimaryName",
+                href: "/build/ar-io-sdk/ants/remove-primary-name"
+            },
+            {
+                title: "approvePrimaryNameRequest",
+                href: "/build/ar-io-sdk/ants/approve-primary-name-request"
+            },
+            {
+                title: "releaseName",
+                href: "/build/ar-io-sdk/ants/release-name"
+            },
+            {
+                title: "reassignName",
+                href: "/build/ar-io-sdk/ants/reassign-name"
+            },
+            {
+                title: "transfer",
+                href: "/build/ar-io-sdk/ants/transfer"
+            },
+        ]
+      }
 
     ],
   },
+  {
+    title: "Gatways",
+    links: [
+        {
+            title: "Architecture",
+            href: "/build/gateways"
+        },
+        {
+            title: "Release Notes",
+            href: "/build/gateways/release-notes"
+        },
+        {
+            title: "Gateway Network",
+            href: "/build/gateways/gateway-network"
+        },
+        {
+            title: "Observer",
+            href: "/build/gateways/observer"
+        },
+        {
+            title: "Operators",
+            children: [
+                {
+                    title: "Linux Setup",
+                    href: "/build/gateways/linux-setup"
+                },
+                {
+                    title: "Windows Setup",
+                    href: "/build/gateways/windows-setup"
+                },
+                {
+                    title: "Admin Configurations",
+                    href: "/build/gateways/admin"
+                },
+                {
+                    title: "Advanced Configurations",
+                    href: "/build/gateways/advanced"
+                },
+                {
+                    title: "Environmental Variables",
+                    href: "/build/gateways/env"
+                },
+                {
+                    title: "Troubleshooting",
+                    href: "/build/gateways/troubleshooting"
+                },
+                {
+                    title: "Upgrading",
+                    href: "/build/gateways/upgrading"
+                },
+                {
+                    title: "Bundler Sidecar",
+                    href: "/build/gateways/bundler"
+                },
+                {
+                    title: "Automating SSL",
+                    children: [
+                        {
+                            title: "Cloudflare",
+                            href: "/build/gateways/networking/cloudflare"
+                        },
+                        {
+                            title: "Namecheap",
+                            href: "/build/gateways/networking/namecheap"
+                        },
+                    ]
+                }
+            ]
+        }
+    ]
+  },
+  {
+    title: "Guides",
+    links: [
+        {
+            title: "Permaweb Deploy",
+            href: "/build/guides/permaweb-deploy"
+        },
+        {
+            title: "GQL",
+            href: "/build/guides/gql"
+        },
+        {
+            title: "Projects",
+            children: [
+                {
+                    title: "ArNS Viewer",
+                    href: "/build/guides/arns-viewer"
+                }
+            ]
+        }
+    ]
+  }
 ]
