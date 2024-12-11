@@ -126,7 +126,7 @@ function VisibleSectionHighlight({
   pathname: string
 }) {
   const [highlightTop, setHighlightTop] = useState(0)
-  const [highlightHeight, setHighlightHeight] = useState(remToPx(2))
+  const [highlightHeight, setHighlightHeight] = useState()
   let [sections, visibleSections] = useInitialValue(
     [
       useSectionStore((s) => s.sections),
@@ -147,31 +147,31 @@ function VisibleSectionHighlight({
     ? Math.max(1, visibleSections.length) * itemHeight
     : itemHeight
 
-  useEffect(() => {
-    const updateHighlightPosition = () => {
-      const activeLink = findActiveLink(group.links, pathname)
-      if (activeLink) {
-        const linkElement = document.querySelector(`[href='${activeLink.link.href}']`)
-        if (linkElement) {
-          const offsetTop = linkElement.getBoundingClientRect().top + window.scrollY
-          const parentOffsetTop = linkElement.closest('.relative')?.getBoundingClientRect().top ?? 0
-          setHighlightTop(offsetTop - parentOffsetTop)
-        } else {
-          const linkIndex = activeLink.index
-          setHighlightTop(linkIndex * itemHeight + firstVisibleSectionIndex * itemHeight)
-        }
-        setHighlightHeight(height)
-      }
-    }
+  // useEffect(() => {
+  //   const updateHighlightPosition = () => {
+  //     const activeLink = findActiveLink(group.links, pathname)
+  //     if (activeLink) {
+  //       const linkElement = document.querySelector(`[href='${activeLink.link.href}']`)
+  //       if (linkElement) {
+  //         const offsetTop = linkElement.getBoundingClientRect().top + window.scrollY
+  //         const parentOffsetTop = linkElement.closest('.relative')?.getBoundingClientRect().top ?? 0
+  //         setHighlightTop(offsetTop - parentOffsetTop)
+  //       } else {
+  //         const linkIndex = activeLink.index
+  //         setHighlightTop(linkIndex * itemHeight + firstVisibleSectionIndex * itemHeight)
+  //       }
+  //       setHighlightHeight(height)
+  //     }
+  //   }
 
-    updateHighlightPosition()
-    window.addEventListener('scroll', updateHighlightPosition)
-    window.addEventListener('resize', updateHighlightPosition)
-    return () => {
-      window.removeEventListener('scroll', updateHighlightPosition)
-      window.removeEventListener('resize', updateHighlightPosition)
-    }
-  }, [pathname, sections, visibleSections])
+  //   updateHighlightPosition()
+  //   window.addEventListener('scroll', updateHighlightPosition)
+  //   window.addEventListener('resize', updateHighlightPosition)
+  //   return () => {
+  //     window.removeEventListener('scroll', updateHighlightPosition)
+  //     window.removeEventListener('resize', updateHighlightPosition)
+  //   }
+  // }, [pathname, sections, visibleSections])
 
   return (
     <motion.div
@@ -187,20 +187,36 @@ function VisibleSectionHighlight({
 
 function findActiveLink(
   links: Array<{ href?: string; children?: any[] }>,
-  pathname: string
+  pathname: string,
+  currentIndex = 0
 ): { link: { href?: string; children?: any[] }; index: number } | null {
   let activeLink: { link: { href?: string; children?: any[] }; index: number } | null = null;
 
-  const normalizedPathname = normalizePath(pathname); // Normalize the current pathname
-console.log("Entering findActiveLink: ", pathname)
-  links.forEach((link, index) => {
-    console.log("in a link: ", link)
-    const normalizedHref = link.href ? normalizePath(link.href) : null; // Normalize the link href
+  const normalizedPathname = normalizePath(pathname);
+
+  for (let i = 0; i < links.length; i++) {
+    const link = links[i];
+    const normalizedHref = link.href ? normalizePath(link.href) : null;
+
     if (normalizedHref === normalizedPathname || isLinkActive(link, normalizedPathname)) {
-      console.log("Active Link found: ", activeLink)
-      activeLink = { link, index };
+      activeLink = { link, index: currentIndex + i };
     }
-  });
+
+    if (link.children) {
+      const childActiveLink = findActiveLink(
+        link.children,
+        pathname,
+        currentIndex + i + 1 // Increment the index for nested levels
+      );
+      if (childActiveLink) {
+        return childActiveLink;
+      }
+    }
+
+    if (activeLink) {
+      return activeLink;
+    }
+  }
 
   return activeLink;
 }
@@ -210,14 +226,15 @@ function ActivePageMarker({
   group,
   pathname,
 }: {
-  group: NavGroup
-  pathname: string
+  group: NavGroup;
+  pathname: string;
 }) {
-  let itemHeight = remToPx(2)
-  let offset = remToPx(0.25)
+  const itemHeight = remToPx(2);
+  const offset = remToPx(0.25);
 
-  const activeLink = findActiveLink(group.links, pathname)
-  let top = activeLink ? offset + activeLink.index * itemHeight : 0
+  const activeLink = findActiveLink(group.links, pathname);
+
+  let top = activeLink ? offset + activeLink.index * itemHeight : 0;
 
   return (
     <motion.div
@@ -228,7 +245,7 @@ function ActivePageMarker({
       exit={{ opacity: 0 }}
       style={{ top }}
     />
-  )
+  );
 }
 
 function NavigationGroup({
@@ -274,20 +291,20 @@ function NavigationGroup({
       </motion.h2>
       {!collapsedState[group.title] && (
         <div className="relative mt-3 pl-2">
-          <AnimatePresence initial={!isInsideMobileNavigation}>
+          {/* <AnimatePresence initial={!isInsideMobileNavigation}>
             {isActiveGroup && (
               <VisibleSectionHighlight group={group} pathname={pathname} />
             )}
-          </AnimatePresence>
+          </AnimatePresence> */}
           <motion.div
             layout
             className="absolute inset-y-0 left-2 w-px bg-zinc-900/10 dark:bg-white/5"
           />
-          <AnimatePresence initial={false}>
+          {/* <AnimatePresence initial={false}>
             {isActiveGroup && (
               <ActivePageMarker group={group} pathname={pathname} />
             )}
-          </AnimatePresence>
+          </AnimatePresence> */}
           <ul role="list" className="border-l border-transparent">
             {group.links.map((link) => (
               <motion.li key={link.href ?? link.title} layout="position" className="relative">
@@ -342,21 +359,31 @@ function NavigationGroup({
                               </span>
                             )}
                             {child.children && (
-                              <ul role="list" className="pl-4">
-                                {child.children.map((subChild) => (
-                                  <li key={subChild.href ?? subChild.title} className="mt-2">
-                                    {subChild.href ? (
-                                      <NavLink href={subChild.href} active={isLinkActive(subChild, pathname)}>
-                                        {subChild.title}
-                                      </NavLink>
-                                    ) : (
-                                      <span className="pl-4 text-sm text-zinc-900 dark:text-white">
-                                        {subChild.title}
-                                      </span>
-                                    )}
-                                  </li>
-                                ))}
-                              </ul>
+                              <>
+                                <span
+                                  className="cursor-pointer pl-4 text-sm text-zinc-900 dark:text-white"
+                                  onClick={() => toggleCollapse(child.title)}
+                                >
+                                  {collapsedState[child.title] ? '▶' : '▼'}
+                                </span>
+                                {!collapsedState[child.title] && (
+                                  <ul role="list" className="pl-4">
+                                    {child.children.map((subChild) => (
+                                      <li key={subChild.href ?? subChild.title} className="mt-2">
+                                        {subChild.href ? (
+                                          <NavLink href={subChild.href} active={isLinkActive(subChild, pathname)}>
+                                            {subChild.title}
+                                          </NavLink>
+                                        ) : (
+                                          <span className="pl-4 text-sm text-zinc-900 dark:text-white">
+                                            {subChild.title}
+                                          </span>
+                                        )}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </>
                             )}
                           </li>
                         ))}
@@ -382,8 +409,9 @@ export function Navigation(props: React.ComponentPropsWithoutRef<'nav'>) {
   return (
     <nav {...props}>
       <ul role="list">
-        <TopLevelNavItem href="/">Learn</TopLevelNavItem>
-        <TopLevelNavItem href="/build/ar-io-sdk/getting-started/">build</TopLevelNavItem>
+        <TopLevelNavItem href="/learn/introduction">Learn</TopLevelNavItem>
+        <TopLevelNavItem href="/build/ar-io-sdk">build</TopLevelNavItem>
+        <TopLevelNavItem href="/community-resources">Community Resources</TopLevelNavItem>
         {currentNavigation.map((group, groupIndex) => (
           <NavigationGroup
             key={group.title}
