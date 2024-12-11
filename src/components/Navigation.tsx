@@ -111,7 +111,7 @@ function isLinkActive(
   const normalizedPathname = normalizePath(pathname);
 
    if ((normalizedPathname && normalizedHref) && normalizedPathname === normalizedHref ){
-    console.log("found matching link ", normalizedHref)
+    // console.log("found matching link ", normalizedHref)
    }
 
   return (
