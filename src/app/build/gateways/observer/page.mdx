@@ -18,7 +18,7 @@ The Observation protocol is organized around epochs, periods of time that are br
 <div className="caption">Observation and Incentive Protocol</div>
 
 - To participate in the epoch, a gateway must have already staked ARIO tokens and joined the network before it starts. 
-- Each epoch (approximately 7 block-days), a random pool of active gateways will be selected (prescribed) to perform observation duties.  
+- Each epoch (approximately 7 days), a random pool of active gateways will be selected (prescribed) to perform observation duties.  
 - Within the epoch, observers are tasked with evaluating a subset of ArNS names for each gateway in the network.  
 - By the end of the epoch’s observation reporting period, the observer must upload its standardized health observation report to Arweave. 
 - The observer must also submit an interaction to the AR.IO contract to save its report transaction ID and a summary of all failed gateways for tallying by the incentive protocol. 
@@ -34,11 +34,11 @@ The to-be-evaluated ArNS names include a set of names randomly determined by the
 
 Each observer shall assess the performance of the selected ArNS names (across all gateways) and summarize those findings in a report which details the following: 
 
-- General Information: Observer's Arweave address, starting and concluding block heights for the epoch. 
+- General Information: Observer's Arweave address, starting and concluding timestamps for the epoch. 
 
 - Gateway Operator Assessment: The expected and actual Arweave addresses of observed gateways, along with a summary verdict (pass or fail), and accompanying reasons for failure. 
 
-- Detailed ArNS Evaluations: For each gateway, it includes the domain name, evaluated ArNS names, the associated block height, transaction IDs, data hashes, a "pass or fail" score, reasons for failure (if any), and performance metrics like time to the first byte. 
+- Detailed ArNS Evaluations: For each gateway, it includes the domain name, evaluated ArNS names, the associated timestamp, transaction IDs, data hashes, a "pass or fail" score, reasons for failure (if any), and performance metrics like time to the first byte. 
 
 A comprehensive list of report criteria can be found in the Appendix. 
 
@@ -56,7 +56,7 @@ The weighted selection criteria will consider the following for each gateway:
 
 - Stake Weight (SW): This factor considers how financially committed a gateway is to the network. It is the ratio of the amount of ARIO tokens staked by the gateway relative to the network minimum and is expressed as SW = Gateway Stake / Minimum Stake. 
 
-- Tenure Weight (TW): This factor considers how long a gateway has been part of the network, with a maximum value capped at 4. It is calculated as TW = Gateway Network Tenure / 6 block-months. This means that the maximum value is achieved after 2 block-years of participation in the network. 
+- Tenure Weight (TW): This factor considers how long a gateway has been part of the network, with a maximum value capped at 4. It is calculated as TW = Gateway Network Tenure / 6 months. This means that the maximum value is achieved after 2 years of participation in the network. 
 
 - Gateway Reward Ratio Weight (GRRW): This factor is a proxy for a gateway’s performance at resolving ArNS names. The weight represents the ratio of epochs in which a gateway received rewards for correctly resolving names relative to their total time on the network. 
 
@@ -135,8 +135,8 @@ Each observer shall assess the performance of the selected ArNS names (across al
 ## General Information
 
 - The observer's Arweave address.
-- The starting block height of the epoch.
-- The block height at which the report was generated.
+- The starting timestamp of the epoch.
+- The timestamp at which the report was generated.
 
 ## Overall Gateway Operator Assessment
 
@@ -149,7 +149,7 @@ Each observer shall assess the performance of the selected ArNS names (across al
 ## ArNS Assessments
 
 - Observed ArNS name (for all prescribed and chosen names). 
-- The block height at which the name was assessed. 
+- The timestamp at which the name was assessed. 
 - The expected status code. 
 - The resolved status code.  
 - The transaction ID that the observer expects the associated name to resolve to. 

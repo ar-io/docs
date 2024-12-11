@@ -1,5 +1,4 @@
 import { NavGroup } from '@/components/Navigation'
-import { title } from 'process'
 
 export const mainNavigation: Array<NavGroup> = [
   {
@@ -21,6 +20,10 @@ export const mainNavigation: Array<NavGroup> = [
         title: 'Token',
         href: '/learn/token',
       },
+      {
+        title: "Glossary",
+        href: "/learn/glossary"
+      }
     ],
   },
   {
@@ -420,6 +423,10 @@ export const secondaryNavigation: Array<NavGroup> = [
                 {
                     title: "Windows Setup",
                     href: "/build/gateways/windows-setup"
+                },
+                {
+                    title: "Join The Testnet",
+                    href: "/build/gateways/join-testnet"
                 },
                 {
                     title: "Admin Configurations",

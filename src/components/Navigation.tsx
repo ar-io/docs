@@ -309,20 +309,20 @@ function NavigationGroup({
       </motion.h2>
       {!collapsedState[group.title] && (
         <div className="relative mt-3 pl-2">
-          <AnimatePresence initial={!isInsideMobileNavigation}>
+          {/* <AnimatePresence initial={!isInsideMobileNavigation}>
             {isActiveGroup && (
               <VisibleSectionHighlight group={group} pathname={pathname} />
             )}
-          </AnimatePresence>
+          </AnimatePresence> */}
           <motion.div
             layout
             className="absolute inset-y-0 left-2 w-px bg-zinc-900/10 dark:bg-white/5"
           />
-          <AnimatePresence initial={false}>
+          {/* <AnimatePresence initial={false}>
             {isActiveGroup && (
               <ActivePageMarker group={group} pathname={pathname} />
             )}
-          </AnimatePresence>
+          </AnimatePresence> */}
           <ul role="list" className="border-l border-transparent">
             {group.links.map((link) => (
               <motion.li key={link.href ?? link.title} layout="position" className="relative">

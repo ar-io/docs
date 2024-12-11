@@ -2,7 +2,7 @@ export default function HomeCards() {
   return (
     <div id="block-container" className="home-container">
       <div className="home-box">
-        <a href="./gateways">
+        <a href="/build/gateways">
           <img
             className="smaller-image"
             src="https://arweave.net/7QeMMRmjItuOHFBkbtJkBj43iJLcaG657K0SR8VS6jM"
@@ -17,7 +17,7 @@ export default function HomeCards() {
       </div>
 
       <div className="home-box">
-        <a href="./arns">
+        <a href="/learn/concepts/arns">
           <img
             className="smaller-image"
             src="https://arweave.net/FR2qSulzK089wjDXhjqKoJ2A58Ojt9VR0TyPrwFUzEo"
@@ -32,7 +32,7 @@ export default function HomeCards() {
       </div>
 
       <div className="home-box">
-        <a href="./token">
+        <a href="/learn/token">
           <img
             className="smaller-image"
             src="https://arweave.net/BU8LC66WTUNhok2V4ZjIMS_0JzMNJTgx2XOrra-pL8E"
@@ -53,7 +53,7 @@ export default function HomeCards() {
         >
           <img
             className="smaller-image"
-            src="https://arweave.net/_amJG8SHeTBYXiBL3-uIv4JLhOZfjaCTRQ9fbpnzPys"
+            src="https://whitepaper_ar-io.arweave.net"
           ></img>
           <h3>White Paper</h3>
           <p>
@@ -65,7 +65,7 @@ export default function HomeCards() {
       </div>
 
       <div className="home-box">
-        <a href="./arweave">
+        <a href="/learn/concepts/arweave">
           <img
             className="smaller-image"
             src="https://arweave.net/wa5xjPQcR0cCrhPkB9OSKD6H5t2lfI4JnezjEEksNcc"
@@ -79,7 +79,7 @@ export default function HomeCards() {
       </div>
 
       <div className="home-box">
-        <a href="./wayfinder">
+        <a href="/learn/concepts/wayfinder">
           <img
             className="smaller-image"
             src="https://arweave.net/qQwoUS6gTQ_9JQa6z1XoTkFGAIKG_4qhF6RuQFVQogE"
