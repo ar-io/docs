@@ -267,18 +267,22 @@ function NavigationGroup({
   const [collapsedState, setCollapsedState] = useState<Record<string, boolean>>(() => {
     const initialState: Record<string, boolean> = {};
 
-    const expandParents = (links: Array<{ title: string; href?: string; children?: any[] }>, isActive: boolean) => {
+    const expandParents = (links: Array<{ title: string; href?: string; children?: any[] }>, isActive: boolean, level: number) => {
       links.forEach((link) => {
         const isLinkActive = isActive || normalizePath(link.href || '') === normalizePath(pathname);
-        initialState[link.title] = !isLinkActive; // Expand active links and their parents
+        if (level === 0 || (isLinkActive && level === 1)) {
+          initialState[link.title] = false; // Top-level and active sections expanded by default
+        } else {
+          initialState[link.title] = true; // Other levels collapsed by default
+        }
 
         if (link.children) {
-          expandParents(link.children, isLinkActive);
+          expandParents(link.children, isLinkActive, level + 1);
         }
       });
     };
 
-    expandParents(group.links, false);
+    expandParents(group.links, false, 0);
 
     return initialState;
   });
@@ -288,6 +292,74 @@ function NavigationGroup({
       ...prevState,
       [key]: !prevState[key],
     }));
+  };
+
+  const mapSections = (link: any, level = 0) => {
+    const isLinkActiveAndHasSections = link.href === pathname && sections.length > 0;
+
+    return (
+      <>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            {link.href ? (
+              <NavLink href={link.href} active={isLinkActive(link, pathname)}>
+                {link.title}
+              </NavLink>
+            ) : (
+              <span className="pl-4 text-sm text-zinc-900 dark:text-white">
+                {link.title}
+              </span>
+            )}
+            {isLinkActiveAndHasSections && (
+              <span
+                className="ml-2 cursor-pointer text-sm text-zinc-900 dark:text-white"
+                onClick={() => toggleCollapse(link.title)}
+              >
+                {collapsedState[link.title] ? '▶' : '▼'}
+              </span>
+            )}
+          </div>
+          {link.children && (
+            <span
+              className="ml-2 cursor-pointer text-sm text-zinc-900 dark:text-white"
+              onClick={() => toggleCollapse(link.title)}
+            >
+              {collapsedState[link.title] ? '▶' : '▼'}
+            </span>
+          )}
+        </div>
+        {!collapsedState[link.title] && isLinkActiveAndHasSections && (
+          <motion.ul
+            role="list"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, transition: { delay: 0.1 } }}
+            exit={{ opacity: 0, transition: { duration: 0.15 } }}
+          >
+            {sections.map((section) => (
+              <li key={section.id}>
+                <NavLink
+                  href={`${link.href}#${section.id}`}
+                  tag={section.tag}
+                  isAnchorLink
+                >
+                  {section.title}
+                </NavLink>
+              </li>
+            ))}
+          </motion.ul>
+        )}
+        {!collapsedState[link.title] && link.children && (
+          <ul role="list" className="pl-4">
+            {/* //TODO: remove this any type and replace it with actual typescript */}
+            {link.children.map((child: any) => (
+              <li key={child.href ?? child.title} className="mt-2">
+                {mapSections(child, level + 1)}
+              </li>
+            ))}
+          </ul>
+        )}
+      </>
+    );
   };
 
   let isActiveGroup =
@@ -329,89 +401,7 @@ function NavigationGroup({
           <ul role="list" className="border-l border-transparent">
             {group.links.map((link) => (
               <motion.li key={link.href ?? link.title} layout="position" className="relative">
-                {link.href ? (
-                  <NavLink href={link.href} active={isLinkActive(link, pathname)}>
-                    {link.title}
-                  </NavLink>
-                ) : (
-                  <span className="pl-4 text-sm text-zinc-900 dark:text-white">
-                    {link.title}
-                  </span>
-                )}
-                {link.href === pathname && sections.length > 0 && (
-                  <motion.ul
-                    role="list"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1, transition: { delay: 0.1 } }}
-                    exit={{ opacity: 0, transition: { duration: 0.15 } }}
-                  >
-                    {sections.map((section) => (
-                      <li key={section.id}>
-                        <NavLink
-                          href={`${link.href}#${section.id}`}
-                          tag={section.tag}
-                          isAnchorLink
-                        >
-                          {section.title}
-                        </NavLink>
-                      </li>
-                    ))}
-                  </motion.ul>
-                )}
-                {link.children && (
-                  <>
-                    <span
-                      className="cursor-pointer pl-4 text-sm text-zinc-900 dark:text-white"
-                      onClick={() => toggleCollapse(link.title)}
-                    >
-                      {collapsedState[link.title] ? '▶' : '▼'}
-                    </span>
-                    {!collapsedState[link.title] && (
-                      <ul role="list" className="pl-4">
-                        {link.children.map((child) => (
-                          <li key={child.href ?? child.title} className="mt-2">
-                            {child.href ? (
-                              <NavLink href={child.href} active={isLinkActive(child, pathname)}>
-                                {child.title}
-                              </NavLink>
-                            ) : (
-                              <span className="pl-4 text-sm text-zinc-900 dark:text-white">
-                                {child.title}
-                              </span>
-                            )}
-                            {child.children && (
-                              <>
-                                <span
-                                  className="cursor-pointer pl-4 text-sm text-zinc-900 dark:text-white"
-                                  onClick={() => toggleCollapse(child.title)}
-                                >
-                                  {collapsedState[child.title] ? '▶' : '▼'}
-                                </span>
-                                {!collapsedState[child.title] && (
-                                  <ul role="list" className="pl-4">
-                                    {child.children.map((subChild) => (
-                                      <li key={subChild.href ?? subChild.title} className="mt-2">
-                                        {subChild.href ? (
-                                          <NavLink href={subChild.href} active={isLinkActive(subChild, pathname)}>
-                                            {subChild.title}
-                                          </NavLink>
-                                        ) : (
-                                          <span className="pl-4 text-sm text-zinc-900 dark:text-white">
-                                            {subChild.title}
-                                          </span>
-                                        )}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                )}
-                              </>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </>
-                )}
+                {mapSections(link)}
               </motion.li>
             ))}
           </ul>

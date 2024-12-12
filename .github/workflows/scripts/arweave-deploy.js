@@ -30,7 +30,7 @@ async function main() {
   const updatedPaths = { ...manifest.paths };
   Object.keys(manifest.paths).forEach((key) => {
     if (key.endsWith("index.html")) {
-      const newKey = key.replace(/index\.html$/, "");
+      const newKey = key.replace(/index\.html$/, ""); // No trailing slash
       updatedPaths[newKey] = manifest.paths[key];
       console.log(`Added manifest key: ${newKey} -> ${key}`);
     }

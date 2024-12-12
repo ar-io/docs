@@ -119,71 +119,71 @@ export const secondaryNavigation: Array<NavGroup> = [
                 children: [
                     {
                         title: "getGateway",
-                        href: "/build/ar-io-sdk/gateways/get-gateway"
+                        href: "/build/ar-io-sdk/ario/gateways/get-gateway"
                     },
                     {
                         title: "getGateways",
-                        href: "/build/ar-io-sdk/gateways/get-gateways"
+                        href: "/build/ar-io-sdk/ario/gateways/get-gateways"
                     },
                     {
                         title: "joinNetwork",
-                        href: "/build/ar-io-sdk/gateways/join-network"
+                        href: "/build/ar-io-sdk/ario/gateways/join-network"
                     },
                     {
                         title: "leaveNetwork",
-                        href: "/build/ar-io-sdk/gateways/leave-network"
+                        href: "/build/ar-io-sdk/ario/gateways/leave-network"
                     },
                     {
                         title: "updateGatewaySettings",
-                        href: "/build/ar-io-sdk/gateways/update-gateway-settings"
+                        href: "/build/ar-io-sdk/ario/gateways/update-gateway-settings"
                     },
                     {
                         title: "increaseOperatorStake",
-                        href: "/build/ar-io-sdk/gateways/increase-operator-stake"
+                        href: "/build/ar-io-sdk/ario/gateways/increase-operator-stake"
                     },
                     {
                         title: "decreaseOperatorStake",
-                        href: "/build/ar-io-sdk/gateways/decrease-operator-stake"
+                        href: "/build/ar-io-sdk/ario/gateways/decrease-operator-stake"
                     },
                     {
                         title: "increaseDelegateStake",
-                        href: "/build/ar-io-sdk/gateways/increase-delegate-stake"
+                        href: "/build/ar-io-sdk/ario/gateways/increase-delegate-stake"
                     },
                     {
                         title: "decreaseDelegateStake",
-                        href: "/build/ar-io-sdk/gateways/decrease-delegate-stake"
+                        href: "/build/ar-io-sdk/ario/gateways/decrease-delegate-stake"
                     },
                     {
                         title: "instantWithdrawal",
-                        href: "/build/ar-io-sdk/gateways/instant-withdrawal"
+                        href: "/build/ar-io-sdk/ario/gateways/instant-withdrawal"
                     },
                     {
                         title: "cancelWithdrawal",
-                        href: "/build/ar-io-sdk/gateways/cancel-withdrawal"
+                        href: "/build/ar-io-sdk/ario/gateways/cancel-withdrawal"
                     },
                     {
                         title: "redelegateStake",
-                        href: "/build/ar-io-sdk/gateways/redelegate-stake"
+                        href: "/build/ar-io-sdk/ario/gateways/redelegate-stake"
                     },
                     {
                         title: "getRedelegationFee",
-                        href: "/build/ar-io-sdk/gateways/get-redelegation-fee"
+                        href: "/build/ar-io-sdk/ario/gateways/get-redelegation-fee"
                     },
                     {
                         title: "getDelegations",
-                        href: "/build/ar-io-sdk/gateways/get-delegations"
+                        href: "/build/ar-io-sdk/ario/gateways/get-delegations"
                     },
                     {
                         title: "getAllowedDelegates",
-                        href: "/build/ar-io-sdk/gateways/get-allowed-delegates"
+                        href: "/build/ar-io-sdk/ario/gateways/get-allowed-delegates"
                     },
                     {
                         title: "getGatewayDelegates",
-                        href: "/build/ar-io-sdk/gateways/get-gateway-delegates"
+                        href: "/build/ar-io-sdk/ario/gateways/get-gateway-delegates"
                     },
                     {
                         title: "getGatewayVaults",
-                        href: "/build/ar-io-sdk/gateways/get-gateway-vaults"
+                        href: "/build/ar-io-sdk/ario/gateways/get-gateway-vaults"
                     },
                 ]
             },
