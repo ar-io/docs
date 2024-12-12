@@ -14,6 +14,11 @@ import { ChatBubbleIcon } from '@/components/icons/ChatBubbleIcon'
 import { EnvelopeIcon } from '@/components/icons/EnvelopeIcon'
 import { UserIcon } from '@/components/icons/UserIcon'
 import { UsersIcon } from '@/components/icons/UsersIcon'
+import { ShapesIcon } from '@/components/icons/ShapesIcon'
+import { MagnifyingGlassIcon } from '@/components/icons/MagnifyingGlassIcon'
+import { PackageIcon } from '@/components/icons/PackageIcon'
+import { BookIcon } from '@/components/icons/BookIcon'
+import { ChevronRightLeftIcon } from '@/components/icons/ChevronRightLeftIcon'
 
 interface Resource {
   href: string
@@ -28,11 +33,11 @@ interface Resource {
 
 const resources: Array<Resource> = [
   {
-    href: '/contacts',
-    name: 'Contacts',
+    href: '/build/gateways',
+    name: 'AR.IO Gateways',
     description:
-      'Learn about the contact model and how to create, retrieve, update, delete, and list contacts.',
-    icon: UserIcon,
+      "AR.IO's modular gateways are built for the Arweave permanent data storage network and optimized for data retrieval, caching, serving and indexing transactions.",
+    icon: ShapesIcon,
     pattern: {
       y: 16,
       squares: [
@@ -42,11 +47,11 @@ const resources: Array<Resource> = [
     },
   },
   {
-    href: '/conversations',
-    name: 'Conversations',
+    href: '/learn/concepts/arns',
+    name: 'ArNS Names',
     description:
-      'Learn about the conversation model and how to create, retrieve, update, delete, and list conversations.',
-    icon: ChatBubbleIcon,
+      'ArNS is a censorship-resistant naming system stored on Arweave, enabling user-friendly domain names that link to permaweb dApps, web pages, data, and identities.',
+    icon: UserIcon,
     pattern: {
       y: -6,
       squares: [
@@ -56,11 +61,11 @@ const resources: Array<Resource> = [
     },
   },
   {
-    href: '/messages',
-    name: 'Messages',
+    href: '/learn/token',
+    name: 'AR.IO Token',
     description:
-      'Learn about the message model and how to create, retrieve, update, delete, and list messages.',
-    icon: EnvelopeIcon,
+      'ARIO powers the AR.IO Network and its suite of permaweb applications as a permissionless and censorship resistant medium of common value for the network.',
+    icon: PackageIcon,
     pattern: {
       y: 32,
       squares: [
@@ -70,11 +75,33 @@ const resources: Array<Resource> = [
     },
   },
   {
-    href: '/groups',
-    name: 'Groups',
+    href: '/learn/concepts/arweave',
+    name: 'The Permaweb',
     description:
-      'Learn about the group model and how to create, retrieve, update, delete, and list groups.',
-    icon: UsersIcon,
+      'Learn more about the Arweave network, the permaweb and the reason the ar.io gateway network was built.',
+    icon: ChevronRightLeftIcon,
+    pattern: {
+      y: 22,
+      squares: [[0, 1]],
+    },
+  },
+  {
+    href: '/learn/concepts/wayfinder',
+    name: 'ar://',
+    description:
+      'The Wayfinder protocol transforms traditional Arweave URLs into more concise and user-friendly forms.',
+    icon: MagnifyingGlassIcon,
+    pattern: {
+      y: 22,
+      squares: [[0, 1]],
+    },
+  },
+  {
+    href: 'https://whitepaper_ar-io.arweave.net/',
+    name: 'White Paper',
+    description:
+      'A comprehensive document that details a decentralized and incentivized gateway network aimed at making the permaweb more accessible to all.',
+    icon: BookIcon,
     pattern: {
       y: 22,
       squares: [[0, 1]],
@@ -174,7 +201,7 @@ export function Resources() {
   return (
     <div className="my-16 xl:max-w-none">
       <Heading level={2} id="resources">
-        Resources
+
       </Heading>
       <div className="not-prose mt-4 grid grid-cols-1 gap-8 border-t border-zinc-900/5 pt-10 sm:grid-cols-2 xl:grid-cols-4 dark:border-white/5">
         {resources.map((resource) => (
