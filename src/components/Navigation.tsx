@@ -14,6 +14,8 @@ import { remToPx } from '@/lib/remToPx'
 
 import { mainNavigation, secondaryNavigation } from '@/navConfigs/sidebarConfig'
 
+import { ChevronDown, ChevronRight } from 'lucide-react'
+
 function useInitialValue<T>(value: T, condition = true) {
   let initialValue = useRef(value).current
   return condition ? initialValue : value
@@ -315,7 +317,7 @@ function NavigationGroup({
                 className="ml-2 cursor-pointer text-sm text-zinc-900 dark:text-white"
                 onClick={() => toggleCollapse(link.title)}
               >
-                {collapsedState[link.title] ? '▶' : '▼'}
+                {collapsedState[link.title] ? <ChevronRight /> : <ChevronDown />}
               </span>
             )}
           </div>
@@ -324,7 +326,7 @@ function NavigationGroup({
               className="ml-2 cursor-pointer text-sm text-zinc-900 dark:text-white"
               onClick={() => toggleCollapse(link.title)}
             >
-              {collapsedState[link.title] ? '▶' : '▼'}
+              {collapsedState[link.title] ? <ChevronRight /> : <ChevronDown />}
             </span>
           )}
         </div>
@@ -350,7 +352,6 @@ function NavigationGroup({
         )}
         {!collapsedState[link.title] && link.children && (
           <ul role="list" className="pl-4">
-            {/* //TODO: remove this any type and replace it with actual typescript */}
             {link.children.map((child: any) => (
               <li key={child.href ?? child.title} className="mt-2">
                 {mapSections(child, level + 1)}
@@ -376,28 +377,28 @@ function NavigationGroup({
         <span
           className={clsx(
             'ml-2 transform transition-transform',
-            collapsedState[group.title] ? '-rotate-0' : 'rotate-90'
+            collapsedState[group.title] ? '-rotate-0' : 'rotate-0'
           )}
         >
-          ▶ {/* Unicode for right-pointing triangle */}
+          {collapsedState[group.title] ? <ChevronRight /> : <ChevronDown />}
         </span>
       </motion.h2>
       {!collapsedState[group.title] && (
         <div className="relative mt-3 pl-2">
-          {/* <AnimatePresence initial={!isInsideMobileNavigation}>
+          <AnimatePresence initial={!isInsideMobileNavigation}>
             {isActiveGroup && (
               <VisibleSectionHighlight group={group} pathname={pathname} />
             )}
-          </AnimatePresence> */}
+          </AnimatePresence>
           <motion.div
             layout
             className="absolute inset-y-0 left-2 w-px bg-zinc-900/10 dark:bg-white/5"
           />
-          {/* <AnimatePresence initial={false}>
+          <AnimatePresence initial={false}>
             {isActiveGroup && (
               <ActivePageMarker group={group} pathname={pathname} />
             )}
-          </AnimatePresence> */}
+          </AnimatePresence>
           <ul role="list" className="border-l border-transparent">
             {group.links.map((link) => (
               <motion.li key={link.href ?? link.title} layout="position" className="relative">
@@ -410,7 +411,6 @@ function NavigationGroup({
     </li>
   )
 }
-
 
 
 export function Navigation(props: React.ComponentPropsWithoutRef<'nav'>) {
