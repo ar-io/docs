@@ -8,6 +8,24 @@ import {HeroPattern} from "@/components/HeroPattern"
 
 Welcome to the documentation page for the ar.io gateway release notes. Here, you will find detailed information about each version of the ar.io gateway, including the enhancements, bug fixes, and any other changes introduced in every release. This page serves as a comprehensive resource to keep you informed about the latest developments and updates in the ar.io gateway. For those interested in exploring the source code, each release's code is readily accessible at our GitHub repository: ar.io gateway [change logs](https://github.com/ar-io/ar-io-node/blob/main/CHANGELOG.md). Stay updated with the continuous improvements and advancements in the ar.io gateway by referring to this page for all release-related information.
 
+
+## [Release 21] - 2024-12-05
+
+### Added
+
+- Added a ClickHouse auto-import service. When enabled, it calls the Parquet export API, imports the exported Parquet into ClickHouse, moves the Parquet files to an `imported` subdirectory, and deletes data items in SQLite up to where the Parquet export ended. To use it, run Docker Compose with the `clickhouse` profile, set the `CLICKHOUSE_URL` to `http://clickhouse:8123`, and ensure you have set an `ADMIN_KEY`. Using this configuration, the core service will also combine results from ClickHouse and SQLite when querying transaction data via GraphQL. Note: if you have a large number of data items in SQLite, the first export and subsequent delete may take an extended period. Also, this functionality is considered **experimental**. We expect there are still bugs to be found in it and we may make breaking changes to the ClickHouse schema in the future. If you choose to use it in production (not yet recommended), we suggest backing up copies of the Parquet files found in `data/parquet/imported` so that they can be reimported if anything goes wrong or future changes require it.
+- Added a background data verification process that will attempt to recompute data roots for bundles and compare them to data roots indexed from Arweave nodes. When the data roots match, all descendant data items will be marked as verified. This enables verification of data initially retrieived from sources, like other gateways, that serve contiguous data instead of verifiable chunks. Data verification can be enabled by setting the `ENABLE_BACKGROUND_DATA_VERIFICATION` environment variable to true. The interval between attempts to verify batches of bundles is configurable using the  `BACKGROUND_DATA_VERIFICATION_INTERVAL_SECONDS` environment variable.
+- Added a `CHUNK_POST_MIN_SUCCESS_COUNT` environment variable to configure how many Arweave nodes must accept a chunk before a chunk broadcast is considered successful.
+- Added `arweave_chunk_post_total` and `arweave_chunk_broadcast_total` Prometheus metrics to respectively track the number of successful chunk POSTs to Arweave nodes and the number of chunks successfully broadcast.
+- When resolving ArNS names, the entire list of names is now cached instead of individually checking whether each name exists. This reduces the load on AO CUs since the entire list can be reused across multiple requests for different names. Note: due to the default 5 minute interval between name list refreshes, newly registered may now take longer to resolver after initial registration. We intend to make further caching refinements to address this in the future.
+- Added support for multiple prioritized trusted gateways configurable by setting the `TRUSTED_GATEWAYS_URLS` environment variable to a JSON value containing a mapping of gateway hosts to priorities. Data requests are sent to other gateways in ascending priority order. If multiple gateways share the same priority, all the gateways with the same priority are tried in a random order before continuing on to the next priority.
+- Added support for caching contiguous data in S3. It is enabled by default when the `AWS_S3_CONTIGUOUS_DATA_BUCKET` and `AWS_S3_CONTIGUOUS_DATA_PREFIX` environment variables are set.
+
+### Changed
+
+- `trusted-gateway` was changed to `trusted-gateways` in `ON_DEMAND_RETRIEVAL_ORDER` and `BACKGROUND_RETRIEVAL_ORDER`.
+- Renamed the S3 contiguous environment variables - `AWS_S3_BUCKET` to `AWS_S3_CONTIGUOUS_DATA_BUCKET` and `AWS_S3_PREFIX` to `AWS_S3_CONTIGUOUS_DATA_PREFIX`.
+
 ## [Release 20] - 2024-11-15
 
 - **Added**
