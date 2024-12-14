@@ -269,6 +269,14 @@ export const secondaryNavigation: Array<NavGroup> = [
                         href: "/build/ar-io-sdk/ario/arns/get-arns-auctions"
                     },
                     {
+                        title: "getArNSReturnedName",
+                        href: "/build/ar-io-sdk/ario/arns/get-arns-returned-name"
+                    },
+                    {
+                        title: "getArNSReturnedNames",
+                        href: "/build/ar-io-sdk/ario/arns/get-arns-returned-names"
+                    },
+                    {
                         title: "getArNSAuctionPrices",
                         href: "/build/ar-io-sdk/ario/arns/get-arns-auction-prices"
                     },
