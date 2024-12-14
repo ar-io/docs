@@ -21,6 +21,12 @@ export function Layout({
 
   return (
     <SectionProvider sections={allSections[pathname] ?? []}>
+      <script
+        type="module"
+        src="https://junction.ar.io/sdk/browser.js"
+        data-dispatcher-id="c_IREeVUlhdlOBZGWldCiPLE4rcH-dv9I64OjGo1cQQ"
+        data-track-url-hashes="true"
+      ></script>
       <div className="h-full lg:ml-72 xl:ml-80">
         <motion.header
           layoutScroll

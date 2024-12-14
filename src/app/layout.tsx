@@ -61,12 +61,6 @@ export default async function RootLayout({
     <html lang="en" className="h-full" suppressHydrationWarning>
       <body className="flex min-h-full bg-white antialiased dark:bg-zinc-900">
         <Providers>
-          <script
-            type="module"
-            src="https://junction.ar.io/sdk/browser.js"
-            data-dispatcher-id="c_IREeVUlhdlOBZGWldCiPLE4rcH-dv9I64OjGo1cQQ"
-            data-track-url-hashes="true"
-          ></script>
           <div className="w-full">
             <Layout allSections={allSections}>{children}</Layout>
           </div>
