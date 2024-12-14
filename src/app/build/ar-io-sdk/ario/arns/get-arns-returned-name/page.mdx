@@ -1,0 +1,86 @@
+import {CodeGroup} from "@/components/Code"
+import {HeroPattern} from "@/components/HeroPattern"
+
+<HeroPattern />
+
+# getArNSReturnedName
+
+`getArNSReturnedName` is a method on the `ARIO` class that retrieves the returned name data for the specified returned name.
+
+`getArNSReturnedName` does not require authentication.
+
+## Parameters
+
+{
+<div style={{textAlign: "center"}}>
+    <table className="inline-table">
+    <thead>
+    <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <th>name</th>
+        <td>string</td>
+        <td>Returned ArNS name being queried.</td>
+        <td>false</td>
+    </tr>
+    </tbody>
+    </table>
+</div>
+}
+
+## Examples
+
+<CodeGroup title="getArNSReturnedName">
+
+    ```typescript {{ title: 'NodeJS' }}
+    const { ARIO } = require('@ar.io/sdk');
+
+    async function main() {
+      const ario = ARIO.init();
+      const returnedName = await ario.getArNSReturnedName({ name: 'permalink' });
+
+      console.log(returnedName);
+    }
+
+    main();
+    ```
+
+    ```typescript {{ title: 'Web' }}
+    import { ARIO } from '@ar.io/sdk/web';
+
+    async function main() {
+      const ario = ARIO.init();
+      const returnedName = await ario.getArNSReturnedName({ name: 'permalink' });
+
+      console.log(returnedName);
+    }
+
+    main();
+    ```
+
+</CodeGroup>
+
+## Output
+
+```json
+{
+  "name": "permalink",
+  "endTimestamp": 1730985241349,
+  "startTimestamp": 1729775641349,
+  "baseFee": 250000000,
+  "demandFactor": 1.05256,
+  "initiator": "GaQrvEMKBpkjofgnBi_B3IgIDmY_XYelVLB6GcRGrHc",
+  "settings": {
+    "durationMs": 1209600000,
+    "decayRate": 0.000000000016847809193121693,
+    "scalingExponent": 190,
+    "startPriceMultiplier": 50
+  }
+}
+```
