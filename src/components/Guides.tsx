@@ -3,26 +3,31 @@ import { Heading } from '@/components/Heading'
 
 const guides = [
   {
-    href: '/authentication',
-    name: 'Authentication',
-    description: 'Learn how to authenticate your API requests.',
+    href: '/gateways/ar-io-node/overview/',
+    name: 'Run a Gateway',
+    description: 'Get your AR.IO Gateway up and running correctly and quickly.',
   },
   {
-    href: '/pagination',
-    name: 'Pagination',
-    description: 'Understand how to work with paginated responses.',
-  },
-  {
-    href: '/errors',
-    name: 'Errors',
+    href: '/learn/guides/arns/overview',
+    name: 'Use ArNS',
     description:
-      'Read about the different types of errors returned by the API.',
+      'Learn the process of purchasing and managing an ArNS name.',
   },
   {
-    href: '/webhooks',
-    name: 'Webhooks',
+    href: '/learn/guides/perma-deploy/',
+    name: 'Deploy a dApp',
     description:
-      'Learn how to programmatically configure webhooks for your app.',
+      'Learn how to easily deploy a website or application on the permaweb.',
+  },
+  {
+    href: '/learn/guides/ants-on-bazar',
+    name: 'ANTs on Bazar',
+    description: 'In a few simple steps, learn how to make an ANT tradable on Bazar.',
+  },
+  {
+    href: '/learn/guides/graphql',
+    name: 'GraphQL',
+    description: 'Learn how to leverage GraphQL to efficiently fetch data via AR.IO gateways.',
   },
 ]
 
