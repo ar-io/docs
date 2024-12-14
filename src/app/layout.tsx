@@ -13,9 +13,10 @@ export const metadata: Metadata = {
     default: 'ar.io Network Docs',
   },
   icons: {
-    icon: "https://arweave.net/IXl1JBlE_gsOaXGa6yE1eifPu7ekH-qSaGR9b5GU88Y"
+    icon: 'https://arweave.net/IXl1JBlE_gsOaXGa6yE1eifPu7ekH-qSaGR9b5GU88Y',
   },
-  description: "Documentation, guides, and other resources for ar.io developers and gateway operators.",
+  description:
+    'Documentation, guides, and other resources for ar.io developers and gateway operators.',
   openGraph: {
     title: {
       template: 'ar.io Network Docs - %s',
@@ -42,7 +43,6 @@ export const metadata: Metadata = {
   },
 }
 
-
 export default async function RootLayout({
   children,
 }: {
@@ -61,6 +61,12 @@ export default async function RootLayout({
     <html lang="en" className="h-full" suppressHydrationWarning>
       <body className="flex min-h-full bg-white antialiased dark:bg-zinc-900">
         <Providers>
+          <script
+            type="module"
+            src="https://junction.ar.io/sdk/browser.js"
+            data-dispatcher-id="c_IREeVUlhdlOBZGWldCiPLE4rcH-dv9I64OjGo1cQQ"
+            data-track-url-hashes="true"
+          ></script>
           <div className="w-full">
             <Layout allSections={allSections}>{children}</Layout>
           </div>
