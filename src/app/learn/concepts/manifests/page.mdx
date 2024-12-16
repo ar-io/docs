@@ -14,7 +14,7 @@ export const metadata = {
 
 ## Overview
 
-ar.io Gateways support friendly-path-name routing for data on Arweave via Manifests. This greatly improves the programmability of data relationships. Consider an illustrative example where data stored on Arweave and accessed like this:
+AR.IO Gateways support friendly-path-name routing for data on Arweave via Manifests. This greatly improves the programmability of data relationships. Consider an illustrative example where data stored on Arweave and accessed like this:
 
 ```
 http://<gateway domain>/cG7Hdi_iTQPoEYgQJFqJ8NMpN4KoZ-vH_j7pG4iP7NI (txID of a website's index.html)
@@ -39,13 +39,13 @@ http://<gateway domain>/<txId of NFT collection image manifest>/2.png
 ... and so on.
 ```
 
-ar.io gateways are capable of resolving manifest paths in a relative manner. An HTML page loading assets from Arweave would be very difficult to develop, maintain, and harden against hosting domains leaving existence if assets had to be linked to by a fully qualified domain name and an Arweave data item ID as the path. For example:
+AR.IO gateways are capable of resolving manifest paths in a relative manner. An HTML page loading assets from Arweave would be very difficult to develop, maintain, and harden against hosting domains leaving existence if assets had to be linked to by a fully qualified domain name and an Arweave data item ID as the path. For example:
 
 ```html
 <img src="https://arweave.dev/3zFsd7bkCAUtXUKBQ4XiPiQvpLVKfZ6kiLNt2XVSfoV" />
 ```
 
-Manifests allow HTML pages to use relative paths to assets with friendly names so that the document is easy to read, maintain, and host across any ar.io domain. For example:
+Manifests allow HTML pages to use relative paths to assets with friendly names so that the document is easy to read, maintain, and host across any AR.IO domain. For example:
 
 ```html
 <img src="./logo.png" />
@@ -57,7 +57,7 @@ Learn more about relative path routing and structuring files into a permanently 
 
 ## What is a Manifest
 
-Manifests, also known as "Path Manifests" or "Arweave Manifests," are JSON objects that connect various Arweave data items and define relational paths for easy navigation. A common use case for manifests is permanently hosting websites on Arweave by linking all necessary files together. An ar.io gateway can then resolve the manifest into a fully functional website.
+Manifests, also known as "Path Manifests" or "Arweave Manifests," are JSON objects that connect various Arweave data items and define relational paths for easy navigation. A common use case for manifests is permanently hosting websites on Arweave by linking all necessary files together. An AR.IO gateway can then resolve the manifest into a fully functional website.
 
 ### Sample Manifest
 
@@ -99,11 +99,11 @@ Manifests, also known as "Path Manifests" or "Arweave Manifests," are JSON objec
 
 ### How it Works
 
-A resolver, typically an ar.io gateway, resolves URLs requesting content based on a manifest transaction ID to the corresponding path key in the `paths` object. The URL schema for this type of request is `https://<gateway url>/<manifest TxId>/<path>`.
+A resolver, typically an AR.IO gateway, resolves URLs requesting content based on a manifest transaction ID to the corresponding path key in the `paths` object. The URL schema for this type of request is `https://<gateway url>/<manifest TxId>/<path>`.
 
 ### Example Usage
 
-Assume the manifest above is uploaded to Arweave with the transaction ID `UyC5P5qKPZaltMmmZAWdakhlDXsBF6qmyrbWYFchRTk`. The below table shows https requests to the ar.io gateway `arweave.dev` requesting various endpoints on the manifest transaction Id, the manifest path where the gateway will find the data to return, and the resulting Arweave txId.
+Assume the manifest above is uploaded to Arweave with the transaction ID `UyC5P5qKPZaltMmmZAWdakhlDXsBF6qmyrbWYFchRTk`. The below table shows https requests to the AR.IO gateway `arweave.dev` requesting various endpoints on the manifest transaction Id, the manifest path where the gateway will find the data to return, and the resulting Arweave txId.
 
 <div style={{ textAlign: 'center' }}>
   <table
@@ -153,7 +153,7 @@ Assume the manifest above is uploaded to Arweave with the transaction ID `UyC5P5
 
 ### Transaction Tags
 
-Manifest are uploaded to Arweave in the same manner as any other data item. A specific content type tag must be added while uploading so that resolvers like the ar.io gateways can recognize a manifest and properly resolve the paths. Tags must be attached to the manifest at the time of upload. They cannot be added later without uploading a new manifest, and they must be attached to the upload transaction, NOT placed inside the json object.
+Manifest are uploaded to Arweave in the same manner as any other data item. A specific content type tag must be added while uploading so that resolvers like the AR.IO gateways can recognize a manifest and properly resolve the paths. Tags must be attached to the manifest at the time of upload. They cannot be added later without uploading a new manifest, and they must be attached to the upload transaction, NOT placed inside the json object.
 
 Failure to provide this tag will result in resolvers not recognizing the manifest, so they will only return the raw json instead of the linked data items.
 

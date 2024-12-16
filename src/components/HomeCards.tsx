@@ -7,9 +7,9 @@ export default function HomeCards() {
             className="w-3/4 h-auto"
             src="https://arweave.net/7QeMMRmjItuOHFBkbtJkBj43iJLcaG657K0SR8VS6jM"
           ></img>
-          <h3 className="text-gray-800">ar.io Gateways</h3>
+          <h3 className="text-gray-800">AR.IO Gateways</h3>
           <p className="text-gray-800">
-            ar.io's modular gateways are built for the Arweave permanent data
+            AR.IO's modular gateways are built for the Arweave permanent data
             storage network and optimized for data retrieval, caching, serving
             and indexing transactions.
           </p>
@@ -73,7 +73,7 @@ export default function HomeCards() {
           <h3 className="text-gray-800">The Permaweb</h3>
           <p className="text-gray-800">
             Learn more about the Arweave network, the permaweb and the reason
-            the ar.io gateway network was built.
+            the AR.IO gateway network was built.
           </p>
         </a>
       </div>

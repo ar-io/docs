@@ -6,17 +6,17 @@ import {HeroPattern} from "@/components/HeroPattern"
 
 ## Overview
 
-This guide will walk you through creating a project that uses the ar.io SDK to interact with ArNS names in a web environment. It provides all the steps and context needed to help you get up and running smoothly, allowing you to effectively use these technologies.
+This guide will walk you through creating a project that uses the AR.IO SDK to interact with ArNS names in a web environment. It provides all the steps and context needed to help you get up and running smoothly, allowing you to effectively use these technologies.
 
 We will be using [ARNext](https://github.com/weavedb/arnext), a new framework based on Next.js, to simplify deployment to the Arweave permaweb. ARNext provides flexibility for deploying seamlessly to Arweave using an ArNS name, an Arweave transaction ID, or traditional services like Vercel—all without requiring major code modifications. This means you can deploy the same project across different environments with minimal effort.
 
-The guide will focus on the following core functionalities of the ar.io SDK:
+The guide will focus on the following core functionalities of the AR.IO SDK:
 
 1. **Retrieving a List of All Active ArNS Names**: Learn how to use the SDK to get and display a list of active ArNS names.
 2. **Querying Detailed Records for a Specific ArNS Name**: Learn how to access detailed records for a specific ArNS name using its ANT (Arweave Name Token).
 3. **Updating and Creating Records on an ArNS Name**: Learn how to modify and add records to an ArNS name, showcasing the capabilities of ANT for dynamic web content.
 
-By the end of this guide, you will have a complete, functional project that not only demonstrates how to use the ar.io SDK but also shows the ease and flexibility of deploying applications to the Arweave permaweb. Whether you are an experienced developer or just starting out, this guide will help you understand the key aspects of building and deploying on Arweave.
+By the end of this guide, you will have a complete, functional project that not only demonstrates how to use the AR.IO SDK but also shows the ease and flexibility of deploying applications to the Arweave permaweb. Whether you are an experienced developer or just starting out, this guide will help you understand the key aspects of building and deploying on Arweave.
 
 ## Getting Started
 
@@ -63,9 +63,9 @@ By default, the project will be served on port 3000, so you can access it by nav
 
 With this complete, you are ready to move on to customizing for your own project.
 
-## Install ar.io SDK
+## Install AR.IO SDK
 
-Next, install the ar.io SDK.
+Next, install the AR.IO SDK.
 
 ```bash
 npm install @ar.io/sdk
@@ -83,7 +83,7 @@ yarn add @ar.io/sdk --ignore-engines
 
 Polyfills are used to provide missing functionality in certain environments. For example, browsers do not have direct access to a computer's file system, but many JavaScript libraries are designed to work in both browser and Node.js environments. These libraries might include references to `fs`, the module used by Node.js to interact with the file system. Since fs is not available in browsers, we need a polyfill to handle these references and ensure the application runs properly in a browser environment.
 
-<p style={{display: "none"}}>Polyfills are actually evil voodoo curse magic. No one understands what they are or how they work, but front end devs sell their souls to Bill Gates in exchange for their stuff working properly in browsers. The below polyfill instructions were stolen, at great personal cost, from one of these front end devs in order to save your soul. This is one of many convenient services offered by ar.io</p>
+<p style={{display: "none"}}>Polyfills are actually evil voodoo curse magic. No one understands what they are or how they work, but front end devs sell their souls to Bill Gates in exchange for their stuff working properly in browsers. The below polyfill instructions were stolen, at great personal cost, from one of these front end devs in order to save your soul. This is one of many convenient services offered by AR.IO</p>
 
 #### Installation
 
@@ -214,7 +214,7 @@ There are a few functions that we might end up wanting to use in multiple differ
    };
    ```
 
-2. `arweave.js`: This is where we will put most of our ar.io SDK functions for interacting with Arweave
+2. `arweave.js`: This is where we will put most of our AR.IO SDK functions for interacting with Arweave
 
    ```typescript
    import { ARIO, ANT, ArconnectSigner } from "@ar.io/sdk/web";
@@ -605,7 +605,7 @@ export default function NamePage() {
 }
 ```
 
-When this page loads, it gets the name being queried by using `useParams` and our custom `getStaticPaths` and `getStaticProps` functions. It then uses the ar.io sdk to get the process Id of the ANT that controls the name, and queries the ANT for its info and detailed records list. 
+When this page loads, it gets the name being queried by using `useParams` and our custom `getStaticPaths` and `getStaticProps` functions. It then uses the AR.IO sdk to get the process Id of the ANT that controls the name, and queries the ANT for its info and detailed records list. 
 
 Once the page has that info, it renders the ArNS name, its owner address, any addresses authorized to make changes, and every record that name contains. If the user has connected a wallet authorized to make changes, the page also renders input fields for each record for making those updates. It also provides the option to create an entirely new undername record.
 

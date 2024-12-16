@@ -9,18 +9,18 @@ import '@/styles/tailwind.css'
 
 export const metadata: Metadata = {
   title: {
-    template: 'ar.io Network Docs - %s',
-    default: 'ar.io Network Docs',
+    template: 'AR.IO Network Docs - %s',
+    default: 'AR.IO Network Docs',
   },
   icons: {
     icon: 'https://arweave.net/IXl1JBlE_gsOaXGa6yE1eifPu7ekH-qSaGR9b5GU88Y',
   },
   description:
-    'Documentation, guides, and other resources for ar.io developers and gateway operators.',
+    'Documentation, guides, and other resources for AR.IO developers and gateway operators.',
   openGraph: {
     title: {
-      template: 'ar.io Network Docs - %s',
-      default: 'ar.io Network Docs',
+      template: 'AR.IO Network Docs - %s',
+      default: 'AR.IO Network Docs',
     },
     images: [
       {
@@ -31,8 +31,8 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: {
-      template: 'ar.io Network Docs - %s',
-      default: 'ar.io Network Docs',
+      template: 'AR.IO Network Docs - %s',
+      default: 'AR.IO Network Docs',
     },
     site: '@ar_io_network',
     images: [
