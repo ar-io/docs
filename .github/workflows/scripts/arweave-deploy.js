@@ -5,10 +5,13 @@ const {
   ArweaveSigner,
   developmentTurboConfiguration,
 } = require("@ardrive/turbo-sdk");
-const { ANT } = require("@ar.io/sdk");
+const { ANT, AOProcess } = require("@ar.io/sdk");
 const axios = require("axios");
 const crypto = require("crypto"); // For generating file hashes
 const { Readable } = require("stream");
+const {connect} = require("@permaweb/aoconnect")
+
+const ARIO_TESTNET_PID = "agYcCFJtrMG6cqMuZfskIkFTGvUPddICmtQSBIoPdiA"
 
 const undername = process.env.UNDERNAME || '@';
 async function main() {
@@ -69,7 +72,14 @@ async function main() {
   console.log(manifestId);
 
   const signer = new ArweaveSigner(jwk);
-  const ant = ANT.init({ processId: process.env.DEPLOY_ANT_PROCESS_ID, signer });
+  const ant = ANT.init({ processId: process.env.DEPLOY_ANT_PROCESS_ID, signer,
+    process: new AOProcess ({
+      processId: ARIO_TESTNET_PID,
+      ao: connect({
+        CU_URL: "https://cu.ardrive.io"
+      })
+    })
+   });
 
   const response = await ant.setRecord({
     undername: undername,
