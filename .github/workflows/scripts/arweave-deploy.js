@@ -32,12 +32,26 @@ async function main() {
   // Modify manifest to add keys without "index.html"
   const updatedPaths = { ...manifest.paths };
   Object.keys(manifest.paths).forEach((key) => {
+    // Handle "index.html"
     if (key.endsWith("index.html")) {
-      const newKey = key.replace(/index\.html$/, ""); // No trailing slash
-      updatedPaths[newKey] = manifest.paths[key];
-      console.log(`Added manifest key: ${newKey} -> ${key}`);
+      const newKey = key.replace(/index\.html$/, ""); // Remove "index.html"
+      if (!updatedPaths.hasOwnProperty(newKey)) { // Ensure no duplicates
+        updatedPaths[newKey] = manifest.paths[key];
+        console.log(`Added manifest key: ${newKey} -> ${key}`);
+      }
+    } 
+    
+    // Handle ".html" but not "index.html"
+    else if (key.endsWith(".html")) {
+      const newKey = key.replace(/\.html$/, ""); // Remove ".html"
+      // Prevent overwriting a path already added via "index.html"
+      if (!updatedPaths.hasOwnProperty(newKey) && !key.endsWith("/index.html")) {
+        updatedPaths[newKey] = manifest.paths[key];
+        console.log(`Added manifest key: ${newKey} -> ${key}`);
+      }
     }
   });
+  
   manifest.paths = updatedPaths;
 
   async function uploadManifest(manifest) {
