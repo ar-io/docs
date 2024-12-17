@@ -4,17 +4,28 @@ import { SquareArrowOutUpRight } from 'lucide-react'
 
 export const metadata = {
   title: 'Page Not Found',
-  description: 'This page was not found in the current version of our documentation, but rest assured that if it ever existed, it is still available on the permaweb.',
+  description:
+    'This page was not found in the current version of our documentation, but rest assured that if it ever existed, it is still available on the permaweb.',
   images: [
     {
-      url: "https://arweave.net/JluJoV__SITJWXvtzkoKvsMoRqQOWnvVX7G6kAj2RdU",
+      url: 'https://arweave.net/JluJoV__SITJWXvtzkoKvsMoRqQOWnvVX7G6kAj2RdU',
     },
   ],
   openGraph: {
     title: 'Page Not Found',
     images: [
       {
-        url: "https://arweave.net/JluJoV__SITJWXvtzkoKvsMoRqQOWnvVX7G6kAj2RdU",
+        url: 'https://arweave.net/JluJoV__SITJWXvtzkoKvsMoRqQOWnvVX7G6kAj2RdU',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Page Not Found',
+    site: '@ar_io_network',
+    images: [
+      {
+        url: 'https://arweave.net/JluJoV__SITJWXvtzkoKvsMoRqQOWnvVX7G6kAj2RdU',
       },
     ],
   },
@@ -27,19 +38,19 @@ export default function NotFound() {
       <div className="mx-auto flex h-full max-w-xl flex-col items-center justify-center py-16 text-center">
         <p className="text-lg text-zinc-900 dark:text-white">404s suck!</p>
         <img src="https://arweave.net/JluJoV__SITJWXvtzkoKvsMoRqQOWnvVX7G6kAj2RdU"></img>
-        <h1 className="mt-2 text-2xl font-semibold text-zinc-900 dark:text-zinc-400">
-          Good thing the permaweb has
-        </h1>
-        <p className="mt-2 text-2xl font-bold text-zinc-600 underline dark:text-white">
-          <a
-            href="https://ardrive.io/fragility-of-the-internet/"
+        <h1 className="mt-2 text-2xl text-zinc-900 dark:text-zinc-400">
+          Our vision is an internet with <a
+            href="https://arweave.net/6RPA1FPf0mZPfGCJr4g84_QOuzVzyMCj3C11IA5-Ex0"
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center"
+            className="inline-flex items-center dark:text-white underline"
           >
             {' '}
-            no more 404s <SquareArrowOutUpRight className="w-4 h-4"/>
-          </a>
+            no more 404s <SquareArrowOutUpRight className="h-4 w-4" />
+          </a>, but it looks like you just found one.
+        </h1>
+        <p className="mt-2 text-xl text-zinc-600 dark:text-zinc-400">
+          Rest assured that if this page ever existed, it is still available on the permaweb.
         </p>
         <Button href="/" arrow="right" className="mt-8">
           Back to Home
