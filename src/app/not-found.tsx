@@ -2,6 +2,14 @@ import { Button } from '@/components/Button'
 import { HeroPattern } from '@/components/HeroPattern'
 import { SquareArrowOutUpRight } from 'lucide-react'
 
+export const metadata = {
+  title: 'Page Not Found',
+  description: 'This page was not found in the current version of our documentation, but rest assured that if it ever existed, it is still available on the permaweb.',
+  openGraph: {
+    title: 'Page Not Found',
+  },
+}
+
 export default function NotFound() {
   return (
     <>
