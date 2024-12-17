@@ -29,14 +29,25 @@ function extractSections() {
   return (tree, { sections }) => {
     slugify.reset()
 
+    let currentSection = null
+
     visit(tree, (node) => {
-      if (node.type === 'heading' || node.type === 'paragraph') {
+      if (node.type === 'heading') {
         let content = toString(excludeObjectExpressions(node))
-        if (node.type === 'heading' && node.depth <= 2) {
-          let hash = node.depth === 1 ? null : slugify(content)
-          sections.push([content, hash, []])
-        } else {
-          sections.at(-1)?.[2].push(content)
+        let hash = node.depth === 1 ? null : slugify(content)
+        currentSection = [content, hash, []]
+        sections.push(currentSection)
+        return SKIP
+      }
+
+      if (node.type === 'text' || node.type === 'paragraph' || node.type === 'code') {
+        let content = toString(excludeObjectExpressions(node))
+        if (content.trim()) {
+          if (!currentSection) {
+            currentSection = ['', null, []]
+            sections.push(currentSection)
+          }
+          currentSection[2].push(content)
         }
         return SKIP
       }
@@ -74,8 +85,6 @@ export default function Search(nextConfig = {}) {
               return { url, sections }
             })
 
-            // When this file is imported within the application
-            // the following module is loaded:
             return `
               import FlexSearch from 'flexsearch'
 
@@ -83,14 +92,16 @@ export default function Search(nextConfig = {}) {
                 tokenize: 'full',
                 document: {
                   id: 'url',
-                  index: 'content',
+                  index: ['content', 'title'],
                   store: ['title', 'pageTitle'],
                 },
                 context: {
                   resolution: 9,
                   depth: 2,
                   bidirectional: true
-                }
+                },
+                optimize: true,
+                cache: true
               })
 
               let data = ${JSON.stringify(data)}
@@ -107,18 +118,46 @@ export default function Search(nextConfig = {}) {
               }
 
               export function search(query, options = {}) {
-                let result = sectionIndex.search(query, {
+                let results = []
+                
+                // Search in both title and content
+                let titleResults = sectionIndex.search(query, {
                   ...options,
                   enrich: true,
+                  index: 'title'
                 })
-                if (result.length === 0) {
-                  return []
+                
+                let contentResults = sectionIndex.search(query, {
+                  ...options,
+                  enrich: true,
+                  index: 'content'
+                })
+
+                // Combine and deduplicate results
+                let seen = new Set()
+                
+                function addResults(searchResults, boost = 1) {
+                  if (searchResults.length === 0) return
+                  
+                  searchResults[0].result.forEach((item) => {
+                    if (!seen.has(item.id)) {
+                      seen.add(item.id)
+                      results.push({
+                        url: item.id,
+                        title: item.doc.title,
+                        pageTitle: item.doc.pageTitle,
+                        score: item.score * boost
+                      })
+                    }
+                  })
                 }
-                return result[0].result.map((item) => ({
-                  url: item.id,
-                  title: item.doc.title,
-                  pageTitle: item.doc.pageTitle,
-                }))
+
+                // Prioritize title matches
+                addResults(titleResults, 1.5)
+                addResults(contentResults, 1)
+
+                // Sort by score
+                return results.sort((a, b) => b.score - a.score)
               }
             `
           }),
