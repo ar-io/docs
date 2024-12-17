@@ -39,18 +39,12 @@ export default function NotFound() {
         <p className="text-lg text-zinc-900 dark:text-white">404s suck!</p>
         <img src="https://arweave.net/JluJoV__SITJWXvtzkoKvsMoRqQOWnvVX7G6kAj2RdU"></img>
         <h1 className="mt-2 text-2xl text-zinc-900 dark:text-zinc-400">
-          Our vision is an internet with <a
-            href="https://arweave.net/6RPA1FPf0mZPfGCJr4g84_QOuzVzyMCj3C11IA5-Ex0"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center dark:text-white underline"
-          >
-            {' '}
-            no more 404s <SquareArrowOutUpRight className="h-4 w-4" />
-          </a>, but it looks like you just found one.
+          Our vision is an internet with no more 404s, but it looks like you
+          just found one.
         </h1>
         <p className="mt-2 text-xl text-zinc-600 dark:text-zinc-400">
-          Rest assured that if this page ever existed, it is still available on the permaweb.
+          Rest assured that if this page ever existed, it is still available on
+          the permaweb.
         </p>
         <Button href="/" arrow="right" className="mt-8">
           Back to Home
