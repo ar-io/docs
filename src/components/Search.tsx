@@ -178,8 +178,9 @@ function SearchResult({
   let sectionTitle = navigation.find((section) =>
     section.links.find((link) => link.href === result.url.split('#')[0]),
   )?.title
-  let hierarchy = [sectionTitle, result.pageTitle].filter(
-    (x): x is string => typeof x === 'string',
+
+  let hierarchy = [sectionTitle, result.pageTitle, result.sectionTitle].filter(
+    (x): x is string => typeof x === 'string'
   )
 
   return (
@@ -221,6 +222,11 @@ function SearchResult({
               </span>
             </Fragment>
           ))}
+        </div>
+      )}
+      {result.preview && (
+        <div className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2">
+          <HighlightQuery text={result.preview} query={query} />
         </div>
       )}
     </li>
