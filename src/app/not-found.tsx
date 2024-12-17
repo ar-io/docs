@@ -5,8 +5,18 @@ import { SquareArrowOutUpRight } from 'lucide-react'
 export const metadata = {
   title: 'Page Not Found',
   description: 'This page was not found in the current version of our documentation, but rest assured that if it ever existed, it is still available on the permaweb.',
+  images: [
+    {
+      url: "https://arweave.net/JluJoV__SITJWXvtzkoKvsMoRqQOWnvVX7G6kAj2RdU",
+    },
+  ],
   openGraph: {
     title: 'Page Not Found',
+    images: [
+      {
+        url: "https://arweave.net/JluJoV__SITJWXvtzkoKvsMoRqQOWnvVX7G6kAj2RdU",
+      },
+    ],
   },
 }
 
