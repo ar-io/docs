@@ -28,15 +28,22 @@ function excludeObjectExpressions(tree) {
 function extractSections() {
   return (tree, { sections }) => {
     slugify.reset()
-
     let currentSection = null
+    let currentHeading = null
 
     visit(tree, (node) => {
       if (node.type === 'heading') {
         let content = toString(excludeObjectExpressions(node))
         let hash = node.depth === 1 ? null : slugify(content)
-        currentSection = [content, hash, []]
-        sections.push(currentSection)
+        
+        if (node.depth === 1) {
+          currentHeading = content
+          currentSection = [content, hash, [], null]
+          sections.push(currentSection)
+        } else {
+          currentSection = [content, hash, [], currentHeading]
+          sections.push(currentSection)
+        }
         return SKIP
       }
 
@@ -44,10 +51,13 @@ function extractSections() {
         let content = toString(excludeObjectExpressions(node))
         if (content.trim()) {
           if (!currentSection) {
-            currentSection = ['', null, []]
+            currentSection = ['', null, [], null]
             sections.push(currentSection)
           }
-          currentSection[2].push(content)
+          currentSection[2].push({
+            type: node.type,
+            content: content.trim()
+          })
         }
         return SKIP
       }
@@ -93,71 +103,51 @@ export default function Search(nextConfig = {}) {
                 document: {
                   id: 'url',
                   index: ['content', 'title'],
-                  store: ['title', 'pageTitle'],
+                  store: ['title', 'pageTitle', 'sectionTitle', 'preview', 'type'],
                 },
                 context: {
                   resolution: 9,
                   depth: 2,
                   bidirectional: true
-                },
-                optimize: true,
-                cache: true
+                }
               })
 
               let data = ${JSON.stringify(data)}
 
               for (let { url, sections } of data) {
-                for (let [title, hash, content] of sections) {
+                for (let [title, hash, content, pageTitle] of sections) {
+                  let fullContent = content.map(item => item.content).join(' ')
+                  let preview = content.length > 0 ? content[0].content : ''
+                  let type = content.length > 0 ? content[0].type : 'text'
+                  
                   sectionIndex.add({
                     url: url + (hash ? ('#' + hash) : ''),
                     title,
-                    content: [title, ...content].join('\\n'),
-                    pageTitle: hash ? sections[0][0] : undefined,
+                    content: [title, fullContent].join(' '),
+                    pageTitle,
+                    sectionTitle: title,
+                    preview,
+                    type
                   })
                 }
               }
 
               export function search(query, options = {}) {
-                let results = []
-                
-                // Search in both title and content
-                let titleResults = sectionIndex.search(query, {
+                let result = sectionIndex.search(query, {
                   ...options,
                   enrich: true,
-                  index: 'title'
                 })
-                
-                let contentResults = sectionIndex.search(query, {
-                  ...options,
-                  enrich: true,
-                  index: 'content'
-                })
-
-                // Combine and deduplicate results
-                let seen = new Set()
-                
-                function addResults(searchResults, boost = 1) {
-                  if (searchResults.length === 0) return
-                  
-                  searchResults[0].result.forEach((item) => {
-                    if (!seen.has(item.id)) {
-                      seen.add(item.id)
-                      results.push({
-                        url: item.id,
-                        title: item.doc.title,
-                        pageTitle: item.doc.pageTitle,
-                        score: item.score * boost
-                      })
-                    }
-                  })
+                if (result.length === 0) {
+                  return []
                 }
-
-                // Prioritize title matches
-                addResults(titleResults, 1.5)
-                addResults(contentResults, 1)
-
-                // Sort by score
-                return results.sort((a, b) => b.score - a.score)
+                return result[0].result.map((item) => ({
+                  url: item.id,
+                  title: item.doc.title,
+                  pageTitle: item.doc.pageTitle,
+                  sectionTitle: item.doc.sectionTitle,
+                  preview: item.doc.preview,
+                  type: item.doc.type
+                }))
               }
             `
           }),
