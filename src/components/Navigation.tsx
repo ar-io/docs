@@ -211,7 +211,7 @@ function findActiveLink(
       const childActiveLink = findActiveLink(
         link.children,
         pathname,
-        currentIndex + i + 1 // Increment the index for nested levels
+        currentIndex + i + 1
       );
       if (childActiveLink) {
         return childActiveLink;
@@ -268,24 +268,37 @@ function NavigationGroup({
 
   const [collapsedState, setCollapsedState] = useState<Record<string, boolean>>(() => {
     const initialState: Record<string, boolean> = {};
+    
+    const isPathActive = (link: { href?: string; children?: any[] }, currentPath: string): boolean => {
+      if (link.href && normalizePath(link.href) === normalizePath(currentPath)) {
+        return true;
+      }
+      
+      if (link.children) {
+        return link.children.some(child => isPathActive(child, currentPath));
+      }
+      
+      return false;
+    };
 
-    const expandParents = (links: Array<{ title: string; href?: string; children?: any[] }>, isActive: boolean, level: number) => {
-      links.forEach((link) => {
-        const isLinkActive = isActive || normalizePath(link.href || '') === normalizePath(pathname);
-        if (level === 0 || (isLinkActive && level === 1)) {
-          initialState[link.title] = false; // Top-level and active sections expanded by default
+    const setInitialStates = (
+      links: Array<{ title: string; href?: string; children?: any[] }>, 
+      level: number
+    ) => {
+      links.forEach(link => {
+        if (level === 0) {
+          initialState[link.title] = false;
         } else {
-          initialState[link.title] = true; // Other levels collapsed by default
+          const isActive = isPathActive(link, pathname);
+          initialState[link.title] = !isActive;
         }
 
         if (link.children) {
-          expandParents(link.children, isLinkActive, level + 1);
+          setInitialStates(link.children, level + 1);
         }
       });
     };
-
-    expandParents(group.links, false, 0);
-
+    setInitialStates(group.links, 0);
     return initialState;
   });
 
