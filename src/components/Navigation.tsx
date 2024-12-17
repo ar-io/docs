@@ -80,9 +80,9 @@ function NavLink({
       aria-current={active ? 'page' : undefined}
       className={clsx(
         'flex justify-between gap-2 py-1 pr-3 text-sm transition',
-        isAnchorLink ? 'pl-7' : 'pl-4',
+        isAnchorLink ? 'pl-9' : 'pl-4',
         active
-          ? 'text-zinc-900 dark:text-white'
+          ? 'underline font-bold text-zinc-900 dark:text-white'
           : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white',
       )}
     >
@@ -417,7 +417,7 @@ function NavigationGroup({
       </motion.h2>
       {!collapsedState[group.title] && (
         <div className="relative mt-3 pl-2">
-          <AnimatePresence initial={!isInsideMobileNavigation}>
+          {/* <AnimatePresence initial={!isInsideMobileNavigation}>
             {isActiveGroup && (
               <VisibleSectionHighlight group={group} pathname={pathname} />
             )}
@@ -430,7 +430,7 @@ function NavigationGroup({
             {isActiveGroup && (
               <ActivePageMarker group={group} pathname={pathname} />
             )}
-          </AnimatePresence>
+          </AnimatePresence> */}
           <ul role="list" className="border-l border-transparent">
             {group.links.map((link) => (
               <motion.li key={link.href ?? link.title} layout="position" className="relative">
