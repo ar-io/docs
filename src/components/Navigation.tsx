@@ -31,7 +31,7 @@ export interface NavGroup {
       href?: string;
       children?: Array<{
         title: string;
-        href?: string; // Made href optional
+        href?: string;
       }>;
     }>;
   }>;
@@ -72,7 +72,7 @@ function NavLink({
   active?: boolean
   isAnchorLink?: boolean
 }) {
-  if (!href) return null // Only render if href is defined
+  if (!href) return null
 
   return (
     <Link
@@ -104,10 +104,6 @@ function isLinkActive(
   link: { href?: string; children?: { href?: string; children?: any[] }[] },
   pathname: string
 ): boolean {
-  // console.log("Link mark", link);
-  // console.log("IsLinkActiveMark: ", pathname);
-
- 
   
   const normalizedHref = link.href ? normalizePath(link.href) : null;
   const normalizedPathname = normalizePath(pathname);
@@ -211,7 +207,7 @@ function findActiveLink(
       const childActiveLink = findActiveLink(
         link.children,
         pathname,
-        currentIndex + i + 1 // Increment the index for nested levels
+        currentIndex + i + 1
       );
       if (childActiveLink) {
         return childActiveLink;
@@ -268,24 +264,43 @@ function NavigationGroup({
 
   const [collapsedState, setCollapsedState] = useState<Record<string, boolean>>(() => {
     const initialState: Record<string, boolean> = {};
+    
+    const isPathActive = (link: { href?: string; children?: any[] }, currentPath: string): boolean => {
+      if (link.href && normalizePath(link.href) === normalizePath(currentPath)) {
+        return true;
+      }
+      
+      if (link.children) {
+        return link.children.some(child => isPathActive(child, currentPath));
+      }
+      
+      return false;
+    };
 
-    const expandParents = (links: Array<{ title: string; href?: string; children?: any[] }>, isActive: boolean, level: number) => {
-      links.forEach((link) => {
-        const isLinkActive = isActive || normalizePath(link.href || '') === normalizePath(pathname);
-        if (level === 0 || (isLinkActive && level === 1)) {
-          initialState[link.title] = false; // Top-level and active sections expanded by default
+    const setInitialStates = (
+      links: Array<{ title: string; href?: string; children?: any[] }>, 
+      level: number
+    ) => {
+      links.forEach(link => {
+        if (level === 0) {
+          initialState[link.title] = false;
         } else {
-          initialState[link.title] = true; // Other levels collapsed by default
+          const isActive = isPathActive(link, pathname);
+          
+          if (level === 1) {
+            initialState[link.title] = !isActive;
+          } else {
+            initialState[link.title] = !isActive;
+          }
         }
 
         if (link.children) {
-          expandParents(link.children, isLinkActive, level + 1);
+          setInitialStates(link.children, level + 1);
         }
       });
     };
-
-    expandParents(group.links, false, 0);
-
+    
+    setInitialStates(group.links, 0);
     return initialState;
   });
 
@@ -295,6 +310,23 @@ function NavigationGroup({
       [key]: !prevState[key],
     }));
   };
+
+  useEffect(() => {
+    group.links.forEach(link => {
+      const processLink = (currentLink: any) => {
+        if (currentLink.href === pathname && sections.length > 0) {
+          setCollapsedState(prev => ({
+            ...prev,
+            [currentLink.title]: false
+          }));
+        }
+        if (currentLink.children) {
+          currentLink.children.forEach(processLink);
+        }
+      };
+      processLink(link);
+    });
+  }, [pathname, sections, group.links]);
 
   const mapSections = (link: any, level = 0) => {
     const isLinkActiveAndHasSections = link.href === pathname && sections.length > 0;
