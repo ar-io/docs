@@ -1,4 +1,6 @@
-export function FaceSmileIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
+import { LucideProps } from "lucide-react";
+
+export function FaceSmileIcon(props: LucideProps) {
   return (
     <svg viewBox="0 0 20 20" aria-hidden="true" {...props}>
       <path
