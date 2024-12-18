@@ -88,7 +88,7 @@ async function main() {
   const signer = new ArweaveSigner(jwk);
   const ant = ANT.init({ processId: process.env.DEPLOY_ANT_PROCESS_ID, signer,
     process: new AOProcess ({
-      processId: ARIO_TESTNET_PID,
+      processId: process.env.DEPLOY_ANT_PROCESS_ID,
       ao: connect({
         CU_URL: "https://cu.ardrive.io"
       })

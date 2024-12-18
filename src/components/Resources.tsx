@@ -47,7 +47,7 @@ const resources: Array<Resource> = [
     },
   },
   {
-    href: '/learn/concepts/arns',
+    href: '/learn/arns',
     name: 'ArNS Names',
     description:
       'ArNS is a censorship-resistant naming system stored on Arweave, enabling user-friendly domain names that link to permaweb dApps, web pages, data, and identities.',
@@ -75,10 +75,10 @@ const resources: Array<Resource> = [
     },
   },
   {
-    href: '/learn/concepts/arweave',
+    href: '/learn/network-composition',
     name: 'The Permaweb',
     description:
-      'Learn more about the Arweave network, the permaweb and the reason the ar.io gateway network was built.',
+      'Learn more about the Arweave network, the permaweb and the reason the AR.IO gateway network was built.',
     icon: ChevronRightLeftIcon,
     pattern: {
       y: 22,
