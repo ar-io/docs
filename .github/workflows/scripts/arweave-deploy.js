@@ -54,6 +54,46 @@ async function main() {
   
   manifest.paths = updatedPaths;
 
+  // After you've constructed updatedPaths and before uploading the manifest:
+const legacyPaths = require('./legacy-paths.json');
+
+Object.keys(legacyPaths).forEach((legacyKey) => {
+  const newVersionPath = legacyPaths[legacyKey];
+  const dataItem = updatedPaths[newVersionPath];
+
+  if (!dataItem) {
+    console.warn(`No matching data item found for ${newVersionPath}, legacy key ${legacyKey} not added.`);
+    return;
+  }
+
+  // Add the original legacy key
+  if (!updatedPaths.hasOwnProperty(legacyKey)) {
+    updatedPaths[legacyKey] = dataItem;
+    console.log(`Added legacy manifest key: ${legacyKey} -> ${newVersionPath}`);
+  }
+
+  // Handle shortened paths:
+  // If ends with "index.html", remove "index.html"
+  if (legacyKey.endsWith("index.html")) {
+    const shortenedKey = legacyKey.replace(/index\.html$/, "");
+    if (!updatedPaths.hasOwnProperty(shortenedKey)) {
+      updatedPaths[shortenedKey] = dataItem;
+      console.log(`Added legacy shortened manifest key: ${shortenedKey} -> ${newVersionPath}`);
+    }
+  } 
+  // Else if ends with ".html" but not "index.html", remove ".html"
+  else if (legacyKey.endsWith(".html")) {
+    const shortenedKey = legacyKey.replace(/\.html$/, "");
+    if (!updatedPaths.hasOwnProperty(shortenedKey)) {
+      updatedPaths[shortenedKey] = dataItem;
+      console.log(`Added legacy shortened manifest key: ${shortenedKey} -> ${newVersionPath}`);
+    }
+  }
+});
+
+// Now updatedPaths includes both the new shortened URLs and the legacy paths
+manifest.paths = updatedPaths;
+
   async function uploadManifest(manifest) {
     try {
       const manifestString = JSON.stringify(manifest);
