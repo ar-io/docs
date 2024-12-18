@@ -8,6 +8,19 @@ import {HeroPattern} from "@/components/HeroPattern"
 
 Welcome to the documentation page for the AR.IO gateway release notes. Here, you will find detailed information about each version of the AR.IO gateway, including the enhancements, bug fixes, and any other changes introduced in every release. This page serves as a comprehensive resource to keep you informed about the latest developments and updates in the AR.IO gateway. For those interested in exploring the source code, each release's code is readily accessible at our GitHub repository: AR.IO gateway [change logs](https://github.com/ar-io/ar-io-node/blob/main/CHANGELOG.md). Stay updated with the continuous improvements and advancements in the AR.IO gateway by referring to this page for all release-related information.
 
+## [Release 22] - 2024-12-18
+
+### Added
+
+- Added the ability to block and unblock ArNS names (e.g., to comply with hosting provider TOS). To block a name, POST `{ "name": "<name to block>" }` to `/ar-io/admin/block-name`. To unblock a name, POST `{ "name": "<name to unblock>" }` to `/ar-io/admin/unblock-name`.
+
+### Changed
+
+- Return an HTTP 429 response to POSTs to `/ar-io/admin/queue-bundle` when the bundle data import queue is full so that scripts queuing bundles can wait rather than overflowing it.
+
+### Fixed
+
+- Adjust ArNS length limit from `<= 48` to `<= 51` to match the limit enforced by the AO process.
 
 ## [Release 21] - 2024-12-05
 
