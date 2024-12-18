@@ -1,4 +1,6 @@
-export function ChatBubbleIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
+import { LucideProps } from 'lucide-react'
+
+export function ChatBubbleIcon(props: LucideProps) {
   return (
     <svg viewBox="0 0 20 20" aria-hidden="true" {...props}>
       <path

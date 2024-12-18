@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import clsx from 'clsx'
+import { LucideProps } from 'lucide-react'
 
 import { Feedback } from '@/components/Feedback'
 import { Heading } from '@/components/Heading'
@@ -26,7 +27,7 @@ export const h2 = function H2(
   return <Heading level={2} {...props} />
 }
 
-function InfoIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
+function InfoIcon(props: LucideProps) {
   return (
     <svg viewBox="0 0 16 16" aria-hidden="true" {...props}>
       <circle cx="8" cy="8" r="8" strokeWidth="0" />

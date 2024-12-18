@@ -2,6 +2,7 @@ import { forwardRef } from 'react'
 import Link from 'next/link'
 import clsx from 'clsx'
 import { motion, useScroll, useTransform } from 'framer-motion'
+import { SquareArrowOutUpRight } from 'lucide-react'
 
 import { Button } from '@/components/Button'
 import { Logo } from '@/components/Logo'
@@ -22,14 +23,19 @@ function TopLevelNavItem({
   children: React.ReactNode,
   target?: string
 }) {
+  const isExternal = href.startsWith('http')
+  
   return (
     <li>
       <Link
         href={href}
         target={target}
-        className="text-sm leading-5 text-zinc-600 transition hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
+        className="inline-flex items-center gap-1 text-sm leading-5 text-zinc-600 transition hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
       >
         {children}
+        {isExternal && (
+          <SquareArrowOutUpRight className="h-2.5 w-2.5 transition-colors group-hover:text-zinc-900 dark:group-hover:text-white" />
+        )}
       </Link>
     </li>
   )

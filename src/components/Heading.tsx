@@ -3,12 +3,13 @@
 import { useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useInView } from 'framer-motion'
+import { LucideProps } from 'lucide-react'
 
 import { useSectionStore } from '@/components/SectionProvider'
 import { Tag } from '@/components/Tag'
 import { remToPx } from '@/lib/remToPx'
 
-function AnchorIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
+function AnchorIcon(props: LucideProps) {
   return (
     <svg
       viewBox="0 0 20 20"

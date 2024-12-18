@@ -1,5 +1,7 @@
+import { LucideProps } from "lucide-react";
+
 export function PaperAirplaneIcon(
-  props: React.ComponentPropsWithoutRef<'svg'>,
+  props: LucideProps,
 ) {
   return (
     <svg viewBox="0 0 20 20" aria-hidden="true" {...props}>
