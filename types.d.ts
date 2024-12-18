@@ -5,6 +5,9 @@ declare module '@/mdx/search.mjs' {
     url: string
     title: string
     pageTitle?: string
+    sectionTitle?: string
+    preview?: string
+    type?: string
   }
 
   export function search(query: string, options?: SearchOptions): Array<Result>

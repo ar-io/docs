@@ -28,15 +28,36 @@ function excludeObjectExpressions(tree) {
 function extractSections() {
   return (tree, { sections }) => {
     slugify.reset()
+    let currentSection = null
+    let currentHeading = null
 
     visit(tree, (node) => {
-      if (node.type === 'heading' || node.type === 'paragraph') {
+      if (node.type === 'heading') {
         let content = toString(excludeObjectExpressions(node))
-        if (node.type === 'heading' && node.depth <= 2) {
-          let hash = node.depth === 1 ? null : slugify(content)
-          sections.push([content, hash, []])
+        let hash = node.depth === 1 ? null : slugify(content)
+        
+        if (node.depth === 1) {
+          currentHeading = content
+          currentSection = [content, hash, [], null]
+          sections.push(currentSection)
         } else {
-          sections.at(-1)?.[2].push(content)
+          currentSection = [content, hash, [], currentHeading]
+          sections.push(currentSection)
+        }
+        return SKIP
+      }
+
+      if (node.type === 'text' || node.type === 'paragraph' || node.type === 'code') {
+        let content = toString(excludeObjectExpressions(node))
+        if (content.trim()) {
+          if (!currentSection) {
+            currentSection = ['', null, [], null]
+            sections.push(currentSection)
+          }
+          currentSection[2].push({
+            type: node.type,
+            content: content.trim()
+          })
         }
         return SKIP
       }
@@ -74,8 +95,6 @@ export default function Search(nextConfig = {}) {
               return { url, sections }
             })
 
-            // When this file is imported within the application
-            // the following module is loaded:
             return `
               import FlexSearch from 'flexsearch'
 
@@ -83,8 +102,8 @@ export default function Search(nextConfig = {}) {
                 tokenize: 'full',
                 document: {
                   id: 'url',
-                  index: 'content',
-                  store: ['title', 'pageTitle'],
+                  index: ['content', 'title'],
+                  store: ['title', 'pageTitle', 'sectionTitle', 'preview', 'type'],
                 },
                 context: {
                   resolution: 9,
@@ -96,12 +115,19 @@ export default function Search(nextConfig = {}) {
               let data = ${JSON.stringify(data)}
 
               for (let { url, sections } of data) {
-                for (let [title, hash, content] of sections) {
+                for (let [title, hash, content, pageTitle] of sections) {
+                  let fullContent = content.map(item => item.content).join(' ')
+                  let preview = content.length > 0 ? content[0].content : ''
+                  let type = content.length > 0 ? content[0].type : 'text'
+                  
                   sectionIndex.add({
                     url: url + (hash ? ('#' + hash) : ''),
                     title,
-                    content: [title, ...content].join('\\n'),
-                    pageTitle: hash ? sections[0][0] : undefined,
+                    content: [title, fullContent].join(' '),
+                    pageTitle,
+                    sectionTitle: title,
+                    preview,
+                    type
                   })
                 }
               }
@@ -118,6 +144,9 @@ export default function Search(nextConfig = {}) {
                   url: item.id,
                   title: item.doc.title,
                   pageTitle: item.doc.pageTitle,
+                  sectionTitle: item.doc.sectionTitle,
+                  preview: item.doc.preview,
+                  type: item.doc.type
                 }))
               }
             `
