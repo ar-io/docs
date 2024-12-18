@@ -402,7 +402,7 @@ export const secondaryNavigation: Array<NavGroup> = [
     ],
   },
   {
-    title: 'Gatways',
+    title: "Gateways",
     links: [
       {
         title: 'Architecture',
