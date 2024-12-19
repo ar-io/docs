@@ -97,7 +97,7 @@ const resources: Array<Resource> = [
     },
   },
   {
-    href: 'https://whitepaper_ar-io.arweave.net/',
+    href: 'https://whitepaper.arweave.net/',
     name: 'White Paper',
     description:
       'A comprehensive document that details a decentralized and incentivized gateway network aimed at making the permaweb more accessible to all.',

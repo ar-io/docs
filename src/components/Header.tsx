@@ -90,7 +90,7 @@ export const Header = forwardRef<
         <nav className="hidden md:block">
           <ul role="list" className="flex items-center gap-8">
             <TopLevelNavItem href="/">Home</TopLevelNavItem>
-            <TopLevelNavItem href="https://whitepaper_ar-io.arweave.net" target='_blank'>Whitepaper</TopLevelNavItem>
+            <TopLevelNavItem href="https://whitepaper.arweave.net/" target='_blank'>White Paper</TopLevelNavItem>
             <TopLevelNavItem href="/learn/introduction">Learn</TopLevelNavItem>
             <TopLevelNavItem href="/build/ar-io-sdk">Build</TopLevelNavItem>
             <TopLevelNavItem href="/community-resources">
