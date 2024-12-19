@@ -37,7 +37,6 @@ export const mainNavigation: Array<NavGroup> = [
   {
     title: 'Concepts',
     links: [
-
       {
         title: 'Manifests',
         href: '/learn/concepts/manifests',
@@ -402,7 +401,7 @@ export const secondaryNavigation: Array<NavGroup> = [
     ],
   },
   {
-    title: "Gateways",
+    title: 'Gateways',
     links: [
       {
         title: 'Architecture',
@@ -480,13 +479,23 @@ export const secondaryNavigation: Array<NavGroup> = [
     title: 'Guides',
     links: [
       {
-        title: 'Permaweb Deploy',
-        href: '/build/guides/permaweb-deploy',
-      },
-      {
         title: 'GQL',
         href: '/build/guides/gql',
       },
+      {
+        title: 'Deploy to Arweave',
+        children: [
+          {
+            title: 'Permaweb Deploy',
+            href: '/build/guides/permaweb-deploy',
+          },
+          {
+            title: 'Arlink',
+            href: '/build/guides/arlink',
+          },
+        ],
+      },
+
       {
         title: 'Projects',
         children: [
