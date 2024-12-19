@@ -48,7 +48,7 @@ export default function HomeCards() {
 
       <div className="inline-block p-6 border border-gray-300 m-5 max-w-2/5 min-w-1/3 rounded-lg transition-transform transform hover:translate-x-[-10px] hover:translate-y-[-10px] hover:shadow-md hover:shadow-gray-500">
         <a
-          href="https://whitepaper_ar-io.arweave.net"
+          href="https://whitepaper.arweave.net/"
           target="_blank"
         >
           <img
