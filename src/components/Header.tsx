@@ -85,10 +85,10 @@ export const Header = forwardRef<
         <Link href="/" aria-label="Home">
           <Logo className="h-6" />
         </Link>
-        <Link href="/learn" aria-label="Home">
+        <Link href="/learn/introduction" aria-label="Home">
           Learn
         </Link>
-        <Link href="/build" aria-label="Home">
+        <Link href="/build/ar-io-sdk" aria-label="Home">
           Build
         </Link>
       </div>
