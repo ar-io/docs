@@ -85,6 +85,12 @@ export const Header = forwardRef<
         <Link href="/" aria-label="Home">
           <Logo className="h-6" />
         </Link>
+        <Link href="/learn" aria-label="Home">
+          Learn
+        </Link>
+        <Link href="/build" aria-label="Home">
+          Build
+        </Link>
       </div>
       <div className="flex items-center gap-5">
         <nav className="hidden md:block">
