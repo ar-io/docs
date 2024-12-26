@@ -1,0 +1,61 @@
+import { HeroPattern } from '@/components/HeroPattern'
+import Tip from '@/components/Tip'
+import { CodeGroup } from '@/components/Code'
+
+<HeroPattern />
+
+# Content Moderation
+
+## Overview
+
+Arweave is a network designed for permanent storage of data. It is a practical impossibility for data to be wholly removed from the network once it has been uploaded.
+
+The AR.IO Network has adopted Arweave's voluntary content moderation model, whereby every participant of the network has the autonomy to decide which content they want to (or can legally) store, serve, and see. Each gateway operating on the network has the right and ability to blocklist any content, ArNS name, or address that is deemed in violation of its content policies or is non-compliant with local regulations.
+
+<Tip title="NOTE">
+  Overly restrictive content policies may impact a gateway's likelihood of
+  receiving protocol rewards.
+</Tip>
+
+Gateway operators may set content to be blocked by their gateway by submitting a `Put` request to their gateway defining the content to be blocked. This requires that the `ADMIN_API_KEY` environmental variable to be set in order to authenticate the moderation request.
+
+The simplest method for submitting moderation requests to a gateway is to use `curl` in a terminal.
+
+## Authentication
+
+Moderation requests must contain the gateway's `ADMIN_API_KEY` in the request Header, as `Authorization: Bearer`.
+
+For example, if a gateway's `ADMIN_API_KEY` is set to `secret`, any request must contain `Authorization: Bearer secret` in the Header.
+
+## Block Data
+
+Specific data items can be blocked by a gateway operator by submitting a `Put` request containing a json object with three keys:
+
+- **id**: The Arweave transaction Id of the data item to be blocked.
+- **notes**: Any note the gateway operator wants to leave him/herself as to the reason the content is blocked.
+- **source**: A note as to where the content was identified as requiring moderation. i.e. a public block list.
+
+Requests to block data must be submitted to the gateway's `/ar-io/admin/block-data` endpoint.
+
+<CodeGroup title="Block Data">
+
+```bash {{ title: 'curl' }}
+curl -X 'PUT' \
+  'http://localhost:3000/ar-io/admin/block-data' \
+  -H 'accept: */*' \
+  -H 'Authorization: Bearer secret' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "id": "3lyxgbgEvqNSvJrTX2J7CfRychUD5KClFhhVLyTPNCQ",
+  "notes": "This content is offensive",
+  "source": "Public Block list"
+}'
+```
+
+</CodeGroup>
+
+<Tip title="Important">
+  At this time, blocked data items can only be unblocked by manually deleting the corresponding row from the `data/sqlite/moderation.db` Database.
+</Tip>
+
+
