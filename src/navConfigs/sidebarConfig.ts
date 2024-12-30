@@ -455,6 +455,10 @@ export const secondaryNavigation: Array<NavGroup> = [
             href: '/build/gateways/upgrading',
           },
           {
+            title: "Moderation",
+            href: "/build/gateways/moderation"
+          },
+          {
             title: 'Bundler Sidecar',
             href: '/build/gateways/bundler',
           },

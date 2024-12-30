@@ -54,8 +54,77 @@ curl -X 'PUT' \
 
 </CodeGroup>
 
-<Tip title="Important">
-  At this time, blocked data items can only be unblocked by manually deleting the corresponding row from the `data/sqlite/moderation.db` Database.
-</Tip>
+### Unblock Data
+
+At this time, blocked data items can only be unblocked by manually deleting the corresponding row from the `data/sqlite/moderation.db` database.
+The Arweave transaction Id of the blocked data item is stored in the database as raw bytes, which sqlite3 accepts as a BLOB (Binary Large OBject), and so cannot be accessed easily using the original transaction Id, which is a base64url.
+Sqlite3 is able to interact with a hexadecimal representation of the BLOB, by using a BLOB literal. To do so, wrap a hexadecimal representation of the Arweave transaction Id in single quotes, and prepend an `X` i.e. `X'de5cb181b804bea352bc9ad35f627b09f472721503e4a0a51618552f24cf3424'`.
+
+Where possible, consider using the `notes` or `source` values to identify rows for deletion rather than the `id`.
 
 
+<CodeGroup title="Unblock Data">
+
+```bash {{ title: 'id' }}
+sqlite3 data/sqlite/moderation.db "DELETE FROM blocked_ids WHERE id=X'de5cb181b804bea352bc9ad35f627b09f472721503e4a0a51618552f24cf3424';"
+# Note that the id in this command is a BLOB literal using the hexadecimal representation of the Arweave transaction Id, not the transaction Id in its normal base64url format
+```
+
+```bash {{ title: 'source' }}
+sqlite3 data/sqlite/moderation.db "DELETE FROM blocked_ids WHERE block_source_id = (SELECT id FROM block_sources WHERE name='Public Block List');"
+# This command uses a subquery to look up the id in block_sources where name='Public Block List'
+# This command will unblock ALL data items marked with this source value
+```
+
+</CodeGroup>
+
+
+## Block ArNS Name
+
+ArNS names can be blocked so that a gateway will refuse to serve their associated content even if the name holder updates the Arweave transaction Id that the name points at.
+
+This is done via an authenticated `PUT` request to the endpoint `/ar-io/admin/block-name` containing a json object with three keys:
+
+- **name**: The ArNS name to be blocked.
+- **notes**: Any note the gateway operator wants to leave him/herself as to the reason the content is blocked.
+- **source**: A note as to where the content was identified as requiring moderation. i.e. a public block list.
+
+<CodeGroup title="Block ArNS Name">
+
+```bash {{ title: 'curl'}}
+curl -X 'PUT' \
+  'http://localhost:3000/ar-io/admin/block-name' \
+  -H 'accept: */*' \
+  -H 'Authorization: Bearer secret' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "name": "i-bought-a-potato",
+  "notes": "Potatoes are offensive",
+  "source": "Public Block list"
+}'
+```
+
+</CodeGroup>
+
+### Unblock ArNS Name
+
+Gateway operators can unblock ArNS names that were previously blocked.
+
+This is done via an authenticated `PUT` request to the endpoint `/ar-io/admin/unblock-name` containing a json object with a single key:
+
+- **name**: The ArNS name to be unblocked
+
+<CodeGroup title="Unblock ArNS Name">
+
+```bash {{title: 'curl'}}
+curl -X 'PUT' \
+  'http://localhost:3000/ar-io/admin/unblock-name' \
+  -H 'accept: */*' \
+  -H 'Authorization: Bearer secret' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "name": "i-bought-a-potato",
+}'
+```
+
+</CodeGroup>
