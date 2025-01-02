@@ -402,7 +402,7 @@ function NavigationGroup({
     <li className={clsx('relative mt-6', className)}>
       <motion.h2
         layout="position"
-        className="flex items-center justify-between text-xs font-semibold text-zinc-900 dark:text-white cursor-pointer"
+        className="flex items-center justify-between text-lg font-semibold text-zinc-900 dark:text-white cursor-pointer"
         onClick={() => toggleCollapse(group.title)}
       >
         {group.title}
