@@ -283,7 +283,7 @@ function NavigationGroup({
     ) => {
       links.forEach(link => {
         if (level === 0) {
-          initialState[link.title] = false;
+          initialState[link.title] = true;
         } else {
           const isActive = isPathActive(link, pathname);
           
