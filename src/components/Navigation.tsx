@@ -362,7 +362,7 @@ function NavigationGroup({
                   'cursor-pointer pl-4 text-sm',
                   isPathActive(link, pathname)
                     ? 'font-bold text-zinc-900 dark:text-white' // Active state
-                    : 'text-zinc-900 dark:text-zinc-400', // Inactive state
+                    : 'text-zinc-900 dark:text-zinc-400 group-hover:text-zinc-900 dark:hover:text-emerald-600', // Inactive state
                 )}
               >
                 {link.title}
