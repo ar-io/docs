@@ -1,5 +1,5 @@
 'use client'
-
+import { SquareArrowOutUpRight } from 'lucide-react'
 import { useRef, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -22,36 +22,38 @@ function useInitialValue<T>(value: T, condition = true) {
 }
 
 export interface NavGroup {
-  title: string;
+  title: string
   links: Array<{
-    title: string;
-    href?: string;
+    title: string
+    href?: string
     children?: Array<{
-      title: string;
-      href?: string;
+      title: string
+      href?: string
       children?: Array<{
-        title: string;
-        href?: string;
-      }>;
-    }>;
-  }>;
+        title: string
+        href?: string
+      }>
+    }>
+  }>
 }
 
 function TopLevelNavItem({
   href,
   children,
-  target = "_self"
+  target = '_self',
+  className
 }: {
   href: string
   children: React.ReactNode
   target: string
+  className?: string
 }) {
   return (
     <li>
       <Link
         href={href}
         target={target}
-        className="block py-1 text-sm text-zinc-600 transition hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
+        className='flex font-extrabold cursor-pointer justify-between gap-2 py-1 pr-3 text-lg text-zinc-900 hover:text-zinc-900 dark:text-white dark:hover:text-emerald-600'
       >
         {children}
       </Link>
@@ -78,12 +80,15 @@ function NavLink({
     <Link
       href={href}
       aria-current={active ? 'page' : undefined}
+      // Items without children
       className={clsx(
-        'flex justify-between gap-2 py-1 pr-3 text-sm transition',
+        'flex cursor-pointer justify-between gap-2 py-1 pr-3 text-sm transition',
         isAnchorLink ? 'pl-9' : 'pl-4',
         active
-          ? 'underline font-bold text-zinc-900 dark:text-white'
-          : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white',
+          ? //active item
+            'font-bold text-zinc-900 underline dark:text-white'
+          : // non-active items
+            'text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-emerald-600 ',
       )}
     >
       <span className="truncate">{children}</span>
@@ -97,27 +102,29 @@ function NavLink({
 }
 
 function normalizePath(path: string): string {
-  return path.endsWith('/') ? path : `${path}/`;
+  return path.endsWith('/') ? path : `${path}/`
 }
 
 function isLinkActive(
   link: { href?: string; children?: { href?: string; children?: any[] }[] },
-  pathname: string
+  pathname: string,
 ): boolean {
-  
-  const normalizedHref = link.href ? normalizePath(link.href) : null;
-  const normalizedPathname = normalizePath(pathname);
+  const normalizedHref = link.href ? normalizePath(link.href) : null
+  const normalizedPathname = normalizePath(pathname)
 
-   if ((normalizedPathname && normalizedHref) && normalizedPathname === normalizedHref ){
+  if (
+    normalizedPathname &&
+    normalizedHref &&
+    normalizedPathname === normalizedHref
+  ) {
     // console.log("found matching link ", normalizedHref)
-   }
+  }
 
   return (
     normalizedHref === normalizedPathname ||
     (link.children?.some((child) => isLinkActive(child, pathname)) ?? false)
-  );
+  )
 }
-
 
 function VisibleSectionHighlight({
   group,
@@ -189,53 +196,58 @@ function VisibleSectionHighlight({
 function findActiveLink(
   links: Array<{ href?: string; children?: any[] }>,
   pathname: string,
-  currentIndex = 0
+  currentIndex = 0,
 ): { link: { href?: string; children?: any[] }; index: number } | null {
-  let activeLink: { link: { href?: string; children?: any[] }; index: number } | null = null;
+  let activeLink: {
+    link: { href?: string; children?: any[] }
+    index: number
+  } | null = null
 
-  const normalizedPathname = normalizePath(pathname);
+  const normalizedPathname = normalizePath(pathname)
 
   for (let i = 0; i < links.length; i++) {
-    const link = links[i];
-    const normalizedHref = link.href ? normalizePath(link.href) : null;
+    const link = links[i]
+    const normalizedHref = link.href ? normalizePath(link.href) : null
 
-    if (normalizedHref === normalizedPathname || isLinkActive(link, normalizedPathname)) {
-      activeLink = { link, index: currentIndex + i };
+    if (
+      normalizedHref === normalizedPathname ||
+      isLinkActive(link, normalizedPathname)
+    ) {
+      activeLink = { link, index: currentIndex + i }
     }
 
     if (link.children) {
       const childActiveLink = findActiveLink(
         link.children,
         pathname,
-        currentIndex + i + 1
-      );
+        currentIndex + i + 1,
+      )
       if (childActiveLink) {
-        return childActiveLink;
+        return childActiveLink
       }
     }
 
     if (activeLink) {
-      return activeLink;
+      return activeLink
     }
   }
 
-  return activeLink;
+  return activeLink
 }
-
 
 function ActivePageMarker({
   group,
   pathname,
 }: {
-  group: NavGroup;
-  pathname: string;
+  group: NavGroup
+  pathname: string
 }) {
-  const itemHeight = remToPx(2);
-  const offset = remToPx(0.25);
+  const itemHeight = remToPx(2)
+  const offset = remToPx(0.25)
 
-  const activeLink = findActiveLink(group.links, pathname);
+  const activeLink = findActiveLink(group.links, pathname)
 
-  let top = activeLink ? offset + activeLink.index * itemHeight : 0;
+  let top = activeLink ? offset + activeLink.index * itemHeight : 0
 
   return (
     <motion.div
@@ -246,7 +258,7 @@ function ActivePageMarker({
       exit={{ opacity: 0 }}
       style={{ top }}
     />
-  );
+  )
 }
 
 function NavigationGroup({
@@ -261,75 +273,79 @@ function NavigationGroup({
     [usePathname(), useSectionStore((s) => s.sections)],
     isInsideMobileNavigation,
   )
+  const isPathActive = (
+    link: { href?: string; children?: any[] },
+    currentPath: string,
+  ): boolean => {
+    if (link.href && normalizePath(link.href) === normalizePath(currentPath)) {
+      return true
+    }
 
-  const [collapsedState, setCollapsedState] = useState<Record<string, boolean>>(() => {
-    const initialState: Record<string, boolean> = {};
-    
-    const isPathActive = (link: { href?: string; children?: any[] }, currentPath: string): boolean => {
-      if (link.href && normalizePath(link.href) === normalizePath(currentPath)) {
-        return true;
-      }
-      
-      if (link.children) {
-        return link.children.some(child => isPathActive(child, currentPath));
-      }
-      
-      return false;
-    };
+    if (link.children) {
+      return link.children.some((child) => isPathActive(child, currentPath))
+    }
 
-    const setInitialStates = (
-      links: Array<{ title: string; href?: string; children?: any[] }>, 
-      level: number
-    ) => {
-      links.forEach(link => {
-        if (level === 0) {
-          initialState[link.title] = true;
-        } else {
-          const isActive = isPathActive(link, pathname);
-          
-          if (level === 1) {
-            initialState[link.title] = !isActive;
+    return false
+  }
+  const [collapsedState, setCollapsedState] = useState<Record<string, boolean>>(
+    () => {
+      const initialState: Record<string, boolean> = {}
+
+      const setInitialStates = (
+        links: Array<{ title: string; href?: string; children?: any[] }>,
+        level: number,
+      ) => {
+        links.forEach((link) => {
+          if (level === 0) {
+            initialState[link.title] = true
           } else {
-            initialState[link.title] = !isActive;
-          }
-        }
+            const isActive = isPathActive(link, pathname)
 
-        if (link.children) {
-          setInitialStates(link.children, level + 1);
-        }
-      });
-    };
-    
-    setInitialStates(group.links, 0);
-    return initialState;
-  });
+            if (level === 1) {
+              initialState[link.title] = !isActive
+            } else {
+              initialState[link.title] = !isActive
+            }
+          }
+
+          if (link.children) {
+            setInitialStates(link.children, level + 1)
+          }
+        })
+      }
+
+      setInitialStates(group.links, 0)
+      return initialState
+    },
+  )
 
   const toggleCollapse = (key: string) => {
     setCollapsedState((prevState) => ({
       ...prevState,
       [key]: !prevState[key],
-    }));
-  };
+    }))
+  }
 
   useEffect(() => {
-    group.links.forEach(link => {
+    group.links.forEach((link) => {
       const processLink = (currentLink: any) => {
         if (currentLink.href === pathname && sections.length > 0) {
-          setCollapsedState(prev => ({
+          setCollapsedState((prev) => ({
             ...prev,
-            [currentLink.title]: false
-          }));
+            [currentLink.title]: false,
+          }))
         }
         if (currentLink.children) {
-          currentLink.children.forEach(processLink);
+          currentLink.children.forEach(processLink)
         }
-      };
-      processLink(link);
-    });
-  }, [pathname, sections, group.links]);
+      }
+      processLink(link)
+    })
+  }, [pathname, sections, group.links])
 
   const mapSections = (link: any, level = 0) => {
-    const isLinkActiveAndHasSections = link.href === pathname && sections.length > 0;
+    const isLinkActiveAndHasSections =
+      link.href === pathname && sections.length > 0
 
     return (
       <>
@@ -340,20 +356,34 @@ function NavigationGroup({
                 {link.title}
               </NavLink>
             ) : (
-              <span className="pl-4 text-sm text-zinc-900 dark:text-white">
+              // Items with children
+              <span
+                className={clsx(
+                  'cursor-pointer pl-4 text-sm',
+                  isPathActive(link, pathname)
+                    ? 'font-bold text-zinc-900 dark:text-white' // Active state
+                    : 'text-zinc-900 dark:text-zinc-400', // Inactive state
+                )}
+              >
                 {link.title}
               </span>
             )}
             {isLinkActiveAndHasSections && (
+              //chevrons
               <span
                 className="ml-2 cursor-pointer text-sm text-zinc-900 dark:text-white"
                 onClick={() => toggleCollapse(link.title)}
               >
-                {collapsedState[link.title] ? <ChevronRight /> : <ChevronDown />}
+                {collapsedState[link.title] ? (
+                  <ChevronRight />
+                ) : (
+                  <ChevronDown />
+                )}
               </span>
             )}
           </div>
           {link.children && (
+            // chevrons
             <span
               className="ml-2 cursor-pointer text-sm text-zinc-900 dark:text-white"
               onClick={() => toggleCollapse(link.title)}
@@ -392,24 +422,23 @@ function NavigationGroup({
           </ul>
         )}
       </>
-    );
-  };
+    )
+  }
 
-  let isActiveGroup =
-    group.links.some((link) => isLinkActive(link, pathname))
+  let isActiveGroup = group.links.some((link) => isLinkActive(link, pathname))
 
   return (
     <li className={clsx('relative mt-6', className)}>
       <motion.h2
         layout="position"
-        className="flex items-center justify-between text-lg font-semibold text-zinc-900 dark:text-white cursor-pointer"
+        className="flex cursor-pointer items-center justify-between text-lg font-extrabold text-zinc-900 dark:text-white"
         onClick={() => toggleCollapse(group.title)}
       >
         {group.title}
         <span
           className={clsx(
             'ml-2 transform transition-transform',
-            collapsedState[group.title] ? '-rotate-0' : 'rotate-0'
+            collapsedState[group.title] ? '-rotate-0' : 'rotate-0',
           )}
         >
           {collapsedState[group.title] ? <ChevronRight /> : <ChevronDown />}
@@ -433,7 +462,11 @@ function NavigationGroup({
           </AnimatePresence> */}
           <ul role="list" className="border-l border-transparent">
             {group.links.map((link) => (
-              <motion.li key={link.href ?? link.title} layout="position" className="relative">
+              <motion.li
+                key={link.href ?? link.title}
+                layout="position"
+                className="relative"
+              >
                 {mapSections(link)}
               </motion.li>
             ))}
@@ -444,15 +477,18 @@ function NavigationGroup({
   )
 }
 
-
 export function Navigation(props: React.ComponentPropsWithoutRef<'nav'>) {
   const pathname = usePathname()
-  const currentNavigation = pathname.startsWith('/build') ? secondaryNavigation : mainNavigation
+  const currentNavigation = pathname.startsWith('/build')
+    ? secondaryNavigation
+    : mainNavigation
 
   return (
     <nav {...props}>
       <ul role="list">
-
+        <TopLevelNavItem href="https://whitepaper.arweave.net/" target="_blank" className='flex cursor-pointer justify-between gap-2 py-1 pr-3 text-sm transition text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-emerald-600'>
+          White Paper <SquareArrowOutUpRight className="w-4 h-4 transition-colors group-hover:text-zinc-900 dark:group-hover:text-white" />
+        </TopLevelNavItem>
         {currentNavigation.map((group, groupIndex) => (
           <NavigationGroup
             key={group.title}
