@@ -27,6 +27,7 @@ export function Layout({
         data-dispatcher-id="c_IREeVUlhdlOBZGWldCiPLE4rcH-dv9I64OjGo1cQQ"
         data-track-url-hashes="true"
       ></script>
+      <script src="https://plausible.io/js/script.js" defer data-domain= "docs.ar.io" ></script>
       <div className="h-full lg:ml-72 xl:ml-80">
         <motion.header
           layoutScroll
