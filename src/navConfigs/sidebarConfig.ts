@@ -398,6 +398,23 @@ export const secondaryNavigation: Array<NavGroup> = [
           },
         ],
       },
+      {
+        title: "ANTRegistry Class",
+        children: [
+          {
+            title: "Info",
+            href: "/build/ar-io-sdk/ant-registry"
+          },
+          {
+            title: "accessControlList",
+            href: "/build/ar-io-sdk/ant-registry/access-control-list"
+          },
+          {
+            title: "register",
+            href: "/build/ar-io-sdk/ant-registry/register"
+          }
+        ]
+      }
     ],
   },
   {
