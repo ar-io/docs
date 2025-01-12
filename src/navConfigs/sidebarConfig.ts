@@ -33,6 +33,10 @@ export const mainNavigation: Array<NavGroup> = [
         href: '/learn/token',
       },
       {
+        title: 'Staking',
+        href: '/learn/staking'
+      },
+      {
         title: 'Glossary',
         href: '/learn/glossary',
       },
