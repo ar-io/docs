@@ -25,6 +25,10 @@ export const mainNavigation: Array<NavGroup> = [
         href: '/learn/network-composition',
       },
       {
+        title: 'Smart Contract',
+        href: '/learn/ario-contract'
+      },
+      {
         title: 'Token',
         href: '/learn/token',
       },
