@@ -68,7 +68,7 @@ export const mainNavigation: Array<NavGroup> = [
 
 export const secondaryNavigation: Array<NavGroup> = [
   {
-    title: 'ar.io SDK',
+    title: 'AR.IO SDK',
     links: [
       {
         title: 'Info',
