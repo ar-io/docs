@@ -489,6 +489,7 @@ export function Navigation(props: React.ComponentPropsWithoutRef<'nav'>) {
         <TopLevelNavItem href="https://whitepaper.arweave.net/" target="_blank" className='flex cursor-pointer justify-between gap-2 py-1 pr-3 text-sm transition text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-emerald-600'>
           White Paper <SquareArrowOutUpRight className="w-4 h-4 transition-colors group-hover:text-zinc-900 dark:group-hover:text-white" />
         </TopLevelNavItem>
+        <br/>
         {currentNavigation.map((group, groupIndex) => (
           <NavigationGroup
             key={group.title}
