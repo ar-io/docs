@@ -1,49 +1,64 @@
 import {HeroPattern} from "@/components/HeroPattern"
 
+export const metadata = {
+  title: 'Gateway Network',
+  description: 'The AR.IO Network consists of AR.IO gateway nodes, which are identified by their registered Arweave wallet addresses and either their IP addresses or hostnames, as stored in the network\'s smart contract Gateway Address Registry (GAR).',
+  openGraph: {
+    title: 'Gateway Network',
+  },
+}
+
 <HeroPattern />
 
 # Gateway network
 
 ## Overview
 
-The AR.IO Network consists of AR.IO Gateway nodes, which are identified by their registered Arweave wallet addresses and either their IP addresses or hostnames, as stored in the network's smart contract Gateway Address Registry (GAR).
+The AR.IO Network consists of AR.IO [gateway nodes](/build/gateways), which are identified by their registered Arweave wallet addresses and either their IP addresses or hostnames, as stored in the network's [smart contract](/learn/ario-contract) Gateway Address Registry (GAR).  
 
-These nodes adhere to the AR.IO Network Protocols, creating a collaborative environment of Gateway nodes that vary in scale and specialization. The network ensures a fundamental level of service quality and trust minimization among its participants.
+These nodes adhere to the AR.IO Network’s protocols, creating a collaborative environment of gateway nodes that vary in scale and specialization. 
+The network promotes a fundamental level of service quality and trust minimization among its participants. 
 
-Being part of the network grants AR.IO Gateways an array of advantages, such as:
-
-- Simplified advertising of services and end user discovery via the Gateway Address Registry.
-
-- More rapid bootstrapping of key Gateway operational data due to prioritized data request fulfillment among Gateways joined to the network.
-
-- Sharing of data processing results.
-
-- Access to support channels tailored for operators.
-
-- Enhanced trust and transparency through the use of AGPL-3 licenses, which mandate public disclosure of any software changes, thereby reinforcing the network's integrity and reliability.
-
-- Improved network reliability and performance through an incentive protocol, which uses a system of rewards and evaluations to encourage high-quality service from Gateways.
+Being part of the network grants AR.IO gateways an array of advantages, such as: 
+    - Simplified advertising of services and discovery by end users via the Gateway Address Registry. 
+    - More rapid bootstrapping of key gateway operational data due to prioritized data request fulfillment among gateways joined to the network. 
+    - Sharing of data processing results. 
+    - Auditability and transparency through the use of AGPL-3 licenses, which mandate public disclosure of any software changes, thereby reinforcing the network's integrity and reliability. 
+    - Improved network reliability and performance through an incentive protocol, which uses a system of evaluations and rewards to encourage high-quality service from gateways. 
+    - Eligibility to accept delegated staking improving a gateway’s discoverability and reward opportunities. 
 
 
 ## Gateway Address Registry (GAR)
 
-Any Gateway operator that whishes to join the AR.IO Network must register their node in the AR.IO smart contract's "Gateway Address Registry", known as the GAR. Registration involves staking a minimum amount of IO tokens and providing additional metadata describing the Gateway service offered.
+Any gateway operator that wishes to join the AR.IO Network must register their node in the AR.IO smart contract’s “Gateway Address Registry”, known as the GAR. 
+Registration involves staking a minimum amount of ARIO tokens and providing additional metadata describing the gateway service offered.  
 
-After joining the network, the operator's Gateway can be easily discovered by permaweb apps, its health can be observed, and it can participate in the AR.IO data sharing protocol.
+After joining the network, the operator’s gateway can be easily discovered by permaweb apps, its health can be observed, and it can participate in data sharing protocols. 
+A gateway becomes eligible to participate in the network’s incentive protocol in the epoch following the one they joined in. 
 
-The Gateway operator can modify their Gateway's GAR configuration as needed, which includes adding more tokens to their stake or removing them. Operators can completely remove their stake and leave the AR.IO Network following a minimum network exit wait time. This exit time ensures that Gateways cannot quickly escape from an anticipated penalty.
+The GAR advertises the specific attributes of each gateway including its stake, delegates, settings and services. 
+This enables permaweb apps and users to discover which gateways are currently available and meet their needs. 
+Apps that read the GAR can sort and filter it using the gateway metadata, for example, ranking gateways with the highest stake, reward performance, or feature set at the top of the list. 
+This would allow users to prefer the higher staked, more rewarded gateways with certain capabilities over lower staked, less rewarded gateways. 
 
-The GAR advertises the specific attributes of each Gateway including its stake and settings. This enables permaweb apps and users to discover which Gateways are currently available and meet their needs. Apps that read the GAR can sort and filter it using the Gateway metadata, for example, ranking Gateways with the highest stake at the top of the list. This would allow users to prefer the lower-trust, higher staked Gateways before settling on a higher-trust, lower staked Gateway.
+## Data Sharing
 
-## Staking
+A key advantage and incentive for networked AR.IO gateways over standalone gateways is their ability to preferentially share various kinds of Arweave data among one another. 
+Each gateway advertises its registered Arweave wallet address, so other network participants know who they are.  
 
-Staking tokens serves a dual purpose in the AR.IO Network:
+Gateways can identify AR.IO Network peers by evaluating the Gateway Address Registry (GAR) within the AR.IO smart contract. 
+They utilize that peer list to request as-yet-uncached data on behalf of their requesting clients or in service of their internal workflows. 
+This can include requests for transaction header data, data items, and chunks. The Arweave Network shall act as the backstop for all block data, transaction header data, and chunk data. 
 
-- It acts as a method of public commitment, and
+Additionally, gateways that receive requests for cache-missed data from other gateways can provide a higher quality of service to other AR.IO gateways than that which is provided to general users, apps, and infrastructure. 
+However, gateways are not forced to share data with one another and can choose not to share their data if the intended recipient is acting maliciously. 
+Such behaviors might include failure to reciprocate in data sharing, engaging in dishonest activities / observation, or distributing invalid data. 
 
-- It qualifies participants for reward distribution.
+## Data Verification
 
-In the AR.IO Network, "staking" designates the act of locking a specified amount of ARIO tokens into a protocol-controlled vault. These tokens act as a form of collateral and public commitment, encouraging network participants to act in the network's best interests. Once tokens are deposited in the vault, they remain locked until either the participant triggers the "unstake" function or the vault's predetermined lock period expires.
+Gateway data verification is achieved by linking content hashes of transactions and data items to data roots on the Arweave base layer chain. 
+Gateways index the chain from a trusted Arweave node and compute data roots for the base layer transaction data they download, ensuring that their data aligns with what was originally uploaded to Arweave. 
+For base layer bundles that have already been verified, gateways compute hashes of individual data items, establishing a connection between the data root, the verified bundle, and the data items it contains. 
+Gateways then expose these hashes and their verification status to users via HTTP headers on data responses. 
 
-
-It is important to note that unlike other protocols, the ARIO token is non-inflationary. Therefore, the staking mechanism in the AR.IO Network is not designed to function as a yield-generation tool. By staking their tokens, participants become eligible for potential rewards, fostering an atmosphere of mutual trust within the network. Specifically, Gateway operators stake tokens to facilitate their Gateway integration and establish public trust. Once connected, they become eligible for rewards driven by the protocol and gain access to the network's shared resources.
+ 
