@@ -1,50 +1,54 @@
 import {HeroPattern} from "@/components/HeroPattern"
 
+export const metadata = {
+  title: 'Gateway Architecture',
+  description: 'Gateways are the workhorses of the AR.IO Network. Their primary role is to act as a bridge between the Arweave network and the outside world.',
+  openGraph: {
+    title: 'Gateway Architecture',
+  },
+}
+
 <HeroPattern />
 
 # Gateway Architecture
 
 ## Overview
 
-A gateway’s primary role in the Arweave ecosystem is to act as a bridge between the Arweave network and the outside world. This means that a gateway's main task is to make it easier for users to interact with the Arweave network by simplifying the technical processes of writing, reading, and discovering data on the blockweave in a trust-minimized fashion.
+Gateways are the workhorses of the AR.IO Network. 
+Their primary role is to act as a bridge between the Arweave network and the outside world. 
+This means that a gateway's main task is to make it easier for users to interact with the Arweave network by simplifying the technical processes of writing, reading, and discovering data on the blockweave in a trust-minimized fashion.  
 
-The core functions of a general Arweave gateway are broken down into the following areas.
+## Gateway functions
 
-**Writing data involves:**
+The functions of an AR.IO gateway are broken down into the following categories: 
 
-- Proxying Layer 1 transaction headers to one or more healthy and active Arweave nodes (miners) to facilitate inclusion in the mempools of as many nodes as possible.
+**Writing data involves**:
+    - Proxying base layer transaction headers to one or more healthy and active Arweave nodes (miners) to facilitate inclusion in the mempools of as many nodes as possible. 
+    - Proxying chunks for base layer Arweave transactions to Arweave nodes to help facilitate storage and replication of the chunks on the blockweave. 
+    - Receiving and bundling so-called bundled data items (e.g., ANS-104 spec) as base layer transactions. 
 
-- Proxying chunks for Layer 1 Arweave transactions to Arweave nodes to help facilitate storage and replication of the chunks on the blockweave.
+**Reading involves retrieving**: 
+    - Transaction headers for a base layer Arweave transaction. 
+    - Individual data chunks for a base layer Arweave transaction. 
+    - Blocks from the blockweave. 
+    - Storage pricing rates for data from the Arweave node network. 
+    - Contiguous streams of chunks representing an entire base layer transaction. 
+    - Bundled data items (e.g., ANS-104). 
+    - Wallet information (e.g., token balance). 
 
-- Receiving and bundling so-called Layer 2 data items (e.g., ANS-104 spec) as Layer 1 transactions.
+**Discovering data involves**: 
+    - Facilitating efficient, structured queries for base layer transactions, bundled data items, and wallet data by: 
+        - examining incoming streams of data (i.e., directly ingested transactions and data items, blocks emitted by the chain, etc.). 
+        - managing index data in a database or analogous data store. 
+    - Parsing and executing user queries. 
+    - Facilitating friendly-path routing via Arweave manifest indexing. 
 
-**Reading involves retrieving:**
-
-- Transaction headers for a Layer 1 Arweave transaction.
-
-- Individual data chunks for a Layer 1 Arweave transaction.
-
-- Blocks from the blockweave.
-
-- Storage pricing rates for data from the Arweave node network.
-
-- Contiguous streams of chunks representing an entire Layer 1 transaction.
-
-- Layer 2 bundled data items (e.g., ANS-104).
-
-- Wallet information (e.g., token balance).
-
-**Discovering data involves:**
-
-- Facilitating efficient, structured queries for Layer 1 and Layer 2 transaction and wallet data by:
-
-  - examining incoming streams of data (i.e., directly ingested transactions and data items, blocks emitted by the chain, etc.).
-
-  - managing index data in a database or analogous data store.
-
-- Parsing and executing user queries.
-
-- Facilitating friendly-path routing via Arweave manifest indexing.
+**Including other benefits and capabilities such as**: 
+    - Facilitating friendly-subdomain-name routing to Arweave transactions via a direct integration with the Arweave Name System (ArNS). 
+    - Providing the modularity and configurability necessary for operating extensible gateways that can be deployed at small or large scales to meet the needs of specific applications, use cases, communities, or business models. 
+    - Providing pluggable means for consuming telemetry data for internal and external monitoring and alerting. 
+    - Facilitating configurable content moderation policies. 
+    - Providing connectivity to a decentralized network of other AR.IO gateways, enabling data sharing and other shared workloads. 
 
 ## AR.IO Gateway Benefits
 
@@ -120,7 +124,3 @@ The Arweave Name System’s (ArNS) state is managed by the ARIO token’s smart 
 - Facilitate ArNS routing based on the subdomains specified on incoming requests where appropriate.
 
 - Provide a custom HTTP response header for ArNS requests indicating the corresponding Arweave transaction ID.
-
-## Content Moderation
-
-The AR.IO Network will adopt Arweave’s voluntary content moderation model whereby every participant of the network has the autonomy to decide which content they want to (or can legally) store, serve, and see. Each gateway operating on the network has the right and ability to blocklist any content (or address) that is deemed in violation of its content policies or non-compliant with local regulations. 
