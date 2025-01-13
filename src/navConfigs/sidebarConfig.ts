@@ -329,6 +329,10 @@ export const secondaryNavigation: Array<NavGroup> = [
             href: '/build/ar-io-sdk/ants/get-info',
           },
           {
+            title: 'getLogo',
+            href: '/build/ar-io-sdk/ants/get-logo'
+          },
+          {
             title: 'getState',
             href: '/build/ar-io-sdk/ants/get-state',
           },
