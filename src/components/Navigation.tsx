@@ -53,7 +53,7 @@ function TopLevelNavItem({
       <Link
         href={href}
         target={target}
-        className='flex font-extrabold cursor-pointer justify-between gap-2 py-1 pr-3 text-lg text-zinc-900 hover:text-zinc-900 dark:text-white dark:hover:text-emerald-600'
+        className='flex font-extrabold cursor-pointer justify-between gap-2 py-1 pr-3 text-lg text-zinc-900 hover:text-emerald-600 dark:text-white dark:hover:text-emerald-600'
       >
         {children}
       </Link>
@@ -86,9 +86,9 @@ function NavLink({
         isAnchorLink ? 'pl-9' : 'pl-4',
         active
           ? //active item
-            'font-bold text-zinc-900 underline dark:text-white'
+            'font-bold text-zinc-900 hover:text-emerald-600 underline dark:text-white dark:hover:text-emerald-600'
           : // non-active items
-            'text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-emerald-600 ',
+            'text-zinc-600 hover:text-emerald-600 dark:text-zinc-400 dark:hover:text-emerald-600 ',
       )}
     >
       <span className="truncate">{children}</span>
@@ -362,7 +362,7 @@ function NavigationGroup({
                   'cursor-pointer pl-4 text-sm',
                   isPathActive(link, pathname)
                     ? 'font-bold text-zinc-900 dark:text-white' // Active state
-                    : 'text-zinc-900 dark:text-zinc-400 group-hover:text-zinc-900 dark:hover:text-emerald-600', // Inactive state
+                    : 'text-zinc-900 dark:text-zinc-400 hover:text-emerald-600 group-hover:text-emerald-600 dark:hover:text-emerald-600', // Inactive state
                 )}
               >
                 {link.title}
@@ -486,8 +486,8 @@ export function Navigation(props: React.ComponentPropsWithoutRef<'nav'>) {
   return (
     <nav {...props}>
       <ul role="list">
-        <TopLevelNavItem href="https://whitepaper.arweave.net/" target="_blank" className='flex cursor-pointer justify-between gap-2 py-1 pr-3 text-sm transition text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-emerald-600'>
-          White Paper <SquareArrowOutUpRight className="w-4 h-4 transition-colors group-hover:text-zinc-900 dark:group-hover:text-white" />
+        <TopLevelNavItem href="https://whitepaper.arweave.net/" target="_blank" className='flex cursor-pointer justify-between gap-2 py-1 pr-3 text-sm transition text-zinc-600 hover:text-emerald-600 dark:text-zinc-400 dark:hover:text-emerald-600'>
+          White Paper <SquareArrowOutUpRight className="w-4 h-4 transition-colors group-hover:text-emerald-600 dark:group-hover:text-emerald-600" />
         </TopLevelNavItem>
         <br/>
         {currentNavigation.map((group, groupIndex) => (
