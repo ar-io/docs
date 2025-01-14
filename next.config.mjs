@@ -5,6 +5,8 @@ import { rehypePlugins } from './src/mdx/rehype.mjs'
 import { remarkPlugins } from './src/mdx/remark.mjs'
 import withSearch from './src/mdx/search.mjs'
 
+import NodePolyfillPlugin from 'node-polyfill-webpack-plugin';
+
 const withMDX = nextMDX({
   options: {
     remarkPlugins,
@@ -21,6 +23,10 @@ const nextConfig = {
   pageExtensions: ['js', 'jsx', 'ts', 'tsx', 'mdx'],
    outputFileTracingIncludes: {
       '**/*': ['./src/app/**/*.mdx'],
+  },
+  webpack: (config) => {
+    config.plugins.push(new NodePolyfillPlugin());
+    return config;
   },
 }
 

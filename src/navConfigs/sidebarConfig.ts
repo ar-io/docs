@@ -496,11 +496,11 @@ export const secondaryNavigation: Array<NavGroup> = [
             children: [
               {
                 title: 'Cloudflare',
-                href: '/build/gateways/networking/cloudflare',
+                href: '/build/gateways/networking/certbot/cloudflare',
               },
               {
                 title: 'Namecheap',
-                href: '/build/gateways/networking/namecheap',
+                href: '/build/gateways/networking/certbot/namecheap',
               },
             ],
           },
