@@ -23,7 +23,7 @@ const DiagramWithWayfinder: React.FC<DiagramWithWayfinderProps> = ({ src, title,
 
   if (!processedSrc) {
     // Show a loading state
-    return <div className='text-center'>Loading image...</div>;
+    return <div className='text-center'>Loading image from the Permaweb via <a href='/learn/concepts/wayfinder'>Wayfinder</a>...</div>;
   }
 
   return <Diagram src={processedSrc} title={title} description={description} />;
