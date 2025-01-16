@@ -6,11 +6,14 @@ import { Feedback } from '@/components/Feedback'
 import { Heading } from '@/components/Heading'
 import { Prose } from '@/components/Prose'
 import DiagramWithWayfinder from '@/components/DiagramWithWayfinder'
+import TipComponent from '@/components/Tip'
 
 export const a = Link
 export { Button } from '@/components/Button'
 export { CodeGroup, Code as code, Pre as pre } from '@/components/Code'
 export const Diagram = DiagramWithWayfinder
+export const Tip = TipComponent
+
 
 export function wrapper({ children }: { children: React.ReactNode }) {
   return (

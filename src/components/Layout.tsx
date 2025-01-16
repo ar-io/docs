@@ -11,6 +11,7 @@ import { Logo } from '@/components/Logo';
 import { Navigation } from '@/components/Navigation';
 import { type Section, SectionProvider } from '@/components/SectionProvider';
 import DiagramWithWayfinder from '@/components/DiagramWithWayfinder';
+import Tip from '@/components/Tip'
 
 export function Layout({
   children,
@@ -24,6 +25,7 @@ export function Layout({
   // Define custom components for MDX
   const components = {
     Diagram: DiagramWithWayfinder, // Automatically replaces <Diagram /> in MDX
+    Tip: Tip
   };
 
   return (
