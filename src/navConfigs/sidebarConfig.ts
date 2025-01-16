@@ -437,19 +437,11 @@ export const secondaryNavigation: Array<NavGroup> = [
         href: '/build/gateways',
       },
       {
-        title: 'Release Notes',
-        href: '/build/gateways/release-notes',
-      },
-      {
         title: 'Gateway Network',
         href: '/build/gateways/gateway-network',
       },
       {
-        title: 'Observer',
-        href: '/build/gateways/observer',
-      },
-      {
-        title: 'Operators',
+        title: 'Setup and Operation',
         children: [
           {
             title: 'Linux Setup',
@@ -505,6 +497,14 @@ export const secondaryNavigation: Array<NavGroup> = [
             ],
           },
         ],
+      },
+      {
+        title: 'Observer',
+        href: '/build/gateways/observer',
+      },
+      {
+        title: 'Release Notes',
+        href: '/build/gateways/release-notes',
       },
     ],
   },
