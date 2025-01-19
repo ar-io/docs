@@ -24,6 +24,9 @@ const nextConfig = {
    outputFileTracingIncludes: {
       '**/*': ['./src/app/**/*.mdx'],
   },
+  // experimental: {
+  //   disableRuntimeJS: true
+  // },
   webpack: (config) => {
     config.plugins.push(new NodePolyfillPlugin());
     return config;

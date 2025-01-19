@@ -11,6 +11,8 @@ const crypto = require("crypto"); // For generating file hashes
 const { Readable } = require("stream");
 const {connect} = require("@permaweb/aoconnect")
 
+require('dotenv').config()
+
 const ARIO_TESTNET_PID = "agYcCFJtrMG6cqMuZfskIkFTGvUPddICmtQSBIoPdiA"
 
 const undername = process.env.UNDERNAME || '@';
