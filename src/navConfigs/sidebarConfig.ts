@@ -452,8 +452,8 @@ export const secondaryNavigation: Array<NavGroup> = [
             href: '/build/gateways/windows-setup',
           },
           {
-            title: 'Join The Testnet',
-            href: '/build/gateways/join-testnet',
+            title: 'Join The Network',
+            href: '/build/gateways/join-network',
           },
           {
             title: 'Admin Configurations',

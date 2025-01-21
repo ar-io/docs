@@ -1,0 +1,42 @@
+import {HeroPattern} from "@/components/HeroPattern"
+
+<HeroPattern />
+
+# Join the AR.IO Network
+
+## Prerequisites
+
+1. Must have a fully functional AR.IO gateway.
+    - This includes the ability to resolve ArNS subdomains.
+    - Follow installation instructions for [windows](/gateways/ar-io-node/windows-setup) or [linux](/gateways/ar-io-node/linux-setup) and get help from the [ar.io community](https://discord.gg/7zUPfN4D6g).
+
+2. Gateway must be associated with an Arweave Wallet.
+    - Learn about creating Arweave wallets [here](https://ar.io/wallet)
+
+3. Arweave wallet must be funded with enough [ARIO tokens](https://ar.io/test-ario) to meet the minimum stake for gateway operators.
+
+## Network Portal
+
+The simplest method for joining a new gateway to the [Gateway Address Registry (GAR)](/build/gateways/gateway-network#gateway-address-registry-gar) is to use the [Network Portal](https://gateways.arweave.net/#/gateways).
+
+The Network portal has a prominent "Start your own gateway" button That will open a form where configurations can be set for your gateway in the network.
+
+<Diagram title="Start Your Gateway" src='47FLOGesQYP2mi5GvoAaNIZhWofDnh0rsUCWtx21W5w' />
+
+<Diagram title="Start Gateway Form" src='oDycLDqeAXXuBvYdPXtR0YwPZPLR7l75UiGxmvtyths' />
+
+### Start Gateway Form
+
+The form is used to set basic configurations for a gateway when joining the network. It contains the following fields:
+
+- **Label**: This is a friendly name for a gateway. It can be a maximum of 64 characters.
+- **Address**: This is the fully qualified domain name of the gateway. That is, the standard web address used to access the gateway. i.e. `arweave.net`. The form prefills the `https://` protocol prefix, and `www` should not be included. Gateways DO support using subdomains as their address, so long as the gateway is properly configured.
+- **Observer Wallet**: This is the public wallet address of the wallet used for the gateway's [observer](/build/gateways/observer). By default, the primary gateway wallet address is filled in this space.
+- **Properties ID**: This is an Arweave Transaction Id for a JSON object that contains additional details about the gateway. The gateway network has not yet incorporated these properties into standard gateway participation, and so the space may safely be left as the default value. The contents of the default properties Id can be viewed [here](https://arweave.net/FH1aVetOoulPGqgYukj0VE0wIhDy90WiQoV3U2PeY44)
+- **Stake**: This is the amount of AR.IO tokens to be staked to the gateway. It must be at least the network minimum.
+- **Delegated Stake**: This toggle enables or disables [delegated staking](/learn/staking#delegated-staking) on a gateway. This may be changed later.
+- **Minimum Delegated Stake**: This is the minimum number of AR.IO tokens that a delegate must stake in order to stake to a gateway. The network minimum is 10 AR.IO.
+- **Reward Share Ratio**: The percentage of gateway rewards that will be distributed to delegated stakers. 
+- **Note**: A description of the gateway. It can be a maximum of 256 characters.
+
+Once all required fields of the form are completed, the "Confirm" button will become available. Clicking this will prompt a signature from the connected Arweave wallet in order to complete the joining process.
