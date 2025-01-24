@@ -1,0 +1,252 @@
+import { CodeGroup } from '@/components/Code'
+import { HeroPattern } from '@/components/HeroPattern'
+
+export const metadata = {
+  title: 'Managing Undernames',
+  description: 'Quick guide for managing ArNS undernames using the AR.IO SDK.',
+  openGraph: {
+    title: 'Managing Undernames',
+  },
+}
+
+<HeroPattern />
+
+# Managing Undernames
+
+## Overview
+
+[ArNS undernames](/learn/arns#under_names) are subdomains of top level ArNS domains. They are separated from the main ArNS domain using an underscore "\_" in place of the more typically used dot ".".
+
+Records for undernames can be set using the [setRecords](/build/ar-io-sdk/ants/set-records) method on the [AR.IO SDK](/build/ar-io-sdk), or removed by using the [removeRecord](/build/ar-io-sdk/ants/remove-record) method.
+The process for setting/removing a record for an undername vs. a top level ArNS domain is nearly identical, the only difference being the `undername` parameter. When managing a record on a top level ArNS domain, this must be set to
+`@`, while updates to an undername should provide the undername being updated.
+
+<Tip title="Chaining Undernames">
+  Undernames can be created on other undernames, for example
+  [ar://og_logo_ardrive](https://og_logo_ardrive.arweave.net). In this example the undername `og` exists under the undername `logo` on the ArNS name `ardrive`.
+
+  For the purpose of the `undername` parameter in the AR.IO SDK, this should be written as a single undername, including the separating underscores:
+
+  `og_logo`
+</Tip>
+
+## Creating an Undernames
+
+There are no special steps required to create an undername. Simply setting a record for an undername that does not exist will create the undername.
+
+<CodeGroup title="Create an Undername">
+
+       ```typescript {{title: "NodeJS"}}
+        const fs = require("fs");
+        const { ANT, ArweaveSigner } = require("@ar.io/sdk");
+
+        async function main() {
+        const jwk = JSON.parse(fs.readFileSync("KeyFile.json"));
+        const ant = ANT.init({
+            signer: new ArweaveSigner(jwk),
+            processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM"
+        });
+
+        const { id: txId } = await ant.setRecord(
+                {
+                    undername: 'brand-new-undername',
+                    transactionId: '432l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM'
+                    ttlSeconds: 3600
+                },
+                // optional additional tags
+                { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+            );
+        }
+
+        main();
+
+    ```
+
+    ```typescript {{ title: 'Web' }}
+    import { ANT, ArConnectSigner } from '@ar.io/sdk/web';
+
+    async function main() {
+        const ant = ANT.init({
+            signer: new ArConnectSigner(window.arweaveWallet),
+            processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM"
+        })
+
+        const { id: txId } = await ant.setRecord(
+                {
+                    undername: 'brand-new-undername',
+                    transactionId: '432l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM'
+                    ttlSeconds: 3600
+                },
+                // optional additional tags
+                { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+            );
+        }
+
+    main();
+    ```
+
+</CodeGroup>
+
+## Updating an Undername
+
+If an undername already exists, its record can easily be updated using the same [setRecord](/build/ar-io-sdk/ants/set-record) method. 
+
+<CodeGroup title="Update an Undername">
+
+       ```typescript {{title: "NodeJS"}}
+        const fs = require("fs");
+        const { ANT, ArweaveSigner } = require("@ar.io/sdk");
+
+        async function main() {
+        const jwk = JSON.parse(fs.readFileSync("KeyFile.json"));
+        const ant = ANT.init({
+            signer: new ArweaveSigner(jwk),
+            processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM"
+        });
+
+        const { id: txId } = await ant.setRecord(
+                {
+                    undername: 'undername-to-update',
+                    transactionId: '432l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM'
+                    ttlSeconds: 3600
+                },
+                // optional additional tags
+                { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+            );
+        }
+
+        main();
+
+    ```
+
+    ```typescript {{ title: 'Web' }}
+    import { ANT, ArConnectSigner } from '@ar.io/sdk/web';
+
+    async function main() {
+        const ant = ANT.init({
+            signer: new ArConnectSigner(window.arweaveWallet),
+            processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM"
+        })
+
+        const { id: txId } = await ant.setRecord(
+                {
+                    undername: 'undername-to-update',
+                    transactionId: '432l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM'
+                    ttlSeconds: 3600
+                },
+                // optional additional tags
+                { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+            );
+        }
+
+    main();
+    ```
+
+</CodeGroup>
+
+## Removing an Undername
+
+An existing undername can be removed by using the [removeRecord](/build/ar-io-sdk/ants/remove-record) method on the AR.IO SDK. 
+The `undername` parameter should be set to the undername being removed.
+
+<CodeGroup title="Remove Undername">
+
+       ```typescript {{title: "NodeJS"}}
+        const fs = require("fs");
+        const { ANT, ArweaveSigner } = require("@ar.io/sdk");
+
+        async function main() {
+        const jwk = JSON.parse(fs.readFileSync("KeyFile.json"));
+        const ant = ANT.init({
+            signer: new ArweaveSigner(jwk),
+            processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM"
+        });
+
+        const { id: txId } = await ant.removeRecord(
+                {
+                    undername: 'remove-domain',
+                },
+                // optional additional tags
+                { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+            );
+        }
+
+        main();
+
+    ```
+
+    ```typescript {{ title: 'Web' }}
+    import { ANT, ArConnectSigner } from '@ar.io/sdk/web';
+
+    async function main() {
+        const ant = ANT.init({
+            signer: new ArConnectSigner(window.arweaveWallet),
+            processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM"
+        })
+
+        const { id: txId } = await ant.removeRecord(
+                {
+                    undername: 'remove-domain',
+                },
+                // optional additional tags
+                { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+            );
+        }
+
+    main();
+    ```
+
+</CodeGroup>
+
+## Increasing Undername Support
+
+By default, ArNS names support up to 10 undernames. This number can be increased, for a fee. This is done using the [increaseUndernameLimit](/build/ar-io-sdk/ario/arns/increase-undername-limit) method on the `ARIO` class of the AR.IO SDK, rather than the `ANT` class.
+The quantity (qty) parameter specifies the number of **ADDITIONAL** undernames to be supported. i.e. increasing from 10 undernames to 15 would require the `qty` parameter set to 5.
+
+<CodeGroup title="Increasing Undername Support">
+
+       ```typescript {{title: "NodeJS"}}
+        const fs = require("fs");
+        const { ARIO, ArweaveSigner, ARIOToken } = require("@ar.io/sdk");
+
+        async function main() {
+        const jwk = JSON.parse(fs.readFileSync("KeyFile.json"));
+        const ario = ARIO.init({
+            signer: new ArweaveSigner(jwk),
+        });
+
+        const { id: txId } = await ario.increaseUndernameLimit(
+                {
+                    name: 'ar-io',
+                    qty: 5,
+                },
+                // optional additional tags
+                { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+            );
+        }
+
+        main();
+
+    ```
+
+    ```typescript {{ title: 'Web' }}
+    import { ARIO, ARIOToken, ArConnectSigner } from '@ar.io/sdk/web';
+
+    async function main() {
+        const ario = ARIO.init({
+            signer: new ArConnectSigner(window.arweaveWallet)
+        })
+        const { id: txId } = await ario.increaseUndernameLimit(
+                {
+                    name: 'ar-io',
+                    qty: 5,
+                },
+                // optional additional tags
+                { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+            );
+        }
+
+    main();
+    ```
+
+</CodeGroup>

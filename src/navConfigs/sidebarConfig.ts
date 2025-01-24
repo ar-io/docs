@@ -516,6 +516,10 @@ export const secondaryNavigation: Array<NavGroup> = [
         href: '/build/guides/gql',
       },
       {
+        title: "Managing Undernames",
+        href: "/build/guides/managing-undernames"
+      },
+      {
         title: 'Deploy to Arweave',
         children: [
           {
@@ -528,7 +532,6 @@ export const secondaryNavigation: Array<NavGroup> = [
           },
         ],
       },
-
       {
         title: 'Projects',
         children: [
