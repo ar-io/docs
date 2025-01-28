@@ -1,0 +1,69 @@
+import {HeroPattern} from "@/components/HeroPattern"
+
+export const metadata = {
+  title: 'Gateway ArNS Resolution',
+  description: 'Details related to AR.IO network gateway ArNS resolution.',
+  openGraph: {
+    title: 'Gateway ArNS Resolution',
+  },
+}
+
+<HeroPattern />
+
+# ArNS Resolution
+
+## Overview
+
+One of the core functions of the AR.IO network gateway is to serve [ArNS (Arweave Name System)](/learn/arns) records. Each ArNS name is assigned a specific "time to live" (TTL) value, 
+which determines how often gateways should check for updates to the Arweave Transaction ID that the name points to.
+This TTL works similarly to a [DNS TTL](https://www.ibm.com/think/topics/time-to-live), which controls how often updates are checked for traditional websites. As a result, there may be a delay between when an ArNS record is updated and when users see the updated information in their browser.
+
+Effective with gateway [release 23](/build/gateways/release-notes#release-23-2025-01-13), new features have been implemented on AR.IO gateways to optimize the resolution of ArNS records. These include an option for
+gateway operators to override the ArNS TTL, and set their own schedule for checking ArNS names for updates.
+
+## Initial Caching
+
+When a gateway starts up, it will attempt to fetch the records of all ArNS names in order to create a local cache. Previously, this cache was stored in memory. After release 23, this cache is saved to persistent storage 
+so that the gateway's ArNS cache will survive restarting the gateway. This prevents delays in resolving ArNS names immediately after a gateway starts up. This cache is saved to the directory `data/arns`.
+
+## Cache Refreshing
+
+When a new ArNS name is purchased on [arns.app](https://arns.arweave.net) (or programmatically using the [AR.IO SDK](/build/ar-io-sdk)), gateways need to update their local cache to include this new name. 
+Previously, gateway operators could not control how or when their gateway refreshed its cache. As a result, new names would often take several hours to resolve. With release 23, once a new name is purchased and 
+requested from a gateway, the gateway will check if it was already aware of the name's existence. If not, it will refresh its cache to include the records for the new name, allowing immediate resolution.
+
+Gateway operators can specify how often their gateway should refresh its cache when it fails to find an ArNS name that has been requested by setting the `ARNS_NAME_LIST_CACHE_MISS_REFRESH_INTERVAL_SECONDS` value in their `.env` file.
+The default value for this environmental variable is 10 seconds.
+Similarly, they can prompt their gateway to refresh their cache of ArNS names when a name is requested and successfully found in the local cache by setting the `ARNS_NAME_LIST_CACHE_HIT_REFRESH_INTERVAL_SECONDS`, which defaults to 1 hour.
+
+Both of these variables can be set to a number, which represents the number of seconds the gateway should wait before refreshing its cache when a name is requested that is, or is not, already in its local cache.
+
+<CodeGroup title=".env">
+
+```bash
+# how long to wait before refreshing the base names cache on a miss (default is 10 seconds)
+ARNS_NAME_LIST_CACHE_MISS_REFRESH_INTERVAL_SECONDS=10
+# how long to wait before refreshing the base names cache on a hit (default is 1 hour)
+ARNS_NAME_LIST_CACHE_HIT_REFRESH_INTERVAL_SECONDS=3600
+```
+
+</CodeGroup>
+
+## Gateway TTL Override
+
+Every ArNS record is set with a TTL specified by the name owner. Gateway operators can set the `ARNS_RESOLVER_OVERRIDE_TTL_SECONDS` variable in their `.env` file to override this TTL,
+and define for themselves how often the gateway should check for updated records. A shorter TTL value will result in more frequent outgoing requests to the [ANT](/learn/arns#arweave-name-token-ant) 
+that controls the ArNS name, which can result in slower serving of the name data to users, while a longer TTL allows for faster serving of cached data, which may be out of date.
+
+TTL Override is disabled by default, and should be set to the number of seconds the gateway should use as its TTL when resolving names.
+
+If a gateway operator chooses to override the TTL set by ArNS owners, they must carefully weigh the trade-offs and decide on the balance between performance speed and record currency that best aligns with their priorities and use case.
+
+<CodeGroup title=".env">
+
+```bash
+# override TTLs set on ANT records (defaults to disabled)
+ARNS_RESOLVER_OVERRIDE_TTL_SECONDS=60
+```
+
+</CodeGroup>
