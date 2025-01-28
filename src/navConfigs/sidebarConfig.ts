@@ -456,6 +456,10 @@ export const secondaryNavigation: Array<NavGroup> = [
             href: '/build/gateways/join-network',
           },
           {
+            title: "ArNS Resolution",
+            href: "/build/gateways/arns-resolution"
+          },
+          {
             title: 'Admin Configurations',
             href: '/build/gateways/admin',
           },
