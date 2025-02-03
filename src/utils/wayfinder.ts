@@ -3,6 +3,8 @@ const { connect } = require("@permaweb/aoconnect");
 
 async function wayfinder(input: string): Promise<string> {
   const defaultDomain = 'arweave.net';
+  const shouldOverride = true; // Toggle this to enable/disable gateway fetching
+
   const txIdRegex = /^[a-zA-Z0-9-_]{43}$/; // Matches Arweave transaction IDs
   const arnsNameRegex = /^[^.\s]+$/; // Matches ArNS names (no dots)
   const urlRegex = /^(https?:\/\/)[\w.-]+(\/.*)?$/; // Matches URLs with protocol
@@ -10,8 +12,8 @@ async function wayfinder(input: string): Promise<string> {
   let resultUrl = input;
 
   try {
-    console.log("wayfinder is running");
-    console.log("Input:", input);
+    // console.log("wayfinder is running");
+    // console.log("Input:", input);
 
     // Check if the input is a transaction ID
     if (txIdRegex.test(input)) {
@@ -25,13 +27,13 @@ async function wayfinder(input: string): Promise<string> {
     }
     // Check if the input is a URL
     else if (urlRegex.test(input)) {
-      console.log("URL detected");
+      // console.log("URL detected");
       const urlMatch = input.match(urlRegex);
       const domain = urlMatch?.[0];
       const path = urlMatch?.[2] || '';
 
       if (domain?.includes(defaultDomain)) {
-        console.log("arweave.net URL detected");
+        // console.log("arweave.net URL detected");
         const pathParts = path.split('/').filter(Boolean);
         const firstPathSegment = pathParts[0];
 
@@ -50,9 +52,20 @@ async function wayfinder(input: string): Promise<string> {
     resultUrl = `https://${defaultDomain}/${input}`;
   }
 
+  // console.log(resultUrl)
   return resultUrl;
 
   async function getProcessedUrl(identifier: string, additionalPath: string = ''): Promise<string> {
+    // **If shouldOverride is enabled, always return arweave.net**
+    if (shouldOverride) {
+      if (txIdRegex.test(identifier)) {
+        return `https://${defaultDomain}/${identifier}/${additionalPath}`;
+      } else if (arnsNameRegex.test(identifier)) {
+        return `https://${identifier}.${defaultDomain}/${additionalPath}`;
+      }
+      return `https://${defaultDomain}/${identifier}`;
+    }
+
     try {
       console.log("Fetching gateways");
       const ario = ARIO.init({
