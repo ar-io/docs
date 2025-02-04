@@ -442,6 +442,7 @@ export const secondaryNavigation: Array<NavGroup> = [
       },
       {
         title: 'Setup and Operation',
+        href: '/build/gateways/setup-and-operation',
         children: [
           {
             title: 'Linux Setup',
@@ -489,6 +490,7 @@ export const secondaryNavigation: Array<NavGroup> = [
           },
           {
             title: 'Automating SSL',
+            href: '/build/gateways/networking',
             children: [
               {
                 title: 'Cloudflare',
