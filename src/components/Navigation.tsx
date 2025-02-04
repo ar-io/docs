@@ -23,6 +23,7 @@ function useInitialValue<T>(value: T, condition = true) {
 
 export interface NavGroup {
   title: string
+  href?: string
   links: Array<{
     title: string
     href?: string
@@ -434,7 +435,13 @@ function NavigationGroup({
         className="flex cursor-pointer items-center justify-between text-lg font-extrabold text-zinc-900 dark:text-white"
         onClick={() => toggleCollapse(group.title)}
       >
-        {group.title}
+        {group.href ? (
+          <a href={group.href} className="text-inherit no-underline">
+            {group.title}
+          </a>
+        ) : (
+          group.title
+        )}
         <span
           className={clsx(
             'ml-2 transform transition-transform',
