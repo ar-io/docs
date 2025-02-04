@@ -514,6 +514,7 @@ export const secondaryNavigation: Array<NavGroup> = [
   },
   {
     title: 'Guides',
+    href: '/build/guides',
     links: [
       {
         title: 'GQL',
