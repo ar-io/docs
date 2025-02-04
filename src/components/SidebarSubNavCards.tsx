@@ -40,7 +40,7 @@ const SidebarSubNavCards: React.FC = () => {
     <div className="mt-6">
       <h2 className="text-lg font-bold text-zinc-900 dark:text-white">Related Pages</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
-        {nestedItems.map((item, index) => (
+        {nestedItems.map((item: any, index: any) => (
           <div
             key={item.href || `${item.title}-${index}`}
             className={clsx(
