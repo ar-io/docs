@@ -16,6 +16,64 @@ export const metadata = {
 
 Welcome to the documentation page for the AR.IO gateway release notes. Here, you will find detailed information about each version of the AR.IO gateway, including the enhancements, bug fixes, and any other changes introduced in every release. This page serves as a comprehensive resource to keep you informed about the latest developments and updates in the AR.IO gateway. For those interested in exploring the source code, each release's code is readily accessible at our GitHub repository: AR.IO gateway [change logs](https://github.com/ar-io/ar-io-node/blob/main/CHANGELOG.md). Stay updated with the continuous improvements and advancements in the AR.IO gateway by referring to this page for all release-related information.
 
+## [Release 24] - 2025-02-03
+
+### Added
+
+- Added a `ARNS_ANT_STATE_CACHE_HIT_REFRESH_WINDOW_SECONDS` environment
+  variable that determines the number of seconds before the end of the TTL at
+  which to start attempting to refresh the ANT state.
+- Added a `TRUSTED_GATEWAYS_REQUEST_TIMEOUT_MS` environment that defaults to
+  10,000 and sets the number of milliseconds to wait before timing out request
+  to trusted gateways.
+- Added `BUNDLE_REPAIR_RETRY_INTERVAL_SECONDS` and
+  `BUNDLE_REPAIR_RETRY_BATCH_SIZE` environment variables to control the time
+  between queuing batches of bundle retries and the number of data items
+  retrieved when constructing batches of bundles to retry.
+- Added support for configuring the ar.io SDK log level via the
+  `AR_IO_SDK_LOG_LEVEL` environment variable.
+- Added a `request_chunk_total` Prometheus counter with `status`, `source` (a
+  URL) and `source_type` (`trusted` or `peer`) labels to track success/failure
+  of chunk retrieval in the Arweave network per source.
+- Added a `get_chunk_total` Prometheus metric to count chunk retrieval
+  success/failure per chunk.
+- Added `arns_cache_hit_total` and `arns_cache_miss_total` Prometheus counters
+  to track ArNS cache hits and misses for individual names respectively.
+- Added `arns_name_cache_hit_total` and `arns_name_cache_miss_total` Prometheus
+  counters to track ArNS name list cache hits and misses
+  respectively.
+- Added a `arns_resolution_duration_ms` Prometheus metric that tracks summary
+  statistics for the amount of time it takes to resolve ArNS names.
+
+### Changed
+
+- In addition to the trusted node, the Arweave network is now searched for
+  chunks by default. All chunks retrieved are verified against data roots
+  indexed from a trusted Arweave node to ensure their validity.
+- Default to a 24 hour cache TTL for the ArNS name cache. Record TTLs still
+  override this, but in cases where resolution via AO CU is slow or fails, the
+  cache will be used. In the case of slow resolution, CU based resolution will
+  proceed in the background and update the cache upon completion.
+- Switched to the `ioredis` library for better TLS support.
+- Updated minor dependency minor versions (more dependencies will be updated in
+  the next release).
+- Bundles imports will no longer be re-attempted for bundles that have already
+  been fully unbundled using the current filters if they are matched or
+  manually queued again.
+- Replaced references `docker-compose` in the docs with the more modern `docker
+  compose`.
+
+### Fixed
+
+- Ensure duplicate data item IDs are ignored when comparing counts to determine
+  if a bundle has been fully unbundled.
+- Fixed worker threads failing to shut down properly when the main process
+  stopped.
+- Ensure bundle import attempt counts are incremented when bundles are skipped
+  to avoid repeatedly attempting to import skipped bundles.
+- Use observe that correctly ensure failing gateways are penalized in the AR.IO
+  AO process.
+
 ## [Release 23] - 2025-01-13
 
 ### Added
