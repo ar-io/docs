@@ -408,6 +408,18 @@ export const secondaryNavigation: Array<NavGroup> = [
             title: 'transfer',
             href: '/build/ar-io-sdk/ants/transfer',
           },
+          {
+            title: 'setBaseNameRecord',
+            href: '/build/ar-io-sdk/ants/set-base-name-record'
+          },
+          {
+            title: 'setUndernameRecord',
+            href: '/build/ar-io-sdk/ants/set-undername-record'
+          },
+          {
+            title: 'removeUndernameRecord',
+            href: '/build/ar-io-sdk/ants/remove-undername-record'
+          },
         ],
       },
       {
