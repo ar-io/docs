@@ -489,6 +489,10 @@ export const secondaryNavigation: Array<NavGroup> = [
             href: '/build/gateways/bundler',
           },
           {
+            title: 'Grafana Sidecar',
+            href: '/build/gateways/grafana',
+          },
+          {
             title: 'Automating SSL',
             href: '/build/gateways/networking',
             children: [
