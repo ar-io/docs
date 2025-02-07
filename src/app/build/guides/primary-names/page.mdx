@@ -1,0 +1,332 @@
+import { HeroPattern } from '@/components/HeroPattern'
+
+export const metadata = {
+  title: 'Managing Primary Names',
+  description: 'Learn how to request, approve, and manage primary names for ANTs',
+  openGraph: {
+    title: 'Managing Primary Names',
+  },
+}
+
+<HeroPattern />
+
+# Managing Primary Names
+
+## Overview
+
+Primary names allow users to set a user-friendly alias for their Arweave wallet address, simplifying how addresses are displayed across applications. This process involves interaction between two separate smart contracts:
+
+1. The [AR.IO Contract](/learn/ario-contract) - which manages the primary name registry and requests
+2. The [ANT](/learn/arns#arweave-name-token-ant) Contract - which controls the specific ArNS name and must approve any primary name requests
+
+The process requires two steps because these are separate contracts:
+1. First, a request must be submitted to the AR.IO contract to set a specific ArNS name as the primary name for a wallet
+2. Then, the ANT owner must approve this request, confirming that this wallet can use the name as its primary identifier
+
+This two-step verification ensures that both the wallet owner and the ANT owner have authorized the connection.
+
+<Note>
+Think of this like setting a username on a social platform - where the platform (AR.IO contract) maintains the registry of usernames, and the name owner (ANT) must approve who can claim their name as an identifier.
+</Note>
+
+
+## Setting a Primary Name
+
+The process of setting a primary name involves two steps: requesting and approval. This two-step process ensures proper authorization from both the wallet owner and the ANT owner.
+
+### Requesting a Primary Name
+
+When requesting a primary name, you're asking to use an ArNS name as the identifier for your wallet address. This requires:
+1. The ArNS name to exist
+2. Your wallet to submit the request using the [`requestPrimaryName`](/build/ar-io-sdk/primary-names/request-primary-name) method
+3. The ANT owner's approval
+
+<CodeGroup title="Request Primary Name">
+
+```typescript {{title: "NodeJS"}}
+const fs = require("fs");
+const { ARIO, ArweaveSigner } = require("@ar.io/sdk");
+
+async function main() {
+    const jwk = JSON.parse(fs.readFileSync("KeyFile.json"));
+    const ario = ARIO.init({
+        signer: new ArweaveSigner(jwk)
+    });
+
+    const { id: txId } = await ario.requestPrimaryName({
+        name: 'my-arns-name',
+        processId: 'ANT-PROCESS-ID'
+    });
+
+    console.log(`Primary name request submitted: ${txId}`);
+}
+
+main();
+```
+
+```typescript {{title: "Web"}}
+import { ARIO, ArConnectSigner } from '@ar.io/sdk/web';
+
+async function main() {
+    const ario = ARIO.init({
+        signer: new ArConnectSigner(window.arweaveWallet)
+    });
+
+    const { id: txId } = await ario.requestPrimaryName({
+        name: 'my-arns-name',
+        processId: 'ANT-PROCESS-ID'
+    });
+
+    console.log(`Primary name request submitted: ${txId}`);
+}
+
+main();
+```
+
+</CodeGroup>
+
+### Check Primary Name Requests
+
+The [`getPrimaryNameRequest`](/build/ar-io-sdk/primary-names/get-primary-name-request) method allows you to verify if a primary name request exists and its status. Use this to:
+- Verify if your request is pending
+- Check if someone has requested to use your ANT's name
+- Build UI flows around the request/approval process
+
+<CodeGroup title="Get Primary Name Request">
+
+```typescript {{title: "NodeJS"}}
+const { ARIO } = require("@ar.io/sdk");
+
+async function main() {
+    const ario = ARIO.init();
+    
+    const request = await ario.getPrimaryNameRequest({
+        initiator: 'WALLET-ADDRESS' // The wallet address that made the request
+    });
+
+    console.log(request);
+    // Example response:
+    // {
+    //   "initiator": "WALLET-ADDRESS",
+    //   "name": "arns",
+    //   "startTimestamp": 1728067635857,
+    //   "endTimestamp": 1735843635857
+    // }
+}
+
+main();
+```
+
+```typescript {{title: "Web"}}
+import { ARIO } from '@ar.io/sdk/web';
+
+async function main() {
+    const ario = ARIO.init();
+    
+    const request = await ario.getPrimaryNameRequest({
+        initiator: 'WALLET-ADDRESS' // The wallet address that made the request
+    });
+
+    console.log(request);
+}
+
+main();
+```
+
+</CodeGroup>
+
+
+### Approving a Primary Name Request
+
+The ANT owner must approve any requests to use their name as a primary name using the [`approvePrimaryNameRequest`](/build/ar-io-sdk/ants/approve-primary-name-request) method. This gives ANT owners control over how their names are used as identifiers.
+
+<CodeGroup title="Approve Primary Name">
+
+```typescript {{title: "NodeJS"}}
+const fs = require("fs");
+const { ANT, ArweaveSigner } = require("@ar.io/sdk");
+
+async function main() {
+    const jwk = JSON.parse(fs.readFileSync("KeyFile.json"));
+    const ant = ANT.init({
+        signer: new ArweaveSigner(jwk),
+        processId: "ANT-PROCESS-ID"
+    });
+
+    const { id: txId } = await ant.approvePrimaryNameRequest({
+        name: 'my-arns-name',
+        address: 'WALLET-ADDRESS',
+        ioProcessId: 'ARIO-PROCESS-ID'
+    });
+
+    console.log(`Primary name request approved: ${txId}`);
+}
+
+main();
+```
+
+```typescript {{title: "Web"}}
+import { ANT, ArConnectSigner } from '@ar.io/sdk/web';
+
+async function main() {
+    const ant = ANT.init({
+        signer: new ArConnectSigner(window.arweaveWallet),
+        processId: "ANT-PROCESS-ID"
+    });
+
+    const { id: txId } = await ant.approvePrimaryNameRequest({
+        name: 'my-arns-name',
+        address: 'WALLET-ADDRESS',
+        ioProcessId: 'ARIO-PROCESS-ID'
+    });
+
+    console.log(`Primary name request approved: ${txId}`);
+}
+
+main();
+```
+
+</CodeGroup>
+
+## Querying Primary Names
+
+The AR.IO SDK provides several methods to query primary names, each serving different use cases:
+
+### Get a Single Primary Name
+
+Use [`getPrimaryName`](/build/ar-io-sdk/primary-names/get-primary-name) when you need to find the primary name for a specific wallet address. This is particularly useful in applications where you want to display a user-friendly identifier instead of their wallet address.
+
+Common use cases:
+- Displaying a user's primary name in a profile or dashboard
+- Showing who authored a piece of content
+- Making transaction histories more readable
+
+<CodeGroup title="Get Primary Name">
+
+```typescript {{title: "NodeJS"}}
+const { ARIO } = require("@ar.io/sdk");
+
+async function main() {
+    const ario = ARIO.init();
+    
+    const primaryName = await ario.getPrimaryName({
+        name: 'my-arns-name'
+    });
+
+    console.log(primaryName);
+}
+
+main();
+```
+
+```typescript {{title: "Web"}}
+import { ARIO } from '@ar.io/sdk/web';
+
+async function main() {
+    const ario = ARIO.init();
+    
+    const primaryName = await ario.getPrimaryName({
+        name: 'my-arns-name'
+    });
+
+    console.log(primaryName);
+}
+
+main();
+```
+
+</CodeGroup>
+
+### List All Primary Names
+
+Use [`getPrimaryNames`](/build/ar-io-sdk/primary-names/get-primary-names) when fetching all primary names. This is useful when you need to:
+- Build a directory of users
+- Create search functionality
+- Display multiple users in a more readable format
+- Map multiple wallet addresses to their friendly names at once
+
+The method supports pagination through a cursor-based system, where the cursor is the last name from your previous request.
+
+<CodeGroup title="Get Primary Names">
+
+```typescript {{title: "NodeJS"}}
+const { ARIO } = require("@ar.io/sdk");
+
+async function main() {
+    const ario = ARIO.init();
+    
+    // First page of results
+    const firstPage = await ario.getPrimaryNames({
+        limit: 10,
+        sortBy: 'startTimestamp',
+        sortOrder: 'desc'
+    });
+    
+    console.log('First page:', firstPage.items);
+    
+    if (firstPage.hasMore) {
+        // Get next page using the cursor from previous response
+        const nextPage = await ario.getPrimaryNames({
+            cursor: firstPage.cursor, // Last name from previous request
+            limit: 10,
+            sortBy: 'startTimestamp',
+            sortOrder: 'desc'
+        });
+        
+        console.log('Next page:', nextPage.items);
+    }
+}
+
+main();
+```
+
+```typescript {{title: "Web"}}
+import { ARIO } from '@ar.io/sdk/web';
+
+async function main() {
+    const ario = ARIO.init();
+    
+    // First page of results
+    const firstPage = await ario.getPrimaryNames({
+        limit: 10,
+        sortBy: 'startTimestamp',
+        sortOrder: 'desc'
+    });
+    
+    console.log('First page:', firstPage.items);
+    
+    if (firstPage.hasMore) {
+        // Get next page using the cursor from previous response
+        const nextPage = await ario.getPrimaryNames({
+            cursor: firstPage.cursor, // Last name from previous request
+            limit: 10,
+            sortBy: 'startTimestamp',
+            sortOrder: 'desc'
+        });
+        
+        console.log('Next page:', nextPage.items);
+    }
+}
+
+main();
+```
+
+</CodeGroup>
+
+The response includes:
+- `items`: Array of primary names for the current page
+- `cursor`: The last name from the current request, used for getting the next page
+- `hasMore`: Boolean indicating if there are more results available
+- `totalItems`: Total number of primary names matching your query
+
+
+## Best Practices
+
+1. Always verify ownership of both the ArNS name and ANT before attempting to set a primary name
+2. Check if a primary name request already exists before submitting a new one
+3. Consider implementing error handling for cases where the name or ANT doesn't exist
+4. When displaying primary names in your application, always have a fallback to show the wallet address if no primary name exists
+
+<Note>
+Primary names simplify user identification across the permaweb by replacing complex wallet addresses with human-readable names, similar to how usernames work on social platforms.
+</Note>
