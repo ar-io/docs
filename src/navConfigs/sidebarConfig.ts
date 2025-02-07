@@ -543,6 +543,10 @@ export const secondaryNavigation: Array<NavGroup> = [
         href: "/build/guides/managing-undernames"
       },
       {
+        title: "Managing Primary Names",
+        href: "/build/guides/primary-names"
+      },
+      {
         title: 'Deploy to Arweave',
         children: [
           {
