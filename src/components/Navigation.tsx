@@ -83,7 +83,7 @@ function NavLink({
       aria-current={active ? 'page' : undefined}
       // Items without children
       className={clsx(
-        'flex cursor-pointer justify-between gap-2 py-1 pr-3 text-sm transition',
+        'flex cursor-pointer justify-between gap-2 text-sm transition',
         isAnchorLink ? 'pl-9' : 'pl-4',
         active
           ? //active item
@@ -345,11 +345,10 @@ function NavigationGroup({
   }, [pathname, sections, group.links])
 
   const mapSections = (link: any, level = 0) => {
-    const isLinkActiveAndHasSections =
-      link.href === pathname && sections.length > 0
+    const isLinkActiveAndHasSections = link.href === pathname && sections.length > 0
 
     return (
-      <>
+      <div className="py-1">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             {link.href ? (
@@ -357,34 +356,27 @@ function NavigationGroup({
                 {link.title}
               </NavLink>
             ) : (
-              // Items with children
               <span
                 className={clsx(
                   'cursor-pointer pl-4 text-sm',
                   isPathActive(link, pathname)
-                    ? 'font-bold text-zinc-900 dark:text-white' // Active state
-                    : 'text-zinc-900 dark:text-zinc-400 hover:text-emerald-600 group-hover:text-emerald-600 dark:hover:text-emerald-600', // Inactive state
+                    ? 'font-bold text-zinc-900 dark:text-white'
+                    : 'text-zinc-900 dark:text-zinc-400 hover:text-emerald-600 group-hover:text-emerald-600 dark:hover:text-emerald-600',
                 )}
               >
                 {link.title}
               </span>
             )}
             {isLinkActiveAndHasSections && (
-              //chevrons
               <span
                 className="ml-2 cursor-pointer text-sm text-zinc-900 dark:text-white"
                 onClick={() => toggleCollapse(link.title)}
               >
-                {collapsedState[link.title] ? (
-                  <ChevronRight />
-                ) : (
-                  <ChevronDown />
-                )}
+                {collapsedState[link.title] ? <ChevronRight /> : <ChevronDown />}
               </span>
             )}
           </div>
           {link.children && (
-            // chevrons
             <span
               className="ml-2 cursor-pointer text-sm text-zinc-900 dark:text-white"
               onClick={() => toggleCollapse(link.title)}
@@ -399,9 +391,10 @@ function NavigationGroup({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1, transition: { delay: 0.1 } }}
             exit={{ opacity: 0, transition: { duration: 0.15 } }}
+            className="mt-1"
           >
             {sections.map((section) => (
-              <li key={section.id}>
+              <li key={section.id} className="py-1">
                 <NavLink
                   href={`${link.href}#${section.id}`}
                   tag={section.tag}
@@ -414,25 +407,23 @@ function NavigationGroup({
           </motion.ul>
         )}
         {!collapsedState[link.title] && link.children && (
-          <ul role="list" className="pl-4">
+          <ul role="list" className="pl-4 mt-1">
             {link.children.map((child: any) => (
-              <li key={child.href ?? child.title} className="mt-2">
+              <li key={child.href ?? child.title}>
                 {mapSections(child, level + 1)}
               </li>
             ))}
           </ul>
         )}
-      </>
+      </div>
     )
   }
-
-  let isActiveGroup = group.links.some((link) => isLinkActive(link, pathname))
 
   return (
     <li className={clsx('relative mt-6', className)}>
       <motion.h2
         layout="position"
-        className="flex cursor-pointer items-center justify-between text-lg font-extrabold text-zinc-900 dark:text-white"
+        className="flex cursor-pointer items-center justify-between text-lg font-extrabold text-zinc-900 dark:text-white py-1"
         onClick={() => toggleCollapse(group.title)}
       >
         {group.href ? (
@@ -452,21 +443,7 @@ function NavigationGroup({
         </span>
       </motion.h2>
       {!collapsedState[group.title] && (
-        <div className="relative mt-3 pl-2">
-          {/* <AnimatePresence initial={!isInsideMobileNavigation}>
-            {isActiveGroup && (
-              <VisibleSectionHighlight group={group} pathname={pathname} />
-            )}
-          </AnimatePresence>
-          <motion.div
-            layout
-            className="absolute inset-y-0 left-2 w-px bg-zinc-900/10 dark:bg-white/5"
-          />
-          <AnimatePresence initial={false}>
-            {isActiveGroup && (
-              <ActivePageMarker group={group} pathname={pathname} />
-            )}
-          </AnimatePresence> */}
+        <div className="relative mt-1 pl-2">
           <ul role="list" className="border-l border-transparent">
             {group.links.map((link) => (
               <motion.li
