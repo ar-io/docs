@@ -629,7 +629,7 @@ export const singleNavigation: Array<NavGroup> = [
   },
   {
     title: 'AR.IO SDK',
-    href: '/build/ar-io-sdk',
+    // href: '/build/ar-io-sdk',
     links: [
       {
         title: 'Getting Started',
@@ -817,7 +817,7 @@ export const singleNavigation: Array<NavGroup> = [
   },
   {
     title: 'Gateways',
-    href: '/build/gateways',
+    // href: '/build/gateways',
     links: [
       {
         title: 'Architecture',
@@ -907,7 +907,7 @@ export const singleNavigation: Array<NavGroup> = [
   },
   {
     title: 'Guides',
-    href: '/build/guides',
+    // href: '/build/guides',
     links: [
       {
         title: 'GQL',
