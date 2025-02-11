@@ -12,7 +12,7 @@ import { useSectionStore } from '@/components/SectionProvider'
 import { Tag } from '@/components/Tag'
 import { remToPx } from '@/lib/remToPx'
 
-import { mainNavigation, secondaryNavigation } from '@/navConfigs/sidebarConfig'
+import { mainNavigation, secondaryNavigation, singleNavigation } from '@/navConfigs/sidebarConfig'
 
 import { ChevronDown, ChevronRight } from 'lucide-react'
 
@@ -463,9 +463,11 @@ function NavigationGroup({
 
 export function Navigation(props: React.ComponentPropsWithoutRef<'nav'>) {
   const pathname = usePathname()
-  const currentNavigation = pathname.startsWith('/build')
-    ? secondaryNavigation
-    : mainNavigation
+  // const currentNavigation = pathname.startsWith('/build')
+  //   ? secondaryNavigation
+  //   : mainNavigation
+
+  const currentNavigation = singleNavigation
 
   return (
     <nav {...props}>

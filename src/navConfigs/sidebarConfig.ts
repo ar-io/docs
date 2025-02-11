@@ -571,3 +571,396 @@ export const secondaryNavigation: Array<NavGroup> = [
     ],
   },
 ]
+
+export const singleNavigation: Array<NavGroup> = [
+  {
+    title: 'General',
+    links: [
+      {
+        title: 'Introduction',
+        href: '/learn/introduction',
+      },
+      {
+        title: 'Network Composition',
+        href: '/learn/network-composition',
+      },
+      {
+        title: 'Smart Contract',
+        href: '/learn/ario-contract'
+      },
+      {
+        title: 'Token',
+        href: '/learn/token',
+      },
+      {
+        title: 'Staking',
+        href: '/learn/staking'
+      },
+    ],
+  },
+  {
+    title: 'Core Concepts',
+    links: [
+      {
+        title: 'Arweave Name System (ArNS)',
+        href: '/learn/arns',
+      },
+      {
+        title: 'Network Composition',
+        href: '/learn/network-composition',
+      },
+      {
+        title: 'Manifests',
+        href: '/learn/concepts/manifests',
+      },
+      {
+        title: 'Normalized Addresses',
+        href: '/learn/concepts/normalized-addresses',
+      },
+      {
+        title: 'Sandboxing',
+        href: '/learn/concepts/sandboxing',
+      },
+      {
+        title: 'Wayfinder',
+        href: '/learn/concepts/wayfinder',
+      },
+    ],
+  },
+  {
+    title: 'AR.IO SDK',
+    href: '/build/ar-io-sdk',
+    links: [
+      {
+        title: 'Getting Started',
+        href: '/build/ar-io-sdk/getting-started',
+      },
+      {
+        title: 'ARIO Class',
+        children: [
+          {
+            title: 'Configuration',
+            href: '/build/ar-io-sdk/ario/configuration',
+          },
+          {
+            title: 'General',
+            children: [
+              {
+                title: 'getInfo',
+                href: '/build/ar-io-sdk/ario/general/get-info',
+              },
+              {
+                title: 'getTokenSupply',
+                href: '/build/ar-io-sdk/ario/general/get-token-supply',
+              },
+              {
+                title: 'getBalance',
+                href: '/build/ar-io-sdk/ario/general/get-balance',
+              },
+              {
+                title: 'getBalances',
+                href: '/build/ar-io-sdk/ario/general/get-balances',
+              },
+              {
+                title: 'transfer',
+                href: '/build/ar-io-sdk/ario/general/transfer',
+              },
+            ],
+          },
+          {
+            title: 'Gateways',
+            children: [
+              {
+                title: 'getGateway',
+                href: '/build/ar-io-sdk/ario/gateways/get-gateway',
+              },
+              {
+                title: 'getGateways',
+                href: '/build/ar-io-sdk/ario/gateways/get-gateways',
+              },
+              {
+                title: 'joinNetwork',
+                href: '/build/ar-io-sdk/ario/gateways/join-network',
+              },
+              {
+                title: 'leaveNetwork',
+                href: '/build/ar-io-sdk/ario/gateways/leave-network',
+              },
+              {
+                title: 'updateGatewaySettings',
+                href: '/build/ar-io-sdk/ario/gateways/update-gateway-settings',
+              },
+              {
+                title: 'increaseOperatorStake',
+                href: '/build/ar-io-sdk/ario/gateways/increase-operator-stake',
+              },
+              {
+                title: 'decreaseOperatorStake',
+                href: '/build/ar-io-sdk/ario/gateways/decrease-operator-stake',
+              },
+              {
+                title: 'increaseDelegateStake',
+                href: '/build/ar-io-sdk/ario/gateways/increase-delegate-stake',
+              },
+              {
+                title: 'decreaseDelegateStake',
+                href: '/build/ar-io-sdk/ario/gateways/decrease-delegate-stake',
+              },
+              {
+                title: 'instantWithdrawal',
+                href: '/build/ar-io-sdk/ario/gateways/instant-withdrawal',
+              },
+              {
+                title: 'cancelWithdrawal',
+                href: '/build/ar-io-sdk/ario/gateways/cancel-withdrawal',
+              },
+              {
+                title: 'redelegateStake',
+                href: '/build/ar-io-sdk/ario/gateways/redelegate-stake',
+              },
+              {
+                title: 'getRedelegationFee',
+                href: '/build/ar-io-sdk/ario/gateways/get-redelegation-fee',
+              },
+              {
+                title: 'getDelegations',
+                href: '/build/ar-io-sdk/ario/gateways/get-delegations',
+              },
+              {
+                title: 'getAllowedDelegates',
+                href: '/build/ar-io-sdk/ario/gateways/get-allowed-delegates',
+              },
+              {
+                title: 'getGatewayDelegates',
+                href: '/build/ar-io-sdk/ario/gateways/get-gateway-delegates',
+              },
+              {
+                title: 'getGatewayVaults',
+                href: '/build/ar-io-sdk/ario/gateways/get-gateway-vaults',
+              },
+            ],
+          },
+          {
+            title: 'Primary Names',
+            children: [
+              {
+                title: 'getPrimaryName',
+                href: '/build/ar-io-sdk/ario/primary-names/get-primary-name',
+              },
+              {
+                title: 'getPrimaryNames',
+                href: '/build/ar-io-sdk/ario/primary-names/get-primary-names',
+              },
+              {
+                title: 'getPrimaryNameRequest',
+                href: '/build/ar-io-sdk/ario/primary-names/get-primary-name-request',
+              },
+              {
+                title: 'requestPrimaryName',
+                href: '/build/ar-io-sdk/ario/primary-names/request-primary-name',
+              },
+            ],
+          },
+        ],
+      },
+      {
+        title: 'ANT Class',
+        children: [
+          {
+            title: 'getInfo',
+            href: '/build/ar-io-sdk/ants/get-info',
+          },
+          {
+            title: 'getHandlers',
+            href: '/build/ar-io-sdk/ants/get-handlers',
+          },
+          {
+            title: 'setBaseNameRecord',
+            href: '/build/ar-io-sdk/ants/set-base-name-record',
+          },
+          {
+            title: 'setUndernameRecord',
+            href: '/build/ar-io-sdk/ants/set-undername-record',
+          },
+          {
+            title: 'removeUndernameRecord',
+            href: '/build/ar-io-sdk/ants/remove-undername-record',
+          },
+          {
+            title: 'approvePrimaryNameRequest',
+            href: '/build/ar-io-sdk/ants/approve-primary-name-request',
+          },
+        ],
+      },
+      {
+        title: "ANTRegistry Class",
+        children: [
+          {
+            title: "Info",
+            href: "/build/ar-io-sdk/ant-registry"
+          },
+          {
+            title: "accessControlList",
+            href: "/build/ar-io-sdk/ant-registry/access-control-list"
+          },
+          {
+            title: "register",
+            href: "/build/ar-io-sdk/ant-registry/register"
+          }
+        ]
+      },
+      {
+        title: 'Release Notes',
+        href: '/build/ar-io-sdk/release-notes',
+      },
+    ],
+  },
+  {
+    title: 'Gateways',
+    href: '/build/gateways',
+    links: [
+      {
+        title: 'Architecture',
+        href: '/build/gateways',
+      },
+      {
+        title: 'Gateway Network',
+        href: '/build/gateways/gateway-network',
+      },
+      {
+        title: 'Setup and Operation',
+        href: '/build/gateways/setup-and-operation',
+        children: [
+          {
+            title: 'Linux Setup',
+            href: '/build/gateways/linux-setup',
+          },
+          {
+            title: 'Windows Setup',
+            href: '/build/gateways/windows-setup',
+          },
+          {
+            title: 'Join The Network',
+            href: '/build/gateways/join-network',
+          },
+          {
+            title: "ArNS Resolution",
+            href: "/build/gateways/arns-resolution"
+          },
+          {
+            title: 'Admin Configurations',
+            href: '/build/gateways/admin',
+          },
+          {
+            title: 'Advanced Configurations',
+            href: '/build/gateways/advanced',
+          },
+          {
+            title: 'Environmental Variables',
+            href: '/build/gateways/env',
+          },
+          {
+            title: 'Troubleshooting',
+            href: '/build/gateways/troubleshooting',
+          },
+          {
+            title: 'Upgrading',
+            href: '/build/gateways/upgrading',
+          },
+          {
+            title: "Moderation",
+            href: "/build/gateways/moderation"
+          },
+          {
+            title: 'Bundler Sidecar',
+            href: '/build/gateways/bundler',
+          },
+          {
+            title: 'Grafana Sidecar',
+            href: '/build/gateways/grafana',
+          },
+          {
+            title: 'Automating SSL',
+            href: '/build/gateways/networking',
+            children: [
+              {
+                title: 'Cloudflare',
+                href: '/build/gateways/networking/certbot/cloudflare',
+              },
+              {
+                title: 'Namecheap',
+                href: '/build/gateways/networking/certbot/namecheap',
+              },
+            ],
+          },
+        ],
+      },
+      {
+        title: 'Observer',
+        href: '/build/gateways/observer',
+      },
+      {
+        title: 'Release Notes',
+        href: '/build/gateways/release-notes',
+      },
+    ],
+  },
+  {
+    title: 'Guides',
+    href: '/build/guides',
+    links: [
+      {
+        title: 'GQL',
+        href: '/build/guides/gql',
+      },
+      {
+        title: "Managing Undernames",
+        href: "/build/guides/managing-undernames"
+      },
+      {
+        title: "Managing Primary Names",
+        href: "/build/guides/primary-names"
+      },
+      {
+        title: 'Deploy to Arweave',
+        href: '/build/guides/deploy',
+        children: [
+          {
+            title: 'Permaweb Deploy',
+            href: '/build/guides/permaweb-deploy',
+          },
+          {
+            title: 'Arlink',
+            href: '/build/guides/arlink',
+          },
+        ],
+      },
+      {
+        title: 'Projects',
+        children: [
+          {
+            title: 'ArNS Viewer',
+            href: '/build/guides/arns-viewer',
+          },
+        ],
+      },
+      {
+        title: 'ANTs on Bazar',
+        href: '/learn/guides/ants-on-bazar',
+      },
+    ],
+  },
+  {
+    title: 'Reference',
+    links: [
+      {
+        title: 'Glossary',
+        href: '/learn/glossary',
+      },
+      {
+        title: "Community Resources",
+        href: "/community-resources"
+      },
+    ],
+  },
+]
