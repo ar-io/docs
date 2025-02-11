@@ -275,15 +275,21 @@ function NavigationGroup({
     isInsideMobileNavigation,
   )
   const isPathActive = (
-    link: { href?: string; children?: any[] },
+    link: { href?: string; children?: any[]; links?: any[] },
     currentPath: string,
   ): boolean => {
     if (link.href && normalizePath(link.href) === normalizePath(currentPath)) {
       return true
     }
 
+    // Check children
     if (link.children) {
       return link.children.some((child) => isPathActive(child, currentPath))
+    }
+
+    // Check links (for top-level groups)
+    if (link.links) {
+      return link.links.some((subLink) => isPathActive(subLink, currentPath))
     }
 
     return false
@@ -297,24 +303,17 @@ function NavigationGroup({
         level: number,
       ) => {
         links.forEach((link) => {
-          if (level === 0) {
-            initialState[link.title] = true
-          } else {
-            const isActive = isPathActive(link, pathname)
-
-            if (level === 1) {
-              initialState[link.title] = !isActive
-            } else {
-              initialState[link.title] = !isActive
-            }
-          }
-
+          const isActive = isPathActive(link, pathname)
+          initialState[link.title] = !isActive
+          
           if (link.children) {
             setInitialStates(link.children, level + 1)
           }
         })
       }
 
+      // Set the group title's initial state
+      initialState[group.title] = !isPathActive(group, pathname)
       setInitialStates(group.links, 0)
       return initialState
     },
