@@ -596,18 +596,18 @@ export const singleNavigation: Array<NavGroup> = [
         title: 'Staking',
         href: '/learn/staking'
       },
-    ],
-  },
-  {
-    title: 'Core Concepts',
-    links: [
+      {
+        title: "White Paper",
+        href: "https://whitepaper.arweave.net/"
+      },
+  //   ],
+  // },
+  // {
+  //   title: 'Core Concepts',
+  //   links: [
       {
         title: 'Arweave Name System (ArNS)',
         href: '/learn/arns',
-      },
-      {
-        title: 'Network Composition',
-        href: '/learn/network-composition',
       },
       {
         title: 'Manifests',

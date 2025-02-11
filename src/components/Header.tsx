@@ -82,26 +82,26 @@ export const Header = forwardRef<
       <Search />
       <div className="flex items-center gap-5 lg:hidden">
         <MobileNavigation />
-        <Link href="/" aria-label="Home">
+        {/* <Link href="/" aria-label="Home">
           <Logo className="h-6" />
-        </Link>
-        <Link href="/learn/introduction" aria-label="Home">
+        </Link> */}
+        {/* <Link href="/learn/introduction" aria-label="Home">
           Learn
         </Link>
         <Link href="/build/ar-io-sdk" aria-label="Home">
           Build
-        </Link>
+        </Link> */}
       </div>
       <div className="flex items-center gap-5">
         <nav className="hidden md:block">
           <ul role="list" className="flex items-center gap-8">
-            <TopLevelNavItem href="/">Home</TopLevelNavItem>
+            {/* <TopLevelNavItem href="/">Home</TopLevelNavItem> */}
             {/* <TopLevelNavItem href="https://whitepaper.arweave.net/" target='_blank'>White Paper</TopLevelNavItem> */}
-            <TopLevelNavItem href="/learn/introduction">Learn</TopLevelNavItem>
+            {/* <TopLevelNavItem href="/learn/introduction">Learn</TopLevelNavItem>
             <TopLevelNavItem href="/build/ar-io-sdk">Build</TopLevelNavItem>
             <TopLevelNavItem href="/community-resources">
               Community Resources
-            </TopLevelNavItem>
+            </TopLevelNavItem> */}
           </ul>
         </nav>
       </div>
