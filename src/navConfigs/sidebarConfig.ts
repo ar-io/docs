@@ -952,7 +952,7 @@ export const singleNavigation: Array<NavGroup> = [
     ],
   },
   {
-    title: 'Reference',
+    title: 'References',
     links: [
       {
         title: 'Glossary',
