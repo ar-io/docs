@@ -76,10 +76,11 @@ function NavLink({
   isAnchorLink?: boolean
 }) {
   if (!href) return null
-
+  const target = href.startsWith('https') ? '_blank' : '_self'
   return (
-    <Link
+    <Link 
       href={href}
+      target={target}
       aria-current={active ? 'page' : undefined}
       // Items without children
       className={clsx(
