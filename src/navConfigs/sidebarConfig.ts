@@ -26,7 +26,7 @@ export const mainNavigation: Array<NavGroup> = [
       },
       {
         title: 'Smart Contract',
-        href: '/learn/ario-contract'
+        href: '/learn/ario-contract',
       },
       {
         title: 'Token',
@@ -34,7 +34,7 @@ export const mainNavigation: Array<NavGroup> = [
       },
       {
         title: 'Staking',
-        href: '/learn/staking'
+        href: '/learn/staking',
       },
       {
         title: 'Glossary',
@@ -330,7 +330,7 @@ export const secondaryNavigation: Array<NavGroup> = [
           },
           {
             title: 'getLogo',
-            href: '/build/ar-io-sdk/ants/get-logo'
+            href: '/build/ar-io-sdk/ants/get-logo',
           },
           {
             title: 'getState',
@@ -410,35 +410,35 @@ export const secondaryNavigation: Array<NavGroup> = [
           },
           {
             title: 'setBaseNameRecord',
-            href: '/build/ar-io-sdk/ants/set-base-name-record'
+            href: '/build/ar-io-sdk/ants/set-base-name-record',
           },
           {
             title: 'setUndernameRecord',
-            href: '/build/ar-io-sdk/ants/set-undername-record'
+            href: '/build/ar-io-sdk/ants/set-undername-record',
           },
           {
             title: 'removeUndernameRecord',
-            href: '/build/ar-io-sdk/ants/remove-undername-record'
+            href: '/build/ar-io-sdk/ants/remove-undername-record',
           },
         ],
       },
       {
-        title: "ANTRegistry Class",
+        title: 'ANTRegistry Class',
         children: [
           {
-            title: "Info",
-            href: "/build/ar-io-sdk/ant-registry"
+            title: 'Info',
+            href: '/build/ar-io-sdk/ant-registry',
           },
           {
-            title: "accessControlList",
-            href: "/build/ar-io-sdk/ant-registry/access-control-list"
+            title: 'accessControlList',
+            href: '/build/ar-io-sdk/ant-registry/access-control-list',
           },
           {
-            title: "register",
-            href: "/build/ar-io-sdk/ant-registry/register"
-          }
-        ]
-      }
+            title: 'register',
+            href: '/build/ar-io-sdk/ant-registry/register',
+          },
+        ],
+      },
     ],
   },
   {
@@ -469,8 +469,8 @@ export const secondaryNavigation: Array<NavGroup> = [
             href: '/build/gateways/join-network',
           },
           {
-            title: "ArNS Resolution",
-            href: "/build/gateways/arns-resolution"
+            title: 'ArNS Resolution',
+            href: '/build/gateways/arns-resolution',
           },
           {
             title: 'Admin Configurations',
@@ -493,8 +493,8 @@ export const secondaryNavigation: Array<NavGroup> = [
             href: '/build/gateways/upgrading',
           },
           {
-            title: "Moderation",
-            href: "/build/gateways/moderation"
+            title: 'Moderation',
+            href: '/build/gateways/moderation',
           },
           {
             title: 'Bundler Sidecar',
@@ -539,12 +539,12 @@ export const secondaryNavigation: Array<NavGroup> = [
         href: '/build/guides/gql',
       },
       {
-        title: "Managing Undernames",
-        href: "/build/guides/managing-undernames"
+        title: 'Managing Undernames',
+        href: '/build/guides/managing-undernames',
       },
       {
-        title: "Managing Primary Names",
-        href: "/build/guides/primary-names"
+        title: 'Managing Primary Names',
+        href: '/build/guides/primary-names',
       },
       {
         title: 'Deploy to Arweave',
@@ -577,6 +577,10 @@ export const singleNavigation: Array<NavGroup> = [
     title: 'General',
     links: [
       {
+        title: 'White Paper',
+        href: 'https://whitepaper.arweave.net/',
+      },
+      {
         title: 'Introduction',
         href: '/learn/introduction',
       },
@@ -586,7 +590,7 @@ export const singleNavigation: Array<NavGroup> = [
       },
       {
         title: 'Smart Contract',
-        href: '/learn/ario-contract'
+        href: '/learn/ario-contract',
       },
       {
         title: 'Token',
@@ -594,17 +598,14 @@ export const singleNavigation: Array<NavGroup> = [
       },
       {
         title: 'Staking',
-        href: '/learn/staking'
+        href: '/learn/staking',
       },
-      {
-        title: "White Paper",
-        href: "https://whitepaper.arweave.net/"
-      },
-  //   ],
-  // },
-  // {
-  //   title: 'Core Concepts',
-  //   links: [
+
+      //   ],
+      // },
+      // {
+      //   title: 'Core Concepts',
+      //   links: [
       {
         title: 'Arweave Name System (ArNS)',
         href: '/learn/arns',
@@ -793,21 +794,21 @@ export const singleNavigation: Array<NavGroup> = [
         ],
       },
       {
-        title: "ANTRegistry Class",
+        title: 'ANTRegistry Class',
         children: [
           {
-            title: "Info",
-            href: "/build/ar-io-sdk/ant-registry"
+            title: 'Info',
+            href: '/build/ar-io-sdk/ant-registry',
           },
           {
-            title: "accessControlList",
-            href: "/build/ar-io-sdk/ant-registry/access-control-list"
+            title: 'accessControlList',
+            href: '/build/ar-io-sdk/ant-registry/access-control-list',
           },
           {
-            title: "register",
-            href: "/build/ar-io-sdk/ant-registry/register"
-          }
-        ]
+            title: 'register',
+            href: '/build/ar-io-sdk/ant-registry/register',
+          },
+        ],
       },
       {
         title: 'Release Notes',
@@ -844,8 +845,8 @@ export const singleNavigation: Array<NavGroup> = [
             href: '/build/gateways/join-network',
           },
           {
-            title: "ArNS Resolution",
-            href: "/build/gateways/arns-resolution"
+            title: 'ArNS Resolution',
+            href: '/build/gateways/arns-resolution',
           },
           {
             title: 'Admin Configurations',
@@ -868,8 +869,8 @@ export const singleNavigation: Array<NavGroup> = [
             href: '/build/gateways/upgrading',
           },
           {
-            title: "Moderation",
-            href: "/build/gateways/moderation"
+            title: 'Moderation',
+            href: '/build/gateways/moderation',
           },
           {
             title: 'Bundler Sidecar',
@@ -914,12 +915,12 @@ export const singleNavigation: Array<NavGroup> = [
         href: '/build/guides/gql',
       },
       {
-        title: "Managing Undernames",
-        href: "/build/guides/managing-undernames"
+        title: 'Managing Undernames',
+        href: '/build/guides/managing-undernames',
       },
       {
-        title: "Managing Primary Names",
-        href: "/build/guides/primary-names"
+        title: 'Managing Primary Names',
+        href: '/build/guides/primary-names',
       },
       {
         title: 'Deploy to Arweave',
@@ -958,8 +959,8 @@ export const singleNavigation: Array<NavGroup> = [
         href: '/learn/glossary',
       },
       {
-        title: "Community Resources",
-        href: "/community-resources"
+        title: 'Community Resources',
+        href: '/community-resources',
       },
     ],
   },
