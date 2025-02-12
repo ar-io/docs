@@ -76,29 +76,33 @@ function NavLink({
   isAnchorLink?: boolean
 }) {
   if (!href) return null
-  const target = href.startsWith('https') ? '_blank' : '_self'
+  const isExternal = href.startsWith('https')
+  const target = isExternal ? '_blank' : '_self'
+
   return (
     <Link 
       href={href}
       target={target}
       aria-current={active ? 'page' : undefined}
-      // Items without children
       className={clsx(
         'flex cursor-pointer justify-between gap-2 text-sm transition',
         isAnchorLink ? 'pl-9' : 'pl-4',
         active
-          ? //active item
-            'font-bold text-zinc-900 hover:text-emerald-600 underline dark:text-white dark:hover:text-emerald-600'
-          : // non-active items
-            'text-zinc-600 hover:text-emerald-600 dark:text-zinc-400 dark:hover:text-emerald-600 ',
+          ? 'font-bold text-zinc-900 hover:text-emerald-600 underline dark:text-white dark:hover:text-emerald-600'
+          : 'text-zinc-600 hover:text-emerald-600 dark:text-zinc-400 dark:hover:text-emerald-600',
       )}
     >
       <span className="truncate">{children}</span>
-      {tag && (
-        <Tag variant="small" color="zinc">
-          {tag}
-        </Tag>
-      )}
+      <span className="flex items-center gap-1">
+        {tag && (
+          <Tag variant="small" color="zinc">
+            {tag}
+          </Tag>
+        )}
+        {isExternal && (
+          <SquareArrowOutUpRight className="h-4 w-4 transition-colors group-hover:text-emerald-600 dark:group-hover:text-emerald-600" />
+        )}
+      </span>
     </Link>
   )
 }
