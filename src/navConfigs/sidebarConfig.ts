@@ -830,7 +830,7 @@ export const singleNavigation: Array<NavGroup> = [
       },
       {
         title: 'Setup and Operation',
-        href: '/build/gateways/setup-and-operation',
+        // href: '/build/gateways/setup-and-operation',
         children: [
           {
             title: 'Linux Setup',
@@ -882,7 +882,7 @@ export const singleNavigation: Array<NavGroup> = [
           },
           {
             title: 'Automating SSL',
-            href: '/build/gateways/networking',
+            // href: '/build/gateways/networking',
             children: [
               {
                 title: 'Cloudflare',
@@ -924,7 +924,6 @@ export const singleNavigation: Array<NavGroup> = [
       },
       {
         title: 'Deploy to Arweave',
-        href: '/build/guides/deploy',
         children: [
           {
             title: 'Permaweb Deploy',
