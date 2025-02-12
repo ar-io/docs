@@ -34,6 +34,21 @@ async function main() {
   // Modify manifest to add keys without "index.html"
   const updatedPaths = { ...manifest.paths };
   Object.keys(manifest.paths).forEach((key) => {
+
+    if (key.startsWith('build/')){
+      const newKey = key.replace('build/', '');
+      if (!updatedPaths.hasOwnProperty(newKey)) {
+        updatedPaths[newKey] = manifest.paths[key];
+        console.log(`Added manifest key: ${newKey} -> ${key}`);
+      }
+    }
+    if (key.startsWith('learn/')){
+      const newKey = key.replace('learn/', '');
+      if (!updatedPaths.hasOwnProperty(newKey)) {
+        updatedPaths[newKey] = manifest.paths[key];
+        console.log(`Added manifest key: ${newKey} -> ${key}`);
+      }
+    }
     // Handle "index.html"
     if (key.endsWith("index.html")) {
       const newKey = key.replace(/index\.html$/, ""); // Remove "index.html"
