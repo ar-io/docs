@@ -13,7 +13,6 @@ const {connect} = require("@permaweb/aoconnect")
 
 require('dotenv').config()
 
-const ARIO_TESTNET_PID = "agYcCFJtrMG6cqMuZfskIkFTGvUPddICmtQSBIoPdiA"
 
 const undername = process.env.UNDERNAME || '@';
 async function main() {
