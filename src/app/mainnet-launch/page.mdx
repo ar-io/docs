@@ -1,0 +1,49 @@
+import {HeroPattern} from "@/components/HeroPattern"
+
+export const metadata = {
+  title: 'Migrating to Mainnet',
+  description: 'What you need to know about the AR.IO Network mainnet launch.',
+  openGraph: {
+    title: 'Migrating to Mainnet',
+  },
+}
+
+<HeroPattern />
+
+# Migrating to Mainnet
+
+## Overview
+
+The AR.IO Network has migrated from testnet to mainnet. While most of the transition is seamless, there are a few specific steps that participants need to take to ensure a smooth migration.
+
+## Gateway Operators
+
+Gateway operators will not need to modify any configuration settings to migrate to the mainnet. Everything will be handled automatically via gateway release number 26. Every 
+gateway operator will need to update their gateway to release 27 and restart the gateway as soon as possible, or they will continue to operate on testnet. 
+
+## ArNS Name Holders
+
+ArNS name holders will not need to take any action to migrate to mainnet. Existing [ANTs](/learn/arns#arweave-name-token-ant) will continue to work on mainnet and will not need to be forked or updated.
+However, an optional upgrade to the ANT contract is available for those who want to take advantage of the new features. This upgrade can be completed via the name management page at [arns.app](https://arns.arweave.net/#/manage/names)
+
+<Tip title="ArNS Mainnet Carryover">Note that holding an ArNS name in testnet is not a guarantee that the name will carry over to mainnet. The AR.IO team has been clear about their right to restrict some name transitions for the good of the Network and ecosystem. 
+This is done at their discretion, and is not appealable.</Tip>
+
+## SDK Developers
+
+SDK developers will need to update their SDKs to the latest version. This is a non-breaking change, so existing code will continue to work. However, the process Id for the ARIO mainnet contract has changed. This means that
+failure to update will result in code continuing to operate on testnet.
+
+The basic [`init()`](/build/ar-io-sdk/ario/configuration) method automatically provides this process Id. If you are using advanced configuration methods, you will need to manually update the process Id.
+
+* testnet Process Id: `agYcCFJtrMG6cqMuZfskIkFTGvUPddICmtQSBIoPdiA`
+* mainnet Process Id: `agYcCFJtrMG6cqMuZfskIkFTGvUPddICmtQSBIoPdiA` //TODO: Add mainnet process id here
+
+## Adding ARIO to Wander
+
+Wander, formally ArConnect, is a popular browser wallet for Arweave. The ARIO mainnet token can be added to Wander by going to menu -> Tokens -> Import Token and then providing the ARIO mainnet token process Id:
+
+//TODO: Put the mainnet token process id here
+```
+agYcCFJtrMG6cqMuZfskIkFTGvUPddICmtQSBIoPdiA
+```
