@@ -26,7 +26,7 @@ const QuickStartCards: React.FC = () => {
 
             {/* Icon below title */}
             <img
-              src={icon ?? "https://arweave.net/IXl1JBlE_gsOaXGa6yE1eifPu7ekH-qSaGR9b5GU88Y"}
+              src={icon ?? "https://arweave.net/u_RyVlrvhHawKdk55HjQNmIXGGMeuSXFoXlDJlho4MI"}
               alt={title}
               className="w-16 h-16 object-cover rounded-lg mb-4"
             />

@@ -1086,7 +1086,7 @@ export const singleNavigation: Array<NavGroup> = [
   },
   {
     title: 'Guides',
-    // href: '/build/guides',
+    href: '/build/guides',
     links: [
       {
         title: 'GQL',
