@@ -20,7 +20,7 @@ const QuickStartCards: React.FC = () => {
         <Link key={index} href={href} className="group h-full">
           <div className="p-6 border rounded-2xl shadow-md bg-zinc-900/5 hover:shadow-lg transition-shadow flex flex-col items-center text-center dark:bg-white/7.5 dark:ring-white/15 dark:group-hover:bg-purple-100/10 dark:group-hover:ring-purple-200 h-full min-h-[250px]">
             {/* Title at the top */}
-            <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">
+            <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4 h-1/3">
               {title}
             </h3>
 
@@ -32,7 +32,7 @@ const QuickStartCards: React.FC = () => {
             />
 
             {/* Description with proper text wrapping */}
-            <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed break-words">
+            <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed break-words h-1/3">
               {description}
             </p>
           </div>
