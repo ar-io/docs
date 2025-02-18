@@ -626,6 +626,10 @@ export const singleNavigation: Array<NavGroup> = [
         title: 'Wayfinder',
         href: '/learn/concepts/wayfinder',
       },
+      {
+        title: 'Preparing for Mainnet Launch',
+        href: '/mainnet-launch',
+      },
     ],
   },
   {
