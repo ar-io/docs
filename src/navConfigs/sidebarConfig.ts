@@ -1089,6 +1089,10 @@ export const singleNavigation: Array<NavGroup> = [
     href: '/build/guides',
     links: [
       {
+        title: 'Migrating to Mainnet',
+        href: '/mainnet-launch',
+      },
+      {
         title: 'GQL',
         href: '/build/guides/gql',
       },
