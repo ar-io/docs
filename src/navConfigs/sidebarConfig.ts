@@ -1111,6 +1111,10 @@ export const singleNavigation: Array<NavGroup> = [
             title: 'Arlink',
             href: '/build/guides/arlink',
           },
+          {
+            title: 'ArDrive Web',
+            href: '/build/guides/ardrive-web',
+          },
         ],
       },
       {
