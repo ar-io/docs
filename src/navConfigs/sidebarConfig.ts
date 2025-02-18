@@ -626,10 +626,6 @@ export const singleNavigation: Array<NavGroup> = [
         title: 'Wayfinder',
         href: '/learn/concepts/wayfinder',
       },
-      {
-        title: 'Preparing for Mainnet Launch',
-        href: '/mainnet-launch',
-      },
     ],
   },
   {
@@ -914,6 +910,10 @@ export const singleNavigation: Array<NavGroup> = [
     title: 'Guides',
     // href: '/build/guides',
     links: [
+      {
+        title: 'Migrating to Mainnet',
+        href: '/mainnet-launch',
+      },
       {
         title: 'GQL',
         href: '/build/guides/gql',
