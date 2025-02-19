@@ -581,6 +581,10 @@ export const singleNavigation: Array<NavGroup> = [
         href: 'https://whitepaper.arweave.net/',
       },
       {
+        title: "AR.IO Gateway API Docs",
+        href: "https://ar-io.dev/api-docs/"
+      },
+      {
         title: 'Introduction',
         href: '/learn/introduction',
       },
