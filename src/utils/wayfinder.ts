@@ -70,8 +70,7 @@ async function wayfinder(input: string): Promise<string> {
       console.log("Fetching gateways");
       const ario = ARIO.init({
         process: new AOProcess({
-          //TODO: Replace this with the actual process ID
-          processId: "agYcCFJtrMG6cqMuZfskIkFTGvUPddICmtQSBIoPdiA",
+          processId: "qNvAoz0TgcH7DMg8BCVn8jF32QH5L6T29VjHxhHqqGE",
           ao: connect({
             CU_URL: 'https://cu.ar-io.dev',
           }),
