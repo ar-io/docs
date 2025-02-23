@@ -1,0 +1,313 @@
+<!--
+@ai-doc-type: SDK Reference
+@version: 1.0
+@package: @ar.io/sdk
+@description: Comprehensive API reference for the AR.IO SDK
+@platforms: Web, NodeJS
+@main-classes: ARIO, ANT, ANTRegistry
+@last-updated: 2024
+-->
+
+import { HeroPattern } from '@/components/HeroPattern'
+
+export const metadata = {
+  title: 'AR.IO SDK AI Reference',
+  description: 'Comprehensive API reference for the AR.IO SDK, optimized for AI consumption',
+}
+
+<HeroPattern />
+
+# AR.IO SDK Reference
+
+This document provides a comprehensive reference of the AR.IO SDK, structured for optimal AI understanding and assistance.
+
+## SDK Classes Overview
+
+The AR.IO SDK consists of three main classes:
+
+1. **ARIO** - Core functionality for interacting with the AR.IO network
+2. **ANT** - Management of Arweave Name Tokens
+3. **ANTRegistry** - Registration and management of ANTs
+
+## Class: ARIO
+
+### Configuration
+
+```typescript
+interface ARIOConfig {
+  signer?: ArweaveSigner | ArConnectSigner; // Optional authentication signer
+  process?: AOProcess; // Optional AO process configuration
+}
+
+// Initialize ARIO
+const ario = ARIO.init(config?: ARIOConfig);
+```
+
+### Methods
+
+#### General Operations
+
+1. **getInfo**
+- Purpose: Retrieve information about the AR.IO contract
+- Authentication: Not required
+- Returns: Contract information including version and settings
+```typescript
+async getInfo(): Promise<{
+  version: string;
+  owner: string;
+  // ... other contract info
+}>;
+```
+
+2. **getTokenSupply**
+- Purpose: Get total token supply information
+- Authentication: Not required
+- Returns: Token supply details
+```typescript
+async getTokenSupply(): Promise<{
+  totalSupply: number;
+  circulatingSupply: number;
+}>;
+```
+
+3. **getBalance**
+- Purpose: Get token balance for a specific wallet
+- Authentication: Not required
+- Parameters: Wallet address
+```typescript
+async getBalance({ 
+  address: string 
+}): Promise<number>;
+```
+
+4. **transfer**
+- Purpose: Transfer ARIO tokens to another wallet
+- Authentication: Required
+- Parameters: Transfer details and optional tags
+```typescript
+async transfer({ 
+  qty: number;
+  target: string;
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+#### Gateway Operations
+
+1. **getGateway**
+- Purpose: Get information about a specific gateway
+- Authentication: Not required
+- Parameters: Gateway identifier (address or FQDN)
+```typescript
+async getGateway({ 
+  address?: string;
+  fqdn?: string;
+}): Promise<{
+  address: string;
+  label: string;
+  fqdn: string;
+  port: number;
+  protocol: string;
+  properties: string;
+  settings: {
+    allowDelegatedStaking: boolean;
+    delegateRewardShareRatio: number;
+    minDelegatedStake: number;
+    operatorStake: number;
+    totalDelegatedStake: number;
+  };
+}>;
+```
+
+2. **getGateways**
+- Purpose: List all gateways in the network
+- Authentication: Not required
+- Parameters: Pagination and sorting options
+```typescript
+async getGateways(options?: {
+  limit?: number;
+  cursor?: string;
+  sortBy?: 'joinedTimestamp' | 'operatorStake';
+  sortOrder?: 'asc' | 'desc';
+}): Promise<{
+  items: Array<Gateway>;
+  cursor?: string;
+}>;
+```
+
+3. **joinNetwork**
+- Purpose: Join a gateway to the network
+- Authentication: Required
+- Parameters: Gateway configuration
+```typescript
+async joinNetwork({
+  qty: number;                      // Initial stake amount in mARIO
+  label: string;                    // Gateway label (max 64 chars)
+  fqdn: string;                     // Fully qualified domain name
+  port: number;                     // Port number (usually 443)
+  protocol: 'http' | 'https';       // Protocol (must be https for network)
+  properties: string;               // ArweaveID for properties JSON
+  observerWallet: string;           // Observer wallet address
+  autoStake?: boolean;              // Auto-stake rewards
+  allowDelegatedStaking?: boolean;  // Allow delegation
+  delegateRewardShareRatio?: number;// Reward share % for delegates
+  minDelegatedStake?: number;       // Minimum delegation amount
+  note?: string;                    // Optional note (max 256 chars)
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+4. **leaveNetwork**
+- Purpose: Remove a gateway from the network
+- Authentication: Required
+- Parameters: Optional tags
+```typescript
+async leaveNetwork(options?: {
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+5. **updateGatewaySettings**
+- Purpose: Update gateway configuration
+- Authentication: Required
+- Parameters: Updated settings
+```typescript
+async updateGatewaySettings({
+  label?: string;
+  fqdn?: string;
+  port?: number;
+  protocol?: 'http' | 'https';
+  properties?: string;
+  observerWallet?: string;
+  autoStake?: boolean;
+  allowDelegatedStaking?: boolean;
+  delegateRewardShareRatio?: number;
+  minDelegatedStake?: number;
+  note?: string;
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+## Class: ANT
+
+### Configuration
+
+```typescript
+interface ANTConfig {
+  signer?: ArweaveSigner | ArConnectSigner;
+  processId: string; // Required ANT process ID
+}
+
+// Initialize ANT
+const ant = ANT.init(config: ANTConfig);
+```
+
+[Continue with all ANT methods...]
+
+## Class: ANTRegistry
+
+### Configuration
+
+```typescript
+interface ANTRegistryConfig {
+  signer?: ArweaveSigner | ArConnectSigner;
+  processId: string; // Required registry process ID
+}
+
+// Initialize ANTRegistry
+const registry = ANTRegistry.init(config: ANTRegistryConfig);
+```
+
+[Continue with all ANTRegistry methods...]
+
+## Common Patterns and Usage
+
+### Authentication Flow
+```typescript
+// Web authentication
+const ario = ARIO.init({
+  signer: new ArConnectSigner(window.arweaveWallet)
+});
+
+// Node.js authentication
+const ario = ARIO.init({
+  signer: new ArweaveSigner(jwk)
+});
+```
+
+### Error Handling
+```typescript
+try {
+  const result = await ario.someMethod();
+} catch (error) {
+  if (error.name === 'AuthenticationError') {
+    // Handle authentication errors
+  } else if (error.name === 'ValidationError') {
+    // Handle validation errors
+  }
+  // ... other error types
+}
+```
+
+### Type Definitions
+
+```typescript
+// Core types used throughout the SDK
+interface GQLTag {
+  name: string;
+  value: string;
+}
+
+interface PaginationOptions {
+  limit?: number;
+  cursor?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+// ... other common types
+```
+
+## Integration Examples
+
+### Gateway Management
+```typescript
+// Example of complete gateway lifecycle
+async function manageGateway() {
+  // Join network
+  const joinResult = await ario.joinNetwork({
+    qty: 10000,
+    label: "My Gateway",
+    // ... other required params
+  });
+
+  // Update settings
+  await ario.updateGatewaySettings({
+    // ... settings
+  });
+
+  // Leave network
+  await ario.leaveNetwork();
+}
+```
+
+[Continue with more integration examples...]
+
+## Best Practices
+
+1. **Authentication**
+   - Always initialize with appropriate signer for environment
+   - Handle authentication errors gracefully
+   - Implement proper key management
+
+2. **Error Handling**
+   - Implement comprehensive error handling
+   - Use type checking for parameters
+   - Validate inputs before making calls
+
+3. **Rate Limiting**
+   - Implement appropriate delays between calls
+   - Use pagination for large data sets
+   - Cache responses where appropriate
+
+[Continue with more best practices...]
