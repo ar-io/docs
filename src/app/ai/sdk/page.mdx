@@ -1,4 +1,4 @@
-<!--
+{/* 
 @ai-doc-type: SDK Reference
 @version: 1.0
 @package: @ar.io/sdk
@@ -6,7 +6,7 @@
 @platforms: Web, NodeJS
 @main-classes: ARIO, ANT, ANTRegistry
 @last-updated: 2024
--->
+*/}
 
 import { HeroPattern } from '@/components/HeroPattern'
 
@@ -29,18 +29,129 @@ The AR.IO SDK consists of three main classes:
 2. **ANT** - Management of Arweave Name Tokens
 3. **ANTRegistry** - Registration and management of ANTs
 
+## Important Constants
+
+```typescript
+// ARIO mainnet process ID
+const ARIO_MAINNET_PROCESS_ID = 'qNvAoz0TgcH7DMg8BCVn8jF32QH5L6T29VjHxhHqqGE';
+const DEFAULT_TTL_SECONDS = 900;
+const MAX_PAGINATION_LIMIT = 1000;
+```
+
+### Usage Notes
+- All paginated methods accept a maximum of 1000 items per request
+- When initializing ARIO on mainnet, use the mainnet process ID:
+```typescript
+const ario = ARIO.init({
+  signer: new ArweaveSigner(jwk),
+  process: new AOProcess({
+    processId: 'qNvAoz0TgcH7DMg8BCVn8jF32QH5L6T29VjHxhHqqGE'
+  })
+});
+```
+
 ## Class: ARIO
 
 ### Configuration
 
 ```typescript
 interface ARIOConfig {
-  signer?: ArweaveSigner | ArConnectSigner; // Optional authentication signer
-  process?: AOProcess; // Optional AO process configuration
+  process?: AOProcess;        // Pre-configured AOProcess instance
+  processId?: string;         // ID of the AO process (defaults to mainnet)
+  signer?: ContractSigner;    // ArweaveSigner or ArConnectSigner
 }
 
 // Initialize ARIO
 const ario = ARIO.init(config?: ARIOConfig);
+```
+
+### Initialization
+
+The ARIO class can be initialized in three ways:
+
+```typescript
+// Read-only client (no arguments)
+static init(): AoARIORead;
+
+// Authenticated client (with signer)
+static init(config: ARIOConfigWithSigner): AoARIOWrite;
+
+// Read-only client (with config)
+static init(config: ARIOConfigNoSigner): AoARIORead;
+```
+
+### Configuration Types
+
+```typescript
+type ARIOConfigNoSigner = {
+  process?: AOProcess;
+  processId?: string;
+  arweave?: Arweave;
+};
+
+type ARIOConfigWithSigner = {
+  signer: ArweaveSigner | ArConnectSigner;
+  process?: AOProcess;
+  processId?: string;
+  arweave?: Arweave;
+};
+```
+
+### Initialization Examples
+
+```typescript
+// Read-only client (no authentication)
+const ario = ARIO.init();
+
+// NodeJS authenticated client
+const ario = ARIO.init({
+  signer: new ArweaveSigner(jwk)
+});
+
+// Web authenticated client
+const ario = ARIO.init({
+  signer: new ArConnectSigner(window.arweaveWallet)
+});
+
+// Custom AO process configuration
+const ario = ARIO.init({
+  process: new AOProcess({
+    processId: ARIO_MAINNET_PROCESS_ID,
+    ao: connect({
+      MU_URL: 'https://mu.arweave.net',      // customizable
+      CU_URL: 'https://cu.arweave.net',      // customizable
+      GRAPHQL_URL: 'https://arweave.net/graphql', // customizable
+      GATEWAY_URL: 'https://arweave.net',    // customizable
+    })
+  })
+});
+
+// Custom process ID (for non-mainnet)
+const ario = ARIO.init({
+  processId: 'custom_process_id'  // Use specific AO process
+});
+```
+
+### Configuration Parameters
+
+| Parameter | Type | Description | Optional |
+|-----------|------|-------------|----------|
+| process | AOProcess | Pre-configured AOProcess instance | Yes |
+| processId | string | ID of the AO process | Yes |
+| signer | ContractSigner | Signer for authenticated operations | Yes |
+
+### Authentication Notes
+
+- "Authentication: Not required" - Method is available on read-only clients (no signer needed during init)
+- "Authentication: Required" - Method is only available when initialized with a signer
+```typescript
+// Read-only client - can only call "Authentication: Not required" methods
+const readOnlyClient = ARIO.init();
+
+// Authenticated client - can call all methods
+const authenticatedClient = ARIO.init({
+  signer: new ArweaveSigner(jwk)
+});
 ```
 
 ### Methods
@@ -48,25 +159,34 @@ const ario = ARIO.init(config?: ARIOConfig);
 #### General Operations
 
 1. **getInfo**
-- Purpose: Retrieve information about the AR.IO contract
+- Purpose: Retrieve basic information about the ARIO contract
 - Authentication: Not required
-- Returns: Contract information including version and settings
+- Returns: Contract information including name, ticker, and settings
 ```typescript
 async getInfo(): Promise<{
-  version: string;
-  owner: string;
-  // ... other contract info
+  Name: string;           // Contract name
+  Ticker: string;         // Token ticker symbol
+  Logo: string;          // Logo transaction ID
+  Denomination: number;   // Token denomination
+  Handlers: string[];    // List of supported handlers
+  LastCreatedEpochIndex: number;      // Index of last created epoch
+  LastDistributedEpochIndex: number;  // Index of last distributed epoch
 }>;
 ```
 
 2. **getTokenSupply**
 - Purpose: Get total token supply information
 - Authentication: Not required
-- Returns: Token supply details
+- Returns: Detailed token supply metrics
 ```typescript
 async getTokenSupply(): Promise<{
-  totalSupply: number;
-  circulatingSupply: number;
+  total: number;          // Total token supply
+  circulating: number;    // Tokens in circulation
+  locked: number;         // Tokens locked in vaults
+  withdrawn: number;      // Tokens in withdrawal
+  delegated: number;      // Tokens delegated to gateways
+  staked: number;        // Tokens staked by operators
+  protocolBalance: number; // Tokens held by protocol
 }>;
 ```
 
@@ -76,7 +196,7 @@ async getTokenSupply(): Promise<{
 - Parameters: Wallet address
 ```typescript
 async getBalance({ 
-  address: string 
+  address: WalletAddress 
 }): Promise<number>;
 ```
 
@@ -85,86 +205,160 @@ async getBalance({
 - Authentication: Required
 - Parameters: Transfer details and optional tags
 ```typescript
-async transfer({ 
-  qty: number;
-  target: string;
-  tags?: Array<{ name: string; value: string }>;
-}): Promise<{ id: string }>;
+async transfer(
+  {
+    target: string;         // Recipient wallet address
+    qty: number | mARIOToken; // Amount to transfer (in base units or mARIO)
+  },
+  options?: {
+    tags?: Array<{ name: string; value: string }>;
+  }
+): Promise<{ id: string }>;
 ```
+
+5. **getBalances**
+- Purpose: Get paginated list of wallet balances
+- Authentication: Not required
+- Parameters: Optional pagination parameters
+```typescript
+async getBalances(params?: PaginationParams<AoBalanceWithAddress>): Promise<PaginationResult<AoBalanceWithAddress>>;
+
+// Where AoBalanceWithAddress is:
+interface AoBalanceWithAddress {
+  address: WalletAddress;
+  balance: number;
+}
+
+// And PaginationParams/Result are:
+interface PaginationParams<T> {
+  cursor?: string;
+  limit?: number;  // Maximum: 1000
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+interface PaginationResult<T> {
+  items: T[];
+  nextCursor?: string;
+  limit: number;
+  totalItems: number;
+  sortBy?: string;
+  sortOrder: 'asc' | 'desc';
+  hasMore: boolean;
+}
+```
+
+
 
 #### Gateway Operations
 
 1. **getGateway**
 - Purpose: Get information about a specific gateway
 - Authentication: Not required
-- Parameters: Gateway identifier (address or FQDN)
+- Parameters: Gateway address
 ```typescript
-async getGateway({ 
-  address?: string;
-  fqdn?: string;
-}): Promise<{
-  address: string;
-  label: string;
-  fqdn: string;
-  port: number;
-  protocol: string;
-  properties: string;
+async getGateway({
+  address: WalletAddress
+}): Promise<AoGateway | undefined>;
+
+// Where AoGateway is:
+interface AoGateway {
   settings: {
-    allowDelegatedStaking: boolean;
+    allowDelegatedStaking: boolean | 'allowlist';
     delegateRewardShareRatio: number;
+    allowedDelegates: WalletAddress[];
     minDelegatedStake: number;
-    operatorStake: number;
-    totalDelegatedStake: number;
+    autoStake: boolean;
+    label: string;
+    note: string;
+    properties: string;
+    fqdn: string;
+    port: number;
+    protocol: 'https';
   };
-}>;
+  stats: {
+    passedConsecutiveEpochs: number;
+    failedConsecutiveEpochs: number;
+    totalEpochCount: number;
+    passedEpochCount: number;
+    failedEpochCount: number;
+    observedEpochCount: number;
+    prescribedEpochCount: number;
+  };
+  totalDelegatedStake: number;
+  startTimestamp: Timestamp;
+  endTimestamp: Timestamp;
+  observerAddress: WalletAddress;
+  operatorStake: number;
+  status: 'joined' | 'leaving';
+}
 ```
 
 2. **getGateways**
 - Purpose: List all gateways in the network
 - Authentication: Not required
-- Parameters: Pagination and sorting options
+- Parameters: Optional pagination parameters
 ```typescript
-async getGateways(options?: {
-  limit?: number;
-  cursor?: string;
-  sortBy?: 'joinedTimestamp' | 'operatorStake';
-  sortOrder?: 'asc' | 'desc';
-}): Promise<{
-  items: Array<Gateway>;
-  cursor?: string;
-}>;
+async getGateways(
+  params?: PaginationParams<AoGatewayWithAddress>
+): Promise<PaginationResult<AoGatewayWithAddress>>;
+
+// Where AoGatewayWithAddress extends AoGateway with:
+interface AoGatewayWithAddress extends AoGateway {
+  gatewayAddress: WalletAddress;
+}
+
+// Valid sortBy fields from AoGatewayWithAddress:
+// - gatewayAddress
+// - startTimestamp
+// - endTimestamp
+// - totalDelegatedStake
+// - operatorStake
+// - status
+// - "settings.label"
+// - "stats.passedConsecutiveEpochs"
+// etc.
 ```
 
 3. **joinNetwork**
-- Purpose: Join a gateway to the network
+- Purpose: Join a gateway to the AR.IO network
 - Authentication: Required
-- Parameters: Gateway configuration
+- Requirements: Minimum 10,000 ARIO tokens for operator stake
+- Parameters: Gateway configuration and optional tags
 ```typescript
-async joinNetwork({
-  qty: number;                      // Initial stake amount in mARIO
-  label: string;                    // Gateway label (max 64 chars)
-  fqdn: string;                     // Fully qualified domain name
-  port: number;                     // Port number (usually 443)
-  protocol: 'http' | 'https';       // Protocol (must be https for network)
-  properties: string;               // ArweaveID for properties JSON
-  observerWallet: string;           // Observer wallet address
-  autoStake?: boolean;              // Auto-stake rewards
-  allowDelegatedStaking?: boolean;  // Allow delegation
-  delegateRewardShareRatio?: number;// Reward share % for delegates
-  minDelegatedStake?: number;       // Minimum delegation amount
-  note?: string;                    // Optional note (max 256 chars)
-  tags?: Array<{ name: string; value: string }>;
-}): Promise<{ id: string }>;
+interface AoJoinNetworkParams {
+  operatorStake: number | mARIOToken;  // Minimum 10,000 ARIO
+  label: string;                       // Gateway label
+  fqdn: string;                        // Fully qualified domain name
+  port?: number;                       // Port number (default: 443)
+  protocol: 'https';                   // Must be HTTPS for network
+  properties?: string;                 // Optional properties transaction ID
+  observerAddress?: WalletAddress;     // Observer wallet address
+  autoStake?: boolean;                 // Auto-stake rewards (default: false)
+  allowDelegatedStaking?: boolean | 'allowlist'; // Allow delegation (default: false)
+  allowedDelegates?: WalletAddress[];  // Allowed delegate addresses if using allowlist
+  delegateRewardShareRatio?: number;   // Reward share % for delegates (0-100)
+  minDelegatedStake?: number;          // Minimum delegation amount
+  note?: string;                       // Optional note
+}
+
+async joinNetwork(
+  params: AoJoinNetworkParams,
+  options?: WriteOptions
+): Promise<{ id: string }>;
 ```
 
 4. **leaveNetwork**
-- Purpose: Remove a gateway from the network
+- Purpose: Remove a gateway from the AR.IO network
 - Authentication: Required
+- Note: Operator stake is vaulted for 90 days by default. Can be withdrawn instantly for a fee.
 - Parameters: Optional tags
 ```typescript
-async leaveNetwork(options?: {
-  tags?: Array<{ name: string; value: string }>;
-}): Promise<{ id: string }>;
+async leaveNetwork(
+  options?: {
+    tags?: Array<{ name: string; value: string }>;
+  }
+): Promise<{ id: string }>;
 ```
 
 5. **updateGatewaySettings**
@@ -188,6 +382,665 @@ async updateGatewaySettings({
 }): Promise<{ id: string }>;
 ```
 
+6. **increaseOperatorStake**
+- Purpose: Increase gateway operator stake
+- Authentication: Required
+- Parameters: Stake amount and optional tags
+```typescript
+async increaseOperatorStake(
+  params: {
+    increaseQty: number | mARIOToken;  // Amount to increase stake by
+  },
+  options?: {
+    tags?: Array<{ name: string; value: string }>;
+  }
+): Promise<{ id: string }>;
+```
+
+7. **decreaseOperatorStake**
+- Purpose: Decrease gateway operator stake
+- Authentication: Required
+- Parameters: Stake amount, instant withdrawal option, and optional tags
+```typescript
+async decreaseOperatorStake(
+  params: {
+    decreaseQty: number | mARIOToken;  // Amount to decrease stake by
+    instant?: boolean;                 // If true, withdraw instantly with fee
+  },
+  options?: {
+    tags?: Array<{ name: string; value: string }>;
+  }
+): Promise<{ id: string }>;
+```
+
+8. **increaseDelegateStake** (alias for delegateStake)
+- Purpose: Delegate stake to a gateway
+- Authentication: Required
+- Parameters: Target gateway, stake amount, and optional tags
+```typescript
+async increaseDelegateStake(
+  params: {
+    target: string;                  // Target gateway address
+    stakeQty: number | mARIOToken;   // Amount to delegate
+  },
+  options?: {
+    tags?: Array<{ name: string; value: string }>;
+  }
+): Promise<{ id: string }>;
+```
+
+9. **decreaseDelegateStake**
+- Purpose: Decrease delegated stake from a gateway
+- Authentication: Required
+- Parameters: Target gateway, amount, instant withdrawal option, and optional tags
+```typescript
+async decreaseDelegateStake(
+  params: {
+    target: string;                  // Target gateway address
+    decreaseQty: number | mARIOToken; // Amount to decrease
+    instant?: boolean;               // If true, withdraw instantly with fee
+  },
+  options?: {
+    tags?: Array<{ name: string; value: string }>;
+  }
+): Promise<{ id: string }>;
+```
+
+10. **instantWithdrawal**
+- Purpose: Instantly withdraw stake with a fee
+- Authentication: Required
+- Parameters: Gateway address (optional), vault ID, and optional tags
+```typescript
+async instantWithdrawal(
+  params: {
+    gatewayAddress?: string;      // Optional gateway address
+    vaultId: string;              // ID of the vault to withdraw from
+  },
+  options?: {
+    tags?: Array<{ name: string; value: string }>;
+  }
+): Promise<{ id: string }>;
+```
+
+11. **cancelWithdrawal**
+- Purpose: Cancel a pending withdrawal
+- Authentication: Required
+- Parameters: Gateway address (optional), vault ID, and optional tags
+```typescript
+async cancelWithdrawal(
+  params: {
+    gatewayAddress?: WalletAddress; // Optional gateway address
+    vaultId: string;                // ID of the vault withdrawal to cancel
+  },
+  options?: {
+    tags?: Array<{ name: string; value: string }>;
+  }
+): Promise<{ id: string }>;
+```
+
+12. **redelegateStake**
+- Purpose: Redelegate stake from one gateway to another gateway
+- Authentication: Required
+- Parameters: Source/target gateways, amount, optional vault ID, and tags
+```typescript
+async redelegateStake(
+  params: {
+    target: string;                  // Target gateway address
+    source: string;                  // Source gateway address
+    stakeQty: number | mARIOToken;   // Amount to redelegate
+    vaultId?: string;                // Optional vault ID to redelegate from
+  },
+  options?: {
+    tags?: Array<{ name: string; value: string }>;
+  }
+): Promise<{ id: string }>;
+```
+
+13. **getRedelegationFee**
+- Purpose: Get current redelegation fee percentage for address
+- Authentication: Not required
+- Parameters: Gateway address
+```typescript
+async getRedelegationFee(
+  params: {
+    address: WalletAddress;  // Gateway address to check fee for
+  }
+): Promise<{
+  redelegationFeeRate: number;     // Fee percentage for redelegation
+  feeResetTimestamp: number;       // When fee resets to zero
+}>;
+```
+
+14. **getDelegations**
+- Purpose: Get paginated list of delegations for an address
+- Authentication: Not required
+- Parameters: Address and pagination options
+```typescript
+async getDelegations(
+  params: {
+    address: WalletAddress;
+  } & PaginationParams<AoDelegation>
+): Promise<PaginationResult<AoDelegation>>;
+
+// Where AoDelegation is:
+type AoDelegation = AoStakeDelegation | AoVaultDelegation;
+
+interface AoStakeDelegation {
+  type: 'stake';
+  gatewayAddress: WalletAddress;
+  delegationId: string;
+  startTimestamp: Timestamp;
+  balance: number;
+}
+
+interface AoVaultDelegation {
+  type: 'vault';
+  gatewayAddress: WalletAddress;
+  delegationId: string;
+  vaultId: TransactionId;
+  balance: number;
+  startTimestamp: Timestamp;
+  endTimestamp: Timestamp;
+}
+```
+
+15. **getAllowedDelegates**
+- Purpose: Get paginated list of addresses allowed to delegate to a gateway
+- Authentication: Not required
+- Parameters: Gateway address and pagination options
+```typescript
+async getAllowedDelegates(
+  params: {
+    address: WalletAddress;
+  } & PaginationParams<WalletAddress>
+): Promise<PaginationResult<WalletAddress>>;
+```
+
+16. **getGatewayDelegates**
+- Purpose: Get paginated list of delegates for a gateway
+- Authentication: Not required
+- Parameters: Gateway address and pagination options
+```typescript
+async getGatewayDelegates(
+  params: {
+    address: WalletAddress;
+  } & PaginationParams<AoGatewayDelegateWithAddress>
+): Promise<PaginationResult<AoGatewayDelegateWithAddress>>;
+
+// Where AoGatewayDelegateWithAddress is:
+interface AoGatewayDelegateWithAddress {
+  address: WalletAddress;
+  delegatedStake: number;
+  startTimestamp: Timestamp;
+}
+```
+
+17. **getGatewayVaults**
+- Purpose: Get paginated list of vaults for a gateway
+- Authentication: Not required
+- Parameters: Gateway address and pagination options
+```typescript
+async getGatewayVaults(
+  params: {
+    address: WalletAddress;
+  } & PaginationParams<AoGatewayVault>
+): Promise<PaginationResult<AoGatewayVault>>;
+
+// Where AoGatewayVault is:
+interface AoGatewayVault {
+  cursorId: string;
+  vaultId: TransactionId;
+  balance: number;
+  endTimestamp: Timestamp;
+  startTimestamp: Timestamp;
+}
+```
+
+#### Vault Operations
+
+1. **getVault**
+- Purpose: Get information about a specific vault
+- Authentication: Not required
+- Parameters: Wallet address and vault ID
+```typescript
+async getVault({
+  address: WalletAddress;
+  vaultId: string;
+}): Promise<AoVaultData | undefined>;
+
+// Where AoVaultData is:
+interface AoVaultData {
+  balance: number;
+  startTimestamp: Timestamp;
+  endTimestamp: Timestamp;
+}
+```
+
+2. **getVaults**
+- Purpose: Get paginated list of all vaults
+- Authentication: Not required
+- Parameters: Optional pagination parameters
+```typescript
+async getVaults(
+  params?: PaginationParams<AoWalletVault>
+): Promise<PaginationResult<AoWalletVault>>;
+
+// Where AoWalletVault extends AoVaultData with:
+interface AoWalletVault extends AoVaultData {
+  address: WalletAddress;
+  vaultId: string;
+}
+
+// Valid sortBy fields:
+// - address
+// - vaultId
+// - balance
+// - startTimestamp
+// - endTimestamp
+```
+
+#### Epoch Operations
+
+1. **getEpoch**
+- Purpose: Get information about a specific epoch
+- Authentication: Not required
+- Parameters: Optional epoch identifier
+```typescript
+// Overloads:
+async getEpoch(epoch: EpochInput): Promise<AoEpochData<AoEpochDistributed> | undefined>;
+async getEpoch(): Promise<AoEpochData<AoEpochDistributionTotalsData>>;
+
+// Where EpochInput is:
+type EpochInput = {
+  timestamp: number;
+} | {
+  epochIndex: number;
+} | undefined;
+
+// And AoEpochData is:
+interface AoEpochData<D = AoEpochDistributionData> {
+  epochIndex: number;
+  startHeight: number;
+  observations: {
+    failureSummaries: Record<WalletAddress, WalletAddress[]>;
+    reports: Record<WalletAddress, TransactionId>;
+  };
+  prescribedObservers: AoWeightedObserver[];
+  prescribedNames: string[];
+  startTimestamp: number;
+  endTimestamp: number;
+  distributionTimestamp: number;
+  distributions: D;
+  arnsStats: {
+    totalReturnedNames: number;
+    totalActiveNames: number;
+    totalGracePeriodNames: number;
+    totalReservedNames: number;
+  };
+}
+```
+
+2. **getCurrentEpoch**
+- Purpose: Get information about the current epoch
+- Authentication: Not required
+```typescript
+async getCurrentEpoch(): Promise<AoEpochData<AoEpochDistributionTotalsData>>;
+
+// Where AoEpochDistributionTotalsData is:
+interface AoEpochDistributionTotalsData {
+  totalEligibleGateways: number;
+  totalEligibleRewards: number;
+  totalEligibleObserverReward: number;
+  totalEligibleGatewayReward: number;
+}
+```
+
+3. **getDistributions**
+- Purpose: Get reward distributions for an epoch
+- Authentication: Not required
+- Parameters: Optional epoch identifier
+```typescript
+async getDistributions(
+  epoch?: EpochInput
+): Promise<AoEpochDistributionData | undefined>;
+
+// Where AoEpochDistributionData is:
+type AoEpochDistributionData = AoEpochDistributionTotalsData | AoEpochDistributed;
+
+interface AoEpochDistributed extends AoEpochDistributionTotalsData {
+  distributedTimestamp: number;
+  totalDistributedRewards: number;
+}
+```
+
+4. **getPrescribedObservers**
+- Purpose: Get list of weighted observers for an epoch
+- Authentication: Not required
+- Parameters: Optional epoch identifier
+```typescript
+async getPrescribedObservers(
+  epoch?: EpochInput
+): Promise<AoWeightedObserver[] | undefined>;
+
+// Where AoWeightedObserver is:
+interface AoWeightedObserver {
+  gatewayAddress: WalletAddress;
+  observerAddress: WalletAddress;
+  stake: number;
+  startTimestamp: number;
+  stakeWeight: number;
+  tenureWeight: number;
+  gatewayPerformanceRatio: number;
+  observerPerformanceRatio: number;
+  compositeWeight: number;
+  normalizedCompositeWeight: number;
+}
+```
+
+5. **getObservations**
+- Purpose: Get observation data for an epoch
+- Authentication: Not required
+- Parameters: Optional epoch identifier
+```typescript
+async getObservations(
+  epoch?: EpochInput
+): Promise<AoEpochObservationData | undefined>;
+
+// Where AoEpochObservationData is:
+interface AoEpochObservationData {
+  failureSummaries: Record<WalletAddress, WalletAddress[]>;  // Gateway -> Failed gateways
+  reports: Record<WalletAddress, TransactionId>;             // Observer -> Report tx
+}
+```
+
+6. **saveObservations**
+- Purpose: Submit gateway observations for the current epoch
+- Authentication: Required
+- Parameters: Report transaction ID and failed gateways list
+```typescript
+async saveObservations(
+  params: {
+    reportTxId: TransactionId;      // Transaction ID containing observation data
+    failedGateways: WalletAddress[]; // List of failed gateway addresses
+  },
+  options?: {
+    tags?: Array<{ name: string; value: string }>;
+  }
+): Promise<{ id: string }>;
+```
+
+#### ArNS Operations
+
+1. **buyRecord**
+- Purpose: Purchase an ArNS name
+- Authentication: Required
+- Parameters: Name details and optional tags
+```typescript
+interface AoBuyRecordParams {
+  name: string;                    // Name to purchase
+  years?: number;                  // Lease duration in years (default: 1)
+  type: 'lease' | 'permabuy';      // Purchase type
+  processId: string;               // ANT process ID
+  fundFrom?: 'balance' | 'stakes' | 'any';  // Source of funds
+}
+
+async buyRecord(
+  params: AoBuyRecordParams,
+  options?: WriteOptions
+): Promise<{ id: string }>;
+```
+
+2. **extendLease**
+- Purpose: Extend the lease of an existing leased record
+- Authentication: Required
+- Parameters: Name, years, and optional tags
+```typescript
+interface AoExtendLeaseParams {
+  name: string;                    // Name to extend
+  years: number;                   // Additional years
+  fundFrom?: 'balance' | 'stakes' | 'any';  // Source of funds
+}
+
+async extendLease(
+  params: AoExtendLeaseParams,
+  options?: WriteOptions
+): Promise<{ id: string }>;
+```
+
+3. **getArNSRecord**
+- Purpose: Get information about an ArNS name
+- Authentication: Not required
+- Parameters: Name to lookup
+```typescript
+async getArNSRecord({
+  name: string;
+}): Promise<AoArNSNameData | undefined>;
+
+// Where AoArNSNameData is:
+type AoArNSNameData = AoArNSPermabuyData | AoArNSLeaseData;
+
+interface AoArNSBaseNameData {
+  processId: string;
+  startTimestamp: number;
+  type: 'lease' | 'permabuy';
+  undernameLimit: number;
+  purchasePrice: number;
+}
+
+interface AoArNSPermabuyData extends AoArNSBaseNameData {
+  type: 'permabuy';
+}
+
+interface AoArNSLeaseData extends AoArNSBaseNameData {
+  type: 'lease';
+  endTimestamp: number;
+}
+```
+
+4. **getArNSRecords**
+- Purpose: Get paginated list of ArNS records
+- Authentication: Not required
+- Parameters: Optional pagination parameters
+```typescript
+async getArNSRecords(
+  params?: PaginationParams<AoArNSNameDataWithName>
+): Promise<PaginationResult<AoArNSNameDataWithName>>;
+
+// Where AoArNSNameDataWithName extends AoArNSNameData with:
+interface AoArNSNameDataWithName extends AoArNSNameData {
+  name: string;
+}
+```
+
+5. **getTokenCost**
+- Purpose: Calculate token cost for various ArNS operations
+- Authentication: Not required
+- Parameters: Operation details
+```typescript
+// Overloads for different operations:
+
+// Buy a name
+async getTokenCost(params: {
+  intent: 'Buy-Record' | 'Buy-Name';
+  type: 'permabuy' | 'lease';
+  years: number;
+  name: string;
+}): Promise<number>;
+
+// Extend a lease
+async getTokenCost(params: {
+  intent: 'Extend-Lease';
+  years: number;
+  name: string;
+}): Promise<number>;
+
+// Increase undername limit
+async getTokenCost(params: {
+  intent: 'Increase-Undername-Limit';
+  quantity: number;
+  name: string;
+}): Promise<number>;
+
+// Upgrade to permabuy
+async getTokenCost(params: {
+  intent: 'Upgrade-Name';
+  name: string;
+}): Promise<number>;
+
+// Request primary name
+async getTokenCost(params: {
+  intent: 'Primary-Name-Request';
+  name: string;
+}): Promise<number>;
+```
+
+6. **getDemandFactor**
+- Purpose: Get current demand factor for ArNS names
+- Authentication: Not required
+- Returns: Current demand factor as a number
+```typescript
+async getDemandFactor(): Promise<number>;
+```
+
+7. **increaseUndernameLimit**
+- Purpose: Increase the undername limit for an ArNS name
+- Authentication: Required
+- Parameters: Name, quantity, and funding source
+```typescript
+interface AoIncreaseUndernameLimitParams {
+  name: string;                    // Name to increase limit for
+  increaseCount: number;           // Number of additional undernames
+  fundFrom?: 'balance' | 'stakes' | 'any';  // Source of funds
+}
+
+async increaseUndernameLimit(
+  params: AoIncreaseUndernameLimitParams,
+  options?: WriteOptions
+): Promise<{ id: string }>;
+```
+
+8. **getArNSReturnedName**
+- Purpose: Get information about a returned name
+- Authentication: Not required
+- Parameters: Name to lookup
+```typescript
+async getArNSReturnedName({
+  name: string;
+}): Promise<AoReturnedName | undefined>;
+
+// Where AoReturnedName is:
+interface AoReturnedName {
+  name: string;
+  startTimestamp: Timestamp;
+  endTimestamp: Timestamp;
+  initiator: string;
+  premiumMultiplier: number;
+}
+```
+
+9. **getArNSReturnedNames**
+- Purpose: Get paginated list of returned ArNS names
+- Authentication: Not required
+- Parameters: Optional pagination parameters
+```typescript
+async getArNSReturnedNames(
+  params?: PaginationParams<AoReturnedName>
+): Promise<PaginationResult<AoReturnedName>>;
+
+// Valid sortBy fields:
+// - name
+// - startTimestamp
+// - endTimestamp
+// - initiator
+// - premiumMultiplier
+```
+
+#### Primary Name Operations
+
+1. **getPrimaryName**
+- Purpose: Get primary name information by address or name
+- Authentication: Not required
+- Parameters: Address or name to lookup
+```typescript
+async getPrimaryName(
+  params: { address: WalletAddress } | { name: string }
+): Promise<AoPrimaryName>;
+
+// Where AoPrimaryName is:
+interface AoPrimaryName {
+  name: string;
+  address: WalletAddress;
+  startTimestamp: Timestamp;
+}
+```
+
+2. **getPrimaryNames**
+- Purpose: Get paginated list of primary names
+- Authentication: Not required
+- Parameters: Optional pagination parameters
+```typescript
+async getPrimaryNames(
+  params: PaginationParams<AoPrimaryName>
+): Promise<PaginationResult<AoPrimaryName>>;
+
+// Valid sortBy fields:
+// - name
+// - address
+// - startTimestamp
+```
+
+3. **getPrimaryNameRequest**
+- Purpose: Get primary name request for an address
+- Authentication: Not required
+- Parameters: Initiator address
+```typescript
+async getPrimaryNameRequest(
+  params: {
+    initiator: WalletAddress;
+  }
+): Promise<AoPrimaryNameRequest>;
+
+// Where AoPrimaryNameRequest is:
+interface AoPrimaryNameRequest {
+  name: string;
+  initiator: WalletAddress;
+  startTimestamp: Timestamp;
+  status: 'pending' | 'approved' | 'rejected';
+}
+```
+
+4. **getPrimaryNameRequests**
+- Purpose: Get paginated list of primary name requests
+- Authentication: Not required
+- Parameters: Optional pagination parameters
+```typescript
+async getPrimaryNameRequests(
+  params?: PaginationParams<AoPrimaryNameRequest>
+): Promise<PaginationResult<AoPrimaryNameRequest>>;
+
+// Valid sortBy fields:
+// - name
+// - initiator
+// - startTimestamp
+// - status
+```
+
+5. **requestPrimaryName**
+- Purpose: Submit a request for a primary name
+- Authentication: Required
+- Parameters: Name and funding source
+```typescript
+interface AoArNSPurchaseParams {
+  name: string;                    // Name to request
+  fundFrom?: 'balance' | 'stakes' | 'any';  // Source of funds
+}
+
+async requestPrimaryName(
+  params: AoArNSPurchaseParams,
+  options?: WriteOptions
+): Promise<{ id: string }>;
+```
+
 ## Class: ANT
 
 ### Configuration
@@ -202,7 +1055,261 @@ interface ANTConfig {
 const ant = ANT.init(config: ANTConfig);
 ```
 
-[Continue with all ANT methods...]
+### Methods
+
+1. **getInfo**
+- Purpose: Get basic information about the ANT
+- Authentication: Not required
+```typescript
+async getInfo(): Promise<{
+  name: string;
+  ticker: string;
+  description?: string;
+  keywords?: string[];
+  logo?: string;
+}>;
+```
+
+2. **getLogo**
+- Purpose: Get the ANT's logo transaction ID
+- Authentication: Not required
+```typescript
+async getLogo(): Promise<string | null>;
+```
+
+3. **getState**
+- Purpose: Get the complete state of the ANT
+- Authentication: Not required
+```typescript
+async getState(): Promise<{
+  name: string;
+  ticker: string;
+  description?: string;
+  keywords?: string[];
+  logo?: string;
+  owner: string;
+  controllers: string[];
+  records: Record<string, string>;
+}>;
+```
+
+4. **getOwner**
+- Purpose: Get the ANT owner's address
+- Authentication: Not required
+```typescript
+async getOwner(): Promise<string>;
+```
+
+5. **getControllers**
+- Purpose: Get list of controller addresses
+- Authentication: Not required
+```typescript
+async getControllers(): Promise<string[]>;
+```
+
+6. **getHandlers**
+- Purpose: Get list of supported handlers
+- Authentication: Not required
+```typescript
+async getHandlers(): Promise<string[]>;
+```
+
+7. **getRecords**
+- Purpose: Get all DNS records
+- Authentication: Not required
+```typescript
+async getRecords(): Promise<Record<string, string>>;
+```
+
+8. **setRecord**
+- Purpose: Set a DNS record (deprecated)
+- Authentication: Required
+- Parameters: Record details and optional tags
+```typescript
+async setRecord({
+  undername: string;  // '@' for top level
+  transactionId: string;
+  ttlSeconds?: number;
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+9. **setName**
+- Purpose: Set the ANT name
+- Authentication: Required
+- Parameters: Name and optional tags
+```typescript
+async setName({
+  name: string;
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+10. **setLogo**
+- Purpose: Set the ANT logo
+- Authentication: Required
+- Parameters: Logo transaction ID and optional tags
+```typescript
+async setLogo({
+  logo: string;  // Arweave transaction ID
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+11. **setTicker**
+- Purpose: Set the ANT ticker symbol
+- Authentication: Required
+- Parameters: Ticker and optional tags
+```typescript
+async setTicker({
+  ticker: string;
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+12. **setDescription**
+- Purpose: Set the ANT description
+- Authentication: Required
+- Parameters: Description and optional tags
+```typescript
+async setDescription({
+  description: string;
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+13. **setKeywords**
+- Purpose: Set the ANT keywords
+- Authentication: Required
+- Parameters: Keywords array and optional tags
+```typescript
+async setKeywords({
+  keywords: string[];
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+14. **setController**
+- Purpose: Add a controller address
+- Authentication: Required
+- Parameters: Controller address and optional tags
+```typescript
+async setController({
+  controller: string;  // Wallet address to add as controller
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+15. **removeController**
+- Purpose: Remove a controller address
+- Authentication: Required
+- Parameters: Controller address and optional tags
+```typescript
+async removeController({
+  controller: string;  // Wallet address to remove as controller
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+16. **removeRecord**
+- Purpose: Remove a DNS record (deprecated)
+- Authentication: Required
+- Parameters: Undername and optional tags
+```typescript
+async removeRecord({
+  undername: string;  // '@' for top level
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+17. **removePrimaryName**
+- Purpose: Remove primary name assignment
+- Authentication: Required
+- Parameters: Optional tags
+```typescript
+async removePrimaryName(options?: {
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+18. **approvePrimaryNameRequest**
+- Purpose: Approve a primary name request
+- Authentication: Required
+- Parameters: Initiator address and optional tags
+```typescript
+async approvePrimaryNameRequest({
+  initiator: string;  // Address that requested the primary name
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+19. **releaseName**
+- Purpose: Release the ANT name back to the registry
+- Authentication: Required
+- Parameters: Optional tags
+```typescript
+async releaseName(options?: {
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+20. **reassignName**
+- Purpose: Reassign the ANT name to another owner
+- Authentication: Required
+- Parameters: Target address and optional tags
+```typescript
+async reassignName({
+  target: string;  // New owner's wallet address
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+21. **transfer**
+- Purpose: Transfer ANT ownership
+- Authentication: Required
+- Parameters: Target address and optional tags
+```typescript
+async transfer({
+  target: string;  // New owner's wallet address
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+22. **setBaseNameRecord**
+- Purpose: Set the base name record
+- Authentication: Required
+- Parameters: Record details and optional tags
+```typescript
+async setBaseNameRecord({
+  transactionId: string;  // Arweave transaction ID to resolve to
+  ttlSeconds?: number;    // DNS TTL in seconds (default: 900)
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+23. **setUndernameRecord**
+- Purpose: Set an undername record
+- Authentication: Required
+- Parameters: Undername details and optional tags
+```typescript
+async setUndernameRecord({
+  undername: string;      // Undername to set (e.g., 'blog')
+  transactionId: string;  // Arweave transaction ID to resolve to
+  ttlSeconds?: number;    // DNS TTL in seconds (default: 900)
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+24. **removeUndernameRecord**
+- Purpose: Remove an undername record
+- Authentication: Required
+- Parameters: Undername and optional tags
+```typescript
+async removeUndernameRecord({
+  undername: string;  // Undername to remove
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
 
 ## Class: ANTRegistry
 
@@ -218,7 +1325,37 @@ interface ANTRegistryConfig {
 const registry = ANTRegistry.init(config: ANTRegistryConfig);
 ```
 
-[Continue with all ANTRegistry methods...]
+### Methods
+
+1. **accessControlList**
+- Purpose: Get the access control list for name registration
+- Authentication: Not required
+- Returns: List of allowed addresses and their registration limits
+```typescript
+async accessControlList(): Promise<Array<{
+  address: string;
+  limit: number;
+  used: number;
+}>>;
+```
+
+2. **register**
+- Purpose: Register a new ANT
+- Authentication: Required
+- Parameters: Registration details and optional tags
+```typescript
+async register({
+  name: string;           // Name to register
+  ticker?: string;        // Optional ticker symbol
+  description?: string;   // Optional description
+  keywords?: string[];    // Optional keywords
+  logo?: string;         // Optional Arweave transaction ID for logo
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{
+  id: string;            // Transaction ID
+  processId: string;     // New ANT process ID
+}>;
+```
 
 ## Common Patterns and Usage
 
@@ -311,3 +1448,325 @@ async function manageGateway() {
    - Cache responses where appropriate
 
 [Continue with more best practices...]
+
+## Write Operations
+
+```typescript
+/**
+ * Important: All write operations (methods requiring authentication) accept an optional 
+ * WriteOptions parameter with the following structure:
+ */
+interface WriteOptions {
+  tags?: Array<{ name: string; value: string }>;
+}
+```
+
+## Pagination Notes
+
+For all paginated methods:
+- `limit` has a maximum value of 1000
+- `sortBy` must be an attribute from the returned item type
+- `sortOrder` can be 'asc' or 'desc'
+
+Example for `getBalances`:
+```typescript
+async getBalances(params?: PaginationParams<AoBalanceWithAddress>): Promise<PaginationResult<AoBalanceWithAddress>>;
+
+// Where AoBalanceWithAddress is:
+interface AoBalanceWithAddress {
+  address: WalletAddress;  // Can use "address" as sortBy
+  balance: number;         // Can use "balance" as sortBy
+}
+
+// Example usage:
+await ario.getBalances({
+  limit: 100,
+  sortBy: "balance",      // Valid because it's a field in AoBalanceWithAddress
+  sortOrder: "desc"
+});
+```
+
+## Core Types
+
+```typescript
+// Basic Types
+type BlockHeight = number;
+type Timestamp = number;
+type WalletAddress = string;
+type TransactionId = string;
+type ProcessId = string;
+
+// Pagination Types
+interface PaginationParams<T = Record<string, never>> {
+  cursor?: string;
+  limit?: number;  // Maximum: 1000
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+interface PaginationResult<T> {
+  items: T[];
+  nextCursor?: string;
+  limit: number;
+  totalItems: number;
+  sortBy?: string;
+  sortOrder: 'asc' | 'desc';
+  hasMore: boolean;
+}
+
+// Write Operation Options
+interface WriteOptions {
+  tags?: Array<{ name: string; value: string }>;
+}
+
+// ... rest of the types ...
+```
+
+### Gateway Types
+```typescript
+interface AoGateway {
+  settings: {
+    allowDelegatedStaking: boolean | 'allowlist';
+    delegateRewardShareRatio: number;
+    allowedDelegates: WalletAddress[];
+    minDelegatedStake: number;
+    autoStake: boolean;
+    label: string;
+    note: string;
+    properties: string;
+    fqdn: string;
+    port: number;
+    protocol: 'https';
+  };
+  stats: {
+    passedConsecutiveEpochs: number;
+    failedConsecutiveEpochs: number;
+    totalEpochCount: number;
+    passedEpochCount: number;
+    failedEpochCount: number;
+    observedEpochCount: number;
+    prescribedEpochCount: number;
+  };
+  totalDelegatedStake: number;
+  startTimestamp: number;
+  endTimestamp: number;
+  observerAddress: string;
+  operatorStake: number;
+  status: 'joined' | 'leaving';
+}
+```
+
+### ArNS Types
+```typescript
+interface ArNSRecord {
+  name: string;
+  processId: string;
+  startTimestamp: number;
+  type: 'lease' | 'permabuy';
+  undernameLimit: number;
+  purchasePrice: number;
+  endTimestamp?: number;  // Only for leased records
+}
+
+interface ArNSAuction {
+  id: string;
+  name: string;
+  startTimestamp: number;
+  endTimestamp: number;
+  highestBid: number;
+  highestBidder: string;
+}
+```
+
+### Epoch Types
+```typescript
+interface EpochData {
+  epochIndex: number;
+  startHeight: number;
+  startTimestamp: number;
+  endTimestamp: number;
+  distributionTimestamp: number;
+  observations: {
+    failureSummaries: Record<string, string[]>;
+    reports: Record<string, string>;
+  };
+  distributions: {
+    totalEligibleGateways: number;
+    totalEligibleRewards: number;
+    totalEligibleObserverReward: number;
+    totalEligibleGatewayReward: number;
+  };
+}
+```
+
+### Vault Types
+```typescript
+interface VaultData {
+  id: string;
+  owner: string;
+  balance: number;
+  start: number;
+  end: number;
+  gateway?: string;
+  type: 'withdrawal' | 'operator' | 'delegate';
+}
+```
+
+### Registry Settings
+```typescript
+interface GatewayRegistrySettings {
+  delegates: {
+    minStake: number;
+    withdrawLengthMs: number;
+  };
+  observers: {
+    tenureWeightDurationMs: number;
+    maxTenureWeight: number;
+  };
+  operators: {
+    minStake: number;
+    withdrawLengthMs: number;
+    leaveLengthMs: number;
+    failedEpochCountMax: number;
+    failedGatewaySlashRate: number;
+  };
+  redelegations: {
+    minRedelegationPenaltyRate: number;
+    maxRedelegationPenaltyRate: number;
+    minRedelegationAmount: number;
+    redelegationFeeResetIntervalMs: number;
+  };
+}
+```
+
+### Additional Types
+
+```typescript
+// Delegation Types
+interface AoDelegationBase {
+  type: 'stake' | 'vault';
+  gatewayAddress: WalletAddress;
+  delegationId: string;
+}
+
+interface AoVaultDelegation extends AoDelegationBase {
+  type: 'vault';
+  vaultId: TransactionId;
+  balance: number;
+  startTimestamp: Timestamp;
+  endTimestamp: Timestamp;
+}
+
+interface AoStakeDelegation extends AoDelegationBase {
+  type: 'stake';
+  startTimestamp: Timestamp;
+  balance: number;
+}
+
+type AoDelegation = AoStakeDelegation | AoVaultDelegation;
+
+// Gateway Delegate Types
+interface AoGatewayDelegate {
+  delegatedStake: number;
+  startTimestamp: Timestamp;
+}
+
+interface AoGatewayDelegateWithAddress extends AoGatewayDelegate {
+  address: WalletAddress;
+}
+
+interface AoAllDelegates extends AoGatewayDelegateWithAddress {
+  gatewayAddress: WalletAddress;
+  vaultedStake: number;
+  cursorId: string;
+}
+
+// Cost and Fee Types
+interface CostDiscount {
+  name: string;
+  discountTotal: number;
+  multiplier: number;
+}
+
+interface CostDetailsResult {
+  tokenCost: number;
+  discounts: CostDiscount[];
+  returnedNameDetails?: {
+    name: string;
+    startTimestamp: Timestamp;
+    endTimestamp: Timestamp;
+    initiator: string;
+    premiumMultiplier: number;
+    basePrice: number;
+  };
+  fundingPlan?: {
+    address: WalletAddress;
+    balance: number;
+    stakes: Record<WalletAddress, {
+      vaults: Record<string, number>[];
+      delegatedStake: number;
+    }>;
+    shortfall: number;
+  };
+}
+
+// Token Supply Types
+interface AoTokenSupplyData {
+  total: number;
+  circulating: number;
+  locked: number;
+  withdrawn: number;
+  delegated: number;
+  staked: number;
+  protocolBalance: number;
+}
+
+// Demand Factor Types
+interface DemandFactorSettings {
+  periodZeroStartTimestamp: number;
+  movingAvgPeriodCount: number;
+  periodLengthMs: number;
+  demandFactorBaseValue: number;
+  demandFactorMin: number;
+  demandFactorUpAdjustmentRate: number;
+  demandFactorDownAdjustmentRate: number;
+  maxPeriodsAtMinDemandFactor: number;
+  criteria: string;
+}
+
+// Gateway Service Types
+interface AoGatewayService {
+  fqdn: string;
+  path: string;
+  protocol: 'https';
+  port: number;
+}
+
+interface AoGatewayServices {
+  bundlers: AoGatewayService[];
+}
+
+// Gateway Weight Types
+interface AoGatewayWeights {
+  stakeWeight: number;
+  tenureWeight: number;
+  gatewayPerformanceRatio: number;
+  observerPerformanceRatio: number;
+  compositeWeight: number;
+  normalizedCompositeWeight: number;
+}
+
+// Observer Types
+interface AoWeightedObserver {
+  gatewayAddress: WalletAddress;
+  observerAddress: WalletAddress;
+  stake: number;
+  startTimestamp: number;
+  stakeWeight: number;
+  tenureWeight: number;
+  gatewayPerformanceRatio: number;
+  observerPerformanceRatio: number;
+  compositeWeight: number;
+  normalizedCompositeWeight: number;
+}
+```
