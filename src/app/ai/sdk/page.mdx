@@ -61,6 +61,40 @@ ario.method({
 })
 ```
 
+## Important: Pagination Notes
+
+any method that accepts pagination parameters ('limit', 'sortBy', 'sortOrder', 'cursor') accept pagination and should include pagination handling in the method implementation.
+
+For all paginated methods:
+
+- `limit` has a maximum value of 1000
+- `sortBy` must be an attribute from the returned item type
+- `sortOrder` can be 'asc' or 'desc'
+- default values are present for all pagination parameters
+- `sortBy` has a different default value for each method, based on the returned item type
+- `limit` default is 100
+- `cursor` default is undefined
+- `cursor`, when provided, will always be an item from the previous page, and will be returned in the `nextCursor` property of the returned object
+
+Example for `getBalances`:
+
+```typescript
+async getBalances(params?: PaginationParams<AoBalanceWithAddress>): Promise<PaginationResult<AoBalanceWithAddress>>;
+
+// Where AoBalanceWithAddress is:
+interface AoBalanceWithAddress {
+  address: WalletAddress;  // Can use "address" as sortBy
+  balance: number;         // Can use "balance" as sortBy
+}
+
+// Example usage:
+await ario.getBalances({
+  limit: 100,
+  sortBy: "balance",      // Valid because it's a field in AoBalanceWithAddress
+  sortOrder: "desc"
+});
+```
+
 ## SDK Classes Overview
 
 The AR.IO SDK consists of three main classes:
@@ -98,7 +132,7 @@ const ario = ARIO.init({
 
 ```js
  const fs = require("fs");
- const jwk = JSON.parse(fs.readFileSync("Keyfile.json"));
+ const jwk = JSON.parse(fs.readFileSync("Keyfile.json")); //use the file path to the keyfile
 ```
 
 ### Configuration
@@ -1652,33 +1686,6 @@ async function manageGateway() {
 interface WriteOptions {
   tags?: Array<{ name: string; value: string }>
 }
-```
-
-## Pagination Notes
-
-For all paginated methods:
-
-- `limit` has a maximum value of 1000
-- `sortBy` must be an attribute from the returned item type
-- `sortOrder` can be 'asc' or 'desc'
-
-Example for `getBalances`:
-
-```typescript
-async getBalances(params?: PaginationParams<AoBalanceWithAddress>): Promise<PaginationResult<AoBalanceWithAddress>>;
-
-// Where AoBalanceWithAddress is:
-interface AoBalanceWithAddress {
-  address: WalletAddress;  // Can use "address" as sortBy
-  balance: number;         // Can use "balance" as sortBy
-}
-
-// Example usage:
-await ario.getBalances({
-  limit: 100,
-  sortBy: "balance",      // Valid because it's a field in AoBalanceWithAddress
-  sortOrder: "desc"
-});
 ```
 
 ## Core Types
