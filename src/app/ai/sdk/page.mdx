@@ -76,6 +76,15 @@ For all paginated methods:
 - `cursor` default is undefined
 - `cursor`, when provided, will always be an item from the previous page, and will be returned in the `nextCursor` property of the returned object
 
+Every paginated response will consist of an object with the following properties:
+
+- `items`: an array of items returned by the method
+- `nextCursor`: a cursor to the next page of results, if there are more.
+- `hasMore`: whether there are more pages of results available
+- `totalItems`: the total number of items available
+- `sortBy`: the attribute used for sorting. Should be the same as the `sortBy` parameter passed to the method for every page.
+- `sortOrder`: the order used for sorting. Should be the same as the `sortOrder` parameter passed to the method for every page.
+
 Example for `getBalances`:
 
 ```typescript
