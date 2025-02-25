@@ -42,7 +42,9 @@ yarn add @ar.io/sdk --ignore-engines // ignore engines is required due to a depe
 pnpm add @ar.io/sdk
 ```
 
-## Environment imports
+## Important: Imports
+
+All imports come from the base path `@ar.io/sdk`, with `/node` and `/web` subdirectories for Node.js and Web-specific modules, respectively.
 
 All imports in a web environment must be made using the `/web` path.
 
@@ -59,6 +61,13 @@ ario.method({
   param1: 'value1',
   param2: 'value2',
 })
+```
+
+## Important: Parsing Arweave Keyfiles into JWKs
+
+```js
+ const fs = require("fs");
+ const jwk = JSON.parse(fs.readFileSync("Keyfile.json")); //use the file path to the keyfile
 ```
 
 ## Important: Pagination
@@ -106,6 +115,15 @@ await ario.getBalances({
 });
 ```
 
+## Important Constants
+
+```typescript
+// ARIO mainnet process ID
+const ARIO_MAINNET_PROCESS_ID = 'qNvAoz0TgcH7DMg8BCVn8jF32QH5L6T29VjHxhHqqGE'
+const DEFAULT_TTL_SECONDS = 900
+const MAX_
+```
+
 ## SDK Classes Overview
 
 The AR.IO SDK consists of three main classes:
@@ -114,14 +132,7 @@ The AR.IO SDK consists of three main classes:
 2. **ANT** - Management of Arweave Name Tokens
 3. **ANTRegistry** - Registration and management of ANTs
 
-## Important Constants
-
-```typescript
-// ARIO mainnet process ID
-const ARIO_MAINNET_PROCESS_ID = 'qNvAoz0TgcH7DMg8BCVn8jF32QH5L6T29VjHxhHqqGE'
-const DEFAULT_TTL_SECONDS = 900
-const MAX_PAGINATION_LIMIT = 1000
-```
+PAGINATION_LIMIT = 1000
 
 ### Usage Notes
 
@@ -137,14 +148,9 @@ const ario = ARIO.init({
 })
 ```
 
+The mainnet process Id is provided by default in the AR.IO SDK.
+
 ## Class: ARIO
-
-## Parsing Arweave Keyfiles into JWKs
-
-```js
- const fs = require("fs");
- const jwk = JSON.parse(fs.readFileSync("Keyfile.json")); //use the file path to the keyfile
-```
 
 ### Configuration
 
@@ -164,7 +170,7 @@ const ario = ARIO.init(config?: ARIOConfig);
 The ARIO class can be initialized in three ways:
 
 ```typescript
-// Read-only client (no arguments)
+// Read-only client (no parameters)
 static init(): AoARIORead;
 
 // Authenticated client (with signer)
@@ -178,16 +184,16 @@ static init(config: ARIOConfigNoSigner): AoARIORead;
 
 ```typescript
 type ARIOConfigNoSigner = {
-  process?: AOProcess
-  processId?: string
-  arweave?: Arweave
+  process?: AOProcess;        // Pre-configured AOProcess instance
+  processId?: string;         // ID of the AO process (defaults to mainnet)
+  arweave?: Arweave;         // Optional Arweave instance
 }
 
 type ARIOConfigWithSigner = {
-  signer: ArweaveSigner | ArConnectSigner
-  process?: AOProcess
-  processId?: string
-  arweave?: Arweave
+  signer: ArweaveSigner | ArConnectSigner; // Signer for authenticated operations
+  process?: AOProcess;        // Pre-configured AOProcess instance
+  processId?: string;         // ID of the AO process (defaults to mainnet)
+  arweave?: Arweave;         // Optional Arweave instance
 }
 ```
 
@@ -199,7 +205,7 @@ const ario = ARIO.init()
 
 // NodeJS authenticated client
 const ario = ARIO.init({
-  signer: new ArweaveSigner(jwk),
+  signer: new ArweaveSigner(jwk), // JWK from keyfile
 })
 
 // Web authenticated client
@@ -208,6 +214,8 @@ const ario = ARIO.init({
 })
 
 // Custom AO process configuration
+import { connect } from "@permaweb/aoconnect"; // Importing connect from @permaweb/aoconnect
+
 const ario = ARIO.init({
   process: new AOProcess({
     processId: ARIO_MAINNET_PROCESS_ID,
@@ -1113,7 +1121,7 @@ interface AoReturnedName {
 - Authentication: Not required
 - Parameters: Optional pagination parameters
 
-```typescript
+```typitten
 async getArNSReturnedNames(
   params?: PaginationParams<AoReturnedName>
 ): Promise<PaginationResult<AoReturnedName>>;
@@ -1235,6 +1243,88 @@ interface ANTConfig {
 // Initialize ANT
 const ant = ANT.init(config: ANTConfig);
 ```
+
+### Initialization
+
+The ANT class can be initialized in two ways, depending on whether a signer is provided:
+
+```typescript
+// Read-only client (no signer)
+static init(config: ANTConfigNoSigner): AoANTRead;
+
+// Authenticated client (with signer)
+static init(config: ANTConfigWithSigner): AoANTWrite;
+
+// Implementation
+static init(config: ANTConfig): AoANTRead | AoANTWrite {
+  if (config !== undefined && 'signer' in config) {
+    return new AoANTWriteable(config);
+  }
+  return new AoANTReadable(config);
+}
+```
+
+### Configuration Types
+
+```typescript
+type ANTConfigNoSigner = ANTConfigOptionalStrict;
+type ANTConfigWithSigner = WithSigner<ANTConfigOptionalStrict>;
+type ANTConfig = ANTConfigNoSigner | ANTConfigWithSigner;
+```
+
+### Initialization Examples
+
+```typescript
+// Read-only client (no authentication)
+const ant = ANT.init({
+  processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM"
+});
+
+// NodeJS authenticated client
+const { ANT, ArweaveSigner } = require("@ar.io/sdk");
+const jwk = JSON.parse(fs.readFileSync("KeyFile.json"));
+
+const ant = ANT.init({
+  signer: new ArweaveSigner(jwk),
+  processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM"
+});
+
+// Web authenticated client
+import { ANT, ArConnectSigner } from "@ar.io/sdk/web";
+
+const ant = ANT.init({
+  signer: new ArConnectSigner(window.arweaveWallet),
+  processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM"
+});
+
+// Custom AO process configuration
+import { connect } from "@permaweb/aoconnect"; // Importing connect from @permaweb/aoconnect
+
+const ant = ANT.init({
+  process: new AOProcess({
+    processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM",
+    ao: connect({
+      MU_URL: 'https://mu-testnet.xyz', //customizable
+      CU_URL: 'https://cu-testnet.xyz', //customizable
+      GRAPHQL_URL: 'https://arweave.net/graphql', //customizable
+      GATEWAY_URL: 'https://arweave.net', //customizable
+    })
+  })
+});
+```
+
+### Configuration Parameters
+
+| Parameter  | Type           | Description                         | Optional |
+|------------|----------------|-------------------------------------|----------|
+| processId  | string         | The AO process ID of the ANT to connect to. | false    |
+| process    | AOProcess      | A pre-configured AOProcess instance used to initialize the ANT class | true     |
+| signer     | ContractSigner | An optional signer instance, used to enable write operations on the blockchain | true     |
+
+### Authentication Notes
+
+- "Authentication: Not required" - Method is available on read-only clients (no signer needed during init)
+- "Authentication: Required" - Method is only available when initialized with a signer
 
 ### Methods
 
