@@ -1656,6 +1656,78 @@ interface ANTRegistryConfig {
 const registry = ANTRegistry.init(config: ANTRegistryConfig);
 ```
 
+### Initialization
+
+The ANTRegistry class can be initialized in two ways, depending on whether a signer is provided:
+
+```typescript
+// Read-only client (no parameters)
+static init(): AoANTRegistryRead;
+
+// Authenticated client (with signer)
+static init(config: ANTRegistryWithSigner): AoANTRegistryWrite;
+
+// Read-only client (with config)
+static init(config: ANTRegistryNoSigner): AoANTRegistryRead;
+
+// Implementation
+static init(
+  config?: ANTRegistryConfig,
+): AoANTRegistryRead | AoANTRegistryWrite {
+  if (config !== undefined && 'signer' in config) {
+    return new AoANTRegistryWriteable(config);
+  }
+  return new AoANTRegistryReadable(config);
+}
+```
+
+### Configuration Types
+
+```typescript
+type ANTRegistryNoSigner = ProcessConfiguration;
+type ANTRegistryWithSigner = WithSigner<ProcessConfiguration>;
+type ANTRegistryConfig = ANTRegistryNoSigner | ANTRegistryWithSigner;
+```
+
+### Initialization Examples
+
+```typescript
+// Read-only client (no authentication)
+const registry = ANTRegistry.init();
+
+// NodeJS authenticated client
+const { ANTRegistry, ArweaveSigner } = require("@ar.io/sdk");
+const jwk = JSON.parse(fs.readFileSync("KeyFile.json"));
+
+const registry = ANTRegistry.init({
+  signer: new ArweaveSigner(jwk),
+});
+
+// Web authenticated client
+import { ANTRegistry, ArConnectSigner } from "@ar.io/sdk/web";
+
+const registry = ANTRegistry.init({
+  signer: new ArConnectSigner(window.arweaveWallet),
+});
+
+// Custom process configuration
+const registry = ANTRegistry.init({
+  processId: 'custom_process_id', // Use specific AO process
+});
+```
+
+### Configuration Parameters
+
+| Parameter  | Type           | Description                         | Optional |
+|------------|----------------|-------------------------------------|----------|
+| processId  | string         | ID of the AO process (defaults to ANT registry) | Yes      |
+| signer     | ContractSigner | An optional signer instance, used to enable write operations on the blockchain | Yes      |
+
+### Authentication Notes
+
+- "Authentication: Not required" - Method is available on read-only clients (no signer needed during init)
+- "Authentication: Required" - Method is only available when initialized with a signer
+
 ### Methods
 
 1. **accessControlList**
