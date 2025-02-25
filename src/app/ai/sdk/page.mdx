@@ -134,6 +134,22 @@ The AR.IO SDK consists of three main classes:
 
 PAGINATION_LIMIT = 1000
 
+### Important: Class Data Flow and Interaction
+
+The ARIO class is used to interact with the ARIO network smart contract. This contract includes some
+information about ArNS names. Each ArNS name is a separate smart contract, referred to as Arweave Name
+Tokens (ANTs). The ANT class is used to interact with these individual contracts, including getting more
+detailed information about the ArNS name and its controlling ANT. ARIO class methods that return
+process ids, when related to ArNS names (including primary names), can be used to obtain the process id
+needed to init the ANT class for that ANT in order to get more detailed information about the ANT.
+
+For example, `ARIO.getPrimaryName` will return a processId, and that processId can be used to init the
+`ANT` class to get more detailed information about the ANT.
+
+The ANTRegistry class is primarily used through the ANTRegistry.accessControlList() method, which Returns
+a list of processIds for ANTs owned or controlled by the provided walletAddress. This list can be used to
+init the ANT class for each ANT in order to get more detailed information about each ANT.
+
 ### Usage Notes
 
 - All paginated methods accept a maximum of 1000 items per request
