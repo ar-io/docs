@@ -128,27 +128,21 @@ const MAX_
 
 The AR.IO SDK consists of three main classes:
 
-1. **ARIO** - Core functionality for interacting with the AR.IO network
-2. **ANT** - Management of Arweave Name Tokens
-3. **ANTRegistry** - Registration and management of ANTs
+1. **ARIO** - Core functionality for interacting with the AR.IO network - Cannot obtain detailed information about an ArNS name or controlling ANT
+2. **ANT** - Management and detailed information of Arweave Name Tokens
+3. **ANTRegistry** - Registration and management of ANTs - Primarily used to obtain list of ANTs owned or controlled by an walletAddress
 
 PAGINATION_LIMIT = 1000
 
 ### Important: Class Data Flow and Interaction
 
-The ARIO class is used to interact with the ARIO network smart contract. This contract includes some
-information about ArNS names. Each ArNS name is a separate smart contract, referred to as Arweave Name
-Tokens (ANTs). The ANT class is used to interact with these individual contracts, including getting more
-detailed information about the ArNS name and its controlling ANT. ARIO class methods that return
-process ids, when related to ArNS names (including primary names), can be used to obtain the process id
-needed to init the ANT class for that ANT in order to get more detailed information about the ANT.
+The ARIO class facilitates interaction with the AR.IO network smart contract, which manages data related to ArNS names. Each ArNS name operates as an independent smart contract, known as an Arweave Name Token (ANT). To interact with these contracts and retrieve detailed ArNS name data, use the ANT class.
 
-For example, `ARIO.getPrimaryName` will return a processId, and that processId can be used to init the
-`ANT` class to get more detailed information about the ANT.
+Methods in the ARIO class that return process IDs for ArNS names (including primary names) can be used to initialize the ANT class. This allows retrieval of detailed ANT-related information.
 
-The ANTRegistry class is primarily used through the ANTRegistry.accessControlList() method, which Returns
-a list of processIds for ANTs owned or controlled by the provided walletAddress. This list can be used to
-init the ANT class for each ANT in order to get more detailed information about each ANT.
+For instance, calling ARIO.getPrimaryName returns a processId, which can then be used to initialize the ANT class and fetch detailed ANT data.
+
+The ANTRegistry class provides access to multiple ANTs owned or controlled by a wallet via the ANTRegistry.accessControlList() method. This method returns a list of process IDs, which can be used to initialize the ANT class for each ANT, enabling access to their detailed information.
 
 ### Usage Notes
 
@@ -164,7 +158,8 @@ const ario = ARIO.init({
 })
 ```
 
-The mainnet process Id is provided by default in the AR.IO SDK.
+- The mainnet process Id is provided by default in the AR.IO SDK.
+- ARIO class methods and ANTRegistry class methods can be used to obtain processIds used to init ANT class
 
 ## Class: ARIO
 
