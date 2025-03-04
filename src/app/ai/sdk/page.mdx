@@ -2217,3 +2217,35 @@ interface AoWeightedObserver {
   normalizedCompositeWeight: number
 }
 ```
+
+### Common Mistakes to Avoid
+
+#### ❌ Incorrect: Using `new` to initialize ANTRegistry
+
+```typescript
+// INCORRECT - Do not use new to initialize ANTRegistry
+const registry = new ANTRegistry(); // This will cause errors
+```
+
+#### ✅ Correct: Using static `init()` method
+
+```typescript
+// CORRECT - Always use the static init() method
+const registry = ANTRegistry.init();
+```
+
+#### ❌ Incorrect: Initializing with ARIO instance
+
+```typescript
+// INCORRECT - ANTRegistry cannot be initialized with an ARIO instance
+const ario = ARIO.init();
+const registry = ANTRegistry.init(ario); // This will cause errors
+```
+
+#### ✅ Correct: Independent initialization
+
+```typescript
+// CORRECT - ANTRegistry is initialized independently
+const ario = ARIO.init();
+const registry = ANTRegistry.init(); // No dependency on ARIO
+```
