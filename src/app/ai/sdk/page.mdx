@@ -21,8 +21,66 @@ export const metadata = {
 
 <HeroPattern />
 
+## Basic Initialization Guide
 
+Each class in the AR.IO SDK has its own initialization pattern. Here's how to correctly initialize each main class:
 
+### ARIO Class
+
+```typescript
+// Read-only client (no authentication)
+const ario = ARIO.init();
+
+// Authenticated client (with signer)
+const ario = ARIO.init({
+  signer: new ArweaveSigner(jwk)  // Node.js
+  // OR
+  signer: new ArConnectSigner(window.arweaveWallet)  // Web
+});
+```
+
+### ANT Class
+
+```typescript
+// Read-only client (requires processId)
+const ant = ANT.init({
+  processId: "ANT-PROCESS-ID-HERE"
+});
+
+// Authenticated client (requires processId and signer)
+const ant = ANT.init({
+  processId: "ANT-PROCESS-ID-HERE",
+  signer: new ArweaveSigner(jwk)  // Node.js
+  // OR
+  signer: new ArConnectSigner(window.arweaveWallet)  // Web
+});
+```
+
+### ANTRegistry Class
+
+```typescript
+// Read-only client (no parameters)
+const registry = ANTRegistry.init();
+
+// Authenticated client (with signer only)
+const registry = ANTRegistry.init({
+  signer: new ArweaveSigner(jwk)  // Node.js
+  // OR
+  signer: new ArConnectSigner(window.arweaveWallet)  // Web
+});
+```
+
+### Important Notes
+
+1. **Never use `new`** to initialize these classes - always use the static `init()` method
+2. **Each class connects to different contracts** with different default process IDs:
+   - ARIO connects to the AR.IO protocol contract
+   - ANT connects to a specific ANT contract (requires processId)
+   - ANTRegistry connects to the ANT registry contract
+3. **Never pass an instance of one class to another** - they are initialized independently
+4. **Authentication is handled separately** for each class
+
+For more detailed initialization options, see the specific class documentation below.
 
 # AR.IO SDK Reference
 
