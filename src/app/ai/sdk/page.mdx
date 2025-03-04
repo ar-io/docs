@@ -1757,6 +1757,65 @@ interface AoANTRegistryWrite extends AoANTRegistryRead {
 }
 ```
 
+### Common Usage Patterns
+
+#### Finding ANTs Owned or Controlled by an Address
+
+To find ANTs associated with a wallet address, use the ANTRegistry class directly:
+
+```typescript
+// Import the ANTRegistry class
+import { ANTRegistry } from '@ar.io/sdk'; // or '@ar.io/sdk/web' for browser
+
+// Initialize the ANTRegistry (no authentication needed for read operations)
+const registry = ANTRegistry.init();
+
+// Get ANTs owned or controlled by a specific address
+const result = await registry.accessControlList({
+  address: "WALLET-ADDRESS-HERE"
+});
+
+// Result contains two arrays:
+// result.Owned - ANT process IDs owned by this address
+// result.Controlled - ANT process IDs where this address is a controller
+console.log("Owned ANTs:", result.Owned);
+console.log("Controlled ANTs:", result.Controlled);
+```
+
+#### Working with ANTs from Registry Results
+
+After retrieving ANT process IDs from the registry, you can initialize the ANT class with these IDs:
+
+```typescript
+// Import the ANT class
+import { ANT } from '@ar.io/sdk'; // or '@ar.io/sdk/web' for browser
+
+// Get ANTs from registry
+const registry = ANTRegistry.init();
+const result = await registry.accessControlList({
+  address: "WALLET-ADDRESS-HERE"
+});
+
+// Initialize an ANT using a process ID from the registry results
+if (result.Owned.length > 0) {
+  const ant = ANT.init({
+    processId: result.Owned[0] // Use the first owned ANT
+  });
+
+  // Now you can interact with this specific ANT
+  const info = await ant.getInfo();
+  console.log("ANT Info:", info);
+}
+```
+
+#### Important Notes
+
+- The ANTRegistry is a separate class from ARIO and ANT
+- The ANTRegistry.accessControlList method is the correct way to find ANTs associated with an address
+- The result contains process IDs that must be used to initialize ANT instances
+- There is no method called "getANTs" on the ARIO class
+- The ANTRegistry cannot be initialized with an ARIO instance
+
 ## Common Patterns and Usage
 
 ### Authentication Flow
