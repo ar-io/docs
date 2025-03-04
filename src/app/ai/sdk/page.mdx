@@ -1716,6 +1716,7 @@ const registry = ANTRegistry.init({
 
 1. **accessControlList**
 - Purpose: Get a list of ANTs owned or controlled by a specific wallet address
+- Description: This method returns ANT process IDs associated with a wallet address, separated into two categories: those owned by the address and those where the address has controller permissions
 - Authentication: Not required
 - Parameters: Wallet address to lookup
 ```typescript
@@ -1731,6 +1732,7 @@ async accessControlList({
 
 2. **register**
 - Purpose: Register a new ANT with the registry
+- Description: Adds an existing ANT process to the registry, making it discoverable by other users
 - Authentication: Required
 - Parameters: Process ID of the ANT to register
 ```typescript
@@ -1741,80 +1743,28 @@ async register({
 }): Promise<{ id: string }>;
 ```
 
-### Interface Types
+### Method Aliases and Alternative Names
+
+The ANTRegistry class has methods with names that might not be immediately intuitive:
+
+| Method Name | What It Actually Does |
+|-------------|----------------------|
+| `accessControlList` | Gets ANTs owned or controlled by a wallet address |
+
+### Finding ANTs by Address
+
+To find all ANTs associated with a wallet address, use the `accessControlList` method:
 
 ```typescript
-// Read-only interface
-interface AoANTRegistryRead {
-  accessControlList(params: {
-    address: string;
-  }): Promise<{ Owned: string[]; Controlled: string[] }>;
-}
-
-// Write interface (extends read interface)
-interface AoANTRegistryWrite extends AoANTRegistryRead {
-  register(params: { processId: string }): Promise<AoMessageResult>;
-}
-```
-
-### Common Usage Patterns
-
-#### Finding ANTs Owned or Controlled by an Address
-
-To find ANTs associated with a wallet address, use the ANTRegistry class directly:
-
-```typescript
-// Import the ANTRegistry class
-import { ANTRegistry } from '@ar.io/sdk'; // or '@ar.io/sdk/web' for browser
-
-// Initialize the ANTRegistry (no authentication needed for read operations)
-const registry = ANTRegistry.init();
-
-// Get ANTs owned or controlled by a specific address
+// Get all ANTs owned or controlled by a wallet address
 const result = await registry.accessControlList({
   address: "WALLET-ADDRESS-HERE"
 });
 
-// Result contains two arrays:
-// result.Owned - ANT process IDs owned by this address
-// result.Controlled - ANT process IDs where this address is a controller
-console.log("Owned ANTs:", result.Owned);
-console.log("Controlled ANTs:", result.Controlled);
+// The result contains two arrays:
+console.log("ANTs owned by this address:", result.Owned);
+console.log("ANTs where this address is a controller:", result.Controlled);
 ```
-
-#### Working with ANTs from Registry Results
-
-After retrieving ANT process IDs from the registry, you can initialize the ANT class with these IDs:
-
-```typescript
-// Import the ANT class
-import { ANT } from '@ar.io/sdk'; // or '@ar.io/sdk/web' for browser
-
-// Get ANTs from registry
-const registry = ANTRegistry.init();
-const result = await registry.accessControlList({
-  address: "WALLET-ADDRESS-HERE"
-});
-
-// Initialize an ANT using a process ID from the registry results
-if (result.Owned.length > 0) {
-  const ant = ANT.init({
-    processId: result.Owned[0] // Use the first owned ANT
-  });
-
-  // Now you can interact with this specific ANT
-  const info = await ant.getInfo();
-  console.log("ANT Info:", info);
-}
-```
-
-#### Important Notes
-
-- The ANTRegistry is a separate class from ARIO and ANT
-- The ANTRegistry.accessControlList method is the correct way to find ANTs associated with an address
-- The result contains process IDs that must be used to initialize ANT instances
-- There is no method called "getANTs" on the ARIO class
-- The ANTRegistry cannot be initialized with an ARIO instance
 
 ## Common Patterns and Usage
 
@@ -2249,3 +2199,4 @@ const registry = ANTRegistry.init(ario); // This will cause errors
 const ario = ARIO.init();
 const registry = ANTRegistry.init(); // No dependency on ARIO
 ```
+
