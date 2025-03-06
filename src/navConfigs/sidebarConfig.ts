@@ -1063,6 +1063,10 @@ export const singleNavigation: Array<NavGroup> = [
             href: '/build/gateways/grafana',
           },
           {
+            title: 'Legacy CU Sidecar',
+            href: '/build/gateways/legacy-cu',
+          },
+          {
             title: 'Automating SSL',
             // href: '/build/gateways/networking',
             children: [
