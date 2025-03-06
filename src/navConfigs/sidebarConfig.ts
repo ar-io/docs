@@ -1064,7 +1064,7 @@ export const singleNavigation: Array<NavGroup> = [
           },
           {
             title: 'AO Compute Unit (CU) Sidecar',
-            href: '/build/gateways/legacy-cu',
+            href: '/build/gateways/cu',
           },
           {
             title: 'Automating SSL',
