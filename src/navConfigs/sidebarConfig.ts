@@ -1063,7 +1063,7 @@ export const singleNavigation: Array<NavGroup> = [
             href: '/build/gateways/grafana',
           },
           {
-            title: 'Legacy CU Sidecar',
+            title: 'AO Compute Unit (CU) Sidecar',
             href: '/build/gateways/legacy-cu',
           },
           {
