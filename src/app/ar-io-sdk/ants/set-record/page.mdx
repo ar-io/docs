@@ -1,0 +1,131 @@
+import { HeroPattern } from '@/components/HeroPattern'
+
+export const metadata = {
+  title: 'setRecord',
+  description: 'Update or create a record in an ANT process',
+  openGraph: {
+    title: 'setRecord',
+  },
+}
+
+<HeroPattern />
+
+<Tip title="Deprecated">
+  This method is deprecated. Please use `setBaseNameRecord` for top-level names or `setUndernameRecord` for undernames instead. See the [setBaseNameRecord](/ar-io-sdk/ants/set-base-name-record) and [setUndernameRecord](/ar-io-sdk/ants/set-undername-record) documentation for more details.
+</Tip>
+
+# setRecord
+
+`setRecord` is a method on the `ANT` class that creates or updates a record in the ANT process.
+
+`setRecord` requires authentication.
+
+## Parameters
+
+{
+
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>undername</th>
+        <td>string</td>
+        <td>The undername for which to set the record. The `@` symbol represents the top-level name</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>transactionId</th>
+        <td>string</td>
+        <td>The Arweave transaction ID to set as the record</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>ttlSeconds</th>
+        <td>number</td>
+        <td>The number of seconds for DNS TTL (defaults to 900)</td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <th>tags</th>
+        <td>array</td>
+        <td>
+          An array of GQL tag objects to attach to the transfer AO message
+        </td>
+        <td>true</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+}
+
+<Tip title="TTL">
+  Time-To-Live (TTL) determines how often gateways should check the ANT for updates to the corresponding record. You can have different TTLs for different records within an ANT, depending on their use case. A record that is updated frequently should have a lower
+  value to facilitate serving current data, while a record that is updated less
+  often should have a higher value to allow cached data to be served more
+  quickly.
+
+TTL must be between 60 seconds (1 minute) and 86400 seconds (1 day).
+</Tip>
+
+## Examples
+
+<CodeGroup title="setRecord">
+
+       ```typescript {{title: "NodeJS"}}
+        const fs = require("fs");
+        const { ANT, ArweaveSigner } = require("@ar.io/sdk");
+
+        async function main() {
+        const jwk = JSON.parse(fs.readFileSync("KeyFile.json"));
+        const ant = ANT.init({
+            signer: new ArweaveSigner(jwk),
+            processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM"
+        });
+
+        const { id: txId } = await ant.setRecord(
+                {
+                    undername: '@',
+                    transactionId: '432l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM'
+                    ttlSeconds: 3600
+                },
+                // optional additional tags
+                { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+            );
+        }
+
+        main();
+
+    ```
+
+    ```typescript {{ title: 'Web' }}
+    import { ANT, ArConnectSigner } from '@ar.io/sdk/web';
+
+    async function main() {
+        const ant = ANT.init({
+            signer: new ArConnectSigner(window.arweaveWallet),
+            processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM"
+        })
+
+        const { id: txId } = await ant.setRecord(
+                {
+                    undername: '@',
+                    transactionId: '432l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM'
+                    ttlSeconds: 3600
+                },
+                // optional additional tags
+                { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+            );
+        }
+
+    main();
+    ```
+
+</CodeGroup>

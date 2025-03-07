@@ -1,0 +1,115 @@
+import {HeroPattern} from "@/components/HeroPattern"
+
+<HeroPattern />
+
+# Upgrading your Gateway
+
+To ensure the optimal performance and security of your AR.IO Gateway, it's essential to regularly upgrade to the latest version. Notably, indexed data resides separate from Docker. As a result, neither upgrading the Gateway nor pruning Docker will erase your data or progress. Here's how you can perform the upgrade:
+
+## Prerequisites
+
+- Your Gateway should have been cloned using git. If you haven't, follow the installation instructions for [windows](/gateways/ar-io-node/windows-setup) or [linux](/gateways/ar-io-node/linux-setup).
+
+## Checking your Release Number
+
+Effective with release 3, you can view the currently implemented release on any gateway by visiting `https://<gateway>/ar-io/info` in a browser. Be sure to replace `<gateway>` with the domain of the gateway you are checking.
+
+If the release number displayed includes `-pre` it means that your gateway is using the `develop` branch of the github repo for the gateway code. Follow steps in our [troubleshooting guide](/gateways/troubleshooting) to switch over to the more stable `main` branch.
+
+Announcements will be made in our [discord server](https://discord.gg/7zUPfN4D6g) showing each new release.
+
+
+## Upgrade Steps
+
+1. **Pull the latest changes from the repository**
+
+    Navigate to your cloned repository directory and execute the following command:
+
+    ```
+    git pull
+    ```
+
+2. **Shut down Docker**
+
+    Depending on your operating system, use the respective commands:
+
+    <details>
+    <summary>Linux</summary>
+
+    ```
+    sudo docker-compose down -v
+    ```
+
+    </details>
+
+    <details>
+    <summary>Windows</summary>
+
+    ```
+
+    docker-compose down -v
+
+    ```
+
+    </details>
+
+
+3. **Prune Docker** (Optional)
+
+
+    It's a good practice to clean up unused Docker resources. Again, use the command based on your OS:
+
+    **NOTE**: This will erase all inactive docker containers on your machine. If you use docker for anything beyond running a gateway be extremely careful using this command.
+
+    <details>
+    <summary>Linux</summary>
+
+    ```
+
+    sudo docker system prune
+
+    ```
+
+    </details>
+
+    <details>
+    <summary>Windows</summary>
+
+    ```
+
+    docker system prune
+
+    ```
+
+    </details>
+
+4. **Check for New Environmental Variables**
+
+    Read the update release change logs and community announcements to see if the new version includes any new environmental variables that you should set before restarting your gateway.
+
+5. **Restart the Docker container**
+
+    Finally, start the Docker container again to implement the changes:
+
+    <details>
+    <summary>Linux</summary>
+
+    ```
+    sudo docker-compose up -d
+    ```
+
+    </details>
+
+    <details>
+    <summary>Windows</summary>
+
+    ```
+    docker-compose up -d
+    ```
+
+      **NOTE**: Effective with Release #3, it is no longer required to include the `--build` flag when starting your gateway. Docker will automatically build using the image specified in the `docker-commpose.yaml` file. 
+
+    </details>
+
+That's it! Your AR.IO Gateway is now upgraded to the latest version. Ensure to test and verify that everything is functioning as expected. If you encounter any issues, reach out to the [AR.IO community](https://discord.gg/7zUPfN4D6g) for assistance.
+

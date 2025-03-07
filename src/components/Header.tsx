@@ -85,10 +85,10 @@ export const Header = forwardRef<
         {/* <Link href="/" aria-label="Home">
           <Logo className="h-6" />
         </Link> */}
-        {/* <Link href="/learn/introduction" aria-label="Home">
+        {/* <Link href="/introduction" aria-label="Home">
           Learn
         </Link>
-        <Link href="/build/ar-io-sdk" aria-label="Home">
+        <Link href="/ar-io-sdk" aria-label="Home">
           Build
         </Link> */}
       </div>
@@ -97,8 +97,8 @@ export const Header = forwardRef<
           <ul role="list" className="flex items-center gap-8">
             {/* <TopLevelNavItem href="/">Home</TopLevelNavItem> */}
             {/* <TopLevelNavItem href="https://whitepaper.arweave.net/" target='_blank'>White Paper</TopLevelNavItem> */}
-            {/* <TopLevelNavItem href="/learn/introduction">Learn</TopLevelNavItem>
-            <TopLevelNavItem href="/build/ar-io-sdk">Build</TopLevelNavItem>
+            {/* <TopLevelNavItem href="/introduction">Learn</TopLevelNavItem>
+            <TopLevelNavItem href="/ar-io-sdk">Build</TopLevelNavItem>
             <TopLevelNavItem href="/community-resources">
               Community Resources
             </TopLevelNavItem> */}

@@ -586,23 +586,23 @@ export const singleNavigation: Array<NavGroup> = [
       },
       {
         title: 'Introduction',
-        href: '/learn/introduction',
+        href: '/introduction',
       },
       {
         title: 'Network Composition',
-        href: '/learn/network-composition',
+        href: '/network-composition',
       },
       {
         title: 'Smart Contract',
-        href: '/learn/ario-contract',
+        href: '/ario-contract',
       },
       {
         title: 'Token',
-        href: '/learn/token',
+        href: '/token',
       },
       {
         title: 'Staking',
-        href: '/learn/staking',
+        href: '/staking',
       },
 
       //   ],
@@ -612,23 +612,23 @@ export const singleNavigation: Array<NavGroup> = [
       //   links: [
       {
         title: 'Arweave Name System (ArNS)',
-        href: '/learn/arns',
+        href: '/arns',
       },
       {
         title: 'Manifests',
-        href: '/learn/concepts/manifests',
+        href: '/concepts/manifests',
       },
       {
         title: 'Normalized Addresses',
-        href: '/learn/concepts/normalized-addresses',
+        href: '/concepts/normalized-addresses',
       },
       {
         title: 'Sandboxing',
-        href: '/learn/concepts/sandboxing',
+        href: '/concepts/sandboxing',
       },
       {
         title: 'Wayfinder',
-        href: '/learn/concepts/wayfinder',
+        href: '/concepts/wayfinder',
       },
     ],
   },
@@ -637,45 +637,45 @@ export const singleNavigation: Array<NavGroup> = [
     links: [
       {
         title: 'Info',
-        href: '/build/ar-io-sdk',
+        href: '/ar-io-sdk',
       },
       {
         title: 'Getting Started',
-        href: '/build/ar-io-sdk/getting-started',
+        href: '/ar-io-sdk/getting-started',
       },
       {
         title: 'Release Notes',
-        href: '/build/ar-io-sdk/release-notes',
+        href: '/ar-io-sdk/release-notes',
       },
       {
         title: 'ARIO Class',
         children: [
           {
             title: 'Configuration',
-            href: '/build/ar-io-sdk/ario/configuration',
+            href: '/ar-io-sdk/ario/configuration',
           },
           {
             title: 'General',
             children: [
               {
                 title: 'getInfo',
-                href: '/build/ar-io-sdk/ario/general/get-info',
+                href: '/ar-io-sdk/ario/general/get-info',
               },
               {
                 title: 'getTokenSupply',
-                href: '/build/ar-io-sdk/ario/general/get-token-supply',
+                href: '/ar-io-sdk/ario/general/get-token-supply',
               },
               {
                 title: 'getBalance',
-                href: '/build/ar-io-sdk/ario/general/get-balance',
+                href: '/ar-io-sdk/ario/general/get-balance',
               },
               {
                 title: 'getBalances',
-                href: '/build/ar-io-sdk/ario/general/get-balances',
+                href: '/ar-io-sdk/ario/general/get-balances',
               },
               {
                 title: 'transfer',
-                href: '/build/ar-io-sdk/ario/general/transfer',
+                href: '/ar-io-sdk/ario/general/transfer',
               },
             ],
           },
@@ -684,71 +684,71 @@ export const singleNavigation: Array<NavGroup> = [
             children: [
               {
                 title: 'getGateway',
-                href: '/build/ar-io-sdk/ario/gateways/get-gateway',
+                href: '/ar-io-sdk/ario/gateways/get-gateway',
               },
               {
                 title: 'getGateways',
-                href: '/build/ar-io-sdk/ario/gateways/get-gateways',
+                href: '/ar-io-sdk/ario/gateways/get-gateways',
               },
               {
                 title: 'joinNetwork',
-                href: '/build/ar-io-sdk/ario/gateways/join-network',
+                href: '/ar-io-sdk/ario/gateways/join-network',
               },
               {
                 title: 'leaveNetwork',
-                href: '/build/ar-io-sdk/ario/gateways/leave-network',
+                href: '/ar-io-sdk/ario/gateways/leave-network',
               },
               {
                 title: 'updateGatewaySettings',
-                href: '/build/ar-io-sdk/ario/gateways/update-gateway-settings',
+                href: '/ar-io-sdk/ario/gateways/update-gateway-settings',
               },
               {
                 title: 'increaseOperatorStake',
-                href: '/build/ar-io-sdk/ario/gateways/increase-operator-stake',
+                href: '/ar-io-sdk/ario/gateways/increase-operator-stake',
               },
               {
                 title: 'decreaseOperatorStake',
-                href: '/build/ar-io-sdk/ario/gateways/decrease-operator-stake',
+                href: '/ar-io-sdk/ario/gateways/decrease-operator-stake',
               },
               {
                 title: 'increaseDelegateStake',
-                href: '/build/ar-io-sdk/ario/gateways/increase-delegate-stake',
+                href: '/ar-io-sdk/ario/gateways/increase-delegate-stake',
               },
               {
                 title: 'decreaseDelegateStake',
-                href: '/build/ar-io-sdk/ario/gateways/decrease-delegate-stake',
+                href: '/ar-io-sdk/ario/gateways/decrease-delegate-stake',
               },
               {
                 title: 'instantWithdrawal',
-                href: '/build/ar-io-sdk/ario/gateways/instant-withdrawal',
+                href: '/ar-io-sdk/ario/gateways/instant-withdrawal',
               },
               {
                 title: 'cancelWithdrawal',
-                href: '/build/ar-io-sdk/ario/gateways/cancel-withdrawal',
+                href: '/ar-io-sdk/ario/gateways/cancel-withdrawal',
               },
               {
                 title: 'redelegateStake',
-                href: '/build/ar-io-sdk/ario/gateways/redelegate-stake',
+                href: '/ar-io-sdk/ario/gateways/redelegate-stake',
               },
               {
                 title: 'getRedelegationFee',
-                href: '/build/ar-io-sdk/ario/gateways/get-redelegation-fee',
+                href: '/ar-io-sdk/ario/gateways/get-redelegation-fee',
               },
               {
                 title: 'getDelegations',
-                href: '/build/ar-io-sdk/ario/gateways/get-delegations',
+                href: '/ar-io-sdk/ario/gateways/get-delegations',
               },
               {
                 title: 'getAllowedDelegates',
-                href: '/build/ar-io-sdk/ario/gateways/get-allowed-delegates',
+                href: '/ar-io-sdk/ario/gateways/get-allowed-delegates',
               },
               {
                 title: 'getGatewayDelegates',
-                href: '/build/ar-io-sdk/ario/gateways/get-gateway-delegates',
+                href: '/ar-io-sdk/ario/gateways/get-gateway-delegates',
               },
               {
                 title: 'getGatewayVaults',
-                href: '/build/ar-io-sdk/ario/gateways/get-gateway-vaults',
+                href: '/ar-io-sdk/ario/gateways/get-gateway-vaults',
               },
             ],
           },
@@ -757,11 +757,11 @@ export const singleNavigation: Array<NavGroup> = [
             children: [
               {
                 title: 'getVault',
-                href: '/build/ar-io-sdk/ario/vaults/get-vault',
+                href: '/ar-io-sdk/ario/vaults/get-vault',
               },
               {
                 title: 'getVaults',
-                href: '/build/ar-io-sdk/ario/vaults/get-vaults',
+                href: '/ar-io-sdk/ario/vaults/get-vaults',
               },
             ],
           },
@@ -770,27 +770,27 @@ export const singleNavigation: Array<NavGroup> = [
             children: [
               {
                 title: 'getEpoch',
-                href: '/build/ar-io-sdk/ario/epochs/get-epoch',
+                href: '/ar-io-sdk/ario/epochs/get-epoch',
               },
               {
                 title: 'getCurrentEpoch',
-                href: '/build/ar-io-sdk/ario/epochs/get-current-epoch',
+                href: '/ar-io-sdk/ario/epochs/get-current-epoch',
               },
               {
                 title: 'getDistributions',
-                href: '/build/ar-io-sdk/ario/epochs/get-distributions',
+                href: '/ar-io-sdk/ario/epochs/get-distributions',
               },
               {
                 title: 'getPrescribedObservers',
-                href: '/build/ar-io-sdk/ario/epochs/get-prescribed-observers',
+                href: '/ar-io-sdk/ario/epochs/get-prescribed-observers',
               },
               {
                 title: 'getObservations',
-                href: '/build/ar-io-sdk/ario/epochs/get-observations',
+                href: '/ar-io-sdk/ario/epochs/get-observations',
               },
               {
                 title: 'saveObservations',
-                href: '/build/ar-io-sdk/ario/epochs/save-observations',
+                href: '/ar-io-sdk/ario/epochs/save-observations',
               },
             ],
           },
@@ -799,55 +799,55 @@ export const singleNavigation: Array<NavGroup> = [
             children: [
               {
                 title: 'buyRecord',
-                href: '/build/ar-io-sdk/ario/arns/buy-record',
+                href: '/ar-io-sdk/ario/arns/buy-record',
               },
               {
                 title: 'extendLease',
-                href: '/build/ar-io-sdk/ario/arns/extend-lease',
+                href: '/ar-io-sdk/ario/arns/extend-lease',
               },
               {
                 title: 'getArNSRecord',
-                href: '/build/ar-io-sdk/ario/arns/get-arns-record',
+                href: '/ar-io-sdk/ario/arns/get-arns-record',
               },
               {
                 title: 'getArNSRecords',
-                href: '/build/ar-io-sdk/ario/arns/get-arns-records',
+                href: '/ar-io-sdk/ario/arns/get-arns-records',
               },
               {
                 title: 'getTokenCost',
-                href: '/build/ar-io-sdk/ario/arns/get-token-cost',
+                href: '/ar-io-sdk/ario/arns/get-token-cost',
               },
               {
                 title: 'getDemandFactor',
-                href: '/build/ar-io-sdk/ario/arns/get-demand-factor',
+                href: '/ar-io-sdk/ario/arns/get-demand-factor',
               },
               {
                 title: 'increaseUndernameLimit',
-                href: '/build/ar-io-sdk/ario/arns/increase-undername-limit',
+                href: '/ar-io-sdk/ario/arns/increase-undername-limit',
               },
               {
                 title: 'getArNSAuction',
-                href: '/build/ar-io-sdk/ario/arns/get-arns-auction',
+                href: '/ar-io-sdk/ario/arns/get-arns-auction',
               },
               {
                 title: 'getArNSAuctions',
-                href: '/build/ar-io-sdk/ario/arns/get-arns-auctions',
+                href: '/ar-io-sdk/ario/arns/get-arns-auctions',
               },
               {
                 title: 'getArNSReturnedName',
-                href: '/build/ar-io-sdk/ario/arns/get-arns-returned-name',
+                href: '/ar-io-sdk/ario/arns/get-arns-returned-name',
               },
               {
                 title: 'getArNSReturnedNames',
-                href: '/build/ar-io-sdk/ario/arns/get-arns-returned-names',
+                href: '/ar-io-sdk/ario/arns/get-arns-returned-names',
               },
               {
                 title: 'getArNSAuctionPrices',
-                href: '/build/ar-io-sdk/ario/arns/get-arns-auction-prices',
+                href: '/ar-io-sdk/ario/arns/get-arns-auction-prices',
               },
               {
                 title: 'submitAuctionBid',
-                href: '/build/ar-io-sdk/ario/arns/submit-auction-bid',
+                href: '/ar-io-sdk/ario/arns/submit-auction-bid',
               },
             ],
           },
@@ -856,19 +856,19 @@ export const singleNavigation: Array<NavGroup> = [
             children: [
               {
                 title: 'getPrimaryName',
-                href: '/build/ar-io-sdk/ario/primary-names/get-primary-name',
+                href: '/ar-io-sdk/ario/primary-names/get-primary-name',
               },
               {
                 title: 'getPrimaryNames',
-                href: '/build/ar-io-sdk/ario/primary-names/get-primary-names',
+                href: '/ar-io-sdk/ario/primary-names/get-primary-names',
               },
               {
                 title: 'getPrimaryNameRequest',
-                href: '/build/ar-io-sdk/ario/primary-names/get-primary-name-request',
+                href: '/ar-io-sdk/ario/primary-names/get-primary-name-request',
               },
               {
                 title: 'requestPrimaryName',
-                href: '/build/ar-io-sdk/ario/primary-names/request-primary-name',
+                href: '/ar-io-sdk/ario/primary-names/request-primary-name',
               },
             ],
           },
@@ -879,103 +879,103 @@ export const singleNavigation: Array<NavGroup> = [
         children: [
           {
             title: 'Configuration',
-            href: '/build/ar-io-sdk/ants/configuration',
+            href: '/ar-io-sdk/ants/configuration',
           },
           {
             title: 'getInfo',
-            href: '/build/ar-io-sdk/ants/get-info',
+            href: '/ar-io-sdk/ants/get-info',
           },
           {
             title: 'getLogo',
-            href: '/build/ar-io-sdk/ants/get-logo',
+            href: '/ar-io-sdk/ants/get-logo',
           },
           {
             title: 'getState',
-            href: '/build/ar-io-sdk/ants/get-state',
+            href: '/ar-io-sdk/ants/get-state',
           },
           {
             title: 'getOwner',
-            href: '/build/ar-io-sdk/ants/get-owner',
+            href: '/ar-io-sdk/ants/get-owner',
           },
           {
             title: 'getControllers',
-            href: '/build/ar-io-sdk/ants/get-controllers',
+            href: '/ar-io-sdk/ants/get-controllers',
           },
           {
             title: 'getHandlers',
-            href: '/build/ar-io-sdk/ants/get-handlers',
+            href: '/ar-io-sdk/ants/get-handlers',
           },
           {
             title: 'getRecords',
-            href: '/build/ar-io-sdk/ants/get-records',
+            href: '/ar-io-sdk/ants/get-records',
           },
           {
             title: 'setRecord',
-            href: '/build/ar-io-sdk/ants/set-record',
+            href: '/ar-io-sdk/ants/set-record',
           },
           {
             title: 'setName',
-            href: '/build/ar-io-sdk/ants/set-name',
+            href: '/ar-io-sdk/ants/set-name',
           },
           {
             title: 'setLogo',
-            href: '/build/ar-io-sdk/ants/set-logo',
+            href: '/ar-io-sdk/ants/set-logo',
           },
           {
             title: 'setTicker',
-            href: '/build/ar-io-sdk/ants/set-ticker',
+            href: '/ar-io-sdk/ants/set-ticker',
           },
           {
             title: 'setDescription',
-            href: '/build/ar-io-sdk/ants/set-description',
+            href: '/ar-io-sdk/ants/set-description',
           },
           {
             title: 'setKeywords',
-            href: '/build/ar-io-sdk/ants/set-keywords',
+            href: '/ar-io-sdk/ants/set-keywords',
           },
           {
             title: 'setController',
-            href: '/build/ar-io-sdk/ants/set-controller',
+            href: '/ar-io-sdk/ants/set-controller',
           },
           {
             title: 'removeController',
-            href: '/build/ar-io-sdk/ants/remove-controller',
+            href: '/ar-io-sdk/ants/remove-controller',
           },
           {
             title: 'removeRecord',
-            href: '/build/ar-io-sdk/ants/remove-record',
+            href: '/ar-io-sdk/ants/remove-record',
           },
           {
             title: 'removePrimaryName',
-            href: '/build/ar-io-sdk/ants/remove-primary-name',
+            href: '/ar-io-sdk/ants/remove-primary-name',
           },
           {
             title: 'approvePrimaryNameRequest',
-            href: '/build/ar-io-sdk/ants/approve-primary-name-request',
+            href: '/ar-io-sdk/ants/approve-primary-name-request',
           },
           {
             title: 'releaseName',
-            href: '/build/ar-io-sdk/ants/release-name',
+            href: '/ar-io-sdk/ants/release-name',
           },
           {
             title: 'reassignName',
-            href: '/build/ar-io-sdk/ants/reassign-name',
+            href: '/ar-io-sdk/ants/reassign-name',
           },
           {
             title: 'transfer',
-            href: '/build/ar-io-sdk/ants/transfer',
+            href: '/ar-io-sdk/ants/transfer',
           },
           {
             title: 'setBaseNameRecord',
-            href: '/build/ar-io-sdk/ants/set-base-name-record',
+            href: '/ar-io-sdk/ants/set-base-name-record',
           },
           {
             title: 'setUndernameRecord',
-            href: '/build/ar-io-sdk/ants/set-undername-record',
+            href: '/ar-io-sdk/ants/set-undername-record',
           },
           {
             title: 'removeUndernameRecord',
-            href: '/build/ar-io-sdk/ants/remove-undername-record',
+            href: '/ar-io-sdk/ants/remove-undername-record',
           },
         ],
       },
@@ -984,15 +984,15 @@ export const singleNavigation: Array<NavGroup> = [
         children: [
           {
             title: 'Info',
-            href: '/build/ar-io-sdk/ant-registry',
+            href: '/ar-io-sdk/ant-registry',
           },
           {
             title: 'accessControlList',
-            href: '/build/ar-io-sdk/ant-registry/access-control-list',
+            href: '/ar-io-sdk/ant-registry/access-control-list',
           },
           {
             title: 'register',
-            href: '/build/ar-io-sdk/ant-registry/register',
+            href: '/ar-io-sdk/ant-registry/register',
           },
         ],
       },
@@ -1004,11 +1004,11 @@ export const singleNavigation: Array<NavGroup> = [
     links: [
       {
         title: 'Architecture',
-        href: '/build/gateways',
+        href: '/gateways',
       },
       {
         title: 'Gateway Network',
-        href: '/build/gateways/gateway-network',
+        href: '/gateways/gateway-network',
       },
       {
         title: 'Setup and Operation',
@@ -1016,55 +1016,55 @@ export const singleNavigation: Array<NavGroup> = [
         children: [
           {
             title: 'Linux Setup',
-            href: '/build/gateways/linux-setup',
+            href: '/gateways/linux-setup',
           },
           {
             title: 'Windows Setup',
-            href: '/build/gateways/windows-setup',
+            href: '/gateways/windows-setup',
           },
           {
             title: 'Join The Network',
-            href: '/build/gateways/join-network',
+            href: '/gateways/join-network',
           },
           {
             title: 'ArNS Resolution',
-            href: '/build/gateways/arns-resolution',
+            href: '/gateways/arns-resolution',
           },
           {
             title: 'Admin Configurations',
-            href: '/build/gateways/admin',
+            href: '/gateways/admin',
           },
           {
             title: 'Advanced Configurations',
-            href: '/build/gateways/advanced',
+            href: '/gateways/advanced',
           },
           {
             title: 'Environmental Variables',
-            href: '/build/gateways/env',
+            href: '/gateways/env',
           },
           {
             title: 'Troubleshooting',
-            href: '/build/gateways/troubleshooting',
+            href: '/gateways/troubleshooting',
           },
           {
             title: 'Upgrading',
-            href: '/build/gateways/upgrading',
+            href: '/gateways/upgrading',
           },
           {
             title: 'Moderation',
-            href: '/build/gateways/moderation',
+            href: '/gateways/moderation',
           },
           {
             title: 'Bundler Sidecar',
-            href: '/build/gateways/bundler',
+            href: '/gateways/bundler',
           },
           {
             title: 'Grafana Sidecar',
-            href: '/build/gateways/grafana',
+            href: '/gateways/grafana',
           },
           {
             title: 'AO Compute Unit (CU) Sidecar',
-            href: '/build/gateways/cu',
+            href: '/gateways/cu',
           },
           {
             title: 'Automating SSL',
@@ -1072,11 +1072,11 @@ export const singleNavigation: Array<NavGroup> = [
             children: [
               {
                 title: 'Cloudflare',
-                href: '/build/gateways/networking/certbot/cloudflare',
+                href: '/gateways/networking/certbot/cloudflare',
               },
               {
                 title: 'Namecheap',
-                href: '/build/gateways/networking/certbot/namecheap',
+                href: '/gateways/networking/certbot/namecheap',
               },
             ],
           },
@@ -1084,17 +1084,17 @@ export const singleNavigation: Array<NavGroup> = [
       },
       {
         title: 'Observer',
-        href: '/build/gateways/observer',
+        href: '/gateways/observer',
       },
       {
         title: 'Release Notes',
-        href: '/build/gateways/release-notes',
+        href: '/gateways/release-notes',
       },
     ],
   },
   {
     title: 'Guides',
-    href: '/build/guides',
+    href: '/guides',
     links: [
       {
         title: 'Migrating to Mainnet',
@@ -1102,30 +1102,30 @@ export const singleNavigation: Array<NavGroup> = [
       },
       {
         title: 'GQL',
-        href: '/build/guides/gql',
+        href: '/guides/gql',
       },
       {
         title: 'Managing Undernames',
-        href: '/build/guides/managing-undernames',
+        href: '/guides/managing-undernames',
       },
       {
         title: 'Managing Primary Names',
-        href: '/build/guides/primary-names',
+        href: '/guides/primary-names',
       },
       {
         title: 'Deploy to Arweave',
         children: [
           {
             title: 'Permaweb Deploy',
-            href: '/build/guides/permaweb-deploy',
+            href: '/guides/permaweb-deploy',
           },
           {
             title: 'Arlink',
-            href: '/build/guides/arlink',
+            href: '/guides/arlink',
           },
           {
             title: 'ArDrive Web',
-            href: '/build/guides/ardrive-web',
+            href: '/guides/ardrive-web',
           },
         ],
       },
@@ -1134,13 +1134,13 @@ export const singleNavigation: Array<NavGroup> = [
         children: [
           {
             title: 'ArNS Viewer',
-            href: '/build/guides/arns-viewer',
+            href: '/guides/arns-viewer',
           },
         ],
       },
       {
         title: 'ANTs on Bazar',
-        href: '/learn/guides/ants-on-bazar',
+        href: '/guides/ants-on-bazar',
       },
     ],
   },
@@ -1149,7 +1149,7 @@ export const singleNavigation: Array<NavGroup> = [
     links: [
       {
         title: 'Glossary',
-        href: '/learn/glossary',
+        href: '/glossary',
       },
       {
         title: 'Community Resources',

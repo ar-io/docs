@@ -3,13 +3,13 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import clsx from "clsx";
-import { mainNavigation, secondaryNavigation } from "@/navConfigs/sidebarConfig";
+import { mainNavigation, secondaryNavigation, singleNavigation } from "@/navConfigs/sidebarConfig";
 import { NavGroup } from "@/components/Navigation";
 
 const SidebarSubNavCards: React.FC = () => {
   const pathname = usePathname();
-  const navItems: NavGroup[] = pathname.startsWith("/build/") ? secondaryNavigation : mainNavigation;
-
+  // const navItems: NavGroup[] = pathname.startsWith("/build/") ? secondaryNavigation : mainNavigation;
+  const navItems: NavGroup[] = singleNavigation;
   console.log("Current Pathname:", pathname);
 
   const findMatchingItem = (items: any[], currentPath: string): any | null => {

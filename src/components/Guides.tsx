@@ -3,29 +3,29 @@ import { Heading } from '@/components/Heading'
 
 const guides = [
   {
-    href: '/build/gateways',
+    href: '/gateways',
     name: 'Run a Gateway',
     description: 'Get your AR.IO Gateway up and running correctly and quickly.',
   },
   {
-    href: '/learn/arns',
+    href: '/arns',
     name: 'Use ArNS',
     description:
       'Learn the process of purchasing and managing an ArNS name.',
   },
   {
-    href: '/build/guides/permaweb-deploy',
+    href: '/permaweb-deploy',
     name: 'Deploy a dApp',
     description:
       'Learn how to easily deploy a website or application on the permaweb.',
   },
   {
-    href: '/learn/guides/ants-on-bazar',
+    href: '/ants-on-bazar',
     name: 'ANTs on Bazar',
     description: 'In a few simple steps, learn how to make an ANT tradable on Bazar.',
   },
   {
-    href: '/build/guides/gql',
+    href: '/gql',
     name: 'GraphQL',
     description: 'Learn how to leverage GraphQL to efficiently fetch data via AR.IO gateways.',
   },
