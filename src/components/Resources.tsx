@@ -33,7 +33,7 @@ interface Resource {
 
 const resources: Array<Resource> = [
   {
-    href: '/build/gateways',
+    href: '/gateways',
     name: 'AR.IO Gateways',
     description:
       "AR.IO's modular gateways are built for the Arweave permanent data storage network and optimized for data retrieval, caching, serving and indexing transactions.",
@@ -47,7 +47,7 @@ const resources: Array<Resource> = [
     },
   },
   {
-    href: '/learn/arns',
+    href: '/arns',
     name: 'ArNS Names',
     description:
       'ArNS is a censorship-resistant naming system stored on Arweave, enabling user-friendly domain names that link to permaweb dApps, web pages, data, and identities.',
@@ -61,7 +61,7 @@ const resources: Array<Resource> = [
     },
   },
   {
-    href: '/learn/token',
+    href: '/token',
     name: 'AR.IO Token',
     description:
       'ARIO powers the AR.IO Network and its suite of permaweb applications as a permissionless and censorship resistant medium of common value for the network.',
@@ -75,7 +75,7 @@ const resources: Array<Resource> = [
     },
   },
   {
-    href: '/learn/network-composition',
+    href: '/network-composition',
     name: 'The Permaweb',
     description:
       'Learn more about the Arweave network, the permaweb and the reason the AR.IO gateway network was built.',
@@ -86,7 +86,7 @@ const resources: Array<Resource> = [
     },
   },
   {
-    href: '/learn/concepts/wayfinder',
+    href: '/concepts/wayfinder',
     name: 'ar://',
     description:
       'The Wayfinder protocol transforms traditional Arweave URLs into more concise and user-friendly forms.',
