@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Diagram from '@/components/Diagram';
 import wayfinder from '@/utils/wayfinder';
+import { useGateways } from '@/components/GatewayProvider';
 
 interface DiagramWithWayfinderProps {
   src: string;
@@ -11,18 +12,20 @@ interface DiagramWithWayfinderProps {
 
 const DiagramWithWayfinder: React.FC<DiagramWithWayfinderProps> = ({ src, title, description }) => {
   const [processedSrc, setProcessedSrc] = useState<string | null>(null);
+  const { defaultGateway, isLoading: gatewaysLoading } = useGateways();
 
   useEffect(() => {
     const processUrl = async () => {
-      const result = await wayfinder(src);
-      setProcessedSrc(result);
+      if (!gatewaysLoading) {
+        const result = await wayfinder(src, defaultGateway);
+        setProcessedSrc(result);
+      }
     };
 
     processUrl();
-  }, [src]);
+  }, [src, defaultGateway, gatewaysLoading]);
 
-  if (!processedSrc) {
-    // Show a loading state
+  if (gatewaysLoading || !processedSrc) {
     return <div className='text-center'>Loading image from the Permaweb via <a href='/concepts/wayfinder'>Wayfinder</a>...</div>;
   }
 

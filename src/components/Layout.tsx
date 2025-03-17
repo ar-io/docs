@@ -11,7 +11,8 @@ import { Logo } from '@/components/Logo';
 import { Navigation } from '@/components/Navigation';
 import { type Section, SectionProvider } from '@/components/SectionProvider';
 import DiagramWithWayfinder from '@/components/DiagramWithWayfinder';
-import Tip from '@/components/Tip'
+import Tip from '@/components/Tip';
+import { GatewayProvider } from '@/components/GatewayProvider';
 
 export function Layout({
   children,
@@ -29,40 +30,42 @@ export function Layout({
   };
 
   return (
-    <SectionProvider sections={allSections[pathname] ?? []}>
-      <script
-        type="module"
-        src="https://junction.ar.io/sdk/browser.js"
-        data-dispatcher-id="c_IREeVUlhdlOBZGWldCiPLE4rcH-dv9I64OjGo1cQQ"
-        data-track-url-hashes="true"
-      ></script>
-      <script
-        src="https://plausible.io/js/script.js"
-        defer
-        data-domain="docs.ar.io"
-      ></script>
-      <div className="h-full lg:ml-72 xl:ml-80">
-        <motion.header
-          layoutScroll
-          className="contents lg:pointer-events-none lg:fixed lg:inset-0 lg:z-40 lg:flex"
-        >
-          <div className="contents lg:pointer-events-auto lg:block lg:w-72 lg:overflow-y-auto lg:border-r lg:border-zinc-900/10 lg:px-6 lg:pb-8 lg:pt-4 xl:w-80 lg:dark:border-white/10">
-            <div className="hidden lg:flex">
-              <Link href="/" aria-label="Home">
-                <Logo className="h-6" />
-              </Link>
+    <GatewayProvider>
+      <SectionProvider sections={allSections[pathname] ?? []}>
+        <script
+          type="module"
+          src="https://junction.ar.io/sdk/browser.js"
+          data-dispatcher-id="c_IREeVUlhdlOBZGWldCiPLE4rcH-dv9I64OjGo1cQQ"
+          data-track-url-hashes="true"
+        ></script>
+        <script
+          src="https://plausible.io/js/script.js"
+          defer
+          data-domain="docs.ar.io"
+        ></script>
+        <div className="h-full lg:ml-72 xl:ml-80">
+          <motion.header
+            layoutScroll
+            className="contents lg:pointer-events-none lg:fixed lg:inset-0 lg:z-40 lg:flex"
+          >
+            <div className="contents lg:pointer-events-auto lg:block lg:w-72 lg:overflow-y-auto lg:border-r lg:border-zinc-900/10 lg:px-6 lg:pb-8 lg:pt-4 xl:w-80 lg:dark:border-white/10">
+              <div className="hidden lg:flex">
+                <Link href="/" aria-label="Home">
+                  <Logo className="h-6" />
+                </Link>
+              </div>
+              <Header />
+              <Navigation className="hidden lg:mt-10 lg:block" />
             </div>
-            <Header />
-            <Navigation className="hidden lg:mt-10 lg:block" />
+          </motion.header>
+          <div className="relative flex h-full flex-col px-4 pt-14 sm:px-6 lg:px-8">
+            <MDXProvider components={components}>
+              <main className="flex-auto">{children}</main>
+            </MDXProvider>
+            <Footer />
           </div>
-        </motion.header>
-        <div className="relative flex h-full flex-col px-4 pt-14 sm:px-6 lg:px-8">
-          <MDXProvider components={components}>
-            <main className="flex-auto">{children}</main>
-          </MDXProvider>
-          <Footer />
         </div>
-      </div>
-    </SectionProvider>
+      </SectionProvider>
+    </GatewayProvider>
   );
 }
