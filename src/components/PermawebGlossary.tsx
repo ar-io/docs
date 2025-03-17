@@ -10,7 +10,7 @@ export default function PermawebGlossary() {
       <div className="block dark:hidden">
         <iframe 
           className="w-full h-[600px] border-0 rounded-lg shadow-sm" 
-          src={`${baseUrl}/?hide-header=true&transparent=true`}
+          src={`${baseUrl}/?hide-header=true&transparent=true&link-color=%2310b981&accent-color=%2310b981`}
         />
       </div>
       <div className="hidden dark:block">
