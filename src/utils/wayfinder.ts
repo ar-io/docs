@@ -1,8 +1,7 @@
 import { ARIO, AOProcess } from '@ar.io/sdk/web';
 const { connect } = require("@permaweb/aoconnect");
 
-async function wayfinder(input: string): Promise<string> {
-  const defaultDomain = 'arweave.net';
+async function wayfinder(input: string, defaultGateway: string = 'arweave.net'): Promise<string> {
   const shouldOverride = true; // Toggle this to enable/disable gateway fetching
 
   const txIdRegex = /^[a-zA-Z0-9-_]{43}$/; // Matches Arweave transaction IDs
@@ -32,7 +31,7 @@ async function wayfinder(input: string): Promise<string> {
       const domain = urlMatch?.[0];
       const path = urlMatch?.[2] || '';
 
-      if (domain?.includes(defaultDomain)) {
+      if (domain?.includes(defaultGateway)) {
         // console.log("arweave.net URL detected");
         const pathParts = path.split('/').filter(Boolean);
         const firstPathSegment = pathParts[0];
@@ -49,7 +48,7 @@ async function wayfinder(input: string): Promise<string> {
     }
   } catch (error) {
     console.error('Error processing string:', error);
-    resultUrl = `https://${defaultDomain}/${input}`;
+    resultUrl = `https://${defaultGateway}/${input}`;
   }
 
   // console.log(resultUrl)
@@ -59,11 +58,11 @@ async function wayfinder(input: string): Promise<string> {
     // **If shouldOverride is enabled, always return arweave.net**
     if (shouldOverride) {
       if (txIdRegex.test(identifier)) {
-        return `https://${defaultDomain}/${identifier}/${additionalPath}`;
+        return `https://${defaultGateway}/${identifier}/${additionalPath}`;
       } else if (arnsNameRegex.test(identifier)) {
-        return `https://${identifier}.${defaultDomain}/${additionalPath}`;
+        return `https://${identifier}.${defaultGateway}/${additionalPath}`;
       }
-      return `https://${defaultDomain}/${identifier}`;
+      return `https://${defaultGateway}/${identifier}`;
     }
 
     try {
@@ -87,7 +86,7 @@ async function wayfinder(input: string): Promise<string> {
       if (gateways.items.length > 0) {
         console.log("Gateways found");
         const selectedGateway = gateways.items[Math.floor(Math.random() * gateways.items.length)];
-        const fqdn = selectedGateway.settings?.fqdn || defaultDomain;
+        const fqdn = selectedGateway.settings?.fqdn || defaultGateway;
 
         if (txIdRegex.test(identifier)) {
           return `https://${fqdn}/${identifier}/${additionalPath}`;
@@ -103,9 +102,9 @@ async function wayfinder(input: string): Promise<string> {
 
     // Default fallback
     if (arnsNameRegex.test(identifier)) {
-      return `https://${defaultDomain}`;
+      return `https://${defaultGateway}`;
     }
-    return `https://${defaultDomain}/${identifier}/${additionalPath}`;
+    return `https://${defaultGateway}/${identifier}/${additionalPath}`;
   }
 }
 
