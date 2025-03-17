@@ -64,14 +64,33 @@ export function GatewayProvider({ children }: { children: React.ReactNode }) {
 
         // Check if current domain matches any gateway
         const currentDomain = window.location.hostname;
-        const matchingGateway = allGateways.find(
-          gateway => gateway.settings?.fqdn === currentDomain
+        
+        // Find all matching gateways (where fqdn is included in hostname)
+        const matchingGateways = allGateways.filter(
+          gateway => currentDomain.includes(gateway.settings?.fqdn || '')
         );
-        // console.log("host name")
-        // console.log(window.location.hostname)
-        setDefaultGateway(matchingGateway?.settings?.fqdn || 'arweave.net');
-        // console.log("default gateway")
-        // console.log(defaultGateway)
+
+        // Find the gateway that most closely matches the current hostname
+        const bestMatch = matchingGateways.reduce((best, current) => {
+          if (!best) return current;
+          
+          const currentFqdn = current.settings?.fqdn || '';
+          const bestFqdn = best.settings?.fqdn || '';
+          
+          // If one gateway's fqdn is longer than the other, prefer the longer one
+          // as it's likely more specific to the current domain
+          if (currentFqdn.length !== bestFqdn.length) {
+            return currentFqdn.length > bestFqdn.length ? current : best;
+          }
+          
+          // If lengths are equal, prefer the one that appears later in the hostname
+          // as it's likely more specific to the current domain
+          const currentIndex = currentDomain.indexOf(currentFqdn);
+          const bestIndex = currentDomain.indexOf(bestFqdn);
+          return currentIndex > bestIndex ? current : best;
+        }, null as Gateway | null);
+
+        setDefaultGateway(bestMatch?.settings?.fqdn || 'arweave.net');
         setIsLoading(false);
       } catch (error) {
         console.error('Error fetching gateways:', error);
