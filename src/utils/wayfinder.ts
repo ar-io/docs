@@ -2,8 +2,6 @@ import { ARIO, AOProcess } from '@ar.io/sdk/web';
 const { connect } = require("@permaweb/aoconnect");
 
 async function wayfinder(input: string, defaultGateway: string = 'arweave.net'): Promise<string> {
-  const shouldOverride = true; // Toggle this to enable/disable gateway fetching
-
   const txIdRegex = /^[a-zA-Z0-9-_]{43}$/; // Matches Arweave transaction IDs
   const arnsNameRegex = /^[^.\s]+$/; // Matches ArNS names (no dots)
   const urlRegex = /^(https?:\/\/)[\w.-]+(\/.*)?$/; // Matches URLs with protocol
@@ -11,100 +9,46 @@ async function wayfinder(input: string, defaultGateway: string = 'arweave.net'):
   let resultUrl = input;
 
   try {
-    // console.log("wayfinder is running");
-    // console.log("Input:", input);
-
     // Check if the input is a transaction ID
     if (txIdRegex.test(input)) {
-      console.log("Transaction ID detected");
-      resultUrl = await getProcessedUrl(input);
+      resultUrl = getProcessedUrl(input);
     }
     // Check if the input is an ArNS name
     else if (arnsNameRegex.test(input)) {
-      console.log("ArNS name detected");
-      resultUrl = await getProcessedUrl(input);
+      resultUrl = getProcessedUrl(input);
     }
     // Check if the input is a URL
     else if (urlRegex.test(input)) {
-      // console.log("URL detected");
       const urlMatch = input.match(urlRegex);
       const domain = urlMatch?.[0];
       const path = urlMatch?.[2] || '';
 
-      if (domain?.includes(defaultGateway)) {
-        // console.log("arweave.net URL detected");
+      if (domain?.includes('arweave.net')) {
         const pathParts = path.split('/').filter(Boolean);
         const firstPathSegment = pathParts[0];
 
         if (txIdRegex.test(firstPathSegment)) {
-          resultUrl = await getProcessedUrl(firstPathSegment, pathParts.slice(1).join('/'));
+          resultUrl = getProcessedUrl(firstPathSegment, pathParts.slice(1).join('/'));
         } else if (arnsNameRegex.test(domain.split('.')[0])) {
           const arnsName = domain.split('.')[0];
-          resultUrl = await getProcessedUrl(arnsName, path);
+          resultUrl = getProcessedUrl(arnsName, path);
         }
       }
-    } else {
-      console.log("Input did not match any known category");
     }
   } catch (error) {
     console.error('Error processing string:', error);
     resultUrl = `https://${defaultGateway}/${input}`;
   }
 
-  // console.log(resultUrl)
   return resultUrl;
 
-  async function getProcessedUrl(identifier: string, additionalPath: string = ''): Promise<string> {
-    // **If shouldOverride is enabled, always return arweave.net**
-    if (shouldOverride) {
-      if (txIdRegex.test(identifier)) {
-        return `https://${defaultGateway}/${identifier}/${additionalPath}`;
-      } else if (arnsNameRegex.test(identifier)) {
-        return `https://${identifier}.${defaultGateway}/${additionalPath}`;
-      }
-      return `https://${defaultGateway}/${identifier}`;
+  function getProcessedUrl(identifier: string, additionalPath: string = ''): string {
+    if (txIdRegex.test(identifier)) {
+      return `https://${defaultGateway}/${identifier}/${additionalPath}`;
+    } else if (arnsNameRegex.test(identifier)) {
+      return `https://${identifier}.${defaultGateway}/${additionalPath}`;
     }
-
-    try {
-      console.log("Fetching gateways");
-      const ario = ARIO.init({
-        process: new AOProcess({
-          processId: "qNvAoz0TgcH7DMg8BCVn8jF32QH5L6T29VjHxhHqqGE",
-          ao: connect({
-            CU_URL: 'https://cu.ar-io.dev',
-          }),
-        }),
-      });
-
-      const gateways = await ario.getGateways({
-        limit: 10,
-        //@ts-expect-error
-        sortBy: 'weights.compositeWeight',
-        sortOrder: 'desc',
-      });
-
-      if (gateways.items.length > 0) {
-        console.log("Gateways found");
-        const selectedGateway = gateways.items[Math.floor(Math.random() * gateways.items.length)];
-        const fqdn = selectedGateway.settings?.fqdn || defaultGateway;
-
-        if (txIdRegex.test(identifier)) {
-          return `https://${fqdn}/${identifier}/${additionalPath}`;
-        } else if (arnsNameRegex.test(identifier)) {
-          return `https://${identifier}.${fqdn}/${additionalPath}`;
-        }
-      } else {
-        console.error("No gateways found");
-      }
-    } catch (error) {
-      console.error("Error fetching gateways:", error);
-    }
-
-    // Default fallback
-    if (arnsNameRegex.test(identifier)) {
-      return `https://${defaultGateway}`;
-    }
-    return `https://${defaultGateway}/${identifier}/${additionalPath}`;
+    return `https://${defaultGateway}/${identifier}`;
   }
 }
 
