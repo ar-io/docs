@@ -21,13 +21,13 @@ type GatewayContextType = {
 
 const GatewayContext = createContext<GatewayContextType>({
   gateways: [],
-  defaultGateway: 'bobinstein.com',
+  defaultGateway: 'arweave.net',
   isLoading: true,
 });
 
 export function GatewayProvider({ children }: { children: React.ReactNode }) {
   const [gateways, setGateways] = useState<Gateway[]>([]);
-  const [defaultGateway, setDefaultGateway] = useState('bobinstein.com');
+  const [defaultGateway, setDefaultGateway] = useState('arweave.net');
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -67,11 +67,11 @@ export function GatewayProvider({ children }: { children: React.ReactNode }) {
         const matchingGateway = allGateways.find(
           gateway => gateway.settings?.fqdn === currentDomain
         );
-        console.log("host name")
-        console.log(window.location.hostname)
-        setDefaultGateway(matchingGateway?.settings?.fqdn || 'bobinstein.com');
-        console.log("default gateway")
-        console.log(defaultGateway)
+        // console.log("host name")
+        // console.log(window.location.hostname)
+        setDefaultGateway(matchingGateway?.settings?.fqdn || 'arweave.net');
+        // console.log("default gateway")
+        // console.log(defaultGateway)
         setIsLoading(false);
       } catch (error) {
         console.error('Error fetching gateways:', error);
