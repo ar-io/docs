@@ -1,0 +1,82 @@
+import {HeroPattern} from "@/components/HeroPattern"
+
+export const metadata = {
+  title: 'Gateway Apex Domain Content Resolution',
+  description: 'Steps for configuring a gateway to serve content from the apex domain.',
+  openGraph: {
+    title: 'Gateway Apex Domain Content Resolution',
+  },
+}
+
+<HeroPattern />
+
+# Gateway Apex Domain Content Resolution
+
+## Overview
+
+Prior to gateway release 28, the apex domain of a gateway would only display information about the Arweave network. Release 28 introduced two new environment variables that allow a gateway to serve custom content from the apex domain:
+
+- `APEX_TX_ID`: Set to serve content from a specific transaction ID
+- `APEX_ARNS_NAME`: Set to serve content from an ArNS name
+
+These variables enable gateway operators to customize their gateway's apex domain with useful information, details about the operator or associated projects, or any other content they wish to share.
+
+## Configuration
+
+### Environment Variables
+
+You can configure your gateway to serve content from the apex domain by setting one of two environment variables:
+
+```bash
+# Option 1: Serve content from a transaction ID
+APEX_TX_ID=your-transaction-id
+
+# Option 2: Serve content from an ArNS name
+APEX_ARNS_NAME=your-arns-name
+```
+
+<Tip title="IMPORTANT">
+You cannot set both variables simultaneously. Providing both variables will result in an error.
+</Tip>
+
+### Restart Requirements
+
+- The gateway must be restarted after initially setting these environment variables
+- If using `APEX_ARNS_NAME`, no restart is needed when the ArNS name points to a new transaction
+- If using `APEX_TX_ID`, the gateway must be restarted when updating the transaction ID
+
+## Use Cases
+
+Gateway operators can use this feature to:
+
+- Display information about their gateway service
+- Share details about the operator or organization
+- Showcase associated projects and services
+- Share educational content about Arweave and the permaweb
+- Display any other content they wish to make available at their gateway's root domain
+
+## Community Examples
+
+Several gateway operators have already implemented this feature to serve custom content from their apex domains:
+
+- [arnode.asia](https://arnode.asia) - Serves a custom landing page with information about their gateway service
+- [arlink.xyz](https://arlink.xyz) - Serves the permaDapp for the Arlink project
+- [frostor.xyz](https://frostor.xyz) / [love4src.com](https://love4src.com) - Serves information about the Memetic Block Software Guild and their projects
+- [vilenarios.com](https://vilenarios.com) - Serves personalized portfolio/link tree information about the operator
+- [permagate.io](https://permagate.io) - Serves personalized link tree information about the operator
+
+These examples demonstrate how gateway operators can leverage the apex domain feature to create a more personalized and informative experience for their users.
+
+## Example
+
+If you want to serve your gateway's documentation from the apex domain:
+
+1. Upload your documentation to Arweave
+2. Set the environment variable:
+   ```bash
+   APEX_TX_ID=your-documentation-tx-id
+   ```
+3. Restart your gateway
+4. Your documentation will now be served from your gateway's apex domain
+
+
