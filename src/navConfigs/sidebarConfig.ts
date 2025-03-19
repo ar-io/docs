@@ -1031,6 +1031,10 @@ export const singleNavigation: Array<NavGroup> = [
             href: '/gateways/arns-resolution',
           },
           {
+            title: 'Apex Domain Content Resolution',
+            href: '/gateways/apex',
+          },
+          {
             title: 'Admin Configurations',
             href: '/gateways/admin',
           },
