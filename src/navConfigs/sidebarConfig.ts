@@ -1067,6 +1067,10 @@ export const singleNavigation: Array<NavGroup> = [
             href: '/gateways/cu',
           },
           {
+            title: 'FAQ & Troubleshooting',
+            href: '/gateways/faq',
+          },
+          {
             title: 'Automating SSL',
             // href: '/build/gateways/networking',
             children: [
