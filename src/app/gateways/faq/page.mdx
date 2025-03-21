@@ -24,7 +24,7 @@ This guide addresses common questions and issues that gateway operators may enco
 
 <details>
 
-  <summary>Why was my reward different this epoch?</summary>
+  <summary>Show answer</summary>
 
   - Gateway protocol rewards are calculated as 0.1% of the protocol balance (0.05% after August 2025) split between all gateways in the network. A change in the protocol balance or the number of gateways in the network between epochs will result in the reward for an individual gateway changing. 
 
@@ -35,7 +35,7 @@ This guide addresses common questions and issues that gateway operators may enco
 
 <details>
 
-  <summary>I have a high stake on my gateway, why am I not an observer?</summary>
+  <summary>Show answer</summary>
 
   The observer selection process uses a weighted random selection method that considers multiple factors beyond just stake:
 
@@ -53,7 +53,7 @@ This guide addresses common questions and issues that gateway operators may enco
 
 <details>
 
-  <summary>I withdrew my stake, but now I have less</summary>
+  <summary>Show answer</summary>
 
   - There is a 90 day locking period when withdrawing stake, either from delegated stake or operator stake on your gateway. This locking period can be skipped, for a fee. The fee starts at 50% of the withdrawal amount, and goes down over time. If you selected instant withdrawal, you paid the fee to skip the locking period.
 </details>
@@ -62,9 +62,39 @@ This guide addresses common questions and issues that gateway operators may enco
 
 <details>
 
-  <summary>Why Can't I withdraw my stake?</summary>
+  <summary>Show answer</summary>
 
   - The minimum operator stake for gateways (10,000 ARIO) cannot be instantly withdrawn, it is subject to the full 90 day locking period, and withdrawal can only be started by removing your gateway from the network.
+</details>
+
+### I would like to move my node to a new server - how?
+
+<details>
+
+  <summary>Show answer</summary>
+
+  - If possible, leave your original server running while you prepare the new one
+  - Set up the new server following the same steps you used to set up the original server
+    - This includes setting up SSL certificates for the new server
+  - You must use the same gateway wallet when setting up the new server
+  - The observer wallet may be changed at any point, but requires extra steps. It is recommended you use the original observer wallet as well
+  - Once the new server is set up, change your DNS A records to point at the new server
+  - After your DNS records are set and you have verified your gateway is operating correctly, shut down the original server
+  - No changes need to be made in the network contract or on ar://gateways
+</details>
+
+### Can I change my nodes FQDN?
+
+<details>
+
+  <summary>Show answer</summary>
+
+  - Yes
+  - Configure your new domain to point at your gateway, including setting up SSL certificates
+  - Update your NGINX (or other reverse proxy) server to recognize the new domain. This usually requires a restart of NGINX
+  - Update the `ARNS_ROOT_HOST` variable in your `.env` and restart the gateway
+  - Using ar://gateways, update your gateway settings to change the FQDN in the contract
+  - Your gateway is now using the new domain name for normal operation.
 </details>
 
 <br /> 
@@ -77,7 +107,7 @@ This guide addresses common questions and issues that gateway operators may enco
 
 <details>
 
-  <summary>My gateway was working, but it just stopped</summary>
+  <summary>Show answer</summary>
 
   - Visit your gateway in a browser and see if your SSL certs are expired. This is the most common issue causing sudden stops in proper operation.
 </details>
@@ -86,7 +116,7 @@ This guide addresses common questions and issues that gateway operators may enco
 
 <details>
 
-  <summary>I updated my SSL certs, but it still shows as bad in a browser</summary>
+  <summary>Show answer</summary>
 
   - Try restarting nginx, it sometimes has trouble looking at the new certs without a restart.
 </details>
@@ -95,7 +125,7 @@ This guide addresses common questions and issues that gateway operators may enco
 
 <details>
 
-  <summary>My gateway won't resolve ArNS names</summary>
+  <summary>Show answer</summary>
   
   - Make sure `ARNS_ROOT_HOST` is properly set in your `.env` file. Updating this requires restarting your gateway.
   - Make sure you have a DNS record set for `*.<your-gateway-domain>`. Since ArNS names are served as subdomains, you need to make sure all subdomains are pointed at your gateway.
@@ -106,7 +136,7 @@ This guide addresses common questions and issues that gateway operators may enco
 
 <details>
 
-  <summary>I see an error in my logs, but everything appears to be working</summary>
+  <summary>Show answer</summary>
   
   - AR.IO gateways are very robust, they can handle temporary errors gracefully and not affect normal operation. You should only be concerned if the error is consistent or it is causing your gateway to not function properly.
 </details>
@@ -115,7 +145,7 @@ This guide addresses common questions and issues that gateway operators may enco
 
 <details>
 
-  <summary>I was selected as an observer, but my logs say a report was not saved</summary>
+  <summary>Show answer</summary>
 
   - Observers generate and submit their reports at specific times throughout the epoch. This is to ensure a healthy network throughout the entire epoch, not just at the start.
   - Your observer wallet must match the observer wallet associated with your gateway in the AR.IO contract. You can check this by navigating to your gateway in ar://gateways.
@@ -125,7 +155,7 @@ This guide addresses common questions and issues that gateway operators may enco
 
 <details>
 
-  <summary>I see an error in my logs that says &lt;h&quot;... is not valid JSON</summary>
+  <summary>Show answer</summary>
 
   - This happens when a request to a CU fails, and your gateway receives an html failure message instead of the expected JSON response. This will normally clear up on its own after congestion on that CU dies down, but if it is persistent try switching to a different CU.
 </details>
@@ -134,7 +164,7 @@ This guide addresses common questions and issues that gateway operators may enco
 
 <details>
 
-  <summary>My gateway logs just changed, instead of importing blocks I see "polling for block"</summary>
+  <summary>Show answer</summary>
 
   - This is normal. It means you have reached the current Arweave block and need to wait for more before you can index them.
 </details>
@@ -143,7 +173,7 @@ This guide addresses common questions and issues that gateway operators may enco
 
 <details>
 
-  <summary>Error resolving name with resolver Promise timed out</summary>
+  <summary>Show answer</summary>
 
   - This is normal. If a gateway fails to resolve an arns name within 3 seconds, it will fall back to a trusted gateway (arweave.net by default) to help resolve the name.
 </details>
@@ -152,7 +182,7 @@ This guide addresses common questions and issues that gateway operators may enco
 
 <details>
 
-  <summary>My gateway failed an epoch</summary>
+  <summary>Show answer</summary>
 
   - There are many reasons a gateway could fail an epoch. Following these steps is usually enough to identify and correct the issue:
     - Try to visit your gateway in a browser and see if your SSL certs are bad
