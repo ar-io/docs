@@ -1150,6 +1150,15 @@ export const singleNavigation: Array<NavGroup> = [
         title: 'ANTs on Bazar',
         href: '/guides/ants-on-bazar',
       },
+      {
+        title: 'Example Apps',
+        children: [
+          {
+            title: 'Crossmint App',
+            href: '/guides/example-apps/crossmint-app',
+          },
+        ],
+      }
     ],
   },
   {
