@@ -697,11 +697,12 @@ interface AoGateway {
 
 - Purpose: List all gateways in the network
 - Authentication: Not required
-- Parameters: Optional pagination parameters, pagination is required to get more than 10 results.
+- **CRITICAL: Pagination is MANDATORY for this method. The method will only return 10 results without pagination.**
+- Parameters: Pagination parameters are required
 
 ```typescript
 async getGateways(
-  params: PaginationParams<AoGatewayWithAddress>
+  params: PaginationParams<AoGatewayWithAddress>  // Removed optional '?' to make it required
 ): Promise<PaginationResult<AoGatewayWithAddress>>;
 
 // Where AoGatewayWithAddress extends AoGateway with:
@@ -720,18 +721,18 @@ interface AoGatewayWithAddress extends AoGateway {
 // - "stats.passedConsecutiveEpochs"
 // etc.
 
-// Example usage with pagination:
+// Example usage with REQUIRED pagination:
 const getGatewaysExample = async () => {
   const ario = ARIO.init();
   
-  // Initialize pagination parameters
+  // Initialize REQUIRED pagination parameters
   const paginationParams = {
     limit: 1000,        // Maximum allowed limit
     sortBy: "settings.label",  // Sort by gateway name
     sortOrder: "asc"    // Ascending order
   };
 
-  // Get first page of results
+  // Get first page of results (pagination is REQUIRED)
   const firstPage = await ario.getGateways(paginationParams);
   
   // Process first page
