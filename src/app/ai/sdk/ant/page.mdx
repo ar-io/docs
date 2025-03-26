@@ -1,0 +1,399 @@
+## Class: ANT
+
+### Configuration
+
+```typescript
+interface ANTConfig {
+  signer?: ArweaveSigner | ArConnectSigner;
+  processId: string; // Required ANT process ID
+}
+
+// Initialize ANT
+const ant = ANT.init(config: ANTConfig);
+```
+
+### Initialization
+
+The ANT class can be initialized in two ways, depending on whether a signer is provided:
+
+```typescript
+// Read-only client (no signer)
+static init(config: ANTConfigNoSigner): AoANTRead;
+
+// Authenticated client (with signer)
+static init(config: ANTConfigWithSigner): AoANTWrite;
+
+// Implementation
+static init(config: ANTConfig): AoANTRead | AoANTWrite {
+  if (config !== undefined && 'signer' in config) {
+    return new AoANTWriteable(config);
+  }
+  return new AoANTReadable(config);
+}
+```
+
+### Configuration Types
+
+```typescript
+type ANTConfigNoSigner = ANTConfigOptionalStrict;
+type ANTConfigWithSigner = WithSigner<ANTConfigOptionalStrict>;
+type ANTConfig = ANTConfigNoSigner | ANTConfigWithSigner;
+```
+
+### Initialization Examples
+
+```typescript
+// Read-only client (no authentication)
+const ant = ANT.init({
+  processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM"
+});
+
+// NodeJS authenticated client
+const { ANT, ArweaveSigner } = require("@ar.io/sdk");
+const jwk = JSON.parse(fs.readFileSync("KeyFile.json"));
+
+const ant = ANT.init({
+  signer: new ArweaveSigner(jwk),
+  processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM"
+});
+
+// Web authenticated client
+import { ANT, ArConnectSigner } from "@ar.io/sdk/web";
+
+const ant = ANT.init({
+  signer: new ArConnectSigner(window.arweaveWallet),
+  processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM"
+});
+
+// Custom AO process configuration
+import { connect } from "@permaweb/aoconnect"; // Importing connect from @permaweb/aoconnect
+
+const ant = ANT.init({
+  process: new AOProcess({
+    processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM",
+    ao: connect({
+      MU_URL: 'https://mu-testnet.xyz', //customizable
+      CU_URL: 'https://cu-testnet.xyz', //customizable
+      GRAPHQL_URL: 'https://arweave.net/graphql', //customizable
+      GATEWAY_URL: 'https://arweave.net', //customizable
+    })
+  })
+});
+```
+
+### Configuration Parameters
+
+| Parameter  | Type           | Description                         | Optional |
+|------------|----------------|-------------------------------------|----------|
+| processId  | string         | The AO process ID of the ANT to connect to. | false    |
+| process    | AOProcess      | A pre-configured AOProcess instance used to initialize the ANT class | true     |
+| signer     | ContractSigner | An optional signer instance, used to enable write operations on the blockchain | true     |
+
+### Authentication Notes
+
+- "Authentication: Not required" - Method is available on read-only clients (no signer needed during init)
+- "Authentication: Required" - Method is only available when initialized with a signer
+
+### Methods
+
+1. **getInfo**
+
+- Purpose: Get basic information about the ANT
+- Authentication: Not required
+
+```typescript
+async getInfo(): Promise<{
+  name: string;
+  ticker: string;
+  description?: string;
+  keywords?: string[];
+  logo?: string;
+}>;
+```
+
+2. **getLogo**
+
+- Purpose: Get the ANT's logo transaction ID
+- Authentication: Not required
+
+```typescript
+async getLogo(): Promise<string | null>;
+```
+
+3. **getState**
+
+- Purpose: Get the complete state of the ANT
+- Authentication: Not required
+
+```typescript
+async getState(): Promise<{
+  name: string;
+  ticker: string;
+  description?: string;
+  keywords?: string[];
+  logo?: string;
+  owner: string;
+  controllers: string[];
+  records: Record<string, string>;
+}>;
+```
+
+4. **getOwner**
+
+- Purpose: Get the ANT owner's address
+- Authentication: Not required
+
+```typescript
+async getOwner(): Promise<string>;
+```
+
+5. **getControllers**
+
+- Purpose: Get list of controller addresses
+- Authentication: Not required
+
+```typescript
+async getControllers(): Promise<string[]>;
+```
+
+6. **getHandlers**
+
+- Purpose: Get list of supported handlers
+- Authentication: Not required
+
+```typescript
+async getHandlers(): Promise<string[]>;
+```
+
+7. **getRecords**
+
+- Purpose: Get all DNS records
+- Authentication: Not required
+
+```typescript
+async getRecords(): Promise<Record<string, string>>;
+```
+
+8. **setRecord**
+
+- Purpose: Set a DNS record (deprecated)
+- Authentication: Required
+- Parameters: Record details and optional tags
+
+```typescript
+async setRecord({
+  undername: string;  // '@' for top level
+  transactionId: string;
+  ttlSeconds?: number;
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+9. **setName**
+
+- Purpose: Set the ANT name
+- Authentication: Required
+- Parameters: Name and optional tags
+
+```typescript
+async setName({
+  name: string;
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+10. **setLogo**
+
+- Purpose: Set the ANT logo
+- Authentication: Required
+- Parameters: Logo transaction ID and optional tags
+
+```typescript
+async setLogo({
+  logo: string;  // Arweave transaction ID
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+11. **setTicker**
+
+- Purpose: Set the ANT ticker symbol
+- Authentication: Required
+- Parameters: Ticker and optional tags
+
+```typescript
+async setTicker({
+  ticker: string;
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+12. **setDescription**
+
+- Purpose: Set the ANT description
+- Authentication: Required
+- Parameters: Description and optional tags
+
+```typescript
+async setDescription({
+  description: string;
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+13. **setKeywords**
+
+- Purpose: Set the ANT keywords
+- Authentication: Required
+- Parameters: Keywords array and optional tags
+
+```typescript
+async setKeywords({
+  keywords: string[];
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+14. **setController**
+
+- Purpose: Add a controller address
+- Authentication: Required
+- Parameters: Controller address and optional tags
+
+```typescript
+async setController({
+  controller: string;  // Wallet address to add as controller
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+15. **removeController**
+
+- Purpose: Remove a controller address
+- Authentication: Required
+- Parameters: Controller address and optional tags
+
+```typescript
+async removeController({
+  controller: string;  // Wallet address to remove as controller
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+16. **removeRecord**
+
+- Purpose: Remove a DNS record (deprecated)
+- Authentication: Required
+- Parameters: Undername and optional tags
+
+```typescript
+async removeRecord({
+  undername: string;  // '@' for top level
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+17. **removePrimaryName**
+
+- Purpose: Remove primary name assignment
+- Authentication: Required
+- Parameters: Optional tags
+
+```typescript
+async removePrimaryName(options?: {
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+18. **approvePrimaryNameRequest**
+
+- Purpose: Approve a primary name request
+- Authentication: Required
+- Parameters: Initiator address and optional tags
+
+```typescript
+async approvePrimaryNameRequest({
+  initiator: string;  // Address that requested the primary name
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+19. **releaseName**
+
+- Purpose: Release the ANT name back to the registry
+- Authentication: Required
+- Parameters: Optional tags
+
+```typescript
+async releaseName(options?: {
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+20. **reassignName**
+
+- Purpose: Reassign the ANT name to another owner
+- Authentication: Required
+- Parameters: Target address and optional tags
+
+```typescript
+async reassignName({
+  target: string;  // New owner's wallet address
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+21. **transfer**
+
+- Purpose: Transfer ANT ownership
+- Authentication: Required
+- Parameters: Target address and optional tags
+
+```typescript
+async transfer({
+  target: string;  // New owner's wallet address
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+22. **setBaseNameRecord**
+
+- Purpose: Set the base name record
+- Authentication: Required
+- Parameters: Record details and optional tags
+
+```typescript
+async setBaseNameRecord({
+  transactionId: string;  // Arweave transaction ID to resolve to
+  ttlSeconds?: number;    // DNS TTL in seconds (default: 900)
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+23. **setUndernameRecord**
+
+- Purpose: Set an undername record
+- Authentication: Required
+- Parameters: Undername details and optional tags
+
+```typescript
+async setUndernameRecord({
+  undername: string;      // Undername to set (e.g., 'blog')
+  transactionId: string;  // Arweave transaction ID to resolve to
+  ttlSeconds?: number;    // DNS TTL in seconds (default: 900)
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
+
+24. **removeUndernameRecord**
+
+- Purpose: Remove an undername record
+- Authentication: Required
+- Parameters: Undername and optional tags
+
+```typescript
+async removeUndernameRecord({
+  undername: string;  // Undername to remove
+  tags?: Array<{ name: string; value: string }>;
+}): Promise<{ id: string }>;
+```
