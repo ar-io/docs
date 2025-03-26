@@ -83,6 +83,7 @@ For both Webpack and Vite, ensure your `tsconfig.json` includes:
 3. Different build frameworks require different polyfill implementations
 4. The `fs` polyfill must be provided separately as it's not included in the core Node polyfills
 5. Always test the SDK in your target browsers after implementing polyfills
+6. Any config file that includes a definition of process.env risks exposing sensitive information. Do not expose the entire process.env, instead, define as an empty object.
 
 For specific implementation examples, refer to the official SDK examples:
 - Webpack: [@ar.io/sdk/examples/webpack](https://github.com/ar-io/ar-io-sdk/tree/main/examples/webpack)
@@ -100,37 +101,6 @@ const ario = ARIO.init();
 
 // Authenticated client (with signer)
 const ario = ARIO.init({
-  signer: new ArweaveSigner(jwk)  // Node.js
-  // OR
-  signer: new ArConnectSigner(window.arweaveWallet)  // Web
-});
-```
-
-### ANT Class
-
-```typescript
-// Read-only client (requires processId)
-const ant = ANT.init({
-  processId: "ANT-PROCESS-ID-HERE"
-});
-
-// Authenticated client (requires processId and signer)
-const ant = ANT.init({
-  processId: "ANT-PROCESS-ID-HERE",
-  signer: new ArweaveSigner(jwk)  // Node.js
-  // OR
-  signer: new ArConnectSigner(window.arweaveWallet)  // Web
-});
-```
-
-### ANTRegistry Class
-
-```typescript
-// Read-only client (no parameters)
-const registry = ANTRegistry.init();
-
-// Authenticated client (with signer only)
-const registry = ANTRegistry.init({
   signer: new ArweaveSigner(jwk)  // Node.js
   // OR
   signer: new ArConnectSigner(window.arweaveWallet)  // Web
