@@ -167,7 +167,7 @@ ario.method({
 
 ## Important: Pagination
 
-any method that accepts pagination parameters ('limit', 'sortBy', 'sortOrder', 'cursor') accept pagination and should include pagination handling in the method implementation.
+**CRITICAL: While pagination parameters are technically optional for all methods that accept them, there is NEVER a valid use case for omitting pagination. Pagination MUST ALWAYS be used where available.**
 
 For all paginated methods:
 
@@ -719,6 +719,46 @@ interface AoGatewayWithAddress extends AoGateway {
 // - "settings.label"
 // - "stats.passedConsecutiveEpochs"
 // etc.
+
+// Example usage with pagination:
+const getGatewaysExample = async () => {
+  const ario = ARIO.init();
+  
+  // Initialize pagination parameters
+  const paginationParams = {
+    limit: 1000,        // Maximum allowed limit
+    sortBy: "settings.label",  // Sort by gateway name
+    sortOrder: "asc"    // Ascending order
+  };
+
+  // Get first page of results
+  const firstPage = await ario.getGateways(paginationParams);
+  
+  // Process first page
+  console.log(`Total gateways: ${firstPage.totalItems}`);
+  console.log(`First page contains ${firstPage.items.length} gateways`);
+  
+  // If there are more results, get subsequent pages
+  if (firstPage.hasMore) {
+    const nextPage = await ario.getGateways({
+      ...paginationParams,
+      cursor: firstPage.nextCursor
+    });
+    
+    // Process next page
+    console.log(`Next page contains ${nextPage.items.length} gateways`);
+  }
+  
+  // Example of processing gateway data
+  firstPage.items.forEach(gateway => {
+    console.log(`Gateway: ${gateway.settings.label}`);
+    console.log(`Address: ${gateway.gatewayAddress}`);
+    console.log(`Status: ${gateway.status}`);
+    console.log(`Operator Stake: ${gateway.operatorStake}`);
+    console.log(`Total Delegated Stake: ${gateway.totalDelegatedStake}`);
+    console.log('---');
+  });
+};
 ```
 
 3. **joinNetwork**
