@@ -1059,6 +1059,10 @@ export const singleNavigation: Array<NavGroup> = [
             href: '/gateways/moderation',
           },
           {
+            title: 'Indexing and Webhook Filters',
+            href: '/gateways/filters',
+          },
+          {
             title: 'Bundler Sidecar',
             href: '/gateways/bundler',
           },
