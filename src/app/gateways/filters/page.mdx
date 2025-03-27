@@ -37,6 +37,18 @@ WEBHOOK_BLOCK_FILTER=""
 
 The `WEBHOOK_INDEX_FILTER` is used to trigger a webhook when a transaction is indexed. The `WEBHOOK_BLOCK_FILTER` is used to trigger a webhook when a block is processed.
 
+## Important Notes
+
+- All tag names and values are base64url-decoded before matching
+- Owner addresses are automatically converted from owner public keys
+- Empty or undefined filters default to "never match"
+- Tag matching requires all specified tags to match
+- Attribute matching requires all specified attributes to match
+- The filter system supports nested logical operations to any depth, allowing for very precise control over what data gets processed
+
+All these filters can be used in various contexts within the AR.IO Node, such as configuring webhook triggers, controlling ANS-104 bundle processing, or setting up data indexing rules. The filtering system is designed to be intuitive yet powerful, allowing for precise control over which items get processed while maintaining readable and maintainable filter definitions.
+
+
 ## Filter Construction
 
 <Tip title=".env formatting">
@@ -310,13 +322,3 @@ For more complex scenarios, the system provides logical operators (AND, OR, NOT)
 ```
 </CodeGroup>
 
-## Important Notes
-
-- All tag names and values are base64url-decoded before matching
-- Owner addresses are automatically converted from owner public keys
-- Empty or undefined filters default to "never match"
-- Tag matching requires all specified tags to match
-- Attribute matching requires all specified attributes to match
-- The filter system supports nested logical operations to any depth, allowing for very precise control over what data gets processed
-
-All these filters can be used in various contexts within the AR.IO Node, such as configuring webhook triggers, controlling ANS-104 bundle processing, or setting up data indexing rules. The filtering system is designed to be intuitive yet powerful, allowing for precise control over which items get processed while maintaining readable and maintainable filter definitions.
