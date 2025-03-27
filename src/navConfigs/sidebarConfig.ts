@@ -1059,6 +1059,10 @@ export const singleNavigation: Array<NavGroup> = [
             href: '/gateways/moderation',
           },
           {
+            title: 'Indexing and Webhook Filters',
+            href: '/gateways/filters',
+          },
+          {
             title: 'Bundler Sidecar',
             href: '/gateways/bundler',
           },
@@ -1150,6 +1154,15 @@ export const singleNavigation: Array<NavGroup> = [
         title: 'ANTs on Bazar',
         href: '/guides/ants-on-bazar',
       },
+      {
+        title: 'Example Apps',
+        children: [
+          {
+            title: 'Crossmint App',
+            href: '/guides/example-apps/crossmint-app',
+          },
+        ],
+      }
     ],
   },
   {
