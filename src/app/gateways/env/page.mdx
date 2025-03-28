@@ -409,78 +409,6 @@ The AR.IO Gateway allows configuration customization through environmental varia
             <td>Sets the max expected data item indexing interval in seconds</td>
         </tr>
         <tr>
-            <th>AR_IO_SQLITE_BACKUP_S3_BUCKET_NAME</th>
-            <td>String</td>
-            <td>""</td>
-            <td>S3-compatible bucket name, used by the Litestream backup service</td>
-        </tr>
-        <tr>
-            <th>AR_IO_SQLITE_BACKUP_S3_BUCKET_REGION</th>
-            <td>String</td>
-            <td>""</td>
-            <td>S3-compatible bucket region, used by the Litestream backup service</td>
-        </tr>
-        <tr>
-            <th>AR_IO_SQLITE_BACKUP_S3_BUCKET_ACCESS_KEY</th>
-            <td>String</td>
-            <td>""</td>
-            <td>S3-compatible bucket access_key credential, used by Litestream backup service, omit if using resource-based IAM role</td>
-        </tr>
-        <tr>
-            <th>AR_IO_SQLITE_BACKUP_S3_BUCKET_SECRET_KEY</th>
-            <td>String</td>
-            <td>""</td>
-            <td>S3-compatible bucket access_secret_key credential, used by Litestream backup service, omit if using resource-based IAM role</td>
-        </tr>
-        <tr>
-            <th>AR_IO_SQLITE_BACKUP_S3_BUCKET_PREFIX</th>
-            <td>String</td>
-            <td>""</td>
-            <td>A prepended prefix for the S3 bucket where SQLite backups are stored</td>
-        </tr>
-        <tr>
-            <th>AWS_ACCESS_KEY_ID</th>
-            <td>String</td>
-            <td>undefined</td>
-            <td>AWS access key ID for accessing AWS services</td>
-        </tr>
-        <tr>
-            <th>AWS_SECRET_ACCESS_KEY</th>
-            <td>String</td>
-            <td>undefined</td>
-            <td>AWS secret access key for accessing AWS services</td>
-        </tr>
-        <tr>
-            <th>AWS_REGION</th>
-            <td>String</td>
-            <td>undefined</td>
-            <td>AWS region where the resources are located</td>
-        </tr>
-        <tr>
-            <th>AWS_ENDPOINT</th>
-            <td>String</td>
-            <td>undefined</td>
-            <td>Custom endpoint for AWS services</td>
-        </tr>
-        <tr>
-            <th>AWS_S3_CONTIGUOUS_DATA_BUCKET</th>
-            <td>String</td>
-            <td>undefined</td>
-            <td>AWS S3 bucket name used for storing data</td>
-        </tr>
-        <tr>
-            <th>AWS_S3_CONTIGUOUS_DATA_PREFIX</th>
-            <td>String</td>
-            <td>undefined</td>
-            <td>Prefix for the S3 bucket to organize data</td>
-        </tr>
-        <tr>
-            <th>CHUNK_POST_MIN_SUCCESS_COUNT</th>
-            <td>String</td>
-            <td>"3"</td>
-            <td>Minimum count of 200 responses for of a given chunk to be considered properly seeded</td>
-        </tr>
-        <tr>
             <th>BUNDLE_REPAIR_RETRY_INTERVAL_SECONDS</th>
             <td>String</td>
             <td>"300" (5 minutes)</td>
@@ -643,6 +571,12 @@ The AR.IO Gateway allows configuration customization through environmental varia
             <td>Maximum number of concurrent chunk POST requests allowed.</td>
         </tr>
         <tr>
+            <th>CHUNK_POST_MIN_SUCCESS_COUNT</th>
+            <td>String</td>
+            <td>"3"</td>
+            <td>Minimum count of 200 responses for of a given chunk to be considered properly seeded</td>
+        </tr>
+        <tr>
             <th>SECONDARY_CHUNK_POST_URLS</th>
             <td>String (comma-separated)</td>
             <td>[]</td>
@@ -673,10 +607,70 @@ The AR.IO Gateway allows configuration customization through environmental varia
             <td>Timeout in milliseconds after which chunk POST requests will be aborted. If not set, no abort timeout is enforced.</td>
         </tr>
         <tr>
-            <th>CHUNK_POST_MIN_SUCCESS_COUNT</th>
-            <td>Number</td>
-            <td>3</td>
-            <td>Minimum number of successful responses required for a chunk to be considered properly seeded on primary URLs.</td>
+            <th>AWS_ACCESS_KEY_ID</th>
+            <td>String</td>
+            <td>undefined</td>
+            <td>Access key ID for AWS authentication</td>
+        </tr>
+        <tr>
+            <th>AWS_SECRET_ACCESS_KEY</th>
+            <td>String</td>
+            <td>undefined</td>
+            <td>Secret access key for AWS authentication</td>
+        </tr>
+        <tr>
+            <th>AWS_REGION</th>
+            <td>String</td>
+            <td>undefined</td>
+            <td>AWS region for S3 operations</td>
+        </tr>
+        <tr>
+            <th>AWS_ENDPOINT</th>
+            <td>String</td>
+            <td>undefined</td>
+            <td>Custom AWS endpoint for S3 operations</td>
+        </tr>
+        <tr>
+            <th>AWS_S3_CONTIGUOUS_DATA_BUCKET</th>
+            <td>String</td>
+            <td>undefined</td>
+            <td>Name of the S3 bucket for storing contiguous data</td>
+        </tr>
+        <tr>
+            <th>AWS_S3_CONTIGUOUS_DATA_PREFIX</th>
+            <td>String</td>
+            <td>undefined</td>
+            <td>Prefix for contiguous data objects in the S3 bucket</td>
+        </tr>
+        <tr>
+            <th>AR_IO_SQLITE_BACKUP_S3_BUCKET_NAME</th>
+            <td>String</td>
+            <td>undefined</td>
+            <td>Name of the S3 bucket used for SQLite database backups</td>
+        </tr>
+        <tr>
+            <th>AR_IO_SQLITE_BACKUP_S3_BUCKET_REGION</th>
+            <td>String</td>
+            <td>undefined</td>
+            <td>Region of the S3 bucket used for SQLite database backups</td>
+        </tr>
+        <tr>
+            <th>AR_IO_SQLITE_BACKUP_S3_BUCKET_ACCESS_KEY</th>
+            <td>String</td>
+            <td>undefined</td>
+            <td>Access key for the S3 bucket used for SQLite database backups</td>
+        </tr>
+        <tr>
+            <th>AR_IO_SQLITE_BACKUP_S3_BUCKET_SECRET_KEY</th>
+            <td>String</td>
+            <td>undefined</td>
+            <td>Secret key for the S3 bucket used for SQLite database backups</td>
+        </tr>
+        <tr>
+            <th>AR_IO_SQLITE_BACKUP_S3_BUCKET_PREFIX</th>
+            <td>String</td>
+            <td>undefined</td>
+            <td>Prefix for SQLite database backup objects in the S3 bucket</td>
         </tr>
         </tbody>
     </table>
