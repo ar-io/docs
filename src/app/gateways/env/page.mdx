@@ -1,3 +1,11 @@
+export const metadata = {
+  title: 'AR.IO Gateway Environment Variables',
+  description: 'Comprehensive guide to all available environment variables for configuring the AR.IO Gateway',
+  openGraph: {
+    title: 'AR.IO Gateway Environment Variables',
+  },
+};
+
 import {HeroPattern} from "@/components/HeroPattern"
 
 <HeroPattern />
@@ -23,6 +31,18 @@ The AR.IO Gateway allows configuration customization through environmental varia
         </thead>
         <tbody>
         <tr>
+            <th>GRAPHQL_HOST</th>
+            <td>String</td>
+            <td>arweave.net</td>
+            <td>Host for GraphQL queries. You may use any available gateway that supports GQL queries. If omitted, your node can support GQL queries on locally indexed transactions, but only L1 transactions are indexed by default.</td>
+        </tr>
+        <tr>
+            <th>GRAPHQL_PORT</th>
+            <td>Number</td>
+            <td>443</td>
+            <td>Port for GraphQL queries. Used in conjunction with GRAPHQL_HOST to set up the proxy for GQL queries.</td>
+        </tr>
+        <tr>
             <th>START_HEIGHT</th>
             <td>Number or "Infinity"</td>
             <td>0</td>
@@ -47,10 +67,28 @@ The AR.IO Gateway allows configuration customization through environmental varia
             <td>Arweave node to use for proxying reqeusts</td>
         </tr>
         <tr>
+            <th>TRUSTED_GATEWAYS_URLS</th>
+            <td>String</td>
+            <td>TRUSTED_GATEWAY_URL</td>
+            <td>A JSON map of gateways and priority</td>
+        </tr>
+        <tr>
+            <th>TRUSTED_GATEWAYS_REQUEST_TIMEOUT_MS</th>
+            <td>String</td>
+            <td>"10000"</td>
+            <td>Request timeout in milliseconds for trusted gateways</td>
+        </tr>
+        <tr>
             <th>TRUSTED_ARNS_GATEWAY_URL</th>
             <td>String</td>
-            <td>https://NAME.arweave.dev</td>
+            <td>"https://__NAME__.arweave.dev"</td>
             <td>ArNS gateway</td>
+        </tr>
+        <tr>
+            <th>WEIGHTED_PEERS_TEMPERATURE_DELTA</th>
+            <td>Number</td>
+            <td>0.1</td>
+            <td>Any positive number above 0, best to keep 1 or less. Used to determine the sensitivity of which the probability of failing or succeeding peers decreases or increases.</td>
         </tr>
         <tr>
             <th>INSTANCE_ID</th>
@@ -95,6 +133,12 @@ The AR.IO Gateway allows configuration customization through environmental varia
             <td>API key used for admin API requests (if not set, it is generated and logged into the console)</td>
         </tr>
         <tr>
+            <th>ADMIN_API_KEY_FILE</th>
+            <td>String</td>
+            <td>Generated</td>
+            <td>Alternative way to set the API key used for admin API requests via filepath, it takes precedence over ADMIN_API_KEY if defined</td>
+        </tr>
+        <tr>
             <th>BACKFILL_BUNDLE_RECORDS</th>
             <td>Boolean</td>
             <td>false</td>
@@ -107,6 +151,18 @@ The AR.IO Gateway allows configuration customization through environmental varia
             <td>If true, all indexed bundles will be reprocessed with the new filters (you can use this when you change the filters)</td>
         </tr>
         <tr>
+            <th>ON_DEMAND_RETRIEVAL_ORDER</th>
+            <td>String</td>
+            <td>s3,trusted-gateways,chunks,tx-data</td>
+            <td>Data source retrieval order for on-demand data requests</td>
+        </tr>
+        <tr>
+            <th>BACKGROUND_RETRIEVAL_ORDER</th>
+            <td>String</td>
+            <td>chunks,s3,trusted-gateways,chunks,tx-data</td>
+            <td>Data source retrieval order for background data requests (i.e., unbundling)</td>
+        </tr>
+        <tr>
             <th>ANS104_UNBUNDLE_FILTER</th>
             <td>String</td>
             <td>&#123;"never": true&#125;</td>
@@ -117,6 +173,60 @@ The AR.IO Gateway allows configuration customization through environmental varia
             <td>String</td>
             <td>&#123;"never": true&#125;</td>
             <td>Only bundles compliant with this filter will be indexed</td>
+        </tr>
+        <tr>
+            <th>ANS104_DOWNLOAD_WORKERS</th>
+            <td>String</td>
+            <td>5</td>
+            <td>Sets the number of ANS-104 bundles to attempt to download in parallel</td>
+        </tr>
+        <tr>
+            <th>ANS104_UNBUNDLE_WORKERS</th>
+            <td>Number</td>
+            <td>0, or 1 if filters are set</td>
+            <td>Sets the number of workers used to handle unbundling</td>
+        </tr>
+        <tr>
+            <th>DATA_ITEM_FLUSH_COUNT_THRESHOLD</th>
+            <td>Number</td>
+            <td>1000</td>
+            <td>Sets the number of new data items indexed before flushing to stable data items</td>
+        </tr>
+        <tr>
+            <th>MAX_FLUSH_INTERVAL_SECONDS</th>
+            <td>Number</td>
+            <td>600</td>
+            <td>Sets the maximum time interval in seconds before flushing to stable data items</td>
+        </tr>
+        <tr>
+            <th>WRITE_ANS104_DATA_ITEM_DB_SIGNATURES</th>
+            <td>Boolean</td>
+            <td>false</td>
+            <td>If true, the data item signatures will be written to the database</td>
+        </tr>
+        <tr>
+            <th>WRITE_TRANSACTION_DB_SIGNATURES</th>
+            <td>Boolean</td>
+            <td>true</td>
+            <td>If true, the transactions signatures will be written to the database</td>
+        </tr>
+        <tr>
+            <th>ENABLE_DATA_DB_WAL_CLEANUP</th>
+            <td>Boolean</td>
+            <td>false</td>
+            <td>If true, the data database WAL cleanup worker will be enabled</td>
+        </tr>
+        <tr>
+            <th>ENABLE_BACKGROUND_DATA_VERIFICATION</th>
+            <td>Boolean</td>
+            <td>false</td>
+            <td>If true, unverified data will be verified in background</td>
+        </tr>
+        <tr>
+            <th>MAX_DATA_ITEM_QUEUE_SIZE</th>
+            <td>Number</td>
+            <td>100000</td>
+            <td>Sets the maximum number of data items to queue for indexing before skipping indexing new data items</td>
         </tr>
         <tr>
             <th>ARNS_ROOT_HOST</th>
@@ -183,13 +293,19 @@ The AR.IO Gateway allows configuration customization through environmental varia
             <td>string</td>
             <td>"data/sqlite"</td>
             <td>Sets the location for sqlite indexed data to be saved. If omitted, sqlite data will be stored in the `data` directory</td>
+        </tr> 
+        <tr>
+            <th>DUCKDB_DATA_PATH</th>
+            <td>string</td>
+            <td>"data/duckdb"</td>
+            <td>Sets the location for duckdb data to be saved. If omitted, duckdb data will be stored in the `data` directory</td>
         </tr>
         <tr>
             <th>TEMP_DATA_PATH</th>
             <td>string</td>
             <td>"data/tmp"</td>
             <td>Sets the location for temporary data to be saved. If omitted, temporary data will be stored in the `data` directory</td>
-        </tr>
+        </tr> 
         <tr>
             <th>LMDB_DATA_PATH</th>
             <td>string</td>
@@ -223,8 +339,8 @@ The AR.IO Gateway allows configuration customization through environmental varia
         <tr>
             <th>NODE_JS_MAX_OLD_SPACE_SIZE</th>
             <td>Number</td>
-            <td>system default</td>
-            <td>Sets the memory limit, in Megabytes, for NodeJs. Default value depends on hardware</td>
+            <td>2048 or 8192, depending on number of workers</td>
+            <td>Sets the memory limit, in Megabytes, for NodeJs. Default value is 2048 if using less than 2 unbundle workers, otherwise 8192</td>
         </tr>
         <tr>
             <th>SUBMIT_CONTRACT_INTERACTIONS</th>
@@ -269,24 +385,6 @@ The AR.IO Gateway allows configuration customization through environmental varia
             <td>Sets the age threshold in seconds; files older than this are candidates for contiguous data cache cleanup</td>
         </tr>
         <tr>
-            <th>RUN_RESOLVER</th>
-            <td>Boolean</td>
-            <td>false</td>
-            <td>If true, enables the experimental local ArNS resolver service</td> 
-        </tr>
-        <tr>
-            <th>TRUSTED_ARNS_RESOLVER_TYPE</th>
-            <td>String</td>
-            <td>gateway</td>
-            <td>Sets the type of ArNS resolver the gateway will use, either `gateway` or `resolver`. Set `resolver` to use experimental local ArNS resolver.</td>
-        </tr>
-        <tr>
-            <th>TRUSTED_ARNS_RESOLVER_URL</th>
-            <td>String</td>
-            <td>https:__NAME__.arweave.dev</td>
-            <td>Sets the url a gateway will use to request ArNS name resolution when type is set to `resolver`</td>
-        </tr>
-        <tr>
             <th>ENABLE_MEMPOOL_WATCHER</th>
             <td>Boolean</td>
             <td>false</td>
@@ -297,6 +395,288 @@ The AR.IO Gateway allows configuration customization through environmental varia
             <td>Number</td>
             <td>30000</td>
             <td>Sets the mempool Polling interval, in milliseconds</td>
+        </tr>
+        <tr>
+            <th>TAG_SELECTIVITY</th>
+            <td>String</td>
+            <td>Refer to config.ts</td>
+            <td>A JSON map of tag names to selectivity weights used to order SQLite tag joins</td>
+        </tr>
+        <tr>
+            <th>MAX_EXPECTED_DATA_ITEM_INDEXING_INTERVAL_SECONDS</th>
+            <td>Number</td>
+            <td>undefined</td>
+            <td>Sets the max expected data item indexing interval in seconds</td>
+        </tr>
+        <tr>
+            <th>AR_IO_SQLITE_BACKUP_S3_BUCKET_NAME</th>
+            <td>String</td>
+            <td>""</td>
+            <td>S3-compatible bucket name, used by the Litestream backup service</td>
+        </tr>
+        <tr>
+            <th>AR_IO_SQLITE_BACKUP_S3_BUCKET_REGION</th>
+            <td>String</td>
+            <td>""</td>
+            <td>S3-compatible bucket region, used by the Litestream backup service</td>
+        </tr>
+        <tr>
+            <th>AR_IO_SQLITE_BACKUP_S3_BUCKET_ACCESS_KEY</th>
+            <td>String</td>
+            <td>""</td>
+            <td>S3-compatible bucket access_key credential, used by Litestream backup service, omit if using resource-based IAM role</td>
+        </tr>
+        <tr>
+            <th>AR_IO_SQLITE_BACKUP_S3_BUCKET_SECRET_KEY</th>
+            <td>String</td>
+            <td>""</td>
+            <td>S3-compatible bucket access_secret_key credential, used by Litestream backup service, omit if using resource-based IAM role</td>
+        </tr>
+        <tr>
+            <th>AR_IO_SQLITE_BACKUP_S3_BUCKET_PREFIX</th>
+            <td>String</td>
+            <td>""</td>
+            <td>A prepended prefix for the S3 bucket where SQLite backups are stored</td>
+        </tr>
+        <tr>
+            <th>AWS_ACCESS_KEY_ID</th>
+            <td>String</td>
+            <td>undefined</td>
+            <td>AWS access key ID for accessing AWS services</td>
+        </tr>
+        <tr>
+            <th>AWS_SECRET_ACCESS_KEY</th>
+            <td>String</td>
+            <td>undefined</td>
+            <td>AWS secret access key for accessing AWS services</td>
+        </tr>
+        <tr>
+            <th>AWS_REGION</th>
+            <td>String</td>
+            <td>undefined</td>
+            <td>AWS region where the resources are located</td>
+        </tr>
+        <tr>
+            <th>AWS_ENDPOINT</th>
+            <td>String</td>
+            <td>undefined</td>
+            <td>Custom endpoint for AWS services</td>
+        </tr>
+        <tr>
+            <th>AWS_S3_CONTIGUOUS_DATA_BUCKET</th>
+            <td>String</td>
+            <td>undefined</td>
+            <td>AWS S3 bucket name used for storing data</td>
+        </tr>
+        <tr>
+            <th>AWS_S3_CONTIGUOUS_DATA_PREFIX</th>
+            <td>String</td>
+            <td>undefined</td>
+            <td>Prefix for the S3 bucket to organize data</td>
+        </tr>
+        <tr>
+            <th>CHUNK_POST_MIN_SUCCESS_COUNT</th>
+            <td>String</td>
+            <td>"3"</td>
+            <td>Minimum count of 200 responses for of a given chunk to be considered properly seeded</td>
+        </tr>
+        <tr>
+            <th>BUNDLE_REPAIR_RETRY_INTERVAL_SECONDS</th>
+            <td>String</td>
+            <td>"300" (5 minutes)</td>
+            <td>Interval in seconds for retrying bundles</td>
+        </tr>
+        <tr>
+            <th>BUNDLE_REPAIR_UPDATE_TIMESTAMPS_INTERVAL_SECONDS</th>
+            <td>Number</td>
+            <td>300 (5 minutes)</td>
+            <td>Interval in seconds for updating timestamps during bundle repair</td>
+        </tr>
+        <tr>
+            <th>BUNDLE_REPAIR_BACKFILL_INTERVAL_SECONDS</th>
+            <td>Number</td>
+            <td>900 (15 minutes)</td>
+            <td>Interval in seconds for backfilling bundles during repair</td>
+        </tr>
+        <tr>
+            <th>BUNDLE_REPAIR_FILTER_REPROCESS_INTERVAL_SECONDS</th>
+            <td>Number</td>
+            <td>300 (5 minutes)</td>
+            <td>Interval in seconds for reprocessing filters during bundle repair</td>
+        </tr>
+        <tr>
+            <th>BUNDLE_REPAIR_RETRY_BATCH_SIZE</th>
+            <td>String</td>
+            <td>"1000"</td>
+            <td>Batch size for retrying bundles</td>
+        </tr>
+        <tr>
+            <th>APEX_TX_ID</th>
+            <td>String</td>
+            <td>undefined</td>
+            <td>If set, serves this transaction ID's data at the root path (/)</td>
+        </tr>
+        <tr>
+            <th>APEX_ARNS_NAME</th>
+            <td>String</td>
+            <td>undefined</td>
+            <td>If set, resolves and serves this ArNS name's content at the root path (/)</td>
+        </tr>
+        <tr>
+            <th>AO_CU_URL</th>
+            <td>String</td>
+            <td>undefined</td>
+            <td>URL of the AO CU to be used for interacting with the AO network. If not set, the default CU from FWD research will be used.</td>
+        </tr>
+        <tr>
+            <th>NETWORK_AO_CU_URL</th>
+            <td>String</td>
+            <td>undefined</td>
+            <td>URL of the AO CU to be used for fetching ARIO network data. If not set, the default CU from FWD research will be used.</td>
+        </tr>
+        <tr>
+            <th>AO_MU_URL</th>
+            <td>String</td>
+            <td>undefined</td>
+            <td>URL of the AO MU (Memory Unit) to be used. If not set, the default MU from FWD research will be used.</td>
+        </tr>
+        <tr>
+            <th>ANT_AO_CU_URL</th>
+            <td>String</td>
+            <td>AO_CU_URL</td>
+            <td>URL of the AO CU to be used for fetching ANT data. If not set, falls back to AO_CU_URL.</td>
+        </tr>
+        <tr>
+            <th>AO_GRAPHQL_URL</th>
+            <td>String</td>
+            <td>undefined</td>
+            <td>URL of the AO GraphQL endpoint to be used.</td>
+        </tr>
+        <tr>
+            <th>AO_GATEWAY_URL</th>
+            <td>String</td>
+            <td>undefined</td>
+            <td>URL of the AO Gateway to be used.</td>
+        </tr>
+        <tr>
+            <th>BUNDLE_DATA_IMPORTER_QUEUE_SIZE</th>
+            <td>Number</td>
+            <td>1000</td>
+            <td>The maximum number of bundles to queue for unbundling before skipping</td>
+        </tr>
+        <tr>
+            <th>VERIFICATION_DATA_IMPORTER_QUEUE_SIZE</th>
+            <td>Number</td>
+            <td>1000</td>
+            <td>The maximum number of data imports to queue for verification purposes</td>
+        </tr>
+        <tr>
+            <th>FS_CLEANUP_WORKER_BATCH_SIZE</th>
+            <td>Number</td>
+            <td>2000</td>
+            <td>The number of files to process in each batch during cleanup</td>
+        </tr>
+        <tr>
+            <th>FS_CLEANUP_WORKER_BATCH_PAUSE_DURATION</th>
+            <td>Number</td>
+            <td>5000</td>
+            <td>The pause duration between cleanup batches in milliseconds</td>
+        </tr>
+        <tr>
+            <th>FS_CLEANUP_WORKER_RESTART_PAUSE_DURATION</th>
+            <td>Number</td>
+            <td>14400000 (4 hours)</td>
+            <td>The pause duration before restarting cleanup from the beginning in milliseconds</td>
+        </tr>
+        <tr>
+            <th>ARIO_PROCESS_DEFAULT_CIRCUIT_BREAKER_TIMEOUT_MS</th>
+            <td>Number</td>
+            <td>60000 (60 seconds)</td>
+            <td>Maximum time allowed for requests to AO for ARIO process state. Requests exceeding this timeout are considered failed and may trigger the circuit breaker if the error threshold is reached.</td>
+        </tr>
+        <tr>
+            <th>ARIO_PROCESS_DEFAULT_CIRCUIT_BREAKER_ERROR_THRESHOLD_PERCENTAGE</th>
+            <td>Number</td>
+            <td>30</td>
+            <td>Percentage of failed requests to AO for ARIO process state that will trigger the circuit breaker to open. Set to 30% to compensate for extended timeouts.</td>
+        </tr>
+        <tr>
+            <th>ARIO_PROCESS_DEFAULT_CIRCUIT_BREAKER_ROLLING_COUNT_TIMEOUT_MS</th>
+            <td>Number</td>
+            <td>600000 (10 minutes)</td>
+            <td>Time window for tracking errors when retrieving ARIO process state from AO. The circuit breaker counts failures within this rolling window to determine if the error threshold percentage has been exceeded.</td>
+        </tr>
+        <tr>
+            <th>ARIO_PROCESS_DEFAULT_CIRCUIT_BREAKER_RESET_TIMEOUT_MS</th>
+            <td>Number</td>
+            <td>1200000 (20 minutes)</td>
+            <td>Duration the circuit breaker stays in the open state after being triggered. During this period, all requests to AO for ARIO process state will be rejected immediately. After this timeout expires, the circuit breaker transitions to half-open state to test if AO is responsive again.</td>
+        </tr>
+        <tr>
+            <th>GATEWAY_PEERS_WEIGHTS_CACHE_DURATION_MS</th>
+            <td>Number</td>
+            <td>5000 (5 seconds)</td>
+            <td>Duration in milliseconds for which gateway peer weights are cached before being recalculated.</td>
+        </tr>
+        <tr>
+            <th>GATEWAY_PEERS_REQUEST_WINDOW_COUNT</th>
+            <td>Number</td>
+            <td>20</td>
+            <td>Size of the array used to calculate the average performance for peer weighting. A longer window provides a better average but has minimal impact on overall performance.</td>
+        </tr>
+        <tr>
+            <th>ARWEAVE_NODE_IGNORE_URLS</th>
+            <td>String (comma-separated)</td>
+            <td>[]</td>
+            <td>Comma-separated list of Arweave node URLs to ignore when selecting peers.</td>
+        </tr>
+        <tr>
+            <th>CHUNK_POST_URLS</th>
+            <td>String (comma-separated)</td>
+            <td>TRUSTED_NODE_URL/chunk</td>
+            <td>Comma-separated list of URLs for posting chunks received at /chunk endpoint.</td>
+        </tr>
+        <tr>
+            <th>CHUNK_POST_CONCURRENCY_LIMIT</th>
+            <td>Number</td>
+            <td>2</td>
+            <td>Maximum number of concurrent chunk POST requests allowed.</td>
+        </tr>
+        <tr>
+            <th>SECONDARY_CHUNK_POST_URLS</th>
+            <td>String (comma-separated)</td>
+            <td>[]</td>
+            <td>Comma-separated list of secondary URLs for posting chunks. Used as fallback when primary URLs are unavailable.</td>
+        </tr>
+        <tr>
+            <th>SECONDARY_CHUNK_POST_CONCURRENCY_LIMIT</th>
+            <td>Number</td>
+            <td>2</td>
+            <td>Maximum number of concurrent secondary chunk POST requests allowed.</td>
+        </tr>
+        <tr>
+            <th>SECONDARY_CHUNK_POST_MIN_SUCCESS_COUNT</th>
+            <td>Number</td>
+            <td>1</td>
+            <td>Minimum number of successful responses required for a chunk to be considered properly seeded on secondary URLs.</td>
+        </tr>
+        <tr>
+            <th>CHUNK_POST_RESPONSE_TIMEOUT_MS</th>
+            <td>Number</td>
+            <td>undefined</td>
+            <td>Timeout in milliseconds for chunk POST responses. If not set, no timeout is enforced.</td>
+        </tr>
+        <tr>
+            <th>CHUNK_POST_ABORT_TIMEOUT_MS</th>
+            <td>Number</td>
+            <td>undefined</td>
+            <td>Timeout in milliseconds after which chunk POST requests will be aborted. If not set, no abort timeout is enforced.</td>
+        </tr>
+        <tr>
+            <th>CHUNK_POST_MIN_SUCCESS_COUNT</th>
+            <td>Number</td>
+            <td>3</td>
+            <td>Minimum number of successful responses required for a chunk to be considered properly seeded on primary URLs.</td>
         </tr>
         </tbody>
     </table>
