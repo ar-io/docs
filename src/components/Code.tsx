@@ -263,26 +263,32 @@ function usePreventLayoutShift() {
 }
 
 const usePreferredLanguageStore = create<{
-  preferredLanguages: Array<string>
-  addPreferredLanguage: (language: string) => void
+  preferredLanguages: Record<string, Array<string>>
+  addPreferredLanguage: (id: string, language: string) => void
 }>()((set) => ({
-  preferredLanguages: [],
-  addPreferredLanguage: (language) =>
+  preferredLanguages: {},
+  addPreferredLanguage: (id, language) =>
     set((state) => ({
-      preferredLanguages: [
-        ...state.preferredLanguages.filter(
-          (preferredLanguage) => preferredLanguage !== language,
-        ),
-        language,
-      ],
+      preferredLanguages: {
+        ...state.preferredLanguages,
+        [id]: [
+          ...(state.preferredLanguages[id] || []).filter(
+            (preferredLanguage) => preferredLanguage !== language,
+          ),
+          language,
+        ],
+      },
     })),
 }))
 
-function useTabGroupProps(availableLanguages: Array<string>) {
+function useTabGroupProps(availableLanguages: Array<string>, id?: string) {
   let { preferredLanguages, addPreferredLanguage } = usePreferredLanguageStore()
   let [selectedIndex, setSelectedIndex] = useState(0)
+  
+  // If no id is provided, use a default empty string to maintain backward compatibility
+  const groupId = id || ''
   let activeLanguage = [...availableLanguages].sort(
-    (a, z) => preferredLanguages.indexOf(z) - preferredLanguages.indexOf(a),
+    (a, z) => (preferredLanguages[groupId]?.indexOf(z) ?? -1) - (preferredLanguages[groupId]?.indexOf(a) ?? -1),
   )[0]
   let languageIndex = availableLanguages.indexOf(activeLanguage)
   let newSelectedIndex = languageIndex === -1 ? selectedIndex : languageIndex
@@ -298,7 +304,7 @@ function useTabGroupProps(availableLanguages: Array<string>) {
     selectedIndex,
     onChange: (newSelectedIndex: number) => {
       preventLayoutShift(() =>
-        addPreferredLanguage(availableLanguages[newSelectedIndex]),
+        addPreferredLanguage(groupId, availableLanguages[newSelectedIndex]),
       )
     },
   }
@@ -309,13 +315,17 @@ const CodeGroupContext = createContext(false)
 export function CodeGroup({
   children,
   title,
+  id,
   ...props
-}: React.ComponentPropsWithoutRef<typeof CodeGroupPanels> & { title: string }) {
+}: React.ComponentPropsWithoutRef<typeof CodeGroupPanels> & { 
+  title: string
+  id?: string 
+}) {
   let languages =
     Children.map(children, (child) =>
       getPanelTitle(isValidElement(child) ? child.props : {}),
     ) ?? []
-  let tabGroupProps = useTabGroupProps(languages)
+  let tabGroupProps = useTabGroupProps(languages, id)
   let hasTabs = Children.count(children) > 1
 
   let containerClassName =
