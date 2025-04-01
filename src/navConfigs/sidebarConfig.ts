@@ -1063,6 +1063,10 @@ export const singleNavigation: Array<NavGroup> = [
             href: '/gateways/filters',
           },
           {
+            title: 'Optimize Gateway Data',
+            href: '/gateways/optimize-data',
+          },
+          {
             title: 'Bundler Sidecar',
             href: '/gateways/bundler',
           },
