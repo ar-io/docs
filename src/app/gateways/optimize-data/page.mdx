@@ -1,10 +1,11 @@
 export const metadata = {
   title: 'Optimizing Data Handling in AR.IO Gateway',
-  description: 'Learn how to configure your AR.IO Gateway to efficiently handle specific types of data through filtering and worker optimization',
+  description:
+    'Learn how to configure your AR.IO Gateway to efficiently handle specific types of data through filtering and worker optimization',
   openGraph: {
     title: 'Optimizing Data Handling in AR.IO Gateway',
   },
-};
+}
 
 import { HeroPattern } from '@/components/HeroPattern'
 import { CodeGroup } from '@/components/Code'
@@ -38,22 +39,27 @@ For a detailed explanation of how to construct these filters, see our [Filtering
 Several environment variables control how your gateway processes data:
 
 <CodeGroup title="Core Configuration" id="core-config">
+
 ```bash {{title: "Bundle Processing"}}
 # Enable backfilling of missing bundle records
 BACKFILL_BUNDLE_RECORDS=true
 
 # Reprocess all indexed bundles with new filters
+
 FILTER_CHANGE_REPROCESS=true
 
 # Number of ANS-104 bundles to download in parallel
+
 ANS104_DOWNLOAD_WORKERS=5
 
 # Number of workers for unbundling (0 = disabled, 1 = enabled if filters set)
+
 ANS104_UNBUNDLE_WORKERS=1
 ```
 </CodeGroup>
 
 <CodeGroup title="Data Management" id="data-management">
+
 ```bash {{title: "Indexing and Storage"}}
 # Number of new data items before flushing to stable storage
 DATA_ITEM_FLUSH_COUNT_THRESHOLD=1000
@@ -67,19 +73,23 @@ MAX_DATA_ITEM_QUEUE_SIZE=100000
 # Enable background verification of unverified data
 ENABLE_BACKGROUND_DATA_VERIFICATION=true
 ```
+
 </CodeGroup>
 
 ## Data Item Flushing
 
 The gateway uses a two-stage storage system for indexed data items:
+
 1. **Temporary Storage**: Newly indexed data items are first stored in a temporary table
 2. **Stable Storage**: Data items are periodically "flushed" from temporary to stable storage
 
 This process is controlled by two environment variables:
+
 - `DATA_ITEM_FLUSH_COUNT_THRESHOLD`: Number of items to queue before flushing (default: 1000)
 - `MAX_FLUSH_INTERVAL_SECONDS`: Maximum time between flushes (default: 600 seconds)
 
 The gateway will flush data items when either:
+
 - The number of items in temporary storage reaches the threshold
 - The time since the last flush exceeds the interval
 
@@ -90,19 +100,25 @@ This batching approach helps optimize database performance by reducing the numbe
 The `GRAPHQL_HOST` setting determines how your gateway handles GraphQL queries. You have two options:
 
 <CodeGroup title="GraphQL Host Options" id="graphql-options">
+
 ```bash {{title: "GraphQL Host Options"}}
 # Set to arweave.net to proxy queries to a gateway with full index
 GRAPHQL_HOST=arweave.net
 
 # Or unset to enable local-only GraphQL queries
+
 # GRAPHQL_HOST=
 
 # Port for GraphQL queries (default: 443)
+
 GRAPHQL_PORT=443
 ```
+
 </CodeGroup>
 
+
 ### Using arweave.net (Recommended for new gateways)
+
 - Proxies queries to a gateway with a complete index of the blockweave
 - Provides immediate access to all historical data
 - No need to wait for local indexing
@@ -125,7 +141,6 @@ By configuring your filters and workers appropriately, you can optimize your gat
 
 1. **High-Volume Data**: Configure workers to handle large amounts of data efficiently
 2. **Specific Applications**: Filter for particular app names or content types
-3. **Performance Critical**: Adjust worker counts to match your system's capabilities
 
 ### Filter Examples
 
@@ -136,7 +151,20 @@ The AR.IO Gateway uses two distinct filters to control how ANS104 bundle data is
 
 Here are some practical examples of how to configure these filters for specific use cases:
 
+### Specific Application Data
+
+This configuration demonstrates how to focus your gateway on data from a specific application. In this example, we show how to process and index all ArDrive-related transactions, but you can adapt this pattern for any application, using the `App-Name` tag. This approach is perfect for:
+
+- Building application-specific services
+- Creating application data archives
+- Running application-focused analytics
+- Supporting application infrastructure
+- Reducing processing overhead by focusing only on relevant data
+
+In this example, the index filter uses the `ArFS` tag to only index ArFS-compliant data, which is a specific aspect of ArDrive applications. Index filters can be adjusted for any application's needs - the `App-Name` tag is particularly useful here, as data items within a bundle can have a different `App-Name` than the bundle that contains them.
+
 <CodeGroup title="All ArDrive Data" id="ardrive-data">
+
 ```json {{title: "Unbundle Filter"}}
 {
   "or": [
@@ -155,38 +183,30 @@ Here are some practical examples of how to configure these filters for specific 
 ```json {{title: "Index Filter"}}
 {
   "or": [
-    { "tags": [{ "name": "ArFS", "value": "0.10" }]},
-    { "tags": [{ "name": "ArFS", "value": "0.11" }]},
-    { "tags": [{ "name": "ArFS", "value": "0.12" }]}
+    { "tags": [{ "name": "ArFS", "value": "0.10" }] },
+    { "tags": [{ "name": "ArFS", "value": "0.11" }] },
+    { "tags": [{ "name": "ArFS", "value": "0.12" }] }
   ]
 }
 ```
+
 </CodeGroup>
+
+### Personal Data Gateway
+
+This configuration is designed for users who want to run a personal gateway that only processes their own ArDrive data. It:
+
+- Excludes common specific use case bundlers to reduce unnecessary processing
+- Only indexes data owned by your wallet address
+- Includes all ArDrive and Turbo app data
+- Perfect for personal data management
 
 <CodeGroup title="Personal Data Gateway" id="personal-data">
 ```json {{title: "Unbundle Filter"}}
 {
-  "or": [
-    {"attributes": { "owner": "YOUR_WALLET_MODULUS" }}
-  ]
-}
-```
-
-```json {{title: "Index Filter"}}
-{
-  "or": [
-    {"attributes": { "owner_address": "YOUR_WALLET_ADDRESS" }}
-  ]
-}
-```
-</CodeGroup>
-
-<CodeGroup title="All ArDrive Bundles (Excluding Common Bundlers)" id="ardrive-bundles">
-```json {{title: "Unbundle Filter"}}
-{
   "and": [
     {
-      "not": {
+      "not": { // Exclude common specific use case bundlers
         "or": [
           { "tags": [{ "name": "Bundler-App-Name", "value": "Warp" }]},
           { "tags": [{ "name": "Bundler-App-Name", "value": "Redstone" }]},
@@ -199,7 +219,58 @@ Here are some practical examples of how to configure these filters for specific 
       }
     },
     {
-      "or": [
+      "or": [ // Include ArDrive and Turbo apps
+        { "tags": [{ "name": "App-Name", "value": "ArDrive-App" }]},
+        { "tags": [{ "name": "App-Name", "value": "ArDrive-Web" }]},
+        { "tags": [{ "name": "App-Name", "value": "ArDrive-CLI" }]},
+        { "tags": [{ "name": "App-Name", "value": "ArDrive-Desktop" }]},
+        { "tags": [{ "name": "App-Name", "value": "ArDrive-Mobile" }]},
+        { "tags": [{ "name": "App-Name", "value": "ArDrive-Core" }]},
+        { "tags": [{ "name": "App-Name", "value": "ArDrive-Sync" }]},
+        { "tags": [{ "name": "App-Name", "value": "ArDrive Turbo" }]}
+      ]
+    }
+  ]
+}
+```
+
+```json {{title: "Index Filter"}}
+{
+  "attributes": { "owner_address": "YOUR_WALLET_ADDRESS" } // Only index data owned by your wallet address
+}
+```
+
+</CodeGroup>
+
+### All ArDrive Bundles (Excluding Common Bundlers)
+
+This configuration is useful for gateways that want to process ArDrive data while avoiding common bundlers. It's ideal for:
+
+- Reducing processing overhead by excluding known bundlers
+- Maintaining a clean dataset focused on direct ArDrive transactions
+- Optimizing storage and processing resources
+- Supporting ArDrive infrastructure with reduced resource requirements
+
+<CodeGroup title="All ArDrive Bundles (Excluding Common Bundlers)" id="ardrive-bundles">
+
+```json {{title: "Unbundle Filter"}}
+{
+  "and": [ // both of the wrapped filters must be true to process a bundle
+    {
+      "not": { // exclude common specific use case bundlers
+        "or": [
+          { "tags": [{ "name": "Bundler-App-Name", "value": "Warp" }]},
+          { "tags": [{ "name": "Bundler-App-Name", "value": "Redstone" }]},
+          { "tags": [{ "name": "Bundler-App-Name", "value": "Kyve" }]},
+          { "tags": [{ "name": "Bundler-App-Name", "value": "AO" }]},
+          { "attributes": { "owner_address": "-OXcT1sVRSA5eGwt2k6Yuz8-3e3g9WJi5uSE99CWqsBs" }},
+          { "attributes": { "owner_address": "ZE0N-8P9gXkhtK-07PQu9d8me5tGDxa_i4Mee5RzVYg" }},
+          { "attributes": { "owner_address": "6DTqSgzXVErOuLhaP0fmAjqF4yzXkvth58asTxP3pNw" }}
+        ]
+      }
+    },
+    {
+      "or": [ // include ArDrive and Turbo apps
         { "tags": [{ "name": "App-Name", "value": "ArDrive-App" }]},
         { "tags": [{ "name": "App-Name", "value": "ArDrive-Web" }]},
         { "tags": [{ "name": "App-Name", "value": "ArDrive-CLI" }]},
@@ -217,16 +288,18 @@ Here are some practical examples of how to configure these filters for specific 
 ```json {{title: "Index Filter"}}
 {
   "or": [
-    { "tags": [{ "name": "App-Name", "value": "ArDrive-App" }]},
-    { "tags": [{ "name": "App-Name", "value": "ArDrive-Web" }]},
-    { "tags": [{ "name": "App-Name", "value": "ArDrive-CLI" }]},
-    { "tags": [{ "name": "App-Name", "value": "ArDrive-Desktop" }]},
-    { "tags": [{ "name": "App-Name", "value": "ArDrive-Mobile" }]},
-    { "tags": [{ "name": "App-Name", "value": "ArDrive-Core" }]},
-    { "tags": [{ "name": "App-Name", "value": "ArDrive-Sync" }]}
+    // include all ArDrive and Turbo data
+    { "tags": [{ "name": "App-Name", "value": "ArDrive-App" }] },
+    { "tags": [{ "name": "App-Name", "value": "ArDrive-Web" }] },
+    { "tags": [{ "name": "App-Name", "value": "ArDrive-CLI" }] },
+    { "tags": [{ "name": "App-Name", "value": "ArDrive-Desktop" }] },
+    { "tags": [{ "name": "App-Name", "value": "ArDrive-Mobile" }] },
+    { "tags": [{ "name": "App-Name", "value": "ArDrive-Core" }] },
+    { "tags": [{ "name": "App-Name", "value": "ArDrive-Sync" }] }
   ]
 }
 ```
+
 </CodeGroup>
 
 ### Important Filter Considerations
@@ -234,7 +307,7 @@ Here are some practical examples of how to configure these filters for specific 
 When configuring your filters, keep these points in mind:
 
 - The unbundle filter determines which bundles are processed and unbundled
-- The index filter determines which data items from unbundled bundles are stored in the database
+- The index filter determines which data items from unbundled bundles are indexed in the database
 - When filtering by owner addresses, use the modulus of the Arweave public address in the unbundle filter
 
 ### Common Bundler Exclusions
@@ -242,11 +315,13 @@ When configuring your filters, keep these points in mind:
 When configuring filters, you may want to exclude data from common bundlers:
 
 **Bundler Addresses:**
+
 - Irys Node 1: `-OXcT1sVRSA5eGwt2k6Yuz8-3e3g9WJi5uSE99CWqsBs`
 - Irys Node 2: `ZE0N-8P9gXkhtK-07PQu9d8me5tGDxa_i4Mee5RzVYg`
 - Irys Node 3: `6DTqSgzXVErOuLhaP0fmAjqF4yzXkvth58asTxP3pNw`
 
 **Bundler App Names:**
+
 - Warp
 - Redstone
 - Kyve
@@ -279,3 +354,4 @@ When optimizing your gateway, consider these factors:
 ## Optimization Strategy
 
 Focus on configuring your gateway to efficiently handle the specific data types you need. The default state processes no data, so you can selectively enable processing for your use case without worrying about unnecessary resource usage.
+
