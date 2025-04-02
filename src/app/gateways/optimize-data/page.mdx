@@ -56,6 +56,7 @@ ANS104_DOWNLOAD_WORKERS=5
 
 ANS104_UNBUNDLE_WORKERS=1
 ```
+
 </CodeGroup>
 
 <CodeGroup title="Data Management" id="data-management">
@@ -116,7 +117,6 @@ GRAPHQL_PORT=443
 
 </CodeGroup>
 
-
 ### Using arweave.net (Recommended for new gateways)
 
 - Proxies queries to a gateway with a complete index of the blockweave
@@ -125,6 +125,7 @@ GRAPHQL_PORT=443
 - May introduce additional latency from proxying
 
 ### Local-only Queries (Unset GRAPHQL_HOST)
+
 - Responds to queries using only locally indexed data
 - Faster response times for indexed data
 - Requires complete local indexing (can take weeks for L1 transactions)
@@ -177,6 +178,11 @@ In this example, the index filter uses the `ArFS` tag to only index ArFS-complia
     { "tags": [{ "name": "App-Name", "value": "ArDrive-Sync" }]},
     { "tags": [{ "name": "App-Name", "value": "ArDrive Turbo" }]}
   ]
+}
+
+// Alternative using valueStartsWith for a more concise filter
+{
+  "tags": [{ "name": "App-Name", "valueStartsWith": "ArDrive" }]
 }
 ```
 
@@ -232,6 +238,27 @@ This configuration is designed for users who want to run a personal gateway that
     }
   ]
 }
+
+// Alternative using valueStartsWith for a more concise filter while maintaining bundler exclusions
+{
+"and": [
+{
+"not": { // Exclude common specific use case bundlers
+"or": [
+        { "tags": [{ "name": "Bundler-App-Name", "value": "Warp" }]},
+        { "tags": [{ "name": "Bundler-App-Name", "value": "Redstone" }]},
+        { "tags": [{ "name": "Bundler-App-Name", "value": "Kyve" }]},
+        { "tags": [{ "name": "Bundler-App-Name", "value": "AO" }]},
+        { "attributes": { "owner_address": "-OXcT1sVRSA5eGwt2k6Yuz8-3e3g9WJi5uSE99CWqsBs" }},
+        { "attributes": { "owner_address": "ZE0N-8P9gXkhtK-07PQu9d8me5tGDxa_i4Mee5RzVYg" }},
+        { "attributes": { "owner_address": "6DTqSgzXVErOuLhaP0fmAjqF4yzXkvth58asTxP3pNw" }}
+      ]
+    }
+  },
+    {"tags": [{ "name": "App-Name", "valueStartsWith": "ArDrive" }]}
+]
+}
+
 ```
 
 ```json {{title: "Index Filter"}}
@@ -283,6 +310,28 @@ This configuration is useful for gateways that want to process ArDrive data whil
     }
   ]
 }
+
+// Alternative using valueStartsWith for a more concise filter while maintaining bundler exclusions
+{
+  "and": [ // both of the wrapped filters must be true to process a bundle
+    {
+      "not": { // exclude common specific use case bundlers
+        "or": [
+          { "tags": [{ "name": "Bundler-App-Name", "value": "Warp" }]},
+          { "tags": [{ "name": "Bundler-App-Name", "value": "Redstone" }]},
+          { "tags": [{ "name": "Bundler-App-Name", "value": "Kyve" }]},
+          { "tags": [{ "name": "Bundler-App-Name", "value": "AO" }]},
+          { "attributes": { "owner_address": "-OXcT1sVRSA5eGwt2k6Yuz8-3e3g9WJi5uSE99CWqsBs" }},
+          { "attributes": { "owner_address": "ZE0N-8P9gXkhtK-07PQu9d8me5tGDxa_i4Mee5RzVYg" }},
+          { "attributes": { "owner_address": "6DTqSgzXVErOuLhaP0fmAjqF4yzXkvth58asTxP3pNw" }}
+        ]
+      }
+    },
+    {
+      "tags": [{ "name": "App-Name", "valueStartsWith": "ArDrive" }]
+    }
+  ]
+}
 ```
 
 ```json {{title: "Index Filter"}}
@@ -297,6 +346,11 @@ This configuration is useful for gateways that want to process ArDrive data whil
     { "tags": [{ "name": "App-Name", "value": "ArDrive-Core" }] },
     { "tags": [{ "name": "App-Name", "value": "ArDrive-Sync" }] }
   ]
+}
+
+// Alternative using valueStartsWith for a more concise filter
+{
+  "tags": [{ "name": "App-Name", "valueStartsWith": "ArDrive" }]
 }
 ```
 
@@ -354,4 +408,3 @@ When optimizing your gateway, consider these factors:
 ## Optimization Strategy
 
 Focus on configuring your gateway to efficiently handle the specific data types you need. The default state processes no data, so you can selectively enable processing for your use case without worrying about unnecessary resource usage.
-
