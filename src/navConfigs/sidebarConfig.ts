@@ -1113,8 +1113,8 @@ export const singleNavigation: Array<NavGroup> = [
     href: '/guides',
     links: [
       {
-        title: 'Migrating to Mainnet',
-        href: '/mainnet-launch',
+        title: "ARIO Network Testnet",
+        href: "/guides/testnet"
       },
       {
         title: 'GQL',
