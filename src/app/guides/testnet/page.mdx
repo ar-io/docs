@@ -16,10 +16,91 @@ The ARIO Network Testnet allows developers to test their applications and workfl
 
 ## Faucet
 
+### Browser UI
+
 The ARIO Network Testnet Faucet is a service that allows developers to request testnet ARIO tokens (tARIO). It can be accessed in a browser by visiting [ar://faucet](https://faucet.arweave.net).
 
+This is the recommended way to use the faucet. To use it:
 
+1. Select either Testnet or Devnet from the network dropdown
+2. Enter your wallet address
+3. Enter the number of tARIO tokens you would like to request
+4. Complete the captcha challenge
+5. Click the "Request Tokens" button
 
+### Programmatic Access
 
+The faucet service supports both synchronous and asynchronous workflows for claiming tokens.
+
+> **Note**: Direct faucet access in the [ARIO SDK](/ar-io-sdk) is coming soon.
+
+#### Process IDs
+
+- Testnet: `qNvAoz0TgcH7DMg8BCVn8jF32QH5L6T29VjHxhHqqGE`
+- Devnet: `GaQrvEMKBpkjofgnBi_B3IgIDmY_XYelVLB6GcRGrHc`
+
+#### Synchronous Workflow
+
+For simple, one-off token claims:
+
+```bash
+curl -X POST https://faucet.ario.permaweb.services/api/claim/sync \
+  -H "Content-Type: application/json" \
+  -d '{
+    "captchaResponse": "<captcha-response>",
+    "recipient": "<recipient-address>",
+    "qty": "<quantity>"
+  }'
+```
+
+#### Asynchronous Workflow
+
+For applications that need to request tokens for multiple wallets:
+
+```bash
+# Request authorization token
+curl -X GET https://faucet.ario.permaweb.services/api/token/request?process-id=qNvAoz0TgcH7DMg8BCVn8jF32QH5L6T29VjHxhHqqGE
+
+# Claim tokens with authorization token
+curl -X POST https://faucet.ario.permaweb.services/api/claim/async \
+  -H "Authorization: Bearer <auth-token>" \
+  -d '{
+    "processId": "qNvAoz0TgcH7DMg8BCVn8jF32QH5L6T29VjHxhHqqGE",
+    "recipient": "<recipient_address>",
+    "qty": <qty>
+  }'
+```
+
+Rate limits:
+- Global: 10 requests per hour
+- Captcha: 1 request per hour
+
+## Using Testnet/Devnet
+
+Using the testnet or devnet is similar to using the mainnet, with a few key differences:
+
+### Using the ARIO SDK
+
+When using the [ARIO SDK](/ar-io-sdk), you must instantiate the `ARIO` class with the appropriate process ID for either testnet or devnet. The SDK includes the following exports for convenience:
+
+```typescript
+import { ARIO, ARIO_TESTNET_PROCESS_ID, ARIO_DEVNET_PROCESS_ID } from '@ar.io/sdk';
+
+// For testnet
+const ario = new ARIO({ processId: ARIO_TESTNET_PROCESS_ID });
+
+// For devnet
+const ario = new ARIO({ processId: ARIO_DEVNET_PROCESS_ID });
+```
+
+> **Note**: [ANTs](/ants/#arweave-name-token-ant) are network-agnostic, so no additional configuration is needed when working with them.
+
+Once configured, all SDK methods will operate on the specified network instead of mainnet. For more details on configuration, see the [ARIO Configuration](/ar-io-sdk/ario/configuration) documentation.
+
+### Accessing ArNS Names
+
+To access ArNS names on testnet or devnet in a browser, you must use a gateway that is configured to operate on the respective network instead of mainnet.
+
+The gateway [ar-io.dev](https://ar-io.dev) is configured to operate on the ARIO Network Testnet.
 
 
