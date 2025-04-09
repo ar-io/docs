@@ -1,10 +1,10 @@
 import {HeroPattern} from '@/components/HeroPattern'
 
 export const metadata = {
-  title: 'ARIO Network Testnet',
-  description: 'Guide for connecting to the ARIO Network Testnet',
+  title: 'AR.IO Network Testnet',
+  description: 'Guide for connecting to the AR.IO Network Testnet',
   openGraph: {
-    title: 'ARIO Network Testnet',
+    title: 'AR.IO Network Testnet',
   },
 }
 
@@ -12,21 +12,28 @@ export const metadata = {
 
 # Testnet
 
-The ARIO Network Testnet allows developers to test their applications and workflows using ARIO Network features such as [ArNS Names](/arns) before deploying to the mainnet. The ARIO Network Testnet offers a faucet for requesting testnet ARIO tokens (tARIO).
+The AR.IO Network Testnet allows developers to test their applications and workflows using AR.IO Network features such as [ArNS Names](/arns) before deploying to the mainnet. The AR.IO Network Testnet offers a faucet for requesting testnet ARIO tokens (tARIO). The initial version of testnet only supports registering and resolving temporary ArNS names; however, enhancements such as temporary data uploads will be added in the future. We welcome feedback for improvements and other feature requests.
+
+## Restrictions
+
+Testnet has a few primary purposes: to mimic mainnet functionality as close as possible, to provide a testing bed for upcoming network upgrades, and to provide a playground for users and developers to experiment. It is NOT intended for production purposes and should not be used as such.
+Test ARIO (tARIO) tokens are just that - test tokens. They have no external value, may break, and have no guarantee of continued support. tARIO tokens have no relation to mainnet $ARIO and are not a proxy for any rewards. There is no supply cap on tARIO tokens.
+While advanced notice will be provided whenever possible, testnet may go offline for maintenance. Likewise, test token balances and test ArNS names may be reset/nullified at any point to clean up the contract state or prepare for an upgrade.
 
 ## Faucet
 
 ### Browser UI
 
-The ARIO Network Testnet Faucet is a service that allows developers to request testnet ARIO tokens (tARIO). It can be accessed in a browser by visiting [ar://faucet](https://faucet.arweave.net).
+The AR.IO Network Testnet Faucet is a service that allows developers to request testnet ARIO tokens (tARIO). It can be accessed in a browser by visiting [ar://faucet](https://faucet.arweave.net).
 
-This is the recommended way to use the faucet. To use it:
+To use it:
 
-1. Select either Testnet or Devnet from the network dropdown
+1. Select Testnet from the Process ID dropdown
 2. Enter your wallet address
-3. Enter the number of tARIO tokens you would like to request
+3. Enter an amount of tARIO tokens
 4. Complete the captcha challenge
 5. Click the "Request Tokens" button
+6. Once complete, tARIO tokens will automatically be sent to your wallet
 
 ### Programmatic Access
 
@@ -37,7 +44,6 @@ The faucet service supports both synchronous and asynchronous workflows for clai
 #### Process IDs
 
 - Testnet: `qNvAoz0TgcH7DMg8BCVn8jF32QH5L6T29VjHxhHqqGE`
-- Devnet: `GaQrvEMKBpkjofgnBi_B3IgIDmY_XYelVLB6GcRGrHc`
 
 #### Synchronous Workflow
 
@@ -75,22 +81,31 @@ Rate limits:
 - Global: 10 requests per hour
 - Captcha: 1 request per hour
 
-## Using Testnet/Devnet
+## Using Testnet
 
-Using the testnet or devnet is similar to using the mainnet, with a few key differences:
+Using the testnet is similar to using the mainnet, with a few key differences:
+
+### Using ar://arns
+
+[ar://arns](https://arns.arweave.net) is the primary UI for purchasing and managing ArNS names on the AR.IO Network. ar://arns can be configured to operate on the AR.IO Network Testnet in the "ArNS Registry Settings".
+
+To do so: 
+
+1. Connect a wallet to ar://arns by clicking on the "Connect" button at the top right of the page
+2. Once connected, click on the wallet profile icon that replaced the "Connect" button
+3. Select "Settings" from the dropdown menu
+4. Select "ArNS Registry Settings" from the options
+5. Select "Testnet" from the available networks
 
 ### Using the ARIO SDK
 
-When using the [ARIO SDK](/ar-io-sdk), you must instantiate the `ARIO` class with the appropriate process ID for either testnet or devnet. The SDK includes the following exports for convenience:
+When using the [ARIO SDK](/ar-io-sdk), you must instantiate the `ARIO` class with the appropriate process ID for testnet. The SDK includes the following exports for convenience:
 
 ```typescript
-import { ARIO, ARIO_TESTNET_PROCESS_ID, ARIO_DEVNET_PROCESS_ID } from '@ar.io/sdk';
+import { ARIO, ARIO_TESTNET_PROCESS_ID } from '@ar.io/sdk';
 
 // For testnet
 const ario = new ARIO({ processId: ARIO_TESTNET_PROCESS_ID });
-
-// For devnet
-const ario = new ARIO({ processId: ARIO_DEVNET_PROCESS_ID });
 ```
 
 > **Note**: [ANTs](/ants/#arweave-name-token-ant) are network-agnostic, so no additional configuration is needed when working with them.
@@ -99,8 +114,8 @@ Once configured, all SDK methods will operate on the specified network instead o
 
 ### Accessing ArNS Names
 
-To access ArNS names on testnet or devnet in a browser, you must use a gateway that is configured to operate on the respective network instead of mainnet.
+To access ArNS names on testnet in a browser, you must use a gateway that is configured to operate on the testnet instead of mainnet.
 
-The gateway [ar-io.dev](https://ar-io.dev) is configured to operate on the ARIO Network Testnet.
+The [ar-io.dev](https://ar-io.dev) gateway is configured to operate on the AR.IO Network Testnet.
 
 
