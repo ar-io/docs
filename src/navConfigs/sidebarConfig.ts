@@ -1113,7 +1113,7 @@ export const singleNavigation: Array<NavGroup> = [
     href: '/guides',
     links: [
       {
-        title: "ARIO Network Testnet",
+        title: "Working with Testnet",
         href: "/guides/testnet"
       },
       {
