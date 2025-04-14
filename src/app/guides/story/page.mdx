@@ -11,18 +11,13 @@ export const metadata = {
 
 # Register an IP Asset on Arweave
 
-> Learn how to Register an NFT as an IP Asset and make it permanently accessible with Arweave and AR.IO.
+> Learn how to Register an NFT as an IP Asset and make it permanently accessible with Arweave and ArNS.
 
 <div className="not-prose mb-16 mt-6 flex gap-3">
   <div className="flex-auto rounded-md bg-blue-50 px-4 py-3 ring-1 ring-inset ring-blue-500/20">
     <div className="flex items-center gap-3">
       <svg fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" aria-hidden="true" className="h-5 w-5 flex-none text-blue-500"><path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z"></path></svg>
       <h3 className="text-sm font-medium text-blue-800">Project Files</h3>
-    </div>
-    <div className="mt-2 text-sm text-blue-700">
-      <a href="https://github.com/ar-io/example-story-arweave-integration" className="font-medium text-blue-700 hover:text-blue-600">
-        View the complete code on GitHub
-      </a>
     </div>
   </div>
 </div>
@@ -31,7 +26,7 @@ Let's say you have some off-chain IP (ex. a book, a character, a drawing, etc). 
 
 This tutorial enhances the standard Story Protocol workflow by:
 1. Uploading your IP assets to Arweave for permanent, decentralized storage
-2. Registering the assets with AR.IO names for easy access
+2. Registering the assets with ArNS names (Arweave Name Service) for easy access
 3. Connecting the Arweave transaction IDs to your Story Protocol IP assets
 
 ## Prerequisites
@@ -70,7 +65,7 @@ PINATA_JWT=<your_pinata_jwt>
 # Arweave wallet path (or you can load directly in code)
 ARWEAVE_WALLET_PATH=./wallet.json
 
-# AR.IO ANT process ID
+# ArNS ANT process ID
 ANT_PROCESS_ID=<your_ant_process_id>
 ```
 
@@ -107,7 +102,7 @@ export const client = Client.buildClient({
 });
 ```
 
-Next, let's set up the Arweave and AR.IO clients:
+Next, let's set up the Arweave and ArNS clients:
 
 ```typescript arweave-utils.ts
 import fs from 'fs';
@@ -127,7 +122,7 @@ const getArweaveWallet = () => {
 
 const jwk = getArweaveWallet();
 
-// Initialize the AR.IO ANT client
+// Initialize the ArNS ANT client
 export const ant = ANT.init({
   signer: new ArweaveSigner(jwk),
   processId: process.env.ANT_PROCESS_ID || "",
@@ -346,7 +341,7 @@ async function main() {
   // Store the Story Protocol IP ID for the next step
   const ipId = response.ipId;
   
-  // Continue with AR.IO registration...
+  // Continue with ArNS registration...
 }
 ```
 
@@ -354,9 +349,9 @@ async function main() {
   For simplicity, we're using Story Protocol's test collection. In a production environment, you should create your own NFT collection. See the [Story Protocol documentation](https://docs.storyprotocol.xyz/developers/typescript-sdk/guides/minting-and-registering-ip-assets) for more details on creating a custom NFT collection.
 </Callout>
 
-## 6. Register the asset with an AR.IO name
+## 6. Register the asset with an ArNS name
 
-Now let's register the uploaded asset with an AR.IO name:
+Now let's register the uploaded asset with an ArNS name:
 
 ```typescript main.ts
 // ... previous code
@@ -390,20 +385,20 @@ async function registerArweaveName(transactionId, name, ipId) {
 async function main() {
   // ... previous code
 
-  // Register with AR.IO name
-  const arIoName = 'your-ip-asset-name'; // Replace with your AR.IO name
+  // Register with ArNS name
+  const arnsName = 'your-ip-asset-name'; // Replace with your ArNS name
   
   // Add the Story Protocol IP ID to the tag
-  const arIoRecordTxId = await registerArweaveName(
+  const arnsRecordTxId = await registerArweaveName(
     imageTransactionId, 
-    arIoName,
+    arnsName,
     ipId
   );
   
-  console.log(`Asset now accessible at: https://${arIoName}.ar.io`);
+  console.log(`Asset now accessible at: https://${arnsName}.ar.io`);
   console.log(`Story Protocol IP ID: ${ipId}`);
   console.log(`Arweave Transaction ID: ${imageTransactionId}`);
-  console.log(`AR.IO Record Transaction ID: ${arIoRecordTxId}`);
+  console.log(`ArNS Record Transaction ID: ${arnsRecordTxId}`);
 }
 ```
 
@@ -555,20 +550,20 @@ async function main() {
   // Store the Story Protocol IP ID for the next step
   const ipId = response.ipId;
   
-  // Register with AR.IO name
-  const arIoName = 'your-ip-asset-name'; // Replace with your AR.IO name
+  // Register with ArNS name
+  const arnsName = 'your-ip-asset-name'; // Replace with your ArNS name
   
   // Add the Story Protocol IP ID to the tag
-  const arIoRecordTxId = await registerArweaveName(
+  const arnsRecordTxId = await registerArweaveName(
     imageTransactionId, 
-    arIoName,
+    arnsName,
     ipId
   );
   
-  console.log(`Asset now accessible at: https://${arIoName}.ar.io`);
+  console.log(`Asset now accessible at: https://${arnsName}.ar.io`);
   console.log(`Story Protocol IP ID: ${ipId}`);
   console.log(`Arweave Transaction ID: ${imageTransactionId}`);
-  console.log(`AR.IO Record Transaction ID: ${arIoRecordTxId}`);
+  console.log(`ArNS Record Transaction ID: ${arnsRecordTxId}`);
 }
 
 main().catch(console.error);
@@ -579,7 +574,7 @@ main().catch(console.error);
 Before running the code, make sure to:
 
 1. Place your Arweave wallet file (JWK format) as specified in your .env file
-2. Replace `'your-ip-asset-name'` with your actual AR.IO name
+2. Replace `'your-ip-asset-name'` with your actual ArNS name
 3. Place the file you want to upload (example-asset.png) in the project directory
 4. Set up all the required environment variables
 
@@ -651,7 +646,7 @@ In a production environment, you should create your own NFT collection for your 
 
 ## 10. Adding License Terms
 
-Now that your IP is registered on Story Protocol and accessible via Arweave and AR.IO, you can create and attach license terms to it:
+Now that your IP is registered on Story Protocol and accessible via Arweave and ArNS, you can create and attach license terms to it:
 
 ```typescript
 // Example of adding license terms (run this after registering the IP)
@@ -709,14 +704,14 @@ const response = await client.ipAsset.mintAndRegisterIpAssetWithPilTerms({
 Congratulations! You've successfully:
 
 1. Uploaded your IP asset to Arweave for permanent storage
-2. Registered it with an AR.IO name for human-readable access
+2. Registered it with an ArNS name for human-readable access
 3. Registered the IP on Story Protocol
 4. Added license terms to your IP
 5. Connected both ecosystems with appropriate metadata and cross-references
 
 This integration provides several benefits:
 - Permanent, decentralized storage for your IP assets on Arweave
-- Easy access through human-readable AR.IO names
+- Easy access through human-readable ArNS names
 - Full IP registration and licensing through Story Protocol
 - Verifiable connections between your assets, names, and IP registrations
 
