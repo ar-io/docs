@@ -1,8 +1,9 @@
-import {HeroPattern} from "@/components/HeroPattern"
+import { HeroPattern } from '@/components/HeroPattern'
 
 export const metadata = {
   title: 'AR.IO Node Release Notes',
-  description: 'Detailed information about each version of the AR.IO gateway, including the enhancements, bug fixes, and any other changes introduced in every release.',
+  description:
+    'Detailed information about each version of the AR.IO gateway, including the enhancements, bug fixes, and any other changes introduced in every release.',
   openGraph: {
     title: 'AR.IO Node Release Notes',
   },
@@ -15,6 +16,40 @@ export const metadata = {
 ## Overview
 
 Welcome to the documentation page for the AR.IO gateway release notes. Here, you will find detailed information about each version of the AR.IO gateway, including the enhancements, bug fixes, and any other changes introduced in every release. This page serves as a comprehensive resource to keep you informed about the latest developments and updates in the AR.IO gateway. For those interested in exploring the source code, each release's code is readily accessible at our GitHub repository: AR.IO gateway [change logs](https://github.com/ar-io/ar-io-node/blob/main/CHANGELOG.md). Stay updated with the continuous improvements and advancements in the AR.IO gateway by referring to this page for all release-related information.
+
+## [Release 31] - 2025-04-11
+
+### Changed
+
+- Improved peer TX header fetching by fetching from a wider range of peers and up/down weighting peers based on success/failure.
+
+### Fixed
+
+- Rolled back parallel ArNS resolution changes that were causing ArNS resolution to slow down over time.
+
+## [Release 30] - 2025-04-04
+
+### Added
+
+- Added support for filtering Winston logs with a new `LOG_FILTER` environment variable.
+  - Example filter: `{"attributes":{"class":"ArweaveCompositeClient"}}` to only show logs from that class.
+  - Use `CORE_LOG_FILTER` environment variable when running with docker-compose.
+- Added parallel ArNS resolution capability.
+  - Configured via `ARNS_MAX_CONCURRENT_RESOLUTIONS` (default: 1).
+  - This foundation enables future enhancements to ArNS resolution and should generally not be adjusted at present.
+
+### Changed
+
+- Improved ClickHouse auto-import script with better error handling and continuous operation through errors.
+- Reduced maximum header request rate per second to trusted node to load on community gateways.
+- Optimized single owner and recipient queries on ClickHouse with specialized sorted tables.
+- Used ID sorted ClickHouse table for ID queries to improve performance.
+
+### Fixed
+
+- Fixed data alignment in Parquet file name height boundaries to ensure consistent import boundaries.
+- Removed trailing slashes from AO URLs to prevent issues when passing them to the SDK.
+- Only prune SQLite data when ClickHouse import succeeds to prevent data loss during exports.
 
 ## [Release 29] - 2025-03-21
 
@@ -193,7 +228,7 @@ Welcome to the documentation page for the AR.IO gateway release notes. Here, you
   been fully unbundled using the current filters if they are matched or
   manually queued again.
 - Replaced references `docker-compose` in the docs with the more modern `docker
-  compose`.
+compose`.
 
 ### Fixed
 
@@ -269,7 +304,7 @@ Welcome to the documentation page for the AR.IO gateway release notes. Here, you
 ### Added
 
 - Added a ClickHouse auto-import service. When enabled, it calls the Parquet export API, imports the exported Parquet into ClickHouse, moves the Parquet files to an `imported` subdirectory, and deletes data items in SQLite up to where the Parquet export ended. To use it, run Docker Compose with the `clickhouse` profile, set the `CLICKHOUSE_URL` to `http://clickhouse:8123`, and ensure you have set an `ADMIN_KEY`. Using this configuration, the core service will also combine results from ClickHouse and SQLite when querying transaction data via GraphQL. Note: if you have a large number of data items in SQLite, the first export and subsequent delete may take an extended period. Also, this functionality is considered **experimental**. We expect there are still bugs to be found in it and we may make breaking changes to the ClickHouse schema in the future. If you choose to use it in production (not yet recommended), we suggest backing up copies of the Parquet files found in `data/parquet/imported` so that they can be reimported if anything goes wrong or future changes require it.
-- Added a background data verification process that will attempt to recompute data roots for bundles and compare them to data roots indexed from Arweave nodes. When the data roots match, all descendant data items will be marked as verified. This enables verification of data initially retrieived from sources, like other gateways, that serve contiguous data instead of verifiable chunks. Data verification can be enabled by setting the `ENABLE_BACKGROUND_DATA_VERIFICATION` environment variable to true. The interval between attempts to verify batches of bundles is configurable using the  `BACKGROUND_DATA_VERIFICATION_INTERVAL_SECONDS` environment variable.
+- Added a background data verification process that will attempt to recompute data roots for bundles and compare them to data roots indexed from Arweave nodes. When the data roots match, all descendant data items will be marked as verified. This enables verification of data initially retrieived from sources, like other gateways, that serve contiguous data instead of verifiable chunks. Data verification can be enabled by setting the `ENABLE_BACKGROUND_DATA_VERIFICATION` environment variable to true. The interval between attempts to verify batches of bundles is configurable using the `BACKGROUND_DATA_VERIFICATION_INTERVAL_SECONDS` environment variable.
 - Added a `CHUNK_POST_MIN_SUCCESS_COUNT` environment variable to configure how many Arweave nodes must accept a chunk before a chunk broadcast is considered successful.
 - Added `arweave_chunk_post_total` and `arweave_chunk_broadcast_total` Prometheus metrics to respectively track the number of successful chunk POSTs to Arweave nodes and the number of chunks successfully broadcast.
 - When resolving ArNS names, the entire list of names is now cached instead of individually checking whether each name exists. This reduces the load on AO CUs since the entire list can be reused across multiple requests for different names. Note: due to the default 5 minute interval between name list refreshes, newly registered may now take longer to resolver after initial registration. We intend to make further caching refinements to address this in the future.
