@@ -34,14 +34,31 @@ Using the testnet is similar to using the mainnet, with a few key differences:
 
 ### Using the ARIO SDK
 
-When using the [ARIO SDK](/ar-io-sdk), you must instantiate the `ARIO` class with the appropriate process ID for testnet. The SDK includes the following exports for convenience:
+When using the [ARIO SDK](/ar-io-sdk), to interact with the AR.IO testnet - you can create your `ARIO` instance in one of two ways;
+
+1. Using the `ARIO.tesntet()` API
 
 ```typescript
-import { ARIO, ARIO_TESTNET_PROCESS_ID } from '@ar.io/sdk'
+import { ARIO } from '@ar.io/sdk'
 
-// For testnet
-const ario = new ARIO({ processId: ARIO_TESTNET_PROCESS_ID })
+// uses cu.ardrive.io by default, and supports `faucet` APIs
+const testnet = ARIO.testnet()
 ```
+
+By default, this instance will leverage `cu.ardrive.io` for process evaluation and the **recommended way to interact with testnet**.
+
+2. Using `process` with `ARIO_TESTNET_PROCESS_ID`
+
+```typescript
+import { ARIO, ARIO_TESTNET_PROCESS_ID } from '@ar.io/sdk';
+
+const ario = ARIO.init({
+  processID: ARIO_TESTNET_PROCESS_ID
+  // optionally provide your own CU_URL
+});
+```
+
+By default, this instance will leverage community CUs managed by forward.
 
 > **Note**: [ANTs](/arns#arweave-name-token-ant) are network-agnostic, so no additional configuration is needed when working with them.
 
@@ -52,3 +69,93 @@ Once configured, all SDK methods will operate on testnet instead of mainnet. For
 To access ArNS names on testnet in a browser, you must use a gateway that is configured to operate on testnet instead of mainnet.
 
 The gateway [ar-io.dev](https://ar-io.dev) is configured to operate on the ARIO Network Testnet.
+
+#### Running your own Gateway with testnet
+
+In addition to `ar-io.dev` - you can also elect to run your own ARIO gateway that resolves names against testnet. To do so, you need to setup your by following the steps in [XXXX].
+
+Once running, modify the `.env` to point ARIO testnet process id.
+
+```.bash
+// .env
+# ...all other env configs
+IO_PROCESS_ID=agYcCFJtrMG6cqMuZfskIkFTGvUPddICmtQSBIoPdiA
+```
+
+Once set, restart your gateway and navigate to `<your-gateway-url>/ar-io/info` - you should see `agYcCFJtrMG6cqMuZfskIkFTGvUPddICmtQSBIoPdiA` as the process id. Your gateway will now resolve arns names stored on the ARIO tesntet process.
+
+### Restrictions
+
+To prevent abuse, the ARIO testnet enforces the following restrictions and limitations.
+
+1. Wallets are limited to 10k tARIO tokens
+1. hCaptcha must be satisfied to request tokens
+1. Rate limits apply to requesting tokens
+1. Balances and ArNS names stored on testnet **will be pruned/reset by default, every ~30 days (subject to change)**
+1. The ARIO team may prune balances and ArNS names at their discretion
+
+### Advanced 
+
+### Integrating AR.IO Testnet in your client-side applications
+
+If you'd like to incorporate the AR.IO faucet into your application, you can programmatically retrieve access tokens - which allow your application to request testnet tokens for your users.
+
+To integrate:
+
+```
+import { ARIO, ARIOToken } from '@ar.io/sdk';
+
+
+// setup testnet client;
+const testnet = ARIO.testnet()
+
+// request the captcha URL for the token, which will require a human to solve
+const captchaURL = await testnet.faucet.captchaURL();
+
+// open the captcha URL in a browser;
+const captchaWindow = window.open(
+  captchaUrl.captchaUrl,
+  '_blank',
+  'width=600,height=600',
+);
+
+// The captcha URL includes a window.parent.postMessage event that is used to send the auth token to the parent window.
+// You can store the auth token in localStorage and use it to claim tokens for the duration of the auth token's expiration (default 1 hour).
+window.parent.addEventListener('message', async (event) => {
+  if (event.data.type === 'ario-jwt-success') {
+    localStorage.setItem('ario-jwt', event.data.token);
+    localStorage.setItem('ario-jwt-expires-at', event.data.expiresAt);
+    // close our captcha window
+    captchaWindow?.close();
+    // claim the tokens using the JWT token, 
+    const res = await testnet.faucet
+      .claimWithAuthToken({
+        authToken: event.data.token,
+        recipient: await window.arweaveWallet.getActiveAddress(),
+        quantity: new ARIOToken(100).toMARIO().valueOf(), // 100 ARIO
+      })
+      .then((res) => {
+        alert(
+          'Successfully claimed 100 ARIO tokens! Transaction ID: ' + res.id,
+        );
+      })
+      .catch((err) => {
+        alert(`Failed to claim tokens: ${err}`);
+      });
+  }
+});
+
+// you can re-use the JWT for up to 1 hour, allowing you to request tokens for multiple wallets without having to satisfy the catpcha multiple times
+if (
+  localStorage.getItem('ario-jwt-expires-at') &&
+  Date.now() < parseInt(localStorage.getItem('ario-jwt-expires-at') ?? '0')
+) {
+  const res = await testnet.faucet.claimWithAuthToken({
+    authToken: localStorage.getItem('ario-jwt') ?? '',
+    recipient: await window.arweaveWallet.getActiveAddress(),
+    quantity: new ARIOToken(100).toMARIO().valueOf(), // 100 ARIO
+  });
+}
+```
+
+
