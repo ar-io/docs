@@ -3,15 +3,15 @@ import { Callout } from '@/components/Callout'
 import { Tabs } from '@/components/Tabs'
 
 export const metadata = {
-  title: 'Register an Arweave Asset',
-  description: 'Learn how to upload a file to Arweave and register it with an AR.IO name',
+  title: 'Register an IP Asset on Arweave',
+  description: 'Learn how to register an IP asset on Story Protocol and make it accessible on Arweave',
 }
 
 <HeroPattern />
 
-# Register an Arweave Asset
+# Register an IP Asset on Arweave
 
-> Learn how to upload a file to Arweave and register it with an AR.IO name in TypeScript.
+> Learn how to Register an NFT as an IP Asset and make it permanently accessible with Arweave and AR.IO.
 
 <div className="not-prose mb-16 mt-6 flex gap-3">
   <div className="flex-auto rounded-md bg-blue-50 px-4 py-3 ring-1 ring-inset ring-blue-500/20">
@@ -20,104 +20,126 @@ export const metadata = {
       <h3 className="text-sm font-medium text-blue-800">Project Files</h3>
     </div>
     <div className="mt-2 text-sm text-blue-700">
-      <a href="https://github.com/ar-io/example-upload-and-register" className="font-medium text-blue-700 hover:text-blue-600">
+      <a href="https://github.com/ar-io/example-story-arweave-integration" className="font-medium text-blue-700 hover:text-blue-600">
         View the complete code on GitHub
       </a>
     </div>
   </div>
 </div>
 
-In this tutorial, we'll learn how to upload a file to Arweave using ArDrive's Turbo service and then register it with an AR.IO name, making it easily accessible through a human-readable URL.
+Let's say you have some off-chain IP (ex. a book, a character, a drawing, etc). In order to register that IP on Story Protocol, you first need to mint an NFT. This NFT is the **ownership** over the IP. Then you **register** that NFT on Story, turning it into an IP Asset.
+
+This tutorial enhances the standard Story Protocol workflow by:
+1. Uploading your IP assets to Arweave for permanent, decentralized storage
+2. Registering the assets with AR.IO names for easy access
+3. Connecting the Arweave transaction IDs to your Story Protocol IP assets
 
 ## Prerequisites
 
 Before starting the tutorial, make sure you have:
 
 1. Completed the [AR.IO SDK Setup](/ar-io-sdk/getting-started)
-2. Node.js installed (version 16 or higher)
-3. An Arweave wallet file (JWK format)
+2. Completed the [Story Protocol TypeScript SDK Setup](https://docs.storyprotocol.xyz/developers/typescript-sdk/setup)
+3. Node.js installed (version 16 or higher)
+4. An Arweave wallet file (JWK format)
+5. A wallet with ETH on the Sepolia testnet for Story Protocol interactions
 
-First, create a new project directory and initialize a Node.js project:
+Create a new project directory and initialize a Node.js project:
 
 ```bash
-mkdir arweave-asset-register
-cd arweave-asset-register
+mkdir arweave-story-integration
+cd arweave-story-integration
 npm init -y
 ```
 
 Install the required dependencies:
 
 ```bash
-npm install @ar.io/sdk @ardrive/turbo-sdk
+npm install @ar.io/sdk @ardrive/turbo-sdk @story-protocol/core-sdk viem pinata-web3 dotenv
 ```
 
-## 1. Set up your project
+Create a `.env` file and add your credentials:
 
-Create a new file called `index.js` and add the following imports:
+```text .env
+# Story Protocol credentials
+PRIVATE_KEY=<your_ethereum_private_key>
 
-```typescript index.js
-const fs = require('fs');
-const { ANT, ArweaveSigner } = require('@ar.io/sdk');
-const { TurboFactory, ArweaveSigner: TurboSigner } = require('@ardrive/turbo-sdk');
+# Pinata (optional for IPFS)
+PINATA_JWT=<your_pinata_jwt>
+
+# Arweave wallet path (or you can load directly in code)
+ARWEAVE_WALLET_PATH=./wallet.json
+
+# AR.IO ANT process ID
+ANT_PROCESS_ID=<your_ant_process_id>
 ```
 
-Next, load your Arweave wallet:
+## 1. Set up the project
 
-```typescript index.js
+First, let's set up helpers to load environment variables and create utilities:
+
+```typescript utils.ts
+import { Client } from "@story-protocol/core-sdk";
+import { createWalletClient, http } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { sepolia } from "viem/chains";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+// Create a Story Protocol client
+if (!process.env.PRIVATE_KEY) {
+  throw new Error("Missing PRIVATE_KEY environment variable");
+}
+
+const account = privateKeyToAccount(process.env.PRIVATE_KEY as `0x${string}`);
+
+export const walletClient = createWalletClient({
+  account,
+  chain: sepolia,
+  transport: http(),
+});
+
+export const client = Client.buildClient({
+  account,
+  transport: http(),
+  chain: sepolia,
+});
+```
+
+Next, let's set up the Arweave and AR.IO clients:
+
+```typescript arweave-utils.ts
+import fs from 'fs';
+import { ANT, ArweaveSigner } from '@ar.io/sdk';
+import { TurboFactory, ArweaveSigner as TurboSigner } from '@ardrive/turbo-sdk';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
 // Load the Arweave wallet
-const jwk = JSON.parse(fs.readFileSync('./wallet.json'));
+const getArweaveWallet = () => {
+  if (process.env.ARWEAVE_WALLET_PATH) {
+    return JSON.parse(fs.readFileSync(process.env.ARWEAVE_WALLET_PATH, 'utf8'));
+  }
+  throw new Error("Arweave wallet not found. Please set ARWEAVE_WALLET_PATH in .env");
+};
+
+const jwk = getArweaveWallet();
 
 // Initialize the AR.IO ANT client
-const ant = ANT.init({
+export const ant = ANT.init({
   signer: new ArweaveSigner(jwk),
-  // Replace with your registered ANT process ID
-  processId: "YOUR_ANT_PROCESS_ID"
+  processId: process.env.ANT_PROCESS_ID || "",
 });
 
 // Initialize the Turbo client for uploads
-const turbo = TurboFactory.init({
+export const turbo = TurboFactory.init({
   signer: new TurboSigner(jwk)
 });
 
-async function main() {
-  // We'll add our code here
-}
-
-main().catch(console.error);
-```
-
-## 2. Upload a file to Arweave
-
-Now, let's add the functionality to upload a file to Arweave using ArDrive's Turbo service:
-
-```typescript index.js
-async function uploadToArweave(filePath) {
-  // Get the file name from the path
-  const fileName = filePath.split('/').pop();
-  
-  // Read the file
-  const fileData = fs.readFileSync(filePath);
-  
-  // Determine content type based on file extension
-  const contentType = getContentType(fileName);
-  
-  console.log(`Uploading ${fileName} to Arweave...`);
-  
-  // Upload the file to Arweave
-  const uploadResult = await turbo.uploadFile({
-    fileData,
-    tags: [
-      { name: 'Content-Type', value: contentType },
-      { name: 'App-Name', value: 'AR.IO Asset Example' },
-    ]
-  });
-  
-  console.log(`File uploaded with transaction ID: ${uploadResult.id}`);
-  return uploadResult.id;
-}
-
 // Helper function to determine content type based on file extension
-function getContentType(fileName) {
+export function getContentType(fileName) {
   const extension = fileName.split('.').pop().toLowerCase();
   const contentTypes = {
     'jpg': 'image/jpeg',
@@ -135,256 +157,568 @@ function getContentType(fileName) {
 }
 ```
 
-Update the main function to use this upload function:
+## 2. Set up metadata for your IP Asset
 
-```typescript index.js
+First, let's set up the IP and NFT metadata:
+
+```typescript main.ts
+import { client } from "./utils";
+import { ant, turbo, getContentType } from "./arweave-utils";
+import fs from 'fs';
+import { createHash } from "crypto";
+
 async function main() {
-  // Path to the file you want to upload
-  const filePath = './example-asset.png';
-  
-  // Upload file to Arweave
-  const transactionId = await uploadToArweave(filePath);
-  
-  console.log(`Asset available at: https://arweave.net/${transactionId}`);
-}
-```
-
-## 3. Register the file with an AR.IO name
-
-Now, let's register the uploaded file with an AR.IO name to make it easily accessible:
-
-```typescript index.js
-async function registerArweaveName(transactionId, name) {
-  console.log(`Registering ${name} to point to transaction ${transactionId}...`);
-  
-  try {
-    // Set the record for the top-level name (using '@' as the undername)
-    const { id: setRecordTxId } = await ant.setRecord(
+  // Set up metadata for your IP asset
+  const ipMetadata = {
+    title: "Arweave IP Asset Example",
+    description: "An IP asset stored on Arweave and registered on Story Protocol",
+    image: "", // We'll update this after uploading to Arweave
+    imageHash: "",
+    mediaUrl: "", // We'll update this after uploading to Arweave
+    mediaHash: "",
+    mediaType: "image/png",
+    creators: [
       {
-        undername: '@',
-        transactionId: transactionId,
-        ttlSeconds: 3600 // 1 hour TTL
+        name: "AR.IO Developer",
+        address: "0x1234567890123456789012345678901234567890", // Replace with your ETH address
+        description: "Developer integrating Arweave with Story Protocol",
+        contributionPercent: 100,
+        socialMedia: [
+          {
+            platform: "Website",
+            url: "https://ar.io",
+          },
+        ],
       },
-      { tags: [{ name: 'App-Name', value: 'AR.IO Asset Example' }] }
-    );
-    
-    console.log(`Name registered successfully! Transaction ID: ${setRecordTxId}`);
-    return setRecordTxId;
-  } catch (error) {
-    console.error('Error registering name:', error);
-    throw error;
-  }
+    ],
+  };
+
+  // Set up metadata for your NFT
+  const nftMetadata = {
+    name: "Arweave IP Asset",
+    description: "This NFT represents ownership of an IP Asset stored on Arweave",
+    image: "", // We'll update this after uploading to Arweave
+  };
+
+  // Continue with the rest of the process...
+}
+
+main().catch(console.error);
+```
+
+## 3. Upload assets to Arweave
+
+Now let's add the functionality to upload files to Arweave:
+
+```typescript main.ts
+// ...previous code
+
+async function uploadToArweave(filePath) {
+  // Get the file name from the path
+  const fileName = filePath.split('/').pop();
+  
+  // Read the file
+  const fileData = fs.readFileSync(filePath);
+  
+  // Determine content type based on file extension
+  const contentType = getContentType(fileName);
+  
+  console.log(`Uploading ${fileName} to Arweave...`);
+  
+  // Upload the file to Arweave
+  const uploadResult = await turbo.uploadFile({
+    fileData,
+    tags: [
+      { name: 'Content-Type', value: contentType },
+      { name: 'App-Name', value: 'Story-Arweave Integration' },
+    ]
+  });
+  
+  console.log(`File uploaded with transaction ID: ${uploadResult.id}`);
+  return uploadResult.id;
+}
+
+// Update the main function
+async function main() {
+  // ... previous code
+
+  // Upload the IP asset image to Arweave
+  const imagePath = './example-asset.png'; // Path to your asset image
+  const imageTransactionId = await uploadToArweave(imagePath);
+  const arweaveImageUrl = `https://arweave.net/${imageTransactionId}`;
+  
+  // Hash the image file for metadata
+  const imageBuffer = fs.readFileSync(imagePath);
+  const imageHash = createHash("sha256").update(imageBuffer).digest("hex");
+  
+  // Update the metadata with Arweave URLs and hashes
+  ipMetadata.image = arweaveImageUrl;
+  ipMetadata.imageHash = `0x${imageHash}`;
+  ipMetadata.mediaUrl = arweaveImageUrl;
+  ipMetadata.mediaHash = `0x${imageHash}`;
+  
+  nftMetadata.image = arweaveImageUrl;
+
+  // Continue with the process...
 }
 ```
 
-<Callout type="warning" title="Deprecated Method">
-  The `setRecord` method shown in this tutorial is deprecated. In production applications, use `setBaseNameRecord` for top-level names or `setUndernameRecord` for undernames instead. See the [API documentation](/ar-io-sdk/ants/set-base-name-record) for more details.
+## 4. Create IPFS metadata for Story Protocol
+
+For Story Protocol compatibility, we'll also create metadata on IPFS:
+
+```typescript upload-ipfs.ts
+import { PinataSDK } from "pinata-web3";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+const pinata = new PinataSDK({
+  pinataJwt: process.env.PINATA_JWT,
+});
+
+export async function uploadJSONToIPFS(jsonMetadata: any): Promise<string> {
+  if (!process.env.PINATA_JWT) {
+    throw new Error("Missing PINATA_JWT environment variable");
+  }
+  
+  const { IpfsHash } = await pinata.upload.json(jsonMetadata);
+  return IpfsHash;
+}
+```
+
+Now let's update our main function to use this:
+
+```typescript main.ts
+// ... previous imports
+import { uploadJSONToIPFS } from "./upload-ipfs";
+
+async function main() {
+  // ... previous code
+
+  // Upload metadata to IPFS
+  console.log("Uploading IP metadata to IPFS...");
+  const ipIpfsHash = await uploadJSONToIPFS(ipMetadata);
+  const ipHash = createHash("sha256")
+    .update(JSON.stringify(ipMetadata))
+    .digest("hex");
+  
+  console.log("Uploading NFT metadata to IPFS...");
+  const nftIpfsHash = await uploadJSONToIPFS(nftMetadata);
+  const nftHash = createHash("sha256")
+    .update(JSON.stringify(nftMetadata))
+    .digest("hex");
+  
+  console.log(`IP Metadata IPFS Hash: ${ipIpfsHash}`);
+  console.log(`NFT Metadata IPFS Hash: ${nftIpfsHash}`);
+
+  // Continue with the process...
+}
+```
+
+## 5. Register the IP asset on Story Protocol
+
+Now we'll register our IP asset on Story Protocol:
+
+```typescript main.ts
+// ... previous code
+
+async function main() {
+  // ... previous code
+
+  // Register IP asset on Story Protocol
+  console.log("Registering IP asset on Story Protocol...");
+  
+  const response = await client.ipAsset.mintAndRegisterIp({
+    spgNftContract: "0xc32A8a0FF3beDDDa58393d022aF433e78739FAbc", // Story Protocol's test collection
+    ipMetadata: {
+      ipMetadataURI: `https://ipfs.io/ipfs/${ipIpfsHash}`,
+      ipMetadataHash: `0x${ipHash}`,
+      nftMetadataURI: `https://ipfs.io/ipfs/${nftIpfsHash}`,
+      nftMetadataHash: `0x${nftHash}`,
+    },
+    txOptions: { waitForTransaction: true },
+  });
+
+  console.log(`Root IPA created at transaction hash ${response.txHash}, IPA ID: ${response.ipId}`);
+  console.log(`View on the explorer: https://sepolia.explorer.story.xyz/ipa/${response.ipId}`);
+  
+  // Store the Story Protocol IP ID for the next step
+  const ipId = response.ipId;
+  
+  // Continue with AR.IO registration...
+}
+```
+
+<Callout type="info" title="Using a Custom NFT Contract">
+  For simplicity, we're using Story Protocol's test collection. In a production environment, you should create your own NFT collection. See the [Story Protocol documentation](https://docs.storyprotocol.xyz/developers/typescript-sdk/guides/minting-and-registering-ip-assets) for more details on creating a custom NFT collection.
 </Callout>
 
-Update the main function to include the name registration:
+## 6. Register the asset with an AR.IO name
 
-```typescript index.js
-async function main() {
-  // Path to the file you want to upload
-  const filePath = './example-asset.png';
-  
-  // Your AR.IO name (without the .ar extension)
-  const arIoName = 'your-asset-name';
-  
-  // Upload file to Arweave
-  const transactionId = await uploadToArweave(filePath);
-  console.log(`Asset available at: https://arweave.net/${transactionId}`);
-  
-  // Register the file with an AR.IO name
-  await registerArweaveName(transactionId, arIoName);
-  console.log(`Asset now accessible at: https://${arIoName}.ar.io`);
-}
-```
+Now let's register the uploaded asset with an AR.IO name:
 
-## 4. Complete code
+```typescript main.ts
+// ... previous code
 
-Here's the complete code for uploading a file to Arweave and registering it with an AR.IO name:
-
-```typescript index.js
-const fs = require('fs');
-const { ANT, ArweaveSigner } = require('@ar.io/sdk');
-const { TurboFactory, ArweaveSigner: TurboSigner } = require('@ardrive/turbo-sdk');
-
-// Load the Arweave wallet
-const jwk = JSON.parse(fs.readFileSync('./wallet.json'));
-
-// Initialize the AR.IO ANT client
-const ant = ANT.init({
-  signer: new ArweaveSigner(jwk),
-  // Replace with your registered ANT process ID
-  processId: "YOUR_ANT_PROCESS_ID"
-});
-
-// Initialize the Turbo client for uploads
-const turbo = TurboFactory.init({
-  signer: new TurboSigner(jwk)
-});
-
-// Helper function to determine content type based on file extension
-function getContentType(fileName) {
-  const extension = fileName.split('.').pop().toLowerCase();
-  const contentTypes = {
-    'jpg': 'image/jpeg',
-    'jpeg': 'image/jpeg',
-    'png': 'image/png',
-    'gif': 'image/gif',
-    'pdf': 'application/pdf',
-    'json': 'application/json',
-    'html': 'text/html',
-    'txt': 'text/plain',
-    // Add more types as needed
-  };
-  
-  return contentTypes[extension] || 'application/octet-stream';
-}
-
-async function uploadToArweave(filePath) {
-  // Get the file name from the path
-  const fileName = filePath.split('/').pop();
-  
-  // Read the file
-  const fileData = fs.readFileSync(filePath);
-  
-  // Determine content type based on file extension
-  const contentType = getContentType(fileName);
-  
-  console.log(`Uploading ${fileName} to Arweave...`);
-  
-  // Upload the file to Arweave
-  const uploadResult = await turbo.uploadFile({
-    fileData,
-    tags: [
-      { name: 'Content-Type', value: contentType },
-      { name: 'App-Name', value: 'AR.IO Asset Example' },
-    ]
-  });
-  
-  console.log(`File uploaded with transaction ID: ${uploadResult.id}`);
-  return uploadResult.id;
-}
-
-async function registerArweaveName(transactionId, name) {
+async function registerArweaveName(transactionId, name, ipId) {
   console.log(`Registering ${name} to point to transaction ${transactionId}...`);
   
   try {
-    // Set the record for the top-level name (using '@' as the undername)
-    const { id: setRecordTxId } = await ant.setRecord(
-      {
-        undername: '@',
-        transactionId: transactionId,
-        ttlSeconds: 3600 // 1 hour TTL
-      },
-      { tags: [{ name: 'App-Name', value: 'AR.IO Asset Example' }] }
-    );
-    
-    console.log(`Name registered successfully! Transaction ID: ${setRecordTxId}`);
-    return setRecordTxId;
-  } catch (error) {
-    console.error('Error registering name:', error);
-    throw error;
-  }
-}
-
-async function main() {
-  // Path to the file you want to upload
-  const filePath = './example-asset.png';
-  
-  // Your AR.IO name (without the .ar extension)
-  const arIoName = 'your-asset-name';
-  
-  // Upload file to Arweave
-  const transactionId = await uploadToArweave(filePath);
-  console.log(`Asset available at: https://arweave.net/${transactionId}`);
-  
-  // Register the file with an AR.IO name
-  await registerArweaveName(transactionId, arIoName);
-  console.log(`Asset now accessible at: https://${arIoName}.ar.io`);
-}
-
-main().catch(console.error);
-```
-
-## 5. Running the code
-
-Before running the code, make sure to:
-
-1. Place your Arweave wallet file (JWK) as `wallet.json` in the project directory
-2. Replace `'YOUR_ANT_PROCESS_ID'` with your actual ANT process ID
-3. Replace `'your-asset-name'` with your actual AR.IO name
-4. Place the file you want to upload in the project directory (or update the path)
-
-Then run the code:
-
-```bash
-node index.js
-```
-
-## 6. Using the recommended methods
-
-For production applications, you should use the recommended methods instead of the deprecated `setRecord` method:
-
-<Tabs items={['setBaseNameRecord', 'setUndernameRecord']}>
-  <Tabs.Tab>
-    ```typescript
-    // For top-level names
+    // Set the record for the top-level name
     const { id: setRecordTxId } = await ant.setBaseNameRecord(
       {
         transactionId: transactionId,
         ttlSeconds: 3600 // 1 hour TTL
       },
-      { tags: [{ name: 'App-Name', value: 'AR.IO Asset Example' }] }
+      { 
+        tags: [
+          { name: 'App-Name', value: 'Story-Arweave Integration' },
+          { name: 'Story-IP-ID', value: `story://ipid/${ipId}` }
+        ] 
+      }
     );
-    ```
-  </Tabs.Tab>
-  <Tabs.Tab>
-    ```typescript
-    // For undernames (subdomains)
-    const { id: setRecordTxId } = await ant.setUndernameRecord(
+    
+    console.log(`Name registered successfully! Transaction ID: ${setRecordTxId}`);
+    return setRecordTxId;
+  } catch (error) {
+    console.error('Error registering name:', error);
+    throw error;
+  }
+}
+
+async function main() {
+  // ... previous code
+
+  // Register with AR.IO name
+  const arIoName = 'your-ip-asset-name'; // Replace with your AR.IO name
+  
+  // Add the Story Protocol IP ID to the tag
+  const arIoRecordTxId = await registerArweaveName(
+    imageTransactionId, 
+    arIoName,
+    ipId
+  );
+  
+  console.log(`Asset now accessible at: https://${arIoName}.ar.io`);
+  console.log(`Story Protocol IP ID: ${ipId}`);
+  console.log(`Arweave Transaction ID: ${imageTransactionId}`);
+  console.log(`AR.IO Record Transaction ID: ${arIoRecordTxId}`);
+}
+```
+
+## 7. Complete code
+
+Here's the complete code for the integration:
+
+```typescript main.ts
+import { client } from "./utils";
+import { ant, turbo, getContentType } from "./arweave-utils";
+import { uploadJSONToIPFS } from "./upload-ipfs";
+import fs from 'fs';
+import { createHash } from "crypto";
+
+async function uploadToArweave(filePath) {
+  // Get the file name from the path
+  const fileName = filePath.split('/').pop();
+  
+  // Read the file
+  const fileData = fs.readFileSync(filePath);
+  
+  // Determine content type based on file extension
+  const contentType = getContentType(fileName);
+  
+  console.log(`Uploading ${fileName} to Arweave...`);
+  
+  // Upload the file to Arweave
+  const uploadResult = await turbo.uploadFile({
+    fileData,
+    tags: [
+      { name: 'Content-Type', value: contentType },
+      { name: 'App-Name', value: 'Story-Arweave Integration' },
+    ]
+  });
+  
+  console.log(`File uploaded with transaction ID: ${uploadResult.id}`);
+  return uploadResult.id;
+}
+
+async function registerArweaveName(transactionId, name, ipId) {
+  console.log(`Registering ${name} to point to transaction ${transactionId}...`);
+  
+  try {
+    // Set the record for the top-level name
+    const { id: setRecordTxId } = await ant.setBaseNameRecord(
       {
-        undername: 'subdomain', // For example: subdomain.your-asset-name.ar.io
         transactionId: transactionId,
         ttlSeconds: 3600 // 1 hour TTL
       },
-      { tags: [{ name: 'App-Name', value: 'AR.IO Asset Example' }] }
+      { 
+        tags: [
+          { name: 'App-Name', value: 'Story-Arweave Integration' },
+          { name: 'Story-IP-ID', value: `story://ipid/${ipId}` }
+        ] 
+      }
     );
+    
+    console.log(`Name registered successfully! Transaction ID: ${setRecordTxId}`);
+    return setRecordTxId;
+  } catch (error) {
+    console.error('Error registering name:', error);
+    throw error;
+  }
+}
+
+async function main() {
+  // Set up metadata for your IP asset
+  const ipMetadata = {
+    title: "Arweave IP Asset Example",
+    description: "An IP asset stored on Arweave and registered on Story Protocol",
+    image: "", // We'll update this after uploading to Arweave
+    imageHash: "",
+    mediaUrl: "", // We'll update this after uploading to Arweave
+    mediaHash: "",
+    mediaType: "image/png",
+    creators: [
+      {
+        name: "AR.IO Developer",
+        address: "0x1234567890123456789012345678901234567890", // Replace with your ETH address
+        description: "Developer integrating Arweave with Story Protocol",
+        contributionPercent: 100,
+        socialMedia: [
+          {
+            platform: "Website",
+            url: "https://ar.io",
+          },
+        ],
+      },
+    ],
+  };
+
+  // Set up metadata for your NFT
+  const nftMetadata = {
+    name: "Arweave IP Asset",
+    description: "This NFT represents ownership of an IP Asset stored on Arweave",
+    image: "", // We'll update this after uploading to Arweave
+  };
+
+  // Upload the IP asset image to Arweave
+  const imagePath = './example-asset.png'; // Path to your asset image
+  const imageTransactionId = await uploadToArweave(imagePath);
+  const arweaveImageUrl = `https://arweave.net/${imageTransactionId}`;
+  
+  // Hash the image file for metadata
+  const imageBuffer = fs.readFileSync(imagePath);
+  const imageHash = createHash("sha256").update(imageBuffer).digest("hex");
+  
+  // Update the metadata with Arweave URLs and hashes
+  ipMetadata.image = arweaveImageUrl;
+  ipMetadata.imageHash = `0x${imageHash}`;
+  ipMetadata.mediaUrl = arweaveImageUrl;
+  ipMetadata.mediaHash = `0x${imageHash}`;
+  
+  nftMetadata.image = arweaveImageUrl;
+
+  // Upload metadata to IPFS
+  console.log("Uploading IP metadata to IPFS...");
+  const ipIpfsHash = await uploadJSONToIPFS(ipMetadata);
+  const ipHash = createHash("sha256")
+    .update(JSON.stringify(ipMetadata))
+    .digest("hex");
+  
+  console.log("Uploading NFT metadata to IPFS...");
+  const nftIpfsHash = await uploadJSONToIPFS(nftMetadata);
+  const nftHash = createHash("sha256")
+    .update(JSON.stringify(nftMetadata))
+    .digest("hex");
+  
+  console.log(`IP Metadata IPFS Hash: ${ipIpfsHash}`);
+  console.log(`NFT Metadata IPFS Hash: ${nftIpfsHash}`);
+
+  // Register IP asset on Story Protocol
+  console.log("Registering IP asset on Story Protocol...");
+  
+  const response = await client.ipAsset.mintAndRegisterIp({
+    spgNftContract: "0xc32A8a0FF3beDDDa58393d022aF433e78739FAbc", // Story Protocol's test collection
+    ipMetadata: {
+      ipMetadataURI: `https://ipfs.io/ipfs/${ipIpfsHash}`,
+      ipMetadataHash: `0x${ipHash}`,
+      nftMetadataURI: `https://ipfs.io/ipfs/${nftIpfsHash}`,
+      nftMetadataHash: `0x${nftHash}`,
+    },
+    txOptions: { waitForTransaction: true },
+  });
+
+  console.log(`Root IPA created at transaction hash ${response.txHash}, IPA ID: ${response.ipId}`);
+  console.log(`View on the explorer: https://sepolia.explorer.story.xyz/ipa/${response.ipId}`);
+  
+  // Store the Story Protocol IP ID for the next step
+  const ipId = response.ipId;
+  
+  // Register with AR.IO name
+  const arIoName = 'your-ip-asset-name'; // Replace with your AR.IO name
+  
+  // Add the Story Protocol IP ID to the tag
+  const arIoRecordTxId = await registerArweaveName(
+    imageTransactionId, 
+    arIoName,
+    ipId
+  );
+  
+  console.log(`Asset now accessible at: https://${arIoName}.ar.io`);
+  console.log(`Story Protocol IP ID: ${ipId}`);
+  console.log(`Arweave Transaction ID: ${imageTransactionId}`);
+  console.log(`AR.IO Record Transaction ID: ${arIoRecordTxId}`);
+}
+
+main().catch(console.error);
+```
+
+## 8. Running the code
+
+Before running the code, make sure to:
+
+1. Place your Arweave wallet file (JWK format) as specified in your .env file
+2. Replace `'your-ip-asset-name'` with your actual AR.IO name
+3. Place the file you want to upload (example-asset.png) in the project directory
+4. Set up all the required environment variables
+
+Then run the code:
+
+```bash
+node main.js
+```
+
+## 9. Using a Custom NFT Collection
+
+In a production environment, you should create your own NFT collection for your IP assets:
+
+<Tabs items={['Story Protocol Collection', 'Custom NFT Collection']}>
+  <Tabs.Tab>
+    ```typescript
+    import { zeroAddress } from "viem";
+    import { client } from "./utils";
+
+    async function createSpgNftCollection() {
+      const newCollection = await client.nftClient.createNFTCollection({
+        name: "Arweave IP Assets",
+        symbol: "AIPA",
+        isPublicMinting: false,
+        mintOpen: true,
+        mintFeeRecipient: zeroAddress,
+        contractURI: "",
+        txOptions: { waitForTransaction: true },
+      });
+
+      console.log("New collection created:", {
+        "SPG NFT Contract Address": newCollection.spgNftContract,
+        "Transaction Hash": newCollection.txHash,
+      });
+      
+      return newCollection.spgNftContract;
+    }
+    
+    // Use this in your main function
+    const spgNftContract = await createSpgNftCollection();
+    
+    // Then use this address when registering the IP
+    const response = await client.ipAsset.mintAndRegisterIp({
+      spgNftContract,
+      // other parameters...
+    });
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    If you already have a custom ERC-721 NFT collection, you can use the `register` function instead:
+    
+    ```typescript
+    // First mint an NFT in your collection
+    // This depends on your specific NFT contract
+    
+    // Then register the NFT as an IP asset
+    const response = await client.ipAsset.register({
+      nftContract: "0xYourNftContractAddress",
+      tokenId: "1", // The token ID of your minted NFT
+      ipMetadata: {
+        ipMetadataURI: `https://ipfs.io/ipfs/${ipIpfsHash}`,
+        ipMetadataHash: `0x${ipHash}`,
+      },
+      txOptions: { waitForTransaction: true },
+    });
     ```
   </Tabs.Tab>
 </Tabs>
 
-## 7. Uploading folders
+## 10. Adding License Terms
 
-If you want to upload a folder instead of a single file, you can use Turbo's folder upload feature:
+Now that your IP is registered on Story Protocol and accessible via Arweave and AR.IO, you can create and attach license terms to it:
 
 ```typescript
-async function uploadFolderToArweave(folderPath) {
-  console.log(`Uploading folder ${folderPath} to Arweave...`);
-  
-  // Upload the folder to Arweave
-  const uploadResult = await turbo.uploadFolder({
-    folderPath,
-    indexFile: 'index.html', // Specify the index file
-    tags: [
-      { name: 'App-Name', value: 'AR.IO Asset Example' },
-    ]
+// Example of adding license terms (run this after registering the IP)
+async function addLicenseTerms(ipId) {
+  // Create PIL terms
+  const createTermsResponse = await client.licensing.createPILTerms({
+    commercial: true,
+    derivatives: true,
+    reciprocal: false,
+    attribution: true,
+    txOptions: { waitForTransaction: true },
   });
   
-  console.log(`Folder uploaded with manifest ID: ${uploadResult.manifestId}`);
-  return uploadResult.manifestId;
+  console.log(`Created PIL terms with ID: ${createTermsResponse.pilId}`);
+  
+  // Attach terms to IP
+  const attachTermsResponse = await client.licensing.attachPILTerms({
+    pilId: createTermsResponse.pilId,
+    ipId,
+    txOptions: { waitForTransaction: true },
+  });
+  
+  console.log(`Attached PIL terms with transaction hash: ${attachTermsResponse.txHash}`);
+  return createTermsResponse.pilId;
 }
+
+// Add this to your main function
+const pilId = await addLicenseTerms(ipId);
+console.log(`License terms (PIL ID): ${pilId}`);
 ```
 
-## 8. Next steps
+Or you can do it all in one step when registering:
 
-Now that you've learned how to upload files to Arweave and register them with AR.IO names, you can:
+```typescript
+const response = await client.ipAsset.mintAndRegisterIpAssetWithPilTerms({
+  spgNftContract: "0xc32A8a0FF3beDDDa58393d022aF433e78739FAbc",
+  ipMetadata: {
+    ipMetadataURI: `https://ipfs.io/ipfs/${ipIpfsHash}`,
+    ipMetadataHash: `0x${ipHash}`,
+    nftMetadataURI: `https://ipfs.io/ipfs/${nftIpfsHash}`,
+    nftMetadataHash: `0x${nftHash}`,
+  },
+  pilParams: {
+    commercial: true,
+    derivatives: true,
+    reciprocal: false,
+    attribution: true,
+  },
+  txOptions: { waitForTransaction: true },
+});
+```
 
-- Create a web application that uses these methods to allow users to upload and share content
-- Build a content management system on top of Arweave and AR.IO
-- Integrate this functionality into your existing applications
+## 11. Conclusion
+
+Congratulations! You've successfully:
+
+1. Uploaded your IP asset to Arweave for permanent storage
+2. Registered it with an AR.IO name for human-readable access
+3. Registered the IP on Story Protocol
+4. Added license terms to your IP
+5. Connected both ecosystems with appropriate metadata and cross-references
+
+This integration provides several benefits:
+- Permanent, decentralized storage for your IP assets on Arweave
+- Easy access through human-readable AR.IO names
+- Full IP registration and licensing through Story Protocol
+- Verifiable connections between your assets, names, and IP registrations
 
 <div className="not-prose mb-16 mt-6 flex gap-3">
   <div className="flex-auto rounded-md bg-blue-50 px-4 py-3 ring-1 ring-inset ring-blue-500/20">
@@ -394,9 +728,10 @@ Now that you've learned how to upload files to Arweave and register them with AR
     </div>
     <div className="mt-2 text-sm text-blue-700">
       <ul className="list-disc space-y-1 pl-5">
-        <li><a href="/ar-io-sdk/ants/set-base-name-record" className="font-medium text-blue-700 hover:text-blue-600">setBaseNameRecord API Reference</a></li>
-        <li><a href="/ar-io-sdk/ants/set-undername-record" className="font-medium text-blue-700 hover:text-blue-600">setUndernameRecord API Reference</a></li>
+        <li><a href="/ar-io-sdk/ants/set-base-name-record" className="font-medium text-blue-700 hover:text-blue-600">AR.IO setBaseNameRecord API Reference</a></li>
         <li><a href="https://ardrive.io/turbo/" className="font-medium text-blue-700 hover:text-blue-600">ArDrive Turbo Documentation</a></li>
+        <li><a href="https://docs.storyprotocol.xyz/developers/typescript-sdk/guides/minting-and-registering-ip-assets" className="font-medium text-blue-700 hover:text-blue-600">Story Protocol IP Asset Registration</a></li>
+        <li><a href="https://docs.storyprotocol.xyz/concepts/licensing-module/license-terms" className="font-medium text-blue-700 hover:text-blue-600">Story Protocol License Terms</a></li>
       </ul>
     </div>
   </div>
