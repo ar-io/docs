@@ -1,0 +1,403 @@
+import {HeroPattern} from "@/components/HeroPattern"
+import { Callout } from '@/components/Callout'
+import { Tabs } from '@/components/Tabs'
+
+export const metadata = {
+  title: 'Register an Arweave Asset',
+  description: 'Learn how to upload a file to Arweave and register it with an AR.IO name',
+}
+
+<HeroPattern />
+
+# Register an Arweave Asset
+
+> Learn how to upload a file to Arweave and register it with an AR.IO name in TypeScript.
+
+<div className="not-prose mb-16 mt-6 flex gap-3">
+  <div className="flex-auto rounded-md bg-blue-50 px-4 py-3 ring-1 ring-inset ring-blue-500/20">
+    <div className="flex items-center gap-3">
+      <svg fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" aria-hidden="true" className="h-5 w-5 flex-none text-blue-500"><path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z"></path></svg>
+      <h3 className="text-sm font-medium text-blue-800">Project Files</h3>
+    </div>
+    <div className="mt-2 text-sm text-blue-700">
+      <a href="https://github.com/ar-io/example-upload-and-register" className="font-medium text-blue-700 hover:text-blue-600">
+        View the complete code on GitHub
+      </a>
+    </div>
+  </div>
+</div>
+
+In this tutorial, we'll learn how to upload a file to Arweave using ArDrive's Turbo service and then register it with an AR.IO name, making it easily accessible through a human-readable URL.
+
+## Prerequisites
+
+Before starting the tutorial, make sure you have:
+
+1. Completed the [AR.IO SDK Setup](/ar-io-sdk/getting-started)
+2. Node.js installed (version 16 or higher)
+3. An Arweave wallet file (JWK format)
+
+First, create a new project directory and initialize a Node.js project:
+
+```bash
+mkdir arweave-asset-register
+cd arweave-asset-register
+npm init -y
+```
+
+Install the required dependencies:
+
+```bash
+npm install @ar.io/sdk @ardrive/turbo-sdk
+```
+
+## 1. Set up your project
+
+Create a new file called `index.js` and add the following imports:
+
+```typescript index.js
+const fs = require('fs');
+const { ANT, ArweaveSigner } = require('@ar.io/sdk');
+const { TurboFactory, ArweaveSigner: TurboSigner } = require('@ardrive/turbo-sdk');
+```
+
+Next, load your Arweave wallet:
+
+```typescript index.js
+// Load the Arweave wallet
+const jwk = JSON.parse(fs.readFileSync('./wallet.json'));
+
+// Initialize the AR.IO ANT client
+const ant = ANT.init({
+  signer: new ArweaveSigner(jwk),
+  // Replace with your registered ANT process ID
+  processId: "YOUR_ANT_PROCESS_ID"
+});
+
+// Initialize the Turbo client for uploads
+const turbo = TurboFactory.init({
+  signer: new TurboSigner(jwk)
+});
+
+async function main() {
+  // We'll add our code here
+}
+
+main().catch(console.error);
+```
+
+## 2. Upload a file to Arweave
+
+Now, let's add the functionality to upload a file to Arweave using ArDrive's Turbo service:
+
+```typescript index.js
+async function uploadToArweave(filePath) {
+  // Get the file name from the path
+  const fileName = filePath.split('/').pop();
+  
+  // Read the file
+  const fileData = fs.readFileSync(filePath);
+  
+  // Determine content type based on file extension
+  const contentType = getContentType(fileName);
+  
+  console.log(`Uploading ${fileName} to Arweave...`);
+  
+  // Upload the file to Arweave
+  const uploadResult = await turbo.uploadFile({
+    fileData,
+    tags: [
+      { name: 'Content-Type', value: contentType },
+      { name: 'App-Name', value: 'AR.IO Asset Example' },
+    ]
+  });
+  
+  console.log(`File uploaded with transaction ID: ${uploadResult.id}`);
+  return uploadResult.id;
+}
+
+// Helper function to determine content type based on file extension
+function getContentType(fileName) {
+  const extension = fileName.split('.').pop().toLowerCase();
+  const contentTypes = {
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png': 'image/png',
+    'gif': 'image/gif',
+    'pdf': 'application/pdf',
+    'json': 'application/json',
+    'html': 'text/html',
+    'txt': 'text/plain',
+    // Add more types as needed
+  };
+  
+  return contentTypes[extension] || 'application/octet-stream';
+}
+```
+
+Update the main function to use this upload function:
+
+```typescript index.js
+async function main() {
+  // Path to the file you want to upload
+  const filePath = './example-asset.png';
+  
+  // Upload file to Arweave
+  const transactionId = await uploadToArweave(filePath);
+  
+  console.log(`Asset available at: https://arweave.net/${transactionId}`);
+}
+```
+
+## 3. Register the file with an AR.IO name
+
+Now, let's register the uploaded file with an AR.IO name to make it easily accessible:
+
+```typescript index.js
+async function registerArweaveName(transactionId, name) {
+  console.log(`Registering ${name} to point to transaction ${transactionId}...`);
+  
+  try {
+    // Set the record for the top-level name (using '@' as the undername)
+    const { id: setRecordTxId } = await ant.setRecord(
+      {
+        undername: '@',
+        transactionId: transactionId,
+        ttlSeconds: 3600 // 1 hour TTL
+      },
+      { tags: [{ name: 'App-Name', value: 'AR.IO Asset Example' }] }
+    );
+    
+    console.log(`Name registered successfully! Transaction ID: ${setRecordTxId}`);
+    return setRecordTxId;
+  } catch (error) {
+    console.error('Error registering name:', error);
+    throw error;
+  }
+}
+```
+
+<Callout type="warning" title="Deprecated Method">
+  The `setRecord` method shown in this tutorial is deprecated. In production applications, use `setBaseNameRecord` for top-level names or `setUndernameRecord` for undernames instead. See the [API documentation](/ar-io-sdk/ants/set-base-name-record) for more details.
+</Callout>
+
+Update the main function to include the name registration:
+
+```typescript index.js
+async function main() {
+  // Path to the file you want to upload
+  const filePath = './example-asset.png';
+  
+  // Your AR.IO name (without the .ar extension)
+  const arIoName = 'your-asset-name';
+  
+  // Upload file to Arweave
+  const transactionId = await uploadToArweave(filePath);
+  console.log(`Asset available at: https://arweave.net/${transactionId}`);
+  
+  // Register the file with an AR.IO name
+  await registerArweaveName(transactionId, arIoName);
+  console.log(`Asset now accessible at: https://${arIoName}.ar.io`);
+}
+```
+
+## 4. Complete code
+
+Here's the complete code for uploading a file to Arweave and registering it with an AR.IO name:
+
+```typescript index.js
+const fs = require('fs');
+const { ANT, ArweaveSigner } = require('@ar.io/sdk');
+const { TurboFactory, ArweaveSigner: TurboSigner } = require('@ardrive/turbo-sdk');
+
+// Load the Arweave wallet
+const jwk = JSON.parse(fs.readFileSync('./wallet.json'));
+
+// Initialize the AR.IO ANT client
+const ant = ANT.init({
+  signer: new ArweaveSigner(jwk),
+  // Replace with your registered ANT process ID
+  processId: "YOUR_ANT_PROCESS_ID"
+});
+
+// Initialize the Turbo client for uploads
+const turbo = TurboFactory.init({
+  signer: new TurboSigner(jwk)
+});
+
+// Helper function to determine content type based on file extension
+function getContentType(fileName) {
+  const extension = fileName.split('.').pop().toLowerCase();
+  const contentTypes = {
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png': 'image/png',
+    'gif': 'image/gif',
+    'pdf': 'application/pdf',
+    'json': 'application/json',
+    'html': 'text/html',
+    'txt': 'text/plain',
+    // Add more types as needed
+  };
+  
+  return contentTypes[extension] || 'application/octet-stream';
+}
+
+async function uploadToArweave(filePath) {
+  // Get the file name from the path
+  const fileName = filePath.split('/').pop();
+  
+  // Read the file
+  const fileData = fs.readFileSync(filePath);
+  
+  // Determine content type based on file extension
+  const contentType = getContentType(fileName);
+  
+  console.log(`Uploading ${fileName} to Arweave...`);
+  
+  // Upload the file to Arweave
+  const uploadResult = await turbo.uploadFile({
+    fileData,
+    tags: [
+      { name: 'Content-Type', value: contentType },
+      { name: 'App-Name', value: 'AR.IO Asset Example' },
+    ]
+  });
+  
+  console.log(`File uploaded with transaction ID: ${uploadResult.id}`);
+  return uploadResult.id;
+}
+
+async function registerArweaveName(transactionId, name) {
+  console.log(`Registering ${name} to point to transaction ${transactionId}...`);
+  
+  try {
+    // Set the record for the top-level name (using '@' as the undername)
+    const { id: setRecordTxId } = await ant.setRecord(
+      {
+        undername: '@',
+        transactionId: transactionId,
+        ttlSeconds: 3600 // 1 hour TTL
+      },
+      { tags: [{ name: 'App-Name', value: 'AR.IO Asset Example' }] }
+    );
+    
+    console.log(`Name registered successfully! Transaction ID: ${setRecordTxId}`);
+    return setRecordTxId;
+  } catch (error) {
+    console.error('Error registering name:', error);
+    throw error;
+  }
+}
+
+async function main() {
+  // Path to the file you want to upload
+  const filePath = './example-asset.png';
+  
+  // Your AR.IO name (without the .ar extension)
+  const arIoName = 'your-asset-name';
+  
+  // Upload file to Arweave
+  const transactionId = await uploadToArweave(filePath);
+  console.log(`Asset available at: https://arweave.net/${transactionId}`);
+  
+  // Register the file with an AR.IO name
+  await registerArweaveName(transactionId, arIoName);
+  console.log(`Asset now accessible at: https://${arIoName}.ar.io`);
+}
+
+main().catch(console.error);
+```
+
+## 5. Running the code
+
+Before running the code, make sure to:
+
+1. Place your Arweave wallet file (JWK) as `wallet.json` in the project directory
+2. Replace `'YOUR_ANT_PROCESS_ID'` with your actual ANT process ID
+3. Replace `'your-asset-name'` with your actual AR.IO name
+4. Place the file you want to upload in the project directory (or update the path)
+
+Then run the code:
+
+```bash
+node index.js
+```
+
+## 6. Using the recommended methods
+
+For production applications, you should use the recommended methods instead of the deprecated `setRecord` method:
+
+<Tabs items={['setBaseNameRecord', 'setUndernameRecord']}>
+  <Tabs.Tab>
+    ```typescript
+    // For top-level names
+    const { id: setRecordTxId } = await ant.setBaseNameRecord(
+      {
+        transactionId: transactionId,
+        ttlSeconds: 3600 // 1 hour TTL
+      },
+      { tags: [{ name: 'App-Name', value: 'AR.IO Asset Example' }] }
+    );
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```typescript
+    // For undernames (subdomains)
+    const { id: setRecordTxId } = await ant.setUndernameRecord(
+      {
+        undername: 'subdomain', // For example: subdomain.your-asset-name.ar.io
+        transactionId: transactionId,
+        ttlSeconds: 3600 // 1 hour TTL
+      },
+      { tags: [{ name: 'App-Name', value: 'AR.IO Asset Example' }] }
+    );
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+## 7. Uploading folders
+
+If you want to upload a folder instead of a single file, you can use Turbo's folder upload feature:
+
+```typescript
+async function uploadFolderToArweave(folderPath) {
+  console.log(`Uploading folder ${folderPath} to Arweave...`);
+  
+  // Upload the folder to Arweave
+  const uploadResult = await turbo.uploadFolder({
+    folderPath,
+    indexFile: 'index.html', // Specify the index file
+    tags: [
+      { name: 'App-Name', value: 'AR.IO Asset Example' },
+    ]
+  });
+  
+  console.log(`Folder uploaded with manifest ID: ${uploadResult.manifestId}`);
+  return uploadResult.manifestId;
+}
+```
+
+## 8. Next steps
+
+Now that you've learned how to upload files to Arweave and register them with AR.IO names, you can:
+
+- Create a web application that uses these methods to allow users to upload and share content
+- Build a content management system on top of Arweave and AR.IO
+- Integrate this functionality into your existing applications
+
+<div className="not-prose mb-16 mt-6 flex gap-3">
+  <div className="flex-auto rounded-md bg-blue-50 px-4 py-3 ring-1 ring-inset ring-blue-500/20">
+    <div className="flex items-center gap-3">
+      <svg fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" aria-hidden="true" className="h-5 w-5 flex-none text-blue-500"><path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z"></path></svg>
+      <h3 className="text-sm font-medium text-blue-800">Learn More</h3>
+    </div>
+    <div className="mt-2 text-sm text-blue-700">
+      <ul className="list-disc space-y-1 pl-5">
+        <li><a href="/ar-io-sdk/ants/set-base-name-record" className="font-medium text-blue-700 hover:text-blue-600">setBaseNameRecord API Reference</a></li>
+        <li><a href="/ar-io-sdk/ants/set-undername-record" className="font-medium text-blue-700 hover:text-blue-600">setUndernameRecord API Reference</a></li>
+        <li><a href="https://ardrive.io/turbo/" className="font-medium text-blue-700 hover:text-blue-600">ArDrive Turbo Documentation</a></li>
+      </ul>
+    </div>
+  </div>
+</div>
