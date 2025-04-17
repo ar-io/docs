@@ -1,0 +1,278 @@
+import { HeroPattern } from '@/components/HeroPattern'
+import { CodeGroup } from '@/components/Code'
+
+export const metadata = {
+  title: 'Uploading to Arweave',
+  description:
+    'Learn how to upload data to Arweave using the Turbo SDK, including authentication, purchasing credits, and file uploads.',
+  openGraph: {
+    title: 'Uploading to Arweave Guide',
+  },
+}
+
+<HeroPattern />
+
+# Uploading to Arweave
+
+## Overview
+
+While AR.IO provides powerful tools for accessing and interacting with data on Arweave, that data must first be uploaded to the network. This guide will walk you through the process of uploading data to Arweave using the Turbo SDK, which provides a streamlined experience for data uploads.
+
+## Prerequisites
+
+- Node.js installed (for Node.js environment)
+- A wallet with AR tokens or supported cryptocurrency
+- Basic understanding of async/await and Promises
+
+## Installing Turbo SDK
+
+```bash
+# For Node.js
+npm install @ardrive/turbo-sdk
+
+# For Yarn users
+yarn add @ardrive/turbo-sdk
+```
+
+## Authentication
+
+### Node.js Environment
+
+<CodeGroup title="Node.js Authentication" id="auth-nodejs">
+
+```typescript {{ title: 'Arweave JWK' }}
+import { TurboFactory } from '@ardrive/turbo-sdk'
+import fs from 'fs'
+
+// Load your Arweave JWK file
+const jwk = JSON.parse(fs.readFileSync('wallet.json', 'utf-8'))
+
+const turbo = await TurboFactory.authenticated({
+  privateKey: jwk, // ArweaveJWK type
+  token: 'arweave', // Default token type
+})
+```
+
+```typescript {{ title: 'Ethereum' }}
+import { TurboFactory, EthereumSigner } from '@ardrive/turbo-sdk'
+
+// Your Ethereum private key (with 0x prefix)
+const privateKey = '0x1234...' // EthPrivateKey type
+
+// Create an Ethereum signer instance
+const signer = new EthereumSigner(privateKey)
+
+const turbo = await TurboFactory.authenticated({
+  signer,
+  token: 'ethereum',
+})
+```
+
+```typescript {{ title: 'Solana' }}
+import { TurboFactory } from '@ardrive/turbo-sdk'
+import bs58 from 'bs58'
+
+// Your Solana secret key (as Uint8Array)
+const secretKey = new Uint8Array([...])  // SolSecretKey type
+
+const turbo = await TurboFactory.authenticated({
+  privateKey: bs58.encode(secretKey),
+  token: 'solana'
+})
+```
+
+```typescript {{ title: 'Polygon' }}
+import { TurboFactory, EthereumSigner } from '@ardrive/turbo-sdk'
+
+// Your Polygon private key (with 0x prefix)
+const privateKey = '0x1234...' // EthPrivateKey type
+
+// Create an Ethereum signer instance for Polygon
+const signer = new EthereumSigner(privateKey)
+
+const turbo = await TurboFactory.authenticated({
+  signer,
+  token: 'matic', // or 'pol'
+})
+```
+
+```typescript {{ title: 'KYVE' }}
+import { TurboFactory } from '@ardrive/turbo-sdk'
+
+// Your KYVE private key (hexadecimal)
+const privateKey = '0x1234...' // KyvePrivateKey type
+
+const turbo = await TurboFactory.authenticated({
+  privateKey,
+  token: 'kyve',
+})
+```
+
+```typescript {{ title: 'Base' }}
+import { TurboFactory, EthereumSigner } from '@ardrive/turbo-sdk'
+
+// Your Base network private key (with 0x prefix)
+const privateKey = '0x1234...' // EthPrivateKey type
+
+// Create an Ethereum signer instance for Base
+const signer = new EthereumSigner(privateKey)
+
+const turbo = await TurboFactory.authenticated({
+  signer,
+  token: 'base-eth',
+})
+```
+
+</CodeGroup>
+
+### Browser Environment
+
+<CodeGroup title="Browser Authentication" id="auth-browser">
+
+```typescript {{ title: 'ArConnect' }}
+import { TurboFactory, ArconnectSigner } from '@ardrive/turbo-sdk/web'
+
+// Ensure ArConnect is installed
+if (!window.arweaveWallet) {
+  throw new Error('ArConnect not found')
+}
+
+// Request necessary permissions
+await window.arweaveWallet.connect(['SIGN_TRANSACTION'])
+
+// Create ArConnect signer instance
+const signer = new ArconnectSigner(window.arweaveWallet)
+
+const turbo = await TurboFactory.authenticated({
+  signer,
+  token: 'arweave',
+})
+```
+
+```typescript {{ title: 'MetaMask (Basic)' }}
+import { TurboFactory } from '@ardrive/turbo-sdk/web'
+import { InjectedEthereumSigner } from '@dha-team/arbundles'
+import { BrowserProvider } from 'ethers'
+
+// Function to connect to MetaMask and initialize Turbo
+const connectToMetaMask = async () => {
+  if (!window.ethereum) {
+    throw new Error('Please install MetaMask to use this application')
+  }
+
+  try {
+    // Request account access
+    const accounts = await window.ethereum.request({
+      method: 'eth_requestAccounts',
+    })
+
+    // Get the MetaMask provider specifically if multiple providers exist
+    const metaMaskProvider = window.ethereum.providers?.find(
+      (p) => p.isMetaMask,
+    )
+
+    // Create ethers provider and signer
+    const provider = new BrowserProvider(metaMaskProvider ?? window.ethereum)
+    const signer = await provider.getSigner()
+
+    // Initialize Turbo with the signer
+    const turbo = await TurboFactory.authenticated({
+      signer: new InjectedEthereumSigner({ getSigner: () => signer }),
+      token: 'ethereum', // Can also be 'matic', 'base-eth', etc.
+    })
+  } catch (error) {
+    console.error('Connection failed:', error)
+    throw error
+  }
+}
+```
+
+```typescript {{ title: 'Metamask with Wagmi' }}
+import { TurboFactory, InjectedEthereumSigner } from '@ardrive/turbo-sdk/web'
+import { getAccount, signMessage } from '@wagmi/core'
+import { hashMessage, recoverPublicKey, toBytes } from 'viem'
+
+// Assumes you have already set up wagmi config and connector
+if (!config || !connector) {
+  throw new Error('Wagmi config and connector not set')
+}
+
+// Create a provider that uses wagmi's signMessage
+const provider = {
+  getSigner: () => ({
+    signMessage: async (message) => {
+      const arg = message instanceof String ? message : { raw: message }
+      const ethAccount = getAccount(config)
+
+      return await signMessage(config, {
+        message: arg,
+        account: ethAccount.address,
+        connector: connector,
+      })
+    },
+  }),
+}
+
+// Create and configure the Turbo signer
+const signer = new InjectedEthereumSigner(provider)
+
+// Set up the public key
+signer.setPublicKey = async () => {
+  const message = 'Sign this message to connect to Turbo'
+  const ethAccount = getAccount(config)
+
+  const signature = await signMessage(config, {
+    message,
+    account: ethAccount.address,
+    connector,
+  })
+  const hash = await hashMessage(message)
+  const recoveredKey = await recoverPublicKey({
+    hash,
+    signature,
+  })
+  signer.publicKey = Buffer.from(toBytes(recoveredKey))
+}
+
+// Initialize the signer
+await signer.setPublicKey()
+
+// Create authenticated Turbo client
+const turbo = await TurboFactory.authenticated({
+  signer,
+  token: 'base-eth', // Can also be 'ethereum', 'matic', etc.
+})
+```
+
+```typescript {{ title: 'Phantom' }}
+import { TurboFactory, HexInjectedSolanaSigner } from '@ardrive/turbo-sdk/web'
+
+// Ensure Phantom is installed
+if (!window.solana) {
+  throw new Error('Phantom not found')
+}
+
+// Request account access
+await window.solana.connect()
+
+// Create Solana signer instance
+const signer = new HexInjectedSolanaSigner(window.solana)
+
+const turbo = await TurboFactory.authenticated({
+  signer,
+  token: 'solana',
+})
+```
+
+</CodeGroup>
+
+The authenticated client requires either a `privateKey` or a `signer`, along with the appropriate `token` type. The SDK supports the following token types:
+
+- `arweave` (default)
+- `ethereum`
+- `solana`
+- `matic` (Polygon)
+- `kyve`
+- `base-eth` (Ethereum on Base, added in v1.23.0)
+
+The client handles all necessary token conversions and fee calculations internally. After authentication, you'll need to purchase Turbo credits before uploading data.
