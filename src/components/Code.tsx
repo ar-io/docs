@@ -24,13 +24,6 @@ const languageNames: Record<string, string> = {
   python: 'Python',
   ruby: 'Ruby',
   go: 'Go',
-  bash: 'Bash',
-  npm: 'npm',
-  pnpm: 'pnpm',
-  yarn: 'yarn',
-  'bash npm': 'npm',
-  'bash pnpm': 'pnpm',
-  'bash yarn': 'yarn',
 }
 
 function getPanelTitle({
@@ -46,15 +39,6 @@ function getPanelTitle({
   if (language && language in languageNames) {
     return languageNames[language]
   }
-
-  const langParts = language?.split(' ') || [];
-  if (langParts.length > 1 && langParts[1] in languageNames) {
-      return languageNames[langParts[1]];
-  }
-  if (langParts.length > 0 && langParts[0] in languageNames) {
-      return languageNames[langParts[0]];
-  }
-
   return 'Code'
 }
 
@@ -319,10 +303,9 @@ function useTabGroupProps(availableLanguages: Array<string>, id?: string) {
     ref: positionRef,
     selectedIndex,
     onChange: (newSelectedIndex: number) => {
-      preventLayoutShift(() => {
-        setSelectedIndex(newSelectedIndex)
-        addPreferredLanguage(groupId, availableLanguages[newSelectedIndex])
-      })
+      preventLayoutShift(() =>
+        addPreferredLanguage(groupId, availableLanguages[newSelectedIndex]),
+      )
     },
   }
 }
