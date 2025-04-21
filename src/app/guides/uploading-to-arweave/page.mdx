@@ -70,209 +70,3128 @@ const turbo = await TurboFactory.authenticated({
 
 ```typescript {{ title: 'Solana' }}
 import { TurboFactory } from '@ardrive/turbo-sdk'
+import fs from 'fs'
+import path from 'path'
+import mime from 'mime-types'
+import axios from 'axios'
 import bs58 from 'bs58'
 
-// Your Solana secret key (as Uint8Array)
-const secretKey = new Uint8Array([...])  // SolSecretKey type
+// Constants
+const FREE_UPLOAD_SIZE = 100 * 1024 // 100KB in bytes
+const PRICE_BUFFER = 1.1 // 10% buffer for price fluctuations
 
+// Initialize authenticated client with Solana
+const secretKey = new Uint8Array([...]) // Your Solana secret key
 const turbo = await TurboFactory.authenticated({
   privateKey: bs58.encode(secretKey),
   token: 'solana'
 })
+
+// Function to get token price from CoinGecko
+const getTokenPrice = async (token: string) => {
+  const response = await axios.get(
+    `https://api.coingecko.com/api/v3/simple/price?ids=${token}&vs_currencies=usd`
+  )
+  return response.data[token].usd
+}
+
+// Function to calculate required token amount
+const calculateTokenAmount = async (
+  wincAmount: string,
+  tokenType: string
+) => {
+  // Get fiat rates for 1 GiB
+  const fiatRates = await turbo.getFiatRates()
+  const usdPerGiB = fiatRates.usd
+
+  // Convert winc to GiB
+  const wincPerGiB = 1_000_000_000_000 // 1 GiB in winc
+  const requiredGiB = Number(wincAmount) / wincPerGiB
+  const requiredUsd = requiredGiB * usdPerGiB
+
+  // Get token price
+  const tokenPrice = await getTokenPrice(tokenType)
+  const tokenAmount = (requiredUsd / tokenPrice) * PRICE_BUFFER
+
+  return tokenAmount
+}
+
+// Function to check balance and fund if needed
+const ensureSufficientBalance = async (
+  fileSize: number,
+  tokenType: string
+) => {
+  // Check current balance
+  const balance = await turbo.getBalance()
+  const currentWinc = BigInt(balance.controlledWinc)
+
+  // If file is under 100KB, it's free
+  if (fileSize <= FREE_UPLOAD_SIZE) {
+    return true
+  }
+
+  // Get upload cost
+  const costs = await turbo.getUploadCosts({ bytes: [fileSize] })
+  const requiredWinc = BigInt(costs[0].winc)
+
+  // If we have enough balance, return true
+  if (currentWinc >= requiredWinc) {
+    return true
+  }
+
+  // Calculate and purchase required tokens
+  const tokenAmount = await calculateTokenAmount(
+    requiredWinc.toString(),
+    tokenType
+  )
+
+  // Top up with tokens
+  await turbo.topUpWithTokens({
+    tokenAmount: tokenAmount
+  })
+
+  return true
+}
+
+// Function to upload a file
+const uploadFile = async (filePath: string) => {
+  try {
+    // Get file info
+    const fileSize = fs.statSync(filePath).size
+    const mimeType = mime.lookup(filePath) || 'application/octet-stream'
+
+    // Ensure sufficient balance
+    await ensureSufficientBalance(fileSize, 'solana')
+
+    // Upload file
+    const result = await turbo.uploadFile({
+      fileStreamFactory: () => fs.createReadStream(filePath),
+      fileSizeFactory: () => fileSize,
+      dataItemOpts: {
+        tags: [
+          {
+            name: 'Content-Type',
+            value: mimeType
+          }
+        ]
+      }
+    })
+
+    console.log('File uploaded!', {
+      id: result.id,
+      url: `https://arweave.net/${result.id}`,
+      owner: result.owner,
+      dataCaches: result.dataCaches
+    })
+
+    return result
+  } catch (error) {
+    console.error('Upload failed:', error)
+    throw error
+  }
+}
+
+// Example usage
+await uploadFile('./path/to/your/file.pdf')
 ```
 
 ```typescript {{ title: 'Polygon' }}
 import { TurboFactory, EthereumSigner } from '@ardrive/turbo-sdk'
+import fs from 'fs'
+import path from 'path'
+import mime from 'mime-types'
+import axios from 'axios'
 
-// Your Polygon private key (with 0x prefix)
-const privateKey = '0x1234...' // EthPrivateKey type
+// Constants
+const FREE_UPLOAD_SIZE = 100 * 1024 // 100KB in bytes
+const PRICE_BUFFER = 1.1 // 10% buffer for price fluctuations
 
-// Create an Ethereum signer instance for Polygon
+// Initialize authenticated client with Polygon
+const privateKey = '0x1234...' // Your Polygon private key
 const signer = new EthereumSigner(privateKey)
-
 const turbo = await TurboFactory.authenticated({
   signer,
   token: 'matic', // or 'pol'
 })
+
+// Function to get token price from CoinGecko
+const getTokenPrice = async (token: string) => {
+  const response = await axios.get(
+    `https://api.coingecko.com/api/v3/simple/price?ids=${token}&vs_currencies=usd`,
+  )
+  return response.data[token].usd
+}
+
+// Function to calculate required token amount
+const calculateTokenAmount = async (wincAmount: string, tokenType: string) => {
+  // Get fiat rates for 1 GiB
+  const fiatRates = await turbo.getFiatRates()
+  const usdPerGiB = fiatRates.usd
+
+  // Convert winc to GiB
+  const wincPerGiB = 1_000_000_000_000 // 1 GiB in winc
+  const requiredGiB = Number(wincAmount) / wincPerGiB
+  const requiredUsd = requiredGiB * usdPerGiB
+
+  // Get token price
+  const tokenPrice = await getTokenPrice(tokenType)
+  const tokenAmount = (requiredUsd / tokenPrice) * PRICE_BUFFER
+
+  return tokenAmount
+}
+
+// Function to check balance and fund if needed
+const ensureSufficientBalance = async (fileSize: number, tokenType: string) => {
+  // Check current balance
+  const balance = await turbo.getBalance()
+  const currentWinc = BigInt(balance.controlledWinc)
+
+  // If file is under 100KB, it's free
+  if (fileSize <= FREE_UPLOAD_SIZE) {
+    return true
+  }
+
+  // Get upload cost
+  const costs = await turbo.getUploadCosts({ bytes: [fileSize] })
+  const requiredWinc = BigInt(costs[0].winc)
+
+  // If we have enough balance, return true
+  if (currentWinc >= requiredWinc) {
+    return true
+  }
+
+  // Calculate and purchase required tokens
+  const tokenAmount = await calculateTokenAmount(
+    requiredWinc.toString(),
+    tokenType,
+  )
+
+  // Top up with tokens
+  await turbo.topUpWithTokens({
+    tokenAmount: tokenAmount,
+  })
+
+  return true
+}
+
+// Function to upload a file
+const uploadFile = async (filePath: string) => {
+  try {
+    // Get file info
+    const fileSize = fs.statSync(filePath).size
+    const mimeType = mime.lookup(filePath) || 'application/octet-stream'
+
+    // Ensure sufficient balance
+    await ensureSufficientBalance(fileSize, 'matic')
+
+    // Upload file
+    const result = await turbo.uploadFile({
+      fileStreamFactory: () => fs.createReadStream(filePath),
+      fileSizeFactory: () => fileSize,
+      dataItemOpts: {
+        tags: [
+          {
+            name: 'Content-Type',
+            value: mimeType,
+          },
+        ],
+      },
+    })
+
+    console.log('File uploaded!', {
+      id: result.id,
+      url: `https://arweave.net/${result.id}`,
+      owner: result.owner,
+      dataCaches: result.dataCaches,
+    })
+
+    return result
+  } catch (error) {
+    console.error('Upload failed:', error)
+    throw error
+  }
+}
+
+// Example usage
+await uploadFile('./path/to/your/file.pdf')
 ```
 
 ```typescript {{ title: 'KYVE' }}
 import { TurboFactory } from '@ardrive/turbo-sdk'
+import fs from 'fs'
+import path from 'path'
+import mime from 'mime-types'
+import axios from 'axios'
 
-// Your KYVE private key (hexadecimal)
-const privateKey = '0x1234...' // KyvePrivateKey type
+// Constants
+const FREE_UPLOAD_SIZE = 100 * 1024 // 100KB in bytes
+const PRICE_BUFFER = 1.1 // 10% buffer for price fluctuations
 
+// Initialize authenticated client with KYVE
+const privateKey = '0x1234...' // Your KYVE private key
 const turbo = await TurboFactory.authenticated({
   privateKey,
   token: 'kyve',
 })
-```
 
-```typescript {{ title: 'Base' }}
-import { TurboFactory, EthereumSigner } from '@ardrive/turbo-sdk'
+// Function to get token price from CoinGecko
+const getTokenPrice = async (token: string) => {
+  const response = await axios.get(
+    `https://api.coingecko.com/api/v3/simple/price?ids=${token}&vs_currencies=usd`,
+  )
+  return response.data[token].usd
+}
 
-// Your Base network private key (with 0x prefix)
-const privateKey = '0x1234...' // EthPrivateKey type
+// Function to calculate required token amount
+const calculateTokenAmount = async (wincAmount: string, tokenType: string) => {
+  // Get fiat rates for 1 GiB
+  const fiatRates = await turbo.getFiatRates()
+  const usdPerGiB = fiatRates.usd
 
-// Create an Ethereum signer instance for Base
-const signer = new EthereumSigner(privateKey)
+  // Convert winc to GiB
+  const wincPerGiB = 1_000_000_000_000 // 1 GiB in winc
+  const requiredGiB = Number(wincAmount) / wincPerGiB
+  const requiredUsd = requiredGiB * usdPerGiB
 
-const turbo = await TurboFactory.authenticated({
-  signer,
-  token: 'base-eth',
-})
+  // Get token price
+  const tokenPrice = await getTokenPrice(tokenType)
+  const tokenAmount = (requiredUsd / tokenPrice) * PRICE_BUFFER
+
+  return tokenAmount
+}
+
+// Function to check balance and fund if needed
+const ensureSufficientBalance = async (fileSize: number, tokenType: string) => {
+  // Check current balance
+  const balance = await turbo.getBalance()
+  const currentWinc = BigInt(balance.controlledWinc)
+
+  // If file is under 100KB, it's free
+  if (fileSize <= FREE_UPLOAD_SIZE) {
+    return true
+  }
+
+  // Get upload cost
+  const costs = await turbo.getUploadCosts({ bytes: [fileSize] })
+  const requiredWinc = BigInt(costs[0].winc)
+
+  // If we have enough balance, return true
+  if (currentWinc >= requiredWinc) {
+    return true
+  }
+
+  // Calculate and purchase required tokens
+  const tokenAmount = await calculateTokenAmount(
+    requiredWinc.toString(),
+    tokenType,
+  )
+
+  // Top up with tokens
+  await turbo.topUpWithTokens({
+    tokenAmount: tokenAmount,
+  })
+
+  return true
+}
+
+// Function to upload a file
+const uploadFile = async (filePath: string) => {
+  try {
+    // Get file info
+    const fileSize = fs.statSync(filePath).size
+    const mimeType = mime.lookup(filePath) || 'application/octet-stream'
+
+    // Ensure sufficient balance
+    await ensureSufficientBalance(fileSize, 'kyve')
+
+    // Upload file
+    const result = await turbo.uploadFile({
+      fileStreamFactory: () => fs.createReadStream(filePath),
+      fileSizeFactory: () => fileSize,
+      dataItemOpts: {
+        tags: [
+          {
+            name: 'Content-Type',
+            value: mimeType,
+          },
+        ],
+      },
+    })
+
+    console.log('File uploaded!', {
+      id: result.id,
+      url: `https://arweave.net/${result.id}`,
+      owner: result.owner,
+      dataCaches: result.dataCaches,
+    })
+
+    return result
+  } catch (error) {
+    console.error('Upload failed:', error)
+    throw error
+  }
+}
+
+// Example usage
+await uploadFile('./path/to/your/file.pdf')
 ```
 
 </CodeGroup>
 
 ### Browser Environment
 
-<CodeGroup title="Browser Authentication" id="auth-browser">
+In a browser environment, you'll need to manually send tokens to the Turbo wallet address and then submit the transaction for processing. Here are detailed examples for each supported chain:
 
-```typescript {{ title: 'ArConnect' }}
-import { TurboFactory, ArconnectSigner } from '@ardrive/turbo-sdk/web'
+<CodeGroup title="Browser Top-Up Examples" id="topup-browser">
 
-// Ensure ArConnect is installed
-if (!window.arweaveWallet) {
-  throw new Error('ArConnect not found')
+```typescript {{ title: 'Ethereum (MetaMask)' }}
+import { TurboFactory } from '@ardrive/turbo-sdk/web'
+import { BrowserProvider } from 'ethers'
+
+const TURBO_ETH_ADDRESS = '0x6A0A10FFD285c971B841bee8892878c0d583Bf67'
+const ETH_AMOUNT = '0.0001' // Amount in ETH
+
+// Function to send ETH and wait for confirmation
+const sendEthToTurbo = async () => {
+  if (!window.ethereum) {
+    throw new Error('Please install MetaMask')
+  }
+
+  // Get provider and signer
+  const provider = new BrowserProvider(window.ethereum)
+  const signer = await provider.getSigner()
+
+  // Send transaction
+  const tx = await signer.sendTransaction({
+    to: TURBO_ETH_ADDRESS,
+    value: ethers.parseEther(ETH_AMOUNT),
+  })
+
+  // Wait for confirmation (typically 10-20 minutes)
+  const receipt = await tx.wait()
+  return receipt.hash
 }
 
-// Request necessary permissions
-await window.arweaveWallet.connect(['SIGN_TRANSACTION'])
+// Function to submit transaction with retries
+const submitTransactionWithRetries = async (txId, maxRetries = 3) => {
+  let retries = 0
+  while (retries < maxRetries) {
+    try {
+      const response = await turbo.submitFundTransaction({ txId })
+      return response
+    } catch (error) {
+      retries++
+      if (retries === maxRetries) throw error
+      // Wait 30 seconds before retrying
+      await new Promise((resolve) => setTimeout(resolve, 30000))
+    }
+  }
+}
 
-// Create ArConnect signer instance
-const signer = new ArconnectSigner(window.arweaveWallet)
+// Complete top-up process
+const topUpWithEth = async () => {
+  try {
+    // Send ETH and get transaction hash
+    const txId = await sendEthToTurbo()
+    console.log('Transaction sent:', txId)
+
+    // Wait 15 minutes for chain settlement
+    await new Promise((resolve) => setTimeout(resolve, 15 * 60 * 1000))
+
+    // Submit transaction with retries
+    const response = await submitTransactionWithRetries(txId)
+    console.log('Credits added:', response)
+  } catch (error) {
+    console.error('Top-up failed:', error)
+  }
+}
+```
+
+```typescript {{ title: 'Solana (Phantom)' }}
+import { TurboFactory } from '@ardrive/turbo-sdk/web'
+import { PublicKey, Transaction, SystemProgram } from '@solana/web3.js'
+
+const TURBO_SOL_ADDRESS = 'HepiT2k93CFQaSB7i3ZNXhybZKn5MeWiv3UkLsaJKk4i'
+const SOL_AMOUNT = 0.0001 // Amount in SOL
+
+// Function to send SOL and wait for confirmation
+const sendSolToTurbo = async () => {
+  if (!window.solana) {
+    throw new Error('Please install Phantom')
+  }
+
+  // Connect to wallet
+  await window.solana.connect()
+  const provider = window.solana
+
+  // Create transaction
+  const transaction = new Transaction().add(
+    SystemProgram.transfer({
+      fromPubkey: provider.publicKey,
+      toPubkey: new PublicKey(TURBO_SOL_ADDRESS),
+      lamports: SOL_AMOUNT * 1e9, // Convert to lamports
+    }),
+  )
+
+  // Send and confirm transaction
+  const { signature } = await provider.signAndSendTransaction(transaction)
+  return signature
+}
+
+// Function to submit transaction with retries
+const submitTransactionWithRetries = async (txId, maxRetries = 3) => {
+  let retries = 0
+  while (retries < maxRetries) {
+    try {
+      const response = await turbo.submitFundTransaction({ txId })
+      return response
+    } catch (error) {
+      retries++
+      if (retries === maxRetries) throw error
+      // Wait 30 seconds before retrying
+      await new Promise((resolve) => setTimeout(resolve, 30000))
+    }
+  }
+}
+
+// Complete top-up process
+const topUpWithSol = async () => {
+  try {
+    // Send SOL and get transaction signature
+    const txId = await sendSolToTurbo()
+    console.log('Transaction sent:', txId)
+
+    // Wait 600ms for chain settlement
+    await new Promise((resolve) => setTimeout(resolve, 600))
+
+    // Submit transaction with retries
+    const response = await submitTransactionWithRetries(txId)
+    console.log('Credits added:', response)
+  } catch (error) {
+    console.error('Top-up failed:', error)
+  }
+}
+```
+
+```typescript {{ title: 'Arweave (ArConnect)' }}
+import { TurboFactory } from '@ardrive/turbo-sdk/web'
+import Arweave from 'arweave'
+import axios from 'axios'
+
+const TURBO_AR_ADDRESS = 'JNC6vBhjHY1EPwV3pEeNmrsgFMxH5d38_LHsZ7jful8'
+const AR_AMOUNT = 0.0001 // Amount in AR
+
+// Function to send AR and wait for confirmation
+const sendArToTurbo = async () => {
+  if (!window.arweaveWallet) {
+    throw new Error('Please install ArConnect')
+  }
+
+  // Initialize Arweave
+  const arweave = Arweave.init({
+    host: 'arweave.net',
+    port: 443,
+    protocol: 'https',
+  })
+
+  // Create transaction
+  const transaction = await arweave.createTransaction({
+    target: TURBO_AR_ADDRESS,
+    quantity: arweave.ar.arToWinston(AR_AMOUNT.toString()),
+  })
+
+  // Sign and post transaction
+  await window.arweaveWallet.sign(transaction)
+  const response = await arweave.transactions.post(transaction)
+
+  return transaction.id
+}
+
+// Function to submit transaction with retries
+const submitTransactionWithRetries = async (txId, maxRetries = 3) => {
+  let retries = 0
+  while (retries < maxRetries) {
+    try {
+      const response = await turbo.submitFundTransaction({ txId })
+      return response
+    } catch (error) {
+      retries++
+      if (retries === maxRetries) throw error
+      // Wait 30 seconds before retrying
+      await new Promise((resolve) => setTimeout(resolve, 30000))
+    }
+  }
+}
+
+// Complete top-up process
+const topUpWithAr = async () => {
+  try {
+    // Send AR and get transaction ID
+    const txId = await sendArToTurbo()
+    console.log('Transaction sent:', txId)
+
+    // Wait 36 minutes for chain settlement
+    await new Promise((resolve) => setTimeout(resolve, 36 * 60 * 1000))
+
+    // Submit transaction with retries
+    const response = await submitTransactionWithRetries(txId)
+    console.log('Credits added:', response)
+  } catch (error) {
+    console.error('Top-up failed:', error)
+  }
+}
+```
+
+```typescript {{ title: 'Polygon (MetaMask)' }}
+import { TurboFactory } from '@ardrive/turbo-sdk/web'
+import { BrowserProvider } from 'ethers'
+
+const TURBO_MATIC_ADDRESS = '0x6A0A10FFD285c971B841bee8892878c0d583Bf67'
+const MATIC_AMOUNT = '0.0001' // Amount in MATIC
+
+// Function to send MATIC and wait for confirmation
+const sendMaticToTurbo = async () => {
+  if (!window.ethereum) {
+    throw new Error('Please install MetaMask')
+  }
+
+  // Get provider and signer
+  const provider = new BrowserProvider(window.ethereum)
+  const signer = await provider.getSigner()
+
+  // Send transaction
+  const tx = await signer.sendTransaction({
+    to: TURBO_MATIC_ADDRESS,
+    value: ethers.parseEther(MATIC_AMOUNT),
+  })
+
+  // Wait for confirmation (typically 2-3 seconds)
+  const receipt = await tx.wait()
+  return receipt.hash
+}
+
+// Function to submit transaction with retries
+const submitTransactionWithRetries = async (txId, maxRetries = 3) => {
+  let retries = 0
+  while (retries < maxRetries) {
+    try {
+      const response = await turbo.submitFundTransaction({ txId })
+      return response
+    } catch (error) {
+      retries++
+      if (retries === maxRetries) throw error
+      // Wait 30 seconds before retrying
+      await new Promise((resolve) => setTimeout(resolve, 30000))
+    }
+  }
+}
+
+// Complete top-up process
+const topUpWithMatic = async () => {
+  try {
+    // Send MATIC and get transaction hash
+    const txId = await sendMaticToTurbo()
+    console.log('Transaction sent:', txId)
+
+    // Wait 3 seconds for chain settlement
+    await new Promise((resolve) => setTimeout(resolve, 3000))
+
+    // Submit transaction with retries
+    const response = await submitTransactionWithRetries(txId)
+    console.log('Credits added:', response)
+  } catch (error) {
+    console.error('Top-up failed:', error)
+  }
+}
+```
+
+```typescript {{ title: 'Base (MetaMask)' }}
+import { TurboFactory } from '@ardrive/turbo-sdk/web'
+import { BrowserProvider } from 'ethers'
+
+const TURBO_BASE_ADDRESS = '0x6A0A10FFD285c971B841bee8892878c0d583Bf67'
+const BASE_AMOUNT = '0.0001' // Amount in ETH
+
+// Function to send ETH and wait for confirmation
+const sendBaseToTurbo = async () => {
+  if (!window.ethereum) {
+    throw new Error('Please install MetaMask')
+  }
+
+  // Get provider and signer
+  const provider = new BrowserProvider(window.ethereum)
+  const signer = await provider.getSigner()
+
+  // Send transaction
+  const tx = await signer.sendTransaction({
+    to: TURBO_BASE_ADDRESS,
+    value: ethers.parseEther(BASE_AMOUNT),
+  })
+
+  // Wait for confirmation (typically 2-5 seconds)
+  const receipt = await tx.wait()
+  return receipt.hash
+}
+
+// Function to submit transaction with retries
+const submitTransactionWithRetries = async (txId, maxRetries = 3) => {
+  let retries = 0
+  while (retries < maxRetries) {
+    try {
+      const response = await turbo.submitFundTransaction({ txId })
+      return response
+    } catch (error) {
+      retries++
+      if (retries === maxRetries) throw error
+      // Wait 30 seconds before retrying
+      await new Promise((resolve) => setTimeout(resolve, 30000))
+    }
+  }
+}
+
+// Complete top-up process
+const topUpWithBase = async () => {
+  try {
+    // Send ETH and get transaction hash
+    const txId = await sendBaseToTurbo()
+    console.log('Transaction sent:', txId)
+
+    // Wait 5 seconds for chain settlement
+    await new Promise((resolve) => setTimeout(resolve, 5000))
+
+    // Submit transaction with retries
+    const response = await submitTransactionWithRetries(txId)
+    console.log('Credits added:', response)
+  } catch (error) {
+    console.error('Top-up failed:', error)
+  }
+}
+```
+
+</CodeGroup>
+
+> **Note**: The wait times for chain settlement are approximate and may need adjustment based on network conditions:
+>
+> - Ethereum: ~15 minutes
+> - Solana: ~400-600 milliseconds
+> - Arweave: ~30-36 minutes
+> - Polygon: ~2-3 seconds
+> - Base: ~2-5 seconds
+> - KYVE: ~5 minutes
+
+## Purchasing Turbo Credits
+
+### Node.js Environment
+
+<CodeGroup title="Node.js Authentication" id="auth-nodejs">
+
+```typescript {{ title: 'Arweave JWK' }}
+import { TurboFactory } from '@ardrive/turbo-sdk'
+import fs from 'fs'
+
+// Load your Arweave JWK file
+const jwk = JSON.parse(fs.readFileSync('wallet.json', 'utf-8'))
 
 const turbo = await TurboFactory.authenticated({
-  signer,
-  token: 'arweave',
+  privateKey: jwk, // ArweaveJWK type
+  token: 'arweave', // Default token type
 })
 ```
 
-```typescript {{ title: 'MetaMask (Basic)' }}
-import { TurboFactory } from '@ardrive/turbo-sdk/web'
-import { InjectedEthereumSigner } from '@dha-team/arbundles'
-import { BrowserProvider } from 'ethers'
+```typescript {{ title: 'Ethereum' }}
+import { TurboFactory, EthereumSigner } from '@ardrive/turbo-sdk'
 
-// Function to connect to MetaMask and initialize Turbo
-const connectToMetaMask = async () => {
-  if (!window.ethereum) {
-    throw new Error('Please install MetaMask to use this application')
+// Your Ethereum private key (with 0x prefix)
+const privateKey = '0x1234...' // EthPrivateKey type
+
+// Create an Ethereum signer instance
+const signer = new EthereumSigner(privateKey)
+
+const turbo = await TurboFactory.authenticated({
+  signer,
+  token: 'ethereum',
+})
+```
+
+```typescript {{ title: 'Solana' }}
+import { TurboFactory } from '@ardrive/turbo-sdk'
+import fs from 'fs'
+import path from 'path'
+import mime from 'mime-types'
+import axios from 'axios'
+import bs58 from 'bs58'
+
+// Constants
+const FREE_UPLOAD_SIZE = 100 * 1024 // 100KB in bytes
+const PRICE_BUFFER = 1.1 // 10% buffer for price fluctuations
+
+// Initialize authenticated client with Solana
+const secretKey = new Uint8Array([...]) // Your Solana secret key
+const turbo = await TurboFactory.authenticated({
+  privateKey: bs58.encode(secretKey),
+  token: 'solana'
+})
+
+// Function to get token price from CoinGecko
+const getTokenPrice = async (token: string) => {
+  const response = await axios.get(
+    `https://api.coingecko.com/api/v3/simple/price?ids=${token}&vs_currencies=usd`
+  )
+  return response.data[token].usd
+}
+
+// Function to calculate required token amount
+const calculateTokenAmount = async (
+  wincAmount: string,
+  tokenType: string
+) => {
+  // Get fiat rates for 1 GiB
+  const fiatRates = await turbo.getFiatRates()
+  const usdPerGiB = fiatRates.usd
+
+  // Convert winc to GiB
+  const wincPerGiB = 1_000_000_000_000 // 1 GiB in winc
+  const requiredGiB = Number(wincAmount) / wincPerGiB
+  const requiredUsd = requiredGiB * usdPerGiB
+
+  // Get token price
+  const tokenPrice = await getTokenPrice(tokenType)
+  const tokenAmount = (requiredUsd / tokenPrice) * PRICE_BUFFER
+
+  return tokenAmount
+}
+
+// Function to check balance and fund if needed
+const ensureSufficientBalance = async (
+  fileSize: number,
+  tokenType: string
+) => {
+  // Check current balance
+  const balance = await turbo.getBalance()
+  const currentWinc = BigInt(balance.controlledWinc)
+
+  // If file is under 100KB, it's free
+  if (fileSize <= FREE_UPLOAD_SIZE) {
+    return true
   }
 
+  // Get upload cost
+  const costs = await turbo.getUploadCosts({ bytes: [fileSize] })
+  const requiredWinc = BigInt(costs[0].winc)
+
+  // If we have enough balance, return true
+  if (currentWinc >= requiredWinc) {
+    return true
+  }
+
+  // Calculate and purchase required tokens
+  const tokenAmount = await calculateTokenAmount(
+    requiredWinc.toString(),
+    tokenType
+  )
+
+  // Top up with tokens
+  await turbo.topUpWithTokens({
+    tokenAmount: tokenAmount
+  })
+
+  return true
+}
+
+// Function to upload a file
+const uploadFile = async (filePath: string) => {
   try {
-    // Request account access
-    const accounts = await window.ethereum.request({
-      method: 'eth_requestAccounts',
+    // Get file info
+    const fileSize = fs.statSync(filePath).size
+    const mimeType = mime.lookup(filePath) || 'application/octet-stream'
+
+    // Ensure sufficient balance
+    await ensureSufficientBalance(fileSize, 'solana')
+
+    // Upload file
+    const result = await turbo.uploadFile({
+      fileStreamFactory: () => fs.createReadStream(filePath),
+      fileSizeFactory: () => fileSize,
+      dataItemOpts: {
+        tags: [
+          {
+            name: 'Content-Type',
+            value: mimeType
+          }
+        ]
+      }
     })
 
-    // Get the MetaMask provider specifically if multiple providers exist
-    const metaMaskProvider = window.ethereum.providers?.find(
-      (p) => p.isMetaMask,
-    )
-
-    // Create ethers provider and signer
-    const provider = new BrowserProvider(metaMaskProvider ?? window.ethereum)
-    const signer = await provider.getSigner()
-
-    // Initialize Turbo with the signer
-    const turbo = await TurboFactory.authenticated({
-      signer: new InjectedEthereumSigner({ getSigner: () => signer }),
-      token: 'ethereum', // Can also be 'matic', 'base-eth', etc.
+    console.log('File uploaded!', {
+      id: result.id,
+      url: `https://arweave.net/${result.id}`,
+      owner: result.owner,
+      dataCaches: result.dataCaches
     })
+
+    return result
   } catch (error) {
-    console.error('Connection failed:', error)
+    console.error('Upload failed:', error)
     throw error
   }
 }
+
+// Example usage
+await uploadFile('./path/to/your/file.pdf')
 ```
 
-```typescript {{ title: 'Metamask with Wagmi' }}
-import { TurboFactory, InjectedEthereumSigner } from '@ardrive/turbo-sdk/web'
-import { getAccount, signMessage } from '@wagmi/core'
-import { hashMessage, recoverPublicKey, toBytes } from 'viem'
+```typescript {{ title: 'Polygon' }}
+import { TurboFactory, EthereumSigner } from '@ardrive/turbo-sdk'
+import fs from 'fs'
+import path from 'path'
+import mime from 'mime-types'
+import axios from 'axios'
 
-// Assumes you have already set up wagmi config and connector
-if (!config || !connector) {
-  throw new Error('Wagmi config and connector not set')
-}
+// Constants
+const FREE_UPLOAD_SIZE = 100 * 1024 // 100KB in bytes
+const PRICE_BUFFER = 1.1 // 10% buffer for price fluctuations
 
-// Create a provider that uses wagmi's signMessage
-const provider = {
-  getSigner: () => ({
-    signMessage: async (message) => {
-      const arg = message instanceof String ? message : { raw: message }
-      const ethAccount = getAccount(config)
-
-      return await signMessage(config, {
-        message: arg,
-        account: ethAccount.address,
-        connector: connector,
-      })
-    },
-  }),
-}
-
-// Create and configure the Turbo signer
-const signer = new InjectedEthereumSigner(provider)
-
-// Set up the public key
-signer.setPublicKey = async () => {
-  const message = 'Sign this message to connect to Turbo'
-  const ethAccount = getAccount(config)
-
-  const signature = await signMessage(config, {
-    message,
-    account: ethAccount.address,
-    connector,
-  })
-  const hash = await hashMessage(message)
-  const recoveredKey = await recoverPublicKey({
-    hash,
-    signature,
-  })
-  signer.publicKey = Buffer.from(toBytes(recoveredKey))
-}
-
-// Initialize the signer
-await signer.setPublicKey()
-
-// Create authenticated Turbo client
+// Initialize authenticated client with Polygon
+const privateKey = '0x1234...' // Your Polygon private key
+const signer = new EthereumSigner(privateKey)
 const turbo = await TurboFactory.authenticated({
   signer,
-  token: 'base-eth', // Can also be 'ethereum', 'matic', etc.
+  token: 'matic', // or 'pol'
+})
+
+// Function to get token price from CoinGecko
+const getTokenPrice = async (token: string) => {
+  const response = await axios.get(
+    `https://api.coingecko.com/api/v3/simple/price?ids=${token}&vs_currencies=usd`,
+  )
+  return response.data[token].usd
+}
+
+// Function to calculate required token amount
+const calculateTokenAmount = async (wincAmount: string, tokenType: string) => {
+  // Get fiat rates for 1 GiB
+  const fiatRates = await turbo.getFiatRates()
+  const usdPerGiB = fiatRates.usd
+
+  // Convert winc to GiB
+  const wincPerGiB = 1_000_000_000_000 // 1 GiB in winc
+  const requiredGiB = Number(wincAmount) / wincPerGiB
+  const requiredUsd = requiredGiB * usdPerGiB
+
+  // Get token price
+  const tokenPrice = await getTokenPrice(tokenType)
+  const tokenAmount = (requiredUsd / tokenPrice) * PRICE_BUFFER
+
+  return tokenAmount
+}
+
+// Function to check balance and fund if needed
+const ensureSufficientBalance = async (fileSize: number, tokenType: string) => {
+  // Check current balance
+  const balance = await turbo.getBalance()
+  const currentWinc = BigInt(balance.controlledWinc)
+
+  // If file is under 100KB, it's free
+  if (fileSize <= FREE_UPLOAD_SIZE) {
+    return true
+  }
+
+  // Get upload cost
+  const costs = await turbo.getUploadCosts({ bytes: [fileSize] })
+  const requiredWinc = BigInt(costs[0].winc)
+
+  // If we have enough balance, return true
+  if (currentWinc >= requiredWinc) {
+    return true
+  }
+
+  // Calculate and purchase required tokens
+  const tokenAmount = await calculateTokenAmount(
+    requiredWinc.toString(),
+    tokenType,
+  )
+
+  // Top up with tokens
+  await turbo.topUpWithTokens({
+    tokenAmount: tokenAmount,
+  })
+
+  return true
+}
+
+// Function to upload a file
+const uploadFile = async (filePath: string) => {
+  try {
+    // Get file info
+    const fileSize = fs.statSync(filePath).size
+    const mimeType = mime.lookup(filePath) || 'application/octet-stream'
+
+    // Ensure sufficient balance
+    await ensureSufficientBalance(fileSize, 'matic')
+
+    // Upload file
+    const result = await turbo.uploadFile({
+      fileStreamFactory: () => fs.createReadStream(filePath),
+      fileSizeFactory: () => fileSize,
+      dataItemOpts: {
+        tags: [
+          {
+            name: 'Content-Type',
+            value: mimeType,
+          },
+        ],
+      },
+    })
+
+    console.log('File uploaded!', {
+      id: result.id,
+      url: `https://arweave.net/${result.id}`,
+      owner: result.owner,
+      dataCaches: result.dataCaches,
+    })
+
+    return result
+  } catch (error) {
+    console.error('Upload failed:', error)
+    throw error
+  }
+}
+
+// Example usage
+await uploadFile('./path/to/your/file.pdf')
+```
+
+```typescript {{ title: 'KYVE' }}
+import { TurboFactory } from '@ardrive/turbo-sdk'
+import fs from 'fs'
+import path from 'path'
+import mime from 'mime-types'
+import axios from 'axios'
+
+// Constants
+const FREE_UPLOAD_SIZE = 100 * 1024 // 100KB in bytes
+const PRICE_BUFFER = 1.1 // 10% buffer for price fluctuations
+
+// Initialize authenticated client with KYVE
+const privateKey = '0x1234...' // Your KYVE private key
+const turbo = await TurboFactory.authenticated({
+  privateKey,
+  token: 'kyve',
+})
+
+// Function to get token price from CoinGecko
+const getTokenPrice = async (token: string) => {
+  const response = await axios.get(
+    `https://api.coingecko.com/api/v3/simple/price?ids=${token}&vs_currencies=usd`,
+  )
+  return response.data[token].usd
+}
+
+// Function to calculate required token amount
+const calculateTokenAmount = async (wincAmount: string, tokenType: string) => {
+  // Get fiat rates for 1 GiB
+  const fiatRates = await turbo.getFiatRates()
+  const usdPerGiB = fiatRates.usd
+
+  // Convert winc to GiB
+  const wincPerGiB = 1_000_000_000_000 // 1 GiB in winc
+  const requiredGiB = Number(wincAmount) / wincPerGiB
+  const requiredUsd = requiredGiB * usdPerGiB
+
+  // Get token price
+  const tokenPrice = await getTokenPrice(tokenType)
+  const tokenAmount = (requiredUsd / tokenPrice) * PRICE_BUFFER
+
+  return tokenAmount
+}
+
+// Function to check balance and fund if needed
+const ensureSufficientBalance = async (fileSize: number, tokenType: string) => {
+  // Check current balance
+  const balance = await turbo.getBalance()
+  const currentWinc = BigInt(balance.controlledWinc)
+
+  // If file is under 100KB, it's free
+  if (fileSize <= FREE_UPLOAD_SIZE) {
+    return true
+  }
+
+  // Get upload cost
+  const costs = await turbo.getUploadCosts({ bytes: [fileSize] })
+  const requiredWinc = BigInt(costs[0].winc)
+
+  // If we have enough balance, return true
+  if (currentWinc >= requiredWinc) {
+    return true
+  }
+
+  // Calculate and purchase required tokens
+  const tokenAmount = await calculateTokenAmount(
+    requiredWinc.toString(),
+    tokenType,
+  )
+
+  // Top up with tokens
+  await turbo.topUpWithTokens({
+    tokenAmount: tokenAmount,
+  })
+
+  return true
+}
+
+// Function to upload a file
+const uploadFile = async (filePath: string) => {
+  try {
+    // Get file info
+    const fileSize = fs.statSync(filePath).size
+    const mimeType = mime.lookup(filePath) || 'application/octet-stream'
+
+    // Ensure sufficient balance
+    await ensureSufficientBalance(fileSize, 'kyve')
+
+    // Upload file
+    const result = await turbo.uploadFile({
+      fileStreamFactory: () => fs.createReadStream(filePath),
+      fileSizeFactory: () => fileSize,
+      dataItemOpts: {
+        tags: [
+          {
+            name: 'Content-Type',
+            value: mimeType,
+          },
+        ],
+      },
+    })
+
+    console.log('File uploaded!', {
+      id: result.id,
+      url: `https://arweave.net/${result.id}`,
+      owner: result.owner,
+      dataCaches: result.dataCaches,
+    })
+
+    return result
+  } catch (error) {
+    console.error('Upload failed:', error)
+    throw error
+  }
+}
+
+// Example usage
+await uploadFile('./path/to/your/file.pdf')
+```
+
+</CodeGroup>
+
+### Browser Environment
+
+In a browser environment, you'll need to manually send tokens to the Turbo wallet address and then submit the transaction for processing. Here are detailed examples for each supported chain:
+
+<CodeGroup title="Browser Top-Up Examples" id="topup-browser">
+
+```typescript {{ title: 'Ethereum (MetaMask)' }}
+import { TurboFactory } from '@ardrive/turbo-sdk/web'
+import { BrowserProvider } from 'ethers'
+
+const TURBO_ETH_ADDRESS = '0x6A0A10FFD285c971B841bee8892878c0d583Bf67'
+const ETH_AMOUNT = '0.0001' // Amount in ETH
+
+// Function to send ETH and wait for confirmation
+const sendEthToTurbo = async () => {
+  if (!window.ethereum) {
+    throw new Error('Please install MetaMask')
+  }
+
+  // Get provider and signer
+  const provider = new BrowserProvider(window.ethereum)
+  const signer = await provider.getSigner()
+
+  // Send transaction
+  const tx = await signer.sendTransaction({
+    to: TURBO_ETH_ADDRESS,
+    value: ethers.parseEther(ETH_AMOUNT),
+  })
+
+  // Wait for confirmation (typically 10-20 minutes)
+  const receipt = await tx.wait()
+  return receipt.hash
+}
+
+// Function to submit transaction with retries
+const submitTransactionWithRetries = async (txId, maxRetries = 3) => {
+  let retries = 0
+  while (retries < maxRetries) {
+    try {
+      const response = await turbo.submitFundTransaction({ txId })
+      return response
+    } catch (error) {
+      retries++
+      if (retries === maxRetries) throw error
+      // Wait 30 seconds before retrying
+      await new Promise((resolve) => setTimeout(resolve, 30000))
+    }
+  }
+}
+
+// Complete top-up process
+const topUpWithEth = async () => {
+  try {
+    // Send ETH and get transaction hash
+    const txId = await sendEthToTurbo()
+    console.log('Transaction sent:', txId)
+
+    // Wait 15 minutes for chain settlement
+    await new Promise((resolve) => setTimeout(resolve, 15 * 60 * 1000))
+
+    // Submit transaction with retries
+    const response = await submitTransactionWithRetries(txId)
+    console.log('Credits added:', response)
+  } catch (error) {
+    console.error('Top-up failed:', error)
+  }
+}
+```
+
+```typescript {{ title: 'Solana (Phantom)' }}
+import { TurboFactory } from '@ardrive/turbo-sdk/web'
+import { PublicKey, Transaction, SystemProgram } from '@solana/web3.js'
+
+const TURBO_SOL_ADDRESS = 'HepiT2k93CFQaSB7i3ZNXhybZKn5MeWiv3UkLsaJKk4i'
+const SOL_AMOUNT = 0.0001 // Amount in SOL
+
+// Function to send SOL and wait for confirmation
+const sendSolToTurbo = async () => {
+  if (!window.solana) {
+    throw new Error('Please install Phantom')
+  }
+
+  // Connect to wallet
+  await window.solana.connect()
+  const provider = window.solana
+
+  // Create transaction
+  const transaction = new Transaction().add(
+    SystemProgram.transfer({
+      fromPubkey: provider.publicKey,
+      toPubkey: new PublicKey(TURBO_SOL_ADDRESS),
+      lamports: SOL_AMOUNT * 1e9, // Convert to lamports
+    }),
+  )
+
+  // Send and confirm transaction
+  const { signature } = await provider.signAndSendTransaction(transaction)
+  return signature
+}
+
+// Function to submit transaction with retries
+const submitTransactionWithRetries = async (txId, maxRetries = 3) => {
+  let retries = 0
+  while (retries < maxRetries) {
+    try {
+      const response = await turbo.submitFundTransaction({ txId })
+      return response
+    } catch (error) {
+      retries++
+      if (retries === maxRetries) throw error
+      // Wait 30 seconds before retrying
+      await new Promise((resolve) => setTimeout(resolve, 30000))
+    }
+  }
+}
+
+// Complete top-up process
+const topUpWithSol = async () => {
+  try {
+    // Send SOL and get transaction signature
+    const txId = await sendSolToTurbo()
+    console.log('Transaction sent:', txId)
+
+    // Wait 600ms for chain settlement
+    await new Promise((resolve) => setTimeout(resolve, 600))
+
+    // Submit transaction with retries
+    const response = await submitTransactionWithRetries(txId)
+    console.log('Credits added:', response)
+  } catch (error) {
+    console.error('Top-up failed:', error)
+  }
+}
+```
+
+```typescript {{ title: 'Arweave (ArConnect)' }}
+import { TurboFactory } from '@ardrive/turbo-sdk/web'
+import Arweave from 'arweave'
+import axios from 'axios'
+
+const TURBO_AR_ADDRESS = 'JNC6vBhjHY1EPwV3pEeNmrsgFMxH5d38_LHsZ7jful8'
+const AR_AMOUNT = 0.0001 // Amount in AR
+
+// Function to send AR and wait for confirmation
+const sendArToTurbo = async () => {
+  if (!window.arweaveWallet) {
+    throw new Error('Please install ArConnect')
+  }
+
+  // Initialize Arweave
+  const arweave = Arweave.init({
+    host: 'arweave.net',
+    port: 443,
+    protocol: 'https',
+  })
+
+  // Create transaction
+  const transaction = await arweave.createTransaction({
+    target: TURBO_AR_ADDRESS,
+    quantity: arweave.ar.arToWinston(AR_AMOUNT.toString()),
+  })
+
+  // Sign and post transaction
+  await window.arweaveWallet.sign(transaction)
+  const response = await arweave.transactions.post(transaction)
+
+  return transaction.id
+}
+
+// Function to submit transaction with retries
+const submitTransactionWithRetries = async (txId, maxRetries = 3) => {
+  let retries = 0
+  while (retries < maxRetries) {
+    try {
+      const response = await turbo.submitFundTransaction({ txId })
+      return response
+    } catch (error) {
+      retries++
+      if (retries === maxRetries) throw error
+      // Wait 30 seconds before retrying
+      await new Promise((resolve) => setTimeout(resolve, 30000))
+    }
+  }
+}
+
+// Complete top-up process
+const topUpWithAr = async () => {
+  try {
+    // Send AR and get transaction ID
+    const txId = await sendArToTurbo()
+    console.log('Transaction sent:', txId)
+
+    // Wait 36 minutes for chain settlement
+    await new Promise((resolve) => setTimeout(resolve, 36 * 60 * 1000))
+
+    // Submit transaction with retries
+    const response = await submitTransactionWithRetries(txId)
+    console.log('Credits added:', response)
+  } catch (error) {
+    console.error('Top-up failed:', error)
+  }
+}
+```
+
+```typescript {{ title: 'Polygon (MetaMask)' }}
+import { TurboFactory } from '@ardrive/turbo-sdk/web'
+import { BrowserProvider } from 'ethers'
+
+const TURBO_MATIC_ADDRESS = '0x6A0A10FFD285c971B841bee8892878c0d583Bf67'
+const MATIC_AMOUNT = '0.0001' // Amount in MATIC
+
+// Function to send MATIC and wait for confirmation
+const sendMaticToTurbo = async () => {
+  if (!window.ethereum) {
+    throw new Error('Please install MetaMask')
+  }
+
+  // Get provider and signer
+  const provider = new BrowserProvider(window.ethereum)
+  const signer = await provider.getSigner()
+
+  // Send transaction
+  const tx = await signer.sendTransaction({
+    to: TURBO_MATIC_ADDRESS,
+    value: ethers.parseEther(MATIC_AMOUNT),
+  })
+
+  // Wait for confirmation (typically 2-3 seconds)
+  const receipt = await tx.wait()
+  return receipt.hash
+}
+
+// Function to submit transaction with retries
+const submitTransactionWithRetries = async (txId, maxRetries = 3) => {
+  let retries = 0
+  while (retries < maxRetries) {
+    try {
+      const response = await turbo.submitFundTransaction({ txId })
+      return response
+    } catch (error) {
+      retries++
+      if (retries === maxRetries) throw error
+      // Wait 30 seconds before retrying
+      await new Promise((resolve) => setTimeout(resolve, 30000))
+    }
+  }
+}
+
+// Complete top-up process
+const topUpWithMatic = async () => {
+  try {
+    // Send MATIC and get transaction hash
+    const txId = await sendMaticToTurbo()
+    console.log('Transaction sent:', txId)
+
+    // Wait 3 seconds for chain settlement
+    await new Promise((resolve) => setTimeout(resolve, 3000))
+
+    // Submit transaction with retries
+    const response = await submitTransactionWithRetries(txId)
+    console.log('Credits added:', response)
+  } catch (error) {
+    console.error('Top-up failed:', error)
+  }
+}
+```
+
+```typescript {{ title: 'Base (MetaMask)' }}
+import { TurboFactory } from '@ardrive/turbo-sdk/web'
+import { BrowserProvider } from 'ethers'
+
+const TURBO_BASE_ADDRESS = '0x6A0A10FFD285c971B841bee8892878c0d583Bf67'
+const BASE_AMOUNT = '0.0001' // Amount in ETH
+
+// Function to send ETH and wait for confirmation
+const sendBaseToTurbo = async () => {
+  if (!window.ethereum) {
+    throw new Error('Please install MetaMask')
+  }
+
+  // Get provider and signer
+  const provider = new BrowserProvider(window.ethereum)
+  const signer = await provider.getSigner()
+
+  // Send transaction
+  const tx = await signer.sendTransaction({
+    to: TURBO_BASE_ADDRESS,
+    value: ethers.parseEther(BASE_AMOUNT),
+  })
+
+  // Wait for confirmation (typically 2-5 seconds)
+  const receipt = await tx.wait()
+  return receipt.hash
+}
+
+// Function to submit transaction with retries
+const submitTransactionWithRetries = async (txId, maxRetries = 3) => {
+  let retries = 0
+  while (retries < maxRetries) {
+    try {
+      const response = await turbo.submitFundTransaction({ txId })
+      return response
+    } catch (error) {
+      retries++
+      if (retries === maxRetries) throw error
+      // Wait 30 seconds before retrying
+      await new Promise((resolve) => setTimeout(resolve, 30000))
+    }
+  }
+}
+
+// Complete top-up process
+const topUpWithBase = async () => {
+  try {
+    // Send ETH and get transaction hash
+    const txId = await sendBaseToTurbo()
+    console.log('Transaction sent:', txId)
+
+    // Wait 5 seconds for chain settlement
+    await new Promise((resolve) => setTimeout(resolve, 5000))
+
+    // Submit transaction with retries
+    const response = await submitTransactionWithRetries(txId)
+    console.log('Credits added:', response)
+  } catch (error) {
+    console.error('Top-up failed:', error)
+  }
+}
+```
+
+</CodeGroup>
+
+> **Note**: The wait times for chain settlement are approximate and may need adjustment based on network conditions:
+>
+> - Ethereum: ~15 minutes
+> - Solana: ~400-600 milliseconds
+> - Arweave: ~30-36 minutes
+> - Polygon: ~2-3 seconds
+> - Base: ~2-5 seconds
+> - KYVE: ~5 minutes
+
+
+## Uploading Files and Folders
+
+Once you have purchased Turbo credits, you can upload files and folders to Arweave. The process is the same regardless of which token type you used for authentication, but differs between Node.js and browser environments.
+
+### Node.js Environment
+
+<CodeGroup title="Node.js Upload Examples" id="upload-nodejs">
+
+```typescript {{ title: 'Single File' }}
+import { TurboFactory } from '@ardrive/turbo-sdk'
+import fs from 'fs'
+import path from 'path'
+import mime from 'mime-types'
+
+// Initialize authenticated client
+const turbo = await TurboFactory.authenticated({ privateKey: jwk })
+
+// Function to upload a single file
+const uploadFile = async (filePath) => {
+  try {
+    // Get file info
+    const fileSize = fs.statSync(filePath).size
+    const mimeType = mime.lookup(filePath) || 'application/octet-stream'
+
+    // Upload file
+    const result = await turbo.uploadFile({
+      fileStreamFactory: () => fs.createReadStream(filePath),
+      fileSizeFactory: () => fileSize,
+      dataItemOpts: {
+        tags: [
+          {
+            name: 'Content-Type',
+            value: mimeType,
+          },
+        ],
+      },
+    })
+
+    console.log('File uploaded!', {
+      id: result.id,
+      url: `https://arweave.net/${result.id}`,
+      owner: result.owner,
+      dataCaches: result.dataCaches,
+    })
+
+    return result
+  } catch (error) {
+    console.error('Upload failed:', error)
+    throw error
+  }
+}
+
+// Example usage
+await uploadFile('./path/to/your/file.pdf')
+```
+
+```typescript {{ title: 'Folder' }}
+import { TurboFactory } from '@ardrive/turbo-sdk'
+import path from 'path'
+
+// Initialize authenticated client
+const turbo = await TurboFactory.authenticated({ privateKey: jwk })
+
+// Function to upload a folder
+const uploadFolder = async (folderPath) => {
+  try {
+    // Upload folder
+    const result = await turbo.uploadFolder({
+      folderPath: path.join(__dirname, folderPath),
+      maxConcurrentUploads: 3,
+      throwOnFailure: true,
+      manifestOptions: {
+        indexFile: 'index.html',
+        fallbackFile: '404.html',
+      },
+    })
+
+    console.log('Folder uploaded!', {
+      manifestId: result.response.id,
+      manifestUrl: `https://arweave.net/${result.response.id}`,
+      dataCaches: result.response.dataCaches,
+    })
+
+    return result
+  } catch (error) {
+    console.error('Upload failed:', error)
+    throw error
+  }
+}
+
+// Example usage
+await uploadFolder('./path/to/your/folder')
+```
+
+</CodeGroup>
+
+### Browser Environment
+
+<CodeGroup title="Browser Upload Examples" id="upload-browser">
+
+```typescript {{ title: 'Single File' }}
+import { TurboFactory } from '@ardrive/turbo-sdk/web'
+
+// Initialize authenticated client
+const turbo = await TurboFactory.authenticated({ signer })
+
+// HTML input element
+<input
+  type="file"
+  id="file-input"
+  accept="image/*,video/*,audio/*,.pdf,.txt"
+/>
+
+// Function to upload a single file
+const uploadFile = async (file) => {
+  try {
+    const result = await turbo.uploadFile({
+      fileStreamFactory: () => file.stream(),
+      fileSizeFactory: () => file.size,
+      dataItemOpts: {
+        tags: [
+          {
+            name: 'Content-Type',
+            value: file.type || 'application/octet-stream'
+          }
+        ]
+      }
+    })
+
+    console.log('File uploaded!', {
+      id: result.id,
+      url: `https://arweave.net/${result.id}`,
+      owner: result.owner,
+      dataCaches: result.dataCaches
+    })
+
+    return result
+  } catch (error) {
+    console.error('Upload failed:', error)
+    throw error
+  }
+}
+
+// Example usage with file input
+const fileInput = document.getElementById('file-input')
+fileInput.addEventListener('change', async (event) => {
+  const file = fileInput.files[0]
+  if (!file) return
+  await uploadFile(file)
+})
+
+// Example usage with drag and drop
+const dropZone = document.getElementById('drop-zone')
+dropZone.addEventListener('dragover', (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  dropZone.classList.add('drag-over')
+})
+
+dropZone.addEventListener('dragleave', (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  dropZone.classList.remove('drag-over')
+})
+
+dropZone.addEventListener('drop', async (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+
+  const file = e.dataTransfer.files[0]
+  if (!file) return
+
+  await uploadFile(file)
 })
 ```
 
-```typescript {{ title: 'Phantom' }}
-import { TurboFactory, HexInjectedSolanaSigner } from '@ardrive/turbo-sdk/web'
+```typescript {{ title: 'Folder' }}
+import { TurboFactory } from '@ardrive/turbo-sdk/web'
 
-// Ensure Phantom is installed
-if (!window.solana) {
-  throw new Error('Phantom not found')
+// Initialize authenticated client
+const turbo = await TurboFactory.authenticated({ signer })
+
+// HTML input element
+<input
+  type="file"
+  id="folder-input"
+  webkitdirectory
+  directory
+  multiple
+/>
+
+// Function to upload a folder
+const uploadFolder = async (files) => {
+  try {
+    const result = await turbo.uploadFolder({
+      files: Array.from(files),
+      maxConcurrentUploads: 5,
+      throwOnFailure: true,
+      manifestOptions: {
+        indexFile: 'index.html',
+        fallbackFile: '404.html'
+      }
+    })
+
+    console.log('Folder uploaded!', {
+      manifestId: result.response.id,
+      manifestUrl: `https://arweave.net/${result.response.id}`,
+      dataCaches: result.response.dataCaches
+    })
+
+    return result
+  } catch (error) {
+    console.error('Upload failed:', error)
+    throw error
+  }
 }
 
-// Request account access
-await window.solana.connect()
+// Example usage with folder input
+const folderInput = document.getElementById('folder-input')
+folderInput.addEventListener('change', async (event) => {
+  await uploadFolder(folderInput.files)
+})
 
-// Create Solana signer instance
-const signer = new HexInjectedSolanaSigner(window.solana)
+// Example usage with drag and drop
+const dropZone = document.getElementById('drop-zone')
+dropZone.addEventListener('dragover', (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+})
 
-const turbo = await TurboFactory.authenticated({
-  signer,
-  token: 'solana',
+dropZone.addEventListener('drop', async (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+
+  const items = e.dataTransfer.items
+  const files = []
+
+  for (let item of items) {
+    if (item.kind === 'file') {
+      files.push(item.getAsFile())
+    }
+  }
+
+  await uploadFolder(files)
 })
 ```
 
 </CodeGroup>
 
-The authenticated client requires either a `privateKey` or a `signer`, along with the appropriate `token` type. The SDK supports the following token types:
+> **Important Notes**:
+>
+> 1. For single file uploads, always include a Content-Type tag to ensure proper file viewing
+> 2. The `fileStreamFactory` must return a NEW stream each time it's called
+> 3. Folder uploads automatically detect and set Content-Type tags for all files
+> 4. You can specify additional tags in `dataItemOpts` for both file and folder uploads
+> 5. The `maxConcurrentUploads` option controls how many files are uploaded simultaneously
+> 6. Use `throwOnFailure: true` to ensure all files are uploaded successfully
 
-- `arweave` (default)
-- `ethereum`
-- `solana`
-- `matic` (Polygon)
-- `kyve`
-- `base-eth` (Ethereum on Base, added in v1.23.0)
+## Complete Examples
 
-The client handles all necessary token conversions and fee calculations internally. After authentication, you'll need to purchase Turbo credits before uploading data.
+Here are complete examples showing how to authenticate, check balances, and handle lazy funding for uploads. These examples demonstrate the full workflow from start to finish.
+
+### Node.js Environment
+
+<CodeGroup title="Complete Node.js Example" id="complete-nodejs">
+
+```typescript {{ title: 'Arweave' }}
+import { TurboFactory } from '@ardrive/turbo-sdk'
+import fs from 'fs'
+import path from 'path'
+import mime from 'mime-types'
+import axios from 'axios'
+
+// Constants
+const FREE_UPLOAD_SIZE = 100 * 1024 // 100KB in bytes
+const PRICE_BUFFER = 1.1 // 10% buffer for price fluctuations
+
+// Initialize authenticated client
+const turbo = await TurboFactory.authenticated({ privateKey: jwk })
+
+// Function to get token price from CoinGecko
+const getTokenPrice = async (token: string) => {
+  const response = await axios.get(
+    `https://api.coingecko.com/api/v3/simple/price?ids=${token}&vs_currencies=usd`,
+  )
+  return response.data[token].usd
+}
+
+// Function to calculate required token amount
+const calculateTokenAmount = async (wincAmount: string, tokenType: string) => {
+  // Get fiat rates for 1 GiB
+  const fiatRates = await turbo.getFiatRates()
+  const usdPerGiB = fiatRates.usd
+
+  // Convert winc to GiB
+  const wincPerGiB = 1_000_000_000_000 // 1 GiB in winc
+  const requiredGiB = Number(wincAmount) / wincPerGiB
+  const requiredUsd = requiredGiB * usdPerGiB
+
+  // Get token price
+  const tokenPrice = await getTokenPrice(tokenType)
+  const tokenAmount = (requiredUsd / tokenPrice) * PRICE_BUFFER
+
+  return tokenAmount
+}
+
+// Function to check balance and fund if needed
+const ensureSufficientBalance = async (fileSize: number, tokenType: string) => {
+  // Check current balance
+  const balance = await turbo.getBalance()
+  const currentWinc = BigInt(balance.controlledWinc)
+
+  // If file is under 100KB, it's free
+  if (fileSize <= FREE_UPLOAD_SIZE) {
+    return true
+  }
+
+  // Get upload cost
+  const costs = await turbo.getUploadCosts({ bytes: [fileSize] })
+  const requiredWinc = BigInt(costs[0].winc)
+
+  // If we have enough balance, return true
+  if (currentWinc >= requiredWinc) {
+    return true
+  }
+
+  // Calculate and purchase required tokens
+  const tokenAmount = await calculateTokenAmount(
+    requiredWinc.toString(),
+    tokenType,
+  )
+
+  // Top up with tokens
+  await turbo.topUpWithTokens({
+    tokenAmount: tokenAmount,
+  })
+
+  return true
+}
+
+// Function to upload a file
+const uploadFile = async (filePath: string) => {
+  try {
+    // Get file info
+    const fileSize = fs.statSync(filePath).size
+    const mimeType = mime.lookup(filePath) || 'application/octet-stream'
+
+    // Ensure sufficient balance
+    await ensureSufficientBalance(fileSize, 'arweave')
+
+    // Upload file
+    const result = await turbo.uploadFile({
+      fileStreamFactory: () => fs.createReadStream(filePath),
+      fileSizeFactory: () => fileSize,
+      dataItemOpts: {
+        tags: [
+          {
+            name: 'Content-Type',
+            value: mimeType,
+          },
+        ],
+      },
+    })
+
+    console.log('File uploaded!', {
+      id: result.id,
+      url: `https://arweave.net/${result.id}`,
+      owner: result.owner,
+      dataCaches: result.dataCaches,
+    })
+
+    return result
+  } catch (error) {
+    console.error('Upload failed:', error)
+    throw error
+  }
+}
+
+// Example usage
+await uploadFile('./path/to/your/file.pdf')
+```
+
+```typescript {{ title: 'Ethereum' }}
+import { TurboFactory, EthereumSigner } from '@ardrive/turbo-sdk'
+import fs from 'fs'
+import path from 'path'
+import mime from 'mime-types'
+import axios from 'axios'
+import { BrowserProvider } from 'ethers'
+
+// Constants
+const FREE_UPLOAD_SIZE = 100 * 1024 // 100KB in bytes
+const PRICE_BUFFER = 1.1 // 10% buffer for price fluctuations
+const TURBO_ETH_ADDRESS = '0x6A0A10FFD285c971B841bee8892878c0d583Bf67'
+
+// Initialize authenticated client with Ethereum
+const privateKey = '0x1234...' // Your Ethereum private key
+const signer = new EthereumSigner(privateKey)
+const turbo = await TurboFactory.authenticated({
+  signer,
+  token: 'ethereum',
+})
+
+// Function to get token price from CoinGecko
+const getTokenPrice = async (token: string) => {
+  const response = await axios.get(
+    `https://api.coingecko.com/api/v3/simple/price?ids=${token}&vs_currencies=usd`,
+  )
+  return response.data[token].usd
+}
+
+// Function to calculate required token amount
+const calculateTokenAmount = async (wincAmount: string, tokenType: string) => {
+  // Get fiat rates for 1 GiB
+  const fiatRates = await turbo.getFiatRates()
+  const usdPerGiB = fiatRates.usd
+
+  // Convert winc to GiB
+  const wincPerGiB = 1_000_000_000_000 // 1 GiB in winc
+  const requiredGiB = Number(wincAmount) / wincPerGiB
+  const requiredUsd = requiredGiB * usdPerGiB
+
+  // Get token price
+  const tokenPrice = await getTokenPrice(tokenType)
+  const tokenAmount = (requiredUsd / tokenPrice) * PRICE_BUFFER
+
+  return tokenAmount
+}
+
+// Function to check balance and fund if needed
+const ensureSufficientBalance = async (fileSize: number, tokenType: string) => {
+  // Check current balance
+  const balance = await turbo.getBalance()
+  const currentWinc = BigInt(balance.controlledWinc)
+
+  // If file is under 100KB, it's free
+  if (fileSize <= FREE_UPLOAD_SIZE) {
+    return true
+  }
+
+  // Get upload cost
+  const costs = await turbo.getUploadCosts({ bytes: [fileSize] })
+  const requiredWinc = BigInt(costs[0].winc)
+
+  // If we have enough balance, return true
+  if (currentWinc >= requiredWinc) {
+    return true
+  }
+
+  // Calculate and purchase required tokens
+  const tokenAmount = await calculateTokenAmount(
+    requiredWinc.toString(),
+    tokenType,
+  )
+
+  // Top up with tokens
+  await turbo.topUpWithTokens({
+    tokenAmount: tokenAmount,
+  })
+
+  return true
+}
+
+// Function to upload a file
+const uploadFile = async (filePath: string) => {
+  try {
+    // Get file info
+    const fileSize = fs.statSync(filePath).size
+    const mimeType = mime.lookup(filePath) || 'application/octet-stream'
+
+    // Ensure sufficient balance
+    await ensureSufficientBalance(fileSize, 'ethereum')
+
+    // Upload file
+    const result = await turbo.uploadFile({
+      fileStreamFactory: () => fs.createReadStream(filePath),
+      fileSizeFactory: () => fileSize,
+      dataItemOpts: {
+        tags: [
+          {
+            name: 'Content-Type',
+            value: mimeType,
+          },
+        ],
+      },
+    })
+
+    console.log('File uploaded!', {
+      id: result.id,
+      url: `https://arweave.net/${result.id}`,
+      owner: result.owner,
+      dataCaches: result.dataCaches,
+    })
+
+    return result
+  } catch (error) {
+    console.error('Upload failed:', error)
+    throw error
+  }
+}
+
+// Example usage
+await uploadFile('./path/to/your/file.pdf')
+```
+
+```typescript {{ title: 'Polygon' }}
+import { TurboFactory, EthereumSigner } from '@ardrive/turbo-sdk'
+import fs from 'fs'
+import path from 'path'
+import mime from 'mime-types'
+import axios from 'axios'
+
+// Constants
+const FREE_UPLOAD_SIZE = 100 * 1024 // 100KB in bytes
+const PRICE_BUFFER = 1.1 // 10% buffer for price fluctuations
+
+// Initialize authenticated client with Polygon
+const privateKey = '0x1234...' // Your Polygon private key
+const signer = new EthereumSigner(privateKey)
+const turbo = await TurboFactory.authenticated({
+  signer,
+  token: 'matic', // or 'pol'
+})
+
+// Function to get token price from CoinGecko
+const getTokenPrice = async (token: string) => {
+  const response = await axios.get(
+    `https://api.coingecko.com/api/v3/simple/price?ids=${token}&vs_currencies=usd`,
+  )
+  return response.data[token].usd
+}
+
+// Function to calculate required token amount
+const calculateTokenAmount = async (wincAmount: string, tokenType: string) => {
+  // Get fiat rates for 1 GiB
+  const fiatRates = await turbo.getFiatRates()
+  const usdPerGiB = fiatRates.usd
+
+  // Convert winc to GiB
+  const wincPerGiB = 1_000_000_000_000 // 1 GiB in winc
+  const requiredGiB = Number(wincAmount) / wincPerGiB
+  const requiredUsd = requiredGiB * usdPerGiB
+
+  // Get token price
+  const tokenPrice = await getTokenPrice(tokenType)
+  const tokenAmount = (requiredUsd / tokenPrice) * PRICE_BUFFER
+
+  return tokenAmount
+}
+
+// Function to check balance and fund if needed
+const ensureSufficientBalance = async (fileSize: number, tokenType: string) => {
+  // Check current balance
+  const balance = await turbo.getBalance()
+  const currentWinc = BigInt(balance.controlledWinc)
+
+  // If file is under 100KB, it's free
+  if (fileSize <= FREE_UPLOAD_SIZE) {
+    return true
+  }
+
+  // Get upload cost
+  const costs = await turbo.getUploadCosts({ bytes: [fileSize] })
+  const requiredWinc = BigInt(costs[0].winc)
+
+  // If we have enough balance, return true
+  if (currentWinc >= requiredWinc) {
+    return true
+  }
+
+  // Calculate and purchase required tokens
+  const tokenAmount = await calculateTokenAmount(
+    requiredWinc.toString(),
+    tokenType,
+  )
+
+  // Top up with tokens
+  await turbo.topUpWithTokens({
+    tokenAmount: tokenAmount,
+  })
+
+  return true
+}
+
+// Function to upload a file
+const uploadFile = async (filePath: string) => {
+  try {
+    // Get file info
+    const fileSize = fs.statSync(filePath).size
+    const mimeType = mime.lookup(filePath) || 'application/octet-stream'
+
+    // Ensure sufficient balance
+    await ensureSufficientBalance(fileSize, 'matic')
+
+    // Upload file
+    const result = await turbo.uploadFile({
+      fileStreamFactory: () => fs.createReadStream(filePath),
+      fileSizeFactory: () => fileSize,
+      dataItemOpts: {
+        tags: [
+          {
+            name: 'Content-Type',
+            value: mimeType,
+          },
+        ],
+      },
+    })
+
+    console.log('File uploaded!', {
+      id: result.id,
+      url: `https://arweave.net/${result.id}`,
+      owner: result.owner,
+      dataCaches: result.dataCaches,
+    })
+
+    return result
+  } catch (error) {
+    console.error('Upload failed:', error)
+    throw error
+  }
+}
+
+// Example usage
+await uploadFile('./path/to/your/file.pdf')
+```
+
+```typescript {{ title: 'KYVE' }}
+import { TurboFactory } from '@ardrive/turbo-sdk'
+import fs from 'fs'
+import path from 'path'
+import mime from 'mime-types'
+import axios from 'axios'
+
+// Constants
+const FREE_UPLOAD_SIZE = 100 * 1024 // 100KB in bytes
+const PRICE_BUFFER = 1.1 // 10% buffer for price fluctuations
+
+// Initialize authenticated client with KYVE
+const privateKey = '0x1234...' // Your KYVE private key
+const turbo = await TurboFactory.authenticated({
+  privateKey,
+  token: 'kyve',
+})
+
+// Function to get token price from CoinGecko
+const getTokenPrice = async (token: string) => {
+  const response = await axios.get(
+    `https://api.coingecko.com/api/v3/simple/price?ids=${token}&vs_currencies=usd`,
+  )
+  return response.data[token].usd
+}
+
+// Function to calculate required token amount
+const calculateTokenAmount = async (wincAmount: string, tokenType: string) => {
+  // Get fiat rates for 1 GiB
+  const fiatRates = await turbo.getFiatRates()
+  const usdPerGiB = fiatRates.usd
+
+  // Convert winc to GiB
+  const wincPerGiB = 1_000_000_000_000 // 1 GiB in winc
+  const requiredGiB = Number(wincAmount) / wincPerGiB
+  const requiredUsd = requiredGiB * usdPerGiB
+
+  // Get token price
+  const tokenPrice = await getTokenPrice(tokenType)
+  const tokenAmount = (requiredUsd / tokenPrice) * PRICE_BUFFER
+
+  return tokenAmount
+}
+
+// Function to check balance and fund if needed
+const ensureSufficientBalance = async (fileSize: number, tokenType: string) => {
+  // Check current balance
+  const balance = await turbo.getBalance()
+  const currentWinc = BigInt(balance.controlledWinc)
+
+  // If file is under 100KB, it's free
+  if (fileSize <= FREE_UPLOAD_SIZE) {
+    return true
+  }
+
+  // Get upload cost
+  const costs = await turbo.getUploadCosts({ bytes: [fileSize] })
+  const requiredWinc = BigInt(costs[0].winc)
+
+  // If we have enough balance, return true
+  if (currentWinc >= requiredWinc) {
+    return true
+  }
+
+  // Calculate and purchase required tokens
+  const tokenAmount = await calculateTokenAmount(
+    requiredWinc.toString(),
+    tokenType,
+  )
+
+  // Top up with tokens
+  await turbo.topUpWithTokens({
+    tokenAmount: tokenAmount,
+  })
+
+  return true
+}
+
+// Function to upload a file
+const uploadFile = async (filePath: string) => {
+  try {
+    // Get file info
+    const fileSize = fs.statSync(filePath).size
+    const mimeType = mime.lookup(filePath) || 'application/octet-stream'
+
+    // Ensure sufficient balance
+    await ensureSufficientBalance(fileSize, 'kyve')
+
+    // Upload file
+    const result = await turbo.uploadFile({
+      fileStreamFactory: () => fs.createReadStream(filePath),
+      fileSizeFactory: () => fileSize,
+      dataItemOpts: {
+        tags: [
+          {
+            name: 'Content-Type',
+            value: mimeType,
+          },
+        ],
+      },
+    })
+
+    console.log('File uploaded!', {
+      id: result.id,
+      url: `https://arweave.net/${result.id}`,
+      owner: result.owner,
+      dataCaches: result.dataCaches,
+    })
+
+    return result
+  } catch (error) {
+    console.error('Upload failed:', error)
+    throw error
+  }
+}
+
+// Example usage
+await uploadFile('./path/to/your/file.pdf')
+```
+
+</CodeGroup>
+
+### Browser Environment
+
+<CodeGroup title="Complete Browser Example" id="complete-browser">
+
+```typescript {{ title: 'Arweave (ArConnect)' }}
+import { TurboFactory } from '@ardrive/turbo-sdk/web'
+import Arweave from 'arweave'
+import axios from 'axios'
+
+// Constants
+const FREE_UPLOAD_SIZE = 100 * 1024 // 100KB in bytes
+const PRICE_BUFFER = 1.1 // 10% buffer for price fluctuations
+const TURBO_AR_ADDRESS = 'JNC6vBhjHY1EPwV3pEeNmrsgFMxH5d38_LHsZ7jful8'
+
+// Initialize authenticated client with ArConnect
+if (!window.arweaveWallet) {
+  throw new Error('Please install ArConnect')
+}
+
+// Initialize Arweave
+const arweave = Arweave.init({
+  host: 'arweave.net',
+  port: 443,
+  protocol: 'https'
+})
+
+const turbo = await TurboFactory.authenticated({
+  privateKey: window.arweaveWallet,
+  token: 'arweave'
+})
+
+// Function to get token price from CoinGecko
+const getTokenPrice = async (token: string) => {
+  const response = await axios.get(
+    `https://api.coingecko.com/api/v3/simple/price?ids=${token}&vs_currencies=usd`
+  )
+  return response.data[token].usd
+}
+
+// Function to calculate required token amount
+const calculateTokenAmount = async (
+  wincAmount: string,
+  tokenType: string
+) => {
+  // Get fiat rates for 1 GiB
+  const fiatRates = await turbo.getFiatRates()
+  const usdPerGiB = fiatRates.usd
+
+  // Convert winc to GiB
+  const wincPerGiB = 1_000_000_000_000 // 1 GiB in winc
+  const requiredGiB = Number(wincAmount) / wincPerGiB
+  const requiredUsd = requiredGiB * usdPerGiB
+
+  // Get token price
+  const tokenPrice = await getTokenPrice(tokenType)
+  const tokenAmount = (requiredUsd / tokenPrice) * PRICE_BUFFER
+
+  return tokenAmount
+}
+
+// Function to check balance and fund if needed
+const ensureSufficientBalance = async (
+  fileSize: number,
+  tokenType: string
+) => {
+  // Check current balance
+  const balance = await turbo.getBalance()
+  const currentWinc = BigInt(balance.controlledWinc)
+
+  // If file is under 100KB, it's free
+  if (fileSize <= FREE_UPLOAD_SIZE) {
+    return true
+  }
+
+  // Get upload cost
+  const costs = await turbo.getUploadCosts({ bytes: [fileSize] })
+  const requiredWinc = BigInt(costs[0].winc)
+
+  // If we have enough balance, return true
+  if (currentWinc >= requiredWinc) {
+    return true
+  }
+
+  // Calculate and purchase required tokens
+  const tokenAmount = await calculateTokenAmount(
+    requiredWinc.toString(),
+    tokenType
+  )
+
+  // Create transaction
+  const transaction = await arweave.createTransaction({
+    target: TURBO_AR_ADDRESS,
+    quantity: arweave.ar.arToWinston(tokenAmount.toString())
+  })
+
+  // Sign and post transaction
+  await window.arweaveWallet.sign(transaction)
+  await arweave.transactions.post(transaction)
+
+  // Wait for confirmation (typically 30-36 minutes)
+  await new Promise((resolve) => setTimeout(resolve, 36 * 60 * 1000))
+
+  // Submit transaction to Turbo
+  await turbo.submitFundTransaction({
+    txId: transaction.id
+  })
+
+  return true
+}
+
+// Function to upload a file
+const uploadFile = async (file: File) => {
+  try {
+    // Ensure sufficient balance
+    await ensureSufficientBalance(file.size, 'arweave')
+
+    // Upload file
+    const result = await turbo.uploadFile({
+      fileStreamFactory: () => file.stream(),
+      fileSizeFactory: () => file.size,
+      dataItemOpts: {
+        tags: [
+          {
+            name: 'Content-Type',
+            value: file.type || 'application/octet-stream'
+          }
+        ]
+      }
+    })
+
+    console.log('File uploaded!', {
+      id: result.id,
+      url: `https://arweave.net/${result.id}`,
+      owner: result.owner,
+      dataCaches: result.dataCaches
+    })
+
+    return result
+  } catch (error) {
+    console.error('Upload failed:', error)
+    throw error
+  }
+}
+
+// HTML input element
+<input
+  type="file"
+  id="file-input"
+  accept="image/*,video/*,audio/*,.pdf,.txt"
+/>
+
+// Example usage with file input
+const fileInput = document.getElementById('file-input')
+fileInput.addEventListener('change', async (event) => {
+  const file = fileInput.files[0]
+  if (!file) return
+  await uploadFile(file)
+})
+
+// Example usage with drag and drop
+const dropZone = document.getElementById('drop-zone')
+dropZone.addEventListener('dragover', (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  dropZone.classList.add('drag-over')
+})
+
+dropZone.addEventListener('dragleave', (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  dropZone.classList.remove('drag-over')
+})
+
+dropZone.addEventListener('drop', async (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  dropZone.classList.remove('drag-over')
+
+  const file = e.dataTransfer.files[0]
+  if (!file) return
+
+  await uploadFile(file)
+})
+```
+
+```typescript {{ title: 'Ethereum (MetaMask)' }}
+import { TurboFactory } from '@ardrive/turbo-sdk/web'
+import { BrowserProvider } from 'ethers'
+import axios from 'axios'
+
+// Constants
+const FREE_UPLOAD_SIZE = 100 * 1024 // 100KB in bytes
+const PRICE_BUFFER = 1.1 // 10% buffer for price fluctuations
+const TURBO_ETH_ADDRESS = '0x6A0A10FFD285c971B841bee8892878c0d583Bf67'
+
+// Initialize authenticated client with MetaMask
+if (!window.ethereum) {
+  throw new Error('Please install MetaMask')
+}
+
+// Get provider and signer
+const provider = new BrowserProvider(window.ethereum)
+const signer = await provider.getSigner()
+
+const turbo = await TurboFactory.authenticated({
+  signer,
+  token: 'ethereum'
+})
+
+// Function to get token price from CoinGecko
+const getTokenPrice = async (token: string) => {
+  const response = await axios.get(
+    `https://api.coingecko.com/api/v3/simple/price?ids=${token}&vs_currencies=usd`
+  )
+  return response.data[token].usd
+}
+
+// Function to calculate required token amount
+const calculateTokenAmount = async (
+  wincAmount: string,
+  tokenType: string
+) => {
+  // Get fiat rates for 1 GiB
+  const fiatRates = await turbo.getFiatRates()
+  const usdPerGiB = fiatRates.usd
+
+  // Convert winc to GiB
+  const wincPerGiB = 1_000_000_000_000 // 1 GiB in winc
+  const requiredGiB = Number(wincAmount) / wincPerGiB
+  const requiredUsd = requiredGiB * usdPerGiB
+
+  // Get token price
+  const tokenPrice = await getTokenPrice(tokenType)
+  const tokenAmount = (requiredUsd / tokenPrice) * PRICE_BUFFER
+
+  return tokenAmount
+}
+
+// Function to check balance and fund if needed
+const ensureSufficientBalance = async (
+  fileSize: number,
+  tokenType: string
+) => {
+  // Check current balance
+  const balance = await turbo.getBalance()
+  const currentWinc = BigInt(balance.controlledWinc)
+
+  // If file is under 100KB, it's free
+  if (fileSize <= FREE_UPLOAD_SIZE) {
+    return true
+  }
+
+  // Get upload cost
+  const costs = await turbo.getUploadCosts({ bytes: [fileSize] })
+  const requiredWinc = BigInt(costs[0].winc)
+
+  // If we have enough balance, return true
+  if (currentWinc >= requiredWinc) {
+    return true
+  }
+
+  // Calculate and purchase required tokens
+  const tokenAmount = await calculateTokenAmount(
+    requiredWinc.toString(),
+    tokenType
+  )
+
+  // Send ETH to Turbo address
+  const tx = await signer.sendTransaction({
+    to: TURBO_ETH_ADDRESS,
+    value: ethers.parseEther(tokenAmount.toString())
+  })
+
+  // Wait for confirmation (typically 10-20 minutes)
+  const receipt = await tx.wait()
+
+  // Submit transaction to Turbo
+  await turbo.submitFundTransaction({
+    txId: receipt.hash
+  })
+
+  return true
+}
+
+// Function to upload a file
+const uploadFile = async (file: File) => {
+  try {
+    // Ensure sufficient balance
+    await ensureSufficientBalance(file.size, 'ethereum')
+
+    // Upload file
+    const result = await turbo.uploadFile({
+      fileStreamFactory: () => file.stream(),
+      fileSizeFactory: () => file.size,
+      dataItemOpts: {
+        tags: [
+          {
+            name: 'Content-Type',
+            value: file.type || 'application/octet-stream'
+          }
+        ]
+      }
+    })
+
+    console.log('File uploaded!', {
+      id: result.id,
+      url: `https://arweave.net/${result.id}`,
+      owner: result.owner,
+      dataCaches: result.dataCaches
+    })
+
+    return result
+  } catch (error) {
+    console.error('Upload failed:', error)
+    throw error
+  }
+}
+
+// HTML input element
+<input
+  type="file"
+  id="file-input"
+  accept="image/*,video/*,audio/*,.pdf,.txt"
+/>
+
+// Example usage with file input
+const fileInput = document.getElementById('file-input')
+fileInput.addEventListener('change', async (event) => {
+  const file = fileInput.files[0]
+  if (!file) return
+  await uploadFile(file)
+})
+
+// Example usage with drag and drop
+const dropZone = document.getElementById('drop-zone')
+dropZone.addEventListener('dragover', (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  dropZone.classList.add('drag-over')
+})
+
+dropZone.addEventListener('dragleave', (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  dropZone.classList.remove('drag-over')
+})
+
+dropZone.addEventListener('drop', async (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  dropZone.classList.remove('drag-over')
+
+  const file = e.dataTransfer.files[0]
+  if (!file) return
+
+  await uploadFile(file)
+})
+```
+
+```typescript {{ title: 'Polygon (MetaMask)' }}
+import { TurboFactory } from '@ardrive/turbo-sdk/web'
+import { BrowserProvider } from 'ethers'
+import axios from 'axios'
+
+// Constants
+const FREE_UPLOAD_SIZE = 100 * 1024 // 100KB in bytes
+const PRICE_BUFFER = 1.1 // 10% buffer for price fluctuations
+const TURBO_MATIC_ADDRESS = '0x6A0A10FFD285c971B841bee8892878c0d583Bf67'
+
+// Initialize authenticated client with MetaMask
+if (!window.ethereum) {
+  throw new Error('Please install MetaMask')
+}
+
+// Get provider and signer
+const provider = new BrowserProvider(window.ethereum)
+const signer = await provider.getSigner()
+
+const turbo = await TurboFactory.authenticated({
+  signer,
+  token: 'matic' // or 'pol'
+})
+
+// Function to get token price from CoinGecko
+const getTokenPrice = async (token: string) => {
+  const response = await axios.get(
+    `https://api.coingecko.com/api/v3/simple/price?ids=${token}&vs_currencies=usd`
+  )
+  return response.data[token].usd
+}
+
+// Function to calculate required token amount
+const calculateTokenAmount = async (
+  wincAmount: string,
+  tokenType: string
+) => {
+  // Get fiat rates for 1 GiB
+  const fiatRates = await turbo.getFiatRates()
+  const usdPerGiB = fiatRates.usd
+
+  // Convert winc to GiB
+  const wincPerGiB = 1_000_000_000_000 // 1 GiB in winc
+  const requiredGiB = Number(wincAmount) / wincPerGiB
+  const requiredUsd = requiredGiB * usdPerGiB
+
+  // Get token price
+  const tokenPrice = await getTokenPrice(tokenType)
+  const tokenAmount = (requiredUsd / tokenPrice) * PRICE_BUFFER
+
+  return tokenAmount
+}
+
+// Function to check balance and fund if needed
+const ensureSufficientBalance = async (
+  fileSize: number,
+  tokenType: string
+) => {
+  // Check current balance
+  const balance = await turbo.getBalance()
+  const currentWinc = BigInt(balance.controlledWinc)
+
+  // If file is under 100KB, it's free
+  if (fileSize <= FREE_UPLOAD_SIZE) {
+    return true
+  }
+
+  // Get upload cost
+  const costs = await turbo.getUploadCosts({ bytes: [fileSize] })
+  const requiredWinc = BigInt(costs[0].winc)
+
+  // If we have enough balance, return true
+  if (currentWinc >= requiredWinc) {
+    return true
+  }
+
+  // Calculate and purchase required tokens
+  const tokenAmount = await calculateTokenAmount(
+    requiredWinc.toString(),
+    tokenType,
+  )
+
+  // Send MATIC to Turbo address
+  const tx = await signer.sendTransaction({
+    to: TURBO_MATIC_ADDRESS,
+    value: ethers.parseEther(tokenAmount.toString())
+  })
+
+  // Wait for confirmation (typically 2-3 seconds)
+  const receipt = await tx.wait()
+
+  // Submit transaction to Turbo
+  await turbo.submitFundTransaction({
+    txId: receipt.hash
+  })
+
+  return true
+}
+
+// Function to upload a file
+const uploadFile = async (file: File) => {
+  try {
+    // Ensure sufficient balance
+    await ensureSufficientBalance(file.size, 'matic')
+
+    // Upload file
+    const result = await turbo.uploadFile({
+      fileStreamFactory: () => file.stream(),
+      fileSizeFactory: () => file.size,
+      dataItemOpts: {
+        tags: [
+          {
+            name: 'Content-Type',
+            value: file.type || 'application/octet-stream'
+          }
+        ]
+      }
+    })
+
+    console.log('File uploaded!', {
+      id: result.id,
+      url: `https://arweave.net/${result.id}`,
+      owner: result.owner,
+      dataCaches: result.dataCaches
+    })
+
+    return result
+  } catch (error) {
+    console.error('Upload failed:', error)
+    throw error
+  }
+}
+
+// HTML input element
+<input
+  type="file"
+  id="file-input"
+  accept="image/*,video/*,audio/*,.pdf,.txt"
+/>
+
+// Example usage with file input
+const fileInput = document.getElementById('file-input')
+fileInput.addEventListener('change', async (event) => {
+  const file = fileInput.files[0]
+  if (!file) return
+  await uploadFile(file)
+})
+
+// Example usage with drag and drop
+const dropZone = document.getElementById('drop-zone')
+dropZone.addEventListener('dragover', (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  dropZone.classList.add('drag-over')
+})
+
+dropZone.addEventListener('dragleave', (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  dropZone.classList.remove('drag-over')
+})
+
+dropZone.addEventListener('drop', async (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  dropZone.classList.remove('drag-over')
+
+  const file = e.dataTransfer.files[0]
+  if (!file) return
+
+  await uploadFile(file)
+})
+```
+
+```typescript {{ title: 'KYVE (Keplr)' }}
+import { TurboFactory } from '@ardrive/turbo-sdk/web'
+import axios from 'axios'
+
+// Constants
+const FREE_UPLOAD_SIZE = 100 * 1024 // 100KB in bytes
+const PRICE_BUFFER = 1.1 // 10% buffer for price fluctuations
+const TURBO_KYVE_ADDRESS = 'kyve1...' // Your KYVE wallet address
+
+// Initialize authenticated client with Keplr
+if (!window.keplr) {
+  throw new Error('Please install Keplr')
+}
+
+// Enable KYVE chain
+await window.keplr.enable('kyve-1')
+
+// Get offline signer
+const offlineSigner = window.keplr.getOfflineSigner('kyve-1')
+const accounts = await offlineSigner.getAccounts()
+
+const turbo = await TurboFactory.authenticated({
+  privateKey: accounts[0].address,
+  token: 'kyve'
+})
+
+// Function to get token price from CoinGecko
+const getTokenPrice = async (token: string) => {
+  const response = await axios.get(
+    `https://api.coingecko.com/api/v3/simple/price?ids=${token}&vs_currencies=usd`
+  )
+  return response.data[token].usd
+}
+
+// Function to calculate required token amount
+const calculateTokenAmount = async (
+  wincAmount: string,
+  tokenType: string
+) => {
+  // Get fiat rates for 1 GiB
+  const fiatRates = await turbo.getFiatRates()
+  const usdPerGiB = fiatRates.usd
+
+  // Convert winc to GiB
+  const wincPerGiB = 1_000_000_000_000 // 1 GiB in winc
+  const requiredGiB = Number(wincAmount) / wincPerGiB
+  const requiredUsd = requiredGiB * usdPerGiB
+
+  // Get token price
+  const tokenPrice = await getTokenPrice(tokenType)
+  const tokenAmount = (requiredUsd / tokenPrice) * PRICE_BUFFER
+
+  return tokenAmount
+}
+
+// Function to check balance and fund if needed
+const ensureSufficientBalance = async (
+  fileSize: number,
+  tokenType: string
+) => {
+  // Check current balance
+  const balance = await turbo.getBalance()
+  const currentWinc = BigInt(balance.controlledWinc)
+
+  // If file is under 100KB, it's free
+  if (fileSize <= FREE_UPLOAD_SIZE) {
+    return true
+  }
+
+  // Get upload cost
+  const costs = await turbo.getUploadCosts({ bytes: [fileSize] })
+  const requiredWinc = BigInt(costs[0].winc)
+
+  // If we have enough balance, return true
+  if (currentWinc >= requiredWinc) {
+    return true
+  }
+
+  // Calculate and purchase required tokens
+  const tokenAmount = await calculateTokenAmount(
+    requiredWinc.toString(),
+    tokenType
+  )
+
+  // Create and sign transaction
+  const tx = await window.keplr.signAmino(
+    'kyve-1',
+    accounts[0].address,
+    {
+      chain_id: 'kyve-1',
+      account_number: '0',
+      sequence: '0',
+      fee: {
+        amount: [],
+        gas: '200000'
+      },
+      msgs: [
+        {
+          type: 'cosmos-sdk/MsgSend',
+          value: {
+            from_address: accounts[0].address,
+            to_address: TURBO_KYVE_ADDRESS,
+            amount: [
+              {
+                denom: 'ukyve',
+                amount: (tokenAmount * 1e6).toString() // Convert to ukyve
+              }
+            ]
+          }
+        }
+      ],
+      memo: ''
+    }
+  )
+
+  // Wait for confirmation (typically 5 minutes)
+  await new Promise((resolve) => setTimeout(resolve, 5 * 60 * 1000))
+
+  // Submit transaction to Turbo
+  await turbo.submitFundTransaction({
+    txId: tx.signature
+  })
+
+  return true
+}
+
+// Function to upload a file
+const uploadFile = async (file: File) => {
+  try {
+    // Ensure sufficient balance
+    await ensureSufficientBalance(file.size, 'kyve')
+
+    // Upload file
+    const result = await turbo.uploadFile({
+      fileStreamFactory: () => file.stream(),
+      fileSizeFactory: () => file.size,
+      dataItemOpts: {
+        tags: [
+          {
+            name: 'Content-Type',
+            value: file.type || 'application/octet-stream'
+          }
+        ]
+      }
+    })
+
+    console.log('File uploaded!', {
+      id: result.id,
+      url: `https://arweave.net/${result.id}`,
+      owner: result.owner,
+      dataCaches: result.dataCaches
+    })
+
+    return result
+  } catch (error) {
+    console.error('Upload failed:', error)
+    throw error
+  }
+}
+
+// HTML input element
+<input
+  type="file"
+  id="file-input"
+  accept="image/*,video/*,audio/*,.pdf,.txt"
+/>
+
+// Example usage with file input
+const fileInput = document.getElementById('file-input')
+fileInput.addEventListener('change', async (event) => {
+  const file = fileInput.files[0]
+  if (!file) return
+  await uploadFile(file)
+})
+
+// Example usage with drag and drop
+const dropZone = document.getElementById('drop-zone')
+dropZone.addEventListener('dragover', (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  dropZone.classList.add('drag-over')
+})
+
+dropZone.addEventListener('dragleave', (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  dropZone.classList.remove('drag-over')
+})
+
+dropZone.addEventListener('drop', async (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  dropZone.classList.remove('drag-over')
+
+  const file = e.dataTransfer.files[0]
+  if (!file) return
+
+  await uploadFile(file)
+})
+```
+
+```typescript {{ title: 'Solana (Phantom)' }}
+import { TurboFactory } from '@ardrive/turbo-sdk/web'
+import { PublicKey, Transaction, SystemProgram } from '@solana/web3.js'
+
+const TURBO_SOL_ADDRESS = 'HepiT2k93CFQaSB7i3ZNXhybZKn5MeWiv3UkLsaJKk4i'
+const SOL_AMOUNT = 0.0001 // Amount in SOL
+
+// Function to send SOL and wait for confirmation
+const sendSolToTurbo = async () => {
+  if (!window.solana) {
+    throw new Error('Please install Phantom')
+  }
+
+  // Connect to wallet
+  await window.solana.connect()
+  const provider = window.solana
+
+  // Create transaction
+  const transaction = new Transaction().add(
+    SystemProgram.transfer({
+      fromPubkey: provider.publicKey,
+      toPubkey: new PublicKey(TURBO_SOL_ADDRESS),
+      lamports: SOL_AMOUNT * 1e9, // Convert to lamports
+    }),
+  )
+
+  // Send and confirm transaction
+  const { signature } = await provider.signAndSendTransaction(transaction)
+  return signature
+}
+
+// Function to submit transaction with retries
+const submitTransactionWithRetries = async (txId, maxRetries = 3) => {
+  let retries = 0
+  while (retries < maxRetries) {
+    try {
+      const response = await turbo.submitFundTransaction({ txId })
+      return response
+    } catch (error) {
+      retries++
+      if (retries === maxRetries) throw error
+      // Wait 30 seconds before retrying
+      await new Promise((resolve) => setTimeout(resolve, 30000))
+    }
+  }
+}
+
+// Complete top-up process
+const topUpWithSol = async () => {
+  try {
+    // Send SOL and get transaction signature
+    const txId = await sendSolToTurbo()
+    console.log('Transaction sent:', txId)
+
+    // Wait 600ms for chain settlement
+    await new Promise((resolve) => setTimeout(resolve, 600))
+
+    // Submit transaction with retries
+    const response = await submitTransactionWithRetries(txId)
+    console.log('Credits added:', response)
+  } catch (error) {
+    console.error('Top-up failed:', error)
+  }
+}
+```
+
+```typescript {{ title: 'Base (MetaMask)' }}
+import { TurboFactory, EthereumSigner } from '@ardrive/turbo-sdk'
+import fs from 'fs'
+import path from 'path'
+import mime from 'mime-types'
+import axios from 'axios'
+
+// Constants
+const FREE_UPLOAD_SIZE = 100 * 1024 // 100KB in bytes
+const PRICE_BUFFER = 1.1 // 10% buffer for price fluctuations
+
+// Initialize authenticated client with Base
+const privateKey = '0x1234...' // Your Base private key
+const signer = new EthereumSigner(privateKey)
+const turbo = await TurboFactory.authenticated({
+  signer,
+  token: 'base-eth',
+})
+
+// Function to get token price from CoinGecko
+const getTokenPrice = async (token: string) => {
+  const response = await axios.get(
+    `https://api.coingecko.com/api/v3/simple/price?ids=${token}&vs_currencies=usd`,
+  )
+  return response.data[token].usd
+}
+
+// Function to calculate required token amount
+const calculateTokenAmount = async (wincAmount: string, tokenType: string) => {
+  // Get fiat rates for 1 GiB
+  const fiatRates = await turbo.getFiatRates()
+  const usdPerGiB = fiatRates.usd
+
+  // Convert winc to GiB
+  const wincPerGiB = 1_000_000_000_000 // 1 GiB in winc
+  const requiredGiB = Number(wincAmount) / wincPerGiB
+  const requiredUsd = requiredGiB * usdPerGiB
+
+  // Get token price
+  const tokenPrice = await getTokenPrice(tokenType)
+  const tokenAmount = (requiredUsd / tokenPrice) * PRICE_BUFFER
+
+  return tokenAmount
+}
+
+// Function to check balance and fund if needed
+const ensureSufficientBalance = async (fileSize: number, tokenType: string) => {
+  // Check current balance
+  const balance = await turbo.getBalance()
+  const currentWinc = BigInt(balance.controlledWinc)
+
+  // If file is under 100KB, it's free
+  if (fileSize <= FREE_UPLOAD_SIZE) {
+    return true
+  }
+
+  // Get upload cost
+  const costs = await turbo.getUploadCosts({ bytes: [fileSize] })
+  const requiredWinc = BigInt(costs[0].winc)
+
+  // If we have enough balance, return true
+  if (currentWinc >= requiredWinc) {
+    return true
+  }
+
+  // Calculate and purchase required tokens
+  const tokenAmount = await calculateTokenAmount(
+    requiredWinc.toString(),
+    tokenType,
+  )
+
+  // Top up with tokens
+  await turbo.topUpWithTokens({
+    tokenAmount: tokenAmount,
+  })
+
+  return true
+}
+
+// Function to upload a file
+const uploadFile = async (filePath: string) => {
+  try {
+    // Get file info
+    const fileSize = fs.statSync(filePath).size
+    const mimeType = mime.lookup(filePath) || 'application/octet-stream'
+
+    // Ensure sufficient balance
+    await ensureSufficientBalance(fileSize, 'ethereum')
+
+    // Upload file
+    const result = await turbo.uploadFile({
+      fileStreamFactory: () => fs.createReadStream(filePath),
+      fileSizeFactory: () => fileSize,
+      dataItemOpts: {
+        tags: [
+          {
+            name: 'Content-Type',
+            value: mimeType,
+          },
+        ],
+      },
+    })
+
+    console.log('File uploaded!', {
+      id: result.id,
+      url: `https://arweave.net/${result.id}`,
+      owner: result.owner,
+      dataCaches: result.dataCaches,
+    })
+
+    return result
+  } catch (error) {
+    console.error('Upload failed:', error)
+    throw error
+  }
+}
+
+// Example usage
+await uploadFile('./path/to/your/file.pdf')
+```
+
+</CodeGroup>
