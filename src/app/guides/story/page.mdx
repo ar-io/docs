@@ -1,0 +1,469 @@
+import {HeroPattern} from "@/components/HeroPattern"
+import { CodeGroup } from '@/components/Code'
+
+export const metadata = {
+  title: 'Register an IP Asset on Arweave',
+  description: 'Learn how to register an IP asset on Story Protocol and make it accessible on Arweave',
+}
+
+<HeroPattern />
+
+# Registering Story Protocol IP Assets with Arweave Metadata using Turbo
+
+> Utilize the speed and reliability of ArDrive Turbo to store metadata for Story Protocol IP Assets permanently on Arweave.
+
+Story Protocol enables the registration and management of intellectual property (IP) on-chain. A crucial part of this process involves linking metadata to your IP Assets. While various storage solutions exist, Arweave offers permanent, decentralized storage, making it an ideal choice for valuable IP metadata.
+
+This guide demonstrates how to use the ArDrive Turbo SDK to efficiently upload IP Asset metadata to Arweave and register it with the Story Protocol TypeScript SDK.
+
+## Prerequisites
+
+Before you begin, ensure you have the following:
+
+*   **Node.js:** Version 18 or later. Download from [nodejs.org](https://nodejs.org).
+*   **npm/pnpm/yarn:** A compatible package manager.
+*   **Arweave Wallet:** A `wallet.json` file. Generate one using tools like the [Wander](https://wander.app/) browser extension. Keep this file secure and **do not commit it to version control**.
+*   **Turbo Credits:** Your Arweave wallet must be funded with Turbo credits to pay for uploads. Top up at [https://turbo-topup.com](https://turbo-topup.com).
+*   **Story Protocol Account:** An Ethereum-compatible private key (`WALLET_PRIVATE_KEY`) and an RPC Provider URL (`RPC_PROVIDER_URL`) for the desired Story Protocol network (e.g., Aeneid testnet) stored in a `.env` file.
+*   **TypeScript Environment:** You'll need to execute TypeScript code, so make sure you have `ts-node` installed globally (`npm install -g ts-node`) or as a dev dependency.
+
+## Setup
+
+### 1. Install Dependencies
+
+First, set up a new project directory and install the necessary SDKs:
+
+```bash
+mkdir story-arweave-project
+cd story-arweave-project
+```
+
+Then install the required dependencies:
+
+<CodeGroup title="Installation Methods">
+
+```bash {{ title: 'npm' }}
+npm install --save @ardrive/turbo-sdk @story-protocol/core-sdk viem dotenv ts-node typescript
+```
+
+```bash {{ title: 'pnpm' }}
+pnpm install @ardrive/turbo-sdk @story-protocol/core-sdk viem dotenv ts-node typescript
+```
+
+```bash {{ title: 'yarn' }}
+yarn add @ardrive/turbo-sdk @story-protocol/core-sdk viem dotenv ts-node typescript
+```
+
+</CodeGroup>
+
+### 2. Project Setup
+
+Create the following files in your project:
+
+1. `.env` file (in the project root):
+```
+WALLET_PRIVATE_KEY=your_ethereum_private_key_without_0x_prefix
+RPC_PROVIDER_URL=your_ethereum_rpc_provider_url
+```
+
+2. Place your Arweave `wallet.json` file in the project root.
+
+3. Create a `tsconfig.json` file in the project root:
+```json
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "commonjs",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true
+  }
+}
+```
+
+### 3. Initialize SDK Clients
+
+Create a configuration file to set up and export both the Turbo and Story clients:
+
+```typescript utils/clients.ts
+import { TurboFactory, TurboAuthenticatedClient } from "@ardrive/turbo-sdk";
+import { StoryClient, StoryConfig } from "@story-protocol/core-sdk";
+import { http } from "viem";
+import { Account, privateKeyToAccount, Address } from "viem/accounts";
+import fs from 'fs';
+import path from 'path';
+import 'dotenv/config';
+
+// --- Environment Variable Loading ---
+const privateKeyEnv = process.env.WALLET_PRIVATE_KEY;
+const rpcProviderUrlEnv = process.env.RPC_PROVIDER_URL;
+const walletPath = path.resolve(process.cwd(), 'wallet.json'); // Assumes wallet.json is in the project root
+
+// --- Validations ---
+if (!privateKeyEnv) {
+  throw new Error("WALLET_PRIVATE_KEY is not set in the .env file");
+}
+if (!rpcProviderUrlEnv) {
+  throw new Error("RPC_PROVIDER_URL is not set in the .env file");
+}
+if (!fs.existsSync(walletPath)) {
+    throw new Error(`Arweave wallet file not found at ${walletPath}. Please ensure wallet.json exists in the project root.`);
+}
+
+// --- ArDrive Turbo Client Setup ---
+function parseWallet(filePath: string): any {
+    try {
+        const walletData = fs.readFileSync(filePath, 'utf8');
+        return JSON.parse(walletData);
+    } catch (error) {
+        console.error(`Error reading or parsing wallet file at ${filePath}:`, error);
+        throw new Error(`Failed to load Arweave wallet. Ensure ${filePath} exists and is valid JSON.`);
+    }
+}
+
+const arweaveWallet = parseWallet(walletPath);
+
+export const turboClient: TurboAuthenticatedClient = TurboFactory.authenticated({
+    privateKey: arweaveWallet,
+});
+console.log("ArDrive Turbo Client initialized.");
+
+// --- Story Protocol Client Setup ---
+const storyPrivateKey: Address = `0x${privateKeyEnv}`;
+const storyAccount: Account = privateKeyToAccount(storyPrivateKey);
+
+const storyConfig: StoryConfig = {
+  account: storyAccount,
+  transport: http(rpcProviderUrlEnv),
+  chainId: "aeneid", // Adjust chainId if necessary
+};
+
+export const storyClient = StoryClient.newClient(storyConfig);
+console.log("Story Client initialized.");
+```
+
+Make sure to create the `utils` directory first:
+
+```bash
+mkdir -p utils
+```
+
+## Registering an IP Asset
+
+Now, let's create a script to register an IP asset. This involves three steps:
+
+1. Define metadata for the IP itself and the NFT representing ownership
+2. Upload metadata to Arweave using Turbo
+3. Register the IP on Story Protocol
+
+Create the following script file:
+
+```typescript registerIpWithArweave.ts
+import { storyClient, turboClient } from "./utils/clients";
+import { createHash } from "crypto";
+import { Address } from "viem";
+import type { UploadResult } from "@ardrive/turbo-sdk";
+
+// Helper function to upload JSON to Arweave via Turbo
+async function uploadJSONToArweave(jsonData: any, description: string): Promise<UploadResult> {
+    const dataBuffer = Buffer.from(JSON.stringify(jsonData));
+    console.log(`Uploading ${description} (${dataBuffer.byteLength} bytes) to Arweave via Turbo...`);
+
+    const tags = [
+        { name: "Content-Type", value: "application/json" },
+        { name: "App-Name", value: "ArDrive-Story-Tutorial" } // Example tag
+    ];
+
+    try {
+        // Use Turbo to upload the file buffer
+        const result = await turboClient.uploadFile(dataBuffer, { tags });
+        console.log(`${description} uploaded successfully: Transaction ID ${result.id}`);
+        return result;
+    } catch (error) {
+        console.error(`Error uploading ${description} to Arweave:`, error);
+        throw new Error(`Arweave upload failed for ${description}.`);
+    }
+}
+
+async function register() {
+  // --- Step 1: Define IP Metadata ---
+  const ipMetadata = {
+    title: "My Arweave-Powered IP",
+    description: "An example IP asset with metadata stored permanently on Arweave via Turbo.",
+    // Add other required fields like image, creators, etc.
+    // Example creator:
+    creators: [
+      { name: "Your Name/Org", address: storyClient.account.address, contributionPercent: 100 },
+    ],
+  };
+  console.log("IP Metadata defined.");
+
+  const nftMetadata = {
+    name: "Ownership NFT for My Arweave IP",
+    description: "This NFT represents ownership of the IP Asset whose metadata is on Arweave.",
+    // Add other fields like image
+  };
+  console.log("NFT Metadata defined.");
+
+  // --- Step 2: Upload Metadata to Arweave ---
+  const ipUploadResult = await uploadJSONToArweave(ipMetadata, "IP Metadata");
+  const nftUploadResult = await uploadJSONToArweave(nftMetadata, "NFT Metadata");
+
+  // Use arweave.net URLs instead of ar:// protocol
+  const ipMetadataArweaveURI = `https://arweave.net/${ipUploadResult.id}`;
+  const nftMetadataArweaveURI = `https://arweave.net/${nftUploadResult.id}`;
+
+  console.log(`IP Metadata Arweave URI: ${ipMetadataArweaveURI}`);
+  console.log(`NFT Metadata Arweave URI: ${nftMetadataArweaveURI}`);
+
+  // Calculate metadata hashes (required by Story Protocol)
+  const ipMetadataHash = `0x${createHash("sha256")
+    .update(JSON.stringify(ipMetadata))
+    .digest("hex")}`;
+  const nftMetadataHash = `0x${createHash("sha256")
+    .update(JSON.stringify(nftMetadata))
+    .digest("hex")}`;
+
+  console.log(`IP Metadata Hash: ${ipMetadataHash}`);
+  console.log(`NFT Metadata Hash: ${nftMetadataHash}`);
+
+  // --- Step 3: Register IP on Story Protocol ---
+  console.log("Registering IP Asset on Story Protocol...");
+
+  // Choose an SPG NFT contract (Story Protocol Governed NFT)
+  // Use a public testnet one or create your own (see Story docs)
+  const spgNftContract: Address = "0xc32A8a0FF3beDDDa58393d022aF433e78739FAbc"; // Aeneid testnet example
+
+  try {
+    const response = await storyClient.ipAsset.mintAndRegisterIp({
+      spgNftContract: spgNftContract,
+      ipMetadata: {
+        ipMetadataURI: ipMetadataArweaveURI,      // URI pointing to Arweave
+        ipMetadataHash: ipMetadataHash as Address, // Content hash
+        nftMetadataURI: nftMetadataArweaveURI,     // URI pointing to Arweave
+        nftMetadataHash: nftMetadataHash as Address // Content hash
+      },
+      txOptions: { waitForTransaction: true }, // Wait for confirmation
+    });
+
+    console.log(
+      `Successfully registered IP Asset!`
+    );
+    console.log(`  Transaction Hash: ${response.txHash}`);
+    console.log(`  IP ID: ${response.ipId}`);
+    console.log(`  Story Explorer Link: https://aeneid.explorer.story.foundation/ipa/${response.ipId}`); // Adjust explorer link for different networks
+    console.log(`  IP Metadata (Arweave): ${ipMetadataArweaveURI}`);
+    console.log(`  NFT Metadata (Arweave): ${nftMetadataArweaveURI}`);
+
+  } catch (error) {
+    console.error("Error registering IP Asset on Story Protocol:", error);
+  }
+}
+
+// Execute the register function
+register().catch(console.error);
+```
+
+### Run the Registration Script
+
+To execute the script and register your IP Asset:
+
+```bash
+npx ts-node registerIpWithArweave.ts
+```
+
+This will:
+1. Upload your IP metadata to Arweave permanently
+2. Upload your NFT metadata to Arweave permanently
+3. Register an IP Asset on Story Protocol pointing to these Arweave URLs
+
+## Minting License Tokens
+
+Once an IP Asset is registered, you can attach license terms and allow others to mint license tokens. Create a new script for this:
+
+```typescript mintLicense.ts
+import { storyClient } from "./utils/clients";
+import { Address } from "viem";
+
+// Assume these values are known for the IP Asset you want to license
+const LICENSOR_IP_ID: Address = "0x..."; // Replace with the actual IP ID of the asset
+const LICENSE_TERMS_ID: string = "..."; // Replace with the specific terms ID attached to the IP Asset
+const RECEIVER_ADDRESS: Address = "0x..."; // Address to receive the license token(s)
+
+async function mintLicense() {
+  console.log(`Minting license token(s) for IP ID ${LICENSOR_IP_ID} under terms ${LICENSE_TERMS_ID}...`);
+
+  try {
+    const response = await storyClient.license.mintLicenseTokens({
+      licenseTermsId: LICENSE_TERMS_ID,
+      licensorIpId: LICENSOR_IP_ID,
+      receiver: RECEIVER_ADDRESS,
+      amount: 1, // Number of license tokens to mint
+      // Optional parameters:
+      // maxMintingFee: BigInt(0), // Set if the terms have a fee; 0 disables check if no fee expected
+      // maxRevenueShare: 100, // Default check for revenue share percentage
+      txOptions: { waitForTransaction: true },
+    });
+
+    console.log(
+      `Successfully minted license token(s)!`
+    );
+    console.log(`  Transaction Hash: ${response.txHash}`);
+    console.log(`  License Token ID(s): ${response.licenseTokenIds}`);
+
+  } catch (error) {
+    console.error("Error minting license token(s):", error);
+  }
+}
+
+// Execute the function (after updating the constants above)
+// mintLicense().catch(console.error);
+```
+
+Before running this script:
+1. Replace `LICENSOR_IP_ID` with the actual IP ID obtained from your registration
+2. Replace `LICENSE_TERMS_ID` with the ID of license terms attached to that IP
+3. Replace `RECEIVER_ADDRESS` with the address to receive the license token
+4. Uncomment the function call at the bottom
+
+Then run:
+```bash
+npx ts-node mintLicense.ts
+```
+
+## Registering Derivative IP Assets with Arweave Metadata
+
+Finally, let's create a script to register a derivative work based on an existing IP, also using Arweave for metadata storage:
+
+```typescript registerDerivativeWithArweave.ts
+import { storyClient, turboClient } from "./utils/clients";
+import { createHash } from "crypto";
+import { Address } from "viem";
+import type { UploadResult } from "@ardrive/turbo-sdk";
+import { DerivativeData } from "@story-protocol/core-sdk";
+
+// Helper function to upload JSON to Arweave via Turbo (same as in registerIpWithArweave.ts)
+async function uploadJSONToArweave(jsonData: any, description: string): Promise<UploadResult> {
+    const dataBuffer = Buffer.from(JSON.stringify(jsonData));
+    console.log(`Uploading ${description} (${dataBuffer.byteLength} bytes) to Arweave via Turbo...`);
+
+    const tags = [
+        { name: "Content-Type", value: "application/json" },
+        { name: "App-Name", value: "ArDrive-Story-Tutorial" }
+    ];
+
+    try {
+        const result = await turboClient.uploadFile(dataBuffer, { tags });
+        console.log(`${description} uploaded successfully: Transaction ID ${result.id}`);
+        return result;
+    } catch (error) {
+        console.error(`Error uploading ${description} to Arweave:`, error);
+        throw new Error(`Arweave upload failed for ${description}.`);
+    }
+}
+
+// --- Information about the Parent IP and License ---
+const PARENT_IP_ID: Address = "0x..."; // Replace with the actual Parent IP ID
+const LICENSE_TERMS_ID: string = "..."; // Replace with the License Terms ID to derive under
+
+async function registerDerivative() {
+  // --- Step 1: Define Derivative Metadata ---
+  const derivativeIpMetadata = {
+    title: "My Derivative Work (Arweave Metadata)",
+    description: "A remix/adaptation based on a parent IP, metadata on Arweave.",
+    // Add other required fields (image, creators matching the derivative creator, etc.)
+  };
+
+  const derivativeNftMetadata = {
+    name: "Ownership NFT for My Derivative Work",
+    description: "NFT for the derivative IP, metadata on Arweave.",
+    // Add other fields
+  };
+
+  // --- Step 2: Upload Derivative Metadata to Arweave ---
+  console.log("Uploading derivative metadata to Arweave via Turbo...");
+  const derivIpUploadResult = await uploadJSONToArweave(derivativeIpMetadata, "Derivative IP Metadata");
+  const derivNftUploadResult = await uploadJSONToArweave(derivativeNftMetadata, "Derivative NFT Metadata");
+
+  // Use arweave.net URLs instead of ar:// protocol
+  const derivIpMetadataArweaveURI = `https://arweave.net/${derivIpUploadResult.id}`;
+  const derivNftMetadataArweaveURI = `https://arweave.net/${derivNftUploadResult.id}`;
+
+  const derivIpMetadataHash = `0x${createHash("sha256")
+    .update(JSON.stringify(derivativeIpMetadata))
+    .digest("hex")}`;
+  const derivNftMetadataHash = `0x${createHash("sha256")
+    .update(JSON.stringify(derivativeNftMetadata))
+    .digest("hex")}`;
+
+  console.log(`Derivative IP Metadata Arweave URI: ${derivIpMetadataArweaveURI}`);
+  console.log(`Derivative NFT Metadata Arweave URI: ${derivNftMetadataArweaveURI}`);
+
+  // --- Step 3: Register Derivative on Story Protocol ---
+  // Prepare Derivative Data for Story Protocol
+  const derivData: DerivativeData = {
+    parentIpIds: [PARENT_IP_ID],
+    licenseTermsIds: [LICENSE_TERMS_ID],
+  };
+
+  console.log("Registering Derivative IP Asset on Story Protocol...");
+
+  // Use the same SPG NFT contract or your own
+  const spgNftContract: Address = "0xc32A8a0FF3beDDDa58393d022aF433e78739FAbc"; // Aeneid testnet example
+
+  try {
+    const response = await storyClient.ipAsset.mintAndRegisterIpAndMakeDerivative({
+      spgNftContract: spgNftContract,
+      derivData: derivData, // Link to parent IP and license terms
+      ipMetadata: { // Metadata for the *new* derivative IP
+        ipMetadataURI: derivIpMetadataArweaveURI,      // Arweave URI
+        ipMetadataHash: derivIpMetadataHash as Address, // Content hash
+        nftMetadataURI: derivNftMetadataArweaveURI,     // Arweave URI
+        nftMetadataHash: derivNftMetadataHash as Address // Content hash
+      },
+      txOptions: { waitForTransaction: true },
+    });
+
+    console.log(
+      `Successfully registered Derivative IP Asset!`
+    );
+    console.log(`  Transaction Hash: ${response.txHash}`);
+    console.log(`  Derivative IP ID: ${response.ipId}`);
+    console.log(`  Derivative Token ID: ${response.tokenId}`);
+    console.log(`  Story Explorer Link: https://aeneid.explorer.story.foundation/ipa/${response.ipId}`);
+    console.log(`  Derivative Metadata (Arweave): ${derivIpMetadataArweaveURI}`);
+
+  } catch (error) {
+    console.error("Error registering derivative IP Asset on Story Protocol:", error);
+  }
+}
+
+// Before running this script:
+// 1. Replace PARENT_IP_ID with a real IP ID you have access to
+// 2. Replace LICENSE_TERMS_ID with the actual license terms ID
+// Then uncomment the line below to execute
+// registerDerivative().catch(console.error);
+```
+
+Before running this script:
+1. Replace `PARENT_IP_ID` with the actual parent IP ID
+2. Replace `LICENSE_TERMS_ID` with the license terms ID that permits derivatives
+3. Uncomment the function execution at the bottom
+4. Run:
+```bash
+npx ts-node registerDerivativeWithArweave.ts
+```
+
+## Conclusion
+
+By leveraging the ArDrive Turbo SDK, you can seamlessly integrate permanent Arweave storage into your Story Protocol workflow. Uploading metadata with Turbo ensures fast, reliable, and cost-effective data persistence for your valuable IP Assets, whether they are root IPs or complex derivatives with licensing relationships.
+
+This tutorial demonstrated a complete workflow:
+1. Setting up a project structure with all required dependencies
+2. Creating a utility module for client initialization
+3. Registering original IP Assets with metadata stored on Arweave
+4. Minting license tokens for IP Assets
+5. Creating and registering derivative works
+
+For further details on Story Protocol concepts like licensing, derivatives, or specific SDK functions, refer to the [Story Protocol Documentation](https://docs.story.foundation). 
