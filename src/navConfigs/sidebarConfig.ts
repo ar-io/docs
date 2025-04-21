@@ -1133,6 +1133,10 @@ export const singleNavigation: Array<NavGroup> = [
         href: '/guides/primary-names',
       },
       {
+        title: 'Register IP Asset on Arweave',
+        href: '/guides/story',
+      },
+      {
         title: 'Deploy to Arweave',
         children: [
           {
