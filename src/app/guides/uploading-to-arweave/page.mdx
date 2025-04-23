@@ -18,11 +18,6 @@ export const metadata = {
 
 While AR.IO provides powerful tools for accessing and interacting with data on Arweave, that data must first be uploaded to the network. This guide will walk you through the process of uploading data to Arweave using the Turbo SDK, which provides a streamlined experience for data uploads.
 
-## Prerequisites
-
-- Node.js installed (for Node.js environment)
-- A wallet with AR tokens or supported cryptocurrency
-- Basic understanding of async/await and Promises
 
 ## Installing Turbo SDK
 
@@ -256,12 +251,14 @@ export const connectToMetaMask = async () => {
 ```
 
 ```typescript {{ title: 'Solana (Phantom)' }}
-// I'll get to it.
+// TODO: this
 ```
 
 </CodeGroup>
 
 ## Purchasing Turbo Credits
+
+[Turbo Credits](https://docs.ardrive.io/docs/turbo/credits) are the payment medium used by the Turbo Upload Service. Each Credit represents a 1:1 conversion from the upload power of the Arweave native token (AR). Turbo Credits can be purchased with fiat currency via the [Turbo Top Up App](https://turbo-topup.com/), or with supported cryptocurrencies via the Turbo SDK. Learn more about Turbo Credits and available methods for purchasing them [here](https://docs.ardrive.io/docs/turbo/credits/#how-to-purchase-credits).
 
 ### Node.js Environment
 
@@ -358,7 +355,7 @@ const topUpResult = await turbo.topUpWithTokens({
 
 ### Browser Environment
 
-In a browser environment, you'll need to manually send tokens to the Turbo wallet address and then submit the transaction for processing. Here are detailed examples for each supported chain:
+In a browser environment, the `topUpWithTokens` method is not available. Instead, you'll need to manually send tokens to the Turbo wallet address and then submit the transaction for processing. Here are detailed examples for each supported chain:
 
 <CodeGroup title="Browser Top-Up Examples" id="topup-browser">
 
@@ -1493,10 +1490,15 @@ const calculateTokenAmount = async (
   const fiatRates = await turbo.getFiatRates()
   const usdPerGiB = fiatRates.usd
 
-  // Convert winc to GiB
-  const wincPerGiB = 1_000_000_000_000 // 1 GiB in winc
-  const requiredGiB = Number(wincAmount) / wincPerGiB
-  const requiredUsd = requiredGiB * usdPerGiB
+  // Get winc cost for 1 GiB
+  const costs = await turbo.getUploadCosts({ bytes: [1024 * 1024 * 1024] }) // 1 GiB in bytes
+  const wincPerGiB = BigInt(costs[0].winc)
+
+  // Calculate cost per winc in USD
+  const usdPerWinc = Number(usdPerGiB) / Number(wincPerGiB)
+
+  // Calculate required USD amount
+  const requiredUsd = Number(wincAmount) * usdPerWinc
 
   // Get token price
   const tokenPrice = await getTokenPrice(tokenType)
@@ -1671,10 +1673,15 @@ const calculateTokenAmount = async (
   const fiatRates = await turbo.getFiatRates()
   const usdPerGiB = fiatRates.usd
 
-  // Convert winc to GiB
-  const wincPerGiB = 1_000_000_000_000 // 1 GiB in winc
-  const requiredGiB = Number(wincAmount) / wincPerGiB
-  const requiredUsd = requiredGiB * usdPerGiB
+  // Get winc cost for 1 GiB
+  const costs = await turbo.getUploadCosts({ bytes: [1024 * 1024 * 1024] }) // 1 GiB in bytes
+  const wincPerGiB = BigInt(costs[0].winc)
+
+  // Calculate cost per winc in USD
+  const usdPerWinc = Number(usdPerGiB) / Number(wincPerGiB)
+
+  // Calculate required USD amount
+  const requiredUsd = Number(wincAmount) * usdPerWinc
 
   // Get token price
   const tokenPrice = await getTokenPrice(tokenType)
@@ -2021,10 +2028,15 @@ const calculateTokenAmount = async (
   const fiatRates = await turbo.getFiatRates()
   const usdPerGiB = fiatRates.usd
 
-  // Convert winc to GiB
-  const wincPerGiB = 1_000_000_000_000 // 1 GiB in winc
-  const requiredGiB = Number(wincAmount) / wincPerGiB
-  const requiredUsd = requiredGiB * usdPerGiB
+  // Get winc cost for 1 GiB
+  const costs = await turbo.getUploadCosts({ bytes: [1024 * 1024 * 1024] }) // 1 GiB in bytes
+  const wincPerGiB = BigInt(costs[0].winc)
+
+  // Calculate cost per winc in USD
+  const usdPerWinc = Number(usdPerGiB) / Number(wincPerGiB)
+
+  // Calculate required USD amount
+  const requiredUsd = Number(wincAmount) * usdPerWinc
 
   // Get token price
   const tokenPrice = await getTokenPrice(tokenType)
@@ -2211,6 +2223,7 @@ const getTokenPrice = async (token: string) => {
   return response.data[token].usd
 }
 
+
 // Function to calculate required token amount
 const calculateTokenAmount = async (
   wincAmount: string,
@@ -2220,10 +2233,15 @@ const calculateTokenAmount = async (
   const fiatRates = await turbo.getFiatRates()
   const usdPerGiB = fiatRates.usd
 
-  // Convert winc to GiB
-  const wincPerGiB = 1_000_000_000_000 // 1 GiB in winc
-  const requiredGiB = Number(wincAmount) / wincPerGiB
-  const requiredUsd = requiredGiB * usdPerGiB
+  // Get winc cost for 1 GiB
+  const costs = await turbo.getUploadCosts({ bytes: [1024 * 1024 * 1024] }) // 1 GiB in bytes
+  const wincPerGiB = BigInt(costs[0].winc)
+
+  // Calculate cost per winc in USD
+  const usdPerWinc = Number(usdPerGiB) / Number(wincPerGiB)
+
+  // Calculate required USD amount
+  const requiredUsd = Number(wincAmount) * usdPerWinc
 
   // Get token price
   const tokenPrice = await getTokenPrice(tokenType)
@@ -2387,15 +2405,23 @@ const getTokenPrice = async (token: string) => {
 }
 
 // Function to calculate required token amount
-const calculateTokenAmount = async (wincAmount: string, tokenType: string) => {
+const calculateTokenAmount = async (
+  wincAmount: string,
+  tokenType: string
+) => {
   // Get fiat rates for 1 GiB
   const fiatRates = await turbo.getFiatRates()
   const usdPerGiB = fiatRates.usd
 
-  // Convert winc to GiB
-  const wincPerGiB = 1_000_000_000_000 // 1 GiB in winc
-  const requiredGiB = Number(wincAmount) / wincPerGiB
-  const requiredUsd = requiredGiB * usdPerGiB
+  // Get winc cost for 1 GiB
+  const costs = await turbo.getUploadCosts({ bytes: [1024 * 1024 * 1024] }) // 1 GiB in bytes
+  const wincPerGiB = BigInt(costs[0].winc)
+
+  // Calculate cost per winc in USD
+  const usdPerWinc = Number(usdPerGiB) / Number(wincPerGiB)
+
+  // Calculate required USD amount
+  const requiredUsd = Number(wincAmount) * usdPerWinc
 
   // Get token price
   const tokenPrice = await getTokenPrice(tokenType)
@@ -2439,34 +2465,30 @@ const ensureSufficientBalance = async (fileSize: number, tokenType: string) => {
 }
 
 // Function to upload a file
-const uploadFile = async (filePath: string) => {
+const uploadFile = async (file: File) => {
   try {
-    // Get file info
-    const fileSize = fs.statSync(filePath).size
-    const mimeType = mime.lookup(filePath) || 'application/octet-stream'
-
     // Ensure sufficient balance
-    await ensureSufficientBalance(fileSize, 'ethereum')
+    await ensureSufficientBalance(file.size, 'arweave')
 
     // Upload file
     const result = await turbo.uploadFile({
-      fileStreamFactory: () => fs.createReadStream(filePath),
-      fileSizeFactory: () => fileSize,
+      fileStreamFactory: () => file.stream(),
+      fileSizeFactory: () => file.size,
       dataItemOpts: {
         tags: [
           {
             name: 'Content-Type',
-            value: mimeType,
-          },
-        ],
-      },
+            value: file.type || 'application/octet-stream'
+          }
+        ]
+      }
     })
 
     console.log('File uploaded!', {
       id: result.id,
       url: `https://arweave.net/${result.id}`,
       owner: result.owner,
-      dataCaches: result.dataCaches,
+      dataCaches: result.dataCaches
     })
 
     return result
@@ -2476,8 +2498,45 @@ const uploadFile = async (filePath: string) => {
   }
 }
 
-// Example usage
-await uploadFile('./path/to/your/file.pdf')
+// HTML input element
+<input
+  type="file"
+  id="file-input"
+  accept="image/*,video/*,audio/*,.pdf,.txt"
+/>
+
+// Example usage with file input
+const fileInput = document.getElementById('file-input')
+fileInput.addEventListener('change', async (event) => {
+  const file = fileInput.files[0]
+  if (!file) return
+  await uploadFile(file)
+})
+
+// Example usage with drag and drop
+const dropZone = document.getElementById('drop-zone')
+dropZone.addEventListener('dragover', (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  dropZone.classList.add('drag-over')
+})
+
+dropZone.addEventListener('dragleave', (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  dropZone.classList.remove('drag-over')
+})
+
+dropZone.addEventListener('drop', async (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  dropZone.classList.remove('drag-over')
+
+  const file = e.dataTransfer.files[0]
+  if (!file) return
+
+  await uploadFile(file)
+})
 ```
 
 </CodeGroup>
