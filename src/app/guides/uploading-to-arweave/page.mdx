@@ -18,7 +18,6 @@ export const metadata = {
 
 While AR.IO provides powerful tools for accessing and interacting with data on Arweave, that data must first be uploaded to the network. This guide will walk you through the process of uploading data to Arweave using the Turbo SDK, which provides a streamlined experience for data uploads.
 
-
 ## Installing Turbo SDK
 
 ```bash
@@ -251,7 +250,36 @@ export const connectToMetaMask = async () => {
 ```
 
 ```typescript {{ title: 'Solana (Phantom)' }}
-// TODO: this
+import { TurboFactory, SolanaWalletAdapter } from '@ardrive/turbo-sdk/web'
+import { PublicKey } from '@solana/web3.js'
+
+export async function initializeSolanaTurbo() {
+  try {
+    // Check if Phantom is installed
+    if (window.solana) {
+      const provider = window.solana
+
+      const publicKey = new PublicKey((await provider.connect()).publicKey)
+
+      const wallet: SolanaWalletAdapter = {
+        publicKey,
+        signMessage: async (message: Uint8Array) => {
+          // Call Phantom's signMessage method
+          const { signature } = await provider.signMessage(message)
+
+          return signature
+        },
+      }
+
+      solanaTurboInstance = TurboFactory.authenticated({
+        token: 'solana',
+        walletAdapter: wallet,
+      })
+    }
+  } catch (err) {
+    console.error(err)
+  }
+}
 ```
 
 </CodeGroup>
@@ -2210,9 +2238,21 @@ if (!window.solana) {
 await window.solana.connect()
 const provider = window.solana
 
+const publicKey = new PublicKey((await provider.connect()).publicKey);
+
+        const wallet: SolanaWalletAdapter = {
+          publicKey,
+          signMessage: async (message: Uint8Array) => {
+            // Call Phantom's signMessage method
+            const { signature } = await provider.signMessage(message);
+
+            return signature;
+          },
+        };
+
 const turbo = await TurboFactory.authenticated({
-  privateKey: provider.publicKey.toString(),
-  token: 'solana'
+            token: "solana",
+            walletAdapter: wallet,
 })
 
 // Function to get token price from CoinGecko
