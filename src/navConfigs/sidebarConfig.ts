@@ -70,6 +70,10 @@ export const mainNavigation: Array<NavGroup> = [
         title: 'ANTs on Bazar',
         href: '/learn/guides/ants-on-bazar',
       },
+      {
+        title: 'Uploading to Arweave',
+        href: '/learn/guides/uploading-to-arweave',
+      },
     ],
   },
 ]
@@ -581,8 +585,8 @@ export const singleNavigation: Array<NavGroup> = [
         href: 'https://whitepaper.arweave.net/',
       },
       {
-        title: "AR.IO Gateway API Docs",
-        href: "https://ar-io.dev/api-docs/"
+        title: 'AR.IO Gateway API Docs',
+        href: 'https://ar-io.dev/api-docs/',
       },
       {
         title: 'Introduction',
@@ -1113,8 +1117,8 @@ export const singleNavigation: Array<NavGroup> = [
     href: '/guides',
     links: [
       {
-        title: "Working with Testnet",
-        href: "/guides/testnet"
+        title: 'Working with Testnet',
+        href: '/guides/testnet',
       },
       {
         title: 'GQL',
@@ -1163,6 +1167,10 @@ export const singleNavigation: Array<NavGroup> = [
         href: '/guides/ants-on-bazar',
       },
       {
+        title: 'Uploading to Arweave',
+        href: '/guides/uploading-to-arweave',
+      },
+      {
         title: 'Example Apps',
         children: [
           {
@@ -1170,7 +1178,7 @@ export const singleNavigation: Array<NavGroup> = [
             href: '/guides/example-apps/crossmint-app',
           },
         ],
-      }
+      },
     ],
   },
   {
