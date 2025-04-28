@@ -1051,6 +1051,10 @@ export const singleNavigation: Array<NavGroup> = [
             href: '/gateways/troubleshooting',
           },
           {
+            title: "Troubleshooting Failed Epochs",
+            href: "/gateways/failed-epoch",
+          },
+          {
             title: 'Upgrading',
             href: '/gateways/upgrading',
           },
