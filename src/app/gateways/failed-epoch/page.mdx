@@ -1,0 +1,109 @@
+import {HeroPattern} from "@/components/HeroPattern"
+
+export const metadata = {
+  title: 'Troubleshooting Failed Epochs',
+  description: 'User guide for troubleshooting failed epochs using Observer Reports.',
+  openGraph: {
+    title: 'Troubleshooting Failed Epochs',
+  },
+}
+
+<HeroPattern />
+
+# Troubleshooting Failed Epochs
+
+## Overview
+
+The ARIO Network provides several tools to help troubleshoot problems with a gateway. The most powerful among these is the [Observer](/gateways/observer).
+
+The Observer, which is a component of every gateway joined to the ARIO Network, checks all gateways in the network to ensure that they are functioning properly, and returning the correct data. The Observer then creates a report of the results of these checks, including the reasons why a gateway might have failed the checks. 
+
+If a gateway fails the checks from more than half of the prescribed observers, the gateway is marked as failed for the epoch, and does not receive any rewards for that epoch.
+
+The first step in troubleshooting a failed gateway is always to attempt to resolve data on that gateway in a browser, but if that does not make the issue clear, the Observer report can be used to diagnose the problem.
+
+## Accessing the Observer Report
+
+The simplest way to access an observer report is via the [Network Portal](https://gateways.arweave.net/#/gateways), following the steps below:
+
+1. Navigate to the [Network Portal](https://gateways.arweave.net/#/gateways)
+2. Select the gateway you are interested in from the list of gateways
+3. In the Observation window, select the epoch you are interested in. This will display a list of the observers that failed the gateway for that epoch.
+4. Click on the "View Report" button to the right any observer on that list. This will display the entire report that observer generated.
+5. Locate the gateway you are interested in in the report, and click on that row. This will display the report for that gateway.
+
+## Understanding the Observer Report
+
+The observer report will display a list of checked ArNS names, and a reason if the gateway failed to return the correct data for that name. There are several reasons why a gateway might fail to return the correct data for an ArNS name. Below is a list of the most common reasons, and how to resolve them.
+
+### Timeout awaiting 'socket', or Timeout awaiting 'connect
+
+This failure means that the observer was unable to connect to the gateway when it tried to check the ArNS name. There are lots of reasons why this might happen, many of them unrelated to the gateway itself. If an observer report has a small number of these failures, among a larger number of successful checks, it is unlikely to be an issue with the gateway.
+
+If this failure occurs persistently for a large number, or all ArNS names checked, it likely means that the observer is having trouble connecting to the gateway at all. You can verify this by:
+
+- Attempting to connect to the gateway in a browser
+- Running manual observations on the gateway using the [Network Portal](https://gateways.arweave.net/#/gateways)
+- Using tools like `curl` or `ping` to check the gateway's connectivity
+
+If these methods consistently fail to connect to the gateway, it is likely that the gateway is not properly configured or powered on. If this is the case: 
+
+- Check Docker and the gateway's logs to see if the gateway is on.
+- Ensure that the SSL certificates are valid for the gateway's domain.
+- Check DNS records for the gateway's domain, misconfigured or conflicting DNS records can cause connectivity issues.
+
+Some gateway operators who run their gateways on their personal home networks have also reported issues with their ISP blocking, throttling, or otherwise delaying traffic to a gateway. If none of the above steps resolve the issue, it may be worth checking with your ISP to see if they are blocking or throttling traffic to the gateway.
+
+Using [Grafana](/gateways/grafana) can also provide a visual representation of the gateway's ArNS resolution times. If this is consistently high (above 10 seconds), it is likely that the gateway is not properly configured to resolve ArNS names. Ensure that the gateway is operating on the latest Release.
+
+### certificate has expired
+
+This failure means that the gateway's SSL certificate has expired. Obtaining a new SSL certificate and updating the gateway's reverse proxy (nginx, etc) configuration to use the new certificate is the only solution to this issue.
+
+### dataHashDigest mismatch
+
+This failure means that the gateway did respond to a resolution request, but the data it returned did not match the data that was expected. This could be due to a number of reasons, including:
+
+- Cached data was returned by the gateway that doesnt match the most current data on the network.
+- The gateway is configured to operate on testnet or devnet. Gateways joined to the ARIO Network MUST operate on mainnet in order to pass observation checks.
+- The gateway is intentionally returning fraudulent data.
+
+A gateway will not return fraudulent data unless that operator intentionally rewrote the gateway's code to do so, and a major purpose of the Observation and Incentive Protocol is to catch and prevent this behavior. A gateway may return mistaken data on occasion, usually due to a cache mismatch between the gateway and the observer's authority (usually arweavae.net). This is a relatively rare occurrence, and should only be considered an issue if it occurs persistently. If most or all of the ArNS names checked are failing for this reason, it is likely that the gateway is not operating on mainnet.
+
+### Response code 502 (Bad Gateway)
+
+This failure means that the observer was able to connect to the gateway's network, but the reverse proxy returned a 502 error. This is almost always a reverse proxy issue. Ensure that the gateway's reverse proxy is running, and that it is configured to forward requests to the gateway. 
+
+Testing the validity of the reverse proxy's configuration file (`sudo nginx -t` on Nginx) may provide more information about the issue, and restarting the reverse proxy (`sudo nginx -s reload`) often resolves the issue if there are no problems with the configuration file.
+
+It is also possible that the gateway itself is not running at all. Check Docker and the gateway's logs to see if the gateway is on.
+
+### Response code 503 (Service Unavailable)
+
+This failure means that the observer was able to connect to the gateway's network, but the reverse proxy was unable to forward the request to the gateway. It differs from the 502 error in that the reverse proxy is likely able to see that the gateway is running, but is unable to communicate with it. This is often a temporary issue, caused by the gateway not being able to handle a heavy load of requests, or the gateway being in the process of restarting. If this failure occurs once or twice in a report, it is likely a temporary issue and should not be considered an issue with the gateway. However, when this failure occurs persistently, particularly for every ArNS name checked on the report, it is likely that the gateway may have crashed. 
+
+Manually restarting the gateway can likely resolve the issue.
+
+### connect EHOSTUNREACH
+
+This failure means that the observer was unable to connect to the gateway at all. The connection was either refused, or the gateway was not able to find a target based on the domain name's DNS records.
+
+This is almost always an issue with DNS records or local network configuration. Ensure that the gateway domain has correct DNS records, and that the local network is set up to allow connections. Checking logs from the local network's reverse proxy (nginx, etc) may provide more information about the issue.
+
+### getaddrinfo ENOTFOUND
+
+This is another DNS related issue. Likely, the gateway does not have a valid DNS record either for the top level domain or the required wildcard subdomain. Having this failure occur once or twice in a report could mean that the DNS server being used by the observer is having temporary issues and should not be considered an issue with the gateway. However, when this failure occurs persistently, particularly for every ArNS name checked on the report, it is likely that the gateway's DNS records are not set, or are misconfigured.
+
+### Hostname/IP does not match certificate's altnames: Host: \<gateway-domain>. is not in the cert's altnames: DNS:\<gateway-domain>
+
+This failure means that the observer's SSL certificate does not match the gateway's domain name. This is almost always an issue with the gateway's SSL certificate. This most likely occurred because the gateway's operator did not update the gateway's SSL certificate when the gateway's domain name was changed. Obtaining a new SSL certificate and updating the gateway's reverse proxy configuration to use the new certificate is the only solution to this issue.
+
+### write EPROTO \<connection-id>:error:\<error-code>:SSL routines:ssl3_read_bytes:tlsv1 unrecognized name:\<path-to-openssl-source>:SSL alert number 112
+
+This failure almost always means that the gateway operator did not properly obtain SSL certificates for the gateway's wildcard subdomain. Obtaining a new SSL certificate and updating the gateway's reverse proxy configuration to use the new certificate is the only solution to this issue.
+
+
+
+
+
+
