@@ -17,6 +17,42 @@ export const metadata = {
 
 Welcome to the documentation page for the AR.IO gateway release notes. Here, you will find detailed information about each version of the AR.IO gateway, including the enhancements, bug fixes, and any other changes introduced in every release. This page serves as a comprehensive resource to keep you informed about the latest developments and updates in the AR.IO gateway. For those interested in exploring the source code, each release's code is readily accessible at our GitHub repository: AR.IO gateway [change logs](https://github.com/ar-io/ar-io-node/blob/main/CHANGELOG.md). Stay updated with the continuous improvements and advancements in the AR.IO gateway by referring to this page for all release-related information.
 
+## [Release 33] - 2025-05-05
+
+### Added
+
+- Added a [Parquet and ClickHouse usage guide]. Using ArDrive as an example, it provides step by step instructions about how to bulk load Parquet and configure continuous ingest of bundled data items into ClickHouse. This allows the ar-io-node to support performant GraphQL queries on larger data sets and facilitates sharing indexing work across gateways via distribution of Parquet files.
+- Added support for configurable ArNS 404 pages using either:
+  - `ARNS_NOT_FOUND_TX_ID`: Transaction ID for custom 404 content
+  - `ARNS_NOT_FOUND_ARNS_NAME`: ArNS name to resolve for 404 content
+- Added experimental `/chunk/` GET route for serving chunk data by absolute offset either the local cache.
+- Added support for `AWS_SESSION_TOKEN` in the S3 client configuration.
+- Expanded ArNS OTEL tracing to improve resolution behavior observability.
+- Added support for setting a ClickHouse username and password via the `CLICKHOUSE_USERNAME` and `CLICKHOUSE_PASSWORD` environment variable. When using ClickHouse, `CLICKHOUSE_PASSWORD` should always be set. However, `CLICKHOUSE_USERNAME` can be left unset. The username `default` will be used in that case.
+- Added support for configuring the port used to connect to ClickHouse via the `CLICKHOUSE_PORT` environment variable.
+
+### Changed
+
+- Disabled ClickHouse import timing logging by default. It can be enabled via environment variable - `DEBUG` when running the service standalone or `CLICKHOUSE_DEBUG` when using Docker Compose
+- Upgraded to ClickHouse 25.4.
+
+### Fixed
+
+- Ensure `.env` is read in `clickhouse-import` script.
+
+## [Release 32] - 2025-04-22
+
+### Changed
+
+- Reenabled parallel ArNS resolution with removal of misplaced global limit. Refer to release 30 notes for more details on configuration and rationale.
+- Added a timeout for the last ArNS resolver in `ARNS_RESOLVER_PRIORITY_ORDER`. It defaults to 30 seconds and is configurable using `ARNS_COMPOSITE_LAST_RESOLVER_TIMEOUT_MS`. This helps prevent promise build up if the last resolver stalls.
+
+### Fixed
+
+- Fixed apex ArNS name handling when a subdomain is present in `ARNS_ROOT_HOST`.
+- Fixed a case where fork recovery could stall due to early flushing of unstable chain data.
+- Restored observer logs by removing unintentional default log level override in `docker-compose.yaml`.
+
 ## [Release 31] - 2025-04-11
 
 ### Changed
