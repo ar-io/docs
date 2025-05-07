@@ -1031,6 +1031,10 @@ export const singleNavigation: Array<NavGroup> = [
             href: '/gateways/parquet',
           },
           {
+            title: 'Snapshots',
+            href: '/gateways/snapshots',
+          },
+          {
             title: 'Join The Network',
             href: '/gateways/join-network',
           },
