@@ -1027,6 +1027,10 @@ export const singleNavigation: Array<NavGroup> = [
             href: '/gateways/windows-setup',
           },
           {
+            title: 'Parquet',
+            href: '/gateways/parquet',
+          },
+          {
             title: 'Join The Network',
             href: '/gateways/join-network',
           },
