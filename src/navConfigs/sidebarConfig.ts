@@ -1027,6 +1027,10 @@ export const singleNavigation: Array<NavGroup> = [
             href: '/gateways/windows-setup',
           },
           {
+            title: 'Snapshots',
+            href: '/gateways/snapshots',
+          },
+          {
             title: 'Join The Network',
             href: '/gateways/join-network',
           },
