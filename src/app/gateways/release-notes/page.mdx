@@ -17,6 +17,29 @@ export const metadata = {
 
 Welcome to the documentation page for the AR.IO gateway release notes. Here, you will find detailed information about each version of the AR.IO gateway, including the enhancements, bug fixes, and any other changes introduced in every release. This page serves as a comprehensive resource to keep you informed about the latest developments and updates in the AR.IO gateway. For those interested in exploring the source code, each release's code is readily accessible at our GitHub repository: AR.IO gateway [change logs](https://github.com/ar-io/ar-io-node/blob/main/CHANGELOG.md). Stay updated with the continuous improvements and advancements in the AR.IO gateway by referring to this page for all release-related information.
 
+## [Release 36] - 2025-05-27
+
+This is a recommended but not essential upgrade. The most important changes are the preferred ArNS caching feature for improved performance on frequently accessed content and the observer's 80% failure threshold to prevent invalid reports during network issues.
+
+### Added
+
+- Added preferred ArNS caching functionality that allows configuring lists of ArNS names to be cached longer via `PREFERRED_ARNS_NAMES` and `PREFERRED_ARNS_BASE_NAMES` environment variables. When configured, these names will be cleaned from the filesystem cache after `PREFERRED_ARNS_CONTIGUOUS_DATA_CACHE_CLEANUP_THRESHOLD` instead of the standard cleanup threshold (`CONTIGUOUS_DATA_CACHE_CLEANUP_THRESHOLD`). This is accomplished by maintaining an MRU (Most Recently Used) list of ArNS names in the contiguous metadata cache. When filesystem cleanup runs, it checks this list to determine which cleanup threshold to apply. This feature enables gateway operators to ensure popular or important ArNS names remain cached longer, improving performance for frequently accessed content.
+- Added ArNS headers to responses: `X-ArNS-Name`, `X-ArNS-Basename`, and `X-ArNS-Record` to help identify which ArNS names were used in the resolution.
+
+### Changed
+
+- Updated observer to prevent report submission when failure rate exceeds 80%. This threshold helps guard against both poorly operated observers and widespread network issues. In the case of a widespread network issue, the assumption is that most gateway operators are well intentioned and will work together to troubleshoot and restore both observations and network stability, rather than submitting reports that would penalize functioning gateways.
+- Updated default trusted gateway in docker-compose Envoy configuration to ar-io.net for improved robustness and alignment with core service configuration.
+- Improved range request performance by passing ranges directly to getData implementations rather than streaming all data and extracting ranges.
+
+### Fixed
+
+- Fixed missing cache headers (`X-Cache` and other data headers) in range request responses to ensure consistent cache header behavior across all request types.
+- Fixed async streaming for multipart range requests by using async iteration instead of synchronous reads, preventing potential data loss.
+- Fixed ArNS resolution to properly exclude www subdomain from resolution logic.
+- Fixed test reliability issues by properly awaiting stream completion before making assertions.
+- Fixed chunk broadcasting to not await peer broadcasts, as they are best-effort operations.
+
 ## [Release 35] - 2025-05-19
 
 This is a low upgrade priority release. It contains a small caching improvement and routing fix. Upgrading to help test it is appreciated but not essential.
