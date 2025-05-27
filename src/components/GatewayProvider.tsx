@@ -20,15 +20,17 @@ type GatewayContextType = {
   isLoading: boolean
 }
 
+const FALLBACK_GATEWAY = 'permagate.io'
+
 const GatewayContext = createContext<GatewayContextType>({
   gateways: [],
-  defaultGateway: 'arweave.net',
+  defaultGateway: FALLBACK_GATEWAY,
   isLoading: true,
 })
 
 export function GatewayProvider({ children }: { children: React.ReactNode }) {
   const [gateways, setGateways] = useState<Gateway[]>([])
-  const [defaultGateway, setDefaultGateway] = useState('arweave.net')
+  const [defaultGateway, setDefaultGateway] = useState(FALLBACK_GATEWAY)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -36,12 +38,12 @@ export function GatewayProvider({ children }: { children: React.ReactNode }) {
       try {
         const currentDomain = window.location.hostname
         const currentGatewayUrl = `https://${currentDomain}`
-        const fallbackGatewayUrl = 'https://arweave.net'
+        const fallbackGatewayUrl = `https://${FALLBACK_GATEWAY}`
 
         console.log(`Testing current domain: ${currentDomain}`)
 
         let availableGateways: Gateway[] = []
-        let primaryGateway = 'arweave.net'
+        let primaryGateway = FALLBACK_GATEWAY
 
         // First, try with the current host
         try {
@@ -66,10 +68,10 @@ export function GatewayProvider({ children }: { children: React.ReactNode }) {
           })
           primaryGateway = currentDomain
 
-          // Add fallback as secondary option (only if current host is not arweave.net)
-          if (currentDomain !== 'arweave.net') {
+          // Add fallback as secondary option (only if current host is not the fallback)
+          if (currentDomain !== FALLBACK_GATEWAY) {
             availableGateways.push({
-              settings: { fqdn: 'arweave.net' },
+              settings: { fqdn: FALLBACK_GATEWAY },
               weights: { compositeWeight: 1 },
             })
           }
@@ -100,10 +102,10 @@ export function GatewayProvider({ children }: { children: React.ReactNode }) {
 
           // Only use fallback since current host failed
           availableGateways.push({
-            settings: { fqdn: 'arweave.net' },
+            settings: { fqdn: FALLBACK_GATEWAY },
             weights: { compositeWeight: 1 },
           })
-          primaryGateway = 'arweave.net'
+          primaryGateway = FALLBACK_GATEWAY
         }
 
         setGateways(availableGateways)
@@ -115,11 +117,11 @@ export function GatewayProvider({ children }: { children: React.ReactNode }) {
         // Ensure fallback is always available even if everything fails
         setGateways([
           {
-            settings: { fqdn: 'arweave.net' },
+            settings: { fqdn: FALLBACK_GATEWAY },
             weights: { compositeWeight: 1 },
           },
         ])
-        setDefaultGateway('arweave.net')
+        setDefaultGateway(FALLBACK_GATEWAY)
         setIsLoading(false)
       }
     }
