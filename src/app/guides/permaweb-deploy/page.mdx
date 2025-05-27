@@ -65,7 +65,15 @@ The permaweb-deploy command has two required arguments:
 - `--arns-name`
     This is the ArNS name you want to deploy to. It must be an ArNS name that the wallet used to authenticate has ownership or controller privileges over, otherwise the deployment will fail at authentication in the ao process that controls the ArNS name.
 
-There is also the additional, optional flag `--undername`. If you want to deploy your app to an [undername](/arns#under_names) on an ArNS name, provide that name with this flag.
+<Tip title="Undernames">
+The `--arns-name` flag MUST be the top level name, not and undername. That is, if you want to deploy to `undername_arnsname` you must set `--arns-name arnsname` and not `--arns-name undername_arnsname`.
+
+There is the additional, optional flag `--undername`. If you want to deploy your app to an [undername](/arns#under_names) on an ArNS name, provide that name with this flag.
+
+`--arns-name arnsname --undername undername`
+</Tip>
+
+
 
 ## Testnet
 
@@ -86,7 +94,7 @@ base64 wallet.json | xclip -selection clipboard
 - Mac
 
 ```bash
-base64 wallet.json | pbcopy
+base64 -i wallet.json | pbcopy
 ```
 
 - Windows (CMD)
