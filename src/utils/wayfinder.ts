@@ -1,4 +1,4 @@
-import { ARIO, AOProcess } from '@ar.io/sdk/web';
+import { ARIO, AOProcess, Wayfinder, StaticGatewaysProvider, RoutingStrategy } from '@ar.io/sdk/web';
 const { connect } = require("@permaweb/aoconnect");
 
 async function wayfinder(input: string, defaultGateway: string = 'arweave.net'): Promise<string> {
@@ -42,13 +42,38 @@ async function wayfinder(input: string, defaultGateway: string = 'arweave.net'):
 
   return resultUrl;
 
-  function getProcessedUrl(identifier: string, additionalPath: string = ''): string {
+  async function getProcessedUrl(identifier: string, additionalPath: string = ''): string {
+    // if (txIdRegex.test(identifier)) {
+    //   return `https://${defaultGateway}/${identifier}/${additionalPath}`;
+    // } else if (arnsNameRegex.test(identifier)) {
+    //   return `https://${identifier}.${defaultGateway}/${additionalPath}`;
+    // }
+    // return `https://${defaultGateway}/${identifier}`;
+
+    console.log("the new function is being called")
+    console.log(identifier)
+    console.log(additionalPath)
+
     if (txIdRegex.test(identifier)) {
-      return `https://${defaultGateway}/${identifier}/${additionalPath}`;
-    } else if (arnsNameRegex.test(identifier)) {
-      return `https://${identifier}.${defaultGateway}/${additionalPath}`;
+      const wayfinder = new Wayfinder({
+        gatewaysProvider: new StaticGatewaysProvider({
+          gateways: ['https://permagate.io'],
+        }),
+      });
+
+      console.log(wayfinder)
+      let newOriginalUrl = identifier
+      if (additionalPath) {
+        newOriginalUrl = `${identifier}/${additionalPath}`
+      }
+
+      const result: any = await wayfinder.resolveUrl({ originalUrl: `ar://${newOriginalUrl}` });
+      console.log('This is for identification')
+      console.log(result)
+      return result.href;
     }
-    return `https://${defaultGateway}/${identifier}`;
+
+
   }
 }
 

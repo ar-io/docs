@@ -30,6 +30,37 @@ export function GatewayProvider({ children }: { children: React.ReactNode }) {
   const [defaultGateway, setDefaultGateway] = useState('arweave.net');
   const [isLoading, setIsLoading] = useState(true);
 
+
+  useEffect(() => {
+
+    const currenDomain = window.location.hostname
+try{
+    const ario = ARIO.init({
+      process: new AOProcess({
+        processId: 'qNvAoz0TgcH7DMg8BCVn8jF32QH5L6T29VjHxhHqqGE',
+        ao: connect({
+          CU_URL: 'https://cu.ardrive.io',
+        }),
+      }),
+    })
+  } catch (error) {
+    console.error('Error initializing ARIO:', error);
+  }
+
+    console.log(`host: ${currenDomain}`)
+
+    async function checkGateway() {
+      const gateway = await ario.getGateway(currenDomain)
+      console.log(`gateway: ${gateway}`)
+    }
+
+    checkGateway()
+
+
+  },[])
+
+
+
   useEffect(() => {
     async function fetchGateways() {
       try {
