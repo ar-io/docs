@@ -49,9 +49,11 @@ The simplest way to utilize the permaweb-deploy tool is to build it into a scrip
 ```json
 "scripts": {
     "build": "vuepress build src",
-    "deploy": "npm run build && permaweb-deploy --deploy-folder ./src/.vuepress/dist --ant-process $DEPLOY_ANT_PROCESS_ID"
+    "deploy": "npm run build && permaweb-deploy --deploy-folder ./src/.vuepress/dist --arns-name <YOUR_ARNS_NAME>"
   },
 ```
+
+Be sure to replace `<YOUR_ARNS_NAME>` with the name of the ArNS name you want to deploy to.
 
 The above example shows a `build` script for a vuepress app, which will build the app into a static folder for deployment, and a `deploy` script which runs `build` and then permaweb-deploy. Your `build` script will look different depending on the framework you are using, but most will provide that for you when you create your app.
 
@@ -60,10 +62,14 @@ The permaweb-deploy command has two required arguments:
 - `--deploy-folder`
     This is the relative path (from your `package.json`) to the build folder you want to upload. In a vuepress app, that will be `./src/.vuepress/dist` unless you manually specify otherwise in your vuepress configuration. It will be different depending on your chosen framework and if you have modified the default location.
 
-- `--ant-process`
-    This is the process id of the [Arweave Name Token](/arns#arweave-name-token-ant) for the ArNS name you want to deploy to. You can find this id by viewing the name on [arns.app](https://arns.app). Providing the process id is crucial for making sure the update is sent to the ao process that controls the ArNS name.
+- `--arns-name`
+    This is the ArNS name you want to deploy to. It must be an ArNS name that the wallet used to authenticate has ownership or controller privileges over, otherwise the deployment will fail at authentication in the ao process that controls the ArNS name.
 
 There is also the additional, optional flag `--undername`. If you want to deploy your app to an [undername](/arns#under_names) on an ArNS name, provide that name with this flag.
+
+## Testnet
+
+Permaweb-deploy supports both Mainnet and Testnet deployments. By default, it will deploy to Mainnet. To deploy to Testnet, you can provide the `--ario-process` flag as "testnet". If not provided, deployments will default to Mainnet.
 
 ### Providing Arweave Wallet Keys
 
@@ -95,11 +101,10 @@ Be sure to replace `wallet.json` with the path to your chosen wallet keyfile. On
 
 Anyone who has your wallet keyfile (including the base64 formatted keyfile) has full control over your wallet and any of its assets. Because of this, you do not want to include it directly in your package.json script. Instead, keep the value safe by storing it in a [github secret](https://docs.github.com/en/actions/security-for-github-actions/security-guides/using-secrets-in-github-actions). You will create the secrets in the settings tab on your github repo, and the secrets will act as environmental variables in the github actions workflow.
 
-You will need to create 2 secrets"
+You will need to create 1 secret
 
 - `DEPLOY_KEY`: This is the base64 encoded version of your Arweave wallet keyfile.
 
-- `ANT_PROCESS`: This is the process id of the Arweave Name Token for your ArNS name. This value is not as sensitive, and may be provided in your package.json without issue, but it is a very long hashed string, and it is much easier to work with the variable name than the string itself.
 
 ### Create Action Workflow
 
@@ -130,7 +135,6 @@ jobs:
       - name: Run deployment script
         env:
           DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
-          DEPLOY_ANT_PROCESS: ${{ secrets.DEPLOY_ANT_PROCESS}}
         run: |
           npm install
           npm run deploy
