@@ -3,8 +3,6 @@ import React, { useState, useEffect } from 'react'
 import Diagram from '@/components/Diagram'
 import { useGateways } from '@/components/GatewayProvider'
 
-const { Wayfinder, StaticGatewaysProvider } = require('@ar.io/sdk')
-
 interface DiagramWithWayfinderProps {
   src: string
   title?: string
@@ -17,18 +15,12 @@ const DiagramWithWayfinder: React.FC<DiagramWithWayfinderProps> = ({
   description,
 }) => {
   const [processedSrc, setProcessedSrc] = useState<string | null>(null)
-  const { gateways,defaultGateway, isLoading: gatewaysLoading } = useGateways()
+  const { wayfinder, isLoading: gatewaysLoading } = useGateways()
 
   useEffect(() => {
     const processUrl = async () => {
-      if (!gatewaysLoading && gateways[0]) {
+      if (!gatewaysLoading && wayfinder) {
         try {
-          const wayfinder = new Wayfinder({
-            gatewaysProvider: new StaticGatewaysProvider({
-              gateways: [`https://${gateways[0].settings?.fqdn}`],
-            }),
-          })
-
           const result = await wayfinder.resolveUrl({
             originalUrl: src,
           })
@@ -43,7 +35,7 @@ const DiagramWithWayfinder: React.FC<DiagramWithWayfinderProps> = ({
     }
 
     processUrl()
-  }, [src, defaultGateway, gatewaysLoading])
+  }, [src, wayfinder, gatewaysLoading])
 
   if (gatewaysLoading || !processedSrc) {
     return (

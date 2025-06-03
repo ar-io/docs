@@ -3,11 +3,11 @@ import { HeroPattern } from '@/components/HeroPattern'
 
 <HeroPattern />
 
-# Configuration
+# Wayfinder
 
-Wayfinder is a client-side routing and verification solution for Arweave content. It enables applications to retrieve data through decentralized gateways while ensuring integrity through cryptographic verification.
+`Wayfinder` is a class constructor that creates a client-side routing and verification solution for Arweave content. It enables applications to retrieve data through decentralized gateways while ensuring integrity through cryptographic verification.
 
-## Constructor Parameters
+## Parameters
 
 {
 
@@ -23,37 +23,39 @@ Wayfinder is a client-side routing and verification solution for Arweave content
     </thead>
     <tbody>
       <tr>
-        <th>gatewaysProvider</th>
-        <td>GatewaysProvider</td>
-        <td>
-          Provider responsible for supplying a list of gateways to Wayfinder
-        </td>
+        <th>routingStrategy</th>
+        <td>RoutingStrategy</td>
+        <td>Strategy for selecting gateways for requests</td>
         <td>true</td>
       </tr>
       <tr>
-        <th>routingStrategy</th>
-        <td>RoutingStrategy</td>
-        <td>Strategy for selecting target gateways for requests</td>
+        <th>gatewaysProvider</th>
+        <td>GatewaysProvider</td>
+        <td>Provider for supplying available gateways</td>
         <td>true</td>
       </tr>
       <tr>
         <th>verificationStrategy</th>
-        <td>VerificationStrategy</td>
-        <td>Strategy for verifying the integrity of retrieved data</td>
+        <td>DataVerificationStrategy</td>
+        <td>Strategy for verifying data integrity</td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <th>logger</th>
+        <td>Logger</td>
+        <td>Logger instance for debugging and monitoring</td>
         <td>true</td>
       </tr>
       <tr>
         <th>events</th>
-        <td>WayfinderEvents</td>
-        <td>Event handlers for monitoring routing and verification process</td>
+        <td>WayfinderEventArgs</td>
+        <td>Event handlers for verification events</td>
         <td>true</td>
       </tr>
       <tr>
-        <th>httpClient</th>
-        <td>HTTPClient</td>
-        <td>
-          Custom HTTP client for making requests (defaults to native fetch)
-        </td>
+        <th>strict</th>
+        <td>boolean</td>
+        <td>Whether verification should be blocking or non-blocking</td>
         <td>true</td>
       </tr>
     </tbody>
@@ -63,79 +65,122 @@ Wayfinder is a client-side routing and verification solution for Arweave content
 
 ## Examples
 
-<CodeGroup title="Configuration">
-    ```typescript {{title: "Basic Usage"}}
-    import { Wayfinder } from '@ar.io/sdk';
+<CodeGroup title="Wayfinder">
+    ```typescript {{title: "NodeJS - Default"}}
+    const { Wayfinder } = require("@ar.io/sdk")
 
-    // Create a new Wayfinder instance with default settings
-    const wayfinder = new Wayfinder();
+    // Create with default settings
+    const wayfinder = new Wayfinder()
     ```
 
-    ```typescript {{title: "Custom Configuration"}}
-    import {
-      Wayfinder,
-      NetworkGatewaysProvider,
-      FastestPingRoutingStrategy,
-      HashVerificationStrategy,
-      StaticGatewaysProvider,
-      TrustedGatewaysHashProvider
-    } from '@ar.io/sdk';
+    ```typescript {{title: "NodeJS - Custom Configuration"}}
+    const {
+        Wayfinder,
+        NetworkGatewaysProvider,
+        FastestPingRoutingStrategy,
+        HashVerificationStrategy,
+        TrustedGatewaysHashProvider,
+        StaticGatewaysProvider,
+        ARIO
+    } = require("@ar.io/sdk")
 
     const wayfinder = new Wayfinder({
-      // Cache top 10 gateways by operator stake for 1 hour
-      gatewaysProvider: new NetworkGatewaysProvider({
-        sortBy: 'operatorStake',
-        sortOrder: 'desc',
-        limit: 10,
-      }),
-
-      // Use fastest pinging strategy
-      routingStrategy: new FastestPingRoutingStrategy({
-        timeoutMs: 1000,
-        probePath: '/ar-io/info',
-      }),
-
-      // Verify data using hash comparison
-      verificationStrategy: new HashVerificationStrategy({
-        trustedHashProvider: new TrustedGatewaysHashProvider({
-          gatewaysProvider: new StaticGatewaysProvider({
-            gateways: ['https://arweave.net'],
-          }),
+        gatewaysProvider: new NetworkGatewaysProvider({
+            ario: ARIO.mainnet(),
+            sortBy: 'operatorStake',
+            sortOrder: 'desc',
+            limit: 10,
         }),
-      }),
-    });
+        routingStrategy: new FastestPingRoutingStrategy({
+            timeoutMs: 1000,
+            probePath: '/ar-io/info',
+        }),
+        verificationStrategy: new HashVerificationStrategy({
+            trustedHashProvider: new TrustedGatewaysHashProvider({
+                gatewaysProvider: new StaticGatewaysProvider({
+                    gateways: ['https://permagate.io'],
+                }),
+            }),
+        }),
+        strict: false, // Non-blocking verification
+    })
     ```
 
-    ```typescript {{title: "With Event Monitoring"}}
-    import { Wayfinder } from '@ar.io/sdk';
+    ```typescript {{title: "Web - Default"}}
+    import { Wayfinder } from "@ar.io/sdk/web"
 
-    const wayfinder = new Wayfinder({
-      events: {
-        onVerificationPassed: (event) => {
-          console.log(`Verification passed for transaction: ${event.txId}`);
-        },
-        onVerificationFailed: (event) => {
-          console.error(`Verification failed for transaction: ${event.txId}`, event.error);
-        },
-        onVerificationProgress: (event) => {
-          const percentage = (event.processedBytes / event.totalBytes) * 100;
-          console.log(`Verification progress: ${percentage.toFixed(2)}%`);
-        },
-      },
-    });
+    // Create with default settings
+    const wayfinder = new Wayfinder()
     ```
 
-    ```typescript {{title: "Custom HTTP Client"}}
-    import { Wayfinder } from '@ar.io/sdk';
-    import axios from 'axios';
-
-    const axiosInstance = axios.create({
-      timeout: 10000,
-    });
+    ```typescript {{title: "Web - Custom Configuration"}}
+    import {
+        Wayfinder,
+        NetworkGatewaysProvider,
+        FastestPingRoutingStrategy,
+        HashVerificationStrategy,
+        TrustedGatewaysHashProvider,
+        StaticGatewaysProvider,
+        ARIO
+    } from "@ar.io/sdk/web"
 
     const wayfinder = new Wayfinder({
-      httpClient: axiosInstance,
-    });
+        gatewaysProvider: new NetworkGatewaysProvider({
+            ario: ARIO.mainnet(),
+            sortBy: 'operatorStake',
+            sortOrder: 'desc',
+            limit: 10,
+        }),
+        routingStrategy: new FastestPingRoutingStrategy({
+            timeoutMs: 1000,
+            probePath: '/ar-io/info',
+        }),
+        verificationStrategy: new HashVerificationStrategy({
+            trustedHashProvider: new TrustedGatewaysHashProvider({
+                gatewaysProvider: new StaticGatewaysProvider({
+                    gateways: ['https://permagate.io'],
+                }),
+            }),
+        }),
+        strict: false, // Non-blocking verification
+    })
+    ```
+
+    ```typescript {{title: "Preferred Gateway with Fallback"}}
+    import {
+        Wayfinder,
+        PreferredWithFallbackRoutingStrategy,
+        FastestPingRoutingStrategy
+    } from "@ar.io/sdk/web"
+
+    const wayfinder = new Wayfinder({
+        routingStrategy: new PreferredWithFallbackRoutingStrategy({
+            preferredGateway: 'https://my-preferred-gateway.com',
+            fallbackStrategy: new FastestPingRoutingStrategy({
+                timeoutMs: 1000,
+            }),
+        }),
+        strict: true, // Blocking verification
+    })
+    ```
+
+    ```typescript {{title: "Event Handling"}}
+    import { Wayfinder } from "@ar.io/sdk/web"
+
+    const wayfinder = new Wayfinder({
+        events: {
+            onVerificationSucceeded: (event) => {
+                console.log('Verification passed!', event)
+            },
+            onVerificationFailed: (event) => {
+                console.error('Verification failed!', event)
+            },
+            onVerificationProgress: (event) => {
+                const percentage = (event.processedBytes / event.totalBytes) * 100
+                console.log(`Verification progress: ${percentage.toFixed(2)}%`)
+            },
+        },
+    })
     ```
 
 </CodeGroup>

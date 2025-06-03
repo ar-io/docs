@@ -17,14 +17,14 @@ import { ThemeToggle } from '@/components/ThemeToggle'
 function TopLevelNavItem({
   href,
   children,
-  target = "_self"
+  target = '_self',
 }: {
   href: string
-  children: React.ReactNode,
+  children: React.ReactNode
   target?: string
 }) {
-  const isExternal = href.startsWith('http')
-  
+  const isExternal = href.startsWith('http') || href.startsWith('ar://')
+
   return (
     <li>
       <Link
