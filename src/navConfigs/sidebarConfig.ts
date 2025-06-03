@@ -1045,6 +1045,10 @@ export const singleNavigation: Array<NavGroup> = [
         title: 'Wayfinder Class',
         children: [
           {
+            title: 'Overview',
+            href: '/ar-io-sdk/wayfinder',
+          },
+          {
             title: 'Configuration',
             href: '/ar-io-sdk/wayfinder/configuration',
           },
