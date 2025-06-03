@@ -1,33 +1,33 @@
-'use client';
+'use client'
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { MDXProvider } from '@mdx-js/react';
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { motion } from 'framer-motion'
+import { MDXProvider } from '@mdx-js/react'
 
-import { Footer } from '@/components/Footer';
-import { Header } from '@/components/Header';
-import { Logo } from '@/components/Logo';
-import { Navigation } from '@/components/Navigation';
-import { type Section, SectionProvider } from '@/components/SectionProvider';
-import DiagramWithWayfinder from '@/components/DiagramWithWayfinder';
-import Tip from '@/components/Tip';
-import { GatewayProvider } from '@/components/GatewayProvider';
+import { Footer } from '@/components/Footer'
+import { Header } from '@/components/Header'
+import { Logo } from '@/components/Logo'
+import { Navigation } from '@/components/Navigation'
+import { type Section, SectionProvider } from '@/components/SectionProvider'
+import DiagramWithWayfinder from '@/components/DiagramWithWayfinder'
+import Tip from '@/components/Tip'
+import { GatewayProvider } from '@/components/GatewayProvider'
 
 export function Layout({
   children,
   allSections,
 }: {
-  children: React.ReactNode;
-  allSections: Record<string, Array<Section>>;
+  children: React.ReactNode
+  allSections: Record<string, Array<Section>>
 }) {
-  let pathname = usePathname();
+  let pathname = usePathname()
 
   // Define custom components for MDX
   const components = {
     Diagram: DiagramWithWayfinder, // Automatically replaces <Diagram /> in MDX
-    Tip: Tip
-  };
+    Tip: Tip,
+  }
 
   return (
     <GatewayProvider>
@@ -37,6 +37,7 @@ export function Layout({
           src="https://junction.ar.io/sdk/browser.js"
           data-dispatcher-id="c_IREeVUlhdlOBZGWldCiPLE4rcH-dv9I64OjGo1cQQ"
           data-track-url-hashes="true"
+          defer
         ></script>
         <script
           src="https://plausible.io/js/script.js"
@@ -67,5 +68,5 @@ export function Layout({
         </div>
       </SectionProvider>
     </GatewayProvider>
-  );
+  )
 }

@@ -3,12 +3,21 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 // import { ARIO, AOProcess } from '@ar.io/sdk/web';
 // const { connect } = require("@permaweb/aoconnect");
-const {
-  Wayfinder,
-  PreferredWithFallbackRoutingStrategy,
-  FastestPingRoutingStrategy,
-  StaticGatewaysProvider,
-} = require('@ar.io/sdk')
+
+// Only import and use wayfinder on the client side
+let Wayfinder: any,
+  PreferredWithFallbackRoutingStrategy: any,
+  FastestPingRoutingStrategy: any,
+  StaticGatewaysProvider: any
+
+if (typeof window !== 'undefined') {
+  const sdk = require('@ar.io/sdk')
+  Wayfinder = sdk.Wayfinder
+  PreferredWithFallbackRoutingStrategy =
+    sdk.PreferredWithFallbackRoutingStrategy
+  FastestPingRoutingStrategy = sdk.FastestPingRoutingStrategy
+  StaticGatewaysProvider = sdk.StaticGatewaysProvider
+}
 
 type Gateway = {
   settings?: {
@@ -42,6 +51,12 @@ export function GatewayProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
+    // Only run on client side
+    if (typeof window === 'undefined' || !Wayfinder) {
+      setIsLoading(false)
+      return
+    }
+
     async function setupWayfinderWithPreferredGateway() {
       try {
         const currentDomain = window.location.hostname
