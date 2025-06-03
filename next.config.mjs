@@ -39,6 +39,24 @@ const nextConfig = {
       process.env.NODE_ENV === 'production'
     ) {
       config.output.publicPath = `${process.env.BASE_PATH}/_next/`
+
+      // Additional optimizations for GitHub Pages
+      config.optimization = {
+        ...config.optimization,
+        moduleIds: 'deterministic',
+        chunkIds: 'deterministic',
+        splitChunks: {
+          ...config.optimization.splitChunks,
+          cacheGroups: {
+            ...config.optimization.splitChunks?.cacheGroups,
+            vendor: {
+              test: /[\\/]node_modules[\\/]/,
+              name: 'vendors',
+              chunks: 'all',
+            },
+          },
+        },
+      }
     }
 
     return config
