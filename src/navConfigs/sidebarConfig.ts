@@ -449,6 +449,10 @@ export const secondaryNavigation: Array<NavGroup> = [
         title: 'Wayfinder Class',
         children: [
           {
+            title: 'Overview',
+            href: '/build/ar-io-sdk/wayfinder',
+          },
+          {
             title: 'Configuration',
             href: '/build/ar-io-sdk/wayfinder/configuration',
           },
