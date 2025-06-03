@@ -3,7 +3,9 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import clsx from "clsx";
-import { mainNavigation, secondaryNavigation, singleNavigation } from "@/navConfigs/sidebarConfig";
+import { 
+  // mainNavigation, secondaryNavigation, 
+  singleNavigation } from "@/navConfigs/sidebarConfig";
 import { NavGroup } from "@/components/Navigation";
 
 const SidebarSubNavCards: React.FC = () => {

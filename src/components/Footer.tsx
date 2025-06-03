@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 import { Button } from '@/components/Button'
-import { mainNavigation as navigation } from '@/navConfigs/sidebarConfig'
+import { singleNavigation as navigation } from '@/navConfigs/sidebarConfig'
 
 type NavItem = {
   title: string;

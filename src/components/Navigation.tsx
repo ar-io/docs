@@ -13,8 +13,8 @@ import { Tag } from '@/components/Tag'
 import { remToPx } from '@/lib/remToPx'
 
 import {
-  mainNavigation,
-  secondaryNavigation,
+  // mainNavigation,
+  // secondaryNavigation,
   singleNavigation,
 } from '@/navConfigs/sidebarConfig'
 
