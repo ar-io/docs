@@ -1,8 +1,6 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
-// import { ARIO, AOProcess } from '@ar.io/sdk/web';
-// const { connect } = require("@permaweb/aoconnect");
 
 // Only import and use wayfinder on the client side
 let Wayfinder: any,
@@ -88,10 +86,24 @@ export function GatewayProvider({ children }: { children: React.ReactNode }) {
           },
         })
 
-        // Test the setup with a simple resolution
-        await wayfinderInstance.resolveUrl({
+        // Test the setup with a simple resolution (with timeout for static deployments)
+        const testPromise = wayfinderInstance.resolveUrl({
           originalUrl: 'ar://docs',
         })
+
+        // Add timeout for static deployments where network requests might fail
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Wayfinder test timeout')), 5000),
+        )
+
+        try {
+          await Promise.race([testPromise, timeoutPromise])
+        } catch (testError) {
+          console.warn(
+            'Wayfinder test failed, continuing with basic setup:',
+            testError,
+          )
+        }
 
         // Setup gateway list for context (current domain gets priority)
         const availableGateways: Gateway[] = [
@@ -121,131 +133,51 @@ export function GatewayProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         console.error('Error setting up Wayfinder:', error)
 
-        // Fallback to basic configuration
-        const fallbackWayfinder = new Wayfinder({
-          gatewaysProvider: new StaticGatewaysProvider({
-            gateways: [`https://${FALLBACK_GATEWAY}`],
-          }),
-          logger: {
-            debug: () => {}, // Disable debug logging
-            info: () => {}, // Disable info logging
-            warn: console.warn,
-            error: console.error,
-          },
-        })
+        // Enhanced fallback to basic configuration for static deployments
+        try {
+          const fallbackWayfinder = new Wayfinder({
+            gatewaysProvider: new StaticGatewaysProvider({
+              gateways: [`https://${FALLBACK_GATEWAY}`],
+            }),
+            logger: {
+              debug: () => {}, // Disable debug logging
+              info: () => {}, // Disable info logging
+              warn: console.warn,
+              error: console.error,
+            },
+          })
 
-        setWayfinder(fallbackWayfinder)
-        setGateways([
-          {
-            settings: { fqdn: FALLBACK_GATEWAY },
-            weights: { compositeWeight: 1 },
-          },
-        ])
-        setDefaultGateway(FALLBACK_GATEWAY)
-        setIsLoading(false)
+          setWayfinder(fallbackWayfinder)
+          setGateways([
+            {
+              settings: { fqdn: FALLBACK_GATEWAY },
+              weights: { compositeWeight: 1 },
+            },
+          ])
+          setDefaultGateway(FALLBACK_GATEWAY)
+          setIsLoading(false)
+
+          console.log('✅ Wayfinder fallback configuration loaded')
+        } catch (fallbackError) {
+          console.error(
+            'Critical error: Failed to initialize Wayfinder fallback:',
+            fallbackError,
+          )
+          // Set a basic mock wayfinder as last resort
+          setWayfinder({
+            resolveUrl: async ({ originalUrl }: { originalUrl: string }) => {
+              const txId = originalUrl.replace('ar://', '')
+              return { href: `https://${FALLBACK_GATEWAY}/${txId}` }
+            },
+          })
+          setDefaultGateway(FALLBACK_GATEWAY)
+          setIsLoading(false)
+        }
       }
     }
 
     setupWayfinderWithPreferredGateway()
   }, [])
-
-  // Commented out original ARIO-based implementation
-  /*
-  useEffect(() => {
-    const currenDomain = window.location.hostname
-    try{
-      const ario = ARIO.init({
-        process: new AOProcess({
-          processId: 'qNvAoz0TgcH7DMg8BCVn8jF32QH5L6T29VjHxhHqqGE',
-          ao: connect({
-            CU_URL: 'https://cu.ardrive.io',
-          }),
-        }),
-      })
-    } catch (error) {
-      console.error('Error initializing ARIO:', error);
-    }
-
-    console.log(`host: ${currenDomain}`)
-
-    async function checkGateway() {
-      const gateway = await ario.getGateway(currenDomain)
-      console.log(`gateway: ${gateway}`)
-    }
-
-    checkGateway()
-  },[])
-
-  useEffect(() => {
-    async function fetchGateways() {
-      try {
-        const ario = ARIO.init({
-          process: new AOProcess({
-            processId: "qNvAoz0TgcH7DMg8BCVn8jF32QH5L6T29VjHxhHqqGE",
-            ao: connect({
-              CU_URL: 'https://cu.ardrive.io',
-            }),
-          }),
-        });
-
-        let allGateways: Gateway[] = [];
-        let hasMore = true;
-        let cursor: string | undefined;
-
-        while (hasMore) {
-          const response = await ario.getGateways({
-            limit: 1000,
-            cursor,
-            sortBy: 'weights.compositeWeight',
-            sortOrder: 'desc',
-          });
-
-          allGateways = [...allGateways, ...response.items];
-          hasMore = response.hasMore;
-          cursor = response.nextCursor;
-        }
-
-        setGateways(allGateways);
-
-        // Check if current domain matches any gateway
-        const currentDomain = window.location.hostname;
-        
-        // Find all matching gateways (where fqdn is included in hostname)
-        const matchingGateways = allGateways.filter(
-          gateway => currentDomain.includes(gateway.settings?.fqdn || '')
-        );
-
-        // Find the gateway that most closely matches the current hostname
-        const bestMatch = matchingGateways.reduce((best, current) => {
-          if (!best) return current;
-          
-          const currentFqdn = current.settings?.fqdn || '';
-          const bestFqdn = best.settings?.fqdn || '';
-          
-          // If one gateway's fqdn is longer than the other, prefer the longer one
-          // as it's likely more specific to the current domain
-          if (currentFqdn.length !== bestFqdn.length) {
-            return currentFqdn.length > bestFqdn.length ? current : best;
-          }
-          
-          // If lengths are equal, prefer the one that appears later in the hostname
-          // as it's likely more specific to the current domain
-          const currentIndex = currentDomain.indexOf(currentFqdn);
-          const bestIndex = currentDomain.indexOf(bestFqdn);
-          return currentIndex > bestIndex ? current : best;
-        }, null as Gateway | null);
-
-        setDefaultGateway(bestMatch?.settings?.fqdn || 'arweave.net');
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Error fetching gateways:', error);
-        setIsLoading(false);
-      }
-    }
-
-    fetchGateways();
-  }, []);
-  */
 
   return (
     <GatewayContext.Provider

@@ -5,7 +5,7 @@ import { rehypePlugins } from './src/mdx/rehype.mjs'
 import { remarkPlugins } from './src/mdx/remark.mjs'
 import withSearch from './src/mdx/search.mjs'
 
-import NodePolyfillPlugin from 'node-polyfill-webpack-plugin';
+import NodePolyfillPlugin from 'node-polyfill-webpack-plugin'
 
 const withMDX = nextMDX({
   options: {
@@ -17,19 +17,31 @@ const withMDX = nextMDX({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: "export",
-  basePath: process.env.BASE_PATH || "",
+  output: 'export',
+  basePath: process.env.BASE_PATH || '',
+  // Only set assetPrefix for GitHub Pages builds to fix chunk loading
+  assetPrefix: process.env.BASE_PATH || '',
   trailingSlash: false,
   pageExtensions: ['js', 'jsx', 'ts', 'tsx', 'mdx'],
-   outputFileTracingIncludes: {
-      '**/*': ['./src/app/**/*.mdx'],
+  outputFileTracingIncludes: {
+    '**/*': ['./src/app/**/*.mdx'],
   },
   // experimental: {
   //   disableRuntimeJS: true
   // },
-  webpack: (config) => {
-    config.plugins.push(new NodePolyfillPlugin());
-    return config;
+  webpack: (config, { isServer }) => {
+    config.plugins.push(new NodePolyfillPlugin())
+
+    // Fix chunk loading for GitHub Pages with basePath
+    if (
+      !isServer &&
+      process.env.BASE_PATH &&
+      process.env.NODE_ENV === 'production'
+    ) {
+      config.output.publicPath = `${process.env.BASE_PATH}/_next/`
+    }
+
+    return config
   },
 }
 
