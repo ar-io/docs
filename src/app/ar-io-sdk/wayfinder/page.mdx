@@ -9,32 +9,195 @@ Wayfinder is AR.IO's client-side routing and verification solution that provides
 
 ## Key Features
 
-- **Intelligent Routing**: Multiple routing strategies including fastest ping, preferred gateway with fallback, and round-robin
-- **Gateway Management**: Automatic gateway discovery through the AR.IO network or custom static configurations
-- **Data Verification**: Cryptographic verification to ensure data integrity using hash comparison and Merkle proof validation
-- **Event Monitoring**: Real-time events for verification progress, success, and failure scenarios
-- **Flexible Architecture**: Modular design allowing custom routing strategies, gateway providers, and verification methods
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Feature</th>
+        <th>Description</th>
+        <th>Benefits</th>
+        <th>Implementation</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>Intelligent Routing</th>
+        <td>
+          Multiple routing strategies including fastest ping, preferred gateway
+          with fallback, and round-robin
+        </td>
+        <td>Optimized performance, automatic failover, load distribution</td>
+        <td>Configurable strategies with custom parameters</td>
+      </tr>
+      <tr>
+        <th>Gateway Management</th>
+        <td>
+          Automatic gateway discovery through the AR.IO network or custom static
+          configurations
+        </td>
+        <td>Dynamic gateway selection, network resilience, custom control</td>
+        <td>Provider-based architecture with caching support</td>
+      </tr>
+      <tr>
+        <th>Data Verification</th>
+        <td>
+          Cryptographic verification to ensure data integrity using hash
+          comparison and Merkle proof validation
+        </td>
+        <td>Data integrity assurance, tamper detection, trust verification</td>
+        <td>Pluggable verification strategies with event monitoring</td>
+      </tr>
+      <tr>
+        <th>Event Monitoring</th>
+        <td>
+          Real-time events for verification progress, success, and failure
+          scenarios
+        </td>
+        <td>Debugging insights, progress tracking, error handling</td>
+        <td>Event emitter pattern with callback support</td>
+      </tr>
+      <tr>
+        <th>Flexible Architecture</th>
+        <td>
+          Modular design allowing custom routing strategies, gateway providers,
+          and verification methods
+        </td>
+        <td>Customizable behavior, extensible design, future-proof</td>
+        <td>Interface-based components with dependency injection</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 
 ## Core Components
 
 ### Routing Strategies
 
-- **FastestPingRoutingStrategy**: Routes to the gateway with the lowest latency
-- **PreferredWithFallbackRoutingStrategy**: Uses a preferred gateway with automatic fallback
-- **RoundRobinRoutingStrategy**: Distributes requests evenly across available gateways
-- **RandomRoutingStrategy**: Randomly selects from available gateways
-- **StaticRoutingStrategy**: Always uses a single specified gateway
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Strategy</th>
+        <th>Description</th>
+        <th>Best Use Case</th>
+        <th>Performance</th>
+        <th>Configuration</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>FastestPingRoutingStrategy</th>
+        <td>Routes to the gateway with the lowest latency</td>
+        <td>Performance-critical applications requiring minimum latency</td>
+        <td>High (after initial ping overhead)</td>
+        <td>Timeout, probe path, max retries, cache TTL</td>
+      </tr>
+      <tr>
+        <th>PreferredWithFallbackRoutingStrategy</th>
+        <td>Uses a preferred gateway with automatic fallback</td>
+        <td>
+          Applications with trusted gateway preferences but need reliability
+        </td>
+        <td>Medium (depends on preferred gateway)</td>
+        <td>Preferred gateway URL, fallback strategy, timeout</td>
+      </tr>
+      <tr>
+        <th>RoundRobinRoutingStrategy</th>
+        <td>Distributes requests evenly across available gateways</td>
+        <td>Load balancing across multiple gateways for sustained traffic</td>
+        <td>Medium (consistent load distribution)</td>
+        <td>No configuration required</td>
+      </tr>
+      <tr>
+        <th>RandomRoutingStrategy</th>
+        <td>Randomly selects from available gateways</td>
+        <td>Simple load distribution without state management</td>
+        <td>Medium (unpredictable variance)</td>
+        <td>No configuration required</td>
+      </tr>
+      <tr>
+        <th>StaticRoutingStrategy</th>
+        <td>Always uses a single specified gateway</td>
+        <td>Testing, development, or when gateway control is required</td>
+        <td>Low to High (depends on chosen gateway)</td>
+        <td>Single gateway URL</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 
 ### Gateway Providers
 
-- **NetworkGatewaysProvider**: Automatically discovers gateways from the AR.IO network
-- **StaticGatewaysProvider**: Uses a predefined list of gateways
-- **SimpleCacheGatewaysProvider**: Caches gateway lists with configurable TTL
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Provider</th>
+        <th>Description</th>
+        <th>Best Use Case</th>
+        <th>Data Source</th>
+        <th>Configuration</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>NetworkGatewaysProvider</th>
+        <td>Automatically discovers gateways from the AR.IO network</td>
+        <td>Production applications requiring dynamic gateway discovery</td>
+        <td>Live AR.IO network registry</td>
+        <td>ARIO instance, sorting criteria, limit, filtering</td>
+      </tr>
+      <tr>
+        <th>StaticGatewaysProvider</th>
+        <td>Uses a predefined list of gateways</td>
+        <td>
+          Controlled environments, testing, or specific gateway requirements
+        </td>
+        <td>Hardcoded gateway list</td>
+        <td>Array of gateway URLs</td>
+      </tr>
+      <tr>
+        <th>SimpleCacheGatewaysProvider</th>
+        <td>Caches gateway lists with configurable TTL</td>
+        <td>Performance optimization to reduce network calls</td>
+        <td>Wrapped provider with caching layer</td>
+        <td>Underlying provider, cache TTL, refresh strategy</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 
 ### Verification Strategies
 
-- **HashVerificationStrategy**: Verifies data integrity using SHA-256 hash comparison
-- **DataRootVerificationStrategy**: Validates data using Arweave's Merkle tree proofs
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Strategy</th>
+        <th>Description</th>
+        <th>Security Level</th>
+        <th>Performance Impact</th>
+        <th>Best Use Case</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>HashVerificationStrategy</th>
+        <td>Verifies data integrity using SHA-256 hash comparison</td>
+        <td>High (cryptographic hash verification)</td>
+        <td>Low (single hash computation)</td>
+        <td>Fast verification of known transaction data</td>
+      </tr>
+      <tr>
+        <th>DataRootVerificationStrategy</th>
+        <td>Validates data using Arweave's Merkle tree proofs</td>
+        <td>Very High (Merkle proof validation)</td>
+        <td>Medium (Merkle tree computation)</td>
+        <td>Maximum security for critical data verification</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 
 ## Quick Start
 
@@ -45,7 +208,7 @@ Wayfinder is AR.IO's client-side routing and verification solution that provides
     const wayfinder = new Wayfinder();
 
     // Fetch transaction data
-    const response = await wayfinder.request('/YTB0dGJURWpqQ25iS2NaY1RPSi1TOUQxMmd3cGRFaHUzV2hiWnVlZ2o5WT0');
+    const response = await wayfinder.request('ar://YTB0dGJURWpqQ25iS2NaY1RPSi1TOUQxMmd3cGRFaHUzV2hiWnVlZ2o5WT0');
     const data = await response.text();
     ```
 
