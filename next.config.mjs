@@ -40,30 +40,63 @@ const nextConfig = {
     ) {
       config.output.publicPath = `${process.env.BASE_PATH}/_next/`
 
-      // Additional optimizations for GitHub Pages
+      // More aggressive chunk separation for GitHub Pages
       config.optimization = {
         ...config.optimization,
         moduleIds: 'deterministic',
         chunkIds: 'deterministic',
+        // Disable some optimizations that might cause conflicts
+        sideEffects: false,
+        usedExports: true,
         splitChunks: {
-          ...config.optimization.splitChunks,
           chunks: 'all',
-          minSize: 20000,
-          maxSize: 244000,
+          minSize: 10000,
+          maxSize: 200000,
+          minChunks: 1,
+          maxAsyncRequests: 30,
+          maxInitialRequests: 30,
           cacheGroups: {
-            ...config.optimization.splitChunks?.cacheGroups,
+            // Isolate AR.IO SDK completely
+            ariosdk: {
+              test: /[\\/]node_modules[\\/]@ar\.io[\\/]sdk/,
+              name: 'ario-sdk',
+              chunks: 'all',
+              priority: 50,
+              enforce: true,
+              reuseExistingChunk: false,
+            },
+            // Isolate uuid separately since it was causing issues
+            uuid: {
+              test: /[\\/]node_modules[\\/]uuid/,
+              name: 'uuid',
+              chunks: 'all',
+              priority: 45,
+              enforce: true,
+              reuseExistingChunk: false,
+            },
+            // Keep other vendor chunks small and separate
             vendor: {
               test: /[\\/]node_modules[\\/]/,
-              name: 'vendors',
+              name(module) {
+                // Generate chunk name based on package name
+                const packageName = module.context.match(
+                  /[\\/]node_modules[\\/](.*?)([\\/]|$)/,
+                )?.[1]
+                return `vendor-${packageName?.replace('@', '').replace('/', '-')}`
+              },
               chunks: 'all',
               priority: 10,
+              minSize: 10000,
+              maxSize: 150000,
+              reuseExistingChunk: false,
             },
             common: {
               name: 'common',
               minChunks: 2,
               chunks: 'all',
               priority: 5,
-              reuseExistingChunk: true,
+              maxSize: 150000,
+              reuseExistingChunk: false,
             },
           },
         },
