@@ -50,13 +50,21 @@ export function GatewayProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Only run on client side
-    if (typeof window === 'undefined' || !Wayfinder) {
+    if (typeof window === 'undefined') {
       setIsLoading(false)
       return
     }
 
     async function setupWayfinderWithPreferredGateway() {
       try {
+        // Use dynamic import instead of require to prevent webpack conflicts
+        const {
+          Wayfinder,
+          PreferredWithFallbackRoutingStrategy,
+          FastestPingRoutingStrategy,
+          StaticGatewaysProvider,
+        } = await import('@ar.io/sdk')
+
         const currentDomain = window.location.hostname
         const currentGatewayUrl = `https://${currentDomain}`
         const fallbackGatewayUrl = `https://${FALLBACK_GATEWAY}`
@@ -72,18 +80,10 @@ export function GatewayProvider({ children }: { children: React.ReactNode }) {
             fallbackStrategy: new FastestPingRoutingStrategy({
               timeoutMs: 2000,
             }),
-            timeoutMs: 3000, // Give preferred gateway 3 seconds
-            maxRetries: 2, // Try preferred gateway twice before falling back
           }),
           gatewaysProvider: new StaticGatewaysProvider({
             gateways: [currentGatewayUrl, fallbackGatewayUrl],
           }),
-          logger: {
-            debug: () => {}, // Disable debug logging
-            info: () => {}, // Disable info logging
-            warn: console.warn,
-            error: console.error,
-          },
         })
 
         // Test the setup with a simple resolution (with timeout for static deployments)
@@ -135,16 +135,14 @@ export function GatewayProvider({ children }: { children: React.ReactNode }) {
 
         // Enhanced fallback to basic configuration for static deployments
         try {
+          const { Wayfinder, StaticGatewaysProvider } = await import(
+            '@ar.io/sdk'
+          )
+
           const fallbackWayfinder = new Wayfinder({
             gatewaysProvider: new StaticGatewaysProvider({
               gateways: [`https://${FALLBACK_GATEWAY}`],
             }),
-            logger: {
-              debug: () => {}, // Disable debug logging
-              info: () => {}, // Disable info logging
-              warn: console.warn,
-              error: console.error,
-            },
           })
 
           setWayfinder(fallbackWayfinder)
