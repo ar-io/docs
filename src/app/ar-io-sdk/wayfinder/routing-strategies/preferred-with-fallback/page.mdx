@@ -1,0 +1,227 @@
+import { CodeGroup } from '@/components/Code'
+import { HeroPattern } from '@/components/HeroPattern'
+
+<HeroPattern />
+
+# PreferredWithFallbackRoutingStrategy
+
+`PreferredWithFallbackRoutingStrategy` is a routing strategy that prioritizes a specific gateway but automatically falls back to an alternative routing strategy when the preferred gateway is unavailable or fails to respond.
+
+## Parameters
+
+{
+
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>preferredGateway</th>
+        <td>string</td>
+        <td>The URL of the preferred gateway to use first</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>fallbackStrategy</th>
+        <td>RoutingStrategy</td>
+        <td>The strategy to use when the preferred gateway fails</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>timeoutMs</th>
+        <td>number</td>
+        <td>Timeout for preferred gateway requests in milliseconds</td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <th>maxRetries</th>
+        <td>number</td>
+        <td>Maximum retry attempts for the preferred gateway</td>
+        <td>true</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+}
+
+## Examples
+
+<CodeGroup title="PreferredWithFallbackRoutingStrategy">
+
+    ```typescript {{ title: 'NodeJS - Basic' }}
+    const {
+        Wayfinder,
+        PreferredWithFallbackRoutingStrategy,
+        FastestPingRoutingStrategy
+    } = require('@ar.io/sdk');
+
+    const wayfinder = new Wayfinder({
+        routingStrategy: new PreferredWithFallbackRoutingStrategy({
+            preferredGateway: 'https://permagate.io',
+            fallbackStrategy: new FastestPingRoutingStrategy()
+        })
+    });
+
+    // Will try permagate.io first, then fall back to fastest ping if it fails
+    const response = await wayfinder.request('/YTB0dGJURWpqQ25iS2NaY1RPSi1TOUQxMmd3cGRFaHUzV2hiWnVlZ2o5WT0');
+    ```
+
+    ```typescript {{ title: 'Web - Basic' }}
+    import {
+        Wayfinder,
+        PreferredWithFallbackRoutingStrategy,
+        FastestPingRoutingStrategy
+    } from '@ar.io/sdk/web';
+
+    const wayfinder = new Wayfinder({
+        routingStrategy: new PreferredWithFallbackRoutingStrategy({
+            preferredGateway: 'https://permagate.io',
+            fallbackStrategy: new FastestPingRoutingStrategy()
+        })
+    });
+
+    // Will try permagate.io first, then fall back to fastest ping if it fails
+    const response = await wayfinder.request('/YTB0dGJURWpqQ25iS2NaY1RPSi1TOUQxMmd3cGRFaHUzV2hiWnVlZ2o5WT0');
+    ```
+
+    ```typescript {{ title: 'Custom Configuration' }}
+    import {
+        Wayfinder,
+        PreferredWithFallbackRoutingStrategy,
+        FastestPingRoutingStrategy
+    } from '@ar.io/sdk/web';
+
+    const wayfinder = new Wayfinder({
+        routingStrategy: new PreferredWithFallbackRoutingStrategy({
+            preferredGateway: 'https://my-custom-gateway.com',
+            fallbackStrategy: new FastestPingRoutingStrategy({
+                timeoutMs: 2000,
+            }),
+            timeoutMs: 3000,     // Give preferred gateway 3 seconds
+            maxRetries: 2,       // Try preferred gateway twice
+        })
+    });
+    ```
+
+    ```typescript {{ title: 'With Round Robin Fallback' }}
+    import {
+        Wayfinder,
+        PreferredWithFallbackRoutingStrategy,
+        RoundRobinRoutingStrategy
+    } from '@ar.io/sdk/web';
+
+    const wayfinder = new Wayfinder({
+        routingStrategy: new PreferredWithFallbackRoutingStrategy({
+            preferredGateway: 'https://arweave.net',
+            fallbackStrategy: new RoundRobinRoutingStrategy()
+        })
+    });
+    ```
+
+    ```typescript {{ title: 'Enterprise Configuration' }}
+    import {
+        Wayfinder,
+        PreferredWithFallbackRoutingStrategy,
+        FastestPingRoutingStrategy,
+        NetworkGatewaysProvider,
+        ARIO
+    } from '@ar.io/sdk/web';
+
+    const wayfinder = new Wayfinder({
+        gatewaysProvider: new NetworkGatewaysProvider({
+            ario: ARIO.mainnet(),
+            sortBy: 'operatorStake',
+            limit: 20, // Large pool for fallback
+        }),
+        routingStrategy: new PreferredWithFallbackRoutingStrategy({
+            preferredGateway: 'https://enterprise-gateway.mycompany.com',
+            fallbackStrategy: new FastestPingRoutingStrategy({
+                timeoutMs: 1000,
+                cacheTtlMs: 300000, // 5 minute cache
+            }),
+            timeoutMs: 5000,     // Give enterprise gateway more time
+            maxRetries: 3,       // More retries for preferred
+        })
+    });
+    ```
+
+    ```typescript {{ title: 'Multiple Fallback Levels' }}
+    import {
+        Wayfinder,
+        PreferredWithFallbackRoutingStrategy,
+        StaticRoutingStrategy,
+        FastestPingRoutingStrategy
+    } from '@ar.io/sdk/web';
+
+    // Create nested fallback strategy
+    const secondaryFallback = new PreferredWithFallbackRoutingStrategy({
+        preferredGateway: 'https://backup-gateway.com',
+        fallbackStrategy: new FastestPingRoutingStrategy()
+    });
+
+    const wayfinder = new Wayfinder({
+        routingStrategy: new PreferredWithFallbackRoutingStrategy({
+            preferredGateway: 'https://primary-gateway.com',
+            fallbackStrategy: secondaryFallback,
+            timeoutMs: 2000,
+        })
+    });
+    ```
+
+    ```typescript {{ title: 'With Health Monitoring' }}
+    import {
+        Wayfinder,
+        PreferredWithFallbackRoutingStrategy,
+        FastestPingRoutingStrategy
+    } from '@ar.io/sdk/web';
+
+    const strategy = new PreferredWithFallbackRoutingStrategy({
+        preferredGateway: 'https://permagate.io',
+        fallbackStrategy: new FastestPingRoutingStrategy()
+    });
+
+    // Monitor when fallback is triggered
+    strategy.on('fallback-triggered', (preferredGateway, error) => {
+        console.log(`Preferred gateway ${preferredGateway} failed, using fallback:`, error);
+    });
+
+    strategy.on('preferred-restored', (preferredGateway) => {
+        console.log(`Preferred gateway ${preferredGateway} is working again`);
+    });
+
+    const wayfinder = new Wayfinder({
+        routingStrategy: strategy
+    });
+    ```
+
+</CodeGroup>
+
+## How It Works
+
+1. **Primary Attempt**: Always tries the preferred gateway first
+2. **Health Checking**: Monitors preferred gateway availability and response times
+3. **Automatic Fallback**: Switches to fallback strategy when preferred gateway fails
+4. **Recovery Detection**: Periodically checks if preferred gateway has recovered
+5. **Seamless Switching**: Automatically returns to preferred gateway when available
+
+## Use Cases
+
+- **Enterprise Deployments**: Use internal/private gateways with public fallbacks
+- **Geographic Optimization**: Prefer local gateways with global fallbacks
+- **Cost Optimization**: Use free gateways first, fall back to premium services
+- **Performance Tuning**: Test new gateways while maintaining reliable fallbacks
+- **Redundancy**: Ensure high availability through layered gateway selection
+
+## Performance Considerations
+
+- **Fast Failover**: Quick detection and switching when preferred gateway fails
+- **Recovery Time**: Periodic health checks to restore preferred gateway usage
+- **Latency Impact**: Minimal overhead when preferred gateway is healthy
+- **Cascading Failures**: Fallback strategy should be robust and well-tested

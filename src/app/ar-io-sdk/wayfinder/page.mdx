@@ -1,0 +1,75 @@
+import { CodeGroup } from '@/components/Code'
+import { HeroPattern } from '@/components/HeroPattern'
+
+<HeroPattern />
+
+# Wayfinder
+
+Wayfinder is AR.IO's client-side routing and verification solution that provides reliable access to Arweave data through decentralized gateways. It automatically handles gateway selection, request routing, failover, and cryptographic verification to ensure data integrity.
+
+## Key Features
+
+- **Intelligent Routing**: Multiple routing strategies including fastest ping, preferred gateway with fallback, and round-robin
+- **Gateway Management**: Automatic gateway discovery through the AR.IO network or custom static configurations
+- **Data Verification**: Cryptographic verification to ensure data integrity using hash comparison and Merkle proof validation
+- **Event Monitoring**: Real-time events for verification progress, success, and failure scenarios
+- **Flexible Architecture**: Modular design allowing custom routing strategies, gateway providers, and verification methods
+
+## Core Components
+
+### Routing Strategies
+
+- **FastestPingRoutingStrategy**: Routes to the gateway with the lowest latency
+- **PreferredWithFallbackRoutingStrategy**: Uses a preferred gateway with automatic fallback
+- **RoundRobinRoutingStrategy**: Distributes requests evenly across available gateways
+- **RandomRoutingStrategy**: Randomly selects from available gateways
+- **StaticRoutingStrategy**: Always uses a single specified gateway
+
+### Gateway Providers
+
+- **NetworkGatewaysProvider**: Automatically discovers gateways from the AR.IO network
+- **StaticGatewaysProvider**: Uses a predefined list of gateways
+- **SimpleCacheGatewaysProvider**: Caches gateway lists with configurable TTL
+
+### Verification Strategies
+
+- **HashVerificationStrategy**: Verifies data integrity using SHA-256 hash comparison
+- **DataRootVerificationStrategy**: Validates data using Arweave's Merkle tree proofs
+
+## Quick Start
+
+<CodeGroup title="Quick Start">
+    ```typescript {{title: "Basic Usage"}}
+    import { Wayfinder } from '@ar.io/sdk/web';
+
+    const wayfinder = new Wayfinder();
+
+    // Fetch transaction data
+    const response = await wayfinder.request('/YTB0dGJURWpqQ25iS2NaY1RPSi1TOUQxMmd3cGRFaHUzV2hiWnVlZ2o5WT0');
+    const data = await response.text();
+    ```
+
+    ```typescript {{title: "Production Configuration"}}
+    import {
+        Wayfinder,
+        NetworkGatewaysProvider,
+        FastestPingRoutingStrategy,
+        HashVerificationStrategy,
+        ARIO
+    } from '@ar.io/sdk/web';
+
+    const wayfinder = new Wayfinder({
+        gatewaysProvider: new NetworkGatewaysProvider({
+            ario: ARIO.mainnet(),
+            sortBy: 'operatorStake',
+            limit: 10,
+        }),
+        routingStrategy: new FastestPingRoutingStrategy({
+            timeoutMs: 1000,
+        }),
+        verificationStrategy: new HashVerificationStrategy(),
+        strict: false, // Non-blocking verification
+    });
+    ```
+
+</CodeGroup>

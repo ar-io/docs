@@ -1,0 +1,188 @@
+import { CodeGroup } from '@/components/Code'
+import { HeroPattern } from '@/components/HeroPattern'
+
+<HeroPattern />
+
+# FastestPingRoutingStrategy
+
+`FastestPingRoutingStrategy` is a routing strategy that selects gateways based on their response time to a probe request. It automatically pings all available gateways and routes requests to the one with the lowest latency.
+
+## Parameters
+
+{
+
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+        <th>Default</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>timeoutMs</th>
+        <td>number</td>
+        <td>Maximum time to wait for ping response in milliseconds</td>
+        <td>true</td>
+        <td>5000</td>
+      </tr>
+      <tr>
+        <th>probePath</th>
+        <td>string</td>
+        <td>The path to use for testing gateway response times</td>
+        <td>true</td>
+        <td>'/ar-io/info'</td>
+      </tr>
+      <tr>
+        <th>maxRetries</th>
+        <td>number</td>
+        <td>Maximum number of ping attempts per gateway</td>
+        <td>true</td>
+        <td>3</td>
+      </tr>
+      <tr>
+        <th>cacheTtlMs</th>
+        <td>number</td>
+        <td>How long to cache ping results in milliseconds</td>
+        <td>true</td>
+        <td>60000</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+}
+
+## Examples
+
+<CodeGroup title="FastestPingRoutingStrategy">
+
+    ```typescript {{ title: 'NodeJS - Basic' }}
+    const {
+        Wayfinder,
+        FastestPingRoutingStrategy
+    } = require('@ar.io/sdk');
+
+    const wayfinder = new Wayfinder({
+        routingStrategy: new FastestPingRoutingStrategy()
+    });
+
+    // Will automatically route to the fastest responding gateway
+    const response = await wayfinder.request('/YTB0dGJURWpqQ25iS2NaY1RPSi1TOUQxMmd3cGRFaHUzV2hiWnVlZ2o5WT0');
+    ```
+
+    ```typescript {{ title: 'Web - Basic' }}
+    import {
+        Wayfinder,
+        FastestPingRoutingStrategy
+    } from '@ar.io/sdk/web';
+
+    const wayfinder = new Wayfinder({
+        routingStrategy: new FastestPingRoutingStrategy()
+    });
+
+    // Will automatically route to the fastest responding gateway
+    const response = await wayfinder.request('/YTB0dGJURWpqQ25iS2NaY1RPSi1TOUQxMmd3cGRFaHUzV2hiWnVlZ2o5WT0');
+    ```
+
+    ```typescript {{ title: 'Custom Configuration' }}
+    import {
+        Wayfinder,
+        FastestPingRoutingStrategy
+    } from '@ar.io/sdk/web';
+
+    const wayfinder = new Wayfinder({
+        routingStrategy: new FastestPingRoutingStrategy({
+            timeoutMs: 2000,        // 2 second timeout
+            probePath: '/ar-io/info', // Use gateway info endpoint for testing
+            maxRetries: 2,          // Try each gateway twice if needed
+            cacheTtlMs: 30000,      // Cache results for 30 seconds
+        })
+    });
+    ```
+
+    ```typescript {{ title: 'With Custom Probe Path' }}
+    import {
+        Wayfinder,
+        FastestPingRoutingStrategy
+    } from '@ar.io/sdk/web';
+
+    const wayfinder = new Wayfinder({
+        routingStrategy: new FastestPingRoutingStrategy({
+            probePath: '/graphql',  // Test using GraphQL endpoint
+            timeoutMs: 1500,
+        })
+    });
+    ```
+
+    ```typescript {{ title: 'Production Optimized' }}
+    import {
+        Wayfinder,
+        FastestPingRoutingStrategy,
+        NetworkGatewaysProvider,
+        ARIO
+    } from '@ar.io/sdk/web';
+
+    const wayfinder = new Wayfinder({
+        gatewaysProvider: new NetworkGatewaysProvider({
+            ario: ARIO.mainnet(),
+            sortBy: 'operatorStake',
+            sortOrder: 'desc',
+            limit: 5, // Only test top 5 gateways by stake
+        }),
+        routingStrategy: new FastestPingRoutingStrategy({
+            timeoutMs: 1000,        // Quick timeout for faster selection
+            maxRetries: 1,          // Single attempt to avoid delays
+            cacheTtlMs: 120000,     // Cache for 2 minutes
+        })
+    });
+    ```
+
+    ```typescript {{ title: 'With Events Monitoring' }}
+    import {
+        Wayfinder,
+        FastestPingRoutingStrategy
+    } from '@ar.io/sdk/web';
+
+    const strategy = new FastestPingRoutingStrategy({
+        timeoutMs: 2000,
+    });
+
+    // Monitor ping results
+    strategy.on('ping-start', (gateway) => {
+        console.log(`Testing gateway: ${gateway}`);
+    });
+
+    strategy.on('ping-result', (gateway, latency) => {
+        console.log(`Gateway ${gateway} responded in ${latency}ms`);
+    });
+
+    strategy.on('ping-timeout', (gateway) => {
+        console.log(`Gateway ${gateway} timed out`);
+    });
+
+    const wayfinder = new Wayfinder({
+        routingStrategy: strategy
+    });
+    ```
+
+</CodeGroup>
+
+## How It Works
+
+1. **Gateway Discovery**: Retrieves available gateways from the configured gateway provider
+2. **Concurrent Pinging**: Sends probe requests to all gateways simultaneously
+3. **Latency Measurement**: Records response times for successful requests
+4. **Selection**: Chooses the gateway with the lowest average latency
+5. **Caching**: Stores results to avoid re-pinging on subsequent requests
+6. **Fallback**: If the fastest gateway becomes unavailable, automatically falls back to the next fastest
+
+## Performance Considerations
+
+- **Initial Overhead**: First request may be slower due to ping testing
+- **Cache Benefits**: Subsequent requests are fast due to cached ping results
+- **Gateway Count**: Performance scales with number of gateways (more gateways = longer initial ping time)
+- **Network Conditions**: Results reflect current network conditions between client and gateways

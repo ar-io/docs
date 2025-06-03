@@ -1,6 +1,7 @@
 import { NavGroup } from '@/components/Navigation'
 
 export const mainNavigation: Array<NavGroup> = [
+  //no longer in use
   {
     title: 'General',
     links: [
@@ -79,6 +80,7 @@ export const mainNavigation: Array<NavGroup> = [
 ]
 
 export const secondaryNavigation: Array<NavGroup> = [
+  //no longer in use
   {
     title: 'AR.IO SDK',
     links: [
@@ -443,6 +445,40 @@ export const secondaryNavigation: Array<NavGroup> = [
           },
         ],
       },
+      {
+        title: 'Wayfinder Class',
+        children: [
+          {
+            title: 'Configuration',
+            href: '/build/ar-io-sdk/wayfinder/configuration',
+          },
+          {
+            title: 'request',
+            href: '/build/ar-io-sdk/wayfinder/request',
+          },
+          {
+            title: 'resolveUrl',
+            href: '/build/ar-io-sdk/wayfinder/resolve-url',
+          },
+          {
+            title: 'Events',
+            href: '/build/ar-io-sdk/wayfinder/events',
+          },
+          {
+            title: 'Routing Strategies',
+            children: [
+              {
+                title: 'FastestPingRoutingStrategy',
+                href: '/build/ar-io-sdk/wayfinder/routing-strategies/fastest-ping',
+              },
+              {
+                title: 'PreferredWithFallbackRoutingStrategy',
+                href: '/build/ar-io-sdk/wayfinder/routing-strategies/preferred-with-fallback',
+              },
+            ],
+          },
+        ],
+      },
     ],
   },
   {
@@ -577,6 +613,7 @@ export const secondaryNavigation: Array<NavGroup> = [
 ]
 
 export const singleNavigation: Array<NavGroup> = [
+  // this is the primary navigation
   {
     title: 'General',
     links: [
@@ -1000,6 +1037,40 @@ export const singleNavigation: Array<NavGroup> = [
           },
         ],
       },
+      {
+        title: 'Wayfinder Class',
+        children: [
+          {
+            title: 'Configuration',
+            href: '/ar-io-sdk/wayfinder/configuration',
+          },
+          {
+            title: 'request',
+            href: '/ar-io-sdk/wayfinder/request',
+          },
+          {
+            title: 'resolveUrl',
+            href: '/ar-io-sdk/wayfinder/resolve-url',
+          },
+          {
+            title: 'Events',
+            href: '/ar-io-sdk/wayfinder/events',
+          },
+          {
+            title: 'Routing Strategies',
+            children: [
+              {
+                title: 'FastestPingRoutingStrategy',
+                href: '/ar-io-sdk/wayfinder/routing-strategies/fastest-ping',
+              },
+              {
+                title: 'PreferredWithFallbackRoutingStrategy',
+                href: '/ar-io-sdk/wayfinder/routing-strategies/preferred-with-fallback',
+              },
+            ],
+          },
+        ],
+      },
     ],
   },
   {
@@ -1063,8 +1134,8 @@ export const singleNavigation: Array<NavGroup> = [
             href: '/gateways/troubleshooting',
           },
           {
-            title: "Troubleshooting Failed Epochs",
-            href: "/gateways/failed-epoch",
+            title: 'Troubleshooting Failed Epochs',
+            href: '/gateways/failed-epoch',
           },
           {
             title: 'Upgrading',

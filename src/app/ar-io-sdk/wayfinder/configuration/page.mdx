@@ -1,0 +1,186 @@
+import { CodeGroup } from '@/components/Code'
+import { HeroPattern } from '@/components/HeroPattern'
+
+<HeroPattern />
+
+# Wayfinder
+
+`Wayfinder` is a class constructor that creates a client-side routing and verification solution for Arweave content. It enables applications to retrieve data through decentralized gateways while ensuring integrity through cryptographic verification.
+
+## Parameters
+
+{
+
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>routingStrategy</th>
+        <td>RoutingStrategy</td>
+        <td>Strategy for selecting gateways for requests</td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <th>gatewaysProvider</th>
+        <td>GatewaysProvider</td>
+        <td>Provider for supplying available gateways</td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <th>verificationStrategy</th>
+        <td>DataVerificationStrategy</td>
+        <td>Strategy for verifying data integrity</td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <th>logger</th>
+        <td>Logger</td>
+        <td>Logger instance for debugging and monitoring</td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <th>events</th>
+        <td>WayfinderEventArgs</td>
+        <td>Event handlers for verification events</td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <th>strict</th>
+        <td>boolean</td>
+        <td>Whether verification should be blocking or non-blocking</td>
+        <td>true</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+}
+
+## Examples
+
+<CodeGroup title="Wayfinder">
+    ```typescript {{title: "NodeJS - Default"}}
+    const { Wayfinder } = require("@ar.io/sdk")
+
+    // Create with default settings
+    const wayfinder = new Wayfinder()
+    ```
+
+    ```typescript {{title: "NodeJS - Custom Configuration"}}
+    const {
+        Wayfinder,
+        NetworkGatewaysProvider,
+        FastestPingRoutingStrategy,
+        HashVerificationStrategy,
+        TrustedGatewaysHashProvider,
+        StaticGatewaysProvider,
+        ARIO
+    } = require("@ar.io/sdk")
+
+    const wayfinder = new Wayfinder({
+        gatewaysProvider: new NetworkGatewaysProvider({
+            ario: ARIO.mainnet(),
+            sortBy: 'operatorStake',
+            sortOrder: 'desc',
+            limit: 10,
+        }),
+        routingStrategy: new FastestPingRoutingStrategy({
+            timeoutMs: 1000,
+            probePath: '/ar-io/info',
+        }),
+        verificationStrategy: new HashVerificationStrategy({
+            trustedHashProvider: new TrustedGatewaysHashProvider({
+                gatewaysProvider: new StaticGatewaysProvider({
+                    gateways: ['https://permagate.io'],
+                }),
+            }),
+        }),
+        strict: false, // Non-blocking verification
+    })
+    ```
+
+    ```typescript {{title: "Web - Default"}}
+    import { Wayfinder } from "@ar.io/sdk/web"
+
+    // Create with default settings
+    const wayfinder = new Wayfinder()
+    ```
+
+    ```typescript {{title: "Web - Custom Configuration"}}
+    import {
+        Wayfinder,
+        NetworkGatewaysProvider,
+        FastestPingRoutingStrategy,
+        HashVerificationStrategy,
+        TrustedGatewaysHashProvider,
+        StaticGatewaysProvider,
+        ARIO
+    } from "@ar.io/sdk/web"
+
+    const wayfinder = new Wayfinder({
+        gatewaysProvider: new NetworkGatewaysProvider({
+            ario: ARIO.mainnet(),
+            sortBy: 'operatorStake',
+            sortOrder: 'desc',
+            limit: 10,
+        }),
+        routingStrategy: new FastestPingRoutingStrategy({
+            timeoutMs: 1000,
+            probePath: '/ar-io/info',
+        }),
+        verificationStrategy: new HashVerificationStrategy({
+            trustedHashProvider: new TrustedGatewaysHashProvider({
+                gatewaysProvider: new StaticGatewaysProvider({
+                    gateways: ['https://permagate.io'],
+                }),
+            }),
+        }),
+        strict: false, // Non-blocking verification
+    })
+    ```
+
+    ```typescript {{title: "Preferred Gateway with Fallback"}}
+    import {
+        Wayfinder,
+        PreferredWithFallbackRoutingStrategy,
+        FastestPingRoutingStrategy
+    } from "@ar.io/sdk/web"
+
+    const wayfinder = new Wayfinder({
+        routingStrategy: new PreferredWithFallbackRoutingStrategy({
+            preferredGateway: 'https://my-preferred-gateway.com',
+            fallbackStrategy: new FastestPingRoutingStrategy({
+                timeoutMs: 1000,
+            }),
+        }),
+        strict: true, // Blocking verification
+    })
+    ```
+
+    ```typescript {{title: "Event Handling"}}
+    import { Wayfinder } from "@ar.io/sdk/web"
+
+    const wayfinder = new Wayfinder({
+        events: {
+            onVerificationSucceeded: (event) => {
+                console.log('Verification passed!', event)
+            },
+            onVerificationFailed: (event) => {
+                console.error('Verification failed!', event)
+            },
+            onVerificationProgress: (event) => {
+                const percentage = (event.processedBytes / event.totalBytes) * 100
+                console.log(`Verification progress: ${percentage.toFixed(2)}%`)
+            },
+        },
+    })
+    ```
+
+</CodeGroup>

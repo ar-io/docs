@@ -12,7 +12,11 @@ import { useSectionStore } from '@/components/SectionProvider'
 import { Tag } from '@/components/Tag'
 import { remToPx } from '@/lib/remToPx'
 
-import { mainNavigation, secondaryNavigation, singleNavigation } from '@/navConfigs/sidebarConfig'
+import {
+  mainNavigation,
+  secondaryNavigation,
+  singleNavigation,
+} from '@/navConfigs/sidebarConfig'
 
 import { ChevronDown, ChevronRight } from 'lucide-react'
 
@@ -42,7 +46,7 @@ function TopLevelNavItem({
   href,
   children,
   target = '_self',
-  className
+  className,
 }: {
   href: string
   children: React.ReactNode
@@ -54,7 +58,7 @@ function TopLevelNavItem({
       <Link
         href={href}
         target={target}
-        className='flex font-extrabold cursor-pointer justify-between gap-2 py-1 pr-3 text-lg text-zinc-900 hover:text-emerald-600 dark:text-white dark:hover:text-emerald-600'
+        className="flex cursor-pointer justify-between gap-2 py-1 pr-3 text-lg font-extrabold text-zinc-900 hover:text-emerald-600 dark:text-white dark:hover:text-emerald-600"
       >
         {children}
       </Link>
@@ -76,11 +80,14 @@ function NavLink({
   isAnchorLink?: boolean
 }) {
   if (!href) return null
-  const isExternal = href.startsWith('https')
+  const isExternal =
+    href.startsWith('https') ||
+    href.startsWith('http') ||
+    href.startsWith('ar://')
   const target = isExternal ? '_blank' : '_self'
 
   return (
-    <Link 
+    <Link
       href={href}
       target={target}
       aria-current={active ? 'page' : undefined}
@@ -88,7 +95,7 @@ function NavLink({
         'flex cursor-pointer justify-between gap-2 text-sm transition',
         isAnchorLink ? 'pl-9' : 'pl-4',
         active
-          ? 'font-bold text-zinc-900 hover:text-emerald-600 underline dark:text-white dark:hover:text-emerald-600'
+          ? 'font-bold text-zinc-900 underline hover:text-emerald-600 dark:text-white dark:hover:text-emerald-600'
           : 'text-zinc-600 hover:text-emerald-600 dark:text-zinc-400 dark:hover:text-emerald-600',
       )}
     >
@@ -310,7 +317,7 @@ function NavigationGroup({
         links.forEach((link) => {
           const isActive = isPathActive(link, pathname)
           initialState[link.title] = !isActive
-          
+
           if (link.children) {
             setInitialStates(link.children, level + 1)
           }
@@ -349,7 +356,8 @@ function NavigationGroup({
   }, [pathname, sections, group.links])
 
   const mapSections = (link: any, level = 0) => {
-    const isLinkActiveAndHasSections = link.href === pathname && sections.length > 0
+    const isLinkActiveAndHasSections =
+      link.href === pathname && sections.length > 0
 
     return (
       <div className="py-1">
@@ -365,7 +373,7 @@ function NavigationGroup({
                   'cursor-pointer pl-4 text-sm',
                   isPathActive(link, pathname)
                     ? 'font-bold text-zinc-900 dark:text-white'
-                    : 'text-zinc-900 dark:text-zinc-400 hover:text-emerald-600 group-hover:text-emerald-600 dark:hover:text-emerald-600',
+                    : 'text-zinc-900 hover:text-emerald-600 group-hover:text-emerald-600 dark:text-zinc-400 dark:hover:text-emerald-600',
                 )}
               >
                 {link.title}
@@ -376,7 +384,11 @@ function NavigationGroup({
                 className="ml-2 cursor-pointer text-sm text-zinc-900 dark:text-white"
                 onClick={() => toggleCollapse(link.title)}
               >
-                {collapsedState[link.title] ? <ChevronRight /> : <ChevronDown />}
+                {collapsedState[link.title] ? (
+                  <ChevronRight />
+                ) : (
+                  <ChevronDown />
+                )}
               </span>
             )}
           </div>
@@ -411,7 +423,7 @@ function NavigationGroup({
           </motion.ul>
         )}
         {!collapsedState[link.title] && link.children && (
-          <ul role="list" className="pl-4 mt-1">
+          <ul role="list" className="mt-1 pl-4">
             {link.children.map((child: any) => (
               <li key={child.href ?? child.title}>
                 {mapSections(child, level + 1)}
@@ -427,7 +439,7 @@ function NavigationGroup({
     <li className={clsx('relative mt-6', className)}>
       <motion.h2
         layout="position"
-        className="flex cursor-pointer items-center justify-between text-lg font-extrabold text-zinc-900 dark:text-white py-1"
+        className="flex cursor-pointer items-center justify-between py-1 text-lg font-extrabold text-zinc-900 dark:text-white"
         onClick={() => toggleCollapse(group.title)}
       >
         {group.href ? (
