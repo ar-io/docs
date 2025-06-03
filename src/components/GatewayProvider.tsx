@@ -2,21 +2,6 @@
 
 import { createContext, useContext, useEffect, useState } from 'react'
 
-// Only import and use wayfinder on the client side
-let Wayfinder: any,
-  PreferredWithFallbackRoutingStrategy: any,
-  FastestPingRoutingStrategy: any,
-  StaticGatewaysProvider: any
-
-if (typeof window !== 'undefined') {
-  const sdk = require('@ar.io/sdk')
-  Wayfinder = sdk.Wayfinder
-  PreferredWithFallbackRoutingStrategy =
-    sdk.PreferredWithFallbackRoutingStrategy
-  FastestPingRoutingStrategy = sdk.FastestPingRoutingStrategy
-  StaticGatewaysProvider = sdk.StaticGatewaysProvider
-}
-
 type Gateway = {
   settings?: {
     fqdn: string
