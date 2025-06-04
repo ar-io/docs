@@ -871,28 +871,12 @@ export const singleNavigation: Array<NavGroup> = [
                 href: '/ar-io-sdk/ario/arns/increase-undername-limit',
               },
               {
-                title: 'getArNSAuction',
-                href: '/ar-io-sdk/ario/arns/get-arns-auction',
-              },
-              {
-                title: 'getArNSAuctions',
-                href: '/ar-io-sdk/ario/arns/get-arns-auctions',
-              },
-              {
                 title: 'getArNSReturnedName',
                 href: '/ar-io-sdk/ario/arns/get-arns-returned-name',
               },
               {
                 title: 'getArNSReturnedNames',
                 href: '/ar-io-sdk/ario/arns/get-arns-returned-names',
-              },
-              {
-                title: 'getArNSAuctionPrices',
-                href: '/ar-io-sdk/ario/arns/get-arns-auction-prices',
-              },
-              {
-                title: 'submitAuctionBid',
-                href: '/ar-io-sdk/ario/arns/submit-auction-bid',
               },
             ],
           },
@@ -991,8 +975,8 @@ export const singleNavigation: Array<NavGroup> = [
             href: '/ar-io-sdk/ants/remove-record',
           },
           {
-            title: 'removePrimaryName',
-            href: '/ar-io-sdk/ants/remove-primary-name',
+            title: 'removePrimaryNames',
+            href: '/ar-io-sdk/ants/remove-primary-names',
           },
           {
             title: 'approvePrimaryNameRequest',

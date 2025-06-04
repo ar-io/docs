@@ -1,12 +1,14 @@
 export const metadata = {
   title: 'AR.IO Gateway Environment Variables',
-  description: 'Comprehensive guide to all available environment variables for configuring the AR.IO Gateway',
+  description:
+    'Comprehensive guide to all available environment variables for configuring the AR.IO Gateway',
   openGraph: {
     title: 'AR.IO Gateway Environment Variables',
   },
-};
+}
 
-import {HeroPattern} from "@/components/HeroPattern"
+import { HeroPattern } from '@/components/HeroPattern'
+import { Table } from '@/components/Table'
 
 <HeroPattern />
 
@@ -18,660 +20,632 @@ The AR.IO Gateway allows configuration customization through environmental varia
 
 ## Variables
 
-
-{<div style={{textAlign: "center"}}>
-    <table className="inline-table" id="gateway-table">
-    <thead>
-        <tr>
-            <th>ENV Name</th>
-            <th>Type</th>
-            <th>Default Value</th>
-            <th>Description</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr>
-            <th>GRAPHQL_HOST</th>
-            <td>String</td>
-            <td>arweave.net</td>
-            <td>Host for GraphQL queries. You may use any available gateway that supports GQL queries. If omitted, your node can support GQL queries on locally indexed transactions, but only L1 transactions are indexed by default.</td>
-        </tr>
-        <tr>
-            <th>GRAPHQL_PORT</th>
-            <td>Number</td>
-            <td>443</td>
-            <td>Port for GraphQL queries. Used in conjunction with GRAPHQL_HOST to set up the proxy for GQL queries.</td>
-        </tr>
-        <tr>
-            <th>START_HEIGHT</th>
-            <td>Number or "Infinity"</td>
-            <td>0</td>
-            <td>Starting block height for node synchronization (0 = start from genesis block)</td>
-        </tr>
-        <tr>
-            <th>STOP_HEIGHT</th>
-            <td>Number or "Infinity"</td>
-            <td>"Infinity"</td>
-            <td>Stop block height for node synchronization (Infinity = keep syncing until stopped)</td>
-        </tr>
-        <tr>
-            <th>TRUSTED_NODE_URL</th>
-            <td>String</td>
-            <td>"https://arweave.net"</td>
-            <td>Arweave node to use for fetching data</td>
-        </tr>
-        <tr>
-            <th>TRUSTED_GATEWAY_URL</th>
-            <td>String</td>
-            <td>"https://arweave.net"</td>
-            <td>Arweave node to use for proxying reqeusts</td>
-        </tr>
-        <tr>
-            <th>TRUSTED_GATEWAYS_URLS</th>
-            <td>String</td>
-            <td>TRUSTED_GATEWAY_URL</td>
-            <td>A JSON map of gateways and priority</td>
-        </tr>
-        <tr>
-            <th>TRUSTED_GATEWAYS_REQUEST_TIMEOUT_MS</th>
-            <td>String</td>
-            <td>"10000"</td>
-            <td>Request timeout in milliseconds for trusted gateways</td>
-        </tr>
-        <tr>
-            <th>TRUSTED_ARNS_GATEWAY_URL</th>
-            <td>String</td>
-            <td>"https://__NAME__.arweave.dev"</td>
-            <td>ArNS gateway</td>
-        </tr>
-        <tr>
-            <th>WEIGHTED_PEERS_TEMPERATURE_DELTA</th>
-            <td>Number</td>
-            <td>0.1</td>
-            <td>Any positive number above 0, best to keep 1 or less. Used to determine the sensitivity of which the probability of failing or succeeding peers decreases or increases.</td>
-        </tr>
-        <tr>
-            <th>INSTANCE_ID</th>
-            <td>String</td>
-            <td>""</td>
-            <td>Adds an "INSTANCE_ID" field to output logs</td>
-        </tr>
-        <tr>
-            <th>LOG_FORMAT</th>
-            <td>String</td>
-            <td>"simple"</td>
-            <td>Sets the format of output logs, accepts "simple" and "json"</td>
-        </tr>
-        <tr>
-            <th>SKIP_CACHE</th>
-            <td>Boolean</td>
-            <td>false</td>
-            <td>If true, skips the local cache and always fetches headers from the node</td>
-        </tr>
-        <tr>
-            <th>PORT</th>
-            <td>Number</td>
-            <td>4000</td>
-            <td>AR.IO node exposed port number</td>
-        </tr>
-        <tr>
-            <th>SIMULATED_REQUEST_FAILURE_RATE</th>
-            <td>Number</td>
-            <td>0</td>
-            <td>Number from 0 to 1, representing the probability of a request failing</td>
-        </tr>
-        <tr>
-            <th>AR_IO_WALLET</th>
-            <td>String</td>
-            <td>""</td>
-            <td>Arweave wallet address used for staking and rewards</td>
-        </tr>
-        <tr>
-            <th>ADMIN_API_KEY</th>
-            <td>String</td>
-            <td>Generated</td>
-            <td>API key used for admin API requests (if not set, it is generated and logged into the console)</td>
-        </tr>
-        <tr>
-            <th>ADMIN_API_KEY_FILE</th>
-            <td>String</td>
-            <td>Generated</td>
-            <td>Alternative way to set the API key used for admin API requests via filepath, it takes precedence over ADMIN_API_KEY if defined</td>
-        </tr>
-        <tr>
-            <th>BACKFILL_BUNDLE_RECORDS</th>
-            <td>Boolean</td>
-            <td>false</td>
-            <td>If true, AR.IO node will start indexing missing bundles</td>
-        </tr>
-        <tr>
-            <th>FILTER_CHANGE_REPROCESS</th>
-            <td>Boolean</td>
-            <td>false</td>
-            <td>If true, all indexed bundles will be reprocessed with the new filters (you can use this when you change the filters)</td>
-        </tr>
-        <tr>
-            <th>ON_DEMAND_RETRIEVAL_ORDER</th>
-            <td>String</td>
-            <td>s3,trusted-gateways,chunks,tx-data</td>
-            <td>Data source retrieval order for on-demand data requests</td>
-        </tr>
-        <tr>
-            <th>BACKGROUND_RETRIEVAL_ORDER</th>
-            <td>String</td>
-            <td>chunks,s3,trusted-gateways,chunks,tx-data</td>
-            <td>Data source retrieval order for background data requests (i.e., unbundling)</td>
-        </tr>
-        <tr>
-            <th>ANS104_UNBUNDLE_FILTER</th>
-            <td>String</td>
-            <td>&#123;"never": true&#125;</td>
-            <td>Only bundles compliant with this filter will be unbundled</td>
-        </tr>
-        <tr>
-            <th>ANS104_INDEX_FILTER</th>
-            <td>String</td>
-            <td>&#123;"never": true&#125;</td>
-            <td>Only bundles compliant with this filter will be indexed</td>
-        </tr>
-        <tr>
-            <th>ANS104_DOWNLOAD_WORKERS</th>
-            <td>String</td>
-            <td>5</td>
-            <td>Sets the number of ANS-104 bundles to attempt to download in parallel</td>
-        </tr>
-        <tr>
-            <th>ANS104_UNBUNDLE_WORKERS</th>
-            <td>Number</td>
-            <td>0, or 1 if filters are set</td>
-            <td>Sets the number of workers used to handle unbundling</td>
-        </tr>
-        <tr>
-            <th>DATA_ITEM_FLUSH_COUNT_THRESHOLD</th>
-            <td>Number</td>
-            <td>1000</td>
-            <td>Sets the number of new data items indexed before flushing to stable data items</td>
-        </tr>
-        <tr>
-            <th>MAX_FLUSH_INTERVAL_SECONDS</th>
-            <td>Number</td>
-            <td>600</td>
-            <td>Sets the maximum time interval in seconds before flushing to stable data items</td>
-        </tr>
-        <tr>
-            <th>WRITE_ANS104_DATA_ITEM_DB_SIGNATURES</th>
-            <td>Boolean</td>
-            <td>false</td>
-            <td>If true, the data item signatures will be written to the database</td>
-        </tr>
-        <tr>
-            <th>WRITE_TRANSACTION_DB_SIGNATURES</th>
-            <td>Boolean</td>
-            <td>true</td>
-            <td>If true, the transactions signatures will be written to the database</td>
-        </tr>
-        <tr>
-            <th>ENABLE_DATA_DB_WAL_CLEANUP</th>
-            <td>Boolean</td>
-            <td>false</td>
-            <td>If true, the data database WAL cleanup worker will be enabled</td>
-        </tr>
-        <tr>
-            <th>ENABLE_BACKGROUND_DATA_VERIFICATION</th>
-            <td>Boolean</td>
-            <td>false</td>
-            <td>If true, unverified data will be verified in background</td>
-        </tr>
-        <tr>
-            <th>MAX_DATA_ITEM_QUEUE_SIZE</th>
-            <td>Number</td>
-            <td>100000</td>
-            <td>Sets the maximum number of data items to queue for indexing before skipping indexing new data items</td>
-        </tr>
-        <tr>
-            <th>ARNS_ROOT_HOST</th>
-            <td>String</td>
-            <td>undefined</td>
-            <td>Domain name for ArNS host</td>
-        </tr>
-        <tr>
-            <th>SANDBOX_PROTOCOL</th>
-            <td>String</td>
-            <td>undefined</td>
-            <td>Protocol setting in process of creating sandbox domains in ArNS (ARNS_ROOT_HOST needs to be set for this env to have any effect) accepts "http" or "https"</td>
-        </tr>
-        <tr>
-            <th>START_WRITERS</th>
-            <td>Boolean</td>
-            <td>true</td>
-            <td>If true, start indexing blocks, tx, ANS104 bundles</td>
-        </tr>
-        <tr>
-            <th>RUN_OBSERVER</th>
-            <td>Boolean</td>
-            <td>true</td>
-            <td>If true, runs the Observer alongside the gateway to generate Network compliance reports</td>
-        </tr>
-        <tr>
-            <th>MIN_RELEASE_NUMBER</th>
-            <td>string</td>
-            <td>"0"</td>
-            <td>Sets the minimum Gateway release version to check while doing a gateway version assessment</td>
-        </tr> 
-        <tr>
-            <th>AR_IO_NODE_RELEASE</th>
-            <td>string</td>
-            <td>"0"</td>
-            <td>Sets the current AR.IO node version to be set on X-AR-IO-Node-Release header on requests to the reference gateway</td>
-        </tr> 
-        <tr>
-            <th>OBSERVER_WALLET</th>
-            <td>String</td>
-            <td>undefined</td>
-            <td>The public wallet address of the wallet being used to sign report upload transactions for Observer</td>
-        </tr>
-        <tr>
-            <th>CHUNKS_DATA_PATH</th>
-            <td>string</td>
-            <td>"data/chunks"</td>
-            <td>Sets the location for chunked data to be saved. If omitted, chunked data will be stored in the `data` directory</td>
-        </tr> 
-        <tr>
-            <th>CONTIGUOUS_DATA_PATH</th>
-            <td>string</td>
-            <td>"data/contiguous"</td>
-            <td>Sets the location for contiguous data to be saved. If omitted, contiguous data will be stored in the `data` directory</td>
-        </tr> 
-        <tr>
-            <th>HEADERS_DATA_PATH</th>
-            <td>string</td>
-            <td>"data/headers"</td>
-            <td>Sets the location for header data to be saved. If omitted, header data will be stored in the `data` directory</td>
-        </tr> 
-        <tr>
-            <th>SQLITE_DATA_PATH</th>
-            <td>string</td>
-            <td>"data/sqlite"</td>
-            <td>Sets the location for sqlite indexed data to be saved. If omitted, sqlite data will be stored in the `data` directory</td>
-        </tr> 
-        <tr>
-            <th>DUCKDB_DATA_PATH</th>
-            <td>string</td>
-            <td>"data/duckdb"</td>
-            <td>Sets the location for duckdb data to be saved. If omitted, duckdb data will be stored in the `data` directory</td>
-        </tr>
-        <tr>
-            <th>TEMP_DATA_PATH</th>
-            <td>string</td>
-            <td>"data/tmp"</td>
-            <td>Sets the location for temporary data to be saved. If omitted, temporary data will be stored in the `data` directory</td>
-        </tr> 
-        <tr>
-            <th>LMDB_DATA_PATH</th>
-            <td>string</td>
-            <td>"data/LMDB"</td>
-            <td>Sets the location for LMDB data to be saved. If omitted, LMDB data will be stored in the `data` directory</td>
-        </tr>
-        <tr>
-            <th>CHAIN_CACHE_TYPE</th>
-            <td>String</td>
-            <td>"redis"</td>
-            <td>Sets the method for caching chain data, defaults to redis if gateway is started with docker-compose, otherwise defaults to LMDB</td>
-        </tr>
-        <tr>
-            <th>REDIS_CACHE_URL</th>
-            <td>String (URL)</td>
-            <td>"redis://localhost:6379"</td>
-            <td>URL of Redis database to be used for caching</td>
-        </tr>
-        <tr>
-            <th>REDIS_CACHE_TTL_SECONDS</th>
-            <td>Number</td>
-            <td>28800</td>
-            <td>TTL value for Redis cache, defaults to 8 hours (28800 seconds)</td>
-        </tr>
-        <tr>
-            <th>ENABLE_FS_HEADER_CACHE_CLEANUP</th>
-            <td>Boolean</td>
-            <td>false</td>
-            <td>If true, periodically deletes cached header data</td>
-        </tr>
-        <tr>
-            <th>NODE_JS_MAX_OLD_SPACE_SIZE</th>
-            <td>Number</td>
-            <td>2048 or 8192, depending on number of workers</td>
-            <td>Sets the memory limit, in Megabytes, for NodeJs. Default value is 2048 if using less than 2 unbundle workers, otherwise 8192</td>
-        </tr>
-        <tr>
-            <th>SUBMIT_CONTRACT_INTERACTIONS</th>
-            <td>Boolean</td>
-            <td>true</td>
-            <td>If true, Observer will submit its generated reports to the AR.IO Network. If false, reports will be generated but not submitted</td>
-        </tr>
-        <tr>
-            <th>REDIS_MAX_MEMORY</th>
-            <td>String</td>
-            <td>256mb</td>
-            <td>Sets the max memory allocated to Redis</td>
-        </tr>
-        <tr>
-            <th>REDIS_EXTRA_FLAGS</th>
-            <td>String</td>
-            <td>--save "" --appendonly no</td>
-            <td>Additional CLI flags passed to Redis</td>
-        </tr>
-        <tr>
-            <th>WEBHOOK_TARGET_SERVERS</th>
-            <td>String</td>
-            <td>undefined</td>
-            <td>Target servers for webhooks</td>
-        </tr>
-        <tr>
-            <th>WEBHOOK_INDEX_FILTER</th>
-            <td>String</td>
-            <td>&#123;"never": true&#125;</td>
-            <td>Only emit webhooks for transactions and data items compliant with this filter</td>
-        </tr>
-        <tr>
-            <th>WEBHOOK_BLOCK_FILTER</th>
-            <td>String</td>
-            <td>&#123;"never": true&#125;</td>
-            <td>Only emit webhooks for blocks compliant with this filter</td>
-        </tr>
-        <tr>
-            <th>CONTIGUOUS_DATA_CACHE_CLEANUP_THRESHOLD</th>
-            <td>Number</td>
-            <td>undefined</td>
-            <td>Sets the age threshold in seconds; files older than this are candidates for contiguous data cache cleanup</td>
-        </tr>
-        <tr>
-            <th>ENABLE_MEMPOOL_WATCHER</th>
-            <td>Boolean</td>
-            <td>false</td>
-            <td>If true, the gateway will start indexing pending tx from the mempool</td>
-        </tr>
-        <tr>
-            <th>MEMPOOL_POLLING_INTERVAL_MS</th>
-            <td>Number</td>
-            <td>30000</td>
-            <td>Sets the mempool Polling interval, in milliseconds</td>
-        </tr>
-        <tr>
-            <th>TAG_SELECTIVITY</th>
-            <td>String</td>
-            <td>Refer to config.ts</td>
-            <td>A JSON map of tag names to selectivity weights used to order SQLite tag joins</td>
-        </tr>
-        <tr>
-            <th>MAX_EXPECTED_DATA_ITEM_INDEXING_INTERVAL_SECONDS</th>
-            <td>Number</td>
-            <td>undefined</td>
-            <td>Sets the max expected data item indexing interval in seconds</td>
-        </tr>
-        <tr>
-            <th>BUNDLE_REPAIR_RETRY_INTERVAL_SECONDS</th>
-            <td>String</td>
-            <td>"300" (5 minutes)</td>
-            <td>Interval in seconds for retrying bundles</td>
-        </tr>
-        <tr>
-            <th>BUNDLE_REPAIR_UPDATE_TIMESTAMPS_INTERVAL_SECONDS</th>
-            <td>Number</td>
-            <td>300 (5 minutes)</td>
-            <td>Interval in seconds for updating timestamps during bundle repair</td>
-        </tr>
-        <tr>
-            <th>BUNDLE_REPAIR_BACKFILL_INTERVAL_SECONDS</th>
-            <td>Number</td>
-            <td>900 (15 minutes)</td>
-            <td>Interval in seconds for backfilling bundles during repair</td>
-        </tr>
-        <tr>
-            <th>BUNDLE_REPAIR_FILTER_REPROCESS_INTERVAL_SECONDS</th>
-            <td>Number</td>
-            <td>300 (5 minutes)</td>
-            <td>Interval in seconds for reprocessing filters during bundle repair</td>
-        </tr>
-        <tr>
-            <th>BUNDLE_REPAIR_RETRY_BATCH_SIZE</th>
-            <td>String</td>
-            <td>"1000"</td>
-            <td>Batch size for retrying bundles</td>
-        </tr>
-        <tr>
-            <th>APEX_TX_ID</th>
-            <td>String</td>
-            <td>undefined</td>
-            <td>If set, serves this transaction ID's data at the root path (/)</td>
-        </tr>
-        <tr>
-            <th>APEX_ARNS_NAME</th>
-            <td>String</td>
-            <td>undefined</td>
-            <td>If set, resolves and serves this ArNS name's content at the root path (/)</td>
-        </tr>
-        <tr>
-            <th>AO_CU_URL</th>
-            <td>String</td>
-            <td>undefined</td>
-            <td>URL of the AO CU to be used for interacting with the AO network. If not set, the default CU from FWD research will be used.</td>
-        </tr>
-        <tr>
-            <th>NETWORK_AO_CU_URL</th>
-            <td>String</td>
-            <td>undefined</td>
-            <td>URL of the AO CU to be used for fetching ARIO network data. If not set, the default CU from FWD research will be used.</td>
-        </tr>
-        <tr>
-            <th>AO_MU_URL</th>
-            <td>String</td>
-            <td>undefined</td>
-            <td>URL of the AO MU (Memory Unit) to be used. If not set, the default MU from FWD research will be used.</td>
-        </tr>
-        <tr>
-            <th>ANT_AO_CU_URL</th>
-            <td>String</td>
-            <td>AO_CU_URL</td>
-            <td>URL of the AO CU to be used for fetching ANT data. If not set, falls back to AO_CU_URL.</td>
-        </tr>
-        <tr>
-            <th>AO_GRAPHQL_URL</th>
-            <td>String</td>
-            <td>undefined</td>
-            <td>URL of the AO GraphQL endpoint to be used.</td>
-        </tr>
-        <tr>
-            <th>AO_GATEWAY_URL</th>
-            <td>String</td>
-            <td>undefined</td>
-            <td>URL of the AO Gateway to be used.</td>
-        </tr>
-        <tr>
-            <th>BUNDLE_DATA_IMPORTER_QUEUE_SIZE</th>
-            <td>Number</td>
-            <td>1000</td>
-            <td>The maximum number of bundles to queue for unbundling before skipping</td>
-        </tr>
-        <tr>
-            <th>VERIFICATION_DATA_IMPORTER_QUEUE_SIZE</th>
-            <td>Number</td>
-            <td>1000</td>
-            <td>The maximum number of data imports to queue for verification purposes</td>
-        </tr>
-        <tr>
-            <th>FS_CLEANUP_WORKER_BATCH_SIZE</th>
-            <td>Number</td>
-            <td>2000</td>
-            <td>The number of files to process in each batch during cleanup</td>
-        </tr>
-        <tr>
-            <th>FS_CLEANUP_WORKER_BATCH_PAUSE_DURATION</th>
-            <td>Number</td>
-            <td>5000</td>
-            <td>The pause duration between cleanup batches in milliseconds</td>
-        </tr>
-        <tr>
-            <th>FS_CLEANUP_WORKER_RESTART_PAUSE_DURATION</th>
-            <td>Number</td>
-            <td>14400000 (4 hours)</td>
-            <td>The pause duration before restarting cleanup from the beginning in milliseconds</td>
-        </tr>
-        <tr>
-            <th>ARIO_PROCESS_DEFAULT_CIRCUIT_BREAKER_TIMEOUT_MS</th>
-            <td>Number</td>
-            <td>60000 (60 seconds)</td>
-            <td>Maximum time allowed for requests to AO for ARIO process state. Requests exceeding this timeout are considered failed and may trigger the circuit breaker if the error threshold is reached.</td>
-        </tr>
-        <tr>
-            <th>ARIO_PROCESS_DEFAULT_CIRCUIT_BREAKER_ERROR_THRESHOLD_PERCENTAGE</th>
-            <td>Number</td>
-            <td>30</td>
-            <td>Percentage of failed requests to AO for ARIO process state that will trigger the circuit breaker to open. Set to 30% to compensate for extended timeouts.</td>
-        </tr>
-        <tr>
-            <th>ARIO_PROCESS_DEFAULT_CIRCUIT_BREAKER_ROLLING_COUNT_TIMEOUT_MS</th>
-            <td>Number</td>
-            <td>600000 (10 minutes)</td>
-            <td>Time window for tracking errors when retrieving ARIO process state from AO. The circuit breaker counts failures within this rolling window to determine if the error threshold percentage has been exceeded.</td>
-        </tr>
-        <tr>
-            <th>ARIO_PROCESS_DEFAULT_CIRCUIT_BREAKER_RESET_TIMEOUT_MS</th>
-            <td>Number</td>
-            <td>1200000 (20 minutes)</td>
-            <td>Duration the circuit breaker stays in the open state after being triggered. During this period, all requests to AO for ARIO process state will be rejected immediately. After this timeout expires, the circuit breaker transitions to half-open state to test if AO is responsive again.</td>
-        </tr>
-        <tr>
-            <th>GATEWAY_PEERS_WEIGHTS_CACHE_DURATION_MS</th>
-            <td>Number</td>
-            <td>5000 (5 seconds)</td>
-            <td>Duration in milliseconds for which gateway peer weights are cached before being recalculated.</td>
-        </tr>
-        <tr>
-            <th>GATEWAY_PEERS_REQUEST_WINDOW_COUNT</th>
-            <td>Number</td>
-            <td>20</td>
-            <td>Size of the array used to calculate the average performance for peer weighting. A longer window provides a better average but has minimal impact on overall performance.</td>
-        </tr>
-        <tr>
-            <th>ARWEAVE_NODE_IGNORE_URLS</th>
-            <td>String (comma-separated)</td>
-            <td>[]</td>
-            <td>Comma-separated list of Arweave node URLs to ignore when selecting peers.</td>
-        </tr>
-        <tr>
-            <th>CHUNK_POST_URLS</th>
-            <td>String (comma-separated)</td>
-            <td>TRUSTED_NODE_URL/chunk</td>
-            <td>Comma-separated list of URLs for posting chunks received at /chunk endpoint.</td>
-        </tr>
-        <tr>
-            <th>CHUNK_POST_CONCURRENCY_LIMIT</th>
-            <td>Number</td>
-            <td>2</td>
-            <td>Maximum number of concurrent chunk POST requests allowed.</td>
-        </tr>
-        <tr>
-            <th>CHUNK_POST_MIN_SUCCESS_COUNT</th>
-            <td>String</td>
-            <td>"3"</td>
-            <td>Minimum count of 200 responses for of a given chunk to be considered properly seeded</td>
-        </tr>
-        <tr>
-            <th>SECONDARY_CHUNK_POST_URLS</th>
-            <td>String (comma-separated)</td>
-            <td>[]</td>
-            <td>Comma-separated list of additional URLs for posting chunks. These are processed in parallel with primary URLs in a "fire and forget" manner - failures are not blocking.</td>
-        </tr>
-        <tr>
-            <th>SECONDARY_CHUNK_POST_CONCURRENCY_LIMIT</th>
-            <td>Number</td>
-            <td>2</td>
-            <td>Maximum number of concurrent secondary chunk POST requests allowed. These are processed independently of primary chunk posting.</td>
-        </tr>
-        <tr>
-            <th>SECONDARY_CHUNK_POST_MIN_SUCCESS_COUNT</th>
-            <td>Number</td>
-            <td>1</td>
-            <td>Minimum number of successful responses required for a chunk to be considered properly seeded on secondary URLs. Failures are not blocking.</td>
-        </tr>
-        <tr>
-            <th>CHUNK_POST_RESPONSE_TIMEOUT_MS</th>
-            <td>Number</td>
-            <td>undefined</td>
-            <td>Timeout in milliseconds for chunk POST responses. If not set, no timeout is enforced.</td>
-        </tr>
-        <tr>
-            <th>CHUNK_POST_ABORT_TIMEOUT_MS</th>
-            <td>Number</td>
-            <td>undefined</td>
-            <td>Timeout in milliseconds after which chunk POST requests will be aborted. If not set, no abort timeout is enforced.</td>
-        </tr>
-        <tr>
-            <th>AWS_ACCESS_KEY_ID</th>
-            <td>String</td>
-            <td>undefined</td>
-            <td>Access key ID for AWS authentication</td>
-        </tr>
-        <tr>
-            <th>AWS_SECRET_ACCESS_KEY</th>
-            <td>String</td>
-            <td>undefined</td>
-            <td>Secret access key for AWS authentication</td>
-        </tr>
-        <tr>
-            <th>AWS_REGION</th>
-            <td>String</td>
-            <td>undefined</td>
-            <td>AWS region for S3 operations</td>
-        </tr>
-        <tr>
-            <th>AWS_ENDPOINT</th>
-            <td>String</td>
-            <td>undefined</td>
-            <td>Custom AWS endpoint for S3 operations</td>
-        </tr>
-        <tr>
-            <th>AWS_S3_CONTIGUOUS_DATA_BUCKET</th>
-            <td>String</td>
-            <td>undefined</td>
-            <td>Name of the S3 bucket for storing contiguous data</td>
-        </tr>
-        <tr>
-            <th>AWS_S3_CONTIGUOUS_DATA_PREFIX</th>
-            <td>String</td>
-            <td>undefined</td>
-            <td>Prefix for contiguous data objects in the S3 bucket</td>
-        </tr>
-        <tr>
-            <th>AR_IO_SQLITE_BACKUP_S3_BUCKET_NAME</th>
-            <td>String</td>
-            <td>undefined</td>
-            <td>Name of the S3 bucket used for SQLite database backups</td>
-        </tr>
-        <tr>
-            <th>AR_IO_SQLITE_BACKUP_S3_BUCKET_REGION</th>
-            <td>String</td>
-            <td>undefined</td>
-            <td>Region of the S3 bucket used for SQLite database backups</td>
-        </tr>
-        <tr>
-            <th>AR_IO_SQLITE_BACKUP_S3_BUCKET_ACCESS_KEY</th>
-            <td>String</td>
-            <td>undefined</td>
-            <td>Access key for the S3 bucket used for SQLite database backups</td>
-        </tr>
-        <tr>
-            <th>AR_IO_SQLITE_BACKUP_S3_BUCKET_SECRET_KEY</th>
-            <td>String</td>
-            <td>undefined</td>
-            <td>Secret key for the S3 bucket used for SQLite database backups</td>
-        </tr>
-        <tr>
-            <th>AR_IO_SQLITE_BACKUP_S3_BUCKET_PREFIX</th>
-            <td>String</td>
-            <td>undefined</td>
-            <td>Prefix for SQLite database backup objects in the S3 bucket</td>
-        </tr>
-        </tbody>
-    </table>
-</div>}
+<Table>
+  <Table.Head>
+    <Table.Row>
+      <Table.Header>ENV Name</Table.Header>
+      <Table.Header>Type</Table.Header>
+      <Table.Header>Default Value</Table.Header>
+      <Table.Header>Description</Table.Header>
+    </Table.Row>
+  </Table.Head>
+  <Table.Body>
+    <Table.Row>
+      <Table.Cell className="font-semibold">GRAPHQL_HOST</Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>arweave.net</Table.Cell>
+      <Table.Cell>
+        Host for GraphQL queries. You may use any available gateway that
+        supports GQL queries. If omitted, your node can support GQL queries on
+        locally indexed transactions, but only L1 transactions are indexed by
+        default.
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">GRAPHQL_PORT</Table.Cell>
+      <Table.Cell>Number</Table.Cell>
+      <Table.Cell>443</Table.Cell>
+      <Table.Cell>
+        Port for GraphQL queries. Used in conjunction with GRAPHQL_HOST to set
+        up the proxy for GQL queries.
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">START_HEIGHT</Table.Cell>
+      <Table.Cell>Number or "Infinity"</Table.Cell>
+      <Table.Cell>0</Table.Cell>
+      <Table.Cell>
+        Starting block height for node synchronization (0 = start from genesis
+        block)
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">STOP_HEIGHT</Table.Cell>
+      <Table.Cell>Number or "Infinity"</Table.Cell>
+      <Table.Cell>"Infinity"</Table.Cell>
+      <Table.Cell>
+        Stop block height for node synchronization (Infinity = keep syncing
+        until stopped)
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">TRUSTED_NODE_URL</Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>"https://arweave.net"</Table.Cell>
+      <Table.Cell>Arweave node to use for fetching data</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">TRUSTED_GATEWAY_URL</Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>"https://arweave.net"</Table.Cell>
+      <Table.Cell>Arweave node to use for proxying reqeusts</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">TRUSTED_GATEWAYS_URLS</Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>TRUSTED_GATEWAY_URL</Table.Cell>
+      <Table.Cell>A JSON map of gateways and priority</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">
+        TRUSTED_GATEWAYS_REQUEST_TIMEOUT_MS
+      </Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>"10000"</Table.Cell>
+      <Table.Cell>
+        Request timeout in milliseconds for trusted gateways
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">
+        TRUSTED_ARNS_GATEWAY_URL
+      </Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>"https://__NAME__.arweave.dev"</Table.Cell>
+      <Table.Cell>ArNS gateway</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">
+        WEIGHTED_PEERS_TEMPERATURE_DELTA
+      </Table.Cell>
+      <Table.Cell>Number</Table.Cell>
+      <Table.Cell>0.1</Table.Cell>
+      <Table.Cell>
+        Any positive number above 0, best to keep 1 or less. Used to determine
+        the sensitivity of which the probability of failing or succeeding peers
+        decreases or increases.
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">INSTANCE_ID</Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>""</Table.Cell>
+      <Table.Cell>Adds an "INSTANCE_ID" field to output logs</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">LOG_FORMAT</Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>"simple"</Table.Cell>
+      <Table.Cell>
+        Sets the format of output logs, accepts "simple" and "json"
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">SKIP_CACHE</Table.Cell>
+      <Table.Cell>Boolean</Table.Cell>
+      <Table.Cell>false</Table.Cell>
+      <Table.Cell>
+        If true, skips the local cache and always fetches headers from the node
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">PORT</Table.Cell>
+      <Table.Cell>Number</Table.Cell>
+      <Table.Cell>4000</Table.Cell>
+      <Table.Cell>AR.IO node exposed port number</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">
+        SIMULATED_REQUEST_FAILURE_RATE
+      </Table.Cell>
+      <Table.Cell>Number</Table.Cell>
+      <Table.Cell>0</Table.Cell>
+      <Table.Cell>
+        Number from 0 to 1, representing the probability of a request failing
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">AR_IO_WALLET</Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>""</Table.Cell>
+      <Table.Cell>
+        Arweave wallet address used for staking and rewards
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">ADMIN_API_KEY</Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>Generated</Table.Cell>
+      <Table.Cell>
+        API key used for admin API requests (if not set, it is generated and
+        logged into the console)
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">ADMIN_API_KEY_FILE</Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>Generated</Table.Cell>
+      <Table.Cell>
+        Alternative way to set the API key used for admin API requests via
+        filepath, it takes precedence over ADMIN_API_KEY if defined
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">BACKFILL_BUNDLE_RECORDS</Table.Cell>
+      <Table.Cell>Boolean</Table.Cell>
+      <Table.Cell>false</Table.Cell>
+      <Table.Cell>
+        If true, AR.IO node will start indexing missing bundles
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">FILTER_CHANGE_REPROCESS</Table.Cell>
+      <Table.Cell>Boolean</Table.Cell>
+      <Table.Cell>false</Table.Cell>
+      <Table.Cell>
+        If true, all indexed bundles will be reprocessed with the new filters
+        (you can use this when you change the filters)
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">
+        ON_DEMAND_RETRIEVAL_ORDER
+      </Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>s3,trusted-gateways,chunks,tx-data</Table.Cell>
+      <Table.Cell>
+        Data source retrieval order for on-demand data requests
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">
+        BACKGROUND_RETRIEVAL_ORDER
+      </Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>chunks,s3,trusted-gateways,chunks,tx-data</Table.Cell>
+      <Table.Cell>
+        Data source retrieval order for background data requests (i.e.,
+        unbundling)
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">ANS104_UNBUNDLE_FILTER</Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>{`{"never": true}`}</Table.Cell>
+      <Table.Cell>
+        Only bundles compliant with this filter will be unbundled
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">ANS104_INDEX_FILTER</Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>{`{"never": true}`}</Table.Cell>
+      <Table.Cell>
+        Only bundles compliant with this filter will be indexed
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">ANS104_DOWNLOAD_WORKERS</Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>5</Table.Cell>
+      <Table.Cell>
+        Sets the number of ANS-104 bundles to attempt to download in parallel
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">ANS104_UNBUNDLE_WORKERS</Table.Cell>
+      <Table.Cell>Number</Table.Cell>
+      <Table.Cell>0, or 1 if filters are set</Table.Cell>
+      <Table.Cell>
+        Sets the number of workers used to handle unbundling
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">
+        DATA_ITEM_FLUSH_COUNT_THRESHOLD
+      </Table.Cell>
+      <Table.Cell>Number</Table.Cell>
+      <Table.Cell>1000</Table.Cell>
+      <Table.Cell>
+        Sets the number of new data items indexed before flushing to stable data
+        items
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">
+        MAX_FLUSH_INTERVAL_SECONDS
+      </Table.Cell>
+      <Table.Cell>Number</Table.Cell>
+      <Table.Cell>600</Table.Cell>
+      <Table.Cell>
+        Sets the maximum time interval in seconds before flushing to stable data
+        items
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">
+        WRITE_ANS104_DATA_ITEM_DB_SIGNATURES
+      </Table.Cell>
+      <Table.Cell>Boolean</Table.Cell>
+      <Table.Cell>false</Table.Cell>
+      <Table.Cell>
+        If true, the data item signatures will be written to the database
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">
+        WRITE_TRANSACTION_DB_SIGNATURES
+      </Table.Cell>
+      <Table.Cell>Boolean</Table.Cell>
+      <Table.Cell>true</Table.Cell>
+      <Table.Cell>
+        If true, the transactions signatures will be written to the database
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">
+        ENABLE_DATA_DB_WAL_CLEANUP
+      </Table.Cell>
+      <Table.Cell>Boolean</Table.Cell>
+      <Table.Cell>false</Table.Cell>
+      <Table.Cell>
+        If true, the data database WAL cleanup worker will be enabled
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">
+        ENABLE_BACKGROUND_DATA_VERIFICATION
+      </Table.Cell>
+      <Table.Cell>Boolean</Table.Cell>
+      <Table.Cell>false</Table.Cell>
+      <Table.Cell>
+        If true, unverified data will be verified in background
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">
+        MAX_DATA_ITEM_QUEUE_SIZE
+      </Table.Cell>
+      <Table.Cell>Number</Table.Cell>
+      <Table.Cell>100000</Table.Cell>
+      <Table.Cell>
+        Sets the maximum number of data items to queue for indexing before
+        skipping indexing new data items
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">ARNS_ROOT_HOST</Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>undefined</Table.Cell>
+      <Table.Cell>Domain name for ArNS host</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">SANDBOX_PROTOCOL</Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>undefined</Table.Cell>
+      <Table.Cell>
+        Protocol setting in process of creating sandbox domains in ArNS
+        (ARNS_ROOT_HOST needs to be set for this env to have any effect) accepts
+        "http" or "https"
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">START_WRITERS</Table.Cell>
+      <Table.Cell>Boolean</Table.Cell>
+      <Table.Cell>true</Table.Cell>
+      <Table.Cell>
+        If true, start indexing blocks, tx, ANS104 bundles
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">RUN_OBSERVER</Table.Cell>
+      <Table.Cell>Boolean</Table.Cell>
+      <Table.Cell>true</Table.Cell>
+      <Table.Cell>
+        If true, run observer (ARIO processes), requires WALLET env var to be
+        set
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">WALLET</Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>N/A</Table.Cell>
+      <Table.Cell>Wallet jwk file path for observer ario process</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">
+        LMDB_BLOCK_STORE_COMPRESSION
+      </Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>"gzip"</Table.Cell>
+      <Table.Cell>
+        Accepts 'gzip', 'brotli', or 'none'. Compresses new blocks with
+        specified algorithm before storing them in the local header store. Note:
+        Changing this after blocks have been stored locally will require re-sync
+        or remove local data to apply new compression setting to previously
+        stored blocks.
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">
+        LMDB_BUNDLE_STORE_COMPRESSION
+      </Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>"gzip"</Table.Cell>
+      <Table.Cell>
+        Accepts 'gzip', 'brotli', or 'none'. Compresses new bundles with
+        specified algorithm before storing them in the local bundle store. Note:
+        Changing this after bundles have been stored locally will require
+        re-indexing to apply new compression setting to previously stored
+        bundles.
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">
+        LMDB_DATA_ITEM_STORE_COMPRESSION
+      </Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>"gzip"</Table.Cell>
+      <Table.Cell>
+        Accepts 'gzip', 'brotli', or 'none'. Compresses new data items with
+        specified algorithm before storing them in the local data item store.
+        Note: Changing this after data items have been stored locally will
+        require re-indexing to apply new compression setting to previously
+        stored data items.
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">
+        LMDB_TX_STORE_COMPRESSION
+      </Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>"gzip"</Table.Cell>
+      <Table.Cell>
+        Accepts 'gzip', 'brotli', or 'none'. Compresses new transactions with
+        specified algorithm before storing them in the local transaction store.
+        Note: Changing this after transactions have been stored locally will
+        require re-sync or remove local data to apply new compression setting to
+        previously stored transactions.
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">
+        LMDB_DATA_STORE_COMPRESSION
+      </Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>"gzip"</Table.Cell>
+      <Table.Cell>
+        Accepts 'gzip', 'brotli', or 'none'. Compresses new data with specified
+        algorithm before storing them in the local data store. Note: Changing
+        this after data has been stored locally will require re-sync or remove
+        local data to apply new compression setting to previously stored data.
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">
+        CONTIGUOUS_DATA_CACHE_CLEANUP_THRESHOLD
+      </Table.Cell>
+      <Table.Cell>Number</Table.Cell>
+      <Table.Cell>1000</Table.Cell>
+      <Table.Cell>
+        Sets the number of contiguous data items to cache before cleaning up
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">
+        ENABLE_FS_HEADER_CACHE_CLEANUP
+      </Table.Cell>
+      <Table.Cell>Boolean</Table.Cell>
+      <Table.Cell>true</Table.Cell>
+      <Table.Cell>
+        If true, enable header cache cleanup for the fs cache (this will prune
+        headers that are older than HEADER_CACHE_CLEANUP_THRESHOLD)
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">
+        HEADER_CACHE_CLEANUP_THRESHOLD
+      </Table.Cell>
+      <Table.Cell>Number</Table.Cell>
+      <Table.Cell>2000</Table.Cell>
+      <Table.Cell>
+        Sets the height threshold for which to clean up headers
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">
+        CHUNK_DATA_CACHE_CLEANUP_THRESHOLD
+      </Table.Cell>
+      <Table.Cell>Number</Table.Cell>
+      <Table.Cell>250000</Table.Cell>
+      <Table.Cell>
+        Sets the number of chunks to cache before cleaning up
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">
+        MANIFEST_CACHE_CLEANUP_THRESHOLD
+      </Table.Cell>
+      <Table.Cell>Number</Table.Cell>
+      <Table.Cell>250000</Table.Cell>
+      <Table.Cell>
+        Sets the number of data items to cache before cleaning up manifest cache
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">
+        ANS104_DATA_INDEX_CACHE_CLEANUP_THRESHOLD
+      </Table.Cell>
+      <Table.Cell>Number</Table.Cell>
+      <Table.Cell>50000</Table.Cell>
+      <Table.Cell>
+        Sets the number of data items to cache before cleaning up ANS-104 data
+        index cache
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">REDIS_CACHE_URL</Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>undefined</Table.Cell>
+      <Table.Cell>
+        Redis cache URL for external caching of data items, chunks, and tx
+        headers
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">REDIS_CACHE_TTL_SECONDS</Table.Cell>
+      <Table.Cell>Number</Table.Cell>
+      <Table.Cell>3600</Table.Cell>
+      <Table.Cell>TTL in seconds for Redis cache entries</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">AWS_S3_BUCKET</Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>undefined</Table.Cell>
+      <Table.Cell>AWS S3 bucket to save/retrieve block files</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">AWS_REGION</Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>us-east-1</Table.Cell>
+      <Table.Cell>AWS S3 bucket region</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">AWS_ENDPOINT</Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>"https://s3.amazonaws.com"</Table.Cell>
+      <Table.Cell>AWS S3 bucket endpoint</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">AWS_ACCESS_KEY_ID</Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>undefined</Table.Cell>
+      <Table.Cell>AWS S3 bucket access key</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">AWS_SECRET_ACCESS_KEY</Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>undefined</Table.Cell>
+      <Table.Cell>AWS S3 secret key</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">MIN_CONFIRMATIONS</Table.Cell>
+      <Table.Cell>Number</Table.Cell>
+      <Table.Cell>10</Table.Cell>
+      <Table.Cell>
+        Minimum number of confirmations needed for a transaction to be returned
+        by the /tx endpoint
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">INDEX_BLOCKS</Table.Cell>
+      <Table.Cell>Boolean</Table.Cell>
+      <Table.Cell>true</Table.Cell>
+      <Table.Cell>
+        If true, the gateway will index blocks as they're synced
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">INDEX_TX</Table.Cell>
+      <Table.Cell>Boolean</Table.Cell>
+      <Table.Cell>true</Table.Cell>
+      <Table.Cell>
+        If true, the gateway will index transactions as they're synced
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">INDEX_DATA_ITEMS</Table.Cell>
+      <Table.Cell>Boolean</Table.Cell>
+      <Table.Cell>true</Table.Cell>
+      <Table.Cell>
+        If true, the gateway will index data items as they're synced
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">INDEX_TX_OFFSET_LISTS</Table.Cell>
+      <Table.Cell>Boolean</Table.Cell>
+      <Table.Cell>true</Table.Cell>
+      <Table.Cell>
+        If true, the gateway will index the chunks of block data and transaction
+        data offsets
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">ENABLE_MEMPOOL_WATCHER</Table.Cell>
+      <Table.Cell>Boolean</Table.Cell>
+      <Table.Cell>false</Table.Cell>
+      <Table.Cell>
+        If true, the gateway will watch the mempool for new transactions and
+        save the txs headers
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">ENABLE_WEBHOOKS</Table.Cell>
+      <Table.Cell>Boolean</Table.Cell>
+      <Table.Cell>false</Table.Cell>
+      <Table.Cell>
+        If true, allows the gateway to act as a client and execute webhooks when
+        local state changes
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">WEBHOOK_TARGET_SERVERS</Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>""</Table.Cell>
+      <Table.Cell>
+        Comma separated list of target webhook servers (URLs)
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">WEBHOOK_INDEX_FILTER</Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>{`{"never": true}`}</Table.Cell>
+      <Table.Cell>
+        Webhook events are emitted only if incoming transactions satisfy the
+        specified filter
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">WEBHOOK_BLOCK_FILTER</Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>{`{"never": true}`}</Table.Cell>
+      <Table.Cell>
+        Block webhook events are emitted only if incoming block satisfies the
+        specified filter
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">
+        PROMETHEUS_METRICS_ENABLED
+      </Table.Cell>
+      <Table.Cell>Boolean</Table.Cell>
+      <Table.Cell>false</Table.Cell>
+      <Table.Cell>
+        If true, the gateway will expose Prometheus compatible metrics via the
+        /metrics endpoint
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">NODE_ENV</Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>development</Table.Cell>
+      <Table.Cell>Node.js environment setting</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">LOG_LEVEL</Table.Cell>
+      <Table.Cell>String</Table.Cell>
+      <Table.Cell>info</Table.Cell>
+      <Table.Cell>Log verbosity level</Table.Cell>
+    </Table.Row>
+  </Table.Body>
+</Table>
