@@ -5,27 +5,49 @@ interface TableProps extends React.TableHTMLAttributes<HTMLTableElement> {
   children: React.ReactNode
   className?: string
   containerClassName?: string
+  overrideContainerClasses?: boolean
+  containerStyle?: React.CSSProperties
+  scrollContainerClassName?: string
+  style?: React.CSSProperties
 }
 
 export function Table({
   children,
   className,
   containerClassName,
+  overrideContainerClasses = false,
+  containerStyle,
+  scrollContainerClassName,
+  style,
   ...props
 }: TableProps) {
+  // Apply all style props directly to the table element
+  const tableStyle = {
+    minWidth: '600px', // Default minWidth
+    ...style, // Allow override of minWidth and other styles
+  }
+
+  // Determine container classes based on override preference
+  const containerClasses = overrideContainerClasses
+    ? containerClassName || ''
+    : clsx('my-6 flex w-full justify-center', containerClassName)
+
   return (
-    <div
-      className={clsx('my-6 flex w-full justify-center', containerClassName)}
-    >
-      <div className="w-full max-w-full overflow-x-auto rounded-lg border border-zinc-200 shadow-sm dark:border-zinc-700">
+    <div className={containerClasses} style={containerStyle}>
+      <div
+        className={clsx(
+          'w-full overflow-x-auto rounded-lg border border-zinc-200 shadow-sm dark:border-zinc-700',
+          scrollContainerClassName,
+        )}
+      >
         {/* Mobile scroll indicator - Top */}
         <div className="block border-b border-zinc-200 py-2 text-center text-xs text-zinc-500 sm:hidden dark:border-zinc-700 dark:text-zinc-400">
           ← Swipe to see more →
         </div>
-        <div className="inline-block min-w-full">
+        <div className="inline-block">
           <table
             className={clsx('w-full border-collapse', className)}
-            style={{ minWidth: '600px' }}
+            style={tableStyle}
             {...props}
           >
             {children}
