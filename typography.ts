@@ -217,6 +217,8 @@ export default function typographyStyles({ theme }: PluginUtils) {
           marginTop: theme('spacing.8'),
           marginBottom: theme('spacing.8'),
           lineHeight: theme('lineHeight.6'),
+          fontSize: theme('fontSize.sm')[0],
+          borderCollapse: 'collapse',
         },
         thead: {
           borderBottomWidth: '1px',
@@ -226,15 +228,30 @@ export default function typographyStyles({ theme }: PluginUtils) {
           color: 'var(--tw-prose-headings)',
           fontWeight: '600',
           verticalAlign: 'bottom',
-          paddingRight: theme('spacing.2'),
-          paddingBottom: theme('spacing.2'),
-          paddingLeft: theme('spacing.2'),
+          paddingRight: theme('spacing.3'),
+          paddingBottom: theme('spacing.3'),
+          paddingLeft: theme('spacing.3'),
+          paddingTop: theme('spacing.3'),
+          fontSize: theme('fontSize.sm')[0],
+          whiteSpace: 'nowrap',
+          '@screen sm': {
+            paddingRight: theme('spacing.4'),
+            paddingBottom: theme('spacing.4'),
+            paddingLeft: theme('spacing.4'),
+            paddingTop: theme('spacing.4'),
+          },
         },
         'thead th:first-child': {
           paddingLeft: '0',
+          '@screen sm': {
+            paddingLeft: theme('spacing.4'),
+          },
         },
         'thead th:last-child': {
           paddingRight: '0',
+          '@screen sm': {
+            paddingRight: theme('spacing.4'),
+          },
         },
         'tbody tr': {
           borderBottomWidth: '1px',
@@ -245,6 +262,11 @@ export default function typographyStyles({ theme }: PluginUtils) {
         },
         'tbody td': {
           verticalAlign: 'baseline',
+          wordWrap: 'break-word',
+          maxWidth: '250px',
+          '@screen sm': {
+            maxWidth: 'none',
+          },
         },
         tfoot: {
           borderTopWidth: '1px',
@@ -254,16 +276,30 @@ export default function typographyStyles({ theme }: PluginUtils) {
           verticalAlign: 'top',
         },
         ':is(tbody, tfoot) td': {
-          paddingTop: theme('spacing.2'),
-          paddingRight: theme('spacing.2'),
-          paddingBottom: theme('spacing.2'),
-          paddingLeft: theme('spacing.2'),
+          paddingTop: theme('spacing.3'),
+          paddingRight: theme('spacing.3'),
+          paddingBottom: theme('spacing.3'),
+          paddingLeft: theme('spacing.3'),
+          fontSize: theme('fontSize.sm')[0],
+          '@screen sm': {
+            paddingTop: theme('spacing.4'),
+            paddingRight: theme('spacing.4'),
+            paddingBottom: theme('spacing.4'),
+            paddingLeft: theme('spacing.4'),
+            fontSize: theme('fontSize.base')[0],
+          },
         },
         ':is(tbody, tfoot) td:first-child': {
           paddingLeft: '0',
+          '@screen sm': {
+            paddingLeft: theme('spacing.4'),
+          },
         },
         ':is(tbody, tfoot) td:last-child': {
           paddingRight: '0',
+          '@screen sm': {
+            paddingRight: theme('spacing.4'),
+          },
         },
 
         // Inline elements

@@ -12,6 +12,7 @@ import { Navigation } from '@/components/Navigation'
 import { type Section, SectionProvider } from '@/components/SectionProvider'
 import DiagramWithWayfinder from '@/components/DiagramWithWayfinder'
 import Tip from '@/components/Tip'
+import { Table } from '@/components/Table'
 import { GatewayProvider } from '@/components/GatewayProvider'
 
 export function Layout({
@@ -27,6 +28,7 @@ export function Layout({
   const components = {
     Diagram: DiagramWithWayfinder, // Automatically replaces <Diagram /> in MDX
     Tip: Tip,
+    Table: Table, // Make Table component globally available in MDX
   }
 
   return (
@@ -61,9 +63,11 @@ export function Layout({
               <Navigation className="hidden lg:mt-10 lg:block" />
             </div>
           </motion.header>
-          <div className="relative flex h-full flex-col px-4 pt-14 sm:px-6 lg:px-8">
+          <div className="relative flex h-full flex-col px-3 pt-14 sm:px-4 md:px-6 lg:px-8">
             <MDXProvider components={components}>
-              <main className="flex-auto">{children}</main>
+              <main className="max-w-full flex-auto overflow-x-hidden">
+                {children}
+              </main>
             </MDXProvider>
             <Footer />
           </div>

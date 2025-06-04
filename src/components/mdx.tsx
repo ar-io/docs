@@ -8,12 +8,14 @@ import { Prose } from '@/components/Prose'
 import DiagramWithWayfinder from '@/components/DiagramWithWayfinder'
 import TipComponent from '@/components/Tip'
 import WayfinderLink from '@/components/WayfinderLink'
+import { Table } from '@/components/Table'
 
 export const a = WayfinderLink
 export { Button } from '@/components/Button'
 export { CodeGroup, Code as code, Pre as pre } from '@/components/Code'
 export const Diagram = DiagramWithWayfinder
 export const Tip = TipComponent
+export { Table } from '@/components/Table'
 
 export function wrapper({ children }: { children: React.ReactNode }) {
   return (
@@ -129,5 +131,34 @@ export function Property({
         </dd>
       </dl>
     </li>
+  )
+}
+
+// Enhanced table wrapper component
+export function TableWrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="my-6 overflow-hidden rounded-lg border border-zinc-200 shadow-sm dark:border-zinc-700">
+      <div className="-webkit-overflow-scrolling-touch overflow-x-auto">
+        {children}
+      </div>
+    </div>
+  )
+}
+
+// Enhanced table component for existing inline-table usage
+export function table({
+  children,
+  className,
+  ...props
+}: React.TableHTMLAttributes<HTMLTableElement>) {
+  return (
+    <TableWrapper>
+      <table
+        className={clsx('inline-table w-full min-w-[600px]', className)}
+        {...props}
+      >
+        {children}
+      </table>
+    </TableWrapper>
   )
 }

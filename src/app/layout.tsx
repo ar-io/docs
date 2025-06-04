@@ -6,7 +6,7 @@ import { Layout } from '@/components/Layout'
 import { type Section } from '@/components/SectionProvider'
 
 import '@/styles/tailwind.css'
-import "@/styles/custom.css"
+import '@/styles/custom.css'
 
 export const metadata: Metadata = {
   title: {
@@ -41,6 +41,11 @@ export const metadata: Metadata = {
         url: 'https://res.cloudinary.com/dopbvlqgc/image/upload/v1706802732/ario_v2nv53.png',
       },
     ],
+  },
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
   },
 }
 
