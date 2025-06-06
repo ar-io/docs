@@ -1,54 +1,45 @@
-import {CodeGroup} from "@/components/Code"
-import {HeroPattern} from "@/components/HeroPattern"
+import { CodeGroup } from '@/components/Code'
+import { HeroPattern } from '@/components/HeroPattern'
+
+export const metadata = {
+  title: 'getVaults',
+  description: 'Retrieve all vaults for a specific wallet address',
+  openGraph: {
+    title: 'getVaults',
+  },
+}
 
 <HeroPattern />
 
 # getVaults
 
-`getVaults` is a method on the `ARIO` class that retrieves all locked-balance user vaults of the ARIO process, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last wallet address from the previous request.
+`getVaults` is a method on the `ARIO` class that retrieves all vaults owned by a specific wallet address.
 
 `getVaults` does not require authentication.
 
 ## Parameters
 
 {
-<div style={{textAlign: "center"}}>
-    <table className="inline-table">
+
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
     <thead>
-    <tr>
+      <tr>
         <th>Parameter</th>
         <th>Type</th>
         <th>Description</th>
         <th>Optional</th>
-    </tr>
+      </tr>
     </thead>
     <tbody>
-    <tr>
-        <th>cursor</th>
-        <td>string</td>
-        <td>Cursor used for paginated results</td>
-        <td>true</td>
-    </tr>
-    <tr>
-        <th>limit</th>
-        <td>number</td>
-        <td>Max number of results to return in a single search. Max is 1000.</td>
-        <td>true</td>
-    </tr>
-    <tr>
-        <th>sortBy</th>
-        <td>string</td>
-        <td>Property used to sort returned results</td>
-        <td>true</td>
-    </tr>
-    <tr>
-        <th>sortOrder</th>
-        <td>string</td>
-        <td>Order in which sorted results are returned. valid values are `desc` or `asc`</td>
-        <td>true</td>
-    </tr>
+      <tr>
+        <th>address</th>
+        <td>string - WalletAddress</td>
+        <td>The wallet address to retrieve vaults for</td>
+        <td>false</td>
+      </tr>
     </tbody>
-    </table>
+  </table>
 </div>
 }
 
@@ -56,16 +47,13 @@ import {HeroPattern} from "@/components/HeroPattern"
 
 <CodeGroup title="getVaults">
 
-    ```javascript {{ title: 'NodeJS' }}
+    ```typescript {{ title: 'NodeJS' }}
     const { ARIO } = require('@ar.io/sdk');
 
     async function main() {
       const ario = ARIO.init();
       const vaults = await ario.getVaults({
-        cursor: '0',
-        limit: 100,
-        sortBy: 'balance',
-        sortOrder: 'desc',
+        address: "ccp3blG__gKUvG3hsGC2u06aDmqv4CuhuDJGOIg0jw4"
       });
 
       console.log(vaults);
@@ -74,16 +62,13 @@ import {HeroPattern} from "@/components/HeroPattern"
     main();
     ```
 
-    ```javascript {{ title: 'Web' }}
+    ```typescript {{ title: 'Web' }}
     import { ARIO } from '@ar.io/sdk/web';
 
     async function main() {
       const ario = ARIO.init();
-      const vaults = await io.getVaults({
-        cursor: '0',
-        limit: 100,
-        sortBy: 'balance',
-        sortOrder: 'desc',
+      const vaults = await ario.getVaults({
+        address: "ccp3blG__gKUvG3hsGC2u06aDmqv4CuhuDJGOIg0jw4"
       });
 
       console.log(vaults);
@@ -94,32 +79,21 @@ import {HeroPattern} from "@/components/HeroPattern"
 
 </CodeGroup>
 
-
 ## Output
 
-```typescript
+```js
 {
-  "items": [
-    {
-      "address": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
-      "vaultId": "vaultIdOne",
-      "balance": 1000000,
-      "startTimestamp": 123,
-      "endTimestamp": 4567
-    },
-    {
-      "address": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
-      "vaultId": "vaultIdTwo",
-      "balance": 1000000,
-      "startTimestamp": 123,
-      "endTimestamp": 4567
-    }
-    // ...98 other addresses with vaults
-  ],
-  "hasMore": true,
-  "nextCursor": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
-  "totalItems": 1789,
-  "sortBy": "balance",
-  "sortOrder": "desc"
+  "vault-123": {
+    "balance": 10000000000,
+    "startTimestamp": 1707307200000,
+    "endTimestamp": 1709812800000,
+    "vaultId": "vault-123"
+  },
+  "vault-456": {
+    "balance": 5000000000,
+    "startTimestamp": 1708000000000,
+    "endTimestamp": 1710592000000,
+    "vaultId": "vault-456"
+  }
 }
 ```

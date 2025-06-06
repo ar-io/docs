@@ -2,37 +2,37 @@ import { CodeGroup } from '@/components/Code'
 import { HeroPattern } from '@/components/HeroPattern'
 
 export const metadata = {
-  title: 'getOwner',
-  description: 'Retrieve the owner of an ANT process',
+  title: 'getBalances',
+  description: 'Retrieve all token balances for an ANT',
   openGraph: {
-    title: 'getOwner',
+    title: 'getBalances',
   },
 }
 
 <HeroPattern />
 
-# getOwner
+# getBalances
 
-`getOwner` is a method on the `ANT` class that retrieves the owner wallet address of the configured ANT process.
+`getBalances` is a method on the `ANT` class that retrieves all token balances within the ANT process.
 
-`getOwner` does not require authentication.
+`getBalances` does not require authentication.
 
 ## Parameters
 
-The `getOwner` method does not accept any parameters.
+The `getBalances` method does not accept any parameters.
 
 ## Examples
 
-<CodeGroup title="getOwner">
+<CodeGroup title="getBalances">
 
     ```typescript {{ title: 'NodeJS' }}
     const { ANT } = require('@ar.io/sdk');
 
     async function main() {
       const ant = ANT.init({ processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM" });
-      const owner = await ant.getOwner();
+      const balances = await ant.getBalances();
 
-      console.log(owner);
+      console.log(balances);
     }
 
     main();
@@ -43,9 +43,9 @@ The `getOwner` method does not accept any parameters.
 
     async function main() {
       const ant = ANT.init({ processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM" });
-      const owner = await ant.getOwner();
+      const balances = await ant.getBalances();
 
-      console.log(owner);
+      console.log(balances);
     }
 
     main();
@@ -56,5 +56,8 @@ The `getOwner` method does not accept any parameters.
 ## Output
 
 ```js
-'ccp3blG__gKUvG3hsGC2u06aDmqv4CuhuDJGOIg0jw4'
+{
+  "ccp3blG__gKUvG3hsGC2u06aDmqv4CuhuDJGOIg0jw4": 1,
+  "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ": 1
+}
 ```

@@ -1,91 +1,104 @@
-import {CodeGroup} from "@/components/Code"
-import {HeroPattern} from "@/components/HeroPattern"
+import { CodeGroup } from '@/components/Code'
+import { HeroPattern } from '@/components/HeroPattern'
+
+export const metadata = {
+  title: 'getGateways',
+  description: 'Retrieve all gateways in the network with pagination support',
+  openGraph: {
+    title: 'getGateways',
+  },
+}
 
 <HeroPattern />
 
 # getGateways
 
-`getGateways` is a method on the `ARIO` class that retrieves registered gateways from the ar.io Network. Results are paginated and can be sorted by any attribute of the gateway object.
+`getGateways` is a method on the `ARIO` class that retrieves all gateways registered in the network with support for pagination and filtering.
 
 `getGateways` does not require authentication.
 
 ## Parameters
 
 {
-<div style={{textAlign: "center"}}>
-    <table className="inline-table">
+
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
     <thead>
-    <tr>
+      <tr>
         <th>Parameter</th>
         <th>Type</th>
         <th>Description</th>
-        <th>Required</th>
+        <th>Optional</th>
         <th>Default</th>
-    </tr>
+      </tr>
     </thead>
     <tbody>
-    <tr>
+      <tr>
         <th>cursor</th>
         <td>string</td>
-        <td>Cursor for paginated results</td>
-        <td>No</td>
+        <td>The gateway address to use as the starting point for pagination</td>
+        <td>true</td>
         <td>None</td>
-    </tr>
-    <tr>
+      </tr>
+      <tr>
         <th>limit</th>
         <td>number</td>
-        <td>Maximum number of results to return (max: 1000)</td>
-        <td>No</td>
+        <td>The maximum number of gateways to return (max: 1000)</td>
+        <td>true</td>
         <td>100</td>
-    </tr>
-    <tr>
+      </tr>
+      <tr>
         <th>sortBy</th>
         <td>string</td>
-        <td>Property to sort results by</td>
-        <td>No</td>
-        <td>startTimestamp</td>
-    </tr>
-    <tr>
+        <td>The property to sort gateways by</td>
+        <td>true</td>
+        <td>gatewayAddress</td>
+      </tr>
+      <tr>
         <th>sortOrder</th>
         <td>string</td>
-        <td>Sort direction (valid values: 'desc' or 'asc')</td>
-        <td>No</td>
-        <td>desc</td>
-    </tr>
+        <td>The sort direction ('asc' or 'desc')</td>
+        <td>true</td>
+        <td>asc</td>
+      </tr>
     </tbody>
-    </table>
+  </table>
 </div>
 }
 
-## Example
+## Examples
 
 <CodeGroup title="getGateways">
 
-    ```javascript {{ title: 'NodeJS' }}
+    ```typescript {{ title: 'NodeJS' }}
     const { ARIO } = require('@ar.io/sdk');
 
     async function main() {
       const ario = ARIO.init();
-      const gateway = await ario.getGateway({
-        address: 'f_EcJ8tYOFYjBMCIi-dlmzg8AiWZ2hELrXRFWPKCv9I',
+      const gateways = await ario.getGateways({
+        limit: 50,
+        sortBy: 'operatorStake',
+        sortOrder: 'desc'
       });
 
-      console.log(gateway);
+      console.log(gateways);
     }
 
     main();
     ```
 
-    ```javascript {{ title: 'Web' }}
+    ```typescript {{ title: 'Web' }}
     import { ARIO } from '@ar.io/sdk/web';
 
     async function main() {
       const ario = ARIO.init();
-      const gateway = await ario.getGateway({
-        address: 'f_EcJ8tYOFYjBMCIi-dlmzg8AiWZ2hELrXRFWPKCv9I',
+      const gateways = await ario.getGateways({
+        limit: 50,
+        sortBy: 'operatorStake',
+        sortOrder: 'desc'
       });
 
-      console.log(gateway);
+      console.log(gateways);
     }
 
     main();
@@ -93,47 +106,49 @@ import {HeroPattern} from "@/components/HeroPattern"
 
 </CodeGroup>
 
-
 ## Output
 
-```typescript
+```js
 {
   "items": [
     {
-      "gatewayAddress": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
-      "observerAddress": "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs",
-      "operatorStake": 250000000000,
-      "settings": {
-        "fqdn": "ar-io.dev",
-        "label": "AR.IO Test",
-        "note": "Test Gateway operated by PDS for the AR.IO ecosystem.",
-        "port": 443,
-        "properties": "raJgvbFU-YAnku-WsupIdbTsqqGLQiYpGzoqk9SCVgY",
-        "protocol": "https"
+      "gatewayAddress": "t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3",
+      "operatorStake": 50000000000,
+      "totalDelegatedStake": 75000000000,
+      "vaults": {},
+      "delegates": {
+        "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ": {
+          "delegatedStake": 75000000000,
+          "startTimestamp": 1707307200000,
+          "vaults": {}
+        }
       },
-      "startTimestamp": 1720720620813,
+      "startTimestamp": 1707100800000,
       "stats": {
+        "prescribedEpochCount": 100,
+        "observedEpochCount": 95,
+        "totalEpochParticipationCount": 98,
+        "passedEpochCount": 92,
+        "failedEpochCount": 3,
         "failedConsecutiveEpochs": 0,
-        "passedEpochCount": 30,
-        "submittedEpochCount": 30,
-        "totalEpochCount": 31,
-        "totalEpochsPrescribedCount": 31
+        "passedConsecutiveEpochs": 12
+      },
+      "settings": {
+        "allowDelegatedStaking": true,
+        "delegateRewardShareRatio": 0.1,
+        "label": "My Gateway",
+        "note": "High performance gateway",
+        "properties": "FH1aVetOoulPGqgYukj0VE0wIhDy90WiQoV3U2PeY44",
+        "autoStake": false,
+        "minDelegatedStake": 5000000
       },
       "status": "joined",
-      "vaults": {},
-      "weights": {
-        "compositeWeight": 0.97688888893556,
-        "gatewayRewardRatioWeight": 1,
-        "tenureWeight": 0.19444444444444,
-        "observerRewardRatioWeight": 1,
-        "normalizedCompositeWeight": 0.19247316211083,
-        "stakeWeight": 5.02400000024
-      }
+      "observerAddress": "ccp3blG__gKUvG3hsGC2u06aDmqv4CuhuDJGOIg0jw4"
     }
   ],
   "hasMore": true,
-  "nextCursor": "-4xgjroXENKYhTWqrBo57HQwvDL51mMdfsdsxJy6Y2Z_sA",
-  "totalItems": 316,
+  "nextCursor": "t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3",
+  "totalItems": 156,
   "sortBy": "operatorStake",
   "sortOrder": "desc"
 }

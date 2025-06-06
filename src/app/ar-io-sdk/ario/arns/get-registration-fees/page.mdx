@@ -1,0 +1,69 @@
+import { CodeGroup } from '@/components/Code'
+import { HeroPattern } from '@/components/HeroPattern'
+
+export const metadata = {
+  title: 'getRegistrationFees',
+  description: 'Retrieve the current registration fee structure for ArNS names',
+  openGraph: {
+    title: 'getRegistrationFees',
+  },
+}
+
+<HeroPattern />
+
+# getRegistrationFees
+
+`getRegistrationFees` is a method on the `ARIO` class that retrieves the current registration fee structure for ArNS names, including base fees and any applicable multipliers.
+
+`getRegistrationFees` does not require authentication.
+
+## Parameters
+
+The `getRegistrationFees` method does not accept any parameters.
+
+## Examples
+
+<CodeGroup title="getRegistrationFees">
+
+    ```typescript {{ title: 'NodeJS' }}
+    const { ARIO } = require('@ar.io/sdk');
+
+    async function main() {
+      const ario = ARIO.init();
+      const fees = await ario.getRegistrationFees();
+
+      console.log(fees);
+    }
+
+    main();
+    ```
+
+    ```typescript {{ title: 'Web' }}
+    import { ARIO } from '@ar.io/sdk/web';
+
+    async function main() {
+      const ario = ARIO.init();
+      const fees = await ario.getRegistrationFees();
+
+      console.log(fees);
+    }
+
+    main();
+    ```
+
+</CodeGroup>
+
+## Output
+
+```js
+{
+  "lease": {
+    "1": 500000000,      // 1 year lease cost in mARIO
+    "2": 400000000,      // 2 year lease cost in mARIO
+    "3": 300000000,      // 3 year lease cost in mARIO
+    "4": 200000000,      // 4 year lease cost in mARIO
+    "5": 100000000       // 5 year lease cost in mARIO
+  },
+  "permabuy": 2500000000  // Permanent ownership cost in mARIO
+}
+```

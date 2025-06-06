@@ -1,36 +1,45 @@
-import {CodeGroup} from "@/components/Code"
-import {HeroPattern} from "@/components/HeroPattern"
+import { CodeGroup } from '@/components/Code'
+import { HeroPattern } from '@/components/HeroPattern'
+
+export const metadata = {
+  title: 'getGateway',
+  description: 'Retrieve details for a specific gateway by address',
+  openGraph: {
+    title: 'getGateway',
+  },
+}
 
 <HeroPattern />
 
 # getGateway
 
-`getGateway` is a method on the `ARIO` class that retrieves a gateway's information using its staking wallet address.
+`getGateway` is a method on the `ARIO` class that retrieves detailed information about a specific gateway using its address.
 
 `getGateway` does not require authentication.
 
 ## Parameters
 
 {
-<div style={{textAlign: "center"}}>
-    <table className="inline-table">
+
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
     <thead>
-    <tr>
+      <tr>
         <th>Parameter</th>
         <th>Type</th>
         <th>Description</th>
-        <th>Required</th>
-    </tr>
+        <th>Optional</th>
+      </tr>
     </thead>
     <tbody>
-    <tr>
+      <tr>
         <th>address</th>
-        <td>string</td>
-        <td>The gateway's staking wallet address</td>
-        <td>Yes</td>
-    </tr>
+        <td>string - WalletAddress</td>
+        <td>The gateway address to retrieve information for</td>
+        <td>false</td>
+      </tr>
     </tbody>
-    </table>
+  </table>
 </div>
 }
 
@@ -44,7 +53,7 @@ import {HeroPattern} from "@/components/HeroPattern"
     async function main() {
       const ario = ARIO.init();
       const gateway = await ario.getGateway({
-        address: 'f_EcJ8tYOFYjBMCIi-dlmzg8AiWZ2hELrXRFWPKCv9I',
+        address: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
       });
 
       console.log(gateway);
@@ -59,7 +68,7 @@ import {HeroPattern} from "@/components/HeroPattern"
     async function main() {
       const ario = ARIO.init();
       const gateway = await ario.getGateway({
-        address: 'f_EcJ8tYOFYjBMCIi-dlmzg8AiWZ2hELrXRFWPKCv9I',
+        address: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
       });
 
       console.log(gateway);
@@ -74,111 +83,115 @@ import {HeroPattern} from "@/components/HeroPattern"
 
 ```js
 {
-  "observerAddress": "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs",
-  "operatorStake": 250000000000,
-  "settings": {
-    "fqdn": "ar-io.dev",
-    "label": "AR.IO Test",
-    "note": "Test Gateway operated by PDS for the AR.IO ecosystem.",
-    "port": 443,
-    "properties": "raJgvbFU-YAnku-WsupIdbTsqqGLQiYpGzoqk9SCVgY",
-    "protocol": "https"
+  "gatewayAddress": "t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3",
+  "operatorStake": 50000000000,
+  "totalDelegatedStake": 75000000000,
+  "vaults": {},
+  "delegates": {
+    "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ": {
+      "delegatedStake": 75000000000,
+      "startTimestamp": 1707307200000,
+      "vaults": {}
+    }
   },
-  "startTimestamp": 1720720620813,
+  "startTimestamp": 1707100800000,
   "stats": {
+    "prescribedEpochCount": 100,
+    "observedEpochCount": 95,
+    "totalEpochParticipationCount": 98,
+    "passedEpochCount": 92,
+    "failedEpochCount": 3,
     "failedConsecutiveEpochs": 0,
-    "passedEpochCount": 30,
-    "submittedEpochCount": 30,
-    "totalEpochCount": 31,
-    "totalEpochsPrescribedCount": 31
+    "passedConsecutiveEpochs": 12
+  },
+  "settings": {
+    "allowDelegatedStaking": true,
+    "delegateRewardShareRatio": 0.1,
+    "label": "My Gateway",
+    "note": "High performance gateway",
+    "properties": "FH1aVetOoulPGqgYukj0VE0wIhDy90WiQoV3U2PeY44",
+    "autoStake": false,
+    "minDelegatedStake": 5000000
   },
   "status": "joined",
-  "vaults": {},
-  "weights": {
-    "compositeWeight": 0.97688888893556,
-    "gatewayRewardRatioWeight": 1,
-    "tenureWeight": 0.19444444444444,
-    "observerRewardRatioWeight": 1,
-    "normalizedCompositeWeight": 0.19247316211083,
-    "stakeWeight": 5.02400000024
-  }
+  "observerAddress": "ccp3blG__gKUvG3hsGC2u06aDmqv4CuhuDJGOIg0jw4"
 }
 ```
 
-{/* ## Types
+{/\* ## Types
 
 ### AoGateway
 
 ```typescript
 {
-  settings: AoGatewaySettings;
-  stats: AoGatewayStats;
-  delegates: Record<WalletAddress, AoGatewayDelegate>;
-  totalDelegatedStake: number;
-  vaults: Record<WalletAddress, AoVaultData>;
-  startTimestamp: Timestamp;
-  endTimestamp: Timestamp;
-  observerAddress: WalletAddress;
-  operatorStake: number;
-  status: 'joined' | 'leaving';
-  weights: AoGatewayWeights;
-};
+  settings: AoGatewaySettings
+  stats: AoGatewayStats
+  delegates: Record<WalletAddress, AoGatewayDelegate>
+  totalDelegatedStake: number
+  vaults: Record<WalletAddress, AoVaultData>
+  startTimestamp: Timestamp
+  endTimestamp: Timestamp
+  observerAddress: WalletAddress
+  operatorStake: number
+  status: 'joined' | 'leaving'
+  weights: AoGatewayWeights
+}
 ```
 
 ### AoGatewaySettings
 
 ```typescript
 {
-  allowDelegatedStaking: boolean;
-  delegateRewardShareRatio: number;
-  minDelegatedStake: number;
-  autoStake: boolean;
-  label: string;
-  note: string;
-  properties: string;
-  fqdn: string;
-  port: number;
-  protocol: 'https';
-};
+  allowDelegatedStaking: boolean
+  delegateRewardShareRatio: number
+  minDelegatedStake: number
+  autoStake: boolean
+  label: string
+  note: string
+  properties: string
+  fqdn: string
+  port: number
+  protocol: 'https'
+}
 ```
 
 ### AoGatewayStats
 
 ```typescript
 {
-  passedConsecutiveEpochs: number;
-  failedConsecutiveEpochs: number;
-  totalEpochCount: number;
-  passedEpochCount: number;
-  failedEpochCount: number;
-  observedEpochCount: number;
-  prescribedEpochCount: number;
-};
+  passedConsecutiveEpochs: number
+  failedConsecutiveEpochs: number
+  totalEpochCount: number
+  passedEpochCount: number
+  failedEpochCount: number
+  observedEpochCount: number
+  prescribedEpochCount: number
+}
 ```
 
 ### AoGatewayDelegate
 
 ```typescript
 {
-  delegatedStake: number;
-  startTimestamp: Timestamp;
-  vaults: Record<WalletAddress, AoVaultData>;
-};
+  delegatedStake: number
+  startTimestamp: Timestamp
+  vaults: Record<WalletAddress, AoVaultData>
+}
 ```
 
 ### AoVaultData
 
 ```typescript
 {
-  balance: number;
-  locked: number;
-  endTimestamp: Timestamp;
-};
+  balance: number
+  locked: number
+  endTimestamp: Timestamp
+}
 ```
 
 ### AoGatewayWeights
 
-```typescript
+````typescript
 {
   stakeWeight: number;
   tenureWeight: number;
@@ -188,3 +201,4 @@ import {HeroPattern} from "@/components/HeroPattern"
   normalizedCompositeWeight: number;
 };
 ``` */}
+````

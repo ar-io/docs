@@ -1,8 +1,9 @@
-import {HeroPattern} from "@/components/HeroPattern"
+import { CodeGroup } from '@/components/Code'
+import { HeroPattern } from '@/components/HeroPattern'
 
 export const metadata = {
   title: 'removeRecord',
-  description: 'Remove a record from an ANT process',
+  description: 'Remove a record from the ANT process',
   openGraph: {
     title: 'removeRecord',
   },
@@ -11,12 +12,14 @@ export const metadata = {
 <HeroPattern />
 
 <Tip title="Deprecated">
-  This method is deprecated. Please use `removeUndernameRecord` instead. See the [removeUndernameRecord](/ar-io-sdk/ants/remove-undername-record) documentation for more details.
+  This method is deprecated. Please use `removeUndernameRecord` instead. See the
+  [removeUndernameRecord](/ar-io-sdk/ants/remove-undername-record) documentation
+  for more details.
 </Tip>
 
 # removeRecord
 
-`removeRecord` is a method on the `ANT` class that removes a specified record from the ANT process.
+`removeRecord` is a method on the `ANT` class that removes a record from the ANT process.
 
 `removeRecord` requires authentication.
 
@@ -36,17 +39,15 @@ export const metadata = {
     </thead>
     <tbody>
       <tr>
-        <th>undername</th>
+        <th>subDomain</th>
         <td>string</td>
-        <td>The undername for which to remove the record. The `@` symbol represents the top-level name</td>
+        <td>The subdomain name of the record to remove</td>
         <td>false</td>
       </tr>
       <tr>
         <th>tags</th>
         <td>array</td>
-        <td>
-          An array of GQL tag objects to attach to the transfer AO message
-        </td>
+        <td>An array of GQL tag objects to attach to the AO message</td>
         <td>true</td>
       </tr>
     </tbody>
@@ -70,12 +71,14 @@ export const metadata = {
         });
 
         const { id: txId } = await ant.removeRecord(
-                {
-                    undername: 'remove-domain',
-                },
-                // optional additional tags
-                { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
-            );
+            {
+              subDomain: "blog"
+            },
+            // optional additional tags
+            { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+        );
+
+        console.log(txId);
         }
 
         main();
@@ -92,12 +95,14 @@ export const metadata = {
         })
 
         const { id: txId } = await ant.removeRecord(
-                {
-                    undername: 'remove-domain',
-                },
-                // optional additional tags
-                { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
-            );
+            {
+              subDomain: "blog"
+            },
+            // optional additional tags
+            { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+        );
+
+        console.log(txId);
         }
 
     main();

@@ -3,7 +3,7 @@ import { HeroPattern } from '@/components/HeroPattern'
 
 export const metadata = {
   title: 'getBalance',
-  description: 'Retrieve the ARIO token balance for a specific wallet address',
+  description: 'Retrieve the token balance for a specific address in an ANT',
   openGraph: {
     title: 'getBalance',
   },
@@ -13,7 +13,7 @@ export const metadata = {
 
 # getBalance
 
-`getBalance` is a method on the `ARIO` class that retrieves the ARIO token balance for a given wallet address.
+`getBalance` is a method on the `ANT` class that retrieves the token balance for a specific wallet address within the ANT process.
 
 `getBalance` does not require authentication.
 
@@ -48,11 +48,11 @@ export const metadata = {
 <CodeGroup title="getBalance">
 
     ```typescript {{ title: 'NodeJS' }}
-    const { ARIO } = require('@ar.io/sdk');
+    const { ANT } = require('@ar.io/sdk');
 
     async function main() {
-      const ario = ARIO.init();
-      const balance = await ario.getBalance({
+      const ant = ANT.init({ processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM" });
+      const balance = await ant.getBalance({
         address: "ccp3blG__gKUvG3hsGC2u06aDmqv4CuhuDJGOIg0jw4"
       });
 
@@ -63,11 +63,11 @@ export const metadata = {
     ```
 
     ```typescript {{ title: 'Web' }}
-    import { ARIO } from '@ar.io/sdk/web';
+    import { ANT } from '@ar.io/sdk/web';
 
     async function main() {
-      const ario = ARIO.init();
-      const balance = await ario.getBalance({
+      const ant = ANT.init({ processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM" });
+      const balance = await ant.getBalance({
         address: "ccp3blG__gKUvG3hsGC2u06aDmqv4CuhuDJGOIg0jw4"
       });
 
@@ -82,5 +82,5 @@ export const metadata = {
 ## Output
 
 ```js
-50000000 // Balance in mARIO (6 decimal places)
+1
 ```

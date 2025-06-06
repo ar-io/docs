@@ -1,42 +1,52 @@
-import {CodeGroup} from "@/components/Code"
-import {HeroPattern} from "@/components/HeroPattern"
+import { CodeGroup } from '@/components/Code'
+import { HeroPattern } from '@/components/HeroPattern'
+
+export const metadata = {
+  title: 'getVault',
+  description:
+    'Retrieve details about a specific vault by address and vault ID',
+  openGraph: {
+    title: 'getVault',
+  },
+}
 
 <HeroPattern />
 
 # getVault
 
-`getVault` is a method on the `ARIO` class that retrieves the locked-balance user vault of the ARIO process by the specified wallet address and vault ID.
+`getVault` is a method on the `ARIO` class that retrieves detailed information about a specific vault using the owner's address and vault ID.
 
 `getVault` does not require authentication.
 
 ## Parameters
 
 {
-<div style={{textAlign: "center"}}>
-    <table className="inline-table">
+
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
     <thead>
-    <tr>
+      <tr>
         <th>Parameter</th>
         <th>Type</th>
         <th>Description</th>
         <th>Optional</th>
-    </tr>
+      </tr>
     </thead>
     <tbody>
-    <tr>
+      <tr>
         <th>address</th>
         <td>string - WalletAddress</td>
-        <td>The public wallet address of the vault owner.</td>
+        <td>The wallet address that owns the vault</td>
         <td>false</td>
-    </tr>
-    <tr>
+      </tr>
+      <tr>
         <th>vaultId</th>
         <td>string</td>
-        <td>The public wallet address of the vault owner.</td>
+        <td>The unique identifier of the vault</td>
         <td>false</td>
-    </tr>
+      </tr>
     </tbody>
-    </table>
+  </table>
 </div>
 }
 
@@ -50,8 +60,8 @@ import {HeroPattern} from "@/components/HeroPattern"
     async function main() {
       const ario = ARIO.init();
       const vault = await ario.getVault({
-        address: 'QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ',
-        vaultId: 'vaultIdOne',
+        address: "ccp3blG__gKUvG3hsGC2u06aDmqv4CuhuDJGOIg0jw4",
+        vaultId: "vault-123"
       });
 
       console.log(vault);
@@ -66,8 +76,8 @@ import {HeroPattern} from "@/components/HeroPattern"
     async function main() {
       const ario = ARIO.init();
       const vault = await ario.getVault({
-        address: 'QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ',
-        vaultId: 'vaultIdOne',
+        address: "ccp3blG__gKUvG3hsGC2u06aDmqv4CuhuDJGOIg0jw4",
+        vaultId: "vault-123"
       });
 
       console.log(vault);
@@ -82,8 +92,9 @@ import {HeroPattern} from "@/components/HeroPattern"
 
 ```js
 {
-  "balance": 1000000,
-  "startTimestamp": 123,
-  "endTimestamp": 4567
+  "balance": 10000000000,
+  "startTimestamp": 1707307200000,
+  "endTimestamp": 1709812800000,
+  "vaultId": "vault-123"
 }
 ```

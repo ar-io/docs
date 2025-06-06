@@ -1,11 +1,11 @@
+import { CodeGroup } from '@/components/Code'
 import { HeroPattern } from '@/components/HeroPattern'
 
 export const metadata = {
-  title: 'ANTRegistry.accessControlList',
-  description:
-    'Receives a list of ANTs owned or controlled by a specific wallet',
+  title: 'accessControlList',
+  description: 'Retrieve the access control list for the ANT Registry',
   openGraph: {
-    title: 'ANTRegistry.accessControlList',
+    title: 'accessControlList',
   },
 }
 
@@ -13,95 +13,55 @@ export const metadata = {
 
 # accessControlList
 
-`accessControlList` is a method on the `ANTRegistry` class that receives a list of ANTs owned or controlled by the provided wallet address.
+`accessControlList` is a method on the `ANTRegistry` class that retrieves the access control list (ACL) for the ANT Registry, showing which addresses have permission to perform various operations.
 
-`accessControlList` does not require authentication
+`accessControlList` does not require authentication.
 
 ## Parameters
 
-{
-
-<div style={{ textAlign: 'center' }}>
-  <table className="inline-table">
-    <thead>
-      <tr>
-        <th>Parameter</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Optional</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <th>address</th>
-        <td>string - walletAddress</td>
-        <td>Wallet address for which to receive owned and controlled list.</td>
-        <td>false</td>
-      </tr>
-    </tbody>
-  </table>
-</div>
-}
+The `accessControlList` method does not accept any parameters.
 
 ## Examples
 
 <CodeGroup title="accessControlList">
 
-        ```typescript {{title: "NodeJS"}}
-            const { ANTRegistry } = require('@ar.io/sdk')
+    ```typescript {{ title: 'NodeJS' }}
+    const { ANTRegistry } = require('@ar.io/sdk');
 
-            async function main() {
-                const antRegistry = ANTRegistry.init()
+    async function main() {
+      const antRegistry = ANTRegistry.init();
+      const acl = await antRegistry.accessControlList();
 
-                const results = await antRegistry.accessControlList({
-                    address: "GtDQcrr2QRdoZ-lKto_S_SpzEwiZiHVaj3x4jAgRh4o"
-                })
+      console.log(acl);
+    }
 
-                console.log(results)
-            }
+    main();
+    ```
 
-            main()
-        ```
+    ```typescript {{ title: 'Web' }}
+    import { ANTRegistry } from '@ar.io/sdk/web';
 
-        ```typescript {{title: "Web"}}
-            const { ANTRegistry } = require('@ar.io/sdk')
+    async function main() {
+      const antRegistry = ANTRegistry.init();
+      const acl = await antRegistry.accessControlList();
 
-            async function main() {
-                const antRegistry = ANTRegistry.init()
+      console.log(acl);
+    }
 
-                const results = await antRegistry.accessControlList({
-                    address: "GtDQcrr2QRdoZ-lKto_S_SpzEwiZiHVaj3x4jAgRh4o"
-                })
-
-                console.log(results)
-            }
-
-            main()
-        ```
+    main();
+    ```
 
 </CodeGroup>
 
-## output
+## Output
 
-```json
+```js
 {
-  "Controlled": [
-    "v-ICkGiQZX5fuxxIsl1UOSj2ykQbcwHp7VZe84MdgGo",
-    "CWppm9tRhRFxQGMm_wOUlLoSjakfbAoWLX_RWjHIXAY",
-    "ZI75Ij2NdSjcee59mtnucyGEHOm9Ua0ORPBJSo1wsMU",
-    "Dw1aa_oX2Nz5Z-VrHT6snuojpOXK5LY3BTv6KgAoQxc",
-    "NgfG4K9avqqP5P7m3wvk9hl1NJNuu8yn6oFVlDJs9cE",
-    "fiKEr9aqPJXkPjrxGgu8lpRw0qnDV2uD2KkvabEFtjg",
-    "SmTnkDqwFgng8APMHORqPMb9fM0nNviIkNsAxts4mc0",
-    "1NroE5BWvZXvoSuQLuXRvRPaHTLZS940zgAxwG_1mcA"
-  ],
-  "Owned": [
-    "AbCFQ6mMiCzJSQ_8YdWAjSda-AMlVjb-6XlgmlH87zU",
-    "1-Bu7KDRqqKmX68XxAHmeDlYSlz6qjKXNYOQOBGrDMQ",
-    "wKwYtHxH2LU3H79i2rYi-fzDCLkFiGOfWmoo7a4qzSo",
-    "0ALZuX_sDw-Gbqd7vr6TNfl_S2zSfKqQg0axVZIH2lE",
-    "kuuUlv3Kn6FbcmaDsBPuNwsoIar2JIQwV8dBnPJOgTY",
-    "CD7CEsXic4qILGb0Q0jnox6d9_Xml_fSGl8bwMngSLE"
+  "Ownership": "Single",
+  "Owner": "ccp3blG__gKUvG3hsGC2u06aDmqv4CuhuDJGOIg0jw4",
+  "Controllers": [
+    "ccp3blG__gKUvG3hsGC2u06aDmqv4CuhuDJGOIg0jw4",
+    "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ"
   ]
 }
 ```

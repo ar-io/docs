@@ -1,0 +1,82 @@
+import { CodeGroup } from '@/components/Code'
+import { HeroPattern } from '@/components/HeroPattern'
+
+export const metadata = {
+  title: 'getPrescribedNames',
+  description: 'Retrieve the prescribed ArNS names for a specific epoch',
+  openGraph: {
+    title: 'getPrescribedNames',
+  },
+}
+
+<HeroPattern />
+
+# getPrescribedNames
+
+`getPrescribedNames` is a method on the `ARIO` class that retrieves the list of ArNS names that are prescribed for observation during a specific epoch. If no epoch is specified, the current epoch is used.
+
+`getPrescribedNames` does not require authentication.
+
+## Parameters
+
+{
+
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>epochIndex</th>
+        <td>number</td>
+        <td>The epoch index for which to retrieve prescribed names</td>
+        <td>true</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+}
+
+## Examples
+
+<CodeGroup title="getPrescribedNames">
+
+    ```typescript {{ title: 'NodeJS' }}
+    const { ARIO } = require('@ar.io/sdk');
+
+    async function main() {
+      const ario = ARIO.init();
+      const prescribedNames = await ario.getPrescribedNames({ epochIndex: 0 });
+
+      console.log(prescribedNames);
+    }
+
+    main();
+    ```
+
+    ```typescript {{ title: 'Web' }}
+    import { ARIO } from '@ar.io/sdk/web';
+
+    async function main() {
+      const ario = ARIO.init();
+      const prescribedNames = await ario.getPrescribedNames({ epochIndex: 0 });
+
+      console.log(prescribedNames);
+    }
+
+    main();
+    ```
+
+</CodeGroup>
+
+## Output
+
+```js
+;['ardrive', 'ar-io', 'arweave', 'fwd', 'ao']
+```

@@ -2,20 +2,20 @@ import { CodeGroup } from '@/components/Code'
 import { HeroPattern } from '@/components/HeroPattern'
 
 export const metadata = {
-  title: 'getArNSRecord',
-  description: 'Retrieve details for a specific ArNS record by name',
+  title: 'getArNSReservedName',
+  description: 'Retrieve details about a specific reserved ArNS name',
   openGraph: {
-    title: 'getArNSRecord',
+    title: 'getArNSReservedName',
   },
 }
 
 <HeroPattern />
 
-# getArNSRecord
+# getArNSReservedName
 
-`getArNSRecord` is a method on the `ARIO` class that retrieves the details of a specific ArNS record by its name. This includes lease information, type, process ID, and other metadata.
+`getArNSReservedName` is a method on the `ARIO` class that retrieves details about a specific reserved ArNS name, including its target and any expiration information.
 
-`getArNSRecord` does not require authentication.
+`getArNSReservedName` does not require authentication.
 
 ## Parameters
 
@@ -35,7 +35,7 @@ export const metadata = {
       <tr>
         <th>name</th>
         <td>string</td>
-        <td>The ArNS name to retrieve details for</td>
+        <td>The reserved ArNS name to retrieve information for</td>
         <td>false</td>
       </tr>
     </tbody>
@@ -45,16 +45,16 @@ export const metadata = {
 
 ## Examples
 
-<CodeGroup title="getArNSRecord">
+<CodeGroup title="getArNSReservedName">
 
     ```typescript {{ title: 'NodeJS' }}
     const { ARIO } = require('@ar.io/sdk');
 
     async function main() {
       const ario = ARIO.init();
-      const arnsRecord = await ario.getArNSRecord({ name: 'ardrive' });
+      const reservedName = await ario.getArNSReservedName({ name: 'arweave' });
 
-      console.log(arnsRecord);
+      console.log(reservedName);
     }
 
     main();
@@ -65,9 +65,9 @@ export const metadata = {
 
     async function main() {
       const ario = ARIO.init();
-      const arnsRecord = await ario.getArNSRecord({ name: 'ardrive' });
+      const reservedName = await ario.getArNSReservedName({ name: 'arweave' });
 
-      console.log(arnsRecord);
+      console.log(reservedName);
     }
 
     main();
@@ -79,12 +79,7 @@ export const metadata = {
 
 ```js
 {
-  "processId": "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM",
-  "startTimestamp": 1707307200000,
-  "endTimestamp": 1739307200000,
-  "type": "lease",
-  "undernameLimit": 10,
-  "purchasePrice": 75541282,
-  "renewalPrice": 75541282
+  "target": "some-protected-target-id",
+  "endTimestamp": null // null indicates permanent reservation
 }
 ```

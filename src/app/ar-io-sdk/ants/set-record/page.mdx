@@ -1,8 +1,9 @@
+import { CodeGroup } from '@/components/Code'
 import { HeroPattern } from '@/components/HeroPattern'
 
 export const metadata = {
   title: 'setRecord',
-  description: 'Update or create a record in an ANT process',
+  description: 'Set or update a record in the ANT process',
   openGraph: {
     title: 'setRecord',
   },
@@ -11,12 +12,16 @@ export const metadata = {
 <HeroPattern />
 
 <Tip title="Deprecated">
-  This method is deprecated. Please use `setBaseNameRecord` for top-level names or `setUndernameRecord` for undernames instead. See the [setBaseNameRecord](/ar-io-sdk/ants/set-base-name-record) and [setUndernameRecord](/ar-io-sdk/ants/set-undername-record) documentation for more details.
+  This method is deprecated. Please use `setBaseNameRecord` for top-level names
+  or `setUndernameRecord` for undernames instead. See the
+  [setBaseNameRecord](/ar-io-sdk/ants/set-base-name-record) and
+  [setUndernameRecord](/ar-io-sdk/ants/set-undername-record) documentation for
+  more details.
 </Tip>
 
 # setRecord
 
-`setRecord` is a method on the `ANT` class that creates or updates a record in the ANT process.
+`setRecord` is a method on the `ANT` class that sets or updates a record in the ANT process. Records map names to Arweave transaction IDs with optional TTL settings.
 
 `setRecord` requires authentication.
 
@@ -36,29 +41,27 @@ export const metadata = {
     </thead>
     <tbody>
       <tr>
-        <th>undername</th>
+        <th>subDomain</th>
         <td>string</td>
-        <td>The undername for which to set the record. The `@` symbol represents the top-level name</td>
+        <td>The subdomain name for the record (use "@" for the root domain)</td>
         <td>false</td>
       </tr>
       <tr>
         <th>transactionId</th>
         <td>string</td>
-        <td>The Arweave transaction ID to set as the record</td>
+        <td>The Arweave transaction ID to point the record to</td>
         <td>false</td>
       </tr>
       <tr>
         <th>ttlSeconds</th>
         <td>number</td>
-        <td>The number of seconds for DNS TTL (defaults to 900)</td>
+        <td>Time-to-live in seconds for the record cache</td>
         <td>true</td>
       </tr>
       <tr>
         <th>tags</th>
         <td>array</td>
-        <td>
-          An array of GQL tag objects to attach to the transfer AO message
-        </td>
+        <td>An array of GQL tag objects to attach to the AO message</td>
         <td>true</td>
       </tr>
     </tbody>
@@ -73,6 +76,7 @@ export const metadata = {
   quickly.
 
 TTL must be between 60 seconds (1 minute) and 86400 seconds (1 day).
+
 </Tip>
 
 ## Examples
@@ -91,14 +95,16 @@ TTL must be between 60 seconds (1 minute) and 86400 seconds (1 day).
         });
 
         const { id: txId } = await ant.setRecord(
-                {
-                    undername: '@',
-                    transactionId: '432l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM'
-                    ttlSeconds: 3600
-                },
-                // optional additional tags
-                { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
-            );
+            {
+              subDomain: "@",
+              transactionId: "UyC5P5qKPZaltMmmZAWdakhlDXsBF6qmyrbWYFchRTk",
+              ttlSeconds: 3600
+            },
+            // optional additional tags
+            { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+        );
+
+        console.log(txId);
         }
 
         main();
@@ -115,14 +121,16 @@ TTL must be between 60 seconds (1 minute) and 86400 seconds (1 day).
         })
 
         const { id: txId } = await ant.setRecord(
-                {
-                    undername: '@',
-                    transactionId: '432l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM'
-                    ttlSeconds: 3600
-                },
-                // optional additional tags
-                { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
-            );
+            {
+              subDomain: "@",
+              transactionId: "UyC5P5qKPZaltMmmZAWdakhlDXsBF6qmyrbWYFchRTk",
+              ttlSeconds: 3600
+            },
+            // optional additional tags
+            { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+        );
+
+        console.log(txId);
         }
 
     main();

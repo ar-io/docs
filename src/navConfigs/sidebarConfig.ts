@@ -203,6 +203,10 @@ export const secondaryNavigation: Array<NavGroup> = [
             title: 'Vaults',
             children: [
               {
+                title: 'createVault',
+                href: '/build/ar-io-sdk/ario/vaults/create-vault',
+              },
+              {
                 title: 'getVault',
                 href: '/build/ar-io-sdk/ario/vaults/get-vault',
               },
@@ -224,12 +228,20 @@ export const secondaryNavigation: Array<NavGroup> = [
                 href: '/build/ar-io-sdk/ario/epochs/get-current-epoch',
               },
               {
+                title: 'getEpochSettings',
+                href: '/build/ar-io-sdk/ario/epochs/get-epoch-settings',
+              },
+              {
                 title: 'getDistributions',
                 href: '/build/ar-io-sdk/ario/epochs/get-distributions',
               },
               {
                 title: 'getPrescribedObservers',
                 href: '/build/ar-io-sdk/ario/epochs/get-prescribed-observers',
+              },
+              {
+                title: 'getPrescribedNames',
+                href: '/build/ar-io-sdk/ario/epochs/get-prescribed-names',
               },
               {
                 title: 'getObservations',
@@ -253,6 +265,10 @@ export const secondaryNavigation: Array<NavGroup> = [
                 href: '/build/ar-io-sdk/ario/arns/extend-lease',
               },
               {
+                title: 'upgradeRecord',
+                href: '/build/ar-io-sdk/ario/arns/upgrade-record',
+              },
+              {
                 title: 'getArNSRecord',
                 href: '/build/ar-io-sdk/ario/arns/get-arns-record',
               },
@@ -261,12 +277,28 @@ export const secondaryNavigation: Array<NavGroup> = [
                 href: '/build/ar-io-sdk/ario/arns/get-arns-records',
               },
               {
+                title: 'getArNSReservedName',
+                href: '/build/ar-io-sdk/ario/arns/get-arns-reserved-name',
+              },
+              {
+                title: 'getArNSReservedNames',
+                href: '/build/ar-io-sdk/ario/arns/get-arns-reserved-names',
+              },
+              {
                 title: 'getTokenCost',
                 href: '/build/ar-io-sdk/ario/arns/get-token-cost',
               },
               {
                 title: 'getDemandFactor',
                 href: '/build/ar-io-sdk/ario/arns/get-demand-factor',
+              },
+              {
+                title: 'getDemandFactorSettings',
+                href: '/build/ar-io-sdk/ario/arns/get-demand-factor-settings',
+              },
+              {
+                title: 'getRegistrationFees',
+                href: '/build/ar-io-sdk/ario/arns/get-registration-fees',
               },
               {
                 title: 'increaseUndernameLimit',
@@ -327,6 +359,14 @@ export const secondaryNavigation: Array<NavGroup> = [
           {
             title: 'Configuration',
             href: '/build/ar-io-sdk/ants/configuration',
+          },
+          {
+            title: 'getBalance',
+            href: '/build/ar-io-sdk/ants/get-balance',
+          },
+          {
+            title: 'getBalances',
+            href: '/build/ar-io-sdk/ants/get-balances',
           },
           {
             title: 'getInfo',
@@ -760,6 +800,10 @@ export const singleNavigation: Array<NavGroup> = [
             title: 'Vaults',
             children: [
               {
+                title: 'createVault',
+                href: '/ar-io-sdk/ario/vaults/create-vault',
+              },
+              {
                 title: 'getVault',
                 href: '/ar-io-sdk/ario/vaults/get-vault',
               },
@@ -781,12 +825,20 @@ export const singleNavigation: Array<NavGroup> = [
                 href: '/ar-io-sdk/ario/epochs/get-current-epoch',
               },
               {
+                title: 'getEpochSettings',
+                href: '/ar-io-sdk/ario/epochs/get-epoch-settings',
+              },
+              {
                 title: 'getDistributions',
                 href: '/ar-io-sdk/ario/epochs/get-distributions',
               },
               {
                 title: 'getPrescribedObservers',
                 href: '/ar-io-sdk/ario/epochs/get-prescribed-observers',
+              },
+              {
+                title: 'getPrescribedNames',
+                href: '/ar-io-sdk/ario/epochs/get-prescribed-names',
               },
               {
                 title: 'getObservations',
@@ -810,6 +862,10 @@ export const singleNavigation: Array<NavGroup> = [
                 href: '/ar-io-sdk/ario/arns/extend-lease',
               },
               {
+                title: 'upgradeRecord',
+                href: '/ar-io-sdk/ario/arns/upgrade-record',
+              },
+              {
                 title: 'getArNSRecord',
                 href: '/ar-io-sdk/ario/arns/get-arns-record',
               },
@@ -818,12 +874,28 @@ export const singleNavigation: Array<NavGroup> = [
                 href: '/ar-io-sdk/ario/arns/get-arns-records',
               },
               {
+                title: 'getArNSReservedName',
+                href: '/ar-io-sdk/ario/arns/get-arns-reserved-name',
+              },
+              {
+                title: 'getArNSReservedNames',
+                href: '/ar-io-sdk/ario/arns/get-arns-reserved-names',
+              },
+              {
                 title: 'getTokenCost',
                 href: '/ar-io-sdk/ario/arns/get-token-cost',
               },
               {
                 title: 'getDemandFactor',
                 href: '/ar-io-sdk/ario/arns/get-demand-factor',
+              },
+              {
+                title: 'getDemandFactorSettings',
+                href: '/ar-io-sdk/ario/arns/get-demand-factor-settings',
+              },
+              {
+                title: 'getRegistrationFees',
+                href: '/ar-io-sdk/ario/arns/get-registration-fees',
               },
               {
                 title: 'increaseUndernameLimit',
@@ -884,6 +956,14 @@ export const singleNavigation: Array<NavGroup> = [
           {
             title: 'Configuration',
             href: '/ar-io-sdk/ants/configuration',
+          },
+          {
+            title: 'getBalance',
+            href: '/ar-io-sdk/ants/get-balance',
+          },
+          {
+            title: 'getBalances',
+            href: '/ar-io-sdk/ants/get-balances',
           },
           {
             title: 'getInfo',
@@ -1063,8 +1143,8 @@ export const singleNavigation: Array<NavGroup> = [
             href: '/gateways/troubleshooting',
           },
           {
-            title: "Troubleshooting Failed Epochs",
-            href: "/gateways/failed-epoch",
+            title: 'Troubleshooting Failed Epochs',
+            href: '/gateways/failed-epoch',
           },
           {
             title: 'Upgrading',

@@ -1,50 +1,51 @@
-import {CodeGroup} from "@/components/Code"
-import {HeroPattern} from "@/components/HeroPattern"
+import { CodeGroup } from '@/components/Code'
+import { HeroPattern } from '@/components/HeroPattern'
+
+export const metadata = {
+  title: 'getTokenSupply',
+  description: 'Retrieve detailed token supply information for ARIO tokens',
+  openGraph: {
+    title: 'getTokenSupply',
+  },
+}
 
 <HeroPattern />
 
 # getTokenSupply
 
-`getTokenSupply` is a method on the `ARIO` class that retrieves the total supply of tokens, returned in mARIO. The total supply includes the following:
-
-- `total` - the total supply of all tokens
-- `circulating` - the total supply minus locked, withdrawn, delegated, and staked
-- `locked` - tokens that are locked in the protocol (a.k.a. vaulted)
-- `withdrawn` - tokens that have been withdrawn from the protocol by operators and delegators
-- `delegated` - tokens that have been delegated to gateways
-- `staked` - tokens that are staked in the protocol by gateway operators
-- `protocolBalance` - tokens that are held in the protocol's treasury. This is included in the circulating supply.
+`getTokenSupply` is a method on the `ARIO` class that retrieves detailed token supply information for the AR.IO network, including total supply, circulating supply, locked tokens, and more.
 
 `getTokenSupply` does not require authentication.
 
 ## Parameters
 
-`getTokenSupply` does not accept Parameters
+The `getTokenSupply` method does not accept any parameters.
 
 ## Examples
 
-<CodeGroup title="getInfo">
+<CodeGroup title="getTokenSupply">
 
-    ```typescript {{title: 'NodeJS'}}
+    ```typescript {{ title: 'NodeJS' }}
     const { ARIO } = require('@ar.io/sdk');
 
-    async function main(){
-        const ario = ARIO.init();
-        const info = await ario.getTokenSupply()
+    async function main() {
+      const ario = ARIO.init();
+      const tokenSupply = await ario.getTokenSupply();
 
-        console.log(info)
+      console.log(tokenSupply);
     }
 
-    main()
+    main();
     ```
+
     ```typescript {{ title: 'Web' }}
     import { ARIO } from '@ar.io/sdk/web';
 
     async function main() {
       const ario = ARIO.init();
-      const info = await ario.getTokenSupply()
+      const tokenSupply = await ario.getTokenSupply();
 
-      console.log(info);
+      console.log(tokenSupply);
     }
 
     main();
@@ -54,15 +55,15 @@ import {HeroPattern} from "@/components/HeroPattern"
 
 ## Output
 
-```typescript
+```js
 {
-  "total": 1000000000000000000,
-  "circulating": 998094653842520,
-  "locked": 0,
-  "withdrawn": 560563387278,
-  "delegated": 1750000000,
-  "staked": 1343032770199,
-  "protocolBalance": 46317263683761
+  "total": 1000000000000000000,        // Total token supply in mARIO
+  "circulating": 998094653842520,      // Tokens in circulation
+  "locked": 0,                         // Tokens locked in vaults
+  "withdrawn": 560563387278,           // Tokens in withdrawal
+  "delegated": 1750000000,             // Tokens delegated to gateways
+  "staked": 1343032770199,             // Tokens staked by operators
+  "protocolBalance": 46317263683761    // Tokens held by protocol
 }
 ```
 

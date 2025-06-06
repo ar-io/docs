@@ -2,20 +2,20 @@ import { CodeGroup } from '@/components/Code'
 import { HeroPattern } from '@/components/HeroPattern'
 
 export const metadata = {
-  title: 'buyRecord',
-  description: 'Purchase an ArNS record for a specified name and duration',
+  title: 'upgradeRecord',
+  description: 'Upgrade an existing ArNS record from lease to permabuy',
   openGraph: {
-    title: 'buyRecord',
+    title: 'upgradeRecord',
   },
 }
 
 <HeroPattern />
 
-# buyRecord
+# upgradeRecord
 
-`buyRecord` is a method on the `ARIO` class that purchases a record in the ArNS registry for a specified name and duration.
+`upgradeRecord` is a method on the `ARIO` class that upgrades an existing ArNS record from a lease to a permanent ownership (permabuy). This allows converting a leased name to permanent ownership.
 
-`buyRecord` requires authentication.
+`upgradeRecord` requires authentication.
 
 ## Parameters
 
@@ -35,26 +35,8 @@ export const metadata = {
       <tr>
         <th>name</th>
         <td>string</td>
-        <td>The ArNS name to purchase</td>
+        <td>The ArNS name to upgrade to permanent ownership</td>
         <td>false</td>
-      </tr>
-      <tr>
-        <th>years</th>
-        <td>number</td>
-        <td>The number of years to lease the name for (1-5)</td>
-        <td>false</td>
-      </tr>
-      <tr>
-        <th>processId</th>
-        <td>string</td>
-        <td>The ANT process ID to set for this name</td>
-        <td>false</td>
-      </tr>
-      <tr>
-        <th>type</th>
-        <td>string</td>
-        <td>The type of purchase: 'lease' or 'permabuy'</td>
-        <td>true</td>
       </tr>
       <tr>
         <th>fundFrom</th>
@@ -77,7 +59,7 @@ export const metadata = {
 
 ## Examples
 
-<CodeGroup title="buyRecord">
+<CodeGroup title="upgradeRecord">
 
        ```typescript {{title: "NodeJS"}}
         const fs = require("fs");
@@ -89,15 +71,12 @@ export const metadata = {
             signer: new ArweaveSigner(jwk),
         });
 
-        const { id: txId } = await ario.buyRecord(
+        const { id: txId } = await ario.upgradeRecord(
+                { name: 'ardrive' },
                 {
-                    name: 'ardrive',
-                    years: 1,
-                    processId: 'bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM',
-                    type: 'lease'
+                    // optional tags
+                    tags: [{ name: 'App-Name', value: 'ArNS-App' }],
                 },
-                // optional additional tags
-                { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
             );
         }
 
@@ -113,15 +92,12 @@ export const metadata = {
             signer: new ArConnectSigner(window.arweaveWallet)
         })
 
-        const { id: txId } = await ario.buyRecord(
+        const { id: txId } = await ario.upgradeRecord(
+                { name: 'ardrive' },
                 {
-                    name: 'ardrive',
-                    years: 1,
-                    processId: 'bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM',
-                    type: 'lease'
+                    // optional tags
+                    tags: [{ name: 'App-Name', value: 'ArNS-App' }],
                 },
-                // optional additional tags
-                { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
             );
         }
 

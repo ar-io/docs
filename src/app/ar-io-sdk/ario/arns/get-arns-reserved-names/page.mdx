@@ -2,21 +2,20 @@ import { CodeGroup } from '@/components/Code'
 import { HeroPattern } from '@/components/HeroPattern'
 
 export const metadata = {
-  title: 'getBalances',
-  description:
-    'Retrieve ARIO token balances for all addresses with pagination support',
+  title: 'getArNSReservedNames',
+  description: 'Retrieve all reserved ArNS names with pagination support',
   openGraph: {
-    title: 'getBalances',
+    title: 'getArNSReservedNames',
   },
 }
 
 <HeroPattern />
 
-# getBalances
+# getArNSReservedNames
 
-`getBalances` is a method on the `ARIO` class that retrieves all ARIO token balances in the network with support for pagination and custom sorting.
+`getArNSReservedNames` is a method on the `ARIO` class that retrieves all reserved ArNS names, with support for pagination and custom sorting. Reserved names are names that are protected and cannot be registered by users.
 
-`getBalances` does not require authentication.
+`getArNSReservedNames` does not require authentication.
 
 ## Parameters
 
@@ -38,7 +37,7 @@ export const metadata = {
         <th>cursor</th>
         <td>string</td>
         <td>
-          The address to use as the starting point for the next page of results
+          The name to use as the starting point for the next page of results
         </td>
         <td>true</td>
         <td>None</td>
@@ -46,7 +45,7 @@ export const metadata = {
       <tr>
         <th>limit</th>
         <td>number</td>
-        <td>The maximum number of balances to return (max: 1000)</td>
+        <td>The maximum number of records to return (max: 1000)</td>
         <td>true</td>
         <td>100</td>
       </tr>
@@ -55,7 +54,7 @@ export const metadata = {
         <td>string</td>
         <td>The property to sort results by</td>
         <td>true</td>
-        <td>address</td>
+        <td>name</td>
       </tr>
       <tr>
         <th>sortOrder</th>
@@ -71,20 +70,20 @@ export const metadata = {
 
 ## Examples
 
-<CodeGroup title="getBalances">
+<CodeGroup title="getArNSReservedNames">
 
     ```typescript {{ title: 'NodeJS' }}
     const { ARIO } = require('@ar.io/sdk');
 
     async function main() {
       const ario = ARIO.init();
-      const balances = await ario.getBalances({
+      const reservedNames = await ario.getArNSReservedNames({
         limit: 50,
-        sortBy: 'balance',
-        sortOrder: 'desc'
+        sortBy: 'name',
+        sortOrder: 'asc'
       });
 
-      console.log(balances);
+      console.log(reservedNames);
     }
 
     main();
@@ -95,13 +94,13 @@ export const metadata = {
 
     async function main() {
       const ario = ARIO.init();
-      const balances = await ario.getBalances({
+      const reservedNames = await ario.getArNSReservedNames({
         limit: 50,
-        sortBy: 'balance',
-        sortOrder: 'desc'
+        sortBy: 'name',
+        sortOrder: 'asc'
       });
 
-      console.log(balances);
+      console.log(reservedNames);
     }
 
     main();
@@ -115,18 +114,20 @@ export const metadata = {
 {
   "items": [
     {
-      "address": "ccp3blG__gKUvG3hsGC2u06aDmqv4CuhuDJGOIg0jw4",
-      "balance": 50000000000
+      "name": "arweave",
+      "target": "some-protected-target",
+      "endTimestamp": null
     },
     {
-      "address": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
-      "balance": 25000000000
+      "name": "ar-io",
+      "target": "another-protected-target",
+      "endTimestamp": null
     }
   ],
   "hasMore": true,
-  "nextCursor": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
-  "totalItems": 1500,
-  "sortBy": "balance",
-  "sortOrder": "desc"
+  "nextCursor": "ar-io",
+  "totalItems": 150,
+  "sortBy": "name",
+  "sortOrder": "asc"
 }
 ```

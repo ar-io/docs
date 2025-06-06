@@ -1,11 +1,19 @@
 import { CodeGroup } from '@/components/Code'
-import {HeroPattern} from "@/components/HeroPattern"
+import { HeroPattern } from '@/components/HeroPattern'
+
+export const metadata = {
+  title: 'transfer',
+  description: 'Transfer ownership of an ANT to another wallet address',
+  openGraph: {
+    title: 'transfer',
+  },
+}
 
 <HeroPattern />
 
 # transfer
 
-`transfer` is a method on the `ANT` class that transfers ownership of the ANT to a new wallet address. The target address must be a valid Arweave wallet address.
+`transfer` is a method on the `ANT` class that transfers ownership of the ANT process to another wallet address.
 
 `transfer` requires authentication.
 
@@ -27,14 +35,14 @@ import {HeroPattern} from "@/components/HeroPattern"
       <tr>
         <th>target</th>
         <td>string - WalletAddress</td>
-        <td>The Arweave wallet address of the new owner</td>
+        <td>The wallet address to transfer ownership to</td>
         <td>false</td>
       </tr>
       <tr>
         <th>tags</th>
         <td>array</td>
         <td>
-          An array of GQL tag objects to attach to the transfer AO message.
+          An array of GQL tag objects to attach to the transfer AO message
         </td>
         <td>true</td>
       </tr>
@@ -59,7 +67,7 @@ import {HeroPattern} from "@/components/HeroPattern"
         });
 
         const { id: txId } = await ant.transfer(
-                { target: 'aGzM_yjralacHIUo8_nQXMbh9l1cy0aksiL_x9M359f' },
+                { target: "t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3" },
                 // optional additional tags
                 { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
             );
@@ -77,8 +85,9 @@ import {HeroPattern} from "@/components/HeroPattern"
             signer: new ArConnectSigner(window.arweaveWallet),
             processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM"
         })
+
         const { id: txId } = await ant.transfer(
-                { target: 'aGzM_yjralacHIUo8_nQXMbh9l1cy0aksiL_x9M359f' },
+                { target: "t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3" },
                 // optional additional tags
                 { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
             );

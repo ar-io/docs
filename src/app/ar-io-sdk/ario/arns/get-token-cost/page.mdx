@@ -1,42 +1,143 @@
-import {CodeGroup} from "@/components/Code"
-import {HeroPattern} from "@/components/HeroPattern"
+import { CodeGroup } from '@/components/Code'
+import { HeroPattern } from '@/components/HeroPattern'
+
+export const metadata = {
+  title: 'getTokenCost',
+  description: 'Calculate the cost in ARIO tokens for various ArNS operations',
+  openGraph: {
+    title: 'getTokenCost',
+  },
+}
 
 <HeroPattern />
 
 # getTokenCost
 
-`getTokenCost` is a method on the `ARIO` class that calculates the cost in mARIO tokens for a specific interaction (such as buying an ArNS record). The cost is calculated based on the interaction type and its parameters.
+`getTokenCost` is a method on the `ARIO` class that calculates the cost in mARIO tokens for various ArNS operations such as buying records, extending leases, increasing undername limits, and more.
 
 `getTokenCost` does not require authentication.
 
 ## Parameters
 
+The method accepts different parameter sets depending on the operation:
+
+### Buy Record / Buy Name
+
 {
-<div style={{textAlign: "center"}}>
-    <table className="inline-table">
+
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
     <thead>
-    <tr>
+      <tr>
         <th>Parameter</th>
         <th>Type</th>
         <th>Description</th>
         <th>Optional</th>
-    </tr>
+      </tr>
     </thead>
     <tbody>
-    <tr>
+      <tr>
         <th>intent</th>
         <td>string</td>
-        <td>The type of interaction to calculate the cost for (e.g., 'Buy-Record')</td>
+        <td>'Buy-Record' or 'Buy-Name'</td>
         <td>false</td>
-    </tr>
-    <tr>
-        <th>args</th>
-        <td>object</td>
-        <td>The specific parameters required for the interaction type</td>
+      </tr>
+      <tr>
+        <th>name</th>
+        <td>string</td>
+        <td>The ArNS name to calculate cost for</td>
         <td>false</td>
-    </tr>
+      </tr>
+      <tr>
+        <th>type</th>
+        <td>string</td>
+        <td>'lease' or 'permabuy'</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>years</th>
+        <td>number</td>
+        <td>Number of years for lease (required for lease type)</td>
+        <td>conditional</td>
+      </tr>
     </tbody>
-    </table>
+  </table>
+</div>
+}
+
+### Extend Lease
+
+{
+
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>intent</th>
+        <td>string</td>
+        <td>'Extend-Lease'</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>name</th>
+        <td>string</td>
+        <td>The ArNS name to extend</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>years</th>
+        <td>number</td>
+        <td>Number of years to extend the lease</td>
+        <td>false</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+}
+
+### Increase Undername Limit
+
+{
+
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>intent</th>
+        <td>string</td>
+        <td>'Increase-Undername-Limit'</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>name</th>
+        <td>string</td>
+        <td>The ArNS name to increase limit for</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>quantity</th>
+        <td>number</td>
+        <td>Number of additional undernames to allow</td>
+        <td>false</td>
+      </tr>
+    </tbody>
+  </table>
 </div>
 }
 
@@ -49,15 +150,34 @@ import {HeroPattern} from "@/components/HeroPattern"
 
     async function main() {
       const ario = ARIO.init();
-      const price = await ario
-        .getTokenCost({
-            intent: 'Buy-Record',
-            name: 'ar-io',
-            type: 'permabuy',
-        })
-        .then((p) => new mIOToken(p).toIO()); // convert to IO tokens for readability
-      
-      console.log('Cost in IO tokens:', price);
+
+      // Buy a permabuy name
+      const permabuyPrice = await ario.getTokenCost({
+        intent: 'Buy-Record',
+        name: 'ar-io',
+        type: 'permabuy'
+      });
+
+      // Buy a 1-year lease
+      const leasePrice = await ario.getTokenCost({
+        intent: 'Buy-Record',
+        name: 'ar-io',
+        type: 'lease',
+        years: 1
+      });
+
+      // Extend lease for 2 years
+      const extensionPrice = await ario.getTokenCost({
+        intent: 'Extend-Lease',
+        name: 'ar-io',
+        years: 2
+      });
+
+      console.log({
+        permabuyPrice,    // in mARIO
+        leasePrice,       // in mARIO
+        extensionPrice    // in mARIO
+      });
     }
 
     main();
@@ -68,15 +188,26 @@ import {HeroPattern} from "@/components/HeroPattern"
 
     async function main() {
       const ario = ARIO.init();
-      const price = await ario
-        .getTokenCost({
-            intent: 'Buy-Record',
-            name: 'ar-io',
-            type: 'permabuy',
-        })
-        .then((p) => new mIOToken(p).toIO()); // convert to IO tokens for readability
-      
-      console.log('Cost in IO tokens:', price);
+
+      // Buy a permabuy name
+      const permabuyPrice = await ario.getTokenCost({
+        intent: 'Buy-Record',
+        name: 'ar-io',
+        type: 'permabuy'
+      });
+
+      // Buy a 1-year lease
+      const leasePrice = await ario.getTokenCost({
+        intent: 'Buy-Record',
+        name: 'ar-io',
+        type: 'lease',
+        years: 1
+      });
+
+      console.log({
+        permabuyPrice,    // in mARIO
+        leasePrice        // in mARIO
+      });
     }
 
     main();
@@ -87,5 +218,9 @@ import {HeroPattern} from "@/components/HeroPattern"
 ## Output
 
 ```js
-1642.34  // Cost in IO tokens (converted from mARIO for readability)
+{
+  "permabuyPrice": 164234000000,   // Cost in mARIO (6 decimal places)
+  "leasePrice": 82117000000,       // Cost in mARIO (6 decimal places)
+  "extensionPrice": 164234000000   // Cost in mARIO (6 decimal places)
+}
 ```

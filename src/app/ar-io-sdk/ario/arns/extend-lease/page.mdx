@@ -1,5 +1,5 @@
 import { CodeGroup } from '@/components/Code'
-import {HeroPattern} from "@/components/HeroPattern"
+import { HeroPattern } from '@/components/HeroPattern'
 
 <HeroPattern />
 
@@ -37,6 +37,12 @@ import {HeroPattern} from "@/components/HeroPattern"
         <td>false</td>
       </tr>
       <tr>
+        <th>fundFrom</th>
+        <td>string</td>
+        <td>The funding source: 'balance', 'stakes', or 'any'</td>
+        <td>true</td>
+      </tr>
+      <tr>
         <th>tags</th>
         <td>array</td>
         <td>
@@ -63,7 +69,7 @@ import {HeroPattern} from "@/components/HeroPattern"
             signer: new ArweaveSigner(jwk),
         });
 
-        const { id: txId } = await ario.increaseUndernameLimit(
+        const { id: txId } = await ario.extendLease(
                 {
                     name: 'ar-io',
                     years: 1,
@@ -84,7 +90,7 @@ import {HeroPattern} from "@/components/HeroPattern"
         const ario = ARIO.init({
             signer: new ArConnectSigner(window.arweaveWallet)
         })
-        const { id: txId } = await ario.increaseUndernameLimit(
+        const { id: txId } = await ario.extendLease(
                 {
                     name: 'ar-io',
                     years: 1,
