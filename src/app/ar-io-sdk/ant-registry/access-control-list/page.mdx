@@ -3,7 +3,7 @@ import { HeroPattern } from '@/components/HeroPattern'
 
 export const metadata = {
   title: 'accessControlList',
-  description: 'Retrieve the access control list for the ANT Registry',
+  description: 'Retrieve the access control list for a specific address',
   openGraph: {
     title: 'accessControlList',
   },
@@ -13,13 +13,35 @@ export const metadata = {
 
 # accessControlList
 
-`accessControlList` is a method on the `ANTRegistry` class that retrieves the access control list (ACL) for the ANT Registry, showing which addresses have permission to perform various operations.
+`accessControlList` is a method on the `ANTRegistry` class that retrieves the access control list (ACL) for a specific address, showing which ANTs the address owns and controls.
 
 `accessControlList` does not require authentication.
 
 ## Parameters
 
-The `accessControlList` method does not accept any parameters.
+{
+
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>address</th>
+        <td>string</td>
+        <td>The wallet address to retrieve access control information for</td>
+        <td>false</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+}
 
 ## Examples
 
@@ -30,7 +52,9 @@ The `accessControlList` method does not accept any parameters.
 
     async function main() {
       const antRegistry = ANTRegistry.init();
-      const acl = await antRegistry.accessControlList();
+      const acl = await antRegistry.accessControlList({
+        address: 'ccp3blG__gKUvG3hsGC2u06aDmqv4CuhuDJGOIg0jw4'
+      });
 
       console.log(acl);
     }
@@ -43,7 +67,9 @@ The `accessControlList` method does not accept any parameters.
 
     async function main() {
       const antRegistry = ANTRegistry.init();
-      const acl = await antRegistry.accessControlList();
+      const acl = await antRegistry.accessControlList({
+        address: 'ccp3blG__gKUvG3hsGC2u06aDmqv4CuhuDJGOIg0jw4'
+      });
 
       console.log(acl);
     }
@@ -57,11 +83,14 @@ The `accessControlList` method does not accept any parameters.
 
 ```js
 {
-  "Ownership": "Single",
-  "Owner": "ccp3blG__gKUvG3hsGC2u06aDmqv4CuhuDJGOIg0jw4",
-  "Controllers": [
-    "ccp3blG__gKUvG3hsGC2u06aDmqv4CuhuDJGOIg0jw4",
-    "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ"
+  "Owned": [
+    "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM",
+    "xpKSNuZ_h6rOhvjm6Y8hqNy4WbG5xLFsXhM3QrK1bnA"
+  ],
+  "Controlled": [
+    "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM",
+    "xpKSNuZ_h6rOhvjm6Y8hqNy4WbG5xLFsXhM3QrK1bnA",
+    "Df2FDNmctRl-BSFgKy9Uo9l8C2mMNsQrR3kQOJWBQq8"
   ]
 }
 ```

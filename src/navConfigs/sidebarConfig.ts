@@ -425,8 +425,8 @@ export const secondaryNavigation: Array<NavGroup> = [
             href: '/build/ar-io-sdk/ants/set-keywords',
           },
           {
-            title: 'setController',
-            href: '/build/ar-io-sdk/ants/set-controller',
+            title: 'addController',
+            href: '/build/ar-io-sdk/ants/add-controller',
           },
           {
             title: 'removeController',
@@ -1026,8 +1026,8 @@ export const singleNavigation: Array<NavGroup> = [
             href: '/ar-io-sdk/ants/set-keywords',
           },
           {
-            title: 'setController',
-            href: '/ar-io-sdk/ants/set-controller',
+            title: 'addController',
+            href: '/ar-io-sdk/ants/add-controller',
           },
           {
             title: 'removeController',
