@@ -285,6 +285,10 @@ export const secondaryNavigation: Array<NavGroup> = [
                 href: '/build/ar-io-sdk/ario/arns/get-arns-reserved-names',
               },
               {
+                title: 'getCostDetails',
+                href: '/build/ar-io-sdk/ario/arns/get-cost-details',
+              },
+              {
                 title: 'getTokenCost',
                 href: '/build/ar-io-sdk/ario/arns/get-token-cost',
               },
@@ -880,6 +884,10 @@ export const singleNavigation: Array<NavGroup> = [
               {
                 title: 'getArNSReservedNames',
                 href: '/ar-io-sdk/ario/arns/get-arns-reserved-names',
+              },
+              {
+                title: 'getCostDetails',
+                href: '/ar-io-sdk/ario/arns/get-cost-details',
               },
               {
                 title: 'getTokenCost',

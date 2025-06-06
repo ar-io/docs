@@ -13,13 +13,13 @@ export const metadata = {
 
 # getTokenCost
 
-`getTokenCost` is a method on the `ARIO` class that calculates the cost in mARIO tokens for various ArNS operations such as buying records, extending leases, increasing undername limits, and more.
+`getTokenCost` is a method on the `ARIO` class that calculates the cost in mARIO tokens for various ArNS operations such as buying records, extending leases, increasing undername limits, upgrading to permabuy, and requesting primary names.
 
 `getTokenCost` does not require authentication.
 
 ## Parameters
 
-The method accepts different parameter sets depending on the operation:
+The `getTokenCost` method accepts different parameter sets depending on the `intent` (the specific action you want to check the cost for). Each intent requires a different combination of parameters as outlined below:
 
 ### Buy Record / Buy Name
 
@@ -141,6 +141,70 @@ The method accepts different parameter sets depending on the operation:
 </div>
 }
 
+### Upgrade to Permabuy
+
+{
+
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>intent</th>
+        <td>string</td>
+        <td>'Upgrade-Name'</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>name</th>
+        <td>string</td>
+        <td>The ArNS name to upgrade from lease to permabuy</td>
+        <td>false</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+}
+
+### Primary Name Request
+
+{
+
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>intent</th>
+        <td>string</td>
+        <td>'Primary-Name-Request'</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>name</th>
+        <td>string</td>
+        <td>The ArNS name to request as primary name</td>
+        <td>false</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+}
+
 ## Examples
 
 <CodeGroup title="getTokenCost">
@@ -173,10 +237,32 @@ The method accepts different parameter sets depending on the operation:
         years: 2
       });
 
+      // Increase undername limit by 10
+      const increasePrice = await ario.getTokenCost({
+        intent: 'Increase-Undername-Limit',
+        name: 'ar-io',
+        quantity: 10
+      });
+
+      // Upgrade lease to permabuy
+      const upgradePrice = await ario.getTokenCost({
+        intent: 'Upgrade-Name',
+        name: 'ar-io'
+      });
+
+      // Request primary name
+      const primaryNamePrice = await ario.getTokenCost({
+        intent: 'Primary-Name-Request',
+        name: 'ar-io'
+      });
+
       console.log({
-        permabuyPrice,    // in mARIO
-        leasePrice,       // in mARIO
-        extensionPrice    // in mARIO
+        permabuyPrice,      // in mARIO
+        leasePrice,         // in mARIO
+        extensionPrice,     // in mARIO
+        increasePrice,      // in mARIO
+        upgradePrice,       // in mARIO
+        primaryNamePrice    // in mARIO
       });
     }
 
@@ -204,9 +290,24 @@ The method accepts different parameter sets depending on the operation:
         years: 1
       });
 
+      // Extend lease for 2 years
+      const extensionPrice = await ario.getTokenCost({
+        intent: 'Extend-Lease',
+        name: 'ar-io',
+        years: 2
+      });
+
+      // Upgrade lease to permabuy
+      const upgradePrice = await ario.getTokenCost({
+        intent: 'Upgrade-Name',
+        name: 'ar-io'
+      });
+
       console.log({
         permabuyPrice,    // in mARIO
-        leasePrice        // in mARIO
+        leasePrice,       // in mARIO
+        extensionPrice,   // in mARIO
+        upgradePrice      // in mARIO
       });
     }
 
@@ -219,8 +320,11 @@ The method accepts different parameter sets depending on the operation:
 
 ```js
 {
-  "permabuyPrice": 164234000000,   // Cost in mARIO (6 decimal places)
-  "leasePrice": 82117000000,       // Cost in mARIO (6 decimal places)
-  "extensionPrice": 164234000000   // Cost in mARIO (6 decimal places)
+  "permabuyPrice": 164234000000,     // Cost in mARIO (6 decimal places)
+  "leasePrice": 82117000000,         // Cost in mARIO (6 decimal places)
+  "extensionPrice": 164234000000,    // Cost in mARIO (6 decimal places)
+  "increasePrice": 500000000,        // Cost in mARIO (6 decimal places)
+  "upgradePrice": 82117000000,       // Cost in mARIO (6 decimal places)
+  "primaryNamePrice": 2500000000000  // Cost in mARIO (6 decimal places)
 }
 ```
