@@ -1,12 +1,19 @@
 import { CodeGroup } from '@/components/Code'
-import {HeroPattern} from "@/components/HeroPattern"
-import { Table } from '@/components/Table'
+import { HeroPattern } from '@/components/HeroPattern'
+
+export const metadata = {
+  title: 'getEpoch',
+  description: 'Retrieve information about a specific epoch by index',
+  openGraph: {
+    title: 'getEpoch',
+  },
+}
 
 <HeroPattern />
 
 # getEpoch
 
-`getEpoch` is a method on the `ARIO` class that returns the epoch data for the specified epoch index. If no epoch index is provided, the current epoch is used.
+`getEpoch` is a method on the `ARIO` class that retrieves information about a specific epoch using its index.
 
 `getEpoch` does not require authentication.
 
@@ -18,29 +25,29 @@ import { Table } from '@/components/Table'
       <Table.Header>Parameter</Table.Header>
       <Table.Header>Type</Table.Header>
       <Table.Header>Description</Table.Header>
-      <Table.Header>Required</Table.Header>
+      <Table.Header>Optional</Table.Header>
     </Table.Row>
   </Table.Head>
   <Table.Body>
     <Table.Row>
       <Table.Cell className="font-semibold">epochIndex</Table.Cell>
       <Table.Cell>number</Table.Cell>
-      <Table.Cell>The epoch index for which to retrieve epoch data.</Table.Cell>
-      <Table.Cell>No</Table.Cell>
+      <Table.Cell>The index of the epoch to retrieve</Table.Cell>
+      <Table.Cell>false</Table.Cell>
     </Table.Row>
   </Table.Body>
 </Table>
 
 ## Examples
 
-<CodeGroup title="getGateway">
+<CodeGroup title="getEpoch">
 
     ```typescript {{ title: 'NodeJS' }}
     const { ARIO } = require('@ar.io/sdk');
 
     async function main() {
       const ario = ARIO.init();
-      const epoch = await ario.getEpoch({ epochIndex: 0 });
+      const epoch = await ario.getEpoch({ epochIndex: 150 });
 
       console.log(epoch);
     }
@@ -53,7 +60,7 @@ import { Table } from '@/components/Table'
 
     async function main() {
       const ario = ARIO.init();
-      const epoch = await ario.getEpoch({ epochIndex: 0 });
+      const epoch = await ario.getEpoch({ epochIndex: 150 });
 
       console.log(epoch);
     }
@@ -67,53 +74,31 @@ import { Table } from '@/components/Table'
 
 ```js
 {
-  "epochIndex": 0,
-  "startTimestamp": 1720720620813,
-  "endTimestamp": 1752256702026,
-  "startHeight": 1350700,
-  "distributionTimestamp": 1752256702026,
+  "epochIndex": 150,
+  "startTimestamp": 1726243200000,
+  "endTimestamp": 1726329600000,
+  "distributionTimestamp": 1726243200000,
   "observations": {
     "failureSummaries": {
-      "-Tk2DDk8k4zkwtppp_XFKKI5oUgh6IEHygAoN7mD-w8": [
-        "Ie2wEEUDKoU26c7IuckHNn3vMFdNQnMvfPBrFzAb3NA"
+      "t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3": [
+        "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ"
       ]
     },
     "reports": {
-      "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs": "B6UUjKWjjEWDBvDSMXWNmymfwvgR9EN27z5FTkEVlX4"
+      "ccp3blG__gKUvG3hsGC2u06aDmqv4CuhuDJGOIg0jw4": "B6UUjKWjjEWDBvDSMXWNmymfwvgR9EN27z5FTkEVlX4"
     }
   },
-  "prescribedNames": ["ardrive", "ar-io", "arweave", "fwd", "ao"],
   "prescribedObservers": [
-    {
-      "gatewayAddress": "2Fk8lCmDegPg6jjprl57-UCpKmNgYiKwyhkU4vMNDnE",
-      "observerAddress": "2Fk8lCmDegPg6jjprl57-UCpKmNgYiKwyhkU4vMNDnE",
-      "stake": 10000000000, // value in mARIO
-      "startTimestamp": 1720720620813,
-      "stakeWeight": 1,
-      "tenureWeight": 0.4494598765432099,
-      "gatewayRewardRatioWeight": 1,
-      "observerRewardRatioWeight": 1,
-      "compositeWeight": 0.4494598765432099,
-      "normalizedCompositeWeight": 0.002057032496835938
-    }
+    "ccp3blG__gKUvG3hsGC2u06aDmqv4CuhuDJGOIg0jw4",
+    "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ"
   ],
+  "prescribedNames": ["ardrive", "permaweb", "ar-io"],
   "distributions": {
-    "totalEligibleGateways": 1,
-    "totalEligibleRewards": 100000000,
-    "totalEligibleObserverReward": 100000000,
-    "totalEligibleGatewayReward": 100000000,
-    "totalDistributedRewards": 100000000,
-    "distributedTimestamp": 1720720621424,
+    "distributedTimestamp": 1726243200000,
+    "totalEligibleRewards": 250000000,
     "rewards": {
-      "eligible": {
-        "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs": {
-          "operatorReward": 100000000,
-          "delegateRewards": {}
-        }
-      },
-      "distributed": {
-        "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs": 100000000
-      }
+      "ccp3blG__gKUvG3hsGC2u06aDmqv4CuhuDJGOIg0jw4": 125000000,
+      "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ": 125000000
     }
   }
 }

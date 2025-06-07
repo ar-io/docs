@@ -1,4 +1,5 @@
 import { HeroPattern } from '@/components/HeroPattern'
+import { CodeGroup } from '@/components/Code'
 import { Table } from '@/components/Table'
 
 export const metadata = {
@@ -38,7 +39,9 @@ export const metadata = {
     <Table.Row>
       <Table.Cell className="font-semibold">tags</Table.Cell>
       <Table.Cell>array</Table.Cell>
-      <Table.Cell>An array of GQL tag objects to attach to the transfer AO message</Table.Cell>
+      <Table.Cell>
+        An array of GQL tag objects to attach to the transfer AO message
+      </Table.Cell>
       <Table.Cell>true</Table.Cell>
     </Table.Row>
   </Table.Body>
@@ -49,52 +52,52 @@ export const metadata = {
 <CodeGroup title="removeUndernameRecord">
 
 ```typescript {{title: "NodeJS"}}
-const fs = require("fs");
-const { ANT, ArweaveSigner } = require("@ar.io/sdk");
+const fs = require('fs')
+const { ANT, ArweaveSigner } = require('@ar.io/sdk')
 
 async function main() {
-    const jwk = JSON.parse(fs.readFileSync("KeyFile.json"));
-    
-    // get the ant for the base name
-    const arnsRecord = await ario.getArNSRecord({ name: 'ardrive' });
-    const ant = ANT.init({
-        signer: new ArweaveSigner(jwk),
-        processId: arnsRecord.processId
-    });
+  const jwk = JSON.parse(fs.readFileSync('KeyFile.json'))
 
-    const { id: txId } = await ant.removeUndernameRecord(
-        { undername: 'dapp' },
-        // optional additional tags
-        { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] }
-    );
+  // get the ant for the base name
+  const arnsRecord = await ario.getArNSRecord({ name: 'ardrive' })
+  const ant = ANT.init({
+    signer: new ArweaveSigner(jwk),
+    processId: arnsRecord.processId,
+  })
 
-    // dapp_ardrive.ar.io will no longer resolve
+  const { id: txId } = await ant.removeUndernameRecord(
+    { undername: 'dapp' },
+    // optional additional tags
+    { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+  )
+
+  // dapp_ardrive.ar.io will no longer resolve
 }
 
-main();
+main()
 ```
 
 ```typescript {{ title: 'Web' }}
-import { ANT, ArConnectSigner } from '@ar.io/sdk/web';
+import { ANT, ArConnectSigner } from '@ar.io/sdk/web'
 
 async function main() {
-    // get the ant for the base name
-    const arnsRecord = await ario.getArNSRecord({ name: 'ardrive' });
-    const ant = ANT.init({
-        signer: new ArConnectSigner(window.arweaveWallet),
-        processId: arnsRecord.processId
-    });
+  // get the ant for the base name
+  const arnsRecord = await ario.getArNSRecord({ name: 'ardrive' })
+  const ant = ANT.init({
+    signer: new ArConnectSigner(window.arweaveWallet),
+    processId: arnsRecord.processId,
+  })
 
-    const { id: txId } = await ant.removeUndernameRecord(
-        { undername: 'dapp' },
-        // optional additional tags
-        { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] }
-    );
+  const { id: txId } = await ant.removeUndernameRecord(
+    { undername: 'dapp' },
+    // optional additional tags
+    { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+  )
 
-    // dapp_ardrive.ar.io will no longer resolve
+  // dapp_ardrive.ar.io will no longer resolve
 }
 
-main();
+main()
 ```
 
-</CodeGroup> 
+</CodeGroup>

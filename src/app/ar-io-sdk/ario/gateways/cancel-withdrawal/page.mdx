@@ -1,12 +1,20 @@
 import { CodeGroup } from '@/components/Code'
-import {HeroPattern} from "@/components/HeroPattern"
-import { Table } from '@/components/Table'
+import { HeroPattern } from '@/components/HeroPattern'
+
+export const metadata = {
+  title: 'cancelWithdrawal',
+  description:
+    'Cancel a pending gateway withdrawal and return stake to delegation',
+  openGraph: {
+    title: 'cancelWithdrawal',
+  },
+}
 
 <HeroPattern />
 
 # cancelWithdrawal
 
-`cancelWithdrawal` is a method on the `ARIO` class that cancels an existing vault withdrawal on a gateway. If no `gatewayAddress` is provided, the signer's address will be used.
+`cancelWithdrawal` is a method on the `ARIO` class that cancels a pending withdrawal for a gateway, returning the stake back to the delegated amount.
 
 `cancelWithdrawal` requires authentication.
 
@@ -18,27 +26,31 @@ import { Table } from '@/components/Table'
       <Table.Header>Parameter</Table.Header>
       <Table.Header>Type</Table.Header>
       <Table.Header>Description</Table.Header>
-      <Table.Header>Required</Table.Header>
+      <Table.Header>Optional</Table.Header>
     </Table.Row>
   </Table.Head>
   <Table.Body>
     <Table.Row>
       <Table.Cell className="font-semibold">gatewayAddress</Table.Cell>
-      <Table.Cell>string</Table.Cell>
-      <Table.Cell>The gateway address where the vault exists</Table.Cell>
-      <Table.Cell>No</Table.Cell>
+      <Table.Cell>string - WalletAddress</Table.Cell>
+      <Table.Cell>The wallet address of the gateway</Table.Cell>
+      <Table.Cell>false</Table.Cell>
     </Table.Row>
     <Table.Row>
       <Table.Cell className="font-semibold">vaultId</Table.Cell>
       <Table.Cell>string</Table.Cell>
-      <Table.Cell>The ID of the vault withdrawal to cancel</Table.Cell>
-      <Table.Cell>Yes</Table.Cell>
+      <Table.Cell>
+        The ID of the vault containing the withdrawal to cancel
+      </Table.Cell>
+      <Table.Cell>false</Table.Cell>
     </Table.Row>
     <Table.Row>
       <Table.Cell className="font-semibold">tags</Table.Cell>
       <Table.Cell>array</Table.Cell>
-      <Table.Cell>An array of GQL tag objects to attach to the transfer AO message</Table.Cell>
-      <Table.Cell>No</Table.Cell>
+      <Table.Cell>
+        An array of GQL tag objects to attach to the transfer AO message
+      </Table.Cell>
+      <Table.Cell>true</Table.Cell>
     </Table.Row>
   </Table.Body>
 </Table>
@@ -47,66 +59,42 @@ import { Table } from '@/components/Table'
 
 <CodeGroup title="cancelWithdrawal">
 
-       ```typescript {{title: "NodeJS"}}
-        const fs = require("fs");
-        const { ARIO, ArweaveSigner } = require("@ar.io/sdk");
+    ```typescript {{ title: 'NodeJS' }}
+    const fs = require('fs');
+    const { ARIO, ArweaveSigner } = require('@ar.io/sdk');
 
-        async function main() {
-        const jwk = JSON.parse(fs.readFileSync("KeyFile.json"));
-        const ario = ARIO.init({
-            signer: new ArweaveSigner(jwk),
-        });
+    async function main() {
+      const jwk = JSON.parse(fs.readFileSync('KeyFile.json'));
+      const ario = ARIO.init({
+        signer: new ArweaveSigner(jwk),
+      });
 
-                // cancels a delegated vault from a gateway
-                const { id: txId } = await ario.cancelWithdrawal(
-                {
-                    // gateway address where vault exists
-                    gatewayAddress: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
-                    // vault id to cancel
-                    vaultId: 'fDrr0_J4Iurt7caNST02cMotaz2FIbWQ4Kcj616RHl3',
-                },
-                // optional additional tags
-                { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
-                );
-                // cancels an operator vault from a gateway
-                const { id: txId } = await ario.cancelWithdrawal(
-                {
-                    // operator vault id to cancel
-                    vaultId: 'fDrr0_J4Iurt7caNST02cMotaz2FIbWQ4Kcj616RHl3',
-                },
-            );
-        }
+      const { id: txId } = await ario.cancelWithdrawal({
+        gatewayAddress: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
+        vaultId: 'vault_123'
+      });
 
-        main();
+      console.log(txId);
+    }
 
+    main();
     ```
 
     ```typescript {{ title: 'Web' }}
     import { ARIO, ArConnectSigner } from '@ar.io/sdk/web';
 
     async function main() {
-        const ario = ARIO.init({
-            signer: new ArConnectSigner(window.arweaveWallet)
-        })
-                // cancels a delegated vault from a gateway
-                const { id: txId } = await ario.cancelWithdrawal(
-                {
-                    // gateway address where vault exists
-                    gatewayAddress: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
-                    // vault id to cancel
-                    vaultId: 'fDrr0_J4Iurt7caNST02cMotaz2FIbWQ4Kcj616RHl3',
-                },
-                // optional additional tags
-                { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
-                );
-                // cancels an operator vault from a gateway
-                const { id: txId } = await io.cancelWithdrawal(
-                {
-                    // operator vault id to cancel
-                    vaultId: 'fDrr0_J4Iurt7caNST02cMotaz2FIbWQ4Kcj616RHl3',
-                },
-            );
-        }
+      const ario = ARIO.init({
+        signer: new ArConnectSigner(window.arweaveWallet),
+      });
+
+      const { id: txId } = await ario.cancelWithdrawal({
+        gatewayAddress: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
+        vaultId: 'vault_123'
+      });
+
+      console.log(txId);
+    }
 
     main();
     ```

@@ -1,0 +1,133 @@
+import { CodeGroup } from '@/components/Code'
+import { HeroPattern } from '@/components/HeroPattern'
+
+export const metadata = {
+  title: 'getArNSReservedNames',
+  description: 'Retrieve all reserved ArNS names with pagination support',
+  openGraph: {
+    title: 'getArNSReservedNames',
+  },
+}
+
+<HeroPattern />
+
+# getArNSReservedNames
+
+`getArNSReservedNames` is a method on the `ARIO` class that retrieves all reserved ArNS names, with support for pagination and custom sorting. Reserved names are names that are protected and cannot be registered by users.
+
+`getArNSReservedNames` does not require authentication.
+
+## Parameters
+
+{
+
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+        <th>Default</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>cursor</th>
+        <td>string</td>
+        <td>
+          The name to use as the starting point for the next page of results
+        </td>
+        <td>true</td>
+        <td>None</td>
+      </tr>
+      <tr>
+        <th>limit</th>
+        <td>number</td>
+        <td>The maximum number of records to return (max: 1000)</td>
+        <td>true</td>
+        <td>100</td>
+      </tr>
+      <tr>
+        <th>sortBy</th>
+        <td>string</td>
+        <td>The property to sort results by</td>
+        <td>true</td>
+        <td>name</td>
+      </tr>
+      <tr>
+        <th>sortOrder</th>
+        <td>string</td>
+        <td>The sort direction ('desc' or 'asc')</td>
+        <td>true</td>
+        <td>asc</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+}
+
+## Examples
+
+<CodeGroup title="getArNSReservedNames">
+
+    ```typescript {{ title: 'NodeJS' }}
+    const { ARIO } = require('@ar.io/sdk');
+
+    async function main() {
+      const ario = ARIO.init();
+      const reservedNames = await ario.getArNSReservedNames({
+        limit: 50,
+        sortBy: 'name',
+        sortOrder: 'asc'
+      });
+
+      console.log(reservedNames);
+    }
+
+    main();
+    ```
+
+    ```typescript {{ title: 'Web' }}
+    import { ARIO } from '@ar.io/sdk/web';
+
+    async function main() {
+      const ario = ARIO.init();
+      const reservedNames = await ario.getArNSReservedNames({
+        limit: 50,
+        sortBy: 'name',
+        sortOrder: 'asc'
+      });
+
+      console.log(reservedNames);
+    }
+
+    main();
+    ```
+
+</CodeGroup>
+
+## Output
+
+```js
+{
+  "items": [
+    {
+      "name": "arweave",
+      "target": "some-protected-target",
+      "endTimestamp": null
+    },
+    {
+      "name": "ar-io",
+      "target": "another-protected-target",
+      "endTimestamp": null
+    }
+  ],
+  "hasMore": true,
+  "nextCursor": "ar-io",
+  "totalItems": 150,
+  "sortBy": "name",
+  "sortOrder": "asc"
+}
+```

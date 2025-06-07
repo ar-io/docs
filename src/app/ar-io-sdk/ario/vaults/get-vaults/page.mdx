@@ -1,12 +1,19 @@
 import { CodeGroup } from '@/components/Code'
 import { HeroPattern } from '@/components/HeroPattern'
-import { Table } from '@/components/Table'
+
+export const metadata = {
+  title: 'getVaults',
+  description: 'Retrieve all vaults with pagination and filtering support',
+  openGraph: {
+    title: 'getVaults',
+  },
+}
 
 <HeroPattern />
 
 # getVaults
 
-`getVaults` is a method on the `ARIO` class that retrieves all locked-balance user vaults of the ARIO process, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last wallet address from the previous request.
+`getVaults` is a method on the `ARIO` class that retrieves all vaults with optional pagination and filtering support.
 
 `getVaults` does not require authentication.
 
@@ -19,55 +26,58 @@ import { Table } from '@/components/Table'
       <Table.Header>Type</Table.Header>
       <Table.Header>Description</Table.Header>
       <Table.Header>Optional</Table.Header>
+      <Table.Header>Default</Table.Header>
     </Table.Row>
   </Table.Head>
   <Table.Body>
     <Table.Row>
       <Table.Cell className="font-semibold">cursor</Table.Cell>
       <Table.Cell>string</Table.Cell>
-      <Table.Cell>Cursor used for paginated results</Table.Cell>
+      <Table.Cell>
+        The vault ID to use as the starting point for pagination
+      </Table.Cell>
       <Table.Cell>true</Table.Cell>
+      <Table.Cell>None</Table.Cell>
     </Table.Row>
     <Table.Row>
       <Table.Cell className="font-semibold">limit</Table.Cell>
       <Table.Cell>number</Table.Cell>
       <Table.Cell>
-        Max number of results to return in a single search. Max is 1000.
+        The maximum number of vaults to return (max: 1000)
       </Table.Cell>
       <Table.Cell>true</Table.Cell>
+      <Table.Cell>100</Table.Cell>
     </Table.Row>
     <Table.Row>
       <Table.Cell className="font-semibold">sortBy</Table.Cell>
       <Table.Cell>string</Table.Cell>
-      <Table.Cell>Property used to sort returned results</Table.Cell>
+      <Table.Cell>The property to sort vaults by</Table.Cell>
       <Table.Cell>true</Table.Cell>
+      <Table.Cell>startTimestamp</Table.Cell>
     </Table.Row>
     <Table.Row>
       <Table.Cell className="font-semibold">sortOrder</Table.Cell>
       <Table.Cell>string</Table.Cell>
-      <Table.Cell>
-        Order in which sorted results are returned. valid values are `desc` or
-        `asc`
-      </Table.Cell>
+      <Table.Cell>The sort direction ('desc' or 'asc')</Table.Cell>
       <Table.Cell>true</Table.Cell>
+      <Table.Cell>desc</Table.Cell>
     </Table.Row>
   </Table.Body>
 </Table>
 
-## Example
+## Examples
 
 <CodeGroup title="getVaults">
 
-    ```javascript {{ title: 'NodeJS' }}
+    ```typescript {{ title: 'NodeJS' }}
     const { ARIO } = require('@ar.io/sdk');
 
     async function main() {
       const ario = ARIO.init();
       const vaults = await ario.getVaults({
-        cursor: '0',
-        limit: 100,
+        limit: 10,
         sortBy: 'balance',
-        sortOrder: 'desc',
+        sortOrder: 'desc'
       });
 
       console.log(vaults);
@@ -76,16 +86,15 @@ import { Table } from '@/components/Table'
     main();
     ```
 
-    ```javascript {{ title: 'Web' }}
+    ```typescript {{ title: 'Web' }}
     import { ARIO } from '@ar.io/sdk/web';
 
     async function main() {
       const ario = ARIO.init();
-      const vaults = await io.getVaults({
-        cursor: '0',
-        limit: 100,
+      const vaults = await ario.getVaults({
+        limit: 10,
         sortBy: 'balance',
-        sortOrder: 'desc',
+        sortOrder: 'desc'
       });
 
       console.log(vaults);
@@ -98,28 +107,25 @@ import { Table } from '@/components/Table'
 
 ## Output
 
-```typescript
+```js
 {
   "items": [
     {
-      "address": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
-      "vaultId": "vaultIdOne",
-      "balance": 1000000,
-      "startTimestamp": 123,
-      "endTimestamp": 4567
+      "vaultId": "vault_123",
+      "balance": 1000000000,
+      "startTimestamp": 1726243200000,
+      "endTimestamp": 1726329600000
     },
     {
-      "address": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
-      "vaultId": "vaultIdTwo",
-      "balance": 1000000,
-      "startTimestamp": 123,
-      "endTimestamp": 4567
+      "vaultId": "vault_456",
+      "balance": 500000000,
+      "startTimestamp": 1726243200000,
+      "endTimestamp": 1726329600000
     }
-    // ...98 other addresses with vaults
   ],
   "hasMore": true,
-  "nextCursor": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
-  "totalItems": 1789,
+  "nextCursor": "vault_456",
+  "totalItems": 789,
   "sortBy": "balance",
   "sortOrder": "desc"
 }

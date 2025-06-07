@@ -1,0 +1,117 @@
+import { CodeGroup } from '@/components/Code'
+import { HeroPattern } from '@/components/HeroPattern'
+
+export const metadata = {
+  title: 'createVault',
+  description:
+    'Create a new vault to lock ARIO tokens for a specified duration',
+  openGraph: {
+    title: 'createVault',
+  },
+}
+
+<HeroPattern />
+
+# createVault
+
+`createVault` is a method on the `ARIO` class that creates a new vault to lock ARIO tokens for a specified duration. Vaulted tokens earn rewards but cannot be transferred until the lock period expires.
+
+`createVault` requires authentication.
+
+## Parameters
+
+{
+
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>qty</th>
+        <td>number</td>
+        <td>The amount of ARIO tokens to lock in the vault (in mARIO)</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>lockLength</th>
+        <td>number</td>
+        <td>
+          The duration to lock tokens in blocks (minimum 14 days, maximum 4
+          years)
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>tags</th>
+        <td>array</td>
+        <td>
+          An array of GQL tag objects to attach to the vault creation AO message
+        </td>
+        <td>true</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+}
+
+## Examples
+
+<CodeGroup title="createVault">
+
+       ```typescript {{title: "NodeJS"}}
+        const fs = require("fs");
+        const { ARIO, ArweaveSigner } = require("@ar.io/sdk");
+
+        async function main() {
+        const jwk = JSON.parse(fs.readFileSync("KeyFile.json"));
+        const ario = ARIO.init({
+            signer: new ArweaveSigner(jwk),
+        });
+
+        const { id: txId } = await ario.createVault(
+            {
+              qty: 10000000000, // 10,000 ARIO (6 decimal places)
+              lockLength: 720 // 720 blocks (approximately 30 days)
+            },
+            // optional additional tags
+            { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+        );
+
+        console.log(txId);
+        }
+
+        main();
+
+    ```
+
+    ```typescript {{ title: 'Web' }}
+    import { ARIO, ArConnectSigner } from '@ar.io/sdk/web';
+
+    async function main() {
+        const ario = ARIO.init({
+            signer: new ArConnectSigner(window.arweaveWallet)
+        })
+
+        const { id: txId } = await ario.createVault(
+            {
+              qty: 10000000000, // 10,000 ARIO (6 decimal places)
+              lockLength: 720 // 720 blocks (approximately 30 days)
+            },
+            // optional additional tags
+            { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+        );
+
+        console.log(txId);
+        }
+
+    main();
+    ```
+
+</CodeGroup>

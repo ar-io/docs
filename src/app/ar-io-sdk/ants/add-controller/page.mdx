@@ -1,14 +1,22 @@
 import { CodeGroup } from '@/components/Code'
-import {HeroPattern} from "@/components/HeroPattern"
+import { HeroPattern } from '@/components/HeroPattern'
 import { Table } from '@/components/Table'
+
+export const metadata = {
+  title: 'addController',
+  description: "Add a new controller to the ANT's list of approved controllers",
+  openGraph: {
+    title: 'addController',
+  },
+}
 
 <HeroPattern />
 
-# setController
+# addController
 
-`setController` is a method on the `ANT` class that adds a new controller to the ANT's list of approved controllers. Controllers have permissions to set records and modify the ANT process's ticker and name.
+`addController` is a method on the `ANT` class that adds a new controller to the ANT's list of approved controllers. Controllers have permissions to set records and modify the ANT process's ticker and name.
 
-`setController` requires authentication.
+`addController` requires authentication.
 
 ## Parameters
 
@@ -25,13 +33,17 @@ import { Table } from '@/components/Table'
     <Table.Row>
       <Table.Cell className="font-semibold">controller</Table.Cell>
       <Table.Cell>string - WalletAddress</Table.Cell>
-      <Table.Cell>The public wallet address of the controller to be added</Table.Cell>
+      <Table.Cell>
+        The public wallet address of the controller to be added
+      </Table.Cell>
       <Table.Cell>false</Table.Cell>
     </Table.Row>
     <Table.Row>
       <Table.Cell className="font-semibold">tags</Table.Cell>
       <Table.Cell>array</Table.Cell>
-      <Table.Cell>An array of GQL tag objects to attach to the transfer AO message</Table.Cell>
+      <Table.Cell>
+        An array of GQL tag objects to attach to the transfer AO message
+      </Table.Cell>
       <Table.Cell>true</Table.Cell>
     </Table.Row>
   </Table.Body>
@@ -39,7 +51,7 @@ import { Table } from '@/components/Table'
 
 ## Examples
 
-<CodeGroup title="setController">
+<CodeGroup title="addController">
 
        ```typescript {{title: "NodeJS"}}
         const fs = require("fs");
@@ -52,7 +64,7 @@ import { Table } from '@/components/Table'
             processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM"
         });
 
-        const { id: txId } = await ant.setController(
+        const { id: txId } = await ant.addController(
                 { controller: 'aGzM_yjralacHIUo8_nQXMbh9l1cy0aksiL_x9M359f' },
                 // optional additional tags
                 { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
@@ -71,7 +83,7 @@ import { Table } from '@/components/Table'
             signer: new ArConnectSigner(window.arweaveWallet),
             processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM"
         })
-        const { id: txId } = await ant.setController(
+        const { id: txId } = await ant.addController(
                 { controller: 'aGzM_yjralacHIUo8_nQXMbh9l1cy0aksiL_x9M359f' },
                 // optional additional tags
                 { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },

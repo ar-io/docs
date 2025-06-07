@@ -1,12 +1,19 @@
-import {CodeGroup} from "@/components/Code"
-import {HeroPattern} from "@/components/HeroPattern"
-import { Table } from '@/components/Table'
+import { CodeGroup } from '@/components/Code'
+import { HeroPattern } from '@/components/HeroPattern'
+
+export const metadata = {
+  title: 'getGateway',
+  description: 'Retrieve details for a specific gateway by wallet address',
+  openGraph: {
+    title: 'getGateway',
+  },
+}
 
 <HeroPattern />
 
 # getGateway
 
-`getGateway` is a method on the `ARIO` class that retrieves a gateway's information using its staking wallet address.
+`getGateway` is a method on the `ARIO` class that retrieves detailed information about a specific gateway using its wallet address.
 
 `getGateway` does not require authentication.
 
@@ -18,15 +25,15 @@ import { Table } from '@/components/Table'
       <Table.Header>Parameter</Table.Header>
       <Table.Header>Type</Table.Header>
       <Table.Header>Description</Table.Header>
-      <Table.Header>Required</Table.Header>
+      <Table.Header>Optional</Table.Header>
     </Table.Row>
   </Table.Head>
   <Table.Body>
     <Table.Row>
-      <Table.Cell className="font-semibold">address</Table.Cell>
-      <Table.Cell>string</Table.Cell>
-      <Table.Cell>The gateway's staking wallet address</Table.Cell>
-      <Table.Cell>Yes</Table.Cell>
+      <Table.Cell className="font-semibold">gatewayAddress</Table.Cell>
+      <Table.Cell>string - WalletAddress</Table.Cell>
+      <Table.Cell>The wallet address of the gateway to retrieve</Table.Cell>
+      <Table.Cell>false</Table.Cell>
     </Table.Row>
   </Table.Body>
 </Table>
@@ -41,7 +48,7 @@ import { Table } from '@/components/Table'
     async function main() {
       const ario = ARIO.init();
       const gateway = await ario.getGateway({
-        address: 'f_EcJ8tYOFYjBMCIi-dlmzg8AiWZ2hELrXRFWPKCv9I',
+        gatewayAddress: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3'
       });
 
       console.log(gateway);
@@ -56,7 +63,7 @@ import { Table } from '@/components/Table'
     async function main() {
       const ario = ARIO.init();
       const gateway = await ario.getGateway({
-        address: 'f_EcJ8tYOFYjBMCIi-dlmzg8AiWZ2hELrXRFWPKCv9I',
+        gatewayAddress: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3'
       });
 
       console.log(gateway);
@@ -71,117 +78,47 @@ import { Table } from '@/components/Table'
 
 ```js
 {
-  "observerAddress": "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs",
-  "operatorStake": 250000000000,
+  "gatewayAddress": "t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3",
+  "observerWallet": "t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3",
+  "operatorStake": 500000000000,
+  "totalDelegatedStake": 250000000000,
   "settings": {
-    "fqdn": "ar-io.dev",
-    "label": "AR.IO Test",
-    "note": "Test Gateway operated by PDS for the AR.IO ecosystem.",
+    "label": "AR.IO Test Gateway",
+    "fqdn": "testgateway.ar.io",
     "port": 443,
-    "properties": "raJgvbFU-YAnku-WsupIdbTsqqGLQiYpGzoqk9SCVgY",
-    "protocol": "https"
+    "protocol": "https",
+    "allowDelegatedStaking": true,
+    "minDelegatedStake": 100000000,
+    "delegateRewardShareRatio": 10,
+    "properties": {
+      "description": "A test gateway for the AR.IO network"
+    }
   },
-  "startTimestamp": 1720720620813,
   "stats": {
-    "failedConsecutiveEpochs": 0,
-    "passedEpochCount": 30,
-    "submittedEpochCount": 30,
-    "totalEpochCount": 31,
-    "totalEpochsPrescribedCount": 31
+    "prescribedEpochCount": 150,
+    "observedEpochCount": 148,
+    "totalEpochCount": 150,
+    "passedEpochCount": 148,
+    "failedEpochCount": 2,
+    "totalEpochParticipationCount": 148,
+    "totalEpochsPrescribedCount": 150
   },
   "status": "joined",
-  "vaults": {},
-  "weights": {
-    "compositeWeight": 0.97688888893556,
-    "gatewayRewardRatioWeight": 1,
-    "tenureWeight": 0.19444444444444,
-    "observerRewardRatioWeight": 1,
-    "normalizedCompositeWeight": 0.19247316211083,
-    "stakeWeight": 5.02400000024
+  "startTimestamp": 1706227200000,
+  "endTimestamp": 0,
+  "vaults": {
+    "vault_1": {
+      "balance": 100000000,
+      "start": 1726243200000,
+      "end": 1726329600000
+    }
+  },
+  "delegates": {
+    "delegate_address": {
+      "delegatedStake": 50000000,
+      "start": 1726243200000,
+      "vaults": {}
+    }
   }
 }
 ```
-
-{/* ## Types
-
-### AoGateway
-
-```typescript
-{
-  settings: AoGatewaySettings;
-  stats: AoGatewayStats;
-  delegates: Record<WalletAddress, AoGatewayDelegate>;
-  totalDelegatedStake: number;
-  vaults: Record<WalletAddress, AoVaultData>;
-  startTimestamp: Timestamp;
-  endTimestamp: Timestamp;
-  observerAddress: WalletAddress;
-  operatorStake: number;
-  status: 'joined' | 'leaving';
-  weights: AoGatewayWeights;
-};
-```
-
-### AoGatewaySettings
-
-```typescript
-{
-  allowDelegatedStaking: boolean;
-  delegateRewardShareRatio: number;
-  minDelegatedStake: number;
-  autoStake: boolean;
-  label: string;
-  note: string;
-  properties: string;
-  fqdn: string;
-  port: number;
-  protocol: 'https';
-};
-```
-
-### AoGatewayStats
-
-```typescript
-{
-  passedConsecutiveEpochs: number;
-  failedConsecutiveEpochs: number;
-  totalEpochCount: number;
-  passedEpochCount: number;
-  failedEpochCount: number;
-  observedEpochCount: number;
-  prescribedEpochCount: number;
-};
-```
-
-### AoGatewayDelegate
-
-```typescript
-{
-  delegatedStake: number;
-  startTimestamp: Timestamp;
-  vaults: Record<WalletAddress, AoVaultData>;
-};
-```
-
-### AoVaultData
-
-```typescript
-{
-  balance: number;
-  locked: number;
-  endTimestamp: Timestamp;
-};
-```
-
-### AoGatewayWeights
-
-```typescript
-{
-  stakeWeight: number;
-  tenureWeight: number;
-  gatewayRewardRatioWeight: number;
-  observerRewardRatioWeight: number;
-  compositeWeight: number;
-  normalizedCompositeWeight: number;
-};
-``` */}

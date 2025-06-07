@@ -1,12 +1,19 @@
-import {CodeGroup} from "@/components/Code"
-import {HeroPattern} from "@/components/HeroPattern"
-import { Table } from '@/components/Table'
+import { CodeGroup } from '@/components/Code'
+import { HeroPattern } from '@/components/HeroPattern'
+
+export const metadata = {
+  title: 'getGatewayVaults',
+  description: 'Retrieve all vault information for a specific gateway',
+  openGraph: {
+    title: 'getGatewayVaults',
+  },
+}
 
 <HeroPattern />
 
 # getGatewayVaults
 
-`getGatewayVaults` is a method on the `ARIO` class that retrieves all vaults across all gateways for a specific address. Results are paginated and sorted by the specified criteria. The cursor parameter represents the last vaultId from the previous request.
+`getGatewayVaults` is a method on the `ARIO` class that retrieves all vault information for a specific gateway, including delegated stakes and pending withdrawals.
 
 `getGatewayVaults` does not require authentication.
 
@@ -18,55 +25,31 @@ import { Table } from '@/components/Table'
       <Table.Header>Parameter</Table.Header>
       <Table.Header>Type</Table.Header>
       <Table.Header>Description</Table.Header>
-      <Table.Header>Required</Table.Header>
+      <Table.Header>Optional</Table.Header>
     </Table.Row>
   </Table.Head>
   <Table.Body>
     <Table.Row>
-      <Table.Cell className="font-semibold">address</Table.Cell>
-      <Table.Cell>string</Table.Cell>
-      <Table.Cell>The wallet address to query for vaults</Table.Cell>
-      <Table.Cell>Yes</Table.Cell>
-    </Table.Row>
-    <Table.Row>
-      <Table.Cell className="font-semibold">cursor</Table.Cell>
-      <Table.Cell>string</Table.Cell>
-      <Table.Cell>Cursor for paginated results</Table.Cell>
-      <Table.Cell>No</Table.Cell>
-    </Table.Row>
-    <Table.Row>
-      <Table.Cell className="font-semibold">limit</Table.Cell>
-      <Table.Cell>number</Table.Cell>
-      <Table.Cell>Maximum number of results to return (max: 1000)</Table.Cell>
-      <Table.Cell>No</Table.Cell>
-    </Table.Row>
-    <Table.Row>
-      <Table.Cell className="font-semibold">sortBy</Table.Cell>
-      <Table.Cell>string</Table.Cell>
-      <Table.Cell>Property to sort results by</Table.Cell>
-      <Table.Cell>No</Table.Cell>
-    </Table.Row>
-    <Table.Row>
-      <Table.Cell className="font-semibold">sortOrder</Table.Cell>
-      <Table.Cell>string</Table.Cell>
-      <Table.Cell>Sort direction (valid values: 'desc' or 'asc')</Table.Cell>
-      <Table.Cell>No</Table.Cell>
+      <Table.Cell className="font-semibold">gatewayAddress</Table.Cell>
+      <Table.Cell>string - WalletAddress</Table.Cell>
+      <Table.Cell>The wallet address of the gateway</Table.Cell>
+      <Table.Cell>false</Table.Cell>
     </Table.Row>
   </Table.Body>
 </Table>
 
-## Example
+## Examples
 
 <CodeGroup title="getGatewayVaults">
 
-    ```javascript {{ title: 'NodeJS' }}
+    ```typescript {{ title: 'NodeJS' }}
     const { ARIO } = require('@ar.io/sdk');
 
     async function main() {
       const ario = ARIO.init();
       const vaults = await ario.getGatewayVaults({
-            address: '"PZ5vIhHf8VY969TxBPQN-rYY9CNFP9ggNsMBqlWUzWM',
-        });
+        gatewayAddress: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3'
+      });
 
       console.log(vaults);
     }
@@ -74,14 +57,14 @@ import { Table } from '@/components/Table'
     main();
     ```
 
-    ```javascript {{ title: 'Web' }}
+    ```typescript {{ title: 'Web' }}
     import { ARIO } from '@ar.io/sdk/web';
 
     async function main() {
       const ario = ARIO.init();
       const vaults = await ario.getGatewayVaults({
-            address: '"PZ5vIhHf8VY969TxBPQN-rYY9CNFP9ggNsMBqlWUzWM',
-        });
+        gatewayAddress: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3'
+      });
 
       console.log(vaults);
     }
@@ -91,24 +74,19 @@ import { Table } from '@/components/Table'
 
 </CodeGroup>
 
-
 ## Output
 
-```typescript
+```js
 {
-  "sortOrder": "desc",
-  "hasMore": false,
-  "totalItems": 1,
-  "limit": 100,
-  "sortBy": "endTimestamp",
-  "items": [
-    {
-      "cursorId": "PZ5vIhHf8VY969TxBPQN-rYY9CNFP9ggNsMBqlWUzWM_1728067635857",
-      "startTimestamp": 1728067635857,
-      "balance": 50000000000,
-      "vaultId": "PZ5vIhHf8VY969TxBPQN-rYY9CNFP9ggNsMBqlWUzWM",
-      "endTimestamp": 1735843635857
-    }
-  ]
+  "t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3": {
+    "balance": 1000000000,
+    "start": 1726243200000,
+    "end": 1726329600000
+  },
+  "anotherAddress": {
+    "balance": 500000000,
+    "start": 1726243200000,
+    "end": 1726329600000
+  }
 }
 ```

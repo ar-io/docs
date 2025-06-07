@@ -1,16 +1,28 @@
-import {CodeGroup} from "@/components/Code"
-import {HeroPattern} from "@/components/HeroPattern"
+import { CodeGroup } from '@/components/Code'
+import { HeroPattern } from '@/components/HeroPattern'
 import { Table } from '@/components/Table'
+
+export const metadata = {
+  title: 'getTokenCost',
+  description: 'Calculate the cost in ARIO tokens for various ArNS operations',
+  openGraph: {
+    title: 'getTokenCost',
+  },
+}
 
 <HeroPattern />
 
 # getTokenCost
 
-`getTokenCost` is a method on the `ARIO` class that calculates the cost in mARIO tokens for a specific interaction (such as buying an ArNS record). The cost is calculated based on the interaction type and its parameters.
+`getTokenCost` is a method on the `ARIO` class that calculates the cost in mARIO tokens for various ArNS operations such as buying records, extending leases, increasing undername limits, upgrading to permabuy, and requesting primary names.
 
 `getTokenCost` does not require authentication.
 
 ## Parameters
+
+The `getTokenCost` method accepts different parameter sets depending on the `intent` (the specific action you want to check the cost for). Each intent requires a different combination of parameters as outlined below:
+
+### Buy Record / Buy Name
 
 <Table>
   <Table.Head>
@@ -25,13 +37,147 @@ import { Table } from '@/components/Table'
     <Table.Row>
       <Table.Cell className="font-semibold">intent</Table.Cell>
       <Table.Cell>string</Table.Cell>
-      <Table.Cell>The type of interaction to calculate the cost for (e.g., 'Buy-Record')</Table.Cell>
+      <Table.Cell>'Buy-Record' or 'Buy-Name'</Table.Cell>
       <Table.Cell>false</Table.Cell>
     </Table.Row>
     <Table.Row>
-      <Table.Cell className="font-semibold">args</Table.Cell>
-      <Table.Cell>object</Table.Cell>
-      <Table.Cell>The specific parameters required for the interaction type</Table.Cell>
+      <Table.Cell className="font-semibold">name</Table.Cell>
+      <Table.Cell>string</Table.Cell>
+      <Table.Cell>The ArNS name to calculate cost for</Table.Cell>
+      <Table.Cell>false</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">type</Table.Cell>
+      <Table.Cell>string</Table.Cell>
+      <Table.Cell>'lease' or 'permabuy'</Table.Cell>
+      <Table.Cell>false</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">years</Table.Cell>
+      <Table.Cell>number</Table.Cell>
+      <Table.Cell>
+        Number of years for lease (required for all lease operations)
+      </Table.Cell>
+      <Table.Cell>false</Table.Cell>
+    </Table.Row>
+  </Table.Body>
+</Table>
+
+### Extend Lease
+
+<Table>
+  <Table.Head>
+    <Table.Row>
+      <Table.Header>Parameter</Table.Header>
+      <Table.Header>Type</Table.Header>
+      <Table.Header>Description</Table.Header>
+      <Table.Header>Optional</Table.Header>
+    </Table.Row>
+  </Table.Head>
+  <Table.Body>
+    <Table.Row>
+      <Table.Cell className="font-semibold">intent</Table.Cell>
+      <Table.Cell>string</Table.Cell>
+      <Table.Cell>'Extend-Lease'</Table.Cell>
+      <Table.Cell>false</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">name</Table.Cell>
+      <Table.Cell>string</Table.Cell>
+      <Table.Cell>The ArNS name to extend</Table.Cell>
+      <Table.Cell>false</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">years</Table.Cell>
+      <Table.Cell>number</Table.Cell>
+      <Table.Cell>Number of years to extend the lease</Table.Cell>
+      <Table.Cell>false</Table.Cell>
+    </Table.Row>
+  </Table.Body>
+</Table>
+
+### Increase Undername Limit
+
+<Table>
+  <Table.Head>
+    <Table.Row>
+      <Table.Header>Parameter</Table.Header>
+      <Table.Header>Type</Table.Header>
+      <Table.Header>Description</Table.Header>
+      <Table.Header>Optional</Table.Header>
+    </Table.Row>
+  </Table.Head>
+  <Table.Body>
+    <Table.Row>
+      <Table.Cell className="font-semibold">intent</Table.Cell>
+      <Table.Cell>string</Table.Cell>
+      <Table.Cell>'Increase-Undername-Limit'</Table.Cell>
+      <Table.Cell>false</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">name</Table.Cell>
+      <Table.Cell>string</Table.Cell>
+      <Table.Cell>The ArNS name to increase limit for</Table.Cell>
+      <Table.Cell>false</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">quantity</Table.Cell>
+      <Table.Cell>number</Table.Cell>
+      <Table.Cell>Number of additional undernames to allow</Table.Cell>
+      <Table.Cell>false</Table.Cell>
+    </Table.Row>
+  </Table.Body>
+</Table>
+
+### Upgrade to Permabuy
+
+<Table>
+  <Table.Head>
+    <Table.Row>
+      <Table.Header>Parameter</Table.Header>
+      <Table.Header>Type</Table.Header>
+      <Table.Header>Description</Table.Header>
+      <Table.Header>Optional</Table.Header>
+    </Table.Row>
+  </Table.Head>
+  <Table.Body>
+    <Table.Row>
+      <Table.Cell className="font-semibold">intent</Table.Cell>
+      <Table.Cell>string</Table.Cell>
+      <Table.Cell>'Upgrade-Name'</Table.Cell>
+      <Table.Cell>false</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">name</Table.Cell>
+      <Table.Cell>string</Table.Cell>
+      <Table.Cell>The ArNS name to upgrade from lease to permabuy</Table.Cell>
+      <Table.Cell>false</Table.Cell>
+    </Table.Row>
+  </Table.Body>
+</Table>
+
+### Primary Name Request
+
+<Table>
+  <Table.Head>
+    <Table.Row>
+      <Table.Header>Parameter</Table.Header>
+      <Table.Header>Type</Table.Header>
+      <Table.Header>Description</Table.Header>
+      <Table.Header>Optional</Table.Header>
+    </Table.Row>
+  </Table.Head>
+  <Table.Body>
+    <Table.Row>
+      <Table.Cell className="font-semibold">intent</Table.Cell>
+      <Table.Cell>string</Table.Cell>
+      <Table.Cell>'Primary-Name-Request'</Table.Cell>
+      <Table.Cell>false</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">name</Table.Cell>
+      <Table.Cell>string</Table.Cell>
+      <Table.Cell>The ArNS name to request as primary name</Table.Cell>
       <Table.Cell>false</Table.Cell>
     </Table.Row>
   </Table.Body>
@@ -41,48 +187,124 @@ import { Table } from '@/components/Table'
 
 <CodeGroup title="getTokenCost">
 
-    ```typescript {{ title: 'NodeJS' }}
-    const { ARIO } = require('@ar.io/sdk');
+```typescript {{title: "Buy Record - Lease"}}
+import { ARIO } from '@ar.io/sdk'
 
-    async function main() {
-      const ario = ARIO.init();
-      const price = await ario
-        .getTokenCost({
-            intent: 'Buy-Record',
-            name: 'ar-io',
-            type: 'permabuy',
-        })
-        .then((p) => new mIOToken(p).toIO()); // convert to IO tokens for readability
-      
-      console.log('Cost in IO tokens:', price);
-    }
+async function main() {
+  const ario = ARIO.init()
 
-    main();
-    ```
+  const cost = await ario.getTokenCost({
+    intent: 'Buy-Record',
+    name: 'example-name',
+    type: 'lease',
+    years: 1,
+  })
 
-    ```typescript {{ title: 'Web' }}
-    import { ARIO } from '@ar.io/sdk/web';
+  console.log(`Cost for 1-year lease: ${cost.tokenCost} mARIO`)
+}
 
-    async function main() {
-      const ario = ARIO.init();
-      const price = await ario
-        .getTokenCost({
-            intent: 'Buy-Record',
-            name: 'ar-io',
-            type: 'permabuy',
-        })
-        .then((p) => new mIOToken(p).toIO()); // convert to IO tokens for readability
-      
-      console.log('Cost in IO tokens:', price);
-    }
+main()
+```
 
-    main();
-    ```
+```typescript {{title: "Buy Record - Permabuy"}}
+import { ARIO } from '@ar.io/sdk'
+
+async function main() {
+  const ario = ARIO.init()
+
+  const cost = await ario.getTokenCost({
+    intent: 'Buy-Record',
+    name: 'example-name',
+    type: 'permabuy',
+  })
+
+  console.log(`Cost for permabuy: ${cost.tokenCost} mARIO`)
+}
+
+main()
+```
+
+```typescript {{title: "Extend Lease"}}
+import { ARIO } from '@ar.io/sdk'
+
+async function main() {
+  const ario = ARIO.init()
+
+  const cost = await ario.getTokenCost({
+    intent: 'Extend-Lease',
+    name: 'existing-name',
+    years: 2,
+  })
+
+  console.log(`Cost to extend by 2 years: ${cost.tokenCost} mARIO`)
+}
+
+main()
+```
+
+```typescript {{title: "Increase Undername Limit"}}
+import { ARIO } from '@ar.io/sdk'
+
+async function main() {
+  const ario = ARIO.init()
+
+  const cost = await ario.getTokenCost({
+    intent: 'Increase-Undername-Limit',
+    name: 'my-name',
+    quantity: 5,
+  })
+
+  console.log(`Cost for 5 additional undernames: ${cost.tokenCost} mARIO`)
+}
+
+main()
+```
+
+```typescript {{title: "Upgrade to Permabuy"}}
+import { ARIO } from '@ar.io/sdk'
+
+async function main() {
+  const ario = ARIO.init()
+
+  const cost = await ario.getTokenCost({
+    intent: 'Upgrade-Name',
+    name: 'leased-name',
+  })
+
+  console.log(`Cost to upgrade to permabuy: ${cost.tokenCost} mARIO`)
+}
+
+main()
+```
+
+```typescript {{title: "Primary Name Request"}}
+import { ARIO } from '@ar.io/sdk'
+
+async function main() {
+  const ario = ARIO.init()
+
+  const cost = await ario.getTokenCost({
+    intent: 'Primary-Name-Request',
+    name: 'my-primary-name',
+  })
+
+  console.log(`Cost for primary name request: ${cost.tokenCost} mARIO`)
+}
+
+main()
+```
 
 </CodeGroup>
 
 ## Output
 
 ```js
-1642.34  // Cost in IO tokens (converted from mARIO for readability)
+{
+  "permabuyPrice": 164234000000,     // Cost in mARIO (6 decimal places)
+  "leasePrice": 82117000000,         // Cost in mARIO (6 decimal places)
+  "extensionPrice": 164234000000,    // Cost in mARIO (6 decimal places)
+  "increasePrice": 500000000,        // Cost in mARIO (6 decimal places)
+  "upgradePrice": 82117000000,       // Cost in mARIO (6 decimal places)
+  "primaryNamePrice": 2500000000000  // Cost in mARIO (6 decimal places)
+}
 ```

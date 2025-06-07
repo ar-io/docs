@@ -1,12 +1,20 @@
 import { CodeGroup } from '@/components/Code'
 import { HeroPattern } from '@/components/HeroPattern'
 
+export const metadata = {
+  title: 'getBalances',
+  description:
+    'Retrieve token balances for multiple wallet addresses with pagination',
+  openGraph: {
+    title: 'getBalances',
+  },
+}
 
 <HeroPattern />
 
 # getBalances
 
-`getBalances` is a method on the `ARIO` class that retrieves the balances of the ARIO process in `mARIO`, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last wallet address from the previous request.
+`getBalances` is a method on the `ARIO` class that retrieves token balances for multiple wallet addresses with pagination support.
 
 `getBalances` does not require authentication.
 
@@ -19,75 +27,78 @@ import { HeroPattern } from '@/components/HeroPattern'
       <Table.Header>Type</Table.Header>
       <Table.Header>Description</Table.Header>
       <Table.Header>Optional</Table.Header>
+      <Table.Header>Default</Table.Header>
     </Table.Row>
   </Table.Head>
   <Table.Body>
     <Table.Row>
       <Table.Cell className="font-semibold">cursor</Table.Cell>
-      <Table.Cell>string - WalletAddress</Table.Cell>
+      <Table.Cell>string</Table.Cell>
       <Table.Cell>
-        The last wallet address from previous page of results.
+        The wallet address to use as the starting point for pagination
       </Table.Cell>
       <Table.Cell>true</Table.Cell>
+      <Table.Cell>None</Table.Cell>
     </Table.Row>
     <Table.Row>
       <Table.Cell className="font-semibold">limit</Table.Cell>
       <Table.Cell>number</Table.Cell>
       <Table.Cell>
-        The number of results to return per page. Max is 1000.
+        The maximum number of balances to return (max: 1000)
       </Table.Cell>
       <Table.Cell>true</Table.Cell>
+      <Table.Cell>100</Table.Cell>
     </Table.Row>
     <Table.Row>
       <Table.Cell className="font-semibold">sortBy</Table.Cell>
       <Table.Cell>string</Table.Cell>
-      <Table.Cell>Attribute to sort results by, i.e. 'balance'</Table.Cell>
+      <Table.Cell>The property to sort balances by</Table.Cell>
       <Table.Cell>true</Table.Cell>
+      <Table.Cell>balance</Table.Cell>
     </Table.Row>
     <Table.Row>
       <Table.Cell className="font-semibold">sortOrder</Table.Cell>
       <Table.Cell>string</Table.Cell>
-      <Table.Cell>Order to return sorted results, 'asc' or 'desc'</Table.Cell>
+      <Table.Cell>The sort direction ('desc' or 'asc')</Table.Cell>
       <Table.Cell>true</Table.Cell>
+      <Table.Cell>desc</Table.Cell>
     </Table.Row>
   </Table.Body>
 </Table>
 
 ## Examples
 
-<CodeGroup title="getBalance">
+<CodeGroup title="getBalances">
 
-    ```typescript {{title: 'NodeJS'}}
-    const { ARIO, mARIOToken } = require('@ar.io/sdk');
+    ```typescript {{ title: 'NodeJS' }}
+    const { ARIO } = require('@ar.io/sdk');
 
-    async function main(){
-        const ario = ARIO.init();
-        const balances = await ario.getBalances({
-        cursor: '-4xgjroXENKYhTWqrBo57HQwvDL51mMdfsdsxJy6Y2Z_sA',
-        limit: 100,
+    async function main() {
+      const ario = ARIO.init();
+      const balances = await ario.getBalances({
+        limit: 10,
         sortBy: 'balance',
-        sortOrder: 'desc',
-        });
+        sortOrder: 'desc'
+      });
 
-        console.log(balances)
+      console.log(balances);
     }
 
-    main()
+    main();
     ```
 
     ```typescript {{ title: 'Web' }}
     import { ARIO } from '@ar.io/sdk/web';
 
     async function main() {
-        const ario = ARIO.init();
-        const balances = await ario.getBalances({
-        cursor: '-4xgjroXENKYhTWqrBo57HQwvDL51mMdfsdsxJy6Y2Z_sA',
-        limit: 100,
+      const ario = ARIO.init();
+      const balances = await ario.getBalances({
+        limit: 10,
         sortBy: 'balance',
-        sortOrder: 'desc',
-        });
+        sortOrder: 'desc'
+      });
 
-        console.log(balances)
+      console.log(balances);
     }
 
     main();
@@ -97,22 +108,21 @@ import { HeroPattern } from '@/components/HeroPattern'
 
 ## Output
 
-```typescript
+```js
 {
   "items": [
     {
-      "address": "-4xgjroXENKYhTWqrBo57HQwvDL51mMvSxJy6Y2Z_sA",
-      "balance": 1000000
+      "address": "t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3",
+      "balance": 1000000000000
     },
     {
-      "address": "-7vXsQZQDk8TMDlpiSLy3CnLi5PDPlAaN2DaynORpck",
-      "balance": 1000000
+      "address": "anotherWalletAddress",
+      "balance": 500000000000
     }
-    // ...98 other balances
   ],
   "hasMore": true,
-  "nextCursor": "-7vXsQZQDk8TMDlpiSLy3CnLi5PDPlAaN2DaynORpck",
-  "totalItems": 1789,
+  "nextCursor": "anotherWalletAddress",
+  "totalItems": 12567,
   "sortBy": "balance",
   "sortOrder": "desc"
 }

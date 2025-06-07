@@ -1,12 +1,20 @@
-import {CodeGroup} from "@/components/Code"
-import {HeroPattern} from "@/components/HeroPattern"
+import { CodeGroup } from '@/components/Code'
+import { HeroPattern } from '@/components/HeroPattern'
 import { Table } from '@/components/Table'
+
+export const metadata = {
+  title: 'getArNSRecord',
+  description: 'Retrieve details for a specific ArNS record by name',
+  openGraph: {
+    title: 'getArNSRecord',
+  },
+}
 
 <HeroPattern />
 
 # getArNSRecord
 
-`getArNSRecord` is a method on the `ARIO` class that retrieves the record information for a specified ArNS name, including its process ID, lease duration, type, and undername limit.
+`getArNSRecord` is a method on the `ARIO` class that retrieves the details of a specific ArNS record by its name. This includes lease information, type, process ID, and other metadata.
 
 `getArNSRecord` does not require authentication.
 
@@ -25,7 +33,7 @@ import { Table } from '@/components/Table'
     <Table.Row>
       <Table.Cell className="font-semibold">name</Table.Cell>
       <Table.Cell>string</Table.Cell>
-      <Table.Cell>The ArNS name to retrieve record information for</Table.Cell>
+      <Table.Cell>The ArNS name to retrieve details for</Table.Cell>
       <Table.Cell>false</Table.Cell>
     </Table.Row>
   </Table.Body>
@@ -40,9 +48,9 @@ import { Table } from '@/components/Table'
 
     async function main() {
       const ario = ARIO.init();
-      const record = await ario.getArNSRecord({ name: 'ardrive' });
+      const arnsRecord = await ario.getArNSRecord({ name: 'ardrive' });
 
-      console.log(record);
+      console.log(arnsRecord);
     }
 
     main();
@@ -53,9 +61,9 @@ import { Table } from '@/components/Table'
 
     async function main() {
       const ario = ARIO.init();
-      const record = await ario.getArNSRecord({ name: 'ardrive' });
+      const arnsRecord = await ario.getArNSRecord({ name: 'ardrive' });
 
-      console.log(record);
+      console.log(arnsRecord);
     }
 
     main();
@@ -68,9 +76,11 @@ import { Table } from '@/components/Table'
 ```js
 {
   "processId": "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM",
-  "endTimestamp": 1752256702026,
-  "startTimestamp": 1720720819969,
+  "startTimestamp": 1707307200000,
+  "endTimestamp": 1739307200000,
   "type": "lease",
-  "undernames": 100
+  "undernameLimit": 10,
+  "purchasePrice": 75541282,
+  "renewalPrice": 75541282
 }
 ```

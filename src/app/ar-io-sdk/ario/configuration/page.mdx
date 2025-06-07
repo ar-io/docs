@@ -1,113 +1,112 @@
 import { CodeGroup } from '@/components/Code'
 import { HeroPattern } from '@/components/HeroPattern'
 
+export const metadata = {
+  title: 'ARIO Configuration',
+  description:
+    'Initialize and configure ARIO class instances for reading and writing',
+  openGraph: {
+    title: 'ARIO Configuration',
+  },
+}
+
 <HeroPattern />
 
 # init
 
-`init` is a factory function that creates an ARIO client instance. By default, it creates a read-only client. When a `signer` is provided, the client gains access to write operations such as `joinNetwork` and `delegateStake`.
+`init` is a factory function that creates a read-only or writable client. By providing a `signer`, additional write APIs that require signing (like `buyRecord` and `transfer`) become available. By default, a read-only client is returned and no write APIs are available.
 
 ## Parameters
 
-<Table>
-  <Table.Head>
-    <Table.Row>
-      <Table.Header>Parameter</Table.Header>
-      <Table.Header>Type</Table.Header>
-      <Table.Header>Description</Table.Header>
-      <Table.Header>Optional</Table.Header>
-    </Table.Row>
-  </Table.Head>
-  <Table.Body>
-    <Table.Row>
-      <Table.Cell className="font-semibold">process</Table.Cell>
-      <Table.Cell>AOProcess</Table.Cell>
-      <Table.Cell>
-        A custom AOProcess instance to use for initialization
-      </Table.Cell>
-      <Table.Cell>true</Table.Cell>
-    </Table.Row>
-    <Table.Row>
-      <Table.Cell className="font-semibold">processId</Table.Cell>
-      <Table.Cell>string</Table.Cell>
-      <Table.Cell>
-        The AO process ID to connect to (defaults to ar.io network process)
-      </Table.Cell>
-      <Table.Cell>true</Table.Cell>
-    </Table.Row>
-    <Table.Row>
-      <Table.Cell className="font-semibold">signer</Table.Cell>
-      <Table.Cell>ContractSigner</Table.Cell>
-      <Table.Cell>
-        A signer instance that enables write operations (ArweaveSigner or
-        ArConnectSigner)
-      </Table.Cell>
-      <Table.Cell>true</Table.Cell>
-    </Table.Row>
-  </Table.Body>
-</Table>
+{
+
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>process</th>
+        <td>AOProcess</td>
+        <td>
+          A pre-configured AOProcess instance used to initialize the ARIO class
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <th>processId</th>
+        <td>string</td>
+        <td>The process ID of the AO process</td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <th>signer</th>
+        <td>ContractSigner</td>
+        <td>
+          An optional signer instance, used to enable write operations on the
+          blockchain
+        </td>
+        <td>true</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+}
 
 ## Examples
 
 <CodeGroup title="init">
-    ```typescript {{title: "NodeJS - read-only"}}
+    ```typescript {{title: "NodeJS - unauthorized"}}
     const { ARIO } = require("@ar.io/sdk")
 
-    // Create a read-only client
     const ario = ARIO.init()
     ```
 
-    ```typescript {{title: "NodeJS - with signer"}}
-    const { ARIO, ArweaveSigner } = require("@ar.io/sdk")
-    const fs = require("fs");
+    ```typescript {{title: "NodeJS - authorized"}}
+    const { ARIO, ArweaveSigner} = require("@ar.io/sdk")
 
-    // Create a client with write access
     const jwk = JSON.parse(fs.readFileSync("KeyFile.json"));
+
     const ario = ARIO.init({
         signer: new ArweaveSigner(jwk)
     })
     ```
 
-    ```typescript {{title: "Web - read-only"}}
+    ```typescript {{title: "Web - unauthorized"}}
     import { ARIO } from "@ar.io/sdk/web"
 
-    // Create a read-only client
     const ario = ARIO.init()
     ```
 
-    ```typescript {{title: "Web - with signer"}}
+    ```typescript {{title: "Web - authorized"}}
     import { ARIO, ArConnectSigner } from "@ar.io/sdk/web"
 
-    // Create a client with write access
     const ario = ARIO.init({
         signer: new ArConnectSigner(window.arweaveWallet)
     })
     ```
 
-    ```typescript {{title: "Custom AO configuration"}}
-    const { AOProcess, ARIO } = require("@ar.io/sdk")
-    const { connect } = require("@permaweb/aoconnect")
+    ```typescript {{title: "Custom AO"}}
+    import {AOProcess, ARIO} from "@ar.io/sdk"
+    import {connect} from "@permaweb/aoconnect"
 
-    // Create a client with custom AO process configuration
     const ario = ARIO.init({
-        process: new AOProcess({
-            processId: '<ARIO_PROCESS_ID>',
+        processId: "ARIO_TESTNET_PROCESS_ID", //use testnet process ID or main net by default
+        process: new AOProcess ({
+            processId: "ARIO_TESTNET_PROCESS_ID",
             ao: connect({
-                MU_URL: 'https://mu-testnet.xyz',      // Custom message URL
-                CU_URL: 'https://cu-testnet.xyz',      // Custom compute URL
-                GRAPHQL_URL: 'https://arweave.net/graphql', // Custom GraphQL endpoint
-                GATEWAY_URL: 'https://arweave.net',    // Custom gateway URL
+                MU_URL: 'https://mu-testnet.xyz', //customizable
+                CU_URL: 'https://cu-testnet.xyz', //customizable
+                GRAPHQL_URL: 'https://arweave.net/graphql', //customizable
+                GATEWAY_URL: 'https://arweave.net', //customizable
             })
         })
-    })
-    ```
-
-    ```typescript {{title: "Custom process ID"}}
-    const { ARIO } = require("@ar.io/sdk")
-
-    // Connect to a non-ar.io AO process
-    const ario = ARIO.init({
-        processId: '<Custom_AO_ProcessId>'
     })
     ```
 

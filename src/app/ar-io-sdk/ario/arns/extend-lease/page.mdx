@@ -1,5 +1,5 @@
 import { CodeGroup } from '@/components/Code'
-import {HeroPattern} from "@/components/HeroPattern"
+import { HeroPattern } from '@/components/HeroPattern'
 import { Table } from '@/components/Table'
 
 <HeroPattern />
@@ -31,13 +31,25 @@ import { Table } from '@/components/Table'
     <Table.Row>
       <Table.Cell className="font-semibold">years</Table.Cell>
       <Table.Cell>number</Table.Cell>
-      <Table.Cell>The number of years to extend the lease by (1-5 years)</Table.Cell>
+      <Table.Cell>
+        The number of years to extend the lease by (1-5 years)
+      </Table.Cell>
       <Table.Cell>false</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell className="font-semibold">fundFrom</Table.Cell>
+      <Table.Cell>string</Table.Cell>
+      <Table.Cell>
+        The source of funds: 'balance', 'stakes', 'any', or 'turbo'
+      </Table.Cell>
+      <Table.Cell>true</Table.Cell>
     </Table.Row>
     <Table.Row>
       <Table.Cell className="font-semibold">tags</Table.Cell>
       <Table.Cell>array</Table.Cell>
-      <Table.Cell>An array of GQL tag objects to attach to the transfer AO message</Table.Cell>
+      <Table.Cell>
+        An array of GQL tag objects to attach to the transfer AO message
+      </Table.Cell>
       <Table.Cell>true</Table.Cell>
     </Table.Row>
   </Table.Body>
@@ -57,7 +69,7 @@ import { Table } from '@/components/Table'
             signer: new ArweaveSigner(jwk),
         });
 
-        const { id: txId } = await ario.increaseUndernameLimit(
+        const { id: txId } = await ario.extendLease(
                 {
                     name: 'ar-io',
                     years: 1,
@@ -78,7 +90,7 @@ import { Table } from '@/components/Table'
         const ario = ARIO.init({
             signer: new ArConnectSigner(window.arweaveWallet)
         })
-        const { id: txId } = await ario.increaseUndernameLimit(
+        const { id: txId } = await ario.extendLease(
                 {
                     name: 'ar-io',
                     years: 1,

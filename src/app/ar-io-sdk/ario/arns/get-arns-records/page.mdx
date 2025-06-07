@@ -1,12 +1,21 @@
-import {CodeGroup} from "@/components/Code"
-import {HeroPattern} from "@/components/HeroPattern"
+import { CodeGroup } from '@/components/Code'
+import { HeroPattern } from '@/components/HeroPattern'
 import { Table } from '@/components/Table'
+
+export const metadata = {
+  title: 'getArNSRecords',
+  description:
+    'Retrieve all ArNS records with pagination and filtering support',
+  openGraph: {
+    title: 'getArNSRecords',
+  },
+}
 
 <HeroPattern />
 
 # getArNSRecords
 
-`getArNSRecords` is a method on the `ARIO` class that retrieves all registered ArNS records, with support for pagination and custom sorting. Pagination is handled using a cursor system, where the cursor is the ArNS name from the last record of the previous request.
+`getArNSRecords` is a method on the `ARIO` class that retrieves all ArNS records with optional pagination and filtering support.
 
 `getArNSRecords` does not require authentication.
 
@@ -26,14 +35,18 @@ import { Table } from '@/components/Table'
     <Table.Row>
       <Table.Cell className="font-semibold">cursor</Table.Cell>
       <Table.Cell>string</Table.Cell>
-      <Table.Cell>The ArNS name to use as the starting point for the next page of results</Table.Cell>
+      <Table.Cell>
+        The ArNS name to use as the starting point for the next page of results
+      </Table.Cell>
       <Table.Cell>true</Table.Cell>
       <Table.Cell>None</Table.Cell>
     </Table.Row>
     <Table.Row>
       <Table.Cell className="font-semibold">limit</Table.Cell>
       <Table.Cell>number</Table.Cell>
-      <Table.Cell>The maximum number of records to return (max: 1000)</Table.Cell>
+      <Table.Cell>
+        The maximum number of records to return (max: 1000)
+      </Table.Cell>
       <Table.Cell>true</Table.Cell>
       <Table.Cell>100</Table.Cell>
     </Table.Row>
@@ -54,21 +67,20 @@ import { Table } from '@/components/Table'
   </Table.Body>
 </Table>
 
-## Example
+## Examples
 
 <CodeGroup title="getArNSRecords">
 
-    ```javascript {{ title: 'NodeJS' }}
+    ```typescript {{ title: 'NodeJS' }}
     const { ARIO } = require('@ar.io/sdk');
 
     async function main() {
       const ario = ARIO.init();
-      // get the newest 100 names
-        const records = await ario.getArNSRecords({
-                limit: 100,
-                sortBy: 'startTimestamp',
-                sortOrder: 'desc',
-        });
+      const records = await ario.getArNSRecords({
+        limit: 50,
+        sortBy: 'endTimestamp',
+        sortOrder: 'desc'
+      });
 
       console.log(records);
     }
@@ -76,17 +88,16 @@ import { Table } from '@/components/Table'
     main();
     ```
 
-    ```javascript {{ title: 'Web' }}
+    ```typescript {{ title: 'Web' }}
     import { ARIO } from '@ar.io/sdk/web';
 
     async function main() {
       const ario = ARIO.init();
-      // get the newest 100 names
-        const records = await ario.getArNSRecords({
-                limit: 100,
-                sortBy: 'startTimestamp',
-                sortOrder: 'desc',
-        });
+      const records = await ario.getArNSRecords({
+        limit: 50,
+        sortBy: 'endTimestamp',
+        sortOrder: 'desc'
+      });
 
       console.log(records);
     }
@@ -96,58 +107,30 @@ import { Table } from '@/components/Table'
 
 </CodeGroup>
 
-
 ## Output
 
-```typescript
+```js
 {
   "items": [
     {
-      "name": "ao",
-      "processId": "eNey-H9RB9uCdoJUvPULb35qhZVXZcEXv8xds4aHhkQ",
-      "purchasePrice": 75541282285,
-      "startTimestamp": 1720720621424,
-      "type": "permabuy",
-      "undernames": 10
-    },
-    {
       "name": "ardrive",
       "processId": "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM",
-      "endTimestamp": 1720720819969,
-      "startTimestamp": 1720720620813,
+      "startTimestamp": 1707307200000,
+      "endTimestamp": 1739307200000,
       "type": "lease",
-      "undernames": 100
+      "undernameLimit": 10
     },
     {
-      "name": "arweave",
-      "processId": "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM",
-      "endTimestamp": 1720720819969,
-      "startTimestamp": 1720720620800,
-      "type": "lease",
-      "undernames": 100
-    },
-    {
-      "name": "ar-io",
-      "processId": "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM",
-      "endTimestamp": 1720720819969,
-      "startTimestamp": 1720720619000,
-      "type": "lease",
-      "undernames": 100
-    },
-    {
-      "name": "fwd",
-      "processId": "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM",
-      "endTimestamp": 1720720819969,
-      "startTimestamp": 1720720220811,
-      "type": "lease",
-      "undernames": 100
+      "name": "permaweb",
+      "processId": "xWQ7UmbP0ZHDY7OLCxJsuPiLWYQo5bhHGnp-kgP8N2A",
+      "type": "permabuy",
+      "undernameLimit": 50
     }
-    // ...95 other records
   ],
   "hasMore": true,
-  "nextCursor": "fwdresearch",
-  "totalItems": 21740,
-  "sortBy": "startTimestamp",
+  "nextCursor": "permaweb",
+  "totalItems": 4567,
+  "sortBy": "endTimestamp",
   "sortOrder": "desc"
 }
 ```

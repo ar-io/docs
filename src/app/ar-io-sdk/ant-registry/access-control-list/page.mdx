@@ -1,12 +1,12 @@
+import { CodeGroup } from '@/components/Code'
 import { HeroPattern } from '@/components/HeroPattern'
 import { Table } from '@/components/Table'
 
 export const metadata = {
-  title: 'ANTRegistry.accessControlList',
-  description:
-    'Receives a list of ANTs owned or controlled by a specific wallet',
+  title: 'accessControlList',
+  description: 'Retrieve the access control list for a specific address',
   openGraph: {
-    title: 'ANTRegistry.accessControlList',
+    title: 'accessControlList',
   },
 }
 
@@ -14,9 +14,9 @@ export const metadata = {
 
 # accessControlList
 
-`accessControlList` is a method on the `ANTRegistry` class that receives a list of ANTs owned or controlled by the provided wallet address.
+`accessControlList` is a method on the `ANTRegistry` class that retrieves the access control list (ACL) for a specific address, showing which ANTs the address owns and controls.
 
-`accessControlList` does not require authentication
+`accessControlList` does not require authentication.
 
 ## Parameters
 
@@ -32,8 +32,10 @@ export const metadata = {
   <Table.Body>
     <Table.Row>
       <Table.Cell className="font-semibold">address</Table.Cell>
-      <Table.Cell>string - walletAddress</Table.Cell>
-      <Table.Cell>Wallet address for which to receive owned and controlled list.</Table.Cell>
+      <Table.Cell>string</Table.Cell>
+      <Table.Cell>
+        The wallet address to retrieve access control information for
+      </Table.Cell>
       <Table.Cell>false</Table.Cell>
     </Table.Row>
   </Table.Body>
@@ -43,61 +45,50 @@ export const metadata = {
 
 <CodeGroup title="accessControlList">
 
-        ```typescript {{title: "NodeJS"}}
-            const { ANTRegistry } = require('@ar.io/sdk')
+    ```typescript {{ title: 'NodeJS' }}
+    const { ANTRegistry } = require('@ar.io/sdk');
 
-            async function main() {
-                const antRegistry = ANTRegistry.init()
+    async function main() {
+      const antRegistry = ANTRegistry.init();
+      const acl = await antRegistry.accessControlList({
+        address: 'ccp3blG__gKUvG3hsGC2u06aDmqv4CuhuDJGOIg0jw4'
+      });
 
-                const results = await antRegistry.accessControlList({
-                    address: "GtDQcrr2QRdoZ-lKto_S_SpzEwiZiHVaj3x4jAgRh4o"
-                })
+      console.log(acl);
+    }
 
-                console.log(results)
-            }
+    main();
+    ```
 
-            main()
-        ```
+    ```typescript {{ title: 'Web' }}
+    import { ANTRegistry } from '@ar.io/sdk/web';
 
-        ```typescript {{title: "Web"}}
-            const { ANTRegistry } = require('@ar.io/sdk')
+    async function main() {
+      const antRegistry = ANTRegistry.init();
+      const acl = await antRegistry.accessControlList({
+        address: 'ccp3blG__gKUvG3hsGC2u06aDmqv4CuhuDJGOIg0jw4'
+      });
 
-            async function main() {
-                const antRegistry = ANTRegistry.init()
+      console.log(acl);
+    }
 
-                const results = await antRegistry.accessControlList({
-                    address: "GtDQcrr2QRdoZ-lKto_S_SpzEwiZiHVaj3x4jAgRh4o"
-                })
-
-                console.log(results)
-            }
-
-            main()
-        ```
+    main();
+    ```
 
 </CodeGroup>
 
-## output
+## Output
 
-```json
+```js
 {
-  "Controlled": [
-    "v-ICkGiQZX5fuxxIsl1UOSj2ykQbcwHp7VZe84MdgGo",
-    "CWppm9tRhRFxQGMm_wOUlLoSjakfbAoWLX_RWjHIXAY",
-    "ZI75Ij2NdSjcee59mtnucyGEHOm9Ua0ORPBJSo1wsMU",
-    "Dw1aa_oX2Nz5Z-VrHT6snuojpOXK5LY3BTv6KgAoQxc",
-    "NgfG4K9avqqP5P7m3wvk9hl1NJNuu8yn6oFVlDJs9cE",
-    "fiKEr9aqPJXkPjrxGgu8lpRw0qnDV2uD2KkvabEFtjg",
-    "SmTnkDqwFgng8APMHORqPMb9fM0nNviIkNsAxts4mc0",
-    "1NroE5BWvZXvoSuQLuXRvRPaHTLZS940zgAxwG_1mcA"
-  ],
   "Owned": [
-    "AbCFQ6mMiCzJSQ_8YdWAjSda-AMlVjb-6XlgmlH87zU",
-    "1-Bu7KDRqqKmX68XxAHmeDlYSlz6qjKXNYOQOBGrDMQ",
-    "wKwYtHxH2LU3H79i2rYi-fzDCLkFiGOfWmoo7a4qzSo",
-    "0ALZuX_sDw-Gbqd7vr6TNfl_S2zSfKqQg0axVZIH2lE",
-    "kuuUlv3Kn6FbcmaDsBPuNwsoIar2JIQwV8dBnPJOgTY",
-    "CD7CEsXic4qILGb0Q0jnox6d9_Xml_fSGl8bwMngSLE"
+    "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM",
+    "xpKSNuZ_h6rOhvjm6Y8hqNy4WbG5xLFsXhM3QrK1bnA"
+  ],
+  "Controlled": [
+    "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM",
+    "xpKSNuZ_h6rOhvjm6Y8hqNy4WbG5xLFsXhM3QrK1bnA",
+    "Df2FDNmctRl-BSFgKy9Uo9l8C2mMNsQrR3kQOJWBQq8"
   ]
 }
 ```

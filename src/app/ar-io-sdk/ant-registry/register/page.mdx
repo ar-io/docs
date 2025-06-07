@@ -3,10 +3,10 @@ import { CodeGroup } from '@/components/Code'
 import { Table } from '@/components/Table'
 
 export const metadata = {
-  title: 'ANTRegistry.register',
-  description: 'Registers a new ANT with the ANTRegistry',
+  title: 'register',
+  description: 'Register a new ANT process with the ANT Registry',
   openGraph: {
-    title: 'ANTRegistry.register',
+    title: 'register',
   },
 }
 
@@ -14,7 +14,7 @@ export const metadata = {
 
 # register
 
-`register` is a method on the `ANTRegistry` class that registers an ANT with the registry.
+`register` is a method on the `ANTRegistry` class that registers a new ANT process with the ANT Registry, making it discoverable and accessible.
 
 `register` requires authentication.
 
@@ -33,13 +33,15 @@ export const metadata = {
     <Table.Row>
       <Table.Cell className="font-semibold">processId</Table.Cell>
       <Table.Cell>string</Table.Cell>
-      <Table.Cell>AO Process Id representing the ANT being registered.</Table.Cell>
+      <Table.Cell>The process ID of the ANT to register</Table.Cell>
       <Table.Cell>false</Table.Cell>
     </Table.Row>
     <Table.Row>
       <Table.Cell className="font-semibold">tags</Table.Cell>
       <Table.Cell>array</Table.Cell>
-      <Table.Cell>An array of GQL tag objects to attach to the transfer AO message.</Table.Cell>
+      <Table.Cell>
+        An array of GQL tag objects to attach to the registration AO message
+      </Table.Cell>
       <Table.Cell>true</Table.Cell>
     </Table.Row>
   </Table.Body>
@@ -49,38 +51,51 @@ export const metadata = {
 
 <CodeGroup title="register">
 
-        ```typescript {{title: "NodeJS"}}
-            const fs = require("fs");
-            const { ANTRegistry, ArweaveSigner } = require(('@ar.io/sdk'))
+       ```typescript {{title: "NodeJS"}}
+        const fs = require("fs");
+        const { ANTRegistry, ArweaveSigner } = require("@ar.io/sdk");
 
-            async function main() {
-                const jwk = JSON.parse(fs.readFileSync("KeyFile.json"))
-                const antRegistry = ANTRegistry.init({
-                    signer: new ArweaveSigner(jwk)
-                })
+        async function main() {
+        const jwk = JSON.parse(fs.readFileSync("KeyFile.json"));
+        const antRegistry = ANTRegistry.init({
+            signer: new ArweaveSigner(jwk),
+        });
 
-                const results = await antRegistry.register({
-                    processId: "ibJwWk9LTNwnSnc5SFnsJMONyWu0LgIGh11elGOpBqY"
-                })
-            }
+        const { id: txId } = await antRegistry.register(
+            {
+              processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM"
+            },
+            // optional additional tags
+            { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+        );
 
-            main()
-        ```
+        console.log(txId);
+        }
 
-        ```typescript {{title: "Web"}}
-            const { ANTRegistry, ArConnectSigner } = require(('@ar.io/sdk'))
+        main();
 
-            async function main() {
-                const antRegistry = ANTRegistry.init({
-                    signer: new ArConnectSigner(window.arweaveWallet)
-                })
+    ```
 
-                const results = await antRegistry.register({
-                    processId: "ibJwWk9LTNwnSnc5SFnsJMONyWu0LgIGh11elGOpBqY"
-                })
-            }
+    ```typescript {{ title: 'Web' }}
+    import { ANTRegistry, ArConnectSigner } from '@ar.io/sdk/web';
 
-            main()
-        ```
+    async function main() {
+        const antRegistry = ANTRegistry.init({
+            signer: new ArConnectSigner(window.arweaveWallet)
+        })
+
+        const { id: txId } = await antRegistry.register(
+            {
+              processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM"
+            },
+            // optional additional tags
+            { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+        );
+
+        console.log(txId);
+        }
+
+    main();
+    ```
 
 </CodeGroup>

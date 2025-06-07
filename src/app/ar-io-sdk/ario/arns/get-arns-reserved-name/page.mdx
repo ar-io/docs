@@ -1,0 +1,85 @@
+import { CodeGroup } from '@/components/Code'
+import { HeroPattern } from '@/components/HeroPattern'
+
+export const metadata = {
+  title: 'getArNSReservedName',
+  description: 'Retrieve details about a specific reserved ArNS name',
+  openGraph: {
+    title: 'getArNSReservedName',
+  },
+}
+
+<HeroPattern />
+
+# getArNSReservedName
+
+`getArNSReservedName` is a method on the `ARIO` class that retrieves details about a specific reserved ArNS name, including its target and any expiration information.
+
+`getArNSReservedName` does not require authentication.
+
+## Parameters
+
+{
+
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>name</th>
+        <td>string</td>
+        <td>The reserved ArNS name to retrieve information for</td>
+        <td>false</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+}
+
+## Examples
+
+<CodeGroup title="getArNSReservedName">
+
+    ```typescript {{ title: 'NodeJS' }}
+    const { ARIO } = require('@ar.io/sdk');
+
+    async function main() {
+      const ario = ARIO.init();
+      const reservedName = await ario.getArNSReservedName({ name: 'arweave' });
+
+      console.log(reservedName);
+    }
+
+    main();
+    ```
+
+    ```typescript {{ title: 'Web' }}
+    import { ARIO } from '@ar.io/sdk/web';
+
+    async function main() {
+      const ario = ARIO.init();
+      const reservedName = await ario.getArNSReservedName({ name: 'arweave' });
+
+      console.log(reservedName);
+    }
+
+    main();
+    ```
+
+</CodeGroup>
+
+## Output
+
+```js
+{
+  "target": "some-protected-target-id",
+  "endTimestamp": null // null indicates permanent reservation
+}
+```

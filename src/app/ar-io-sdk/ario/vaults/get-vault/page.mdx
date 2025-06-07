@@ -1,12 +1,19 @@
-import {CodeGroup} from "@/components/Code"
-import {HeroPattern} from "@/components/HeroPattern"
-import { Table } from '@/components/Table'
+import { CodeGroup } from '@/components/Code'
+import { HeroPattern } from '@/components/HeroPattern'
+
+export const metadata = {
+  title: 'getVault',
+  description: 'Retrieve details for a specific vault by ID',
+  openGraph: {
+    title: 'getVault',
+  },
+}
 
 <HeroPattern />
 
 # getVault
 
-`getVault` is a method on the `ARIO` class that retrieves the locked-balance user vault of the ARIO process by the specified wallet address and vault ID.
+`getVault` is a method on the `ARIO` class that retrieves detailed information about a specific vault using its ID.
 
 `getVault` does not require authentication.
 
@@ -23,15 +30,9 @@ import { Table } from '@/components/Table'
   </Table.Head>
   <Table.Body>
     <Table.Row>
-      <Table.Cell className="font-semibold">address</Table.Cell>
-      <Table.Cell>string - WalletAddress</Table.Cell>
-      <Table.Cell>The public wallet address of the vault owner.</Table.Cell>
-      <Table.Cell>false</Table.Cell>
-    </Table.Row>
-    <Table.Row>
       <Table.Cell className="font-semibold">vaultId</Table.Cell>
       <Table.Cell>string</Table.Cell>
-      <Table.Cell>The public wallet address of the vault owner.</Table.Cell>
+      <Table.Cell>The ID of the vault to retrieve</Table.Cell>
       <Table.Cell>false</Table.Cell>
     </Table.Row>
   </Table.Body>
@@ -47,8 +48,7 @@ import { Table } from '@/components/Table'
     async function main() {
       const ario = ARIO.init();
       const vault = await ario.getVault({
-        address: 'QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ',
-        vaultId: 'vaultIdOne',
+        vaultId: 'vault_123'
       });
 
       console.log(vault);
@@ -63,8 +63,7 @@ import { Table } from '@/components/Table'
     async function main() {
       const ario = ARIO.init();
       const vault = await ario.getVault({
-        address: 'QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ',
-        vaultId: 'vaultIdOne',
+        vaultId: 'vault_123'
       });
 
       console.log(vault);
@@ -79,8 +78,9 @@ import { Table } from '@/components/Table'
 
 ```js
 {
-  "balance": 1000000,
-  "startTimestamp": 123,
-  "endTimestamp": 4567
+  "vaultId": "vault_123",
+  "balance": 1000000000,
+  "startTimestamp": 1726243200000,
+  "endTimestamp": 1726329600000
 }
 ```

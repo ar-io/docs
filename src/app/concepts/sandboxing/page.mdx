@@ -1,9 +1,17 @@
-import {HeroPattern} from "@/components/HeroPattern"
+import { HeroPattern } from '@/components/HeroPattern'
+
+export const metadata = {
+  title: 'Browser Sandboxing',
+  description:
+    'Learn about browser sandboxing in AR.IO gateways - how security is enhanced through same-origin policy and subdomain redirection',
+  openGraph: {
+    title: 'Browser Sandboxing',
+  },
+}
 
 <HeroPattern />
 
 # Browser Sandboxing
-
 
 ## Overview
 
@@ -11,13 +19,13 @@ Browser sandboxing allows data requests to a gateway node to benefit from the se
 
 Two DNS records are required to link a domain to an Arweave transaction on a gateway node. For example, `www.mycustomsite.com` would need the following records to link it to `www.arweave-gateway.net`:
 
-- A DNS CNAME record pointing to an Arweave gateway: www CNAME `arweave-gateway.net`, 
+- A DNS CNAME record pointing to an Arweave gateway: www CNAME `arweave-gateway.net`,
 - A DNS TXT record linking the domain with a specific transaction ID: arweavetx TXT `kTv4OkVtmc0NAsqIcnHfudKjykJeQ83qXXrxf8hrh0S`
 
 When a browser requests `www.mycustomsite.com` the user's machine will (through the usual DNS processes) resolve this to the IP address for the gateway node `arweave-gateway.net`. When the gateway receives an HTTP request with a non-default hostname, e.g. `www.mycustomsite.com` instead of `www.arweave-gateway.net`, the gateway will query the DNS records for `www.mycustomsite.com` and the 'arweavetx' TXT record will tell the node which transaction to serve.
 
 ## TLS and its Role in Browser Sandboxing
- 
+
 Transport Layer Security (TLS) is a cryptographic protocol designed to provide communications security over a computer network. In the context of Arweave applications and browser sandboxing, TLS plays a critical role in ensuring secure data transmission and enabling the effective use of browser security features.
 
 When Arweave applications are accessed without TLS, most browsers restrict the use of native cryptographic functions. These functions, which include hashing, signing, and verification, are essential for the secure operation of Arweave permaweb apps. Without TLS, not only are these functions unavailable, but the applications also become susceptible to various security threats, notably man-in-the-middle (MITM) attacks. Although Arweave transactions are signed, making direct MITM attacks challenging, the absence of encryption can expose other vulnerabilities. For instance, attackers could intercept and alter the `/price` endpoint, potentially causing transaction failures or leading to overcharging.
@@ -28,24 +36,24 @@ The integration of TLS is crucial for the implementation of browser sandboxing. 
 
 ## Deriving Sandbox Value
 
-AR.IO nodes generate browser sandbox values deterministically. Because of this, it is possible to calculate ahead of time what that value will be for a particular transaction id. 
+AR.IO nodes generate browser sandbox values deterministically. Because of this, it is possible to calculate ahead of time what that value will be for a particular transaction id.
 
 Sandbox values are a Base32 encoding of the transaction ID. AR.IO gateways use the following code snippet to accomplish the encoding:
 
 ```typescript
 const expectedTxSandbox = (id: string): string => {
-  return toB32(fromB64Url(id));
-};
+  return toB32(fromB64Url(id))
+}
 ```
 
 Example:
 
 ```typescript
-const id = 'gnWKBqFXMJrrksEWrXLQRUQQQeFhv4uVxesHBcT8i6o';
+const id = 'gnWKBqFXMJrrksEWrXLQRUQQQeFhv4uVxesHBcT8i6o'
 const expectedTxSandbox = (id): string => {
-  return toB32(fromB64Url(id));
-};
-console.log(expectedTxSandbox);
+  return toB32(fromB64Url(id))
+}
+console.log(expectedTxSandbox)
 ```
 
 Example Output:

@@ -1,12 +1,19 @@
 import { CodeGroup } from '@/components/Code'
-import {HeroPattern} from "@/components/HeroPattern"
-import { Table } from '@/components/Table'
+import { HeroPattern } from '@/components/HeroPattern'
+
+export const metadata = {
+  title: 'getBalance',
+  description: 'Retrieve the token balance for a specific wallet address',
+  openGraph: {
+    title: 'getBalance',
+  },
+}
 
 <HeroPattern />
 
 # getBalance
 
-`getBalance` is a method on the `ARIO` class that retrieves the balance of the specified wallet address.
+`getBalance` is a method on the `ARIO` class that retrieves the token balance for a specific wallet address.
 
 `getBalance` does not require authentication.
 
@@ -24,8 +31,8 @@ import { Table } from '@/components/Table'
   <Table.Body>
     <Table.Row>
       <Table.Cell className="font-semibold">address</Table.Cell>
-      <Table.Cell>String</Table.Cell>
-      <Table.Cell>The wallet's public address used to check its balance</Table.Cell>
+      <Table.Cell>string - WalletAddress</Table.Cell>
+      <Table.Cell>The wallet address to retrieve the balance for</Table.Cell>
       <Table.Cell>false</Table.Cell>
     </Table.Row>
   </Table.Body>
@@ -35,32 +42,31 @@ import { Table } from '@/components/Table'
 
 <CodeGroup title="getBalance">
 
-    ```typescript {{title: 'NodeJS'}}
-    const {ARIO, mARIOToken} = require('@ar.io/sdk');
-
-    async function main(){
-        const ario = ARIO.init();
-        const balance = await io.getBalance({
-        address: 'QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ',
-        })
-        .then((balance: number) => new mARIOToken(balance).toARIO()); // convert it to ARIO for readability
-
-        console.log(balance)
-    }
-
-    main()
-    ```
-    ```typescript {{ title: 'Web' }}
-    import { ARIO, mARIOToken } from '@ar.io/sdk/web';
+    ```typescript {{ title: 'NodeJS' }}
+    const { ARIO } = require('@ar.io/sdk');
 
     async function main() {
-        const ario = ARIO.init();
-        const balance = await ario.getBalance({
-        address: 'QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ',
-        })
-        .then((balance: number) => new mARIOToken(balance).toARIO()); // convert it to ARIO for readability
+      const ario = ARIO.init();
+      const balance = await ario.getBalance({
+        address: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3'
+      });
 
-        console.log(balance)
+      console.log(balance);
+    }
+
+    main();
+    ```
+
+    ```typescript {{ title: 'Web' }}
+    import { ARIO } from '@ar.io/sdk/web';
+
+    async function main() {
+      const ario = ARIO.init();
+      const balance = await ario.getBalance({
+        address: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3'
+      });
+
+      console.log(balance);
     }
 
     main();
@@ -70,7 +76,6 @@ import { Table } from '@/components/Table'
 
 ## Output
 
-```typescript
-100000
+```js
+1234567890
 ```
-

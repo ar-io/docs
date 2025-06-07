@@ -1,0 +1,107 @@
+import { CodeGroup } from '@/components/Code'
+import { HeroPattern } from '@/components/HeroPattern'
+
+export const metadata = {
+  title: 'upgradeRecord',
+  description: 'Upgrade an existing ArNS record from lease to permabuy',
+  openGraph: {
+    title: 'upgradeRecord',
+  },
+}
+
+<HeroPattern />
+
+# upgradeRecord
+
+`upgradeRecord` is a method on the `ARIO` class that upgrades an existing ArNS record from a lease to a permanent ownership (permabuy). This allows converting a leased name to permanent ownership.
+
+`upgradeRecord` requires authentication.
+
+## Parameters
+
+{
+
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>name</th>
+        <td>string</td>
+        <td>The ArNS name to upgrade to permanent ownership</td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>fundFrom</th>
+        <td>string</td>
+        <td>The source of funds: 'balance', 'stakes', 'any', or 'turbo'</td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <th>tags</th>
+        <td>array</td>
+        <td>
+          An array of GQL tag objects to attach to the transfer AO message
+        </td>
+        <td>true</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+}
+
+## Examples
+
+<CodeGroup title="upgradeRecord">
+
+       ```typescript {{title: "NodeJS"}}
+        const fs = require("fs");
+        const { ARIO, ArweaveSigner } = require("@ar.io/sdk");
+
+        async function main() {
+        const jwk = JSON.parse(fs.readFileSync("KeyFile.json"));
+        const ario = ARIO.init({
+            signer: new ArweaveSigner(jwk),
+        });
+
+        const { id: txId } = await ario.upgradeRecord(
+                { name: 'ardrive' },
+                {
+                    // optional tags
+                    tags: [{ name: 'App-Name', value: 'ArNS-App' }],
+                },
+            );
+        }
+
+        main();
+
+    ```
+
+    ```typescript {{ title: 'Web' }}
+    import { ARIO, ArConnectSigner } from '@ar.io/sdk/web';
+
+    async function main() {
+        const ario = ARIO.init({
+            signer: new ArConnectSigner(window.arweaveWallet)
+        })
+
+        const { id: txId } = await ario.upgradeRecord(
+                { name: 'ardrive' },
+                {
+                    // optional tags
+                    tags: [{ name: 'App-Name', value: 'ArNS-App' }],
+                },
+            );
+        }
+
+    main();
+    ```
+
+</CodeGroup>

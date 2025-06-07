@@ -1,0 +1,66 @@
+import { CodeGroup } from '@/components/Code'
+import { HeroPattern } from '@/components/HeroPattern'
+
+export const metadata = {
+  title: 'getEpochSettings',
+  description: 'Retrieve the configuration settings for epochs',
+  openGraph: {
+    title: 'getEpochSettings',
+  },
+}
+
+<HeroPattern />
+
+# getEpochSettings
+
+`getEpochSettings` is a method on the `ARIO` class that retrieves the configuration settings for epochs, including duration, distribution delay, and other epoch-related parameters.
+
+`getEpochSettings` does not require authentication.
+
+## Parameters
+
+The `getEpochSettings` method does not accept any parameters.
+
+## Examples
+
+<CodeGroup title="getEpochSettings">
+
+    ```typescript {{ title: 'NodeJS' }}
+    const { ARIO } = require('@ar.io/sdk');
+
+    async function main() {
+      const ario = ARIO.init();
+      const settings = await ario.getEpochSettings();
+
+      console.log(settings);
+    }
+
+    main();
+    ```
+
+    ```typescript {{ title: 'Web' }}
+    import { ARIO } from '@ar.io/sdk/web';
+
+    async function main() {
+      const ario = ARIO.init();
+      const settings = await ario.getEpochSettings();
+
+      console.log(settings);
+    }
+
+    main();
+    ```
+
+</CodeGroup>
+
+## Output
+
+```js
+{
+  "epochZeroStartTimestamp": 1720720620813,  // Unix timestamp of epoch 0 start
+  "durationMs": 2592000000,                  // Duration of each epoch in milliseconds (30 days)
+  "distributionDelayMs": 86400000,           // Delay before distribution in milliseconds (1 day)
+  "maxObservers": 50,                        // Maximum number of observers per epoch
+  "pruneEpochsCount": 14                     // Number of epochs to keep in history
+}
+```

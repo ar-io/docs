@@ -1,0 +1,131 @@
+import { CodeGroup } from '@/components/Code'
+import { HeroPattern } from '@/components/HeroPattern'
+
+export const metadata = {
+  title: 'saveObservations',
+  description: 'Submit gateway observations for the current epoch',
+  openGraph: {
+    title: 'saveObservations',
+  },
+}
+
+<HeroPattern />
+
+# saveObservations
+
+`saveObservations` is a method on the `ARIO` class that submits gateway observations for the current epoch. This method is used by observers to report their assessment of gateway performance and any failed gateways they identified during their evaluation.
+
+`saveObservations` requires authentication.
+
+## Parameters
+
+{
+
+<div style={{ textAlign: 'center' }}>
+  <table className="inline-table">
+    <thead>
+      <tr>
+        <th>Parameter</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Optional</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>reportTxId</th>
+        <td>string</td>
+        <td>
+          The Arweave transaction ID containing the detailed observation data
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>failedGateways</th>
+        <td>array</td>
+        <td>
+          An array of wallet addresses for gateways that failed the assessment
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <th>tags</th>
+        <td>array</td>
+        <td>
+          An array of GQL tag objects to attach to the transfer AO message
+        </td>
+        <td>true</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+}
+
+## Examples
+
+<CodeGroup title="saveObservations">
+
+       ```typescript {{title: "NodeJS"}}
+        const fs = require("fs");
+        const { ARIO, ArweaveSigner } = require("@ar.io/sdk");
+
+        async function main() {
+        const jwk = JSON.parse(fs.readFileSync("KeyFile.json"));
+        const ario = ARIO.init({
+            signer: new ArweaveSigner(jwk),
+        });
+
+        const { id: txId } = await ario.saveObservations(
+            {
+                reportTxId: 'B6UUjKWjjEWDBvDSMXWNmymfwvgR9EN27z5FTkEVlX4',
+                failedGateways: [
+                    't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
+                    'QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ'
+                ]
+            },
+            // optional additional tags
+            { tags: [{ name: 'App-Name', value: 'Observer-Report' }] }
+        );
+
+        console.log('Observation submitted:', txId);
+        }
+
+        main();
+
+    ```
+
+    ```typescript {{ title: 'Web' }}
+    import { ARIO, ArConnectSigner } from '@ar.io/sdk/web';
+
+    async function main() {
+        const ario = ARIO.init({
+            signer: new ArConnectSigner(window.arweaveWallet)
+        });
+
+        const { id: txId } = await ario.saveObservations(
+            {
+                reportTxId: 'B6UUjKWjjEWDBvDSMXWNmymfwvgR9EN27z5FTkEVlX4',
+                failedGateways: [
+                    't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
+                    'QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ'
+                ]
+            },
+            // optional additional tags
+            { tags: [{ name: 'App-Name', value: 'Observer-Report' }] }
+        );
+
+        console.log('Observation submitted:', txId);
+    }
+
+    main();
+    ```
+
+</CodeGroup>
+
+## Output
+
+```js
+{
+  "id": "7tKsiQ2fxv0D8ZVN_QEv29fZ8hwFIgHoEDrpeEG0DIs"
+}
+```
