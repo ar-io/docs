@@ -17,6 +17,24 @@ export const metadata = {
 
 Welcome to the documentation page for the AR.IO gateway release notes. Here, you will find detailed information about each version of the AR.IO gateway, including the enhancements, bug fixes, and any other changes introduced in every release. This page serves as a comprehensive resource to keep you informed about the latest developments and updates in the AR.IO gateway. For those interested in exploring the source code, each release's code is readily accessible at our GitHub repository: AR.IO gateway [change logs](https://github.com/ar-io/ar-io-node/blob/main/CHANGELOG.md). Stay updated with the continuous improvements and advancements in the AR.IO gateway by referring to this page for all release-related information.
 
+## [Release 38] - 2025-06-09
+
+This release focuses on data integrity and security improvements, introducing trusted data verification and enhanced header information for data requests. Upgrading to this release is recommended but not urgent.
+
+### Added
+
+- Added `X-AR-IO-Trusted` header to indicate data source trustworthiness in responses. This header helps clients understand whether data comes from a trusted source and works alongside the existing `X-AR-IO-Verified` header to provide data integrity information. The system now filters peer data by requiring peers to indicate their content is either verified or trusted, protecting against misconfigured peers that may inadvertently serve unintended content (e.g., provider default landing pages) instead of actual Arweave data.
+- Added If-None-Match header support for HTTP conditional requests enabling better client-side caching efficiency. When clients send an If-None-Match header that matches the ETag, the gateway returns a 304 Not Modified response with an empty body, reducing bandwidth usage and improving performance.
+- Added digest and hash headers for data HEAD requests to enable client-side data integrity verification.
+- Added EC2 IMDS (instance-profile) credential support for S3 data access, improving AWS authentication in cloud environments.
+- Added trusted data flag to prevent caching of data from untrusted sources, ensuring only verified and reliable content is stored locally while still allowing serving of untrusted data when necessary.
+
+### Changed
+
+- Re-enabled ar-io-peers as fallback data source in configuration for improved data availability.
+- Updated trusted node configuration to use arweave.net as the default trusted node URL.
+- Updated ETag header format to use properly quoted strings (e.g., `"hash"` instead of `hash`) following HTTP/1.1 specification standards for improved compatibility with caching proxies and clients.
+
 ## [Release 37] - 2025-06-03
 
 This is a **recommended release** due to the included observer robustness improvements. It also adds an important new feature - data verification for preferred ArNS names. When preferred ArNS names are set, the bundles containing the data they point to will be locally unbundled (verifying data item signatures), and the data root for the bundle will be compared to the data root in the Arweave chain (establishing that the data is on Arweave). To enable this feature, set your preferred ArNS names, turn on unbundling by setting `ANS104_DOWNLOAD_WORKERS` and `ANS104_UNBUNDLE_WORKERS` both to 1, and set your `ANS104_INDEX_FILTER` to a filter that will match the data items for your preferred names. If you don't know the filter, use `{"always": true}`, but be aware this will index the entire bundle for the IDs related to your preferred names.
