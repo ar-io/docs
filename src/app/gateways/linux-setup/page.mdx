@@ -1,4 +1,4 @@
-import {HeroPattern} from "@/components/HeroPattern"
+import { HeroPattern } from '@/components/HeroPattern'
 
 <HeroPattern />
 
@@ -34,11 +34,11 @@ The hardware specifications listed below represent the minimum system requiremen
 
 If you would like to quickly install all required and suggested packages, you can run the following 4 commands in your terminal, and skip to [installing the Node](#install-the-node).
 
-```
-sudo apt update -y && sudo apt upgrade -y && sudo apt install -y curl openssh-server git certbot nginx sqlite3 build-essential && sudo systemctl enable ssh && curl -sSL https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add - && echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list && sudo apt-get update -y && sudo apt-get install -y yarn && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash && source ~/.bashrc && sudo ufw allow 22 80 443 && sudo ufw enable
+```bash
+sudo apt update -y && sudo apt upgrade -y && sudo apt install -y curl openssh-server git certbot nginx sqlite3 build-essential && sudo systemctl enable ssh && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash && source ~/.bashrc && sudo ufw allow 22 80 443 && sudo ufw enable
 ```
 
-```
+```bash
 # Add Docker's official GPG key:
 sudo apt-get update
 sudo apt-get install ca-certificates curl
@@ -54,12 +54,12 @@ echo \
 sudo apt-get update
 ```
 
-```
+```bash
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 ```
 
-```
-nvm install 20.11.1 && nvm use 20.11.1
+```bash
+nvm install 20.11.1 && nvm use 20.11.1 && npm install -g yarn@1.22.22
 ```
 
 ### Required packages
@@ -112,13 +112,11 @@ nvm install 20.11.1 && nvm use 20.11.1
     $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
     sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
     sudo apt-get update
-    ```
+   ```
 
-    
-    ```
-    sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-    ```
-
+   ```
+   sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+   ```
 
    - Test Docker installation:
      ```
@@ -141,32 +139,26 @@ These packages are not required to run a node in its basic form. However, they w
    sudo systemctl enable ssh
    ```
 
-8. Install Yarn:
+8. Install NVM (Node Version Manager):
 
    ```
-   curl -sSL https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
-
-   echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
-
-   sudo apt-get update -y
-
-   sudo apt-get install yarn -y
-   ```
-
-9. Install NVM (Node Version Manager):
-
-   ```
-   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
    source ~/.bashrc
    ```
 
-10. Install Node.js:
+9. Install Node.js:
+
+   ```
+   nvm install 20.11.1
+   ```
+
+10. Install Yarn:
 
     ```
-    nvm install 20.11.1
+    npm install -g yarn@1.22.22
     ```
 
-11. Install build tools
+11. Install build tools:
 
     ```
     sudo apt install build-essential
@@ -181,7 +173,7 @@ These packages are not required to run a node in its basic form. However, they w
 
 - Navigate to the desired installation location:
 
-  - **NOTE**: Your database of Arweave Transaction Headers will be created in the project directory, not Docker. So, if you are using an external hard drive to turn an old machine into a node, install the node directly to that external drive.
+  - **NOTE**: Your indexing databases will be created in the project directory unless otherwise specified in your .env file, not your Docker environment. So, if you are using an external hard drive, you should install the node directly to that external drive.
 
 - Clone the ar-io-node repository and navigate into it:
 
@@ -190,7 +182,7 @@ These packages are not required to run a node in its basic form. However, they w
   cd ar-io-node
   ```
 
-- Create an environmental variables file:
+- Create an environment file:
 
   ```
   nano .env
@@ -199,10 +191,9 @@ These packages are not required to run a node in its basic form. However, they w
   Paste the following content into the new file, replacing \<your-domain> with the domain address you are using to access the node, and \<your-public-wallet-address> with the public address of your Arweave wallet, save, and exit:
 
   ```
-
   GRAPHQL_HOST=arweave.net
   GRAPHQL_PORT=443
-  START_HEIGHT=0
+  START_HEIGHT=1000000
   RUN_OBSERVER=true
   ARNS_ROOT_HOST=<your-domain>
   AR_IO_WALLET=<your-public-wallet-address>
@@ -216,7 +207,7 @@ These packages are not required to run a node in its basic form. However, they w
   - `AR_IO_WALLET` is optional, and sets the wallet you want associated with your Gateway. An associated wallet is required to join the AR.IO network.
   - `OBSERVER_WALLET` is the public address of the wallet used to sign Observer transactions. This is required for Observer to run, but may be omitted if you are running a gateway outside of the AR.IO network and do not plan to run Observer. You will need to supply the keyfile to this wallet in the next step.
 
-  Advanced configuration options can be found at [docs.ar.io](https://docs.ar.io/gateways/ar-io-node/advanced-config.html)
+  - More advanced configuration options can be found at [ar.io/docs](https://ar.io/docs/gateways/ar-io-node/advanced-config.html)
 
 - Supply Your Observer Wallet Keyfile:
 
@@ -224,24 +215,25 @@ These packages are not required to run a node in its basic form. However, they w
 
   Learn more about creating Arweave wallets and obtaining keyfiles [here](https://ar.io/wallet/)
 
+  <Tip title="Payment For Observer Report Uploads">
+    By default, the Observer will use [Turbo Credits](https://docs.ardrive.io/docs/turbo/credits) to pay for uploading reports to Arweave. This allows reports under 100kb to be uploaded for free, but larger reports will fail if the Observer wallet does not contain Credits. Including `REPORT_DATA_SINK=arweave` in your `.env` file will configure the Observer to use AR tokens instead of Turbo Credits, without any free limit.
+  </Tip>
+
 - Start the Docker container:
 
   ```
   sudo docker compose up -d
   ```
+
   - Explanation of flags:
     - `up`: Start the Docker containers.
     - `-d`: Run the containers as background processes (detached mode).
 
-  **NOTE**: Effective with Release #3, it is no longer required to include the `--build` flag when starting your gateway. Docker will automatically build using the image specified in the `docker-commpose.yaml` file. 
+  **NOTE**: Effective with Release #3, it is no longer required to include the `--build` flag when starting your gateway. Docker will automatically build using the image specified in the `docker-compose.yaml` file.
 
-  To shut down your gateway, run the command: 
+  To ensure your node is running correctly, follow the next two steps.
 
-  ```
-  sudo docker compose down
-  ```
-
-To ensure your node is running correctly, check the logs for errors:
+- Check the logs for errors:
 
   ```
   sudo docker compose logs -f --tail=0
@@ -251,7 +243,7 @@ To ensure your node is running correctly, check the logs for errors:
     - `-f`: Follow the logs in real time.
     - `--tail=0`: Ignore all logs from before running the command.
 
-  **NOTE**: Previous versions of these instructions advised checking a gateway's ability to fetch content using `localhost`. Subsequent security updates prevent this without first disabling `ARNS_ROOT_HOST` in your `.env`.
+  **NOTE**: Previous versions of these instructions advised checking a gateway's ability to fetch content using `localhost`. Subsequent security updates prevent this without first unsetting `ARNS_ROOT_HOST` in your `.env`.
 
 ## Set up Networking
 
@@ -286,10 +278,14 @@ The following guide assumes you are running your node on a local home computer.
 - Create SSL (HTTPS) Certificates for Your Domain:
 
   ```
-  sudo certbot certonly --manual --preferred-challenges dns --email <your-email-address> -d <your-domain>.com -d '*.<your-domain>.com'
+  sudo certbot certonly --manual --preferred-challenges dns -d <your-domain>.com -d '*.<your-domain>.com'
   ```
 
-  Follow the instructions to create the required TXT records for your domain in your chosen registrar. Use a [DNS checker](https://dnschecker.org/) to verify the propagation of each record. This can take some time.
+  Follow the instructions to create the required TXT records for your domain in your chosen registrar. Use a [DNS checker](https://dnschecker.org/) to verify the propagation of each record.
+
+  <Tip title="Email Notifications">
+    Previous versions of these instructions advised providing an email address to Certbot. As of June 2025, LetsEncrypt (the certificate authority used by Certbot) no longer supports email notifications.
+  </Tip>
 
   **IMPORTANT**: Wild card subdomain (\*.\<your-domain>.com) cannot auto renew without obtaining an API key from your domain registrar. Not all registrars offer this. Certbot certificates expire every 90 days. Be sure to consult with your chosen registrar to see if they offer an API for this purpose, or run the above command again to renew your certificates. You will receive an email warning at the address you provided to remind you when it is time to renew.
 
