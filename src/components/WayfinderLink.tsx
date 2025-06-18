@@ -17,11 +17,23 @@ export default function WayfinderLink({
   ...props
 }: WayfinderLinkProps) {
   const [processedHref, setProcessedHref] = useState<string | null>(null)
-  const { wayfinder, isLoading: gatewaysLoading } = useGateways()
+  const {
+    wayfinder,
+    isLoading: gatewaysLoading,
+    defaultGateway,
+  } = useGateways()
 
   // Check if this was originally an ar:// link
   const isArweaveLink =
     href && typeof href === 'string' && href.startsWith('ar://')
+
+  // Check if the final processed href is an external link
+  const finalHref = processedHref || href
+  const isExternalLink =
+    (finalHref &&
+      typeof finalHref === 'string' &&
+      (finalHref.startsWith('http://') || finalHref.startsWith('https://'))) ||
+    isArweaveLink
 
   useEffect(() => {
     const processUrl = async () => {
@@ -54,13 +66,22 @@ export default function WayfinderLink({
           console.error('Error processing URL with Wayfinder:', error)
           setProcessedHref(href) // Fallback to original href
         }
+      } else if (!gatewaysLoading && !wayfinder && href.startsWith('ar://')) {
+        // Fallback: If wayfinder is not available, construct URL manually using default gateway
+        const txId = href.replace('ar://', '')
+        const fallbackUrl = `https://${defaultGateway}/${txId}`
+        setProcessedHref(fallbackUrl)
+        console.warn(
+          'Wayfinder not available, using fallback URL construction for:',
+          href,
+        )
       } else {
         setProcessedHref(href) // Fallback while loading
       }
     }
 
     processUrl()
-  }, [href, gatewaysLoading, wayfinder])
+  }, [href, gatewaysLoading, wayfinder, defaultGateway])
 
   // Show loading state for non-standard links while processing
   if (
@@ -74,17 +95,15 @@ export default function WayfinderLink({
     return <span className="text-zinc-500">Loading link...</span>
   }
 
-  const finalHref = processedHref || href
-
   return (
     <Link
       href={finalHref || '#'}
-      target={isArweaveLink ? '_blank' : '_self'}
+      target={isExternalLink ? '_blank' : '_self'}
       {...props}
     >
       <span className="inline-flex items-center gap-1">
         {children}
-        {isArweaveLink && (
+        {isExternalLink && (
           <SquareArrowOutUpRight className="ml-1 inline-block h-3 w-3" />
         )}
       </span>

@@ -15,7 +15,11 @@ const DiagramWithWayfinder: React.FC<DiagramWithWayfinderProps> = ({
   description,
 }) => {
   const [processedSrc, setProcessedSrc] = useState<string | null>(null)
-  const { wayfinder, isLoading: gatewaysLoading } = useGateways()
+  const {
+    wayfinder,
+    isLoading: gatewaysLoading,
+    defaultGateway,
+  } = useGateways()
 
   useEffect(() => {
     const processUrl = async () => {
@@ -31,11 +35,23 @@ const DiagramWithWayfinder: React.FC<DiagramWithWayfinderProps> = ({
           // Fallback to original src if wayfinder fails
           setProcessedSrc(src)
         }
+      } else if (!gatewaysLoading && !wayfinder && src.startsWith('ar://')) {
+        // Fallback: If wayfinder is not available, construct URL manually using default gateway
+        const txId = src.replace('ar://', '')
+        const fallbackUrl = `https://${defaultGateway}/${txId}`
+        setProcessedSrc(fallbackUrl)
+        console.warn(
+          'Wayfinder not available for diagram, using fallback URL construction for:',
+          src,
+        )
+      } else if (!gatewaysLoading) {
+        // For non-ar:// URLs, use as-is
+        setProcessedSrc(src)
       }
     }
 
     processUrl()
-  }, [src, wayfinder, gatewaysLoading])
+  }, [src, wayfinder, gatewaysLoading, defaultGateway])
 
   if (gatewaysLoading || !processedSrc) {
     return (

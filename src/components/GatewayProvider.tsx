@@ -27,19 +27,6 @@ const GatewayContext = createContext<GatewayContextType>({
   wayfinder: null,
 })
 
-// Create a mock wayfinder for fallback scenarios
-const createMockWayfinder = (gateway: string) => ({
-  resolveUrl: async ({ originalUrl }: { originalUrl: string }) => {
-    const txId = originalUrl.replace('ar://', '')
-    return { href: `https://${gateway}/${txId}` }
-  },
-  request: async ({ originalUrl }: { originalUrl: string }) => {
-    const txId = originalUrl.replace('ar://', '')
-    const response = await fetch(`https://${gateway}/${txId}`)
-    return response
-  },
-})
-
 export function GatewayProvider({ children }: { children: React.ReactNode }) {
   const [gateways, setGateways] = useState<Gateway[]>([])
   const [defaultGateway, setDefaultGateway] = useState(FALLBACK_GATEWAY)
@@ -55,34 +42,14 @@ export function GatewayProvider({ children }: { children: React.ReactNode }) {
 
     async function setupWayfinder() {
       const currentDomain = window.location.hostname
-      const isGitHubPages = window.location.hostname === 'ar-io.github.io'
 
-      // For GitHub Pages, use a simplified approach to avoid chunk loading issues
-      if (isGitHubPages) {
-        console.log(
-          'GitHub Pages detected, using mock wayfinder to avoid conflicts',
-        )
-        const mockWayfinder = createMockWayfinder(FALLBACK_GATEWAY)
-        setWayfinder(mockWayfinder)
-        setGateways([
-          {
-            settings: { fqdn: FALLBACK_GATEWAY },
-            weights: { compositeWeight: 1 },
-          },
-        ])
-        setDefaultGateway(FALLBACK_GATEWAY)
-        setIsLoading(false)
-        return
-      }
-
-      // For other environments, try to use the real AR.IO SDK
       try {
-        console.log('Setting up real AR.IO SDK wayfinder')
+        console.log('Setting up AR.IO SDK Wayfinder')
 
-        // Use dynamic import with additional error handling
-        const sdkModule = await import('@ar.io/sdk').catch((error) => {
-          console.warn('Failed to import AR.IO SDK:', error)
-          throw new Error('SDK import failed')
+        // Use dynamic import for browser-compatible SDK
+        const sdkModule = await import('@ar.io/sdk/web').catch((error) => {
+          console.warn('Failed to import AR.IO SDK web version:', error)
+          throw new Error('SDK web import failed')
         })
 
         const {
@@ -115,7 +82,7 @@ export function GatewayProvider({ children }: { children: React.ReactNode }) {
         // Test the setup with a timeout
         try {
           const testPromise = wayfinderInstance.resolveUrl({
-            originalUrl: 'ar://docs',
+            originalUrl: 'ar://test',
           })
           const timeoutPromise = new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Wayfinder test timeout')), 3000),
@@ -152,11 +119,10 @@ export function GatewayProvider({ children }: { children: React.ReactNode }) {
           `✅ Wayfinder ready with preferred gateway: ${currentDomain}`,
         )
       } catch (error) {
-        console.warn('Failed to setup AR.IO SDK, falling back to mock:', error)
+        console.error('Failed to setup AR.IO SDK Wayfinder:', error)
 
-        // Complete fallback to mock wayfinder
-        const mockWayfinder = createMockWayfinder(FALLBACK_GATEWAY)
-        setWayfinder(mockWayfinder)
+        // If SDK fails, set up minimal fallback state without mock wayfinder
+        setWayfinder(null)
         setGateways([
           {
             settings: { fqdn: FALLBACK_GATEWAY },
@@ -166,7 +132,9 @@ export function GatewayProvider({ children }: { children: React.ReactNode }) {
         setDefaultGateway(FALLBACK_GATEWAY)
         setIsLoading(false)
 
-        console.log('✅ Mock wayfinder ready as fallback')
+        console.log(
+          '⚠️ Wayfinder failed to initialize, components will use fallback behavior',
+        )
       }
     }
 
