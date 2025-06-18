@@ -46,12 +46,8 @@ export function GatewayProvider({ children }: { children: React.ReactNode }) {
       try {
         console.log('Setting up AR.IO SDK Wayfinder')
 
-        // Use dynamic import for browser-compatible SDK
-        const sdkModule = await import('@ar.io/sdk/web').catch((error) => {
-          console.warn('Failed to import AR.IO SDK web version:', error)
-          throw new Error('SDK web import failed')
-        })
-
+        // Import AR.IO SDK only on client side using dynamic import but with traditional syntax
+        const sdkModule = await import('@ar.io/sdk/web')
         const {
           Wayfinder,
           PreferredWithFallbackRoutingStrategy,
