@@ -1,4 +1,5 @@
 import nextMDX from '@next/mdx'
+import webpack from 'webpack'
 
 import { recmaPlugins } from './src/mdx/recma.mjs'
 import { rehypePlugins } from './src/mdx/rehype.mjs'
@@ -31,6 +32,20 @@ const nextConfig = {
   // },
   webpack: (config, { isServer }) => {
     config.plugins.push(new NodePolyfillPlugin())
+
+    // Exclude AR.IO SDK from server-side bundling
+    if (isServer) {
+      config.externals = config.externals || []
+      config.externals.push('@ar.io/sdk', '@ar.io/sdk/web')
+    }
+
+    // Add browser globals polyfill for AR.IO SDK
+    config.plugins.push(
+      new webpack.DefinePlugin({
+        'global.self': 'globalThis',
+        self: 'globalThis',
+      }),
+    )
 
     // Fix chunk loading for GitHub Pages with basePath
     if (
