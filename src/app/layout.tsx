@@ -1,4 +1,4 @@
-import { type Metadata } from 'next'
+import { type Metadata, type Viewport } from 'next'
 import glob from 'fast-glob'
 
 import { Providers } from '@/app/providers'
@@ -42,11 +42,12 @@ export const metadata: Metadata = {
       },
     ],
   },
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-  },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
 }
 
 export default async function RootLayout({
