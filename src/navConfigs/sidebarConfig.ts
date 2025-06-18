@@ -1171,12 +1171,8 @@ export const singleNavigation: Array<NavGroup> = [
             href: '/gateways/env',
           },
           {
-            title: 'Troubleshooting',
+            title: 'Troubleshooting & FAQ',
             href: '/gateways/troubleshooting',
-          },
-          {
-            title: 'Troubleshooting Failed Epochs',
-            href: '/gateways/failed-epoch',
           },
           {
             title: 'Upgrading',
@@ -1205,10 +1201,6 @@ export const singleNavigation: Array<NavGroup> = [
           {
             title: 'AO Compute Unit (CU) Sidecar',
             href: '/gateways/cu',
-          },
-          {
-            title: 'FAQ & Troubleshooting',
-            href: '/gateways/faq',
           },
           {
             title: 'Automating SSL',
