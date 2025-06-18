@@ -18,7 +18,7 @@ type GatewayContextType = {
   wayfinder: any // The configured Wayfinder instance
 }
 
-const FALLBACK_GATEWAY = 'bobinstein.com'
+const FALLBACK_GATEWAY = 'arweave.net'
 
 const GatewayContext = createContext<GatewayContextType>({
   gateways: [],
