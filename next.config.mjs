@@ -1,5 +1,4 @@
 import nextMDX from '@next/mdx'
-import webpack from 'webpack'
 
 import { recmaPlugins } from './src/mdx/recma.mjs'
 import { rehypePlugins } from './src/mdx/rehype.mjs'
@@ -30,7 +29,7 @@ const nextConfig = {
   // experimental: {
   //   disableRuntimeJS: true
   // },
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, webpack }) => {
     config.plugins.push(new NodePolyfillPlugin())
 
     // Exclude AR.IO SDK from server-side bundling
