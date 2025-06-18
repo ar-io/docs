@@ -17,6 +17,24 @@ export const metadata = {
 
 Welcome to the documentation page for the AR.IO gateway release notes. Here, you will find detailed information about each version of the AR.IO gateway, including the enhancements, bug fixes, and any other changes introduced in every release. This page serves as a comprehensive resource to keep you informed about the latest developments and updates in the AR.IO gateway. For those interested in exploring the source code, each release's code is readily accessible at our GitHub repository: AR.IO gateway [change logs](https://github.com/ar-io/ar-io-node/blob/main/CHANGELOG.md). Stay updated with the continuous improvements and advancements in the AR.IO gateway by referring to this page for all release-related information.
 
+## [Release 39] - 2025-06-17
+
+This release enhances observability and reliability with new cache metrics, improved data verification capabilities, and automatic failover between chain data sources. The addition of ArNS-aware headers enables better data prioritization across the gateway network. This is a recommended but not urgent upgrade.
+
+### Added
+
+- Added filesystem cache metrics with cycle-based tracking. Two new Prometheus metrics track cache utilization: `cache_objects_total` (number of objects in cache) and `cache_size_bytes` (total cache size in bytes). Both metrics include `store_type` and `data_type` labels to differentiate between cache types (e.g., headers, contiguous_data). Metrics are updated after each complete cache scan cycle, providing accurate visibility into filesystem cache usage.
+- Added `X-AR-IO-Data-Id` header to all data responses. This header shows the actual data ID being served, whether from a direct ID request or manifest path resolution, providing transparency about the content being delivered.
+- Added automatic data item indexing when data verification is enabled. When `ENABLE_BACKGROUND_DATA_VERIFICATION` is set to true, the system now automatically enables data item indexing (`ANS104_UNBUNDLE_FILTER`) with an `always: true` filter if no filter is explicitly configured. This ensures bundles are unbundled to verify that data items are actually contained in the bundle associated with the Arweave transaction's data root.
+- Added ArNS headers to outbound gateway requests to enable data prioritization. The `generateRequestAttributes` function now includes ArNS context headers (`X-ArNS-Name`, `X-ArNS-Basename`, `X-ArNS-Record`) in requests to other gateways and Arweave nodes, allowing downstream gateways to effectively prioritize ArNS data requests.
+- Added configurable Docker Compose host port environment variables (`CORE_PORT`, `ENVOY_PORT`, `CLICKHOUSE_PORT`, `CLICKHOUSE_PORT_2`, `CLICKHOUSE_PORT_3`, `OBSERVER_PORT`) to allow flexible port mapping while maintaining container-internal port compatibility and security.
+- Added Envoy aggregate cluster configuration for automatic failover between primary and fallback chain data sources. The primary cluster (default: arweave.net:443) uses passive outlier detection while the fallback cluster (default: peers.arweave.xyz:1984) uses active health checks. This enables zero-downtime failover between HTTPS and HTTP endpoints with configurable `FALLBACK_NODE_HOST` and `FALLBACK_NODE_PORT` environment variables.
+
+### Changed
+
+- Streamlined background data retrieval to reduce reliance on centralized sources. The default `BACKGROUND_RETRIEVAL_ORDER` now only includes `chunks,s3`, removing `trusted-gateways` and `tx-data` from the default configuration. This prioritizes verifiable chunk data and S3 storage for background operations like unbundling.
+- Removed ar-io.net from default trusted gateways list and removed TRUSTED_GATEWAY_URL default value to reduce load on ar-io.net now that P2P data retrieval is re-enabled. Existing deployments with TRUSTED_GATEWAY_URL explicitly set will continue to work for backwards compatibility.
+
 ## [Release 38] - 2025-06-09
 
 This release focuses on data integrity and security improvements, introducing trusted data verification and enhanced header information for data requests. Upgrading to this release is recommended but not urgent.
