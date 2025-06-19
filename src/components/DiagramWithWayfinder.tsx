@@ -14,12 +14,18 @@ const DiagramWithWayfinder: React.FC<DiagramWithWayfinderProps> = ({
   title,
   description,
 }) => {
-  const [processedSrc, setProcessedSrc] = useState<string | null>(null)
+  const [processedSrc, setProcessedSrc] = useState<string>(src)
+  const [isClient, setIsClient] = useState(false)
   const {
     wayfinder,
     isLoading: gatewaysLoading,
     defaultGateway,
   } = useGateways()
+
+  // Set client-side flag
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   useEffect(() => {
     const processUrl = async () => {
@@ -29,53 +35,58 @@ const DiagramWithWayfinder: React.FC<DiagramWithWayfinderProps> = ({
         return
       }
 
-      // Use real Wayfinder for ar:// links
-      if (!gatewaysLoading && wayfinder) {
-        try {
-          const result = await wayfinder.resolveUrl({
-            originalUrl: src,
-          })
+      // If wayfinder is not ready yet, use basic fallback
+      if (!wayfinder || gatewaysLoading) {
+        const txId = src.replace('ar://', '')
+        // Only access window if we're on the client
+        const currentDomain = isClient ? window.location.hostname : 'localhost'
 
-          setProcessedSrc(result.href)
-          console.log(`Wayfinder resolved diagram: ${src} -> ${result.href}`)
-        } catch (error) {
-          console.warn('Error processing diagram URL with Wayfinder:', error)
-          // Fallback to simple resolution
-          const arPath = src.slice(5)
-          const fallbackUrl = `https://${defaultGateway}/${arPath}`
-          setProcessedSrc(fallbackUrl)
-          console.warn('Using fallback diagram URL:', fallbackUrl)
+        // Handle ARNS names with subdomain resolution
+        if (txId.match(/^[a-zA-Z0-9_-]+$/)) {
+          if (
+            currentDomain !== 'localhost' &&
+            !currentDomain.includes('localhost')
+          ) {
+            setProcessedSrc(`https://${txId}.${currentDomain}`)
+            return
+          }
         }
+        setProcessedSrc(`https://${currentDomain}/${txId}`)
         return
       }
 
-      // Fallback for when Wayfinder is not available
-      if (!gatewaysLoading && !wayfinder) {
-        const arPath = src.slice(5)
-        const fallbackUrl = `https://${defaultGateway}/${arPath}`
-        setProcessedSrc(fallbackUrl)
-        console.warn(
-          'Wayfinder not available for diagram, using fallback:',
-          fallbackUrl,
-        )
+      try {
+        // Use real Wayfinder for ar:// links
+        const resolvedUrl = await wayfinder.resolveUrl({ originalUrl: src })
+        console.log('Wayfinder resolved diagram:', src, '->', resolvedUrl)
+        setProcessedSrc(resolvedUrl || src)
+      } catch (error) {
+        console.warn('Wayfinder failed for diagram:', error)
+        // Fallback to basic URL construction
+        const txId = src.replace('ar://', '')
+        // Only access window if we're on the client
+        const currentDomain = isClient
+          ? window.location.hostname
+          : defaultGateway
+
+        // Handle ARNS names with subdomain resolution
+        if (txId.match(/^[a-zA-Z0-9_-]+$/)) {
+          if (
+            currentDomain !== 'localhost' &&
+            !currentDomain.includes('localhost')
+          ) {
+            setProcessedSrc(`https://${txId}.${currentDomain}`)
+            return
+          }
+        }
+        setProcessedSrc(`https://${currentDomain}/${txId}`)
       }
     }
 
     processUrl()
-  }, [src, gatewaysLoading, wayfinder, defaultGateway])
+  }, [src, wayfinder, gatewaysLoading, defaultGateway, isClient])
 
-  // Show loading state while processing ar:// links
-  if (src.startsWith('ar://') && (gatewaysLoading || !processedSrc)) {
-    return <div>Loading diagram...</div>
-  }
-
-  return (
-    <Diagram
-      src={processedSrc || src}
-      title={title}
-      description={description}
-    />
-  )
+  return <Diagram src={processedSrc} title={title} description={description} />
 }
 
 export default DiagramWithWayfinder

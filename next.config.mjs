@@ -32,32 +32,6 @@ const nextConfig = {
   webpack: (config, { isServer, webpack }) => {
     config.plugins.push(new NodePolyfillPlugin())
 
-    // AR.IO SDK specific configurations for client-side usage
-    if (!isServer) {
-      config.externals = config.externals || []
-
-      // Add AR.IO SDK specific polyfills
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        crypto: 'crypto-browserify',
-        stream: 'stream-browserify',
-        path: 'path-browserify',
-        os: 'os-browserify/browser',
-        fs: false,
-        net: false,
-        tls: false,
-      }
-
-      // Configure webpack to handle AR.IO SDK properly
-      config.module.rules.push({
-        test: /\.m?js$/,
-        type: 'javascript/auto',
-        resolve: {
-          fullySpecified: false,
-        },
-      })
-    }
-
     // Fix chunk loading for GitHub Pages with basePath
     if (
       !isServer &&
@@ -66,12 +40,11 @@ const nextConfig = {
     ) {
       config.output.publicPath = `${process.env.BASE_PATH}/_next/`
 
-      // More aggressive chunk separation for GitHub Pages
+      // Simplified chunk strategy
       config.optimization = {
         ...config.optimization,
         moduleIds: 'deterministic',
         chunkIds: 'deterministic',
-        // Disable some optimizations that might cause conflicts
         sideEffects: false,
         usedExports: true,
         splitChunks: {
@@ -82,17 +55,6 @@ const nextConfig = {
           maxAsyncRequests: 30,
           maxInitialRequests: 30,
           cacheGroups: {
-            // Isolate AR.IO SDK into its own chunk
-            arioSdk: {
-              test: /[\\/]node_modules[\\/]@ar\.io[\\/]/,
-              name: 'ario-sdk',
-              chunks: 'async',
-              priority: 20,
-              minSize: 0,
-              maxSize: 300000,
-              reuseExistingChunk: false,
-            },
-            // Keep other vendor chunks small and separate
             vendor: {
               test: /[\\/]node_modules[\\/]/,
               name(module) {
