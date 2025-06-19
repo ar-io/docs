@@ -17,7 +17,11 @@ export default function WayfinderLink({
   ...props
 }: WayfinderLinkProps) {
   const [processedHref, setProcessedHref] = useState<string | null>(null)
-  const { isLoading: gatewaysLoading, defaultGateway } = useGateways()
+  const {
+    wayfinder,
+    isLoading: gatewaysLoading,
+    defaultGateway,
+  } = useGateways()
 
   // Check if this was originally an ar:// link
   const isArweaveLink =
@@ -31,7 +35,7 @@ export default function WayfinderLink({
     isArweaveLink
 
   useEffect(() => {
-    const processUrl = () => {
+    const processUrl = async () => {
       // Ensure href is a string before processing
       if (!href || typeof href !== 'string') {
         setProcessedHref(href || null)
@@ -50,23 +54,32 @@ export default function WayfinderLink({
         return
       }
 
-      // Simple ar:// link processing without SDK
-      if (!gatewaysLoading && href.startsWith('ar://')) {
+      // Use real Wayfinder for ar:// links
+      if (!gatewaysLoading && wayfinder && href.startsWith('ar://')) {
         try {
-          // Extract the path after ar://
-          const arPath = href.slice(5) // Remove 'ar://'
+          const result = await wayfinder.resolveUrl({
+            originalUrl: href,
+          })
 
-          // Simple conversion: ar://txid -> https://gateway/txid
-          const resolvedUrl = `https://${defaultGateway}/${arPath}`
-
-          setProcessedHref(resolvedUrl)
-          console.log(`Resolved ar:// link: ${href} -> ${resolvedUrl}`)
+          setProcessedHref(result.href)
+          console.log(`Wayfinder resolved: ${href} -> ${result.href}`)
         } catch (error) {
-          console.warn('Failed to resolve ar:// link:', error)
-          // Fallback to arweave.net
+          console.warn('Error processing URL with Wayfinder:', error)
+          // Fallback to simple resolution
           const arPath = href.slice(5)
-          setProcessedHref(`https://arweave.net/${arPath}`)
+          const fallbackUrl = `https://${defaultGateway}/${arPath}`
+          setProcessedHref(fallbackUrl)
+          console.warn('Using fallback URL construction:', fallbackUrl)
         }
+        return
+      }
+
+      // Fallback for when Wayfinder is not available
+      if (!gatewaysLoading && !wayfinder && href.startsWith('ar://')) {
+        const arPath = href.slice(5)
+        const fallbackUrl = `https://${defaultGateway}/${arPath}`
+        setProcessedHref(fallbackUrl)
+        console.warn('Wayfinder not available, using fallback:', fallbackUrl)
         return
       }
 
@@ -75,7 +88,7 @@ export default function WayfinderLink({
     }
 
     processUrl()
-  }, [href, gatewaysLoading, defaultGateway])
+  }, [href, gatewaysLoading, wayfinder, defaultGateway])
 
   // Show loading state while processing
   if (gatewaysLoading || processedHref === null) {
