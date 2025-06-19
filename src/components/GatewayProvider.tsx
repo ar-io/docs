@@ -1,6 +1,12 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
+import {
+  Wayfinder,
+  PreferredWithFallbackRoutingStrategy,
+  FastestPingRoutingStrategy,
+  StaticGatewaysProvider,
+} from '@ar.io/wayfinder-core'
 
 type Gateway = {
   settings?: {
@@ -14,8 +20,8 @@ type Gateway = {
 type GatewayContextType = {
   gateways: Gateway[]
   defaultGateway: string
-  isLoading: boolean
-  wayfinderReady: boolean
+  wayfinder: Wayfinder | null
+  isReady: boolean
 }
 
 const FALLBACK_GATEWAY = 'arweave.net'
@@ -23,8 +29,8 @@ const FALLBACK_GATEWAY = 'arweave.net'
 const GatewayContext = createContext<GatewayContextType>({
   gateways: [],
   defaultGateway: FALLBACK_GATEWAY,
-  isLoading: false,
-  wayfinderReady: false,
+  wayfinder: null,
+  isReady: false,
 })
 
 // Extract root gateway domain from subdomains
@@ -48,84 +54,103 @@ const getGatewayDomain = (hostname: string) => {
   return hostname
 }
 
-// Simple txId validation (43 characters, alphanumeric + - and _)
-const isValidTxId = (str: string): boolean => {
-  return /^[a-zA-Z0-9_-]{43}$/.test(str)
-}
+// Global wayfinder instance - singleton
+let globalWayfinder: Wayfinder | null = null
 
-// Simple ARNS name validation (basic domain-like format)
-const isValidArnsName = (str: string): boolean => {
-  return (
-    /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$/.test(str) &&
-    str.length > 0 &&
-    str.length <= 51
-  )
-}
-
-export function GatewayProvider({ children }: { children: React.ReactNode }) {
-  const [isClient, setIsClient] = useState(false)
-  const [wayfinderReady, setWayfinderReady] = useState(false)
-
-  useEffect(() => {
-    setIsClient(true)
-
-    // Try to load wayfinder-react
-    const loadWayfinder = async () => {
-      try {
-        await import('@ar.io/wayfinder-react')
-        setWayfinderReady(true)
-        console.log('✅ Wayfinder-react loaded successfully')
-      } catch (error) {
-        console.warn('⚠️ Failed to load wayfinder-react:', error)
-        setWayfinderReady(false)
-      }
-    }
-
-    loadWayfinder()
-  }, [])
-
-  // During SSR, provide basic context
-  if (!isClient) {
-    return (
-      <GatewayContext.Provider
-        value={{
-          gateways: [],
-          defaultGateway: FALLBACK_GATEWAY,
-          isLoading: true,
-          wayfinderReady: false,
-        }}
-      >
-        {children}
-      </GatewayContext.Provider>
-    )
+// Create the global wayfinder instance
+async function createGlobalWayfinder(): Promise<Wayfinder> {
+  if (globalWayfinder) {
+    return globalWayfinder
   }
 
   const currentDomain = window.location.hostname
   const gatewayDomain = getGatewayDomain(currentDomain)
 
-  // Set up gateway info
-  const availableGateways: Gateway[] = [
-    {
-      settings: { fqdn: gatewayDomain },
-      weights: { compositeWeight: 2 },
-    },
-  ]
+  console.log('🚀 Creating global AR.IO Wayfinder for gateway:', gatewayDomain)
 
-  if (gatewayDomain !== FALLBACK_GATEWAY) {
-    availableGateways.push({
-      settings: { fqdn: FALLBACK_GATEWAY },
-      weights: { compositeWeight: 1 },
-    })
+  const currentGatewayUrl = `https://${gatewayDomain}`
+  const fallbackGatewayUrl = `https://${FALLBACK_GATEWAY}`
+
+  // Set up gateways for preferred-with-fallback strategy
+  const gateways = []
+
+  // For localhost, only use fallback gateway
+  if (gatewayDomain === 'localhost') {
+    gateways.push(fallbackGatewayUrl)
+  } else {
+    // Add current gateway as preferred
+    gateways.push(currentGatewayUrl)
+    // Always add fallback gateway
+    if (gatewayDomain !== FALLBACK_GATEWAY) {
+      gateways.push(fallbackGatewayUrl)
+    }
   }
+
+  globalWayfinder = new Wayfinder({
+    gatewaysProvider: new StaticGatewaysProvider({
+      gateways,
+    }),
+    routingSettings: {
+      strategy: new PreferredWithFallbackRoutingStrategy({
+        preferredGateway:
+          gatewayDomain === 'localhost'
+            ? fallbackGatewayUrl
+            : currentGatewayUrl,
+        fallbackStrategy: new FastestPingRoutingStrategy({
+          timeoutMs: 2000,
+        }),
+      }),
+    },
+  })
+
+  console.log('✅ Global Wayfinder created successfully')
+  return globalWayfinder
+}
+
+export function GatewayProvider({ children }: { children: React.ReactNode }) {
+  const [gateways, setGateways] = useState<Gateway[]>([])
+  const [defaultGateway, setDefaultGateway] = useState(FALLBACK_GATEWAY)
+  const [wayfinder, setWayfinder] = useState<Wayfinder | null>(null)
+  const [isReady, setIsReady] = useState(false)
+
+  useEffect(() => {
+    const currentDomain = window.location.hostname
+    const gatewayDomain = getGatewayDomain(currentDomain)
+
+    // Set up basic gateway info immediately
+    const availableGateways: Gateway[] = [
+      {
+        settings: { fqdn: gatewayDomain },
+        weights: { compositeWeight: 2 },
+      },
+    ]
+
+    if (gatewayDomain !== FALLBACK_GATEWAY) {
+      availableGateways.push({
+        settings: { fqdn: FALLBACK_GATEWAY },
+        weights: { compositeWeight: 1 },
+      })
+    }
+
+    setGateways(availableGateways)
+    setDefaultGateway(gatewayDomain)
+
+    // Create the global wayfinder instance
+    createGlobalWayfinder()
+      .then((wayfinderInstance) => {
+        setWayfinder(wayfinderInstance)
+        setIsReady(true)
+        console.log('✅ Gateway provider ready with global wayfinder')
+      })
+      .catch((error) => {
+        console.error('❌ Failed to create global wayfinder:', error)
+        setIsReady(false)
+      })
+  }, [])
 
   return (
     <GatewayContext.Provider
-      value={{
-        gateways: availableGateways,
-        defaultGateway: gatewayDomain,
-        isLoading: false,
-        wayfinderReady,
-      }}
+      value={{ gateways, defaultGateway, wayfinder, isReady }}
     >
       {children}
     </GatewayContext.Provider>
@@ -135,4 +160,4 @@ export function GatewayProvider({ children }: { children: React.ReactNode }) {
 export const useGateways = () => useContext(GatewayContext)
 
 // Export utilities for use in other components
-export { isValidTxId, isValidArnsName, getGatewayDomain }
+export { getGatewayDomain }

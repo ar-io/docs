@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import React, { useState, useEffect } from 'react'
+import { useGateways } from '@/components/GatewayProvider'
 import { SquareArrowOutUpRight } from 'lucide-react'
 
 interface WayfinderLinkProps {
@@ -15,46 +16,86 @@ export default function WayfinderLink({
   children,
   ...props
 }: WayfinderLinkProps) {
+  const [resolvedHref, setResolvedHref] = useState<string>(href || '#')
   const [isClient, setIsClient] = useState(false)
   const [isExternalLink, setIsExternalLink] = useState(false)
+  const { wayfinder, isReady } = useGateways()
+
+  // Check if this is an ar:// link
+  const isArweaveLink = Boolean(href?.startsWith('ar://'))
 
   useEffect(() => {
     setIsClient(true)
   }, [])
 
+  // Resolve ar:// URLs using wayfinder
   useEffect(() => {
-    if (!href) {
-      setIsExternalLink(false)
-      return
+    const resolveUrl = async () => {
+      if (!href) {
+        setResolvedHref('#')
+        return
+      }
+
+      // If not an ar:// link, use as-is
+      if (!isArweaveLink) {
+        setResolvedHref(href)
+        return
+      }
+
+      // If wayfinder is not ready, keep the ar:// URL for now
+      if (!wayfinder || !isReady) {
+        setResolvedHref(href)
+        return
+      }
+
+      try {
+        // Use wayfinder to resolve the URL
+        const resolved = await wayfinder.resolveUrl({ originalUrl: href })
+        const resolvedStr = resolved.toString()
+        console.log('✅ Wayfinder resolved:', href, '->', resolvedStr)
+        setResolvedHref(resolvedStr)
+      } catch (error) {
+        console.warn('⚠️ Wayfinder resolution failed for:', href, error)
+        // Keep the original ar:// URL if resolution fails
+        setResolvedHref(href)
+      }
     }
 
-    if (href.startsWith('ar://')) {
-      // ar:// URLs are external links that wayfinder will handle
-      setIsExternalLink(true)
+    resolveUrl()
+  }, [href, wayfinder, isReady, isArweaveLink])
+
+  // Detect external links after resolution
+  useEffect(() => {
+    if (!isClient || !resolvedHref) return
+
+    const currentHostname = window.location.hostname
+    const isExternal =
+      resolvedHref.startsWith('http://') ||
+      resolvedHref.startsWith('https://') ||
+      resolvedHref.startsWith('//') ||
+      isArweaveLink
+
+    // For resolved ar:// links, check if they point to a different domain
+    if (isExternal && resolvedHref.startsWith('http')) {
+      try {
+        const url = new URL(resolvedHref)
+        setIsExternalLink(url.hostname !== currentHostname)
+      } catch {
+        setIsExternalLink(true)
+      }
     } else {
-      // Check if it's an external link
-      const isExternal =
-        href.startsWith('http://') ||
-        href.startsWith('https://') ||
-        href.startsWith('//') ||
-        (isClient &&
-          !href.startsWith('/') &&
-          !href.startsWith('#') &&
-          !href.startsWith('?'))
       setIsExternalLink(isExternal)
     }
-  }, [href, isClient])
+  }, [resolvedHref, isClient, isArweaveLink])
 
-  // Don't render anything if href is undefined
-  if (!href) {
-    return <span {...props}>{children}</span>
-  }
-
-  // For external links (including ar:// URLs), use regular anchor tag
-  if (isExternalLink) {
+  // For external links, use anchor tag with target="_blank"
+  if (
+    isExternalLink &&
+    (resolvedHref.startsWith('http') || resolvedHref.startsWith('//'))
+  ) {
     return (
       <a
-        href={href}
+        href={resolvedHref}
         target="_blank"
         rel="noopener noreferrer"
         className="inline-flex items-center gap-1"
@@ -68,8 +109,11 @@ export default function WayfinderLink({
 
   // For internal links, use Next.js Link
   return (
-    <Link href={href} {...props}>
+    <Link href={resolvedHref} {...props}>
       {children}
+      {isArweaveLink && (
+        <SquareArrowOutUpRight className="ml-1 inline h-3 w-3" />
+      )}
     </Link>
   )
 }

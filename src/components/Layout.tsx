@@ -17,10 +17,10 @@ import { GatewayProvider } from '@/components/GatewayProvider'
 
 export function Layout({
   children,
-  allSections,
+  allSections = {},
 }: {
   children: React.ReactNode
-  allSections: Record<string, Array<Section>>
+  allSections?: Record<string, Array<Section>>
 }) {
   let pathname = usePathname()
 
