@@ -150,8 +150,9 @@ function LoadingIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
 }
 
 function HighlightQuery({ text, query }: { text: string; query: string }) {
+  const HighlighterComponent = Highlighter as any
   return (
-    <Highlighter
+    <HighlighterComponent
       highlightClassName="underline bg-transparent text-emerald-500"
       searchWords={[query]}
       autoEscape={true}
@@ -180,7 +181,7 @@ function SearchResult({
   )?.title
 
   let hierarchy = [sectionTitle, result.pageTitle, result.sectionTitle].filter(
-    (x): x is string => typeof x === 'string'
+    (x): x is string => typeof x === 'string',
   )
 
   return (
@@ -225,7 +226,7 @@ function SearchResult({
         </div>
       )}
       {result.preview && (
-        <div className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2">
+        <div className="mt-2 line-clamp-2 text-sm text-zinc-600 dark:text-zinc-400">
           <HighlightQuery text={result.preview} query={query} />
         </div>
       )}
