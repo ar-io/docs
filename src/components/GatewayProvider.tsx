@@ -114,41 +114,8 @@ export function GatewayProvider({ children }: { children: React.ReactNode }) {
   const [isReady, setIsReady] = useState(false)
 
   useEffect(() => {
-    setIsClient(true)
-
-    // Try to load wayfinder-react
-    const loadWayfinder = async () => {
-      try {
-        await import('@ar.io/wayfinder-react')
-        setWayfinderReady(true)
-        console.log('✅ Wayfinder-react loaded successfully')
-      } catch (error) {
-        console.warn('⚠️ Failed to load wayfinder-react:', error)
-        setWayfinderReady(false)
-      }
-    }
-
-    loadWayfinder()
-  }, [])
-
-  // During SSR, provide basic context
-  if (!isClient) {
-    return (
-      <GatewayContext.Provider
-        value={{
-          gateways: [],
-          defaultGateway: FALLBACK_GATEWAY,
-          isLoading: true,
-          wayfinderReady: false,
-        }}
-      >
-        {children}
-      </GatewayContext.Provider>
-    )
-  }
-
-  const currentDomain = window.location.hostname
-  const gatewayDomain = getGatewayDomain(currentDomain)
+    const currentDomain = window.location.hostname
+    const gatewayDomain = getGatewayDomain(currentDomain)
 
     // Set up basic gateway info immediately
     const availableGateways: Gateway[] = [

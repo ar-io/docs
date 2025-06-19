@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import React, { useState, useEffect } from 'react'
+import { useGateways } from '@/components/GatewayProvider'
 import { SquareArrowOutUpRight } from 'lucide-react'
 
 interface WayfinderLinkProps {

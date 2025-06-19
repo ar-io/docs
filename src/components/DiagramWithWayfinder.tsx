@@ -1,5 +1,5 @@
 'use client'
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import Diagram from '@/components/Diagram'
 import { useGateways } from '@/components/GatewayProvider'
 
@@ -53,3 +53,5 @@ const DiagramWithWayfinder: React.FC<DiagramWithWayfinderProps> = ({
 
   return <Diagram src={resolvedSrc} title={title} description={description} />
 }
+
+export default DiagramWithWayfinder
