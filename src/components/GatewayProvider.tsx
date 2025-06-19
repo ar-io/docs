@@ -15,7 +15,7 @@ type GatewayContextType = {
   gateways: Gateway[]
   defaultGateway: string
   isLoading: boolean
-  wayfinder: any // The configured Wayfinder instance
+  wayfinder: any // The configured Wayfinder instance (null for now)
 }
 
 const FALLBACK_GATEWAY = 'arweave.net'
@@ -30,7 +30,7 @@ const GatewayContext = createContext<GatewayContextType>({
 export function GatewayProvider({ children }: { children: React.ReactNode }) {
   const [gateways, setGateways] = useState<Gateway[]>([])
   const [defaultGateway, setDefaultGateway] = useState(FALLBACK_GATEWAY)
-  const [wayfinder, setWayfinder] = useState<any>(null)
+  const [wayfinder] = useState<any>(null) // Simplified: no SDK for now
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -40,101 +40,35 @@ export function GatewayProvider({ children }: { children: React.ReactNode }) {
       return
     }
 
-    async function setupWayfinder() {
-      const currentDomain = window.location.hostname
+    // Simple setup without AR.IO SDK to avoid chunk loading issues
+    const currentDomain = window.location.hostname
 
-      try {
-        console.log('Setting up AR.IO SDK Wayfinder')
+    console.log(
+      `Setting up simple gateway provider with domain: ${currentDomain}`,
+    )
 
-        // Import AR.IO SDK only on client side using dynamic import but with traditional syntax
-        const sdkModule = await import('@ar.io/sdk/web')
-        const {
-          Wayfinder,
-          PreferredWithFallbackRoutingStrategy,
-          FastestPingRoutingStrategy,
-          StaticGatewaysProvider,
-        } = sdkModule
+    // Setup gateway list for context
+    const availableGateways: Gateway[] = [
+      {
+        settings: { fqdn: currentDomain },
+        weights: { compositeWeight: 2 },
+      },
+    ]
 
-        const currentGatewayUrl = `https://${currentDomain}`
-        const fallbackGatewayUrl = `https://${FALLBACK_GATEWAY}`
-
-        console.log(
-          `Setting up Wayfinder with preferred gateway: ${currentDomain}`,
-        )
-
-        // Create Wayfinder with PreferredWithFallbackRoutingStrategy
-        const wayfinderInstance = new Wayfinder({
-          routingStrategy: new PreferredWithFallbackRoutingStrategy({
-            preferredGateway: currentGatewayUrl,
-            fallbackStrategy: new FastestPingRoutingStrategy({
-              timeoutMs: 2000,
-            }),
-          }),
-          gatewaysProvider: new StaticGatewaysProvider({
-            gateways: [currentGatewayUrl, fallbackGatewayUrl],
-          }),
-        })
-
-        // Test the setup with a timeout
-        try {
-          const testPromise = wayfinderInstance.resolveUrl({
-            originalUrl: 'ar://test',
-          })
-          const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Wayfinder test timeout')), 3000),
-          )
-          await Promise.race([testPromise, timeoutPromise])
-        } catch (testError) {
-          console.warn(
-            'Wayfinder test failed, but continuing with real SDK:',
-            testError,
-          )
-        }
-
-        // Setup gateway list for context
-        const availableGateways: Gateway[] = [
-          {
-            settings: { fqdn: currentDomain },
-            weights: { compositeWeight: 2 },
-          },
-        ]
-
-        if (currentDomain !== FALLBACK_GATEWAY) {
-          availableGateways.push({
-            settings: { fqdn: FALLBACK_GATEWAY },
-            weights: { compositeWeight: 1 },
-          })
-        }
-
-        setWayfinder(wayfinderInstance)
-        setGateways(availableGateways)
-        setDefaultGateway(currentDomain)
-        setIsLoading(false)
-
-        console.log(
-          `✅ Wayfinder ready with preferred gateway: ${currentDomain}`,
-        )
-      } catch (error) {
-        console.error('Failed to setup AR.IO SDK Wayfinder:', error)
-
-        // If SDK fails, set up minimal fallback state without mock wayfinder
-        setWayfinder(null)
-        setGateways([
-          {
-            settings: { fqdn: FALLBACK_GATEWAY },
-            weights: { compositeWeight: 1 },
-          },
-        ])
-        setDefaultGateway(FALLBACK_GATEWAY)
-        setIsLoading(false)
-
-        console.log(
-          '⚠️ Wayfinder failed to initialize, components will use fallback behavior',
-        )
-      }
+    if (currentDomain !== FALLBACK_GATEWAY) {
+      availableGateways.push({
+        settings: { fqdn: FALLBACK_GATEWAY },
+        weights: { compositeWeight: 1 },
+      })
     }
 
-    setupWayfinder()
+    setGateways(availableGateways)
+    setDefaultGateway(currentDomain)
+    setIsLoading(false)
+
+    console.log(
+      `✅ Simple gateway provider ready with domain: ${currentDomain}`,
+    )
   }, [])
 
   return (

@@ -17,26 +17,21 @@ export default function WayfinderLink({
   ...props
 }: WayfinderLinkProps) {
   const [processedHref, setProcessedHref] = useState<string | null>(null)
-  const {
-    wayfinder,
-    isLoading: gatewaysLoading,
-    defaultGateway,
-  } = useGateways()
+  const { isLoading: gatewaysLoading, defaultGateway } = useGateways()
 
   // Check if this was originally an ar:// link
   const isArweaveLink =
     href && typeof href === 'string' && href.startsWith('ar://')
 
   // Check if the final processed href is an external link
-  const finalHref = processedHref || href
+  const finalHref = processedHref || href || ''
   const isExternalLink =
-    (finalHref &&
-      typeof finalHref === 'string' &&
-      (finalHref.startsWith('http://') || finalHref.startsWith('https://'))) ||
+    finalHref.startsWith('http://') ||
+    finalHref.startsWith('https://') ||
     isArweaveLink
 
   useEffect(() => {
-    const processUrl = async () => {
+    const processUrl = () => {
       // Ensure href is a string before processing
       if (!href || typeof href !== 'string') {
         setProcessedHref(href || null)
@@ -55,58 +50,53 @@ export default function WayfinderLink({
         return
       }
 
-      if (!gatewaysLoading && wayfinder) {
+      // Simple ar:// link processing without SDK
+      if (!gatewaysLoading && href.startsWith('ar://')) {
         try {
-          const result = await wayfinder.resolveUrl({
-            originalUrl: href,
-          })
+          // Extract the path after ar://
+          const arPath = href.slice(5) // Remove 'ar://'
 
-          setProcessedHref(result.href)
+          // Simple conversion: ar://txid -> https://gateway/txid
+          const resolvedUrl = `https://${defaultGateway}/${arPath}`
+
+          setProcessedHref(resolvedUrl)
+          console.log(`Resolved ar:// link: ${href} -> ${resolvedUrl}`)
         } catch (error) {
-          console.error('Error processing URL with Wayfinder:', error)
-          setProcessedHref(href) // Fallback to original href
+          console.warn('Failed to resolve ar:// link:', error)
+          // Fallback to arweave.net
+          const arPath = href.slice(5)
+          setProcessedHref(`https://arweave.net/${arPath}`)
         }
-      } else if (!gatewaysLoading && !wayfinder && href.startsWith('ar://')) {
-        // Fallback: If wayfinder is not available, construct URL manually using default gateway
-        const txId = href.replace('ar://', '')
-        const fallbackUrl = `https://${defaultGateway}/${txId}`
-        setProcessedHref(fallbackUrl)
-        console.warn(
-          'Wayfinder not available, using fallback URL construction for:',
-          href,
-        )
-      } else {
-        setProcessedHref(href) // Fallback while loading
+        return
       }
+
+      // Default case
+      setProcessedHref(href)
     }
 
     processUrl()
-  }, [href, gatewaysLoading, wayfinder, defaultGateway])
+  }, [href, gatewaysLoading, defaultGateway])
 
-  // Show loading state for non-standard links while processing
-  if (
-    !processedHref &&
-    href &&
-    typeof href === 'string' &&
-    !href.startsWith('/') &&
-    !href.startsWith('#') &&
-    !href.startsWith('http')
-  ) {
-    return <span className="text-zinc-500">Loading link...</span>
+  // Show loading state while processing
+  if (gatewaysLoading || processedHref === null) {
+    return <span>{children}</span>
+  }
+
+  const linkProps = {
+    ...props,
+    href: processedHref,
+    ...(isExternalLink && {
+      target: '_blank',
+      rel: 'noopener noreferrer',
+    }),
   }
 
   return (
-    <Link
-      href={finalHref || '#'}
-      target={isExternalLink ? '_blank' : '_self'}
-      {...props}
-    >
-      <span className="inline-flex items-center gap-1">
-        {children}
-        {isExternalLink && (
-          <SquareArrowOutUpRight className="ml-1 inline-block h-3 w-3" />
-        )}
-      </span>
+    <Link {...linkProps}>
+      {children}
+      {isExternalLink && (
+        <SquareArrowOutUpRight className="ml-1 inline h-3 w-3" />
+      )}
     </Link>
   )
 }

@@ -29,22 +29,8 @@ const nextConfig = {
   // experimental: {
   //   disableRuntimeJS: true
   // },
-  webpack: (config, { isServer, webpack }) => {
+  webpack: (config, { isServer }) => {
     config.plugins.push(new NodePolyfillPlugin())
-
-    // Exclude AR.IO SDK from server-side bundling
-    if (isServer) {
-      config.externals = config.externals || []
-      config.externals.push('@ar.io/sdk', '@ar.io/sdk/web')
-    }
-
-    // Add browser globals polyfill for AR.IO SDK
-    config.plugins.push(
-      new webpack.DefinePlugin({
-        'global.self': 'globalThis',
-        self: 'globalThis',
-      }),
-    )
 
     // Fix chunk loading for GitHub Pages with basePath
     if (
@@ -70,24 +56,6 @@ const nextConfig = {
           maxAsyncRequests: 30,
           maxInitialRequests: 30,
           cacheGroups: {
-            // Isolate AR.IO SDK completely
-            ariosdk: {
-              test: /[\\/]node_modules[\\/]@ar\.io[\\/]sdk/,
-              name: 'ario-sdk',
-              chunks: 'all',
-              priority: 50,
-              enforce: true,
-              reuseExistingChunk: false,
-            },
-            // Isolate uuid separately since it was causing issues
-            uuid: {
-              test: /[\\/]node_modules[\\/]uuid/,
-              name: 'uuid',
-              chunks: 'all',
-              priority: 45,
-              enforce: true,
-              reuseExistingChunk: false,
-            },
             // Keep other vendor chunks small and separate
             vendor: {
               test: /[\\/]node_modules[\\/]/,

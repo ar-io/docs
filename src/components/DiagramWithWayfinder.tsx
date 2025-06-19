@@ -15,54 +15,51 @@ const DiagramWithWayfinder: React.FC<DiagramWithWayfinderProps> = ({
   description,
 }) => {
   const [processedSrc, setProcessedSrc] = useState<string | null>(null)
-  const {
-    wayfinder,
-    isLoading: gatewaysLoading,
-    defaultGateway,
-  } = useGateways()
+  const { isLoading: gatewaysLoading, defaultGateway } = useGateways()
 
   useEffect(() => {
-    const processUrl = async () => {
-      if (!gatewaysLoading && wayfinder) {
-        try {
-          const result = await wayfinder.resolveUrl({
-            originalUrl: src,
-          })
-
-          setProcessedSrc(result.href)
-        } catch (error) {
-          console.error('Error resolving URL with Wayfinder:', error)
-          // Fallback to original src if wayfinder fails
-          setProcessedSrc(src)
-        }
-      } else if (!gatewaysLoading && !wayfinder && src.startsWith('ar://')) {
-        // Fallback: If wayfinder is not available, construct URL manually using default gateway
-        const txId = src.replace('ar://', '')
-        const fallbackUrl = `https://${defaultGateway}/${txId}`
-        setProcessedSrc(fallbackUrl)
-        console.warn(
-          'Wayfinder not available for diagram, using fallback URL construction for:',
-          src,
-        )
-      } else if (!gatewaysLoading) {
-        // For non-ar:// URLs, use as-is
+    const processUrl = () => {
+      // If not ar:// link, use as-is
+      if (!src.startsWith('ar://')) {
         setProcessedSrc(src)
+        return
+      }
+
+      // Simple ar:// link processing without SDK
+      if (!gatewaysLoading) {
+        try {
+          // Extract the path after ar://
+          const arPath = src.slice(5) // Remove 'ar://'
+
+          // Simple conversion: ar://txid -> https://gateway/txid
+          const resolvedUrl = `https://${defaultGateway}/${arPath}`
+
+          setProcessedSrc(resolvedUrl)
+          console.log(`Resolved ar:// diagram: ${src} -> ${resolvedUrl}`)
+        } catch (error) {
+          console.warn('Failed to resolve ar:// diagram:', error)
+          // Fallback to arweave.net
+          const arPath = src.slice(5)
+          setProcessedSrc(`https://arweave.net/${arPath}`)
+        }
       }
     }
 
     processUrl()
-  }, [src, wayfinder, gatewaysLoading, defaultGateway])
+  }, [src, gatewaysLoading, defaultGateway])
 
-  if (gatewaysLoading || !processedSrc) {
-    return (
-      <div className="text-center">
-        Loading image from the Permaweb via{' '}
-        <a href="/concepts/wayfinder">Wayfinder</a>...
-      </div>
-    )
+  // Show loading state while processing ar:// links
+  if (src.startsWith('ar://') && (gatewaysLoading || !processedSrc)) {
+    return <div>Loading diagram...</div>
   }
 
-  return <Diagram src={processedSrc} title={title} description={description} />
+  return (
+    <Diagram
+      src={processedSrc || src}
+      title={title}
+      description={description}
+    />
+  )
 }
 
 export default DiagramWithWayfinder
