@@ -35,23 +35,40 @@ const DiagramWithWayfinder: React.FC<DiagramWithWayfinderProps> = ({
         return
       }
 
+      // Extract gateway domain from current hostname
+      const getGatewayDomain = (hostname: string) => {
+        if (
+          hostname === 'localhost' ||
+          hostname.includes('localhost') ||
+          /^\d+\.\d+\.\d+\.\d+/.test(hostname)
+        ) {
+          return hostname
+        }
+        const parts = hostname.split('.')
+        if (parts.length >= 2) {
+          return parts.slice(-2).join('.')
+        }
+        return hostname
+      }
+
       // If wayfinder is not ready yet, use basic fallback
       if (!wayfinder || gatewaysLoading) {
         const txId = src.replace('ar://', '')
         // Only access window if we're on the client
         const currentDomain = isClient ? window.location.hostname : 'localhost'
+        const gatewayDomain = getGatewayDomain(currentDomain)
 
         // Handle ARNS names with subdomain resolution
         if (txId.match(/^[a-zA-Z0-9_-]+$/)) {
           if (
-            currentDomain !== 'localhost' &&
-            !currentDomain.includes('localhost')
+            gatewayDomain !== 'localhost' &&
+            !gatewayDomain.includes('localhost')
           ) {
-            setProcessedSrc(`https://${txId}.${currentDomain}`)
+            setProcessedSrc(`https://${txId}.${gatewayDomain}`)
             return
           }
         }
-        setProcessedSrc(`https://${currentDomain}/${txId}`)
+        setProcessedSrc(`https://${gatewayDomain}/${txId}`)
         return
       }
 
@@ -68,18 +85,19 @@ const DiagramWithWayfinder: React.FC<DiagramWithWayfinderProps> = ({
         const currentDomain = isClient
           ? window.location.hostname
           : defaultGateway
+        const gatewayDomain = getGatewayDomain(currentDomain)
 
         // Handle ARNS names with subdomain resolution
         if (txId.match(/^[a-zA-Z0-9_-]+$/)) {
           if (
-            currentDomain !== 'localhost' &&
-            !currentDomain.includes('localhost')
+            gatewayDomain !== 'localhost' &&
+            !gatewayDomain.includes('localhost')
           ) {
-            setProcessedSrc(`https://${txId}.${currentDomain}`)
+            setProcessedSrc(`https://${txId}.${gatewayDomain}`)
             return
           }
         }
-        setProcessedSrc(`https://${currentDomain}/${txId}`)
+        setProcessedSrc(`https://${gatewayDomain}/${txId}`)
       }
     }
 

@@ -62,23 +62,40 @@ export default function WayfinderLink({
         return
       }
 
+      // Extract gateway domain from current hostname
+      const getGatewayDomain = (hostname: string) => {
+        if (
+          hostname === 'localhost' ||
+          hostname.includes('localhost') ||
+          /^\d+\.\d+\.\d+\.\d+/.test(hostname)
+        ) {
+          return hostname
+        }
+        const parts = hostname.split('.')
+        if (parts.length >= 2) {
+          return parts.slice(-2).join('.')
+        }
+        return hostname
+      }
+
       // If wayfinder is not ready yet, use basic fallback
       if (!wayfinder || gatewaysLoading) {
         const txId = href.replace('ar://', '')
         // Only access window if we're on the client
         const currentDomain = isClient ? window.location.hostname : 'localhost'
+        const gatewayDomain = getGatewayDomain(currentDomain)
 
         // Handle ARNS names with subdomain resolution
         if (txId.match(/^[a-zA-Z0-9_-]+$/)) {
           if (
-            currentDomain !== 'localhost' &&
-            !currentDomain.includes('localhost')
+            gatewayDomain !== 'localhost' &&
+            !gatewayDomain.includes('localhost')
           ) {
-            setProcessedHref(`https://${txId}.${currentDomain}`)
+            setProcessedHref(`https://${txId}.${gatewayDomain}`)
             return
           }
         }
-        setProcessedHref(`https://${currentDomain}/${txId}`)
+        setProcessedHref(`https://${gatewayDomain}/${txId}`)
         return
       }
 
@@ -91,22 +108,22 @@ export default function WayfinderLink({
         console.warn('Wayfinder resolution failed:', error)
         // Fallback to basic URL construction
         const txId = href.replace('ar://', '')
-        // Only access window if we're on the client
         const currentDomain = isClient
           ? window.location.hostname
           : defaultGateway
+        const gatewayDomain = getGatewayDomain(currentDomain)
 
         // Handle ARNS names with subdomain resolution
         if (txId.match(/^[a-zA-Z0-9_-]+$/)) {
           if (
-            currentDomain !== 'localhost' &&
-            !currentDomain.includes('localhost')
+            gatewayDomain !== 'localhost' &&
+            !gatewayDomain.includes('localhost')
           ) {
-            setProcessedHref(`https://${txId}.${currentDomain}`)
+            setProcessedHref(`https://${txId}.${gatewayDomain}`)
             return
           }
         }
-        setProcessedHref(`https://${currentDomain}/${txId}`)
+        setProcessedHref(`https://${gatewayDomain}/${txId}`)
       }
     }
 

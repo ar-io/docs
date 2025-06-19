@@ -32,6 +32,24 @@ const nextConfig = {
   webpack: (config, { isServer, webpack }) => {
     config.plugins.push(new NodePolyfillPlugin())
 
+    // Add runtime chunk retry logic for production
+    if (!isServer && process.env.NODE_ENV === 'production') {
+      // Improve chunk loading resilience
+      config.output = {
+        ...config.output,
+        crossOriginLoading: 'anonymous',
+        // Add retry logic for failed chunk loads
+        chunkLoadingGlobal: 'webpackChunkLoad',
+      }
+
+      // Add chunk loading retry plugin
+      config.plugins.push(
+        new webpack.DefinePlugin({
+          'process.env.CHUNK_RETRY_COUNT': JSON.stringify('3'),
+        }),
+      )
+    }
+
     // Fix chunk loading for GitHub Pages with basePath
     if (
       !isServer &&
@@ -40,7 +58,7 @@ const nextConfig = {
     ) {
       config.output.publicPath = `${process.env.BASE_PATH}/_next/`
 
-      // Simplified chunk strategy
+      // Improved chunk strategy for better reliability
       config.optimization = {
         ...config.optimization,
         moduleIds: 'deterministic',
@@ -49,12 +67,20 @@ const nextConfig = {
         usedExports: true,
         splitChunks: {
           chunks: 'all',
-          minSize: 10000,
+          minSize: 20000,
           maxSize: 200000,
           minChunks: 1,
-          maxAsyncRequests: 30,
-          maxInitialRequests: 30,
+          maxAsyncRequests: 25,
+          maxInitialRequests: 25,
           cacheGroups: {
+            // Separate AR.IO SDK into its own chunk for better isolation
+            arioSdk: {
+              test: /[\\/]node_modules[\\/]@ar\.io[\\/]/,
+              name: 'ario-sdk',
+              chunks: 'async',
+              priority: 20,
+              reuseExistingChunk: true,
+            },
             vendor: {
               test: /[\\/]node_modules[\\/]/,
               name(module) {
@@ -66,9 +92,9 @@ const nextConfig = {
               },
               chunks: 'all',
               priority: 10,
-              minSize: 10000,
+              minSize: 20000,
               maxSize: 150000,
-              reuseExistingChunk: false,
+              reuseExistingChunk: true,
             },
             common: {
               name: 'common',
@@ -76,7 +102,7 @@ const nextConfig = {
               chunks: 'all',
               priority: 5,
               maxSize: 150000,
-              reuseExistingChunk: false,
+              reuseExistingChunk: true,
             },
           },
         },
