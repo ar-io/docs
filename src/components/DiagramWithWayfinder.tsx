@@ -15,38 +15,54 @@ const DiagramWithWayfinder: React.FC<DiagramWithWayfinderProps> = ({
   description,
 }) => {
   const [processedSrc, setProcessedSrc] = useState<string | null>(null)
-  const { isLoading: gatewaysLoading, defaultGateway } = useGateways()
+  const {
+    wayfinder,
+    isLoading: gatewaysLoading,
+    defaultGateway,
+  } = useGateways()
 
   useEffect(() => {
-    const processUrl = () => {
+    const processUrl = async () => {
       // If not ar:// link, use as-is
       if (!src.startsWith('ar://')) {
         setProcessedSrc(src)
         return
       }
 
-      // Simple ar:// link processing without SDK
-      if (!gatewaysLoading) {
+      // Use real Wayfinder for ar:// links
+      if (!gatewaysLoading && wayfinder) {
         try {
-          // Extract the path after ar://
-          const arPath = src.slice(5) // Remove 'ar://'
+          const result = await wayfinder.resolveUrl({
+            originalUrl: src,
+          })
 
-          // Simple conversion: ar://txid -> https://gateway/txid
-          const resolvedUrl = `https://${defaultGateway}/${arPath}`
-
-          setProcessedSrc(resolvedUrl)
-          console.log(`Resolved ar:// diagram: ${src} -> ${resolvedUrl}`)
+          setProcessedSrc(result.href)
+          console.log(`Wayfinder resolved diagram: ${src} -> ${result.href}`)
         } catch (error) {
-          console.warn('Failed to resolve ar:// diagram:', error)
-          // Fallback to arweave.net
+          console.warn('Error processing diagram URL with Wayfinder:', error)
+          // Fallback to simple resolution
           const arPath = src.slice(5)
-          setProcessedSrc(`https://arweave.net/${arPath}`)
+          const fallbackUrl = `https://${defaultGateway}/${arPath}`
+          setProcessedSrc(fallbackUrl)
+          console.warn('Using fallback diagram URL:', fallbackUrl)
         }
+        return
+      }
+
+      // Fallback for when Wayfinder is not available
+      if (!gatewaysLoading && !wayfinder) {
+        const arPath = src.slice(5)
+        const fallbackUrl = `https://${defaultGateway}/${arPath}`
+        setProcessedSrc(fallbackUrl)
+        console.warn(
+          'Wayfinder not available for diagram, using fallback:',
+          fallbackUrl,
+        )
       }
     }
 
     processUrl()
-  }, [src, gatewaysLoading, defaultGateway])
+  }, [src, gatewaysLoading, wayfinder, defaultGateway])
 
   // Show loading state while processing ar:// links
   if (src.startsWith('ar://') && (gatewaysLoading || !processedSrc)) {
