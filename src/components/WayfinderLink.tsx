@@ -16,7 +16,9 @@ export default function WayfinderLink({
   children,
   ...props
 }: WayfinderLinkProps) {
-  const [processedHref, setProcessedHref] = useState<string | null>(null)
+  const [processedHref, setProcessedHref] = useState<string>(href || '#')
+  const [isClient, setIsClient] = useState(false)
+  const [isExternalLink, setIsExternalLink] = useState(false)
   const {
     wayfinder,
     isLoading: gatewaysLoading,
@@ -27,87 +29,97 @@ export default function WayfinderLink({
   const isArweaveLink =
     href && typeof href === 'string' && href.startsWith('ar://')
 
-  // Check if the final processed href is an external link
-  const finalHref = processedHref || href || ''
-  const isExternalLink =
-    finalHref.startsWith('http://') ||
-    finalHref.startsWith('https://') ||
-    isArweaveLink
+  // Set client-side flag
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  // Update external link detection when processedHref changes
+  useEffect(() => {
+    if (!isClient) return
+
+    const currentHostname = window.location.hostname
+    const isExternal =
+      processedHref &&
+      (processedHref.startsWith('http://') ||
+        processedHref.startsWith('https://')) &&
+      !processedHref.includes(currentHostname)
+
+    setIsExternalLink(Boolean(isExternal))
+  }, [processedHref, isClient])
 
   useEffect(() => {
     const processUrl = async () => {
-      // Ensure href is a string before processing
-      if (!href || typeof href !== 'string') {
-        setProcessedHref(href || null)
+      // Always start with a valid href to prevent undefined errors
+      if (!href) {
+        setProcessedHref('#')
         return
       }
 
-      // Skip processing for internal links (starting with / or #)
-      if (href.startsWith('/') || href.startsWith('#')) {
-        setProcessedHref(href)
-        return
-      }
-
-      // Skip processing for non-ar:// external links
+      // If not ar:// link, use as-is
       if (!href.startsWith('ar://')) {
         setProcessedHref(href)
         return
       }
 
-      // Use real Wayfinder for ar:// links
-      if (!gatewaysLoading && wayfinder && href.startsWith('ar://')) {
-        try {
-          const result = await wayfinder.resolveUrl({
-            originalUrl: href,
-          })
+      // If wayfinder is not ready yet, use basic fallback
+      if (!wayfinder || gatewaysLoading) {
+        const txId = href.replace('ar://', '')
+        // Only access window if we're on the client
+        const currentDomain = isClient ? window.location.hostname : 'localhost'
 
-          setProcessedHref(result.href)
-          console.log(`Wayfinder resolved: ${href} -> ${result.href}`)
-        } catch (error) {
-          console.warn('Error processing URL with Wayfinder:', error)
-          // Fallback to simple resolution
-          const arPath = href.slice(5)
-          const fallbackUrl = `https://${defaultGateway}/${arPath}`
-          setProcessedHref(fallbackUrl)
-          console.warn('Using fallback URL construction:', fallbackUrl)
+        // Handle ARNS names with subdomain resolution
+        if (txId.match(/^[a-zA-Z0-9_-]+$/)) {
+          if (
+            currentDomain !== 'localhost' &&
+            !currentDomain.includes('localhost')
+          ) {
+            setProcessedHref(`https://${txId}.${currentDomain}`)
+            return
+          }
         }
+        setProcessedHref(`https://${currentDomain}/${txId}`)
         return
       }
 
-      // Fallback for when Wayfinder is not available
-      if (!gatewaysLoading && !wayfinder && href.startsWith('ar://')) {
-        const arPath = href.slice(5)
-        const fallbackUrl = `https://${defaultGateway}/${arPath}`
-        setProcessedHref(fallbackUrl)
-        console.warn('Wayfinder not available, using fallback:', fallbackUrl)
-        return
-      }
+      try {
+        // Use real Wayfinder for ar:// links
+        const resolvedUrl = await wayfinder.resolveUrl({ originalUrl: href })
+        console.log('Wayfinder resolved:', href, '->', resolvedUrl)
+        setProcessedHref(resolvedUrl || href)
+      } catch (error) {
+        console.warn('Wayfinder resolution failed:', error)
+        // Fallback to basic URL construction
+        const txId = href.replace('ar://', '')
+        // Only access window if we're on the client
+        const currentDomain = isClient
+          ? window.location.hostname
+          : defaultGateway
 
-      // Default case
-      setProcessedHref(href)
+        // Handle ARNS names with subdomain resolution
+        if (txId.match(/^[a-zA-Z0-9_-]+$/)) {
+          if (
+            currentDomain !== 'localhost' &&
+            !currentDomain.includes('localhost')
+          ) {
+            setProcessedHref(`https://${txId}.${currentDomain}`)
+            return
+          }
+        }
+        setProcessedHref(`https://${currentDomain}/${txId}`)
+      }
     }
 
     processUrl()
-  }, [href, gatewaysLoading, wayfinder, defaultGateway])
+  }, [href, wayfinder, gatewaysLoading, defaultGateway, isClient])
 
-  // Show loading state while processing
-  if (gatewaysLoading || processedHref === null) {
-    return <span>{children}</span>
-  }
-
-  const linkProps = {
-    ...props,
-    href: processedHref,
-    ...(isExternalLink && {
-      target: '_blank',
-      rel: 'noopener noreferrer',
-    }),
-  }
+  // Always render with a valid href
+  const finalHref = processedHref || href || '#'
 
   return (
-    <Link {...linkProps}>
+    <Link href={finalHref} {...props}>
       {children}
-      {isExternalLink && (
+      {(isArweaveLink || isExternalLink) && (
         <SquareArrowOutUpRight className="ml-1 inline h-3 w-3" />
       )}
     </Link>
