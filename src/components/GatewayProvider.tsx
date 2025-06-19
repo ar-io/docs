@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useState, useEffect } from 'react'
 
 type Gateway = {
   settings?: {
@@ -15,7 +15,7 @@ type GatewayContextType = {
   gateways: Gateway[]
   defaultGateway: string
   isLoading: boolean
-  wayfinder: any // The configured Wayfinder instance
+  wayfinderReady: boolean
 }
 
 const FALLBACK_GATEWAY = 'arweave.net'
@@ -23,123 +23,109 @@ const FALLBACK_GATEWAY = 'arweave.net'
 const GatewayContext = createContext<GatewayContextType>({
   gateways: [],
   defaultGateway: FALLBACK_GATEWAY,
-  isLoading: true,
-  wayfinder: null,
+  isLoading: false,
+  wayfinderReady: false,
 })
 
+// Extract root gateway domain from subdomains
+const getGatewayDomain = (hostname: string) => {
+  // If it's localhost or an IP, use as-is
+  if (
+    hostname === 'localhost' ||
+    hostname.includes('localhost') ||
+    /^\d+\.\d+\.\d+\.\d+/.test(hostname)
+  ) {
+    return hostname
+  }
+
+  // For domains like docs.atticus.black, extract atticus.black
+  const parts = hostname.split('.')
+  if (parts.length >= 2) {
+    // Return the last two parts (domain.tld)
+    return parts.slice(-2).join('.')
+  }
+
+  return hostname
+}
+
+// Simple txId validation (43 characters, alphanumeric + - and _)
+const isValidTxId = (str: string): boolean => {
+  return /^[a-zA-Z0-9_-]{43}$/.test(str)
+}
+
+// Simple ARNS name validation (basic domain-like format)
+const isValidArnsName = (str: string): boolean => {
+  return (
+    /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$/.test(str) &&
+    str.length > 0 &&
+    str.length <= 51
+  )
+}
+
 export function GatewayProvider({ children }: { children: React.ReactNode }) {
-  const [gateways, setGateways] = useState<Gateway[]>([])
-  const [defaultGateway, setDefaultGateway] = useState(FALLBACK_GATEWAY)
-  const [wayfinder, setWayfinder] = useState<any>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isClient, setIsClient] = useState(false)
+  const [wayfinderReady, setWayfinderReady] = useState(false)
 
   useEffect(() => {
-    // Only run on client side
-    if (typeof window === 'undefined') {
-      setIsLoading(false)
-      return
-    }
+    setIsClient(true)
 
-    async function setupWayfinder() {
-      const currentDomain = window.location.hostname
-
+    // Try to load wayfinder-react
+    const loadWayfinder = async () => {
       try {
-        console.log('Setting up AR.IO SDK Wayfinder')
-
-        // Import AR.IO SDK only on client side using dynamic import but with traditional syntax
-        const sdkModule = await import('@ar.io/sdk/web')
-        const {
-          Wayfinder,
-          PreferredWithFallbackRoutingStrategy,
-          FastestPingRoutingStrategy,
-          StaticGatewaysProvider,
-        } = sdkModule
-
-        const currentGatewayUrl = `https://${currentDomain}`
-        const fallbackGatewayUrl = `https://${FALLBACK_GATEWAY}`
-
-        console.log(
-          `Setting up Wayfinder with preferred gateway: ${currentDomain}`,
-        )
-
-        // Create Wayfinder with PreferredWithFallbackRoutingStrategy
-        const wayfinderInstance = new Wayfinder({
-          routingStrategy: new PreferredWithFallbackRoutingStrategy({
-            preferredGateway: currentGatewayUrl,
-            fallbackStrategy: new FastestPingRoutingStrategy({
-              timeoutMs: 2000,
-            }),
-          }),
-          gatewaysProvider: new StaticGatewaysProvider({
-            gateways: [currentGatewayUrl, fallbackGatewayUrl],
-          }),
-        })
-
-        // Test the setup with a timeout
-        try {
-          const testPromise = wayfinderInstance.resolveUrl({
-            originalUrl: 'ar://test',
-          })
-          const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Wayfinder test timeout')), 3000),
-          )
-          await Promise.race([testPromise, timeoutPromise])
-        } catch (testError) {
-          console.warn(
-            'Wayfinder test failed, but continuing with real SDK:',
-            testError,
-          )
-        }
-
-        // Setup gateway list for context
-        const availableGateways: Gateway[] = [
-          {
-            settings: { fqdn: currentDomain },
-            weights: { compositeWeight: 2 },
-          },
-        ]
-
-        if (currentDomain !== FALLBACK_GATEWAY) {
-          availableGateways.push({
-            settings: { fqdn: FALLBACK_GATEWAY },
-            weights: { compositeWeight: 1 },
-          })
-        }
-
-        setWayfinder(wayfinderInstance)
-        setGateways(availableGateways)
-        setDefaultGateway(currentDomain)
-        setIsLoading(false)
-
-        console.log(
-          `✅ Wayfinder ready with preferred gateway: ${currentDomain}`,
-        )
+        await import('@ar.io/wayfinder-react')
+        setWayfinderReady(true)
+        console.log('✅ Wayfinder-react loaded successfully')
       } catch (error) {
-        console.error('Failed to setup AR.IO SDK Wayfinder:', error)
-
-        // If SDK fails, set up minimal fallback state without mock wayfinder
-        setWayfinder(null)
-        setGateways([
-          {
-            settings: { fqdn: FALLBACK_GATEWAY },
-            weights: { compositeWeight: 1 },
-          },
-        ])
-        setDefaultGateway(FALLBACK_GATEWAY)
-        setIsLoading(false)
-
-        console.log(
-          '⚠️ Wayfinder failed to initialize, components will use fallback behavior',
-        )
+        console.warn('⚠️ Failed to load wayfinder-react:', error)
+        setWayfinderReady(false)
       }
     }
 
-    setupWayfinder()
+    loadWayfinder()
   }, [])
+
+  // During SSR, provide basic context
+  if (!isClient) {
+    return (
+      <GatewayContext.Provider
+        value={{
+          gateways: [],
+          defaultGateway: FALLBACK_GATEWAY,
+          isLoading: true,
+          wayfinderReady: false,
+        }}
+      >
+        {children}
+      </GatewayContext.Provider>
+    )
+  }
+
+  const currentDomain = window.location.hostname
+  const gatewayDomain = getGatewayDomain(currentDomain)
+
+  // Set up gateway info
+  const availableGateways: Gateway[] = [
+    {
+      settings: { fqdn: gatewayDomain },
+      weights: { compositeWeight: 2 },
+    },
+  ]
+
+  if (gatewayDomain !== FALLBACK_GATEWAY) {
+    availableGateways.push({
+      settings: { fqdn: FALLBACK_GATEWAY },
+      weights: { compositeWeight: 1 },
+    })
+  }
 
   return (
     <GatewayContext.Provider
-      value={{ gateways, defaultGateway, isLoading, wayfinder }}
+      value={{
+        gateways: availableGateways,
+        defaultGateway: gatewayDomain,
+        isLoading: false,
+        wayfinderReady,
+      }}
     >
       {children}
     </GatewayContext.Provider>
@@ -147,3 +133,6 @@ export function GatewayProvider({ children }: { children: React.ReactNode }) {
 }
 
 export const useGateways = () => useContext(GatewayContext)
+
+// Export utilities for use in other components
+export { isValidTxId, isValidArnsName, getGatewayDomain }
