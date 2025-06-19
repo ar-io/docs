@@ -1,14 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
-import {
-  Wayfinder,
-  PreferredWithFallbackRoutingStrategy,
-  FastestPingRoutingStrategy,
-  StaticGatewaysProvider,
-  arnsRegex,
-  txIdRegex,
-} from '@ar.io/wayfinder-core'
+import { createContext, useContext, useState, useEffect } from 'react'
 
 type Gateway = {
   settings?: {
@@ -23,7 +15,7 @@ type GatewayContextType = {
   gateways: Gateway[]
   defaultGateway: string
   isLoading: boolean
-  wayfinder: any // The configured Wayfinder instance
+  wayfinderReady: boolean
 }
 
 const FALLBACK_GATEWAY = 'arweave.net'
@@ -31,8 +23,8 @@ const FALLBACK_GATEWAY = 'arweave.net'
 const GatewayContext = createContext<GatewayContextType>({
   gateways: [],
   defaultGateway: FALLBACK_GATEWAY,
-  isLoading: true,
-  wayfinder: null,
+  isLoading: false,
+  wayfinderReady: false,
 })
 
 // Extract root gateway domain from subdomains
@@ -56,146 +48,84 @@ const getGatewayDomain = (hostname: string) => {
   return hostname
 }
 
-// Create fallback resolver with proper transaction ID vs ARNS name detection
-const createFallbackResolver = (gatewayDomain: string) => {
-  return {
-    resolveUrl: ({ originalUrl }: { originalUrl: string }) => {
-      if (originalUrl.startsWith('ar://')) {
-        const identifier = originalUrl.replace('ar://', '')
-
-        // Use the regex patterns from wayfinder-core to properly detect ARNS vs transaction IDs
-        if (arnsRegex.test(identifier)) {
-          // This is an ARNS name - use subdomain resolution
-          if (
-            gatewayDomain !== 'localhost' &&
-            !gatewayDomain.includes('localhost')
-          ) {
-            return Promise.resolve(`https://${identifier}.${gatewayDomain}`)
-          }
-          // For localhost, use path-based resolution for ARNS too
-          return Promise.resolve(`https://${gatewayDomain}/${identifier}`)
-        } else if (txIdRegex.test(identifier)) {
-          // This is a transaction ID - always use path-based resolution
-          return Promise.resolve(`https://${gatewayDomain}/${identifier}`)
-        } else {
-          // Unknown format, default to path-based
-          return Promise.resolve(`https://${gatewayDomain}/${identifier}`)
-        }
-      }
-      return Promise.resolve(originalUrl)
-    },
-  }
+// Simple txId validation (43 characters, alphanumeric + - and _)
+const isValidTxId = (str: string): boolean => {
+  return /^[a-zA-Z0-9_-]{43}$/.test(str)
 }
 
-// Wayfinder setup with proper error handling
-async function createWayfinder() {
-  const currentDomain = window.location.hostname
-  const gatewayDomain = getGatewayDomain(currentDomain)
-  const fallbackResolver = createFallbackResolver(gatewayDomain)
-
-  try {
-    console.log('Creating AR.IO Wayfinder for gateway:', gatewayDomain)
-
-    const currentGatewayUrl = `https://${gatewayDomain}`
-    const fallbackGatewayUrl = `https://${FALLBACK_GATEWAY}`
-
-    const wayfinder = new Wayfinder({
-      gatewaysProvider: new StaticGatewaysProvider({
-        gateways: [currentGatewayUrl, fallbackGatewayUrl],
-      }),
-      routingSettings: {
-        strategy: new PreferredWithFallbackRoutingStrategy({
-          preferredGateway: currentGatewayUrl,
-          fallbackStrategy: new FastestPingRoutingStrategy({
-            timeoutMs: 2000,
-          }),
-        }),
-      },
-    })
-
-    // Wrap wayfinder to ensure it never returns undefined and handle errors gracefully
-    const wrappedWayfinder = {
-      resolveUrl: async ({ originalUrl }: { originalUrl: string }) => {
-        try {
-          const result = await wayfinder.resolveUrl({ originalUrl })
-          const resultStr = result.toString()
-          console.log('✅ Wayfinder resolved:', originalUrl, '->', resultStr)
-          return resultStr
-        } catch (error) {
-          console.warn(
-            `Wayfinder failed for ${originalUrl}, using fallback:`,
-            error,
-          )
-          return fallbackResolver.resolveUrl({ originalUrl })
-        }
-      },
-    }
-
-    // Test wayfinder with a simple resolution
-    try {
-      await wrappedWayfinder.resolveUrl({ originalUrl: 'ar://test' })
-      console.log('✅ Wayfinder test successful')
-    } catch (testError) {
-      console.warn('Wayfinder test failed, but continuing:', testError)
-    }
-
-    return wrappedWayfinder
-  } catch (error) {
-    console.warn('Failed to create Wayfinder, using fallback resolver:', error)
-    return fallbackResolver
-  }
+// Simple ARNS name validation (basic domain-like format)
+const isValidArnsName = (str: string): boolean => {
+  return (
+    /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$/.test(str) &&
+    str.length > 0 &&
+    str.length <= 51
+  )
 }
 
 export function GatewayProvider({ children }: { children: React.ReactNode }) {
-  const [gateways, setGateways] = useState<Gateway[]>([])
-  const [defaultGateway, setDefaultGateway] = useState(FALLBACK_GATEWAY)
-  const [wayfinder, setWayfinder] = useState<any>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isClient, setIsClient] = useState(false)
+  const [wayfinderReady, setWayfinderReady] = useState(false)
 
   useEffect(() => {
-    const currentDomain = window.location.hostname
-    const gatewayDomain = getGatewayDomain(currentDomain)
+    setIsClient(true)
 
-    // Always set up basic gateway info immediately
-    const availableGateways: Gateway[] = [
-      {
-        settings: { fqdn: gatewayDomain },
-        weights: { compositeWeight: 2 },
-      },
-    ]
-
-    if (gatewayDomain !== FALLBACK_GATEWAY) {
-      availableGateways.push({
-        settings: { fqdn: FALLBACK_GATEWAY },
-        weights: { compositeWeight: 1 },
-      })
+    // Try to load wayfinder-react
+    const loadWayfinder = async () => {
+      try {
+        await import('@ar.io/wayfinder-react')
+        setWayfinderReady(true)
+        console.log('✅ Wayfinder-react loaded successfully')
+      } catch (error) {
+        console.warn('⚠️ Failed to load wayfinder-react:', error)
+        setWayfinderReady(false)
+      }
     }
 
-    setGateways(availableGateways)
-    setDefaultGateway(gatewayDomain)
-
-    // Attempt to create wayfinder
-    createWayfinder()
-      .then((wayfinderInstance) => {
-        setWayfinder(wayfinderInstance)
-        setIsLoading(false)
-        console.log(
-          `✅ Gateway provider ready with wayfinder for: ${gatewayDomain}`,
-        )
-      })
-      .catch((error) => {
-        console.error('Gateway provider failed to initialize wayfinder:', error)
-        // Create fallback resolver
-        const fallbackResolver = createFallbackResolver(gatewayDomain)
-        setWayfinder(fallbackResolver)
-        setIsLoading(false)
-        console.log('⚠️ Gateway provider using fallback resolver')
-      })
+    loadWayfinder()
   }, [])
+
+  // During SSR, provide basic context
+  if (!isClient) {
+    return (
+      <GatewayContext.Provider
+        value={{
+          gateways: [],
+          defaultGateway: FALLBACK_GATEWAY,
+          isLoading: true,
+          wayfinderReady: false,
+        }}
+      >
+        {children}
+      </GatewayContext.Provider>
+    )
+  }
+
+  const currentDomain = window.location.hostname
+  const gatewayDomain = getGatewayDomain(currentDomain)
+
+  // Set up gateway info
+  const availableGateways: Gateway[] = [
+    {
+      settings: { fqdn: gatewayDomain },
+      weights: { compositeWeight: 2 },
+    },
+  ]
+
+  if (gatewayDomain !== FALLBACK_GATEWAY) {
+    availableGateways.push({
+      settings: { fqdn: FALLBACK_GATEWAY },
+      weights: { compositeWeight: 1 },
+    })
+  }
 
   return (
     <GatewayContext.Provider
-      value={{ gateways, defaultGateway, isLoading, wayfinder }}
+      value={{
+        gateways: availableGateways,
+        defaultGateway: gatewayDomain,
+        isLoading: false,
+        wayfinderReady,
+      }}
     >
       {children}
     </GatewayContext.Provider>
@@ -203,3 +133,6 @@ export function GatewayProvider({ children }: { children: React.ReactNode }) {
 }
 
 export const useGateways = () => useContext(GatewayContext)
+
+// Export utilities for use in other components
+export { isValidTxId, isValidArnsName, getGatewayDomain }
