@@ -1,6 +1,14 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
+import {
+  Wayfinder,
+  PreferredWithFallbackRoutingStrategy,
+  FastestPingRoutingStrategy,
+  StaticGatewaysProvider,
+  arnsRegex,
+  txIdRegex,
+} from '@ar.io/wayfinder-core'
 
 type Gateway = {
   settings?: {
@@ -27,129 +35,91 @@ const GatewayContext = createContext<GatewayContextType>({
   wayfinder: null,
 })
 
-// Completely isolated wayfinder setup
-async function createWayfinder() {
-  const currentDomain = window.location.hostname
-
-  // Extract root gateway domain from subdomains
-  const getGatewayDomain = (hostname: string) => {
-    // If it's localhost or an IP, use as-is
-    if (
-      hostname === 'localhost' ||
-      hostname.includes('localhost') ||
-      /^\d+\.\d+\.\d+\.\d+/.test(hostname)
-    ) {
-      return hostname
-    }
-
-    // For domains like docs.atticus.black, extract atticus.black
-    const parts = hostname.split('.')
-    if (parts.length >= 2) {
-      // Return the last two parts (domain.tld)
-      return parts.slice(-2).join('.')
-    }
-
+// Extract root gateway domain from subdomains
+const getGatewayDomain = (hostname: string) => {
+  // If it's localhost or an IP, use as-is
+  if (
+    hostname === 'localhost' ||
+    hostname.includes('localhost') ||
+    /^\d+\.\d+\.\d+\.\d+/.test(hostname)
+  ) {
     return hostname
   }
 
-  const gatewayDomain = getGatewayDomain(currentDomain)
+  // For domains like docs.atticus.black, extract atticus.black
+  const parts = hostname.split('.')
+  if (parts.length >= 2) {
+    // Return the last two parts (domain.tld)
+    return parts.slice(-2).join('.')
+  }
 
-  // Fallback function for basic ar:// link resolution
-  const fallbackResolver = {
+  return hostname
+}
+
+// Create fallback resolver with proper transaction ID vs ARNS name detection
+const createFallbackResolver = (gatewayDomain: string) => {
+  return {
     resolveUrl: ({ originalUrl }: { originalUrl: string }) => {
       if (originalUrl.startsWith('ar://')) {
-        const txId = originalUrl.replace('ar://', '')
-        // Handle special case for ARNS names
-        if (txId.match(/^[a-zA-Z0-9_-]+$/)) {
-          // If it looks like an ARNS name and we're on a real gateway, try subdomain resolution
+        const identifier = originalUrl.replace('ar://', '')
+
+        // Use the regex patterns from wayfinder-core to properly detect ARNS vs transaction IDs
+        if (arnsRegex.test(identifier)) {
+          // This is an ARNS name - use subdomain resolution
           if (
             gatewayDomain !== 'localhost' &&
             !gatewayDomain.includes('localhost')
           ) {
-            return Promise.resolve(`https://${txId}.${gatewayDomain}`)
+            return Promise.resolve(`https://${identifier}.${gatewayDomain}`)
           }
+          // For localhost, use path-based resolution for ARNS too
+          return Promise.resolve(`https://${gatewayDomain}/${identifier}`)
+        } else if (txIdRegex.test(identifier)) {
+          // This is a transaction ID - always use path-based resolution
+          return Promise.resolve(`https://${gatewayDomain}/${identifier}`)
+        } else {
+          // Unknown format, default to path-based
+          return Promise.resolve(`https://${gatewayDomain}/${identifier}`)
         }
-        return Promise.resolve(`https://${gatewayDomain}/${txId}`)
       }
       return Promise.resolve(originalUrl)
     },
   }
+}
 
-  // Check if we've had repeated failures and should skip SDK loading temporarily
-  const failureCount = parseInt(
-    localStorage?.getItem('ar-io-sdk-failures') || '0',
-    10,
-  )
-  const lastFailure = parseInt(
-    localStorage?.getItem('ar-io-sdk-last-failure') || '0',
-    10,
-  )
-  const now = Date.now()
-
-  // Skip SDK loading if we've had 3+ failures in the last hour
-  if (failureCount >= 3 && now - lastFailure < 60 * 60 * 1000) {
-    console.log(
-      '⚠️ Skipping AR.IO SDK loading due to repeated failures, using fallback resolver',
-    )
-    return fallbackResolver
-  }
+// Wayfinder setup with proper error handling
+async function createWayfinder() {
+  const currentDomain = window.location.hostname
+  const gatewayDomain = getGatewayDomain(currentDomain)
+  const fallbackResolver = createFallbackResolver(gatewayDomain)
 
   try {
-    console.log('Attempting to load AR.IO SDK for Wayfinder...')
-
-    // Add timeout to the import itself with shorter timeout for production
-    const timeoutMs = process.env.NODE_ENV === 'production' ? 3000 : 10000
-    const importPromise = import('@ar.io/sdk/web')
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('SDK import timeout')), timeoutMs),
-    )
-
-    const sdk = (await Promise.race([importPromise, timeoutPromise])) as any
-
-    const {
-      Wayfinder,
-      PreferredWithFallbackRoutingStrategy,
-      FastestPingRoutingStrategy,
-      StaticGatewaysProvider,
-    } = sdk
-
-    console.log('AR.IO SDK loaded successfully, creating Wayfinder...')
+    console.log('Creating AR.IO Wayfinder for gateway:', gatewayDomain)
 
     const currentGatewayUrl = `https://${gatewayDomain}`
     const fallbackGatewayUrl = `https://${FALLBACK_GATEWAY}`
 
     const wayfinder = new Wayfinder({
-      routingStrategy: new PreferredWithFallbackRoutingStrategy({
-        preferredGateway: currentGatewayUrl,
-        fallbackStrategy: new FastestPingRoutingStrategy({
-          timeoutMs: 2000,
-        }),
-      }),
       gatewaysProvider: new StaticGatewaysProvider({
         gateways: [currentGatewayUrl, fallbackGatewayUrl],
       }),
+      routingSettings: {
+        strategy: new PreferredWithFallbackRoutingStrategy({
+          preferredGateway: currentGatewayUrl,
+          fallbackStrategy: new FastestPingRoutingStrategy({
+            timeoutMs: 2000,
+          }),
+        }),
+      },
     })
 
-    // Wrap wayfinder to ensure it never returns undefined
+    // Wrap wayfinder to ensure it never returns undefined and handle errors gracefully
     const wrappedWayfinder = {
       resolveUrl: async ({ originalUrl }: { originalUrl: string }) => {
         try {
           const result = await wayfinder.resolveUrl({ originalUrl })
-          // If wayfinder returns undefined or empty, use fallback
-          if (!result) {
-            console.warn(
-              `Wayfinder returned ${result} for ${originalUrl}, using fallback`,
-            )
-            return fallbackResolver.resolveUrl({ originalUrl })
-          }
-          // Convert URL object to string if needed
           const resultStr = result.toString()
-          if (resultStr === originalUrl) {
-            console.warn(
-              `Wayfinder returned original URL for ${originalUrl}, using fallback`,
-            )
-            return fallbackResolver.resolveUrl({ originalUrl })
-          }
+          console.log('✅ Wayfinder resolved:', originalUrl, '->', resultStr)
           return resultStr
         } catch (error) {
           console.warn(
@@ -161,41 +131,17 @@ async function createWayfinder() {
       },
     }
 
-    // Test wayfinder with a timeout
+    // Test wayfinder with a simple resolution
     try {
-      const testResult = await Promise.race([
-        wrappedWayfinder.resolveUrl({ originalUrl: 'ar://test' }),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Wayfinder test timeout')), 3000),
-        ),
-      ])
-      console.log('✅ Wayfinder test successful:', testResult)
-      // Clear any previous failure tracking on success
-      localStorage?.removeItem('ar-io-sdk-failures')
-      localStorage?.removeItem('ar-io-sdk-last-failure')
+      await wrappedWayfinder.resolveUrl({ originalUrl: 'ar://test' })
+      console.log('✅ Wayfinder test successful')
     } catch (testError) {
       console.warn('Wayfinder test failed, but continuing:', testError)
     }
 
     return wrappedWayfinder
   } catch (error) {
-    console.warn('Failed to load AR.IO SDK, using fallback resolver:', error)
-
-    // Track failures for production resilience
-    try {
-      const newFailureCount = failureCount + 1
-      localStorage?.setItem('ar-io-sdk-failures', newFailureCount.toString())
-      localStorage?.setItem('ar-io-sdk-last-failure', Date.now().toString())
-
-      if (newFailureCount >= 3) {
-        console.log(
-          '⚠️ AR.IO SDK has failed multiple times, will skip loading for 1 hour',
-        )
-      }
-    } catch (e) {
-      // Ignore localStorage errors
-    }
-
+    console.warn('Failed to create Wayfinder, using fallback resolver:', error)
     return fallbackResolver
   }
 }
@@ -208,23 +154,6 @@ export function GatewayProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const currentDomain = window.location.hostname
-
-    // Extract root gateway domain from subdomains - same logic as in createWayfinder
-    const getGatewayDomain = (hostname: string) => {
-      if (
-        hostname === 'localhost' ||
-        hostname.includes('localhost') ||
-        /^\d+\.\d+\.\d+\.\d+/.test(hostname)
-      ) {
-        return hostname
-      }
-      const parts = hostname.split('.')
-      if (parts.length >= 2) {
-        return parts.slice(-2).join('.')
-      }
-      return hostname
-    }
-
     const gatewayDomain = getGatewayDomain(currentDomain)
 
     // Always set up basic gateway info immediately
@@ -245,7 +174,7 @@ export function GatewayProvider({ children }: { children: React.ReactNode }) {
     setGateways(availableGateways)
     setDefaultGateway(gatewayDomain)
 
-    // Attempt to create wayfinder asynchronously
+    // Attempt to create wayfinder
     createWayfinder()
       .then((wayfinderInstance) => {
         setWayfinder(wayfinderInstance)
@@ -256,26 +185,8 @@ export function GatewayProvider({ children }: { children: React.ReactNode }) {
       })
       .catch((error) => {
         console.error('Gateway provider failed to initialize wayfinder:', error)
-        // Create a basic fallback resolver
-        const fallbackResolver = {
-          resolveUrl: ({ originalUrl }: { originalUrl: string }) => {
-            if (originalUrl.startsWith('ar://')) {
-              const txId = originalUrl.replace('ar://', '')
-              // Handle special case for ARNS names
-              if (txId.match(/^[a-zA-Z0-9_-]+$/)) {
-                // If it looks like an ARNS name and we're on a real gateway, try subdomain resolution
-                if (
-                  gatewayDomain !== 'localhost' &&
-                  !gatewayDomain.includes('localhost')
-                ) {
-                  return Promise.resolve(`https://${txId}.${gatewayDomain}`)
-                }
-              }
-              return Promise.resolve(`https://${gatewayDomain}/${txId}`)
-            }
-            return Promise.resolve(originalUrl)
-          },
-        }
+        // Create fallback resolver
+        const fallbackResolver = createFallbackResolver(gatewayDomain)
         setWayfinder(fallbackResolver)
         setIsLoading(false)
         console.log('⚠️ Gateway provider using fallback resolver')

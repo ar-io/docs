@@ -2,11 +2,57 @@
 import React, { useState, useEffect } from 'react'
 import Diagram from '@/components/Diagram'
 import { useGateways } from '@/components/GatewayProvider'
+import { arnsRegex, txIdRegex } from '@ar.io/wayfinder-core'
 
 interface DiagramWithWayfinderProps {
   src: string
   title?: string
   description?: string
+}
+
+// Extract root gateway domain from subdomains
+const getGatewayDomain = (hostname: string) => {
+  if (
+    hostname === 'localhost' ||
+    hostname.includes('localhost') ||
+    /^\d+\.\d+\.\d+\.\d+/.test(hostname)
+  ) {
+    return hostname
+  }
+  const parts = hostname.split('.')
+  if (parts.length >= 2) {
+    return parts.slice(-2).join('.')
+  }
+  return hostname
+}
+
+// Create fallback resolver with proper transaction ID vs ARNS name detection
+const createFallbackUrlResolver = (gatewayDomain: string) => {
+  return (originalUrl: string) => {
+    if (originalUrl.startsWith('ar://')) {
+      const identifier = originalUrl.replace('ar://', '')
+
+      // Use the regex patterns from wayfinder-core to properly detect ARNS vs transaction IDs
+      if (arnsRegex.test(identifier)) {
+        // This is an ARNS name - use subdomain resolution
+        if (
+          gatewayDomain !== 'localhost' &&
+          !gatewayDomain.includes('localhost')
+        ) {
+          return `https://${identifier}.${gatewayDomain}`
+        }
+        // For localhost, use path-based resolution for ARNS too
+        return `https://${gatewayDomain}/${identifier}`
+      } else if (txIdRegex.test(identifier)) {
+        // This is a transaction ID - always use path-based resolution
+        return `https://${gatewayDomain}/${identifier}`
+      } else {
+        // Unknown format, default to path-based
+        return `https://${gatewayDomain}/${identifier}`
+      }
+    }
+    return originalUrl
+  }
 }
 
 const DiagramWithWayfinder: React.FC<DiagramWithWayfinderProps> = ({
@@ -35,40 +81,12 @@ const DiagramWithWayfinder: React.FC<DiagramWithWayfinderProps> = ({
         return
       }
 
-      // Extract gateway domain from current hostname
-      const getGatewayDomain = (hostname: string) => {
-        if (
-          hostname === 'localhost' ||
-          hostname.includes('localhost') ||
-          /^\d+\.\d+\.\d+\.\d+/.test(hostname)
-        ) {
-          return hostname
-        }
-        const parts = hostname.split('.')
-        if (parts.length >= 2) {
-          return parts.slice(-2).join('.')
-        }
-        return hostname
-      }
-
       // If wayfinder is not ready yet, use basic fallback
       if (!wayfinder || gatewaysLoading) {
-        const txId = src.replace('ar://', '')
-        // Only access window if we're on the client
         const currentDomain = isClient ? window.location.hostname : 'localhost'
         const gatewayDomain = getGatewayDomain(currentDomain)
-
-        // Handle ARNS names with subdomain resolution
-        if (txId.match(/^[a-zA-Z0-9_-]+$/)) {
-          if (
-            gatewayDomain !== 'localhost' &&
-            !gatewayDomain.includes('localhost')
-          ) {
-            setProcessedSrc(`https://${txId}.${gatewayDomain}`)
-            return
-          }
-        }
-        setProcessedSrc(`https://${gatewayDomain}/${txId}`)
+        const fallbackResolver = createFallbackUrlResolver(gatewayDomain)
+        setProcessedSrc(fallbackResolver(src))
         return
       }
 
@@ -79,25 +97,13 @@ const DiagramWithWayfinder: React.FC<DiagramWithWayfinderProps> = ({
         setProcessedSrc(resolvedUrl || src)
       } catch (error) {
         console.warn('Wayfinder failed for diagram:', error)
-        // Fallback to basic URL construction
-        const txId = src.replace('ar://', '')
-        // Only access window if we're on the client
+        // Fallback to basic URL construction using proper logic
         const currentDomain = isClient
           ? window.location.hostname
           : defaultGateway
         const gatewayDomain = getGatewayDomain(currentDomain)
-
-        // Handle ARNS names with subdomain resolution
-        if (txId.match(/^[a-zA-Z0-9_-]+$/)) {
-          if (
-            gatewayDomain !== 'localhost' &&
-            !gatewayDomain.includes('localhost')
-          ) {
-            setProcessedSrc(`https://${txId}.${gatewayDomain}`)
-            return
-          }
-        }
-        setProcessedSrc(`https://${gatewayDomain}/${txId}`)
+        const fallbackResolver = createFallbackUrlResolver(gatewayDomain)
+        setProcessedSrc(fallbackResolver(src))
       }
     }
 
