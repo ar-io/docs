@@ -44,7 +44,6 @@ const getGatewayDomain = (hostname: string) => {
     return hostname
   }
 
-  // For domains like docs.atticus.black, extract atticus.black
   const parts = hostname.split('.')
   if (parts.length >= 2) {
     // Return the last two parts (domain.tld)
@@ -72,18 +71,11 @@ async function createGlobalWayfinder(): Promise<Wayfinder> {
   const fallbackGatewayUrl = `https://${FALLBACK_GATEWAY}`
 
   // Set up gateways for preferred-with-fallback strategy
-  const gateways = []
+  const gateways = [currentGatewayUrl]
 
-  // For localhost, only use fallback gateway
-  if (gatewayDomain === 'localhost') {
+  // Always add fallback gateway if it's different from current
+  if (gatewayDomain !== FALLBACK_GATEWAY) {
     gateways.push(fallbackGatewayUrl)
-  } else {
-    // Add current gateway as preferred
-    gateways.push(currentGatewayUrl)
-    // Always add fallback gateway
-    if (gatewayDomain !== FALLBACK_GATEWAY) {
-      gateways.push(fallbackGatewayUrl)
-    }
   }
 
   globalWayfinder = new Wayfinder({
@@ -92,14 +84,16 @@ async function createGlobalWayfinder(): Promise<Wayfinder> {
     }),
     routingSettings: {
       strategy: new PreferredWithFallbackRoutingStrategy({
-        preferredGateway:
-          gatewayDomain === 'localhost'
-            ? fallbackGatewayUrl
-            : currentGatewayUrl,
+        preferredGateway: currentGatewayUrl,
         fallbackStrategy: new FastestPingRoutingStrategy({
           timeoutMs: 2000,
         }),
       }),
+    },
+    telemetrySettings: {
+      enabled: true,
+      serviceName: 'AR.IO Docs Portal',
+      sampleRate: 0.1,
     },
   })
 

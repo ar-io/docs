@@ -32,6 +32,18 @@ const nextConfig = {
   webpack: (config, { isServer }) => {
     config.plugins.push(new NodePolyfillPlugin())
 
+    // Fix OpenTelemetry Node.js modules for client-side builds
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        async_hooks: false,
+        child_process: false,
+        fs: false,
+        net: false,
+        tls: false,
+      }
+    }
+
     // Fix chunk loading for GitHub Pages with basePath
     if (
       !isServer &&
