@@ -93,7 +93,7 @@ async function createGlobalWayfinder(): Promise<Wayfinder> {
     telemetrySettings: {
       enabled: true,
       serviceName: 'AR.IO Docs Portal',
-      sampleRate: 0.1,
+      sampleRate: 1,
     },
   })
 
