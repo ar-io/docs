@@ -1,0 +1,304 @@
+# Getting Started with Wayfinder
+
+Wayfinder provides decentralized and verified access to data stored on Arweave. This guide will help you get started with the core concepts and basic usage.
+
+## Installation
+
+Choose the package that fits your project:
+
+### Core Library (JavaScript/TypeScript)
+
+```bash
+npm install @ar.io/wayfinder-core @ar.io/sdk
+# or
+yarn add @ar.io/wayfinder-core @ar.io/sdk
+```
+
+### React Components
+
+```bash
+npm install @ar.io/wayfinder-react @ar.io/sdk
+# or
+yarn add @ar.io/wayfinder-react @ar.io/sdk
+```
+
+### Browser Extension
+
+Install from the Chrome Web Store or load as an unpacked extension during development.
+
+### CLI Tool
+
+```bash
+npm install -g @ar.io/wayfinder-cli
+# or
+npx @ar.io/wayfinder-cli
+```
+
+## Quick Start
+
+### Basic Usage with Default Settings
+
+The simplest way to get started is with the default configuration:
+
+```javascript
+import { Wayfinder } from '@ar.io/wayfinder-core'
+
+// Create wayfinder with default settings
+const wayfinder = new Wayfinder()
+
+// Fetch data using ar:// protocol
+try {
+  const response = await wayfinder.request('ar://transaction-id')
+  const data = await response.text()
+  console.log('Data:', data)
+} catch (error) {
+  console.error('Failed to fetch data:', error)
+}
+```
+
+### Custom Configuration
+
+For production applications, you'll want to configure gateway providers, routing strategies, and verification:
+
+```javascript
+import {
+  Wayfinder,
+  NetworkGatewaysProvider,
+  FastestPingRoutingStrategy,
+  HashVerificationStrategy,
+} from '@ar.io/wayfinder-core'
+import { ARIO } from '@ar.io/sdk'
+
+const wayfinder = new Wayfinder({
+  // Discover gateways from the AR.IO Network
+  gatewaysProvider: new NetworkGatewaysProvider({
+    ario: ARIO.mainnet(),
+    limit: 10,
+    sortBy: 'operatorStake',
+    sortOrder: 'desc',
+  }),
+
+  // Use fastest ping routing strategy
+  routingSettings: {
+    strategy: new FastestPingRoutingStrategy({
+      timeoutMs: 2000,
+    }),
+    events: {
+      onRoutingSucceeded: (event) => {
+        console.log('Selected gateway:', event.selectedGateway)
+      },
+    },
+  },
+
+  // Enable data verification
+  verificationSettings: {
+    enabled: true,
+    strategy: new HashVerificationStrategy({
+      trustedGateways: ['https://arweave.net'],
+    }),
+    events: {
+      onVerificationSucceeded: (event) => {
+        console.log('Verification passed for:', event.txId)
+      },
+    },
+  },
+
+  // Enable telemetry
+  telemetrySettings: {
+    enabled: true,
+    serviceName: 'my-app',
+    sampleRate: 0.1, // 10% sampling
+  },
+})
+```
+
+## Core Concepts
+
+### Gateway Providers
+
+Gateway providers discover and manage the list of available AR.IO gateways:
+
+- **NetworkGatewaysProvider**: Fetches gateways from the AR.IO Network
+- **StaticGatewaysProvider**: Uses a predefined list of gateways
+- **SimpleCacheGatewaysProvider**: Caches gateway lists for performance
+
+### Routing Strategies
+
+Routing strategies determine which gateway to use for each request:
+
+- **FastestPingRoutingStrategy**: Selects the gateway with lowest latency
+- **PreferredWithFallbackRoutingStrategy**: Tries a preferred gateway first
+- **RoundRobinRoutingStrategy**: Distributes requests evenly
+- **RandomRoutingStrategy**: Randomly selects gateways
+
+### Verification Strategies
+
+Verification strategies ensure data integrity:
+
+- **HashVerificationStrategy**: Verifies data against trusted gateway hashes
+- **SignatureVerificationStrategy**: Validates Arweave transaction signatures
+- **DataRootVerificationStrategy**: Verifies against transaction data roots
+
+## React Integration
+
+For React applications, use the wayfinder-react package:
+
+```jsx
+import { WayfinderProvider, useWayfinder } from '@ar.io/wayfinder-react'
+
+// Wrap your app with the provider
+function App() {
+  return (
+    <WayfinderProvider
+      gatewaysProvider={new NetworkGatewaysProvider({ ario: ARIO.mainnet() })}
+      routingSettings={{
+        strategy: new FastestPingRoutingStrategy({ timeoutMs: 2000 }),
+      }}
+    >
+      <MyComponent />
+    </WayfinderProvider>
+  )
+}
+
+// Use the hook in your components
+function MyComponent() {
+  const { wayfinder, isReady } = useWayfinder()
+  const [data, setData] = useState(null)
+
+  useEffect(() => {
+    if (isReady) {
+      wayfinder
+        .request('ar://transaction-id')
+        .then((response) => response.text())
+        .then(setData)
+    }
+  }, [wayfinder, isReady])
+
+  return <div>{data}</div>
+}
+```
+
+## Error Handling
+
+Wayfinder provides comprehensive error handling:
+
+```javascript
+try {
+  const response = await wayfinder.request('ar://transaction-id')
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+  }
+
+  const data = await response.text()
+} catch (error) {
+  if (error.name === 'TimeoutError') {
+    console.error('Request timed out')
+  } else if (error.name === 'VerificationError') {
+    console.error('Data verification failed')
+  } else {
+    console.error('Request failed:', error.message)
+  }
+}
+```
+
+## Event Monitoring
+
+Monitor wayfinder operations using events:
+
+```javascript
+// Listen to all events
+wayfinder.emitter.on('routing-succeeded', (event) => {
+  console.log('Gateway selected:', event.selectedGateway)
+})
+
+wayfinder.emitter.on('verification-succeeded', (event) => {
+  console.log('Data verified for transaction:', event.txId)
+})
+
+wayfinder.emitter.on('verification-failed', (event) => {
+  console.error('Verification failed:', event)
+})
+```
+
+## Performance Tips
+
+### Gateway Caching
+
+Use `SimpleCacheGatewaysProvider` to cache gateway lists:
+
+```javascript
+import {
+  SimpleCacheGatewaysProvider,
+  NetworkGatewaysProvider,
+} from '@ar.io/wayfinder-core'
+
+const gatewaysProvider = new SimpleCacheGatewaysProvider({
+  gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
+  ttlSeconds: 60 * 60, // Cache for 1 hour
+})
+```
+
+### Request Optimization
+
+For better performance:
+
+- Set appropriate timeouts for your use case
+- Use verification selectively (not all data needs verification)
+- Consider sampling rates for telemetry in production
+- Cache frequently accessed data
+
+### Telemetry Configuration
+
+Configure telemetry for production monitoring:
+
+```javascript
+telemetrySettings: {
+  enabled: true,
+  serviceName: 'my-production-app',
+  sampleRate: 0.01, // 1% sampling for production
+  exporterUrl: 'https://your-telemetry-endpoint.com',
+  apiKey: 'your-api-key'
+}
+```
+
+## Next Steps
+
+- Learn about [Core API](/wayfinder/core) for advanced usage
+- Explore [React Components](/wayfinder/react) for React integration
+- Check out [Routing Strategies](/wayfinder/routing-strategies) for optimal gateway selection
+- Set up [Verification](/wayfinder/verification-strategies) for data integrity
+- Configure [Telemetry](/wayfinder/core/telemetry) for monitoring
+
+## Common Patterns
+
+### Image Loading with Verification
+
+```javascript
+async function loadVerifiedImage(txId) {
+  const response = await wayfinder.request(`ar://${txId}`)
+  const blob = await response.blob()
+  return URL.createObjectURL(blob)
+}
+```
+
+### Batch Data Fetching
+
+```javascript
+async function fetchMultiple(txIds) {
+  return Promise.all(txIds.map((txId) => wayfinder.request(`ar://${txId}`)))
+}
+```
+
+### Progressive Enhancement
+
+```javascript
+// Fallback for environments without wayfinder support
+const fetchData = async (url) => {
+  if (url.startsWith('ar://') && typeof wayfinder !== 'undefined') {
+    return wayfinder.request(url)
+  } else {
+    return fetch(url.replace('ar://', 'https://arweave.net/'))
+  }
+}
+```

@@ -1,0 +1,216 @@
+import { Table } from '@/components/Table'
+
+# Routing Strategies
+
+Routing strategies determine how Wayfinder selects which AR.IO gateway to use for each request. Different strategies optimize for different goals like performance, reliability, or load distribution.
+
+## Available Strategies
+
+### [FastestPingRoutingStrategy](/wayfinder/routing-strategies/fastest-ping)
+
+Selects the gateway with the lowest latency based on HEAD request ping times. Performs health checks on all available gateways and chooses the fastest responding one.
+
+```javascript
+import { FastestPingRoutingStrategy } from '@ar.io/wayfinder-core'
+
+const strategy = new FastestPingRoutingStrategy({
+  timeoutMs: 2000,
+  pingPath: '/ar-io/info',
+  cacheResultsMs: 30000,
+})
+```
+
+**Best for**: Real-time applications, interactive user experiences, gaming
+**Trade-offs**: Higher initial latency due to ping tests, network overhead
+
+### [PreferredWithFallbackRoutingStrategy](/wayfinder/routing-strategies/preferred-with-fallback)
+
+Tries a preferred gateway first, falls back to another strategy if it fails. Ideal for applications with dedicated infrastructure that need reliable fallback options.
+
+```javascript
+import {
+  PreferredWithFallbackRoutingStrategy,
+  FastestPingRoutingStrategy,
+} from '@ar.io/wayfinder-core'
+
+const strategy = new PreferredWithFallbackRoutingStrategy({
+  preferredGateway: 'https://my-gateway.com',
+  fallbackStrategy: new FastestPingRoutingStrategy({ timeoutMs: 2000 }),
+  healthCheckEnabled: true,
+  circuitBreakerEnabled: true,
+})
+```
+
+**Best for**: Applications with dedicated gateway infrastructure, CDN setups, enterprise environments
+**Trade-offs**: Potential single point of failure if preferred gateway is down
+
+### [RoundRobinRoutingStrategy](/wayfinder/routing-strategies/round-robin)
+
+Distributes requests evenly across all available gateways in a cyclical manner. Ensures fair load distribution and prevents gateway overload.
+
+```javascript
+import { RoundRobinRoutingStrategy } from '@ar.io/wayfinder-core'
+
+const strategy = new RoundRobinRoutingStrategy({
+  gateways: [
+    'https://gateway-1.com',
+    'https://gateway-2.com',
+    'https://gateway-3.com',
+  ],
+  healthCheckEnabled: true,
+  weightedRotation: true,
+})
+```
+
+**Best for**: Load balancing, even gateway utilization, high-traffic applications
+**Trade-offs**: May route to slow gateways, doesn't optimize for performance
+
+### [RandomRoutingStrategy](/wayfinder/routing-strategies/random)
+
+Randomly selects a gateway from the available options. Provides simple load distribution without maintaining state or complex calculations.
+
+```javascript
+import { RandomRoutingStrategy } from '@ar.io/wayfinder-core'
+
+const strategy = new RandomRoutingStrategy({
+  healthCheckEnabled: true,
+  weightedSelection: true,
+  weights: new Map([
+    ['https://high-capacity.com', 3],
+    ['https://standard-capacity.com', 1],
+  ]),
+})
+```
+
+**Best for**: Simple load distribution, avoiding patterns, testing environments
+**Trade-offs**: No optimization for performance or reliability, unpredictable behavior
+
+## Strategy Comparison
+
+<Table>
+  <Table.Head>
+    <Table.Row>
+      <Table.Header>Strategy</Table.Header>
+      <Table.Header>Performance</Table.Header>
+      <Table.Header>Reliability</Table.Header>
+      <Table.Header>Load Distribution</Table.Header>
+      <Table.Header>Complexity</Table.Header>
+      <Table.Header>Initial Latency</Table.Header>
+    </Table.Row>
+  </Table.Head>
+  <Table.Body>
+    <Table.Row>
+      <Table.Cell>Fastest Ping</Table.Cell>
+      <Table.Cell>⭐⭐⭐⭐⭐</Table.Cell>
+      <Table.Cell>⭐⭐⭐⭐</Table.Cell>
+      <Table.Cell>⭐⭐</Table.Cell>
+      <Table.Cell>⭐⭐⭐</Table.Cell>
+      <Table.Cell>⭐⭐</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>Preferred + Fallback</Table.Cell>
+      <Table.Cell>⭐⭐⭐⭐</Table.Cell>
+      <Table.Cell>⭐⭐⭐</Table.Cell>
+      <Table.Cell>⭐</Table.Cell>
+      <Table.Cell>⭐⭐⭐⭐</Table.Cell>
+      <Table.Cell>⭐⭐⭐⭐</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>Round Robin</Table.Cell>
+      <Table.Cell>⭐⭐</Table.Cell>
+      <Table.Cell>⭐⭐⭐</Table.Cell>
+      <Table.Cell>⭐⭐⭐⭐⭐</Table.Cell>
+      <Table.Cell>⭐⭐</Table.Cell>
+      <Table.Cell>⭐⭐⭐⭐⭐</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>Random</Table.Cell>
+      <Table.Cell>⭐⭐</Table.Cell>
+      <Table.Cell>⭐⭐⭐</Table.Cell>
+      <Table.Cell>⭐⭐⭐⭐</Table.Cell>
+      <Table.Cell>⭐⭐⭐⭐⭐</Table.Cell>
+      <Table.Cell>⭐⭐⭐⭐⭐</Table.Cell>
+    </Table.Row>
+  </Table.Body>
+</Table>
+
+## Custom Strategies
+
+You can implement custom routing strategies by implementing the `RoutingStrategy` interface:
+
+```typescript
+import { RoutingStrategy } from '@ar.io/wayfinder-core'
+
+class WeightedRandomStrategy implements RoutingStrategy {
+  constructor(private weights: Map<string, number>) {}
+
+  async selectGateway({ gateways }) {
+    // Implement weighted random selection logic
+    const totalWeight = Array.from(this.weights.values()).reduce(
+      (a, b) => a + b,
+      0,
+    )
+    let random = Math.random() * totalWeight
+
+    for (const gateway of gateways) {
+      const weight = this.weights.get(gateway.toString()) || 1
+      random -= weight
+      if (random <= 0) {
+        return gateway
+      }
+    }
+
+    return gateways[0] // Fallback
+  }
+}
+```
+
+## Configuration Examples
+
+### Development Configuration
+
+```javascript
+// Prioritize fast iteration and debugging
+const wayfinder = new Wayfinder({
+  gatewaysProvider: new StaticGatewaysProvider({
+    gateways: ['https://arweave.net'],
+  }),
+  routingSettings: {
+    strategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
+  },
+})
+```
+
+### Production Configuration
+
+```javascript
+// Prioritize reliability and performance
+const wayfinder = new Wayfinder({
+  gatewaysProvider: new SimpleCacheGatewaysProvider({
+    gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
+    ttlSeconds: 60 * 60, // 1 hour cache
+  }),
+  routingSettings: {
+    strategy: new PreferredWithFallbackRoutingStrategy({
+      preferredGateway: 'https://your-primary-gateway.com',
+      fallbackStrategy: new FastestPingRoutingStrategy({ timeoutMs: 2000 }),
+    }),
+  },
+})
+```
+
+### High-Load Configuration
+
+```javascript
+// Distribute load evenly across gateways
+const gateways = await new NetworkGatewaysProvider({
+  ario: ARIO.mainnet(),
+}).getGateways()
+
+const wayfinder = new Wayfinder({
+  gatewaysProvider: new StaticGatewaysProvider({ gateways }),
+  routingSettings: {
+    strategy: new RoundRobinRoutingStrategy({ gateways }),
+  },
+})
+```

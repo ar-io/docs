@@ -1,0 +1,553 @@
+import { Table } from '@/components/Table'
+
+# SimpleCacheGatewaysProvider
+
+## Overview
+
+The `SimpleCacheGatewaysProvider` wraps another gateway provider and caches the results for improved performance. It reduces the overhead of repeated gateway discovery calls while maintaining the benefits of dynamic gateway providers.
+
+## Installation
+
+```bash
+npm install @ar.io/wayfinder-core
+```
+
+## Basic Usage
+
+```javascript
+import {
+  SimpleCacheGatewaysProvider,
+  NetworkGatewaysProvider,
+} from '@ar.io/wayfinder-core'
+import { ARIO } from '@ar.io/sdk'
+
+const provider = new SimpleCacheGatewaysProvider({
+  gatewaysProvider: new NetworkGatewaysProvider({
+    ario: ARIO.mainnet(),
+  }),
+  ttlSeconds: 60 * 60, // Cache for 1 hour
+  maxCacheSize: 1000,
+})
+
+const gateways = await provider.getGateways()
+console.log('Available gateways:', gateways)
+```
+
+## Configuration Options
+
+### SimpleCacheGatewaysProviderOptions
+
+```typescript
+interface SimpleCacheGatewaysProviderOptions {
+  gatewaysProvider: GatewaysProvider
+  ttlSeconds?: number
+  maxCacheSize?: number
+  enableBackgroundRefresh?: boolean
+  refreshInterval?: number
+}
+```
+
+### Parameters
+
+<Table>
+  <Table.Head>
+    <Table.Row>
+      <Table.Header>Parameter</Table.Header>
+      <Table.Header>Type</Table.Header>
+      <Table.Header>Default</Table.Header>
+      <Table.Header>Description</Table.Header>
+    </Table.Row>
+  </Table.Head>
+  <Table.Body>
+    <Table.Row>
+      <Table.Cell>`gatewaysProvider`</Table.Cell>
+      <Table.Cell>`GatewaysProvider`</Table.Cell>
+      <Table.Cell>Required</Table.Cell>
+      <Table.Cell>The provider to wrap and cache</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>`ttlSeconds`</Table.Cell>
+      <Table.Cell>`number`</Table.Cell>
+      <Table.Cell>`300`</Table.Cell>
+      <Table.Cell>Cache TTL in seconds (5 minutes)</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>`maxCacheSize`</Table.Cell>
+      <Table.Cell>`number`</Table.Cell>
+      <Table.Cell>`100`</Table.Cell>
+      <Table.Cell>Maximum number of cached entries</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>`enableBackgroundRefresh`</Table.Cell>
+      <Table.Cell>`boolean`</Table.Cell>
+      <Table.Cell>`false`</Table.Cell>
+      <Table.Cell>Enable background cache refresh</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>`refreshInterval`</Table.Cell>
+      <Table.Cell>`number`</Table.Cell>
+      <Table.Cell>`60000`</Table.Cell>
+      <Table.Cell>Background refresh interval in ms</Table.Cell>
+    </Table.Row>
+  </Table.Body>
+</Table>
+
+## Configuration Examples
+
+### Production Configuration
+
+```javascript
+import {
+  SimpleCacheGatewaysProvider,
+  NetworkGatewaysProvider,
+} from '@ar.io/wayfinder-core'
+import { ARIO } from '@ar.io/sdk'
+
+// Production caching with background refresh
+const provider = new SimpleCacheGatewaysProvider({
+  gatewaysProvider: new NetworkGatewaysProvider({
+    ario: ARIO.mainnet(),
+    minStake: 50000,
+    maxGateways: 20,
+  }),
+  ttlSeconds: 30 * 60, // 30 minute cache
+  maxCacheSize: 100,
+  enableBackgroundRefresh: true,
+  refreshInterval: 5 * 60 * 1000, // Refresh every 5 minutes
+})
+```
+
+### Development Configuration
+
+```javascript
+import {
+  SimpleCacheGatewaysProvider,
+  StaticGatewaysProvider,
+} from '@ar.io/wayfinder-core'
+
+// Development caching with short TTL
+const provider = new SimpleCacheGatewaysProvider({
+  gatewaysProvider: new StaticGatewaysProvider({
+    gateways: ['http://localhost:3000', 'https://arweave.net'],
+  }),
+  ttlSeconds: 60, // 1 minute cache for development
+  maxCacheSize: 10,
+})
+```
+
+### High-Performance Configuration
+
+```javascript
+import {
+  SimpleCacheGatewaysProvider,
+  NetworkGatewaysProvider,
+} from '@ar.io/wayfinder-core'
+import { ARIO } from '@ar.io/sdk'
+
+// Optimized for high-performance applications
+const provider = new SimpleCacheGatewaysProvider({
+  gatewaysProvider: new NetworkGatewaysProvider({
+    ario: ARIO.mainnet(),
+    minStake: 100000,
+    maxGateways: 10,
+  }),
+  ttlSeconds: 60 * 60, // 1 hour cache
+  maxCacheSize: 50,
+  enableBackgroundRefresh: true,
+  refreshInterval: 10 * 60 * 1000, // Background refresh every 10 minutes
+})
+```
+
+## Advanced Usage
+
+### Multi-Level Caching
+
+```javascript
+import {
+  SimpleCacheGatewaysProvider,
+  NetworkGatewaysProvider,
+  StaticGatewaysProvider,
+} from '@ar.io/wayfinder-core'
+import { ARIO } from '@ar.io/sdk'
+
+// Cache with fallback provider
+const provider = new SimpleCacheGatewaysProvider({
+  gatewaysProvider: new NetworkGatewaysProvider({
+    ario: ARIO.mainnet(),
+    minStake: 50000,
+  }),
+  ttlSeconds: 30 * 60,
+  fallbackProvider: new StaticGatewaysProvider({
+    gateways: ['https://arweave.net', 'https://ar-io.net'],
+  }),
+})
+```
+
+### Smart Cache with Metrics
+
+```javascript
+import { SimpleCacheGatewaysProvider } from '@ar.io/wayfinder-core'
+
+class MetricsAwareCacheProvider extends SimpleCacheGatewaysProvider {
+  constructor(options) {
+    super(options)
+    this.metrics = {
+      hits: 0,
+      misses: 0,
+      refreshes: 0,
+      errors: 0,
+    }
+  }
+
+  async getGateways() {
+    const startTime = Date.now()
+
+    try {
+      const gateways = await super.getGateways()
+
+      // Track cache hit/miss
+      if (this.isCacheHit()) {
+        this.metrics.hits++
+      } else {
+        this.metrics.misses++
+      }
+
+      return gateways
+    } catch (error) {
+      this.metrics.errors++
+      throw error
+    }
+  }
+
+  async refresh() {
+    try {
+      await super.refresh()
+      this.metrics.refreshes++
+    } catch (error) {
+      this.metrics.errors++
+      throw error
+    }
+  }
+
+  getMetrics() {
+    const total = this.metrics.hits + this.metrics.misses
+    return {
+      ...this.metrics,
+      hitRate: total > 0 ? this.metrics.hits / total : 0,
+      totalRequests: total,
+    }
+  }
+
+  resetMetrics() {
+    this.metrics = { hits: 0, misses: 0, refreshes: 0, errors: 0 }
+  }
+}
+
+// Usage
+const metricsProvider = new MetricsAwareCacheProvider({
+  gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
+  ttlSeconds: 300,
+})
+
+// Later, check metrics
+console.log('Cache metrics:', metricsProvider.getMetrics())
+```
+
+### Persistent Cache
+
+```javascript
+import { SimpleCacheGatewaysProvider } from '@ar.io/wayfinder-core'
+
+class PersistentCacheProvider extends SimpleCacheGatewaysProvider {
+  constructor(options) {
+    super(options)
+    this.storageKey = options.storageKey || 'wayfinder-gateway-cache'
+    this.loadFromStorage()
+  }
+
+  async getGateways() {
+    const gateways = await super.getGateways()
+    this.saveToStorage()
+    return gateways
+  }
+
+  loadFromStorage() {
+    if (typeof localStorage === 'undefined') return
+
+    try {
+      const stored = localStorage.getItem(this.storageKey)
+      if (stored) {
+        const { gateways, timestamp } = JSON.parse(stored)
+        const now = Date.now()
+
+        // Check if stored data is still valid
+        if (now - timestamp < this.options.ttlSeconds * 1000) {
+          this.cachedGateways = gateways
+          this.cacheTimestamp = timestamp
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load cache from storage:', error.message)
+    }
+  }
+
+  saveToStorage() {
+    if (typeof localStorage === 'undefined') return
+    if (!this.cachedGateways) return
+
+    try {
+      const data = {
+        gateways: this.cachedGateways,
+        timestamp: this.cacheTimestamp,
+      }
+      localStorage.setItem(this.storageKey, JSON.stringify(data))
+    } catch (error) {
+      console.warn('Failed to save cache to storage:', error.message)
+    }
+  }
+
+  clearStorage() {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(this.storageKey)
+    }
+  }
+}
+
+// Usage
+const persistentProvider = new PersistentCacheProvider({
+  gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
+  ttlSeconds: 60 * 60, // 1 hour
+  storageKey: 'my-app-gateways',
+})
+```
+
+## Methods
+
+### getGateways()
+
+Returns cached gateways or fetches from the underlying provider if cache is expired.
+
+```javascript
+const gateways = await provider.getGateways()
+console.log('Gateways:', gateways)
+```
+
+### refresh()
+
+Forces a refresh of the cache, bypassing TTL.
+
+```javascript
+await provider.refresh()
+console.log('Cache refreshed')
+```
+
+### clearCache()
+
+Clears the current cache.
+
+```javascript
+provider.clearCache()
+console.log('Cache cleared')
+```
+
+### getCacheInfo()
+
+Returns information about the current cache state.
+
+```javascript
+const info = provider.getCacheInfo()
+console.log('Cache info:', info)
+// { size: 1, lastUpdate: Date, ttl: 300, isExpired: false }
+```
+
+## Error Handling
+
+```javascript
+import { SimpleCacheGatewaysProvider } from '@ar.io/wayfinder-core'
+
+const provider = new SimpleCacheGatewaysProvider({
+  gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
+  ttlSeconds: 300,
+})
+
+try {
+  const gateways = await provider.getGateways()
+  console.log('Available gateways:', gateways)
+} catch (error) {
+  switch (error.constructor.name) {
+    case 'CacheError':
+      console.error('Cache operation failed:', error.message)
+      break
+    case 'ProviderError':
+      console.error('Underlying provider failed:', error.message)
+      // Cache may still return stale data
+      break
+    default:
+      console.error('Unknown error:', error.message)
+  }
+}
+```
+
+## Performance Benefits
+
+### Cache Hit Rates
+
+```javascript
+// Measure cache performance
+const provider = new SimpleCacheGatewaysProvider({
+  gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
+  ttlSeconds: 300,
+})
+
+let hits = 0
+let misses = 0
+
+for (let i = 0; i < 10; i++) {
+  const startTime = Date.now()
+  const gateways = await provider.getGateways()
+  const duration = Date.now() - startTime
+
+  if (duration < 10) {
+    // Likely a cache hit
+    hits++
+    console.log(`Request ${i + 1}: Cache hit (${duration}ms)`)
+  } else {
+    misses++
+    console.log(`Request ${i + 1}: Cache miss (${duration}ms)`)
+  }
+
+  // Wait between requests
+  await new Promise((resolve) => setTimeout(resolve, 1000))
+}
+
+console.log(`Cache hit rate: ${(hits / (hits + misses)) * 100}%`)
+```
+
+## Testing
+
+### Unit Tests
+
+```javascript
+import { SimpleCacheGatewaysProvider } from '@ar.io/wayfinder-core'
+
+describe('SimpleCacheGatewaysProvider', () => {
+  let mockProvider
+  let cacheProvider
+
+  beforeEach(() => {
+    mockProvider = {
+      getGateways: jest.fn().mockResolvedValue(['https://gateway.com']),
+    }
+
+    cacheProvider = new SimpleCacheGatewaysProvider({
+      gatewaysProvider: mockProvider,
+      ttlSeconds: 60,
+    })
+  })
+
+  test('should cache gateway results', async () => {
+    // First call should hit the underlying provider
+    await cacheProvider.getGateways()
+    expect(mockProvider.getGateways).toHaveBeenCalledTimes(1)
+
+    // Second call should use cache
+    await cacheProvider.getGateways()
+    expect(mockProvider.getGateways).toHaveBeenCalledTimes(1)
+  })
+
+  test('should refresh cache when TTL expires', async () => {
+    // Mock Date.now to control time
+    const originalNow = Date.now
+    let currentTime = 1000000
+    Date.now = jest.fn(() => currentTime)
+
+    // First call
+    await cacheProvider.getGateways()
+    expect(mockProvider.getGateways).toHaveBeenCalledTimes(1)
+
+    // Advance time beyond TTL
+    currentTime += 70000 // 70 seconds
+
+    // Second call should refresh cache
+    await cacheProvider.getGateways()
+    expect(mockProvider.getGateways).toHaveBeenCalledTimes(2)
+
+    Date.now = originalNow
+  })
+
+  test('should handle provider errors gracefully', async () => {
+    mockProvider.getGateways.mockRejectedValue(new Error('Provider failed'))
+
+    await expect(cacheProvider.getGateways()).rejects.toThrow('Provider failed')
+  })
+})
+```
+
+## Best Practices
+
+1. **Use in Production**: Caching significantly improves performance for network providers
+2. **Set Appropriate TTL**: Balance between freshness and performance
+3. **Enable Background Refresh**: Keeps cache warm without blocking requests
+4. **Monitor Cache Performance**: Track hit rates and adjust TTL accordingly
+5. **Handle Provider Failures**: Implement fallback strategies for when providers fail
+6. **Consider Memory Usage**: Set appropriate maxCacheSize for your application
+7. **Use Persistent Storage**: For web applications, consider localStorage for cache persistence
+
+## Comparison with Other Providers
+
+<Table>
+  <Table.Head>
+    <Table.Row>
+      <Table.Header>Feature</Table.Header>
+      <Table.Header>SimpleCacheGatewaysProvider</Table.Header>
+      <Table.Header>NetworkGatewaysProvider</Table.Header>
+      <Table.Header>StaticGatewaysProvider</Table.Header>
+    </Table.Row>
+  </Table.Head>
+  <Table.Body>
+    <Table.Row>
+      <Table.Cell>**Performance**</Table.Cell>
+      <Table.Cell>High (cached)</Table.Cell>
+      <Table.Cell>Medium (network calls)</Table.Cell>
+      <Table.Cell>High (no network)</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>**Data Freshness**</Table.Cell>
+      <Table.Cell>Medium (cached with TTL)</Table.Cell>
+      <Table.Cell>High (real-time)</Table.Cell>
+      <Table.Cell>Low (static)</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>**Network Dependency**</Table.Cell>
+      <Table.Cell>Medium (periodic refresh)</Table.Cell>
+      <Table.Cell>High (every call)</Table.Cell>
+      <Table.Cell>None</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>**Memory Usage**</Table.Cell>
+      <Table.Cell>Medium (cache storage)</Table.Cell>
+      <Table.Cell>Low</Table.Cell>
+      <Table.Cell>Low</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>**Complexity**</Table.Cell>
+      <Table.Cell>Medium (cache management)</Table.Cell>
+      <Table.Cell>Low</Table.Cell>
+      <Table.Cell>Low</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>**Use Case**</Table.Cell>
+      <Table.Cell>Production (performance)</Table.Cell>
+      <Table.Cell>Production (freshness)</Table.Cell>
+      <Table.Cell>Development/Testing</Table.Cell>
+    </Table.Row>
+  </Table.Body>
+</Table>
+
+## Related Documentation
+
+- **[Gateway Providers Overview](/wayfinder/core/gateway-providers)**: Compare all gateway providers
+- **[NetworkGatewaysProvider](/wayfinder/core/gateway-providers/network)**: Dynamic network discovery
+- **[StaticGatewaysProvider](/wayfinder/core/gateway-providers/static)**: Static gateway configuration
+- **[Wayfinder Configuration](/wayfinder/core)**: Main wayfinder setup
+  {/* - **[Performance Optimization](/wayfinder/core/performance)**: Performance tuning guides */}

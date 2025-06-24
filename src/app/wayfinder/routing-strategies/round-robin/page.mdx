@@ -1,0 +1,638 @@
+# RoundRobinRoutingStrategy
+
+## Overview
+
+The `RoundRobinRoutingStrategy` distributes requests evenly across all available gateways in a cyclical manner. Each gateway is selected in turn, ensuring fair load distribution and preventing any single gateway from being overwhelmed.
+
+## How It Works
+
+1. **Initialize Gateway List**: Start with an ordered list of available gateways
+2. **Track Current Position**: Maintain a pointer to the current gateway in the rotation
+3. **Select Next Gateway**: Choose the next gateway in the sequence
+4. **Cycle Through List**: Return to the first gateway after reaching the end
+5. **Handle Failures**: Skip failed gateways and continue rotation
+
+## Configuration
+
+### Basic Usage
+
+```javascript
+import { RoundRobinRoutingStrategy } from '@ar.io/wayfinder-core'
+
+const strategy = new RoundRobinRoutingStrategy({
+  gateways: [
+    'https://arweave.net',
+    'https://ar-io.net',
+    'https://permagate.io',
+  ],
+})
+```
+
+### Advanced Configuration
+
+```javascript
+const strategy = new RoundRobinRoutingStrategy({
+  gateways: [
+    'https://primary-gateway.com',
+    'https://secondary-gateway.com',
+    'https://tertiary-gateway.com',
+  ],
+  healthCheckEnabled: true,
+  healthCheckInterval: 30000,
+  healthCheckPath: '/ar-io/health',
+  healthCheckTimeout: 5000,
+  skipUnhealthyGateways: true,
+  resetOnFailure: false,
+  shuffleOnStart: false,
+  weightedRotation: false,
+  weights: new Map([
+    ['https://primary-gateway.com', 3],
+    ['https://secondary-gateway.com', 2],
+    ['https://tertiary-gateway.com', 1],
+  ]),
+})
+```
+
+## Parameters
+
+| Parameter               | Type                  | Default         | Description                             |
+| ----------------------- | --------------------- | --------------- | --------------------------------------- |
+| `gateways`              | `string[]`            | **required**    | Array of gateway URLs to rotate through |
+| `healthCheckEnabled`    | `boolean`             | `false`         | Whether to perform health checks        |
+| `healthCheckInterval`   | `number`              | `30000`         | Health check interval in milliseconds   |
+| `healthCheckPath`       | `string`              | `'/ar-io/info'` | Path for health checks                  |
+| `healthCheckTimeout`    | `number`              | `5000`          | Health check timeout                    |
+| `skipUnhealthyGateways` | `boolean`             | `true`          | Skip gateways that fail health checks   |
+| `resetOnFailure`        | `boolean`             | `false`         | Reset rotation on gateway failure       |
+| `shuffleOnStart`        | `boolean`             | `false`         | Randomize initial gateway order         |
+| `weightedRotation`      | `boolean`             | `false`         | Use weighted rotation                   |
+| `weights`               | `Map<string, number>` | `new Map()`     | Gateway weights for weighted rotation   |
+
+## Integration Examples
+
+### With Wayfinder
+
+```javascript
+import { Wayfinder, RoundRobinRoutingStrategy } from '@ar.io/wayfinder-core'
+
+const wayfinder = new Wayfinder({
+  routingSettings: {
+    strategy: new RoundRobinRoutingStrategy({
+      gateways: [
+        'https://gateway-1.com',
+        'https://gateway-2.com',
+        'https://gateway-3.com',
+      ],
+      healthCheckEnabled: true,
+    }),
+    events: {
+      onRoutingStarted: (event) => {
+        console.log('🔄 Round robin routing for:', event.originalUrl)
+      },
+      onGatewaySelected: (event) => {
+        console.log('✅ Selected gateway:', {
+          gateway: event.selectedGateway,
+          position: event.rotationPosition,
+          totalGateways: event.totalGateways,
+        })
+      },
+      onGatewaySkipped: (event) => {
+        console.log('⚠️ Skipped unhealthy gateway:', event.gateway)
+      },
+    },
+  },
+})
+```
+
+### With Dynamic Gateway Updates
+
+```javascript
+class DynamicRoundRobinStrategy extends RoundRobinRoutingStrategy {
+  constructor(options) {
+    super(options)
+    this.gatewayProvider = options.gatewayProvider
+    this.updateInterval = options.updateInterval || 60000
+    this.startGatewayUpdates()
+  }
+
+  startGatewayUpdates() {
+    setInterval(async () => {
+      try {
+        const newGateways = await this.gatewayProvider.getGateways()
+        this.updateGateways(newGateways)
+        console.log('🔄 Updated gateway list:', newGateways.length, 'gateways')
+      } catch (error) {
+        console.error('Failed to update gateways:', error.message)
+      }
+    }, this.updateInterval)
+  }
+
+  updateGateways(newGateways) {
+    const oldGateways = this.gateways
+    this.gateways = newGateways
+
+    // Adjust current position if gateway list changed
+    if (this.currentPosition >= newGateways.length) {
+      this.currentPosition = 0
+    }
+
+    console.log('Gateway list updated:', {
+      added: newGateways.filter((g) => !oldGateways.includes(g)),
+      removed: oldGateways.filter((g) => !newGateways.includes(g)),
+    })
+  }
+}
+```
+
+### With Weighted Rotation
+
+```javascript
+const weightedStrategy = new RoundRobinRoutingStrategy({
+  gateways: [
+    'https://high-capacity-gateway.com',
+    'https://medium-capacity-gateway.com',
+    'https://low-capacity-gateway.com',
+  ],
+  weightedRotation: true,
+  weights: new Map([
+    ['https://high-capacity-gateway.com', 5], // 5x more requests
+    ['https://medium-capacity-gateway.com', 3], // 3x more requests
+    ['https://low-capacity-gateway.com', 1], // 1x requests (baseline)
+  ]),
+})
+```
+
+## Advanced Features
+
+### Health-Aware Round Robin
+
+```javascript
+class HealthAwareRoundRobinStrategy extends RoundRobinRoutingStrategy {
+  constructor(options) {
+    super(options)
+    this.gatewayHealth = new Map()
+    this.healthScores = new Map()
+    this.adaptiveWeights = options.adaptiveWeights || false
+  }
+
+  async selectGateway({ gateways }) {
+    if (this.adaptiveWeights) {
+      // Adjust weights based on health scores
+      this.adjustWeightsBasedOnHealth()
+    }
+
+    // Get next gateway in rotation
+    let selectedGateway = await super.selectGateway({ gateways })
+
+    // If selected gateway is unhealthy, find next healthy one
+    if (this.skipUnhealthyGateways) {
+      let attempts = 0
+      while (
+        attempts < gateways.length &&
+        !this.isGatewayHealthy(selectedGateway)
+      ) {
+        selectedGateway = await super.selectGateway({ gateways })
+        attempts++
+      }
+    }
+
+    return selectedGateway
+  }
+
+  adjustWeightsBasedOnHealth() {
+    for (const [gateway, health] of this.gatewayHealth.entries()) {
+      const baseWeight = this.weights.get(gateway) || 1
+      const healthScore = this.healthScores.get(gateway) || 1
+
+      // Adjust weight based on health (0.1 to 2.0 multiplier)
+      const adjustedWeight = Math.max(
+        0.1,
+        Math.min(2.0, baseWeight * healthScore),
+      )
+      this.weights.set(gateway, adjustedWeight)
+    }
+  }
+
+  isGatewayHealthy(gateway) {
+    const health = this.gatewayHealth.get(gateway)
+    return !health || health.healthy
+  }
+}
+```
+
+### Geographic Round Robin
+
+```javascript
+class GeographicRoundRobinStrategy extends RoundRobinRoutingStrategy {
+  constructor(options) {
+    super(options)
+    this.userLocation = options.userLocation
+    this.gatewayLocations = options.gatewayLocations || new Map()
+    this.regionRotation = options.regionRotation || false
+  }
+
+  async selectGateway({ gateways }) {
+    if (this.regionRotation && this.userLocation) {
+      // Group gateways by region
+      const gatewaysByRegion = this.groupGatewaysByRegion(gateways)
+
+      // Round robin within preferred regions first
+      const preferredRegions = this.getPreferredRegions()
+
+      for (const region of preferredRegions) {
+        const regionGateways = gatewaysByRegion.get(region) || []
+        if (regionGateways.length > 0) {
+          return this.selectFromRegion(regionGateways)
+        }
+      }
+    }
+
+    return super.selectGateway({ gateways })
+  }
+
+  groupGatewaysByRegion(gateways) {
+    const regions = new Map()
+
+    for (const gateway of gateways) {
+      const location = this.gatewayLocations.get(gateway)
+      const region = location ? this.getRegion(location) : 'unknown'
+
+      if (!regions.has(region)) {
+        regions.set(region, [])
+      }
+      regions.get(region).push(gateway)
+    }
+
+    return regions
+  }
+
+  getRegion(location) {
+    // Simple region classification
+    if (
+      location.lat > 35 &&
+      location.lat < 70 &&
+      location.lon > -10 &&
+      location.lon < 40
+    ) {
+      return 'europe'
+    } else if (
+      location.lat > 25 &&
+      location.lat < 50 &&
+      location.lon > -125 &&
+      location.lon < -65
+    ) {
+      return 'north-america'
+    } else if (
+      location.lat > -35 &&
+      location.lat < 35 &&
+      location.lon > 95 &&
+      location.lon < 155
+    ) {
+      return 'asia-pacific'
+    }
+    return 'other'
+  }
+
+  getPreferredRegions() {
+    const userRegion = this.getRegion(this.userLocation)
+    return [userRegion, 'other'] // Prefer user's region, then others
+  }
+}
+```
+
+## Performance Optimization
+
+### Efficient Gateway Cycling
+
+```javascript
+class OptimizedRoundRobinStrategy extends RoundRobinRoutingStrategy {
+  constructor(options) {
+    super(options)
+    this.gatewayQueue = [...options.gateways]
+    this.currentIndex = 0
+    this.lastUsed = new Map()
+  }
+
+  async selectGateway({ gateways }) {
+    // Use pre-computed rotation to avoid recalculation
+    if (this.gatewayQueue.length === 0) {
+      this.gatewayQueue = [...gateways]
+      this.currentIndex = 0
+    }
+
+    const selectedGateway = this.gatewayQueue[this.currentIndex]
+    this.currentIndex = (this.currentIndex + 1) % this.gatewayQueue.length
+
+    // Track usage for analytics
+    this.lastUsed.set(selectedGateway, Date.now())
+
+    return selectedGateway
+  }
+
+  getUsageStats() {
+    const stats = new Map()
+    const now = Date.now()
+
+    for (const [gateway, lastUsedTime] of this.lastUsed.entries()) {
+      stats.set(gateway, {
+        lastUsed: lastUsedTime,
+        timeSinceLastUse: now - lastUsedTime,
+      })
+    }
+
+    return stats
+  }
+}
+```
+
+### Concurrent Request Handling
+
+```javascript
+class ConcurrentRoundRobinStrategy extends RoundRobinRoutingStrategy {
+  constructor(options) {
+    super(options)
+    this.concurrentRequests = new Map()
+    this.maxConcurrentPerGateway = options.maxConcurrentPerGateway || 10
+  }
+
+  async selectGateway({ gateways }) {
+    // Find gateway with lowest concurrent requests
+    let selectedGateway = null
+    let minConcurrent = Infinity
+
+    for (const gateway of gateways) {
+      const concurrent = this.concurrentRequests.get(gateway) || 0
+
+      if (
+        concurrent < this.maxConcurrentPerGateway &&
+        concurrent < minConcurrent
+      ) {
+        minConcurrent = concurrent
+        selectedGateway = gateway
+      }
+    }
+
+    // If all gateways are at max capacity, use round robin
+    if (!selectedGateway) {
+      selectedGateway = await super.selectGateway({ gateways })
+    }
+
+    // Track concurrent request
+    this.incrementConcurrentRequests(selectedGateway)
+
+    return selectedGateway
+  }
+
+  incrementConcurrentRequests(gateway) {
+    const current = this.concurrentRequests.get(gateway) || 0
+    this.concurrentRequests.set(gateway, current + 1)
+  }
+
+  decrementConcurrentRequests(gateway) {
+    const current = this.concurrentRequests.get(gateway) || 0
+    this.concurrentRequests.set(gateway, Math.max(0, current - 1))
+  }
+}
+```
+
+## Use Cases
+
+### Load Balancing Web Services
+
+```javascript
+const loadBalancerStrategy = new RoundRobinRoutingStrategy({
+  gateways: [
+    'https://web-1.myapp.com',
+    'https://web-2.myapp.com',
+    'https://web-3.myapp.com',
+  ],
+  healthCheckEnabled: true,
+  healthCheckInterval: 15000,
+  skipUnhealthyGateways: true,
+})
+
+const wayfinder = new Wayfinder({
+  routingSettings: {
+    strategy: loadBalancerStrategy,
+  },
+})
+```
+
+### Development Environment
+
+```javascript
+const devStrategy = new RoundRobinRoutingStrategy({
+  gateways: [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:3002',
+  ],
+  healthCheckEnabled: false, // Disable for local dev
+  shuffleOnStart: true, // Randomize for testing
+})
+```
+
+### Production Load Distribution
+
+```javascript
+const prodStrategy = new RoundRobinRoutingStrategy({
+  gateways: [
+    'https://prod-gateway-1.com',
+    'https://prod-gateway-2.com',
+    'https://prod-gateway-3.com',
+    'https://prod-gateway-4.com',
+  ],
+  healthCheckEnabled: true,
+  healthCheckInterval: 30000,
+  skipUnhealthyGateways: true,
+  weightedRotation: true,
+  weights: new Map([
+    ['https://prod-gateway-1.com', 2], // Higher capacity
+    ['https://prod-gateway-2.com', 2],
+    ['https://prod-gateway-3.com', 1],
+    ['https://prod-gateway-4.com', 1],
+  ]),
+})
+```
+
+### High-Availability Setup
+
+```javascript
+const haStrategy = new RoundRobinRoutingStrategy({
+  gateways: [
+    'https://primary-dc-1.com',
+    'https://primary-dc-2.com',
+    'https://secondary-dc-1.com',
+    'https://secondary-dc-2.com',
+  ],
+  healthCheckEnabled: true,
+  healthCheckInterval: 10000, // Frequent health checks
+  skipUnhealthyGateways: true,
+  resetOnFailure: true, // Reset rotation on failure
+})
+```
+
+## Error Handling
+
+### Common Error Types
+
+```javascript
+try {
+  const selectedGateway = await strategy.selectGateway({ gateways })
+  console.log('Selected gateway:', selectedGateway)
+} catch (error) {
+  switch (error.constructor.name) {
+    case 'NoHealthyGatewaysError':
+      console.error('All gateways in rotation are unhealthy')
+      // Implement fallback strategy or alert
+      break
+
+    case 'EmptyGatewayListError':
+      console.error('No gateways provided for round robin')
+      // Check gateway configuration
+      break
+
+    case 'GatewayRotationError':
+      console.error('Error in gateway rotation logic')
+      // Reset rotation state
+      break
+
+    default:
+      console.error('Unknown routing error:', error.message)
+  }
+}
+```
+
+### Graceful Degradation
+
+```javascript
+const robustStrategy = new RoundRobinRoutingStrategy({
+  gateways: [
+    'https://gateway-1.com',
+    'https://gateway-2.com',
+    'https://gateway-3.com',
+  ],
+  healthCheckEnabled: true,
+  onGatewayFailure: (gateway, error) => {
+    console.warn('Gateway failed:', gateway, error.message)
+    // Report to monitoring
+    monitoring.reportGatewayFailure(gateway, error)
+
+    // Continue with next gateway in rotation
+    return true
+  },
+  onAllGatewaysFailed: (gateways) => {
+    console.error('All gateways failed, using emergency fallback')
+    // Return emergency gateway
+    return 'https://emergency-gateway.com'
+  },
+})
+```
+
+## Testing
+
+### Unit Testing
+
+```javascript
+import { RoundRobinRoutingStrategy } from '@ar.io/wayfinder-core'
+
+describe('RoundRobinRoutingStrategy', () => {
+  let strategy
+
+  beforeEach(() => {
+    strategy = new RoundRobinRoutingStrategy({
+      gateways: [
+        'https://gateway-1.com',
+        'https://gateway-2.com',
+        'https://gateway-3.com',
+      ],
+    })
+  })
+
+  test('should rotate through gateways in order', async () => {
+    const results = []
+
+    for (let i = 0; i < 6; i++) {
+      const gateway = await strategy.selectGateway({
+        gateways: strategy.gateways,
+      })
+      results.push(gateway)
+    }
+
+    expect(results).toEqual([
+      'https://gateway-1.com',
+      'https://gateway-2.com',
+      'https://gateway-3.com',
+      'https://gateway-1.com',
+      'https://gateway-2.com',
+      'https://gateway-3.com',
+    ])
+  })
+
+  test('should handle empty gateway list', async () => {
+    const emptyStrategy = new RoundRobinRoutingStrategy({
+      gateways: [],
+    })
+
+    await expect(emptyStrategy.selectGateway({ gateways: [] })).rejects.toThrow(
+      'No gateways available',
+    )
+  })
+
+  test('should skip unhealthy gateways', async () => {
+    const healthAwareStrategy = new RoundRobinRoutingStrategy({
+      gateways: [
+        'https://gateway-1.com',
+        'https://gateway-2.com',
+        'https://gateway-3.com',
+      ],
+      skipUnhealthyGateways: true,
+    })
+
+    // Mock health check to mark gateway-2 as unhealthy
+    jest
+      .spyOn(healthAwareStrategy, 'isGatewayHealthy')
+      .mockImplementation((gateway) => gateway !== 'https://gateway-2.com')
+
+    const results = []
+    for (let i = 0; i < 4; i++) {
+      const gateway = await healthAwareStrategy.selectGateway({
+        gateways: healthAwareStrategy.gateways,
+      })
+      results.push(gateway)
+    }
+
+    // Should skip gateway-2
+    expect(results).toEqual([
+      'https://gateway-1.com',
+      'https://gateway-3.com',
+      'https://gateway-1.com',
+      'https://gateway-3.com',
+    ])
+  })
+})
+```
+
+## Best Practices
+
+1. **Monitor Gateway Health**: Enable health checks to avoid routing to failed gateways
+2. **Use Appropriate Weights**: Configure weights based on gateway capacity and performance
+3. **Handle Failures Gracefully**: Implement proper error handling and fallback mechanisms
+4. **Track Usage Metrics**: Monitor rotation patterns and gateway utilization
+5. **Consider Geographic Distribution**: Use geographic awareness for better performance
+6. **Test Rotation Logic**: Verify that rotation works correctly under various conditions
+7. **Update Gateway Lists Dynamically**: Keep gateway lists current with dynamic updates
+8. **Implement Circuit Breakers**: Prevent cascade failures with circuit breaker patterns
+
+## Comparison with Other Strategies
+
+| Aspect                | Round Robin    | Fastest Ping   | Preferred + Fallback     | Random              |
+| --------------------- | -------------- | -------------- | ------------------------ | ------------------- |
+| **Performance**       | ⭐⭐           | ⭐⭐⭐⭐⭐     | ⭐⭐⭐⭐                 | ⭐⭐                |
+| **Reliability**       | ⭐⭐⭐         | ⭐⭐⭐⭐       | ⭐⭐⭐                   | ⭐⭐⭐              |
+| **Load Distribution** | ⭐⭐⭐⭐⭐     | ⭐⭐           | ⭐                       | ⭐⭐⭐⭐            |
+| **Predictability**    | ⭐⭐⭐⭐       | ⭐⭐⭐         | ⭐⭐⭐⭐⭐               | ⭐                  |
+| **Complexity**        | ⭐⭐           | ⭐⭐⭐         | ⭐⭐⭐⭐                 | ⭐⭐⭐⭐⭐          |
+| **Use Case**          | Load balancing | Real-time apps | Dedicated infrastructure | Simple distribution |
+
+The `RoundRobinRoutingStrategy` is ideal for applications that need even load distribution across multiple gateways with predictable routing patterns.

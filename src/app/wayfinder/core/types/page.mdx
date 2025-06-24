@@ -1,0 +1,614 @@
+# TypeScript Types
+
+## Overview
+
+Wayfinder provides comprehensive TypeScript definitions for all interfaces, types, and configuration options. This ensures type safety and excellent developer experience with full IntelliSense support.
+
+## Core Interfaces
+
+### WayfinderOptions
+
+Main configuration interface for creating a Wayfinder instance.
+
+```typescript
+interface WayfinderOptions {
+  gatewaysProvider: GatewaysProvider
+  routingSettings?: {
+    strategy?: RoutingStrategy
+    events?: WayfinderRoutingEventArgs
+  }
+  verificationSettings?: {
+    enabled?: boolean
+    strategy?: VerificationStrategy
+    strict?: boolean
+    events?: WayfinderVerificationEventArgs
+  }
+  telemetrySettings?: TelemetryConfig
+  logger?: Logger
+}
+```
+
+### GatewaysProvider
+
+Interface for gateway discovery providers.
+
+```typescript
+interface GatewaysProvider {
+  getGateways(): Promise<string[]>
+  refresh?(): Promise<void>
+}
+```
+
+### RoutingStrategy
+
+Interface for gateway selection strategies.
+
+```typescript
+interface RoutingStrategy {
+  selectGateway(options: GatewaySelectionOptions): Promise<string>
+  getName(): string
+}
+
+interface GatewaySelectionOptions {
+  gateways: string[]
+  originalUrl?: string
+  requestOptions?: RequestOptions
+}
+```
+
+### VerificationStrategy
+
+Interface for data verification strategies.
+
+```typescript
+interface VerificationStrategy {
+  verifyData(options: VerificationOptions): Promise<boolean>
+  getName(): string
+}
+
+interface VerificationOptions {
+  data: Uint8Array
+  txId: string
+  gateway: string
+  originalUrl?: string
+}
+```
+
+## Configuration Types
+
+### TelemetryConfig
+
+Configuration for OpenTelemetry integration.
+
+```typescript
+interface TelemetryConfig {
+  enabled: boolean
+  serviceName: string
+  sampleRate: number
+  apiKey?: string
+  exporterUrl?: string
+  attributes?: Record<string, string>
+  headers?: Record<string, string>
+}
+```
+
+### Logger
+
+Interface for custom logging implementations.
+
+```typescript
+interface Logger {
+  debug(message: string, ...args: any[]): void
+  info(message: string, ...args: any[]): void
+  warn(message: string, ...args: any[]): void
+  error(message: string, ...args: any[]): void
+}
+```
+
+## Event Types
+
+### Routing Events
+
+```typescript
+interface WayfinderRoutingEventArgs {
+  onRoutingStarted?: (event: RoutingStartedEvent) => void
+  onRoutingSucceeded?: (event: RoutingSucceededEvent) => void
+  onRoutingFailed?: (error: RoutingFailedEvent) => void
+}
+
+interface RoutingStartedEvent {
+  originalUrl: string
+  timestamp: number
+  requestId: string
+}
+
+interface RoutingSucceededEvent {
+  originalUrl: string
+  selectedGateway: string
+  responseTime: number
+  timestamp: number
+  requestId: string
+}
+
+interface RoutingFailedEvent {
+  originalUrl: string
+  error: Error
+  timestamp: number
+  requestId: string
+}
+```
+
+### Verification Events
+
+```typescript
+interface WayfinderVerificationEventArgs {
+  onVerificationStarted?: (event: VerificationStartedEvent) => void
+  onVerificationSucceeded?: (event: VerificationSucceededEvent) => void
+  onVerificationFailed?: (error: VerificationFailedEvent) => void
+}
+
+interface VerificationStartedEvent {
+  txId: string
+  strategy: string
+  timestamp: number
+}
+
+interface VerificationSucceededEvent {
+  txId: string
+  strategy: string
+  verificationTime: number
+  timestamp: number
+}
+
+interface VerificationFailedEvent {
+  txId: string
+  strategy: string
+  error: Error
+  timestamp: number
+}
+```
+
+## Request Types
+
+### RequestOptions
+
+Extended fetch options with wayfinder-specific settings.
+
+```typescript
+interface RequestOptions extends RequestInit {
+  wayfinderOptions?: {
+    routingStrategy?: RoutingStrategy
+    verificationEnabled?: boolean
+    verificationStrategy?: VerificationStrategy
+    preferredGateways?: string[]
+    timeout?: number
+  }
+}
+```
+
+### ResolveUrlOptions
+
+Options for URL resolution.
+
+```typescript
+interface ResolveUrlOptions {
+  routingStrategy?: RoutingStrategy
+  preferredGateways?: string[]
+  timeout?: number
+}
+```
+
+## Provider-Specific Types
+
+### NetworkGatewaysProviderOptions
+
+```typescript
+interface NetworkGatewaysProviderOptions {
+  ario: ARIO
+  minStake?: number
+  maxGateways?: number
+  includeOperatorStake?: boolean
+  includeDelegatedStake?: boolean
+  sortBy?: 'stake' | 'performance' | 'random'
+  filterCriteria?: GatewayFilterCriteria
+}
+
+interface GatewayFilterCriteria {
+  minUptime?: number
+  maxLatency?: number
+  regions?: string[]
+  excludeGateways?: string[]
+}
+```
+
+### StaticGatewaysProviderOptions
+
+```typescript
+interface StaticGatewaysProviderOptions {
+  gateways: string[]
+  shuffle?: boolean
+  healthCheck?: boolean
+  healthCheckTimeout?: number
+}
+```
+
+### SimpleCacheGatewaysProviderOptions
+
+```typescript
+interface SimpleCacheGatewaysProviderOptions {
+  gatewaysProvider: GatewaysProvider
+  ttlSeconds?: number
+  maxCacheSize?: number
+  enableBackgroundRefresh?: boolean
+  refreshInterval?: number
+}
+```
+
+## Routing Strategy Types
+
+### FastestPingRoutingStrategyOptions
+
+```typescript
+interface FastestPingRoutingStrategyOptions {
+  timeoutMs?: number
+  cacheResultsMs?: number
+  maxConcurrentPings?: number
+  retryAttempts?: number
+}
+```
+
+### PreferredWithFallbackRoutingStrategyOptions
+
+```typescript
+interface PreferredWithFallbackRoutingStrategyOptions {
+  preferredGateway: string
+  fallbackStrategy?: RoutingStrategy
+  healthCheckTimeout?: number
+  enableCircuitBreaker?: boolean
+}
+```
+
+### RoundRobinRoutingStrategyOptions
+
+```typescript
+interface RoundRobinRoutingStrategyOptions {
+  weights?: Record<string, number>
+  enableHealthChecks?: boolean
+  healthCheckInterval?: number
+}
+```
+
+### RandomRoutingStrategyOptions
+
+```typescript
+interface RandomRoutingStrategyOptions {
+  seed?: number
+  weights?: Record<string, number>
+  blacklist?: string[]
+}
+```
+
+## Verification Strategy Types
+
+### HashVerificationStrategyOptions
+
+```typescript
+interface HashVerificationStrategyOptions {
+  trustedGateways: string[]
+  algorithm?: 'sha256' | 'sha512'
+  timeout?: number
+  maxRetries?: number
+}
+```
+
+### SignatureVerificationStrategyOptions
+
+```typescript
+interface SignatureVerificationStrategyOptions {
+  trustedGateways: string[]
+  verifyOwner?: boolean
+  allowedOwners?: string[]
+  timeout?: number
+}
+```
+
+### DataRootVerificationStrategyOptions
+
+```typescript
+interface DataRootVerificationStrategyOptions {
+  trustedGateways: string[]
+  chunkSize?: number
+  maxFileSize?: number
+  enableStreaming?: boolean
+}
+```
+
+## Error Types
+
+### Base Error Types
+
+```typescript
+class WayfinderError extends Error {
+  readonly name: string
+  readonly code: string
+  readonly timestamp: number
+
+  constructor(message: string, code: string)
+}
+
+class RoutingError extends WayfinderError {
+  readonly gatewaysAttempted: string[]
+
+  constructor(message: string, gatewaysAttempted: string[])
+}
+
+class VerificationError extends WayfinderError {
+  readonly txId: string
+  readonly strategy: string
+
+  constructor(message: string, txId: string, strategy: string)
+}
+
+class GatewayError extends WayfinderError {
+  readonly gateway: string
+  readonly statusCode?: number
+
+  constructor(message: string, gateway: string, statusCode?: number)
+}
+
+class TimeoutError extends WayfinderError {
+  readonly timeoutMs: number
+
+  constructor(message: string, timeoutMs: number)
+}
+```
+
+## Utility Types
+
+### Generic Helper Types
+
+```typescript
+type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>
+
+type RequiredKeys<T> = {
+  [K in keyof T]-?: {} extends Pick<T, K> ? never : K
+}[keyof T]
+
+type OptionalKeys<T> = {
+  [K in keyof T]-?: {} extends Pick<T, K> ? K : never
+}[keyof T]
+```
+
+### Wayfinder-Specific Utility Types
+
+```typescript
+type GatewayUrl = string
+type TransactionId = string
+type ArweaveUrl = `ar://${string}`
+
+type RoutingStrategyName =
+  | 'FastestPingRoutingStrategy'
+  | 'PreferredWithFallbackRoutingStrategy'
+  | 'RoundRobinRoutingStrategy'
+  | 'RandomRoutingStrategy'
+
+type VerificationStrategyName =
+  | 'HashVerificationStrategy'
+  | 'SignatureVerificationStrategy'
+  | 'DataRootVerificationStrategy'
+
+type EventName =
+  | 'routing-started'
+  | 'routing-succeeded'
+  | 'routing-failed'
+  | 'verification-started'
+  | 'verification-succeeded'
+  | 'verification-failed'
+  | 'telemetry-span-started'
+  | 'telemetry-span-ended'
+  | 'telemetry-error'
+```
+
+## Type Guards
+
+### Runtime Type Checking
+
+```typescript
+function isWayfinderError(error: unknown): error is WayfinderError {
+  return error instanceof Error && 'code' in error && 'timestamp' in error
+}
+
+function isRoutingError(error: unknown): error is RoutingError {
+  return isWayfinderError(error) && 'gatewaysAttempted' in error
+}
+
+function isVerificationError(error: unknown): error is VerificationError {
+  return isWayfinderError(error) && 'txId' in error && 'strategy' in error
+}
+
+function isGatewayError(error: unknown): error is GatewayError {
+  return isWayfinderError(error) && 'gateway' in error
+}
+
+function isTimeoutError(error: unknown): error is TimeoutError {
+  return isWayfinderError(error) && 'timeoutMs' in error
+}
+
+function isArweaveUrl(url: string): url is ArweaveUrl {
+  return url.startsWith('ar://')
+}
+
+function isValidGatewayUrl(url: string): url is GatewayUrl {
+  try {
+    const parsed = new URL(url)
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:'
+  } catch {
+    return false
+  }
+}
+```
+
+## Usage Examples
+
+### Type-Safe Configuration
+
+```typescript
+import {
+  Wayfinder,
+  WayfinderOptions,
+  NetworkGatewaysProvider,
+  FastestPingRoutingStrategy,
+  HashVerificationStrategy,
+  TelemetryConfig,
+} from '@ar.io/wayfinder-core'
+import { ARIO } from '@ar.io/sdk'
+
+// Type-safe configuration
+const telemetryConfig: TelemetryConfig = {
+  enabled: true,
+  serviceName: 'my-application',
+  sampleRate: 0.1,
+  attributes: {
+    version: '1.0.0',
+    environment: 'production',
+  },
+}
+
+const wayfinderOptions: WayfinderOptions = {
+  gatewaysProvider: new NetworkGatewaysProvider({
+    ario: ARIO.mainnet(),
+    minStake: 50000,
+    maxGateways: 20,
+  }),
+  routingSettings: {
+    strategy: new FastestPingRoutingStrategy({
+      timeoutMs: 2000,
+      cacheResultsMs: 30000,
+    }),
+    events: {
+      onRoutingSucceeded: (event) => {
+        console.log(`Gateway selected: ${event.selectedGateway}`)
+      },
+      onRoutingFailed: (event) => {
+        console.error(`Routing failed: ${event.error.message}`)
+      },
+    },
+  },
+  verificationSettings: {
+    enabled: true,
+    strategy: new HashVerificationStrategy({
+      trustedGateways: ['https://arweave.net'],
+      algorithm: 'sha256',
+    }),
+    events: {
+      onVerificationSucceeded: (event) => {
+        console.log(`Verification passed for ${event.txId}`)
+      },
+    },
+  },
+  telemetrySettings: telemetryConfig,
+}
+
+const wayfinder: Wayfinder = new Wayfinder(wayfinderOptions)
+```
+
+### Type-Safe Error Handling
+
+```typescript
+import {
+  RoutingError,
+  VerificationError,
+  GatewayError,
+  TimeoutError,
+} from '@ar.io/wayfinder-core'
+
+async function handleWayfinderRequest(url: string): Promise<string> {
+  try {
+    const response = await wayfinder.request(url)
+    return await response.text()
+  } catch (error) {
+    if (isRoutingError(error)) {
+      console.error('Routing failed:', {
+        message: error.message,
+        gatewaysAttempted: error.gatewaysAttempted,
+        timestamp: error.timestamp,
+      })
+    } else if (isVerificationError(error)) {
+      console.error('Verification failed:', {
+        message: error.message,
+        txId: error.txId,
+        strategy: error.strategy,
+      })
+    } else if (isGatewayError(error)) {
+      console.error('Gateway error:', {
+        message: error.message,
+        gateway: error.gateway,
+        statusCode: error.statusCode,
+      })
+    } else if (isTimeoutError(error)) {
+      console.error('Request timeout:', {
+        message: error.message,
+        timeoutMs: error.timeoutMs,
+      })
+    } else {
+      console.error('Unknown error:', error)
+    }
+
+    throw error
+  }
+}
+```
+
+### Custom Type Extensions
+
+```typescript
+// Extend existing interfaces for custom functionality
+interface CustomWayfinderOptions extends WayfinderOptions {
+  customSettings?: {
+    enableMetrics?: boolean
+    metricsInterval?: number
+  }
+}
+
+interface CustomLogger extends Logger {
+  trace(message: string, ...args: any[]): void
+  fatal(message: string, ...args: any[]): void
+}
+
+// Custom provider interface
+interface AdvancedGatewaysProvider extends GatewaysProvider {
+  getGatewayMetrics(): Promise<GatewayMetrics[]>
+  healthCheck(gateway: string): Promise<HealthCheckResult>
+}
+
+interface GatewayMetrics {
+  url: string
+  responseTime: number
+  uptime: number
+  errorRate: number
+}
+
+interface HealthCheckResult {
+  healthy: boolean
+  responseTime?: number
+  error?: string
+}
+```
+
+## Best Practices
+
+1. **Use Type Guards**: Implement runtime type checking for error handling
+2. **Leverage IntelliSense**: Take advantage of IDE autocompletion and type hints
+3. **Define Custom Types**: Create specific types for your application domain
+4. **Use Strict TypeScript**: Enable strict mode for better type safety
+5. **Document Type Extensions**: When extending interfaces, document the purpose
+6. **Validate at Runtime**: Use type guards to validate data at runtime
+7. **Export Types**: Make your custom types available for reuse
+
+## Related Documentation
+
+- **[Wayfinder Class](/wayfinder/core)**: Main wayfinder class and methods
+- **[Gateway Providers](/wayfinder/core/gateway-providers)**: Gateway discovery and management
+- **[Routing Strategies](/wayfinder/routing-strategies)**: Gateway selection algorithms
+- **[Verification Strategies](/wayfinder/verification-strategies)**: Data integrity verification
+- **[Events System](/wayfinder/core/events)**: Event handling and monitoring

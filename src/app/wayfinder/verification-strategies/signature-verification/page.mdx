@@ -1,0 +1,699 @@
+import { Table } from '@/components/Table'
+
+# SignatureVerificationStrategy
+
+## Overview
+
+The `SignatureVerificationStrategy` validates Arweave transaction signatures to ensure data authenticity and ownership. This strategy provides cryptographic proof that the data was created by the claimed wallet address and hasn't been tampered with since signing.
+
+## How It Works
+
+1. **Fetch Transaction**: Retrieve transaction metadata from a trusted gateway
+2. **Extract Signature**: Get the cryptographic signature from the transaction
+3. **Verify Signature**: Validate the signature against the transaction data and owner's public key
+4. **Check Ownership**: Confirm the transaction was signed by the claimed wallet
+5. **Result**: Pass or fail based on signature validation
+
+## Configuration
+
+### Basic Usage
+
+```javascript
+import { SignatureVerificationStrategy } from '@ar.io/wayfinder-core'
+
+const strategy = new SignatureVerificationStrategy({
+  trustedGateways: ['https://arweave.net'],
+})
+```
+
+### Advanced Configuration
+
+```javascript
+const strategy = new SignatureVerificationStrategy({
+  trustedGateways: [
+    'https://arweave.net',
+    'https://ar-io.net',
+    'https://permagate.io',
+  ],
+  timeoutMs: 8000,
+  retryAttempts: 3,
+  retryDelayMs: 1500,
+  verifyOwnership: true,
+  allowedOwners: ['owner-address-1', 'owner-address-2'], // Optional whitelist
+  signatureAlgorithm: 'RSA-PSS', // Arweave's signature algorithm
+})
+```
+
+## Parameters
+
+<Table>
+  <Table.Head>
+    <Table.Row>
+      <Table.Header>Parameter</Table.Header>
+      <Table.Header>Type</Table.Header>
+      <Table.Header>Default</Table.Header>
+      <Table.Header>Description</Table.Header>
+    </Table.Row>
+  </Table.Head>
+  <Table.Body>
+    <Table.Row>
+      <Table.Cell>`trustedGateways`</Table.Cell>
+      <Table.Cell>`string[]`</Table.Cell>
+      <Table.Cell>`['https://arweave.net']`</Table.Cell>
+      <Table.Cell>List of trusted gateways for transaction metadata</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>`timeoutMs`</Table.Cell>
+      <Table.Cell>`number`</Table.Cell>
+      <Table.Cell>`12000`</Table.Cell>
+      <Table.Cell>
+        Timeout for signature verification in milliseconds
+      </Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>`retryAttempts`</Table.Cell>
+      <Table.Cell>`number`</Table.Cell>
+      <Table.Cell>`2`</Table.Cell>
+      <Table.Cell>Number of retry attempts for failed requests</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>`retryDelayMs`</Table.Cell>
+      <Table.Cell>`number`</Table.Cell>
+      <Table.Cell>`1500`</Table.Cell>
+      <Table.Cell>Delay between retry attempts</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>`verifyOwnership`</Table.Cell>
+      <Table.Cell>`boolean`</Table.Cell>
+      <Table.Cell>`true`</Table.Cell>
+      <Table.Cell>Whether to verify transaction ownership</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>`allowedOwners`</Table.Cell>
+      <Table.Cell>`string[]`</Table.Cell>
+      <Table.Cell>`undefined`</Table.Cell>
+      <Table.Cell>Optional whitelist of allowed wallet addresses</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>`signatureAlgorithm`</Table.Cell>
+      <Table.Cell>`string`</Table.Cell>
+      <Table.Cell>`'RSA-PSS'`</Table.Cell>
+      <Table.Cell>Signature algorithm used by Arweave</Table.Cell>
+    </Table.Row>
+  </Table.Body>
+</Table>
+
+## Integration Examples
+
+### With Wayfinder
+
+```javascript
+import { Wayfinder, SignatureVerificationStrategy } from '@ar.io/wayfinder-core'
+
+const wayfinder = new Wayfinder({
+  verificationSettings: {
+    enabled: true,
+    strategy: new SignatureVerificationStrategy({
+      trustedGateways: ['https://arweave.net'],
+      verifyOwnership: true,
+    }),
+    strict: true,
+  },
+})
+
+// Verification happens automatically
+const response = await wayfinder.request('ar://transaction-id')
+const data = await response.text()
+```
+
+### With Owner Whitelist
+
+```javascript
+const wayfinder = new Wayfinder({
+  verificationSettings: {
+    enabled: true,
+    strategy: new SignatureVerificationStrategy({
+      trustedGateways: ['https://arweave.net'],
+      allowedOwners: ['trusted-wallet-address-1', 'trusted-wallet-address-2'],
+    }),
+    events: {
+      onVerificationSucceeded: (event) => {
+        console.log('✅ Signature verified:', {
+          txId: event.txId,
+          owner: event.owner,
+          signatureValid: true,
+        })
+      },
+      onVerificationFailed: (error) => {
+        console.error('❌ Signature verification failed:', {
+          error: error.message,
+          reason: error.reason,
+        })
+      },
+    },
+  },
+})
+```
+
+### Standalone Usage
+
+```javascript
+const strategy = new SignatureVerificationStrategy({
+  trustedGateways: ['https://arweave.net'],
+})
+
+// Manual verification
+try {
+  await strategy.verifyData({
+    data: dataBuffer,
+    txId: 'transaction-id',
+    originalUrl: 'ar://transaction-id',
+  })
+  console.log('Signature verification passed!')
+} catch (error) {
+  console.error('Signature verification failed:', error.message)
+}
+```
+
+## Error Handling
+
+### Common Error Types
+
+```javascript
+try {
+  const response = await wayfinder.request('ar://transaction-id')
+  const data = await response.text()
+} catch (error) {
+  switch (error.constructor.name) {
+    case 'InvalidSignatureError':
+      console.error('Transaction signature is invalid')
+      // Signature doesn't match the transaction data
+      break
+
+    case 'OwnershipVerificationError':
+      console.error('Transaction ownership verification failed')
+      // Transaction wasn't signed by the claimed owner
+      break
+
+    case 'UnauthorizedOwnerError':
+      console.error('Transaction owner not in allowed list')
+      // Owner is not in the allowedOwners whitelist
+      break
+
+    case 'TransactionNotFoundError':
+      console.error('Transaction metadata not found')
+      // Transaction doesn't exist or isn't available
+      break
+
+    case 'SignatureFormatError':
+      console.error('Invalid signature format')
+      // Signature data is malformed or corrupted
+      break
+
+    case 'VerificationTimeoutError':
+      console.error('Signature verification timed out')
+      // Increase timeout or check network connectivity
+      break
+
+    default:
+      console.error('Unknown signature verification error:', error.message)
+  }
+}
+```
+
+### Graceful Error Handling
+
+```javascript
+const strategy = new SignatureVerificationStrategy({
+  trustedGateways: ['https://arweave.net'],
+  onError: (error, context) => {
+    // Log error details
+    console.warn('Signature verification failed:', {
+      error: error.message,
+      txId: context.txId,
+      owner: context.owner,
+      gateway: context.gateway,
+    })
+
+    // Optionally report to monitoring
+    reportSignatureFailure(error, context)
+
+    // Don't throw - allow request to proceed
+    return false // or true to throw
+  },
+})
+```
+
+## Performance Considerations
+
+### Optimization Strategies
+
+#### 1. Cache Transaction Metadata
+
+```javascript
+class CachedSignatureVerificationStrategy extends SignatureVerificationStrategy {
+  constructor(options) {
+    super(options)
+    this.metadataCache = new Map()
+    this.signatureCache = new Map()
+  }
+
+  async verifyData(params) {
+    const cacheKey = params.txId
+
+    // Check if we've already verified this transaction
+    if (this.signatureCache.has(cacheKey)) {
+      const cachedResult = this.signatureCache.get(cacheKey)
+      if (cachedResult.valid) {
+        return // Already verified
+      } else {
+        throw new Error(cachedResult.error)
+      }
+    }
+
+    try {
+      await super.verifyData(params)
+      this.signatureCache.set(cacheKey, { valid: true })
+    } catch (error) {
+      this.signatureCache.set(cacheKey, { valid: false, error: error.message })
+      throw error
+    }
+  }
+}
+```
+
+#### 2. Parallel Gateway Requests
+
+```javascript
+const strategy = new SignatureVerificationStrategy({
+  trustedGateways: [
+    'https://arweave.net',
+    'https://ar-io.net',
+    'https://permagate.io',
+  ],
+  useFirstResponse: true, // Use first successful response
+  parallelRequests: true, // Fetch from multiple gateways simultaneously
+})
+```
+
+#### 3. Batch Verification
+
+```javascript
+class BatchSignatureVerificationStrategy extends SignatureVerificationStrategy {
+  constructor(options) {
+    super(options)
+    this.verificationQueue = []
+    this.batchSize = 10
+    this.batchTimeout = 1000
+  }
+
+  async verifyData(params) {
+    return new Promise((resolve, reject) => {
+      this.verificationQueue.push({ params, resolve, reject })
+
+      if (this.verificationQueue.length >= this.batchSize) {
+        this.processBatch()
+      } else {
+        // Process batch after timeout
+        setTimeout(() => this.processBatch(), this.batchTimeout)
+      }
+    })
+  }
+
+  async processBatch() {
+    if (this.verificationQueue.length === 0) return
+
+    const batch = this.verificationQueue.splice(0, this.batchSize)
+
+    try {
+      // Verify all transactions in parallel
+      await Promise.all(
+        batch.map(async ({ params, resolve, reject }) => {
+          try {
+            await super.verifyData(params)
+            resolve()
+          } catch (error) {
+            reject(error)
+          }
+        }),
+      )
+    } catch (error) {
+      // Handle batch errors
+      batch.forEach(({ reject }) => reject(error))
+    }
+  }
+}
+```
+
+### Performance Metrics
+
+```javascript
+class InstrumentedSignatureVerificationStrategy extends SignatureVerificationStrategy {
+  constructor(options) {
+    super(options)
+    this.metrics = {
+      verificationCount: 0,
+      successCount: 0,
+      failureCount: 0,
+      averageTime: 0,
+      totalTime: 0,
+      ownershipFailures: 0,
+      signatureFailures: 0,
+    }
+  }
+
+  async verifyData(params) {
+    const startTime = Date.now()
+    this.metrics.verificationCount++
+
+    try {
+      await super.verifyData(params)
+      this.metrics.successCount++
+    } catch (error) {
+      this.metrics.failureCount++
+
+      // Track specific failure types
+      if (error.constructor.name === 'OwnershipVerificationError') {
+        this.metrics.ownershipFailures++
+      } else if (error.constructor.name === 'InvalidSignatureError') {
+        this.metrics.signatureFailures++
+      }
+
+      throw error
+    } finally {
+      const duration = Date.now() - startTime
+      this.metrics.totalTime += duration
+      this.metrics.averageTime =
+        this.metrics.totalTime / this.metrics.verificationCount
+    }
+  }
+
+  getMetrics() {
+    return {
+      ...this.metrics,
+      successRate:
+        (this.metrics.successCount / this.metrics.verificationCount) * 100,
+      ownershipFailureRate:
+        (this.metrics.ownershipFailures / this.metrics.verificationCount) * 100,
+      signatureFailureRate:
+        (this.metrics.signatureFailures / this.metrics.verificationCount) * 100,
+    }
+  }
+}
+```
+
+## Security Considerations
+
+### Trusted Gateway Selection
+
+Choose gateways carefully for transaction metadata:
+
+```javascript
+// Good: Reputable gateways with reliable transaction data
+const trustedGateways = [
+  'https://arweave.net', // Official Arweave gateway
+  'https://ar-io.net', // AR.IO official gateway
+  'https://permagate.io', // Community trusted gateway
+]
+
+// Consider: Gateway reliability for transaction metadata
+const strategy = new SignatureVerificationStrategy({
+  trustedGateways,
+  requireConsensus: true, // Require multiple gateways to agree
+  consensusThreshold: 2, // At least 2 gateways must return same data
+})
+```
+
+### Owner Whitelist Security
+
+```javascript
+// Secure: Use specific wallet addresses
+const allowedOwners = ['specific-wallet-address-1', 'specific-wallet-address-2']
+
+// Less secure: Allowing any owner (default behavior)
+const strategy = new SignatureVerificationStrategy({
+  trustedGateways: ['https://arweave.net'],
+  allowedOwners, // Restrict to specific owners
+  verifyOwnership: true, // Always verify ownership
+})
+```
+
+### Signature Algorithm Security
+
+```javascript
+const strategy = new SignatureVerificationStrategy({
+  trustedGateways: ['https://arweave.net'],
+  signatureAlgorithm: 'RSA-PSS', // Arweave's secure algorithm
+  keySize: 4096, // Minimum key size for security
+  hashAlgorithm: 'SHA-256', // Hash algorithm for signature
+})
+```
+
+## Use Cases
+
+### Content Authentication
+
+Verify that content was created by a specific author:
+
+```javascript
+const contentStrategy = new SignatureVerificationStrategy({
+  trustedGateways: ['https://arweave.net'],
+  allowedOwners: ['content-creator-wallet-address'],
+  verifyOwnership: true,
+})
+
+const wayfinder = new Wayfinder({
+  verificationSettings: {
+    enabled: true,
+    strategy: contentStrategy,
+    strict: true, // Block unverified content
+  },
+})
+```
+
+### Document Integrity
+
+Verify legal or important documents:
+
+```javascript
+const documentStrategy = new SignatureVerificationStrategy({
+  trustedGateways: ['https://arweave.net', 'https://ar-io.net'],
+  allowedOwners: ['legal-entity-wallet-1', 'legal-entity-wallet-2'],
+  requireConsensus: true,
+  consensusThreshold: 2,
+})
+```
+
+### Software Distribution
+
+Verify software packages and updates:
+
+```javascript
+const softwareStrategy = new SignatureVerificationStrategy({
+  trustedGateways: ['https://arweave.net'],
+  allowedOwners: ['software-publisher-wallet'],
+  verifyOwnership: true,
+  strict: true, // Critical for security
+})
+```
+
+### Development Environment
+
+Relaxed verification for development:
+
+```javascript
+const devStrategy = new SignatureVerificationStrategy({
+  trustedGateways: ['https://arweave.net'],
+  timeoutMs: 5000, // Shorter timeout
+  retryAttempts: 1,
+  verifyOwnership: false, // Skip ownership for dev
+})
+```
+
+### Production Environment
+
+Robust verification for production:
+
+```javascript
+const prodStrategy = new SignatureVerificationStrategy({
+  trustedGateways: ['https://arweave.net', 'https://ar-io.net'],
+  timeoutMs: 15000,
+  retryAttempts: 3,
+  retryDelayMs: 2000,
+  verifyOwnership: true,
+  requireConsensus: true,
+})
+```
+
+## Testing
+
+### Unit Testing
+
+```javascript
+import { SignatureVerificationStrategy } from '@ar.io/wayfinder-core'
+
+describe('SignatureVerificationStrategy', () => {
+  let strategy
+
+  beforeEach(() => {
+    strategy = new SignatureVerificationStrategy({
+      trustedGateways: ['https://test-gateway.com'],
+    })
+  })
+
+  test('should verify valid signatures', async () => {
+    const testData = new TextEncoder().encode('test data')
+
+    // Mock transaction metadata with valid signature
+    jest.spyOn(strategy, 'fetchTransactionMetadata').mockResolvedValue({
+      signature: 'valid-signature',
+      owner: 'test-owner',
+      data_root: 'test-data-root',
+    })
+
+    jest.spyOn(strategy, 'validateSignature').mockResolvedValue(true)
+
+    await expect(
+      strategy.verifyData({
+        data: testData,
+        txId: 'test-tx-id',
+        originalUrl: 'ar://test-tx-id',
+      }),
+    ).resolves.not.toThrow()
+  })
+
+  test('should fail on invalid signatures', async () => {
+    const testData = new TextEncoder().encode('test data')
+
+    jest.spyOn(strategy, 'fetchTransactionMetadata').mockResolvedValue({
+      signature: 'invalid-signature',
+      owner: 'test-owner',
+      data_root: 'test-data-root',
+    })
+
+    jest.spyOn(strategy, 'validateSignature').mockResolvedValue(false)
+
+    await expect(
+      strategy.verifyData({
+        data: testData,
+        txId: 'test-tx-id',
+        originalUrl: 'ar://test-tx-id',
+      }),
+    ).rejects.toThrow('Invalid signature')
+  })
+
+  test('should enforce owner whitelist', async () => {
+    const restrictedStrategy = new SignatureVerificationStrategy({
+      trustedGateways: ['https://test-gateway.com'],
+      allowedOwners: ['allowed-owner'],
+    })
+
+    const testData = new TextEncoder().encode('test data')
+
+    jest
+      .spyOn(restrictedStrategy, 'fetchTransactionMetadata')
+      .mockResolvedValue({
+        signature: 'valid-signature',
+        owner: 'unauthorized-owner',
+        data_root: 'test-data-root',
+      })
+
+    await expect(
+      restrictedStrategy.verifyData({
+        data: testData,
+        txId: 'test-tx-id',
+        originalUrl: 'ar://test-tx-id',
+      }),
+    ).rejects.toThrow('Unauthorized owner')
+  })
+})
+```
+
+### Integration Testing
+
+```javascript
+describe('SignatureVerificationStrategy Integration', () => {
+  test('should verify real transaction signatures', async () => {
+    const strategy = new SignatureVerificationStrategy({
+      trustedGateways: ['https://arweave.net'],
+    })
+
+    // Use a known transaction for testing
+    const testTxId = 'known-signed-transaction-id'
+    const response = await fetch(`https://arweave.net/${testTxId}`)
+    const data = await response.arrayBuffer()
+
+    await expect(
+      strategy.verifyData({
+        data,
+        txId: testTxId,
+        originalUrl: `ar://${testTxId}`,
+      }),
+    ).resolves.not.toThrow()
+  })
+})
+```
+
+## Best Practices
+
+1. **Use Multiple Trusted Gateways**: Increases reliability for transaction metadata
+2. **Implement Owner Whitelists**: Restrict content to trusted creators when needed
+3. **Set Appropriate Timeouts**: Signature verification can be slower than hash verification
+4. **Cache Verification Results**: Avoid re-verifying the same transactions
+5. **Monitor Verification Metrics**: Track success rates and failure reasons
+6. **Handle Network Failures**: Implement retry logic for gateway requests
+7. **Validate Transaction Format**: Ensure transaction metadata is well-formed
+8. **Use Consensus When Critical**: Require multiple gateways to agree on transaction data
+
+## Comparison with Other Strategies
+
+<Table>
+  <Table.Head>
+    <Table.Row>
+      <Table.Header>Aspect</Table.Header>
+      <Table.Header>Signature Verification</Table.Header>
+      <Table.Header>Hash Verification</Table.Header>
+      <Table.Header>Data Root Verification</Table.Header>
+    </Table.Row>
+  </Table.Head>
+  <Table.Body>
+    <Table.Row>
+      <Table.Cell>**Security**</Table.Cell>
+      <Table.Cell>Very High</Table.Cell>
+      <Table.Cell>High</Table.Cell>
+      <Table.Cell>Highest</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>**Performance**</Table.Cell>
+      <Table.Cell>⭐⭐⭐⭐</Table.Cell>
+      <Table.Cell>⭐⭐⭐⭐⭐</Table.Cell>
+      <Table.Cell>⭐⭐⭐</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>**Complexity**</Table.Cell>
+      <Table.Cell>Medium</Table.Cell>
+      <Table.Cell>Low</Table.Cell>
+      <Table.Cell>High</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>**Network Overhead**</Table.Cell>
+      <Table.Cell>Medium</Table.Cell>
+      <Table.Cell>Low</Table.Cell>
+      <Table.Cell>High</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>**Ownership Verification**</Table.Cell>
+      <Table.Cell>✅ Yes</Table.Cell>
+      <Table.Cell>❌ No</Table.Cell>
+      <Table.Cell>❌ No</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>**Use Case**</Table.Cell>
+      <Table.Cell>Authenticity validation</Table.Cell>
+      <Table.Cell>Fast integrity checks</Table.Cell>
+      <Table.Cell>Maximum security</Table.Cell>
+    </Table.Row>
+  </Table.Body>
+</Table>
+
+The `SignatureVerificationStrategy` is ideal when you need to verify not just data integrity, but also the authenticity and ownership of the content. It provides a higher level of security than hash verification by ensuring the content was actually signed by the claimed wallet address.

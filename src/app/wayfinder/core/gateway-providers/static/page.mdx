@@ -1,0 +1,352 @@
+import { Table } from '@/components/Table'
+
+# StaticGatewaysProvider
+
+## Overview
+
+The `StaticGatewaysProvider` uses a predefined list of gateway URLs, making it ideal for development, testing, or when you need to use specific trusted gateways. It provides fast, predictable gateway discovery without network calls.
+
+## Installation
+
+```bash
+npm install @ar.io/wayfinder-core
+```
+
+## Basic Usage
+
+```javascript
+import { StaticGatewaysProvider } from '@ar.io/wayfinder-core'
+
+const provider = new StaticGatewaysProvider({
+  gateways: [
+    'https://arweave.net',
+    'https://ar-io.net',
+    'https://permagate.io',
+  ],
+})
+
+const gateways = await provider.getGateways()
+console.log('Available gateways:', gateways)
+```
+
+## Configuration Options
+
+### StaticGatewaysProviderOptions
+
+```typescript
+interface StaticGatewaysProviderOptions {
+  gateways: string[]
+  shuffle?: boolean
+  healthCheck?: boolean
+  healthCheckTimeout?: number
+}
+```
+
+### Parameters
+
+<Table>
+  <Table.Head>
+    <Table.Row>
+      <Table.Header>Parameter</Table.Header>
+      <Table.Header>Type</Table.Header>
+      <Table.Header>Default</Table.Header>
+      <Table.Header>Description</Table.Header>
+    </Table.Row>
+  </Table.Head>
+  <Table.Body>
+    <Table.Row>
+      <Table.Cell>`gateways`</Table.Cell>
+      <Table.Cell>`string[]`</Table.Cell>
+      <Table.Cell>Required</Table.Cell>
+      <Table.Cell>Array of gateway URLs</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>`shuffle`</Table.Cell>
+      <Table.Cell>`boolean`</Table.Cell>
+      <Table.Cell>`false`</Table.Cell>
+      <Table.Cell>Randomly shuffle gateway order</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>`healthCheck`</Table.Cell>
+      <Table.Cell>`boolean`</Table.Cell>
+      <Table.Cell>`false`</Table.Cell>
+      <Table.Cell>Perform health checks on gateways</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>`healthCheckTimeout`</Table.Cell>
+      <Table.Cell>`number`</Table.Cell>
+      <Table.Cell>`5000`</Table.Cell>
+      <Table.Cell>Health check timeout in milliseconds</Table.Cell>
+    </Table.Row>
+  </Table.Body>
+</Table>
+
+## Configuration Examples
+
+### Development Configuration
+
+```javascript
+import { StaticGatewaysProvider } from '@ar.io/wayfinder-core'
+
+// Development with local and fallback gateways
+const provider = new StaticGatewaysProvider({
+  gateways: [
+    'http://localhost:3000', // Local development gateway
+    'https://arweave.net', // Fallback to public gateway
+    'https://ar-io.net', // Secondary fallback
+  ],
+})
+```
+
+### Production Configuration
+
+```javascript
+import { StaticGatewaysProvider } from '@ar.io/wayfinder-core'
+
+// Production with trusted gateways and health checks
+const provider = new StaticGatewaysProvider({
+  gateways: [
+    'https://my-trusted-gateway.com',
+    'https://backup-gateway.com',
+    'https://arweave.net',
+  ],
+  healthCheck: true,
+  healthCheckTimeout: 3000,
+})
+```
+
+### Testing Configuration
+
+```javascript
+import { StaticGatewaysProvider } from '@ar.io/wayfinder-core'
+
+// Testing with mock gateways
+const provider = new StaticGatewaysProvider({
+  gateways: [
+    'https://test-gateway-1.example.com',
+    'https://test-gateway-2.example.com',
+  ],
+  shuffle: true, // Randomize for testing different scenarios
+})
+```
+
+## Advanced Usage
+
+### Environment-Based Configuration
+
+```javascript
+import { StaticGatewaysProvider } from '@ar.io/wayfinder-core'
+
+class EnvironmentStaticProvider extends StaticGatewaysProvider {
+  constructor(options) {
+    const environment =
+      options.environment || process.env.NODE_ENV || 'development'
+    const gateways =
+      options.gateways ||
+      EnvironmentStaticProvider.getDefaultGateways(environment)
+
+    super({ ...options, gateways })
+    this.environment = environment
+  }
+
+  static getDefaultGateways(environment) {
+    const configs = {
+      development: ['http://localhost:3000', 'https://arweave.net'],
+      testing: ['https://test-gateway.example.com', 'https://arweave.net'],
+      production: ['https://gateway.company.com', 'https://arweave.net'],
+    }
+    return configs[environment] || configs.development
+  }
+}
+
+// Usage
+const envProvider = new EnvironmentStaticProvider({
+  environment: 'production',
+  healthCheck: true,
+})
+```
+
+### Health-Checked Provider
+
+```javascript
+import { StaticGatewaysProvider } from '@ar.io/wayfinder-core'
+
+class HealthCheckedStaticProvider extends StaticGatewaysProvider {
+  constructor(options) {
+    super(options)
+    this.healthyGateways = new Set()
+    this.unhealthyGateways = new Set()
+
+    if (options.healthCheck) {
+      this.performHealthChecks()
+    }
+  }
+
+  async getGateways() {
+    const allGateways = await super.getGateways()
+
+    if (!this.options.healthCheck) {
+      return allGateways
+    }
+
+    // Return healthy gateways first
+    const healthy = allGateways.filter((g) => this.healthyGateways.has(g))
+    const unhealthy = allGateways.filter((g) => this.unhealthyGateways.has(g))
+
+    return [...healthy, ...unhealthy]
+  }
+
+  async performHealthChecks() {
+    const healthChecks = await Promise.allSettled(
+      this.options.gateways.map((gateway) => this.checkGatewayHealth(gateway)),
+    )
+
+    healthChecks.forEach((result, index) => {
+      const gateway = this.options.gateways[index]
+      if (result.status === 'fulfilled' && result.value.healthy) {
+        this.healthyGateways.add(gateway)
+      } else {
+        this.unhealthyGateways.add(gateway)
+      }
+    })
+  }
+
+  async checkGatewayHealth(gateway) {
+    try {
+      const response = await fetch(`${gateway}/ar-io/info`, {
+        method: 'HEAD',
+        signal: AbortSignal.timeout(this.options.healthCheckTimeout || 5000),
+      })
+      return { healthy: response.ok }
+    } catch (error) {
+      return { healthy: false, error: error.message }
+    }
+  }
+}
+```
+
+## Error Handling
+
+```javascript
+import { StaticGatewaysProvider } from '@ar.io/wayfinder-core'
+
+const provider = new StaticGatewaysProvider({
+  gateways: ['https://gateway1.com', 'https://gateway2.com'],
+})
+
+try {
+  const gateways = await provider.getGateways()
+  console.log('Available gateways:', gateways)
+} catch (error) {
+  switch (error.constructor.name) {
+    case 'InvalidConfigurationError':
+      console.error('Invalid gateway configuration')
+      break
+    case 'HealthCheckError':
+      console.error('Health check failed for all gateways')
+      break
+    default:
+      console.error('Unknown error:', error.message)
+  }
+}
+```
+
+## Testing
+
+### Unit Tests
+
+```javascript
+import { StaticGatewaysProvider } from '@ar.io/wayfinder-core'
+
+describe('StaticGatewaysProvider', () => {
+  test('should return configured gateways', async () => {
+    const gateways = ['https://gateway1.com', 'https://gateway2.com']
+    const provider = new StaticGatewaysProvider({ gateways })
+    const result = await provider.getGateways()
+
+    expect(result).toEqual(gateways)
+  })
+
+  test('should handle empty gateway list', async () => {
+    const provider = new StaticGatewaysProvider({ gateways: [] })
+    const result = await provider.getGateways()
+
+    expect(result).toEqual([])
+  })
+
+  test('should shuffle gateways when enabled', async () => {
+    const gateways = [
+      'https://gateway1.com',
+      'https://gateway2.com',
+      'https://gateway3.com',
+    ]
+    const provider = new StaticGatewaysProvider({ gateways, shuffle: true })
+    const result = await provider.getGateways()
+
+    expect(result).toHaveLength(gateways.length)
+    expect(result).toEqual(expect.arrayContaining(gateways))
+  })
+})
+```
+
+## Best Practices
+
+1. **Use for Development and Testing**: Static providers are perfect for predictable environments
+2. **Include Fallback Gateways**: Always include reliable public gateways as fallbacks
+3. **Enable Health Checks for Production**: Use health checks when reliability is critical
+4. **Maintain Gateway Lists**: Keep your static gateway lists up to date
+5. **Use Environment-Specific Configs**: Different gateway lists for different environments
+6. **Validate URLs**: Ensure all gateway URLs are valid and accessible
+
+## Comparison with Other Providers
+
+<Table>
+  <Table.Head>
+    <Table.Row>
+      <Table.Header>Feature</Table.Header>
+      <Table.Header>StaticGatewaysProvider</Table.Header>
+      <Table.Header>NetworkGatewaysProvider</Table.Header>
+      <Table.Header>SimpleCacheGatewaysProvider</Table.Header>
+    </Table.Row>
+  </Table.Head>
+  <Table.Body>
+    <Table.Row>
+      <Table.Cell>**Performance**</Table.Cell>
+      <Table.Cell>High (no network calls)</Table.Cell>
+      <Table.Cell>Medium (network calls)</Table.Cell>
+      <Table.Cell>High (cached)</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>**Reliability**</Table.Cell>
+      <Table.Cell>Medium (static data)</Table.Cell>
+      <Table.Cell>High (real network data)</Table.Cell>
+      <Table.Cell>High (cached + fallback)</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>**Maintenance**</Table.Cell>
+      <Table.Cell>High (manual updates)</Table.Cell>
+      <Table.Cell>Low (automatic updates)</Table.Cell>
+      <Table.Cell>Low (automatic + cached)</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>**Predictability**</Table.Cell>
+      <Table.Cell>High (fixed list)</Table.Cell>
+      <Table.Cell>Low (dynamic list)</Table.Cell>
+      <Table.Cell>Medium (cached but updates)</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>**Use Case**</Table.Cell>
+      <Table.Cell>Development/Testing</Table.Cell>
+      <Table.Cell>Production</Table.Cell>
+      <Table.Cell>Production (performance)</Table.Cell>
+    </Table.Row>
+  </Table.Body>
+</Table>
+
+## Related Documentation
+
+- **[Gateway Providers Overview](/wayfinder/core/gateway-providers)**: Compare all gateway providers
+- **[NetworkGatewaysProvider](/wayfinder/core/gateway-providers/network)**: Dynamic network discovery
+- **[SimpleCacheGatewaysProvider](/wayfinder/core/gateway-providers/cache)**: Caching wrapper
+- **[Wayfinder Configuration](/wayfinder/core)**: Main wayfinder setup
+- **[Routing Strategies](/wayfinder/routing-strategies)**: How gateways are selected

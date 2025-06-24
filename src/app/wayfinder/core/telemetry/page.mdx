@@ -1,0 +1,572 @@
+import { Table } from '@/components/Table'
+
+# Telemetry
+
+## Overview
+
+Wayfinder includes built-in OpenTelemetry support for comprehensive observability and monitoring. This enables you to track performance metrics, trace request flows, and monitor system health across your entire application stack.
+
+## Installation
+
+Telemetry is included with wayfinder-core and requires no additional dependencies.
+
+```bash
+npm install @ar.io/wayfinder-core
+```
+
+## Basic Configuration
+
+### Enable Telemetry
+
+```javascript
+import { Wayfinder, NetworkGatewaysProvider } from '@ar.io/wayfinder-core'
+import { ARIO } from '@ar.io/sdk'
+
+const wayfinder = new Wayfinder({
+  gatewaysProvider: new NetworkGatewaysProvider({
+    ario: ARIO.mainnet(),
+  }),
+  telemetrySettings: {
+    enabled: true,
+    serviceName: 'my-application',
+    sampleRate: 0.1, // 10% sampling
+  },
+})
+```
+
+### Full Configuration
+
+```javascript
+const wayfinder = new Wayfinder({
+  gatewaysProvider: new NetworkGatewaysProvider({
+    ario: ARIO.mainnet(),
+  }),
+  telemetrySettings: {
+    enabled: true,
+    serviceName: 'my-application',
+    sampleRate: 0.1,
+    exporterUrl: 'https://api.honeycomb.io', // Default AR.IO endpoint
+    apiKey: process.env.HONEYCOMB_API_KEY,
+  },
+})
+```
+
+## Configuration Options
+
+### TelemetryConfig Interface
+
+```typescript
+interface TelemetryConfig {
+  enabled: boolean
+  serviceName: string
+  sampleRate: number
+  apiKey?: string
+  exporterUrl?: string
+  attributes?: Record<string, string>
+  headers?: Record<string, string>
+}
+```
+
+### Parameters
+
+<Table>
+  <Table.Head>
+    <Table.Row>
+      <Table.Header>Parameter</Table.Header>
+      <Table.Header>Type</Table.Header>
+      <Table.Header>Required</Table.Header>
+      <Table.Header>Default</Table.Header>
+      <Table.Header>Description</Table.Header>
+    </Table.Row>
+  </Table.Head>
+  <Table.Body>
+    <Table.Row>
+      <Table.Cell>`enabled`</Table.Cell>
+      <Table.Cell>`boolean`</Table.Cell>
+      <Table.Cell>Yes</Table.Cell>
+      <Table.Cell>-</Table.Cell>
+      <Table.Cell>Enable/disable telemetry</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>`serviceName`</Table.Cell>
+      <Table.Cell>`string`</Table.Cell>
+      <Table.Cell>Yes</Table.Cell>
+      <Table.Cell>-</Table.Cell>
+      <Table.Cell>Service name for traces</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>`sampleRate`</Table.Cell>
+      <Table.Cell>`number`</Table.Cell>
+      <Table.Cell>Yes</Table.Cell>
+      <Table.Cell>-</Table.Cell>
+      <Table.Cell>Sampling rate (0.0 to 1.0)</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>`apiKey`</Table.Cell>
+      <Table.Cell>`string`</Table.Cell>
+      <Table.Cell>No</Table.Cell>
+      <Table.Cell>-</Table.Cell>
+      <Table.Cell>API key for telemetry service</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>`exporterUrl`</Table.Cell>
+      <Table.Cell>`string`</Table.Cell>
+      <Table.Cell>No</Table.Cell>
+      <Table.Cell>`https://api.honeycomb.io`</Table.Cell>
+      <Table.Cell>Telemetry export endpoint</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>`attributes`</Table.Cell>
+      <Table.Cell>`object`</Table.Cell>
+      <Table.Cell>No</Table.Cell>
+      <Table.Cell>`{}`</Table.Cell>
+      <Table.Cell>Additional trace attributes</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>`headers`</Table.Cell>
+      <Table.Cell>`object`</Table.Cell>
+      <Table.Cell>No</Table.Cell>
+      <Table.Cell>`{}`</Table.Cell>
+      <Table.Cell>Additional HTTP headers</Table.Cell>
+    </Table.Row>
+  </Table.Body>
+</Table>
+
+## Default Behavior
+
+<Tip>
+  When telemetry is enabled without specifying an `exporterUrl`, data is sent to
+  AR.IO's Honeycomb dataset (`wayfinder-dev`) by default. This helps the AR.IO
+  team improve the network and wayfinder performance.
+</Tip>
+
+### AR.IO Team Data Collection
+
+```javascript
+// Default configuration sends data to AR.IO team
+const wayfinder = new Wayfinder({
+  gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
+  telemetrySettings: {
+    enabled: true,
+    serviceName: 'my-app',
+    sampleRate: 0.1,
+    // exporterUrl defaults to https://api.honeycomb.io
+    // Data goes to AR.IO team's wayfinder-dev dataset
+  },
+})
+```
+
+### Custom Telemetry Endpoint
+
+```javascript
+// Send data to your own telemetry service
+const wayfinder = new Wayfinder({
+  gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
+  telemetrySettings: {
+    enabled: true,
+    serviceName: 'my-app',
+    sampleRate: 0.1,
+    exporterUrl: 'https://my-telemetry-service.com/v1/traces',
+    apiKey: 'my-api-key',
+  },
+})
+```
+
+## Environment-Specific Configuration
+
+### Development
+
+```javascript
+const wayfinder = new Wayfinder({
+  gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
+  telemetrySettings: {
+    enabled: true,
+    serviceName: 'my-app-dev',
+    sampleRate: 1.0, // 100% sampling for development
+    attributes: {
+      environment: 'development',
+      version: '1.0.0',
+    },
+  },
+})
+```
+
+### Production
+
+```javascript
+const wayfinder = new Wayfinder({
+  gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
+  telemetrySettings: {
+    enabled: true,
+    serviceName: 'my-app-prod',
+    sampleRate: 0.01, // 1% sampling for production
+    exporterUrl: process.env.TELEMETRY_ENDPOINT,
+    apiKey: process.env.TELEMETRY_API_KEY,
+    attributes: {
+      environment: 'production',
+      version: process.env.APP_VERSION,
+      region: process.env.AWS_REGION,
+    },
+  },
+})
+```
+
+## Traced Operations
+
+Wayfinder automatically traces the following operations:
+
+### Request Tracing
+
+```javascript
+// Each request creates a trace with spans for:
+// - Gateway selection
+// - Data fetching
+// - Verification (if enabled)
+const response = await wayfinder.request('ar://transaction-id')
+```
+
+### Gateway Discovery
+
+```javascript
+// Gateway discovery operations are traced
+const gateways = await wayfinder.gatewaysProvider.getGateways()
+```
+
+### Verification Operations
+
+```javascript
+// Verification operations include detailed timing
+const wayfinder = new Wayfinder({
+  gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
+  verificationSettings: {
+    enabled: true,
+    strategy: new HashVerificationStrategy({
+      trustedGateways: ['https://arweave.net'],
+    }),
+  },
+  telemetrySettings: {
+    enabled: true,
+    serviceName: 'my-app',
+    sampleRate: 0.1,
+  },
+})
+```
+
+## Custom Instrumentation
+
+### Adding Custom Spans
+
+```javascript
+import { trace } from '@opentelemetry/api'
+
+class CustomWayfinderService {
+  constructor(wayfinder) {
+    this.wayfinder = wayfinder
+    this.tracer = trace.getTracer('my-custom-service')
+  }
+
+  async processData(txId) {
+    const span = this.tracer.startSpan('process-data')
+
+    try {
+      span.setAttributes({
+        'transaction.id': txId,
+        operation: 'data-processing',
+      })
+
+      // Fetch data with wayfinder
+      const response = await this.wayfinder.request(`ar://${txId}`)
+      const data = await response.text()
+
+      // Custom processing
+      const processed = this.customProcessing(data)
+
+      span.setAttributes({
+        'data.size': data.length,
+        'processed.size': processed.length,
+      })
+
+      return processed
+    } catch (error) {
+      span.recordException(error)
+      span.setStatus({ code: 2, message: error.message })
+      throw error
+    } finally {
+      span.end()
+    }
+  }
+
+  customProcessing(data) {
+    // Your custom processing logic
+    return data.toUpperCase()
+  }
+}
+
+// Usage
+const service = new CustomWayfinderService(wayfinder)
+const result = await service.processData('transaction-id')
+```
+
+### Custom Attributes
+
+```javascript
+const wayfinder = new Wayfinder({
+  gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
+  telemetrySettings: {
+    enabled: true,
+    serviceName: 'my-app',
+    sampleRate: 0.1,
+    attributes: {
+      'app.name': 'my-application',
+      'app.version': '1.2.3',
+      'deployment.environment': 'production',
+      'user.id': 'user-123',
+    },
+  },
+})
+```
+
+## Third-Party Observability Tools
+
+<Tip>
+  The examples below show how wayfinder telemetry data could be used with
+  various observability platforms. These tools are not provided by wayfinder and
+  require separate setup and configuration.
+</Tip>
+
+### Jaeger Integration Example
+
+```javascript
+// Example configuration for Jaeger (requires separate Jaeger setup)
+const wayfinder = new Wayfinder({
+  gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
+  telemetrySettings: {
+    enabled: true,
+    serviceName: 'my-app',
+    sampleRate: 0.1,
+    exporterUrl: 'http://localhost:14268/api/traces', // Your Jaeger endpoint
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  },
+})
+```
+
+### Zipkin Integration Example
+
+```javascript
+// Example configuration for Zipkin (requires separate Zipkin setup)
+const wayfinder = new Wayfinder({
+  gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
+  telemetrySettings: {
+    enabled: true,
+    serviceName: 'my-app',
+    sampleRate: 0.1,
+    exporterUrl: 'http://localhost:9411/api/v2/spans', // Your Zipkin endpoint
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  },
+})
+```
+
+## Performance Considerations
+
+### Sampling Strategies
+
+```javascript
+// Environment-based sampling
+const sampleRate = process.env.NODE_ENV === 'production' ? 0.01 : 1.0
+
+const wayfinder = new Wayfinder({
+  gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
+  telemetrySettings: {
+    enabled: true,
+    serviceName: 'my-app',
+    sampleRate,
+  },
+})
+```
+
+### Conditional Telemetry
+
+```javascript
+class ConditionalTelemetryWayfinder {
+  constructor(options) {
+    this.baseOptions = options
+    this.telemetryEnabled = this.shouldEnableTelemetry()
+  }
+
+  shouldEnableTelemetry() {
+    // Enable telemetry based on conditions
+    return (
+      process.env.NODE_ENV === 'production' ||
+      process.env.ENABLE_TELEMETRY === 'true'
+    )
+  }
+
+  createWayfinder() {
+    return new Wayfinder({
+      ...this.baseOptions,
+      telemetrySettings: this.telemetryEnabled
+        ? {
+            enabled: true,
+            serviceName: 'my-app',
+            sampleRate: 0.1,
+          }
+        : {
+            enabled: false,
+          },
+    })
+  }
+}
+
+// Usage
+const factory = new ConditionalTelemetryWayfinder({
+  gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
+})
+
+const wayfinder = factory.createWayfinder()
+```
+
+## Monitoring and Alerting
+
+### Key Metrics to Monitor
+
+1. **Request Success Rate**: Percentage of successful requests
+2. **Average Response Time**: Mean response time for requests
+3. **Gateway Performance**: Response times by gateway
+4. **Verification Success Rate**: Percentage of successful verifications
+5. **Error Rates**: Frequency of different error types
+
+### Example Monitoring Setup
+
+```javascript
+class TelemetryMonitor {
+  constructor(wayfinder) {
+    this.wayfinder = wayfinder
+    this.metrics = {
+      requests: { total: 0, successful: 0, failed: 0 },
+      responseTimes: [],
+      gatewayUsage: new Map(),
+      errors: new Map(),
+    }
+
+    this.setupMonitoring()
+  }
+
+  setupMonitoring() {
+    this.wayfinder.emitter.on('routing-succeeded', (event) => {
+      this.metrics.requests.total++
+      this.metrics.requests.successful++
+      this.metrics.responseTimes.push(event.responseTime)
+
+      const usage = this.metrics.gatewayUsage.get(event.selectedGateway) || 0
+      this.metrics.gatewayUsage.set(event.selectedGateway, usage + 1)
+    })
+
+    this.wayfinder.emitter.on('routing-failed', (event) => {
+      this.metrics.requests.total++
+      this.metrics.requests.failed++
+
+      const errorType = event.error.constructor.name
+      const count = this.metrics.errors.get(errorType) || 0
+      this.metrics.errors.set(errorType, count + 1)
+    })
+  }
+
+  getHealthMetrics() {
+    const successRate =
+      this.metrics.requests.total > 0
+        ? this.metrics.requests.successful / this.metrics.requests.total
+        : 0
+
+    const avgResponseTime =
+      this.metrics.responseTimes.length > 0
+        ? this.metrics.responseTimes.reduce((a, b) => a + b, 0) /
+          this.metrics.responseTimes.length
+        : 0
+
+    return {
+      successRate,
+      avgResponseTime,
+      totalRequests: this.metrics.requests.total,
+      gatewayUsage: Object.fromEntries(this.metrics.gatewayUsage),
+      errorBreakdown: Object.fromEntries(this.metrics.errors),
+    }
+  }
+}
+
+// Usage
+const monitor = new TelemetryMonitor(wayfinder)
+
+// Periodically check health
+setInterval(() => {
+  const health = monitor.getHealthMetrics()
+  console.log('Health metrics:', health)
+
+  // Alert if success rate drops below threshold
+  if (health.successRate < 0.95) {
+    console.warn('Low success rate detected:', health.successRate)
+  }
+}, 60000) // Check every minute
+```
+
+## Contributing to AR.IO Network Improvements
+
+<Tip>
+  By enabling telemetry with default settings, you contribute anonymous
+  performance data to help the AR.IO team improve the network and wayfinder
+  performance. This data helps identify optimal gateways, common performance
+  bottlenecks, and usage patterns.
+</Tip>
+
+### What Data is Collected
+
+When using default telemetry settings:
+
+- Request response times
+- Gateway selection patterns
+- Verification performance
+- Error rates and types
+- No personal or sensitive data
+
+### Opting Out
+
+```javascript
+// Disable telemetry completely
+const wayfinder = new Wayfinder({
+  gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
+  telemetrySettings: {
+    enabled: false,
+  },
+})
+
+// Or use your own telemetry endpoint
+const wayfinder = new Wayfinder({
+  gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
+  telemetrySettings: {
+    enabled: true,
+    serviceName: 'my-app',
+    sampleRate: 0.1,
+    exporterUrl: 'https://my-telemetry-service.com',
+  },
+})
+```
+
+## Best Practices
+
+1. **Use Appropriate Sampling**: Balance observability needs with performance impact
+2. **Set Meaningful Service Names**: Use descriptive names for easier debugging
+3. **Add Custom Attributes**: Include relevant context for your application
+4. **Monitor Key Metrics**: Track success rates, response times, and error rates
+5. **Use Environment-Specific Configuration**: Different settings for dev/staging/prod
+6. **Implement Alerting**: Set up alerts for critical metrics
+7. **Regular Review**: Periodically review telemetry data and adjust configuration
+
+## Related Documentation
+
+- **[Wayfinder Configuration](/wayfinder/core)**: Main wayfinder setup and usage
+- **[Events System](/wayfinder/core/events)**: Event handling and monitoring
+  {/* - **[Performance Optimization](/wayfinder/core/performance)**: Performance tuning guides */}
+  {/* - **[Error Handling](/wayfinder/core/error-handling)**: Error handling patterns */}

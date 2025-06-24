@@ -1,0 +1,358 @@
+# wayfinder.request()
+
+Fetch data from Arweave using the ar:// protocol with intelligent routing and verification.
+
+## Syntax
+
+```javascript
+const response = await wayfinder.request(input, init)
+```
+
+## Parameters
+
+- **`input`** (`string | URL | RequestInfo`): The ar:// URL or standard fetch input
+- **`init`** (`RequestInit & WayfinderRequestOptions`, optional): Request configuration options
+
+### WayfinderRequestOptions
+
+```typescript
+interface WayfinderRequestOptions {
+  verificationSettings?: {
+    enabled?: boolean
+    strategy?: VerificationStrategy
+    strict?: boolean
+    events?: WayfinderVerificationEventArgs
+  }
+  routingSettings?: {
+    strategy?: RoutingStrategy
+    events?: WayfinderRoutingEventArgs
+  }
+}
+```
+
+## Returns
+
+**Type**: `Promise<Response>`
+
+Returns a standard `Response` object that can be processed with:
+
+- `response.text()` - Get response as text
+- `response.json()` - Parse response as JSON
+- `response.blob()` - Get response as Blob
+- `response.arrayBuffer()` - Get response as ArrayBuffer
+
+## Examples
+
+### Basic Usage
+
+```javascript
+import { Wayfinder } from '@ar.io/wayfinder-core'
+
+const wayfinder = new Wayfinder()
+
+// Fetch text data
+const response = await wayfinder.request('ar://transaction-id')
+const text = await response.text()
+console.log('Content:', text)
+
+// Fetch JSON data
+const response = await wayfinder.request('ar://json-transaction-id')
+const data = await response.json()
+console.log('Data:', data)
+
+// Fetch binary data (images, files, etc.)
+const response = await wayfinder.request('ar://image-transaction-id')
+const blob = await response.blob()
+const imageUrl = URL.createObjectURL(blob)
+```
+
+### With Custom Headers
+
+```javascript
+const response = await wayfinder.request('ar://transaction-id', {
+  headers: {
+    Accept: 'application/json',
+    'User-Agent': 'MyApp/1.0',
+  },
+})
+```
+
+### Override Verification Settings
+
+```javascript
+// Override global verification settings for this request
+const response = await wayfinder.request('ar://transaction-id', {
+  verificationSettings: {
+    enabled: true,
+    strict: true, // Fail on verification errors
+    events: {
+      onVerificationSucceeded: (event) => {
+        console.log('Verification passed for:', event.txId)
+      },
+      onVerificationFailed: (error) => {
+        console.error('Verification failed:', error)
+      },
+    },
+  },
+})
+```
+
+### Override Routing Settings
+
+```javascript
+import { FastestPingRoutingStrategy } from '@ar.io/wayfinder-core'
+
+// Use different routing strategy for this request
+const response = await wayfinder.request('ar://transaction-id', {
+  routingSettings: {
+    strategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
+    events: {
+      onRoutingSucceeded: (event) => {
+        console.log('Selected gateway:', event.selectedGateway)
+      },
+    },
+  },
+})
+```
+
+### Error Handling
+
+```javascript
+try {
+  const response = await wayfinder.request('ar://transaction-id')
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+  }
+
+  const data = await response.text()
+  console.log('Success:', data)
+} catch (error) {
+  if (error.name === 'TimeoutError') {
+    console.error('Request timed out')
+  } else if (error.name === 'VerificationError') {
+    console.error('Data verification failed')
+  } else if (error.name === 'NetworkError') {
+    console.error('Network connectivity issue')
+  } else {
+    console.error('Request failed:', error.message)
+  }
+}
+```
+
+### AbortController Support
+
+```javascript
+const controller = new AbortController()
+
+// Cancel request after 5 seconds
+setTimeout(() => controller.abort(), 5000)
+
+try {
+  const response = await wayfinder.request('ar://transaction-id', {
+    signal: controller.signal,
+  })
+  const data = await response.text()
+} catch (error) {
+  if (error.name === 'AbortError') {
+    console.log('Request was cancelled')
+  }
+}
+```
+
+## URL Formats
+
+The `request()` method supports various ar:// URL formats:
+
+### Transaction ID
+
+```javascript
+await wayfinder.request('ar://ABC123...XYZ')
+```
+
+### ArNS Names
+
+```javascript
+await wayfinder.request('ar://domain-name')
+await wayfinder.request('ar://domain-name/path/to/file.txt')
+```
+
+### Subdomain Resolution
+
+```javascript
+await wayfinder.request('ar://subdomain.domain-name')
+```
+
+### Gateway Endpoints
+
+```javascript
+await wayfinder.request('ar:///info')
+await wayfinder.request('ar:///peers')
+```
+
+## Response Processing
+
+### Text Content
+
+```javascript
+const response = await wayfinder.request('ar://text-content')
+const text = await response.text()
+console.log('Text length:', text.length)
+```
+
+### JSON Data
+
+```javascript
+const response = await wayfinder.request('ar://json-data')
+const json = await response.json()
+console.log('JSON keys:', Object.keys(json))
+```
+
+### Binary Data
+
+```javascript
+const response = await wayfinder.request('ar://image-file')
+const blob = await response.blob()
+console.log('Blob size:', blob.size, 'Type:', blob.type)
+
+// Create object URL for display
+const imageUrl = URL.createObjectURL(blob)
+document.getElementById('image').src = imageUrl
+```
+
+### Streaming Data
+
+```javascript
+const response = await wayfinder.request('ar://large-file')
+
+if (response.body) {
+  const reader = response.body.getReader()
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+
+    console.log('Received chunk:', value.length, 'bytes')
+    // Process chunk...
+  }
+}
+```
+
+## Performance Considerations
+
+### Request Caching
+
+```javascript
+// Enable browser caching
+const response = await wayfinder.request('ar://transaction-id', {
+  cache: 'force-cache', // Use cached version if available
+})
+```
+
+### Timeout Configuration
+
+```javascript
+// Set per-request timeout
+const response = await wayfinder.request('ar://transaction-id', {
+  routingSettings: {
+    strategy: new FastestPingRoutingStrategy({ timeoutMs: 1000 }),
+  },
+})
+```
+
+### Content-Type Detection
+
+```javascript
+const response = await wayfinder.request('ar://transaction-id')
+
+// Check content type
+const contentType = response.headers.get('content-type')
+if (contentType?.includes('application/json')) {
+  const data = await response.json()
+} else if (contentType?.includes('text/')) {
+  const text = await response.text()
+} else {
+  const blob = await response.blob()
+}
+```
+
+## Integration Patterns
+
+### React Hook Pattern
+
+```javascript
+import { useState, useEffect } from 'react'
+
+function useArweaveData(txId) {
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setLoading(true)
+        const response = await wayfinder.request(`ar://${txId}`)
+        const result = await response.text()
+        setData(result)
+      } catch (err) {
+        setError(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (txId) {
+      fetchData()
+    }
+  }, [txId])
+
+  return { data, loading, error }
+}
+```
+
+### Retry Logic
+
+```javascript
+async function requestWithRetry(url, maxRetries = 3) {
+  let lastError
+
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await wayfinder.request(url)
+    } catch (error) {
+      lastError = error
+      console.warn(`Attempt ${i + 1} failed:`, error.message)
+
+      if (i < maxRetries - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 1000 * (i + 1)))
+      }
+    }
+  }
+
+  throw lastError
+}
+```
+
+### Batch Requests
+
+```javascript
+async function fetchBatch(txIds) {
+  const results = await Promise.allSettled(
+    txIds.map((txId) => wayfinder.request(`ar://${txId}`)),
+  )
+
+  return results.map((result, index) => ({
+    txId: txIds[index],
+    success: result.status === 'fulfilled',
+    data: result.status === 'fulfilled' ? result.value : null,
+    error: result.status === 'rejected' ? result.reason : null,
+  }))
+}
+```
+
+## Related Methods
+
+- **[resolveUrl()](/wayfinder/core/resolve-url)**: Resolve ar:// URLs without fetching data
+- **[emitter](/wayfinder/core/events)**: Monitor request events
+- **[Constructor](/wayfinder/core/constructor)**: Configure global request settings

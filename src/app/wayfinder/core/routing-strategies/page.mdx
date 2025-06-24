@@ -1,0 +1,583 @@
+import { Table } from '@/components/Table'
+
+# Routing Strategies
+
+## Overview
+
+Routing strategies determine how Wayfinder selects which AR.IO gateway to use for each request. These strategies are the core algorithms that optimize gateway selection based on different criteria such as performance, reliability, load distribution, or custom business logic.
+
+All routing strategies implement the `RoutingStrategy` interface and can be easily swapped or combined to meet specific application requirements.
+
+## Available Strategies
+
+### [FastestPingRoutingStrategy](/wayfinder/core/routing-strategies/fastest-ping)
+
+Performance-optimized strategy that selects gateways based on the lowest response latency. Performs health checks and ping tests to identify the fastest available gateway.
+
+```javascript
+import { FastestPingRoutingStrategy } from '@ar.io/wayfinder-core'
+
+const strategy = new FastestPingRoutingStrategy({
+  timeoutMs: 2000,
+  pingPath: '/ar-io/info',
+  cacheResultsMs: 30000,
+  concurrentPings: 5,
+})
+```
+
+**Best for**: Real-time applications, interactive experiences, latency-sensitive operations
+
+### [PreferredWithFallbackRoutingStrategy](/wayfinder/core/routing-strategies/preferred-with-fallback)
+
+Reliability-focused strategy that tries a preferred gateway first with intelligent fallback to alternative strategies when the preferred option fails.
+
+```javascript
+import {
+  PreferredWithFallbackRoutingStrategy,
+  FastestPingRoutingStrategy,
+} from '@ar.io/wayfinder-core'
+
+const strategy = new PreferredWithFallbackRoutingStrategy({
+  preferredGateway: 'https://my-gateway.com',
+  fallbackStrategy: new FastestPingRoutingStrategy(),
+  healthCheckEnabled: true,
+  circuitBreakerThreshold: 5,
+})
+```
+
+**Best for**: Enterprise applications, dedicated infrastructure, hybrid cloud setups
+
+### [RoundRobinRoutingStrategy](/wayfinder/core/routing-strategies/round-robin)
+
+Load balancing strategy that distributes requests evenly across all available gateways in a cyclical manner to prevent gateway overload.
+
+```javascript
+import { RoundRobinRoutingStrategy } from '@ar.io/wayfinder-core'
+
+const strategy = new RoundRobinRoutingStrategy({
+  healthCheckEnabled: true,
+  weightedRotation: true,
+  resetOnFailure: true,
+})
+```
+
+**Best for**: High-traffic applications, load distribution, gateway capacity optimization
+
+### [RandomRoutingStrategy](/wayfinder/core/routing-strategies/random)
+
+Simple strategy that randomly selects gateways with optional weighting for different gateway priorities or capacities.
+
+```javascript
+import { RandomRoutingStrategy } from '@ar.io/wayfinder-core'
+
+const strategy = new RandomRoutingStrategy({
+  healthCheckEnabled: true,
+  weightedSelection: true,
+  seed: 12345, // For reproducible randomness in testing
+})
+```
+
+**Best for**: Simple load distribution, avoiding request patterns, development environments
+
+## Strategy Interface
+
+All routing strategies implement the `RoutingStrategy` interface:
+
+```typescript
+interface RoutingStrategy {
+  selectGateway(context: RoutingContext): Promise&lt;string&gt;
+  onSuccess?(gateway: string, context: RoutingContext): Promise&lt;void&gt;
+  onFailure?(gateway: string, error: Error, context: RoutingContext): Promise&lt;void&gt;
+  getMetrics?(): RoutingMetrics
+}
+
+interface RoutingContext {
+  gateways: string[]
+  request: {
+    url: string
+    method: string
+    headers?: Record&lt;string, string&gt;
+  }
+  attempt: number
+  previousErrors: Error[]
+  metadata?: Record&lt;string, any&gt;
+}
+```
+
+### selectGateway()
+
+Core method that selects the optimal gateway for a request.
+
+**Signature:**
+
+```typescript
+async selectGateway(context: RoutingContext): Promise&lt;string&gt;
+```
+
+**Parameters:**
+
+- `context` - Routing context containing gateways, request details, and metadata
+
+**Returns:** Promise&lt;string&gt; - Selected gateway URL
+
+### onSuccess() (Optional)
+
+Called when a request succeeds, allowing strategies to update internal state or metrics.
+
+**Signature:**
+
+```typescript
+async onSuccess?(gateway: string, context: RoutingContext): Promise&lt;void&gt;
+```
+
+### onFailure() (Optional)
+
+Called when a request fails, enabling strategies to track failures and adjust behavior.
+
+**Signature:**
+
+```typescript
+async onFailure?(gateway: string, error: Error, context: RoutingContext): Promise&lt;void&gt;
+```
+
+### getMetrics() (Optional)
+
+Returns performance and health metrics for the strategy.
+
+**Signature:**
+
+```typescript
+getMetrics?(): RoutingMetrics
+```
+
+## Advanced Usage
+
+### Composite Strategy
+
+Combine multiple strategies for sophisticated routing logic:
+
+```javascript
+class CompositeRoutingStrategy {
+  constructor(strategies, selectionCriteria) {
+    this.strategies = strategies
+    this.selectionCriteria = selectionCriteria
+  }
+
+  async selectGateway(context) {
+    const strategyName = this.selectionCriteria(context)
+    const strategy = this.strategies[strategyName]
+
+    if (!strategy) {
+      throw new Error(`Unknown strategy: ${strategyName}`)
+    }
+
+    return strategy.selectGateway(context)
+  }
+}
+
+// Usage
+const compositeStrategy = new CompositeRoutingStrategy(
+  {
+    lowLatency: new FastestPingRoutingStrategy(),
+    loadBalance: new RoundRobinRoutingStrategy(),
+    fallback: new RandomRoutingStrategy(),
+  },
+  (context) => {
+    if (context.request.url.includes('/real-time/')) {
+      return 'lowLatency'
+    }
+    if (context.attempt > 2) {
+      return 'fallback'
+    }
+    return 'loadBalance'
+  },
+)
+```
+
+### Adaptive Strategy
+
+Strategy that learns and adapts based on performance history:
+
+```javascript
+class AdaptiveRoutingStrategy {
+  constructor(options = {}) {
+    this.performanceHistory = new Map()
+    this.learningRate = options.learningRate || 0.1
+    this.windowSize = options.windowSize || 100
+    this.strategies = options.strategies || [
+      new FastestPingRoutingStrategy(),
+      new RoundRobinRoutingStrategy(),
+    ]
+  }
+
+  async selectGateway(context) {
+    // Select strategy based on recent performance
+    const bestStrategy = this.getBestPerformingStrategy(context)
+    return bestStrategy.selectGateway(context)
+  }
+
+  async onSuccess(gateway, context) {
+    this.updatePerformanceMetrics(gateway, true, context.responseTime)
+  }
+
+  async onFailure(gateway, error, context) {
+    this.updatePerformanceMetrics(gateway, false, null)
+  }
+
+  getBestPerformingStrategy(context) {
+    // Implement performance-based strategy selection
+    const scores = this.strategies.map((strategy) => {
+      const history =
+        this.performanceHistory.get(strategy.constructor.name) || []
+      const successRate =
+        history.filter((h) => h.success).length / history.length
+      const avgResponseTime =
+        history
+          .filter((h) => h.responseTime)
+          .reduce((sum, h) => sum + h.responseTime, 0) / history.length
+
+      return {
+        strategy,
+        score: (successRate * 1000) / (avgResponseTime || 1000),
+      }
+    })
+
+    return scores.sort((a, b) => b.score - a.score)[0].strategy
+  }
+
+  updatePerformanceMetrics(gateway, success, responseTime) {
+    // Update performance tracking
+    // Implementation details...
+  }
+}
+```
+
+### Geographic Strategy
+
+Route based on geographic proximity:
+
+```javascript
+class GeographicRoutingStrategy {
+  constructor(options) {
+    this.userLocation = options.userLocation
+    this.gatewayLocations = options.gatewayLocations
+    this.fallbackStrategy =
+      options.fallbackStrategy || new RandomRoutingStrategy()
+  }
+
+  async selectGateway(context) {
+    if (!this.userLocation) {
+      return this.fallbackStrategy.selectGateway(context)
+    }
+
+    const gatewaysWithDistance = context.gateways
+      .map((gateway) => ({
+        gateway,
+        distance: this.calculateDistance(
+          this.userLocation,
+          this.gatewayLocations.get(gateway),
+        ),
+      }))
+      .filter((item) => item.distance !== null)
+      .sort((a, b) => a.distance - b.distance)
+
+    if (gatewaysWithDistance.length === 0) {
+      return this.fallbackStrategy.selectGateway(context)
+    }
+
+    return gatewaysWithDistance[0].gateway
+  }
+
+  calculateDistance(loc1, loc2) {
+    if (!loc1 || !loc2) return null
+
+    const R = 6371 // Earth's radius in km
+    const dLat = this.toRadians(loc2.lat - loc1.lat)
+    const dLon = this.toRadians(loc2.lon - loc1.lon)
+
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(this.toRadians(loc1.lat)) *
+        Math.cos(this.toRadians(loc2.lat)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2)
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+    return R * c
+  }
+
+  toRadians(degrees) {
+    return degrees * (Math.PI / 180)
+  }
+}
+```
+
+## Configuration Examples
+
+### Development Environment
+
+```javascript
+const wayfinder = new Wayfinder({
+  gatewaysProvider: new StaticGatewaysProvider({
+    gateways: ['http://localhost:3000', 'https://arweave.net'],
+  }),
+  routingStrategy: new FastestPingRoutingStrategy({
+    timeoutMs: 500,
+    cacheResultsMs: 10000,
+  }),
+})
+```
+
+### Production Environment
+
+```javascript
+const wayfinder = new Wayfinder({
+  gatewaysProvider: new SimpleCacheGatewaysProvider({
+    gatewaysProvider: new NetworkGatewaysProvider({
+      ario: ARIO.mainnet(),
+      minStake: 50000,
+    }),
+    ttlSeconds: 3600,
+  }),
+  routingStrategy: new PreferredWithFallbackRoutingStrategy({
+    preferredGateway: process.env.PRIMARY_GATEWAY_URL,
+    fallbackStrategy: new FastestPingRoutingStrategy({
+      timeoutMs: 2000,
+      cacheResultsMs: 60000,
+    }),
+    circuitBreakerEnabled: true,
+  }),
+})
+```
+
+### High-Load Environment
+
+```javascript
+const wayfinder = new Wayfinder({
+  gatewaysProvider: new NetworkGatewaysProvider({
+    ario: ARIO.mainnet(),
+    maxGateways: 20,
+  }),
+  routingStrategy: new RoundRobinRoutingStrategy({
+    healthCheckEnabled: true,
+    weightedRotation: true,
+    resetOnFailure: true,
+  }),
+})
+```
+
+## Performance Considerations
+
+### Strategy Selection Criteria
+
+<Table>
+  <Table.Head>
+    <Table.Row>
+      <Table.Header>Criteria</Table.Header>
+      <Table.Header>FastestPing</Table.Header>
+      <Table.Header>Preferred+Fallback</Table.Header>
+      <Table.Header>RoundRobin</Table.Header>
+      <Table.Header>Random</Table.Header>
+    </Table.Row>
+  </Table.Head>
+  <Table.Body>
+    <Table.Row>
+      <Table.Cell>**Latency Optimization**</Table.Cell>
+      <Table.Cell>⭐⭐⭐⭐⭐</Table.Cell>
+      <Table.Cell>⭐⭐⭐⭐</Table.Cell>
+      <Table.Cell>⭐⭐</Table.Cell>
+      <Table.Cell>⭐⭐</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>**Load Distribution**</Table.Cell>
+      <Table.Cell>⭐⭐</Table.Cell>
+      <Table.Cell>⭐</Table.Cell>
+      <Table.Cell>⭐⭐⭐⭐⭐</Table.Cell>
+      <Table.Cell>⭐⭐⭐⭐</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>**Reliability**</Table.Cell>
+      <Table.Cell>⭐⭐⭐⭐</Table.Cell>
+      <Table.Cell>⭐⭐⭐⭐⭐</Table.Cell>
+      <Table.Cell>⭐⭐⭐</Table.Cell>
+      <Table.Cell>⭐⭐⭐</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>**Simplicity**</Table.Cell>
+      <Table.Cell>⭐⭐</Table.Cell>
+      <Table.Cell>⭐⭐⭐</Table.Cell>
+      <Table.Cell>⭐⭐⭐⭐</Table.Cell>
+      <Table.Cell>⭐⭐⭐⭐⭐</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>**Initial Overhead**</Table.Cell>
+      <Table.Cell>⭐⭐</Table.Cell>
+      <Table.Cell>⭐⭐⭐⭐</Table.Cell>
+      <Table.Cell>⭐⭐⭐⭐⭐</Table.Cell>
+      <Table.Cell>⭐⭐⭐⭐⭐</Table.Cell>
+    </Table.Row>
+  </Table.Body>
+</Table>
+
+### Performance Optimization Tips
+
+1. **Cache Strategy Results**: Use caching for expensive ping operations
+2. **Limit Concurrent Operations**: Control the number of simultaneous health checks
+3. **Use Circuit Breakers**: Prevent cascading failures with circuit breaker patterns
+4. **Monitor Performance**: Track strategy performance metrics and adjust accordingly
+5. **Implement Timeouts**: Set appropriate timeouts for all network operations
+6. **Batch Health Checks**: Group health checks to reduce overhead
+
+## Error Handling
+
+### Strategy-Specific Errors
+
+```javascript
+try {
+  const gateway = await strategy.selectGateway(context)
+  console.log('Selected gateway:', gateway)
+} catch (error) {
+  switch (error.type) {
+    case 'NO_GATEWAYS_AVAILABLE':
+      console.error('No healthy gateways found')
+      // Use fallback strategy or cached gateways
+      break
+
+    case 'PING_TIMEOUT':
+      console.error('Gateway ping timed out')
+      // Increase timeout or use different strategy
+      break
+
+    case 'HEALTH_CHECK_FAILED':
+      console.error('Gateway health check failed')
+      // Remove gateway from rotation temporarily
+      break
+
+    case 'CIRCUIT_BREAKER_OPEN':
+      console.error('Circuit breaker is open')
+      // Wait for circuit breaker to reset
+      break
+
+    default:
+      console.error('Unknown routing error:', error.message)
+  }
+}
+```
+
+### Graceful Degradation
+
+```javascript
+class RobustRoutingStrategy {
+  constructor(primaryStrategy, fallbackStrategies = []) {
+    this.primaryStrategy = primaryStrategy
+    this.fallbackStrategies = fallbackStrategies
+  }
+
+  async selectGateway(context) {
+    try {
+      return await this.primaryStrategy.selectGateway(context)
+    } catch (error) {
+      console.warn('Primary strategy failed:', error.message)
+
+      for (const fallback of this.fallbackStrategies) {
+        try {
+          return await fallback.selectGateway(context)
+        } catch (fallbackError) {
+          console.warn('Fallback strategy failed:', fallbackError.message)
+        }
+      }
+
+      // Last resort: return first available gateway
+      if (context.gateways.length > 0) {
+        return context.gateways[0]
+      }
+
+      throw new Error('No routing strategy succeeded')
+    }
+  }
+}
+
+// Usage
+const robustStrategy = new RobustRoutingStrategy(
+  new FastestPingRoutingStrategy(),
+  [
+    new PreferredWithFallbackRoutingStrategy({
+      preferredGateway: 'https://backup.gateway.com',
+    }),
+    new RandomRoutingStrategy(),
+  ],
+)
+```
+
+## Testing
+
+### Unit Testing
+
+```javascript
+describe('RoutingStrategy', () => {
+  test('should select gateway from available options', async () => {
+    const strategy = new RandomRoutingStrategy()
+    const context = {
+      gateways: ['https://gateway1.com', 'https://gateway2.com'],
+      request: { url: '/test', method: 'GET' },
+      attempt: 1,
+      previousErrors: [],
+    }
+
+    const selected = await strategy.selectGateway(context)
+    expect(context.gateways).toContain(selected)
+  })
+
+  test('should handle empty gateway list', async () => {
+    const strategy = new RandomRoutingStrategy()
+    const context = {
+      gateways: [],
+      request: { url: '/test', method: 'GET' },
+      attempt: 1,
+      previousErrors: [],
+    }
+
+    await expect(strategy.selectGateway(context)).rejects.toThrow()
+  })
+})
+```
+
+### Integration Testing
+
+```javascript
+describe('RoutingStrategy Integration', () => {
+  test('should work with real gateways', async () => {
+    const strategy = new FastestPingRoutingStrategy({ timeoutMs: 5000 })
+    const context = {
+      gateways: ['https://arweave.net', 'https://ar-io.net'],
+      request: { url: '/ar-io/info', method: 'GET' },
+      attempt: 1,
+      previousErrors: [],
+    }
+
+    const selected = await strategy.selectGateway(context)
+    expect(selected).toBeDefined()
+    expect(context.gateways).toContain(selected)
+  })
+})
+```
+
+## Best Practices
+
+1. **Choose Strategy Based on Use Case**: Match strategy to application requirements
+2. **Implement Fallback Logic**: Always have backup strategies for failures
+3. **Monitor Strategy Performance**: Track metrics and adjust configuration
+4. **Use Circuit Breakers**: Prevent cascading failures in distributed systems
+5. **Cache Expensive Operations**: Cache ping results and health checks
+6. **Handle Edge Cases**: Account for empty gateway lists and network failures
+7. **Test with Real Gateways**: Validate strategies against actual AR.IO network
+8. **Configure Appropriate Timeouts**: Balance responsiveness with reliability
+
+## Related Documentation
+
+- **[FastestPingRoutingStrategy](/wayfinder/core/routing-strategies/fastest-ping)**: Performance-optimized gateway selection
+- **[PreferredWithFallbackRoutingStrategy](/wayfinder/core/routing-strategies/preferred-with-fallback)**: Reliable preferred gateway with fallback
+- **[RoundRobinRoutingStrategy](/wayfinder/core/routing-strategies/round-robin)**: Even load distribution strategy
+- **[RandomRoutingStrategy](/wayfinder/core/routing-strategies/random)**: Simple random gateway selection
+- **[Gateway Providers](/wayfinder/core/gateway-providers)**: Gateway discovery and management
+- **[Wayfinder Configuration](/wayfinder/core)**: Main wayfinder setup and configuration

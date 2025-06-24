@@ -1,0 +1,707 @@
+# Utilities
+
+## Overview
+
+Wayfinder provides a collection of utility functions and helper classes to simplify common tasks, improve performance, and enhance the developer experience when working with AR.IO gateways and Arweave data.
+
+## URL Utilities
+
+### parseArweaveUrl()
+
+Parses and validates Arweave URLs.
+
+```typescript
+function parseArweaveUrl(url: string): ArweaveUrlParts
+
+interface ArweaveUrlParts {
+  protocol: 'ar'
+  txId: string
+  path?: string
+  isValid: boolean
+}
+```
+
+**Usage:**
+
+```javascript
+import { parseArweaveUrl } from '@ar.io/wayfinder-core'
+
+const parsed = parseArweaveUrl(
+  'ar://bNbA3TEQVL60xlgCcqdz4ZPHFZ711cZ3hmkpGttDt_U/path/to/file.json',
+)
+console.log(parsed)
+// {
+//   protocol: 'ar',
+//   txId: 'bNbA3TEQVL60xlgCcqdz4ZPHFZ711cZ3hmkpGttDt_U',
+//   path: 'path/to/file.json',
+//   isValid: true
+// }
+```
+
+### buildGatewayUrl()
+
+Constructs a gateway URL from components.
+
+```typescript
+function buildGatewayUrl(gateway: string, txId: string, path?: string): string
+```
+
+**Usage:**
+
+```javascript
+import { buildGatewayUrl } from '@ar.io/wayfinder-core'
+
+const url = buildGatewayUrl(
+  'https://arweave.net',
+  'transaction-id',
+  'data.json',
+)
+console.log(url) // https://arweave.net/transaction-id/data.json
+```
+
+### normalizeGatewayUrl()
+
+Normalizes gateway URLs by removing trailing slashes and ensuring proper format.
+
+```typescript
+function normalizeGatewayUrl(gateway: string): string
+```
+
+**Usage:**
+
+```javascript
+import { normalizeGatewayUrl } from '@ar.io/wayfinder-core'
+
+const normalized = normalizeGatewayUrl('https://arweave.net/')
+console.log(normalized) // https://arweave.net
+```
+
+## Validation Utilities
+
+### isValidTransactionId()
+
+Validates Arweave transaction IDs.
+
+```typescript
+function isValidTransactionId(txId: string): boolean
+```
+
+**Usage:**
+
+```javascript
+import { isValidTransactionId } from '@ar.io/wayfinder-core'
+
+const isValid = isValidTransactionId(
+  'bNbA3TEQVL60xlgCcqdz4ZPHFZ711cZ3hmkpGttDt_U',
+)
+console.log(isValid) // true
+
+const isInvalid = isValidTransactionId('invalid-id')
+console.log(isInvalid) // false
+```
+
+### isValidGatewayUrl()
+
+Validates gateway URLs.
+
+```typescript
+function isValidGatewayUrl(url: string): boolean
+```
+
+**Usage:**
+
+```javascript
+import { isValidGatewayUrl } from '@ar.io/wayfinder-core'
+
+const isValid = isValidGatewayUrl('https://arweave.net')
+console.log(isValid) // true
+
+const isInvalid = isValidGatewayUrl('not-a-url')
+console.log(isInvalid) // false
+```
+
+## Performance Utilities
+
+### debounce()
+
+Debounces function calls to improve performance.
+
+```typescript
+function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  delay: number,
+): (...args: Parameters<T>) => void
+```
+
+**Usage:**
+
+```javascript
+import { debounce } from '@ar.io/wayfinder-core'
+
+const debouncedRefresh = debounce(async () => {
+  await wayfinder.gatewaysProvider.refresh()
+}, 1000)
+
+// Multiple calls within 1 second will be debounced
+debouncedRefresh()
+debouncedRefresh()
+debouncedRefresh() // Only this call will execute
+```
+
+### throttle()
+
+Throttles function calls to limit execution frequency.
+
+```typescript
+function throttle<T extends (...args: any[]) => any>(
+  func: T,
+  delay: number,
+): (...args: Parameters<T>) => void
+```
+
+**Usage:**
+
+```javascript
+import { throttle } from '@ar.io/wayfinder-core'
+
+const throttledLog = throttle((message) => {
+  console.log('Throttled:', message)
+}, 1000)
+
+// Only executes once per second
+throttledLog('Message 1')
+throttledLog('Message 2') // Ignored
+throttledLog('Message 3') // Ignored
+```
+
+### memoize()
+
+Memoizes function results for performance optimization.
+
+```typescript
+function memoize<T extends (...args: any[]) => any>(
+  func: T,
+  keyGenerator?: (...args: Parameters<T>) => string,
+): T & { cache: Map<string, ReturnType<T>>; clearCache: () => void }
+```
+
+**Usage:**
+
+```javascript
+import { memoize } from '@ar.io/wayfinder-core'
+
+const memoizedParse = memoize(parseArweaveUrl)
+
+// First call executes function
+const result1 = memoizedParse('ar://transaction-id')
+
+// Second call returns cached result
+const result2 = memoizedParse('ar://transaction-id')
+
+// Clear cache when needed
+memoizedParse.clearCache()
+```
+
+## Retry Utilities
+
+### retry()
+
+Implements retry logic with exponential backoff.
+
+```typescript
+interface RetryOptions {
+  maxAttempts?: number
+  baseDelay?: number
+  maxDelay?: number
+  backoffMultiplier?: number
+  jitter?: boolean
+}
+
+function retry<T>(fn: () => Promise<T>, options?: RetryOptions): Promise<T>
+```
+
+**Usage:**
+
+```javascript
+import { retry } from '@ar.io/wayfinder-core'
+
+const result = await retry(
+  async () => {
+    const response = await fetch('https://unreliable-api.com')
+    if (!response.ok) {
+      throw new Error('Request failed')
+    }
+    return response.json()
+  },
+  {
+    maxAttempts: 3,
+    baseDelay: 1000,
+    backoffMultiplier: 2,
+  },
+)
+```
+
+### withTimeout()
+
+Adds timeout functionality to promises.
+
+```typescript
+function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  timeoutMessage?: string,
+): Promise<T>
+```
+
+**Usage:**
+
+```javascript
+import { withTimeout } from '@ar.io/wayfinder-core'
+
+try {
+  const result = await withTimeout(
+    wayfinder.request('ar://transaction-id'),
+    5000,
+    'Request timed out after 5 seconds',
+  )
+} catch (error) {
+  console.error('Timeout or other error:', error.message)
+}
+```
+
+## Logging Utilities
+
+### createLogger()
+
+Creates a standardized logger instance.
+
+```typescript
+interface LoggerOptions {
+  level?: 'debug' | 'info' | 'warn' | 'error'
+  prefix?: string
+  timestamp?: boolean
+}
+
+function createLogger(options?: LoggerOptions): Logger
+```
+
+**Usage:**
+
+```javascript
+import { createLogger } from '@ar.io/wayfinder-core'
+
+const logger = createLogger({
+  level: 'info',
+  prefix: '[Wayfinder]',
+  timestamp: true,
+})
+
+logger.info('Application started')
+logger.debug('Debug message') // Won't be logged due to level
+logger.error('Error occurred')
+```
+
+### formatBytes()
+
+Formats byte sizes for human-readable display.
+
+```typescript
+function formatBytes(bytes: number, decimals?: number): string
+```
+
+**Usage:**
+
+```javascript
+import { formatBytes } from '@ar.io/wayfinder-core'
+
+console.log(formatBytes(1024)) // 1 KB
+console.log(formatBytes(1048576)) // 1 MB
+console.log(formatBytes(1073741824, 2)) // 1.00 GB
+```
+
+## Data Utilities
+
+### hashData()
+
+Computes hash of data using specified algorithm.
+
+```typescript
+function hashData(
+  data: Uint8Array | string,
+  algorithm?: 'sha256' | 'sha512',
+): Promise<string>
+```
+
+**Usage:**
+
+```javascript
+import { hashData } from '@ar.io/wayfinder-core'
+
+const data = 'Hello, Arweave!'
+const hash = await hashData(data, 'sha256')
+console.log('SHA-256 hash:', hash)
+```
+
+### encodeBase64Url()
+
+Encodes data to base64url format (Arweave-compatible).
+
+```typescript
+function encodeBase64Url(data: Uint8Array | string): string
+```
+
+**Usage:**
+
+```javascript
+import { encodeBase64Url } from '@ar.io/wayfinder-core'
+
+const encoded = encodeBase64Url('Hello, Arweave!')
+console.log('Encoded:', encoded)
+```
+
+### decodeBase64Url()
+
+Decodes base64url data.
+
+```typescript
+function decodeBase64Url(encoded: string): Uint8Array
+```
+
+**Usage:**
+
+```javascript
+import { decodeBase64Url } from '@ar.io/wayfinder-core'
+
+const decoded = decodeBase64Url('SGVsbG8sIEFyd2VhdmUh')
+console.log('Decoded:', new TextDecoder().decode(decoded))
+```
+
+## Helper Classes
+
+### CircuitBreaker
+
+Implements circuit breaker pattern for fault tolerance.
+
+```typescript
+interface CircuitBreakerOptions {
+  failureThreshold?: number
+  resetTimeoutMs?: number
+  monitoringPeriodMs?: number
+}
+
+class CircuitBreaker {
+  constructor(options?: CircuitBreakerOptions)
+
+  async execute<T>(fn: () => Promise<T>): Promise<T>
+  getState(): 'closed' | 'open' | 'half-open'
+  getMetrics(): CircuitBreakerMetrics
+  reset(): void
+}
+```
+
+**Usage:**
+
+```javascript
+import { CircuitBreaker } from '@ar.io/wayfinder-core'
+
+const breaker = new CircuitBreaker({
+  failureThreshold: 5,
+  resetTimeoutMs: 60000,
+})
+
+try {
+  const result = await breaker.execute(async () => {
+    const response = await fetch('https://api.example.com')
+    if (!response.ok) {
+      throw new Error('API call failed')
+    }
+    return response.json()
+  })
+} catch (error) {
+  console.error('Circuit breaker or API error:', error.message)
+}
+```
+
+### RateLimiter
+
+Implements rate limiting functionality.
+
+```typescript
+interface RateLimiterOptions {
+  maxRequests: number
+  windowMs: number
+  keyGenerator?: (...args: any[]) => string
+}
+
+class RateLimiter {
+  constructor(options: RateLimiterOptions)
+
+  async checkLimit(key?: string): Promise<boolean>
+  getRemainingRequests(key?: string): number
+  reset(key?: string): void
+}
+```
+
+**Usage:**
+
+```javascript
+import { RateLimiter } from '@ar.io/wayfinder-core'
+
+const limiter = new RateLimiter({
+  maxRequests: 100,
+  windowMs: 60000, // 1 minute
+})
+
+const canProceed = await limiter.checkLimit('user-123')
+if (canProceed) {
+  // Proceed with request
+  await wayfinder.request('ar://transaction-id')
+} else {
+  console.log('Rate limit exceeded')
+}
+```
+
+### LRUCache
+
+Implements Least Recently Used cache.
+
+```typescript
+interface LRUCacheOptions<V> {
+  maxSize: number
+  ttl?: number
+  onEvict?: (key: string, value: V) => void
+}
+
+class LRUCache<V> {
+  constructor(options: LRUCacheOptions<V>)
+
+  get(key: string): V | undefined
+  set(key: string, value: V): void
+  has(key: string): boolean
+  delete(key: string): boolean
+  clear(): void
+  size(): number
+}
+```
+
+**Usage:**
+
+```javascript
+import { LRUCache } from '@ar.io/wayfinder-core'
+
+const cache = new LRUCache({
+  maxSize: 100,
+  ttl: 300000, // 5 minutes
+  onEvict: (key, value) => {
+    console.log('Evicted:', key)
+  },
+})
+
+// Cache gateway responses
+cache.set('gateway-list', gateways)
+const cachedGateways = cache.get('gateway-list')
+```
+
+## Environment Utilities
+
+### detectEnvironment()
+
+Detects the current runtime environment.
+
+```typescript
+interface EnvironmentInfo {
+  isNode: boolean
+  isBrowser: boolean
+  isWebWorker: boolean
+  platform?: string
+  version?: string
+}
+
+function detectEnvironment(): EnvironmentInfo
+```
+
+**Usage:**
+
+```javascript
+import { detectEnvironment } from '@ar.io/wayfinder-core'
+
+const env = detectEnvironment()
+console.log('Environment:', env)
+
+if (env.isNode) {
+  // Node.js specific code
+} else if (env.isBrowser) {
+  // Browser specific code
+}
+```
+
+### getRandomValues()
+
+Cross-platform random value generation.
+
+```typescript
+function getRandomValues(length: number): Uint8Array
+```
+
+**Usage:**
+
+```javascript
+import { getRandomValues } from '@ar.io/wayfinder-core'
+
+const randomBytes = getRandomValues(32)
+console.log('Random bytes:', randomBytes)
+```
+
+## Testing Utilities
+
+### createMockWayfinder()
+
+Creates a mock wayfinder instance for testing.
+
+```typescript
+interface MockWayfinderOptions {
+  mockResponses?: Map<string, Response>
+  mockGateways?: string[]
+  simulateLatency?: number
+  simulateErrors?: boolean
+}
+
+function createMockWayfinder(options?: MockWayfinderOptions): Wayfinder
+```
+
+**Usage:**
+
+```javascript
+import { createMockWayfinder } from '@ar.io/wayfinder-core'
+
+const mockWayfinder = createMockWayfinder({
+  mockResponses: new Map([
+    ['ar://test-tx-1', new Response('test data 1')],
+    ['ar://test-tx-2', new Response('test data 2')],
+  ]),
+  mockGateways: ['https://test-gateway.com'],
+  simulateLatency: 100,
+})
+
+// Use in tests
+const response = await mockWayfinder.request('ar://test-tx-1')
+const data = await response.text()
+console.log('Mock data:', data) // 'test data 1'
+```
+
+### waitFor()
+
+Utility for waiting in tests and async operations.
+
+```typescript
+function waitFor(ms: number): Promise<void>
+function waitFor<T>(
+  condition: () => T | Promise<T>,
+  options?: { timeout?: number; interval?: number },
+): Promise<T>
+```
+
+**Usage:**
+
+```javascript
+import { waitFor } from '@ar.io/wayfinder-core'
+
+// Wait for specific time
+await waitFor(1000) // Wait 1 second
+
+// Wait for condition
+await waitFor(
+  () => wayfinder.gatewaysProvider.getGateways().then((g) => g.length > 0),
+  { timeout: 5000, interval: 100 },
+)
+```
+
+## Usage Examples
+
+### Comprehensive Error Handling
+
+```javascript
+import {
+  retry,
+  withTimeout,
+  CircuitBreaker,
+  createLogger,
+} from '@ar.io/wayfinder-core'
+
+const logger = createLogger({ level: 'info', prefix: '[App]' })
+const breaker = new CircuitBreaker({ failureThreshold: 3 })
+
+async function robustRequest(url) {
+  return retry(
+    async () => {
+      return withTimeout(
+        breaker.execute(async () => {
+          const response = await wayfinder.request(url)
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`)
+          }
+          return response
+        }),
+        10000, // 10 second timeout
+      )
+    },
+    { maxAttempts: 3, baseDelay: 1000 },
+  )
+}
+
+// Usage
+try {
+  const response = await robustRequest('ar://transaction-id')
+  const data = await response.text()
+  logger.info('Request successful', { size: data.length })
+} catch (error) {
+  logger.error('Request failed', { error: error.message })
+}
+```
+
+### Performance Monitoring
+
+```javascript
+import {
+  memoize,
+  debounce,
+  formatBytes,
+  createLogger,
+} from '@ar.io/wayfinder-core'
+
+const logger = createLogger({ level: 'debug' })
+
+// Memoize expensive operations
+const memoizedUrlParse = memoize(parseArweaveUrl)
+
+// Debounce metrics collection
+const debouncedMetricsCollection = debounce(async () => {
+  const metrics = await collectMetrics()
+  logger.info('Metrics collected', {
+    requests: metrics.totalRequests,
+    dataTransferred: formatBytes(metrics.totalBytes),
+  })
+}, 5000)
+
+// Use in application
+const urlParts = memoizedUrlParse('ar://transaction-id')
+debouncedMetricsCollection()
+```
+
+## Best Practices
+
+1. **Use Appropriate Utilities**: Choose the right utility for your specific use case
+2. **Handle Errors Gracefully**: Combine utilities like retry and circuit breaker for robust error handling
+3. **Optimize Performance**: Use memoization, debouncing, and throttling where appropriate
+4. **Validate Input Data**: Always validate URLs and transaction IDs before processing
+5. **Log Important Operations**: Use structured logging for better debugging
+6. **Test with Mocks**: Use mock utilities for reliable and fast testing
+7. **Monitor Resource Usage**: Use formatters and metrics for resource monitoring
+
+## Related Documentation
+
+- **[Wayfinder Class](/wayfinder/core)**: Main wayfinder class and methods
+- **[Gateway Providers](/wayfinder/core/gateway-providers)**: Gateway discovery and management
+- **[Events System](/wayfinder/core/events)**: Event handling and monitoring
+- **[TypeScript Types](/wayfinder/core/types)**: Type definitions and interfaces
+  {/* - **[Performance Optimization](/wayfinder/core/performance)**: Performance tuning guides */}

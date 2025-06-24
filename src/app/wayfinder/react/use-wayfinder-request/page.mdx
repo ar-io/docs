@@ -1,0 +1,826 @@
+# useWayfinderRequest
+
+## Overview
+
+The `useWayfinderRequest` hook provides direct access to the Wayfinder request function. This is the most commonly used hook for fetching data from ar:// URLs, offering a clean and focused API for data retrieval without exposing the full Wayfinder instance.
+
+## Signature
+
+```typescript
+function useWayfinderRequest(): Wayfinder['request']
+
+// The returned function signature:
+function request(url: string, options?: RequestOptions): Promise<Response>
+```
+
+## Usage
+
+### Basic Data Fetching
+
+```jsx
+import { useWayfinderRequest } from '@ar.io/wayfinder-react'
+import { useState } from 'react'
+
+function DataFetcher({ txId }) {
+  const request = useWayfinderRequest()
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  const fetchData = async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const response = await request(`ar://${txId}`)
+      const text = await response.text()
+      setData(text)
+    } catch (err) {
+      setError(err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div>
+      <button onClick={fetchData} disabled={loading}>
+        {loading ? 'Loading...' : 'Fetch Data'}
+      </button>
+
+      {error && <div className="error">Error: {error.message}</div>}
+      {data && <pre>{data}</pre>}
+    </div>
+  )
+}
+```
+
+### JSON Data Fetching
+
+```jsx
+import { useWayfinderRequest } from '@ar.io/wayfinder-react'
+import { useState, useEffect } from 'react'
+
+function JsonDataComponent({ txId }) {
+  const request = useWayfinderRequest()
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    if (!txId) return
+
+    const fetchJson = async () => {
+      setLoading(true)
+      setError(null)
+
+      try {
+        const response = await request(`ar://${txId}`)
+        const text = await response.text()
+        const json = JSON.parse(text)
+        setData(json)
+      } catch (err) {
+        setError(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchJson()
+  }, [txId, request])
+
+  if (loading) return <div>Loading JSON data...</div>
+  if (error) return <div>Error loading JSON: {error.message}</div>
+  if (!data) return <div>No data</div>
+
+  return (
+    <div>
+      <h3>JSON Data</h3>
+      <pre>{JSON.stringify(data, null, 2)}</pre>
+    </div>
+  )
+}
+```
+
+### Image/Binary Data Fetching
+
+```jsx
+import { useWayfinderRequest } from '@ar.io/wayfinder-react'
+import { useState, useEffect } from 'react'
+
+function ImageComponent({ txId }) {
+  const request = useWayfinderRequest()
+  const [imageUrl, setImageUrl] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    if (!txId) return
+
+    const fetchImage = async () => {
+      setLoading(true)
+      setError(null)
+
+      try {
+        const response = await request(`ar://${txId}`)
+        const blob = await response.blob()
+        const url = URL.createObjectURL(blob)
+        setImageUrl(url)
+      } catch (err) {
+        setError(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchImage()
+
+    // Cleanup blob URL
+    return () => {
+      if (imageUrl) {
+        URL.revokeObjectURL(imageUrl)
+      }
+    }
+  }, [txId, request])
+
+  if (loading) return <div>Loading image...</div>
+  if (error) return <div>Error loading image: {error.message}</div>
+  if (!imageUrl) return <div>No image</div>
+
+  return (
+    <div>
+      <img
+        src={imageUrl}
+        alt="Arweave content"
+        style={{ maxWidth: '100%', height: 'auto' }}
+      />
+    </div>
+  )
+}
+```
+
+### Request with Custom Options
+
+```jsx
+import { useWayfinderRequest } from '@ar.io/wayfinder-react'
+import { useState } from 'react'
+import { StaticGatewaysProvider } from '@ar.io/wayfinder-core'
+
+function CustomRequestComponent({ txId }) {
+  const request = useWayfinderRequest()
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  const fetchWithCustomOptions = async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      // Request with custom options
+      const response = await request(`ar://${txId}`, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          'User-Agent': 'my-app/1.0.0',
+        },
+        timeout: 10000, // 10 second timeout
+        routingSettings: {
+          // Override routing for this request
+          strategy: new StaticGatewaysProvider({
+            gateways: ['https://arweave.net'],
+          }),
+        },
+        verificationSettings: {
+          // Enable verification for this request
+          enabled: true,
+          strict: true,
+        },
+      })
+
+      const text = await response.text()
+      setData(text)
+    } catch (err) {
+      setError(err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div>
+      <button onClick={fetchWithCustomOptions} disabled={loading}>
+        {loading
+          ? 'Fetching with custom options...'
+          : 'Fetch with Custom Options'}
+      </button>
+
+      {error && <div className="error">Error: {error.message}</div>}
+      {data && <pre>{data}</pre>}
+    </div>
+  )
+}
+```
+
+## Custom Hooks
+
+### Reusable JSON Fetching Hook
+
+```jsx
+import { useWayfinderRequest } from '@ar.io/wayfinder-react'
+import { useState, useEffect, useCallback } from 'react'
+
+function useArweaveJson(txId) {
+  const request = useWayfinderRequest()
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  const fetchData = useCallback(async () => {
+    if (!txId) return
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      const response = await request(`ar://${txId}`)
+      const text = await response.text()
+      const json = JSON.parse(text)
+      setData(json)
+    } catch (err) {
+      setError(err)
+    } finally {
+      setLoading(false)
+    }
+  }, [txId, request])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  const refetch = useCallback(() => {
+    fetchData()
+  }, [fetchData])
+
+  const clearData = useCallback(() => {
+    setData(null)
+    setError(null)
+  }, [])
+
+  return {
+    data,
+    loading,
+    error,
+    refetch,
+    clearData,
+  }
+}
+
+// Usage
+function JsonDisplay({ txId }) {
+  const { data, loading, error, refetch } = useArweaveJson(txId)
+
+  if (loading) return <div>Loading JSON...</div>
+  if (error)
+    return (
+      <div>
+        Error: {error.message}
+        <button onClick={refetch}>Retry</button>
+      </div>
+    )
+
+  return <pre>{JSON.stringify(data, null, 2)}</pre>
+}
+```
+
+### Generic Data Fetching Hook
+
+```jsx
+import { useWayfinderRequest } from '@ar.io/wayfinder-react'
+import { useState, useCallback, useMemo, useRef } from 'react'
+
+function useArweaveData(parser = (response) => response.text()) {
+  const request = useWayfinderRequest()
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  const fetchData = useCallback(
+    async (txId, options = {}) => {
+      setLoading(true)
+      setError(null)
+
+      try {
+        const response = await request(`ar://${txId}`, options)
+        const parsedData = await parser(response)
+        setData(parsedData)
+        return parsedData
+      } catch (err) {
+        setError(err)
+        throw err
+      } finally {
+        setLoading(false)
+      }
+    },
+    [request, parser],
+  )
+
+  const reset = useCallback(() => {
+    setData(null)
+    setError(null)
+  }, [])
+
+  return {
+    data,
+    loading,
+    error,
+    fetchData,
+    reset,
+  }
+}
+
+// Usage examples
+import { useEffect } from 'react'
+
+function TextComponent({ txId }) {
+  const { data, loading, error, fetchData } = useArweaveData()
+
+  useEffect(() => {
+    fetchData(txId)
+  }, [txId, fetchData])
+
+  return loading ? <div>Loading...</div> : <pre>{data}</pre>
+}
+
+function JsonComponent({ txId }) {
+  const { data, loading, error, fetchData } = useArweaveData(
+    async (response) => {
+      const text = await response.text()
+      return JSON.parse(text)
+    },
+  )
+
+  useEffect(() => {
+    fetchData(txId)
+  }, [txId, fetchData])
+
+  return loading ? (
+    <div>Loading...</div>
+  ) : (
+    <pre>{JSON.stringify(data, null, 2)}</pre>
+  )
+}
+
+function ImageComponent({ txId }) {
+  const { data, loading, error, fetchData } = useArweaveData(
+    async (response) => {
+      const blob = await response.blob()
+      return URL.createObjectURL(blob)
+    },
+  )
+
+  useEffect(() => {
+    fetchData(txId)
+
+    // Cleanup blob URL
+    return () => {
+      if (data) URL.revokeObjectURL(data)
+    }
+  }, [txId, fetchData, data])
+
+  return loading ? (
+    <div>Loading...</div>
+  ) : (
+    <img src={data} alt="Arweave content" />
+  )
+}
+```
+
+## Error Handling
+
+### Comprehensive Error Handling
+
+```jsx
+import { useWayfinderRequest } from '@ar.io/wayfinder-react'
+import { useState, useCallback } from 'react'
+
+function RobustDataFetcher({ txId }) {
+  const request = useWayfinderRequest()
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [retryCount, setRetryCount] = useState(0)
+
+  const fetchData = useCallback(
+    async (retryAttempt = 0) => {
+      setLoading(true)
+      setError(null)
+      setRetryCount(retryAttempt)
+
+      try {
+        const response = await request(`ar://${txId}`)
+
+        // Check response status
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
+        const text = await response.text()
+        setData(text)
+      } catch (err) {
+        setError(err)
+
+        // Handle different error types
+        if (err.name === 'TimeoutError') {
+          console.error('Request timed out')
+        } else if (err.name === 'NetworkError') {
+          console.error('Network error occurred')
+        } else if (err.name === 'VerificationError') {
+          console.error('Data verification failed')
+        } else if (err.message.includes('404')) {
+          console.error('Transaction not found')
+        } else {
+          console.error('Unknown error:', err)
+        }
+      } finally {
+        setLoading(false)
+      }
+    },
+    [txId, request],
+  )
+
+  const retry = useCallback(() => {
+    fetchData(retryCount + 1)
+  }, [fetchData, retryCount])
+
+  const clearError = useCallback(() => {
+    setError(null)
+  }, [])
+
+  return (
+    <div>
+      <button onClick={() => fetchData(0)} disabled={loading}>
+        {loading ? 'Loading...' : 'Fetch Data'}
+      </button>
+
+      {error && (
+        <div className="error-container">
+          <div className="error-message">
+            Error: {error.message}
+            {retryCount > 0 && ` (Attempt ${retryCount + 1})`}
+          </div>
+          <div className="error-actions">
+            <button onClick={retry}>Retry</button>
+            <button onClick={clearError}>Dismiss</button>
+          </div>
+        </div>
+      )}
+
+      {data && (
+        <div className="data-container">
+          <h3>Data (Attempt {retryCount + 1})</h3>
+          <pre>{data}</pre>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+## Performance Optimization
+
+### Memoization and Caching
+
+```jsx
+import { useWayfinderRequest } from '@ar.io/wayfinder-react'
+import { useState, useCallback, useMemo, useRef } from 'react'
+
+function OptimizedDataFetcher({ txIds }) {
+  const request = useWayfinderRequest()
+  const [dataCache, setDataCache] = useState(new Map())
+  const [loadingStates, setLoadingStates] = useState(new Map())
+  const [errors, setErrors] = useState(new Map())
+  const abortControllersRef = useRef(new Map())
+
+  // Memoized fetch function
+  const fetchData = useCallback(
+    async (txId) => {
+      // Check cache first
+      if (dataCache.has(txId)) {
+        return dataCache.get(txId)
+      }
+
+      // Cancel previous request for this txId
+      const existingController = abortControllersRef.current.get(txId)
+      if (existingController) {
+        existingController.abort()
+      }
+
+      // Create new abort controller
+      const controller = new AbortController()
+      abortControllersRef.current.set(txId, controller)
+
+      setLoadingStates((prev) => new Map(prev).set(txId, true))
+      setErrors((prev) => {
+        const newErrors = new Map(prev)
+        newErrors.delete(txId)
+        return newErrors
+      })
+
+      try {
+        const response = await request(`ar://${txId}`, {
+          signal: controller.signal,
+        })
+        const text = await response.text()
+
+        // Update cache
+        setDataCache((prev) => new Map(prev).set(txId, text))
+
+        return text
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          setErrors((prev) => new Map(prev).set(txId, err))
+        }
+        throw err
+      } finally {
+        setLoadingStates((prev) => {
+          const newStates = new Map(prev)
+          newStates.delete(txId)
+          return newStates
+        })
+        abortControllersRef.current.delete(txId)
+      }
+    },
+    [request, dataCache],
+  )
+
+  // Memoized data processing
+  const processedData = useMemo(() => {
+    return txIds.map((txId) => ({
+      txId,
+      data: dataCache.get(txId),
+      loading: loadingStates.get(txId) || false,
+      error: errors.get(txId),
+    }))
+  }, [txIds, dataCache, loadingStates, errors])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // Cancel all pending requests
+      abortControllersRef.current.forEach((controller) => {
+        controller.abort()
+      })
+    }
+  }, [])
+
+  return (
+    <div>
+      {processedData.map(({ txId, data, loading, error }) => (
+        <div key={txId} className="data-item">
+          <h4>Transaction: {txId}</h4>
+
+          {loading && <div>Loading...</div>}
+          {error && <div className="error">Error: {error.message}</div>}
+          {data && <pre>{data}</pre>}
+
+          <button onClick={() => fetchData(txId)} disabled={loading}>
+            {loading ? 'Loading...' : 'Fetch'}
+          </button>
+        </div>
+      ))}
+    </div>
+  )
+}
+```
+
+## TypeScript Support
+
+### Typed Usage
+
+```tsx
+import { useWayfinderRequest } from '@ar.io/wayfinder-react'
+import { useState, useCallback } from 'react'
+
+interface ApiResponse {
+  id: string
+  name: string
+  data: any[]
+}
+
+interface DataFetcherProps {
+  txId: string
+  onSuccess?: (data: ApiResponse) => void
+  onError?: (error: Error) => void
+}
+
+const TypedDataFetcher: React.FC<DataFetcherProps> = ({
+  txId,
+  onSuccess,
+  onError,
+}) => {
+  const request = useWayfinderRequest()
+  const [data, setData] = useState<ApiResponse | null>(null)
+  const [loading, setLoading] = useState<boolean>(false)
+  const [error, setError] = useState<Error | null>(null)
+
+  const fetchData = useCallback(async (): Promise<void> => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const response = await request(`ar://${txId}`)
+      const text = await response.text()
+      const parsedData: ApiResponse = JSON.parse(text)
+
+      setData(parsedData)
+      onSuccess?.(parsedData)
+    } catch (err) {
+      const error = err as Error
+      setError(error)
+      onError?.(error)
+    } finally {
+      setLoading(false)
+    }
+  }, [txId, request, onSuccess, onError])
+
+  return (
+    <div>
+      <button onClick={fetchData} disabled={loading}>
+        {loading ? 'Loading...' : 'Fetch Typed Data'}
+      </button>
+
+      {error && <div>Error: {error.message}</div>}
+      {data && (
+        <div>
+          <h3>{data.name}</h3>
+          <p>ID: {data.id}</p>
+          <p>Items: {data.data.length}</p>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+### Generic Hook with TypeScript
+
+```tsx
+import { useWayfinderRequest } from '@ar.io/wayfinder-react'
+import { useState, useCallback } from 'react'
+
+interface UseArweaveDataResult<T> {
+  data: T | null
+  loading: boolean
+  error: Error | null
+  fetchData: (txId: string) => Promise<T>
+  reset: () => void
+}
+
+function useArweaveData<T>(
+  parser: (response: Response) => Promise<T>,
+): UseArweaveDataResult<T> {
+  const request = useWayfinderRequest()
+  const [data, setData] = useState<T | null>(null)
+  const [loading, setLoading] = useState<boolean>(false)
+  const [error, setError] = useState<Error | null>(null)
+
+  const fetchData = useCallback(
+    async (txId: string): Promise<T> => {
+      setLoading(true)
+      setError(null)
+
+      try {
+        const response = await request(`ar://${txId}`)
+        const parsedData = await parser(response)
+        setData(parsedData)
+        return parsedData
+      } catch (err) {
+        const error = err as Error
+        setError(error)
+        throw error
+      } finally {
+        setLoading(false)
+      }
+    },
+    [request, parser],
+  )
+
+  const reset = useCallback((): void => {
+    setData(null)
+    setError(null)
+  }, [])
+
+  return {
+    data,
+    loading,
+    error,
+    fetchData,
+    reset,
+  }
+}
+
+// Usage
+interface UserData {
+  name: string
+  email: string
+  avatar?: string
+}
+
+function UserProfile({ txId }: { txId: string }) {
+  const { data, loading, error, fetchData } = useArweaveData<UserData>(
+    async (response) => {
+      const text = await response.text()
+      return JSON.parse(text) as UserData
+    },
+  )
+
+  useEffect(() => {
+    fetchData(txId)
+  }, [txId, fetchData])
+
+  if (loading) return <div>Loading user...</div>
+  if (error) return <div>Error: {error.message}</div>
+  if (!data) return <div>No user data</div>
+
+  return (
+    <div>
+      <h2>{data.name}</h2>
+      <p>{data.email}</p>
+      {data.avatar && <img src={data.avatar} alt="Avatar" />}
+    </div>
+  )
+}
+```
+
+## Testing
+
+### Mocking the Hook
+
+```tsx
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { useWayfinderRequest } from '@ar.io/wayfinder-react'
+
+// Mock the hook
+jest.mock('@ar.io/wayfinder-react', () => ({
+  useWayfinderRequest: jest.fn(),
+}))
+
+const mockUseWayfinderRequest = useWayfinderRequest as jest.MockedFunction<
+  typeof useWayfinderRequest
+>
+
+describe('DataFetcher', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
+  test('fetches and displays data successfully', async () => {
+    const mockRequest = jest.fn().mockResolvedValue({
+      ok: true,
+      text: () => Promise.resolve('test data'),
+    })
+
+    mockUseWayfinderRequest.mockReturnValue(mockRequest)
+
+    render(<DataFetcher txId="test-tx-id" />)
+
+    fireEvent.click(screen.getByText('Fetch Data'))
+
+    expect(mockRequest).toHaveBeenCalledWith('ar://test-tx-id')
+
+    await waitFor(() => {
+      expect(screen.getByText('test data')).toBeInTheDocument()
+    })
+  })
+
+  test('handles errors gracefully', async () => {
+    const mockRequest = jest.fn().mockRejectedValue(new Error('Network error'))
+
+    mockUseWayfinderRequest.mockReturnValue(mockRequest)
+
+    render(<DataFetcher txId="test-tx-id" />)
+
+    fireEvent.click(screen.getByText('Fetch Data'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Error: Network error')).toBeInTheDocument()
+    })
+  })
+})
+```
+
+## When to Use
+
+Use `useWayfinderRequest` when you need:
+
+- **Simple data fetching**: Basic retrieval of data from ar:// URLs
+- **Clean component code**: Focus on data handling without Wayfinder complexity
+- **Custom data processing**: Parse JSON, handle binary data, or transform responses
+- **Request customization**: Override routing or verification settings per request
+- **Custom hooks**: Build reusable data fetching abstractions
+
+For other use cases, consider:
+
+- **[useWayfinder](/wayfinder/react/use-wayfinder)** for full Wayfinder API access and event handling
+- **[useWayfinderUrl](/wayfinder/react/use-wayfinder-url)** for URL resolution with built-in loading states

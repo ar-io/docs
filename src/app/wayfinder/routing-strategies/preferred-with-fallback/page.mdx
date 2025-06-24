@@ -1,0 +1,664 @@
+# PreferredWithFallbackRoutingStrategy
+
+## Overview
+
+The `PreferredWithFallbackRoutingStrategy` attempts to use a designated preferred gateway first, and only falls back to an alternative routing strategy if the preferred gateway fails or is unavailable. This strategy is ideal for applications with dedicated infrastructure or specific gateway requirements.
+
+## Configuration
+
+### Basic Usage
+
+```javascript
+import {
+  PreferredWithFallbackRoutingStrategy,
+  FastestPingRoutingStrategy,
+} from '@ar.io/wayfinder-core'
+
+const strategy = new PreferredWithFallbackRoutingStrategy({
+  preferredGateway: 'https://my-gateway.com',
+  fallbackStrategy: new FastestPingRoutingStrategy({ timeoutMs: 2000 }),
+})
+```
+
+### Advanced Configuration
+
+```javascript
+const strategy = new PreferredWithFallbackRoutingStrategy({
+  preferredGateway: 'https://my-primary-gateway.com',
+  fallbackStrategy: new FastestPingRoutingStrategy({
+    timeoutMs: 2000,
+    cacheResultsMs: 30000,
+  }),
+  healthCheckEnabled: true,
+  healthCheckInterval: 30000, // Check preferred gateway every 30 seconds
+  healthCheckPath: '/ar-io/health',
+  healthCheckTimeout: 5000,
+  maxFailures: 3, // Switch to fallback after 3 consecutive failures
+  recoveryAttempts: 5, // Try to recover 5 times before giving up
+  recoveryDelayMs: 10000, // Wait 10 seconds between recovery attempts
+  circuitBreakerEnabled: true,
+  circuitBreakerThreshold: 0.5, // Open circuit if >50% of requests fail
+  circuitBreakerTimeout: 60000, // Keep circuit open for 1 minute
+})
+```
+
+## Parameters
+
+| Parameter                 | Type              | Default         | Description                                           |
+| ------------------------- | ----------------- | --------------- | ----------------------------------------------------- |
+| `preferredGateway`        | `string`          | **required**    | URL of the preferred gateway                          |
+| `fallbackStrategy`        | `RoutingStrategy` | **required**    | Strategy to use when preferred gateway fails          |
+| `healthCheckEnabled`      | `boolean`         | `true`          | Whether to perform health checks on preferred gateway |
+| `healthCheckInterval`     | `number`          | `30000`         | Interval for health checks in milliseconds            |
+| `healthCheckPath`         | `string`          | `'/ar-io/info'` | Path to use for health checks                         |
+| `healthCheckTimeout`      | `number`          | `5000`          | Timeout for health check requests                     |
+| `maxFailures`             | `number`          | `3`             | Max consecutive failures before switching to fallback |
+| `recoveryAttempts`        | `number`          | `Infinity`      | Number of recovery attempts                           |
+| `recoveryDelayMs`         | `number`          | `10000`         | Delay between recovery attempts                       |
+| `circuitBreakerEnabled`   | `boolean`         | `false`         | Enable circuit breaker pattern                        |
+| `circuitBreakerThreshold` | `number`          | `0.5`           | Failure rate threshold for opening circuit            |
+| `circuitBreakerTimeout`   | `number`          | `60000`         | How long to keep circuit open                         |
+
+## Integration Examples
+
+### With Wayfinder
+
+```javascript
+import {
+  Wayfinder,
+  PreferredWithFallbackRoutingStrategy,
+  FastestPingRoutingStrategy,
+} from '@ar.io/wayfinder-core'
+
+const wayfinder = new Wayfinder({
+  routingSettings: {
+    strategy: new PreferredWithFallbackRoutingStrategy({
+      preferredGateway: 'https://my-dedicated-gateway.com',
+      fallbackStrategy: new FastestPingRoutingStrategy({ timeoutMs: 2000 }),
+    }),
+    events: {
+      onRoutingStarted: (event) => {
+        console.log('🔄 Routing request:', event.originalUrl)
+      },
+      onPreferredGatewayUsed: (event) => {
+        console.log('✅ Using preferred gateway:', event.gateway)
+      },
+      onFallbackActivated: (event) => {
+        console.log('⚠️ Fallback activated:', {
+          reason: event.reason,
+          preferredGateway: event.preferredGateway,
+          fallbackGateway: event.selectedGateway,
+        })
+      },
+      onPreferredGatewayRecovered: (event) => {
+        console.log('🔄 Preferred gateway recovered:', event.gateway)
+      },
+    },
+  },
+})
+```
+
+### With Multiple Fallback Levels
+
+```javascript
+// Create nested fallback strategies
+const tertiaryFallback = new RandomRoutingStrategy()
+
+const secondaryFallback = new PreferredWithFallbackRoutingStrategy({
+  preferredGateway: 'https://secondary-gateway.com',
+  fallbackStrategy: tertiaryFallback,
+  maxFailures: 2,
+})
+
+const primaryStrategy = new PreferredWithFallbackRoutingStrategy({
+  preferredGateway: 'https://primary-gateway.com',
+  fallbackStrategy: secondaryFallback,
+  healthCheckEnabled: true,
+  healthCheckInterval: 15000,
+})
+```
+
+### With Circuit Breaker
+
+```javascript
+const strategy = new PreferredWithFallbackRoutingStrategy({
+  preferredGateway: 'https://my-gateway.com',
+  fallbackStrategy: new FastestPingRoutingStrategy({ timeoutMs: 2000 }),
+  circuitBreakerEnabled: true,
+  circuitBreakerThreshold: 0.3, // Open circuit at 30% failure rate
+  circuitBreakerTimeout: 30000, // 30 second timeout
+  onCircuitBreakerOpened: (event) => {
+    console.log('🚨 Circuit breaker opened for preferred gateway')
+    // Send alert to monitoring system
+    alerting.send('preferred_gateway_circuit_open', {
+      gateway: event.gateway,
+      failureRate: event.failureRate,
+    })
+  },
+  onCircuitBreakerClosed: (event) => {
+    console.log('✅ Circuit breaker closed - preferred gateway recovered')
+  },
+})
+```
+
+## Advanced Features
+
+### Custom Health Checks
+
+```javascript
+class CustomHealthCheckStrategy extends PreferredWithFallbackRoutingStrategy {
+  constructor(options) {
+    super(options)
+    this.customHealthChecks = options.customHealthChecks || []
+  }
+
+  async performHealthCheck(gateway) {
+    // Run standard health check
+    const basicHealth = await super.performHealthCheck(gateway)
+    if (!basicHealth) return false
+
+    // Run custom health checks
+    for (const healthCheck of this.customHealthChecks) {
+      try {
+        const result = await healthCheck(gateway)
+        if (!result.healthy) {
+          console.log(`Custom health check failed: ${result.reason}`)
+          return false
+        }
+      } catch (error) {
+        console.log(`Custom health check error: ${error.message}`)
+        return false
+      }
+    }
+
+    return true
+  }
+}
+
+// Usage with custom health checks
+const strategy = new CustomHealthCheckStrategy({
+  preferredGateway: 'https://my-gateway.com',
+  fallbackStrategy: new FastestPingRoutingStrategy({ timeoutMs: 2000 }),
+  customHealthChecks: [
+    // Check response time
+    async (gateway) => {
+      const start = Date.now()
+      await fetch(`${gateway}/ar-io/info`, { method: 'HEAD' })
+      const responseTime = Date.now() - start
+      return {
+        healthy: responseTime < 1000,
+        reason: responseTime >= 1000 ? 'Response time too high' : null,
+      }
+    },
+    // Check specific endpoint
+    async (gateway) => {
+      const response = await fetch(`${gateway}/ar-io/healthcheck`)
+      const data = await response.json()
+      return {
+        healthy: data.status === 'healthy',
+        reason: data.status !== 'healthy' ? 'Service unhealthy' : null,
+      }
+    },
+  ],
+})
+```
+
+### Geographic Failover
+
+```javascript
+class GeographicFallbackStrategy extends PreferredWithFallbackRoutingStrategy {
+  constructor(options) {
+    super(options)
+    this.userLocation = options.userLocation
+    this.gatewayLocations = options.gatewayLocations || new Map()
+  }
+
+  createFallbackStrategy() {
+    // Create a fallback strategy that prefers geographically close gateways
+    return new GeographicFastestPingStrategy({
+      userLocation: this.userLocation,
+      gatewayLocations: this.gatewayLocations,
+      timeoutMs: 2000,
+    })
+  }
+
+  async selectGateway({ gateways }) {
+    // Check if preferred gateway is geographically optimal
+    const preferredLocation = this.gatewayLocations.get(this.preferredGateway)
+    if (preferredLocation && this.userLocation) {
+      const distance = this.calculateDistance(
+        this.userLocation,
+        preferredLocation,
+      )
+
+      // If preferred gateway is too far, use geographic fallback immediately
+      if (distance > 5000) {
+        // 5000km threshold
+        console.log('🌍 Preferred gateway too far, using geographic fallback')
+        return this.fallbackStrategy.selectGateway({ gateways })
+      }
+    }
+
+    return super.selectGateway({ gateways })
+  }
+}
+```
+
+### Load-Based Switching
+
+```javascript
+class LoadBasedFallbackStrategy extends PreferredWithFallbackRoutingStrategy {
+  constructor(options) {
+    super(options)
+    this.loadMonitor = options.loadMonitor
+    this.loadThreshold = options.loadThreshold || 0.8 // 80% load threshold
+  }
+
+  async selectGateway({ gateways }) {
+    // Check current load on preferred gateway
+    if (this.loadMonitor) {
+      const currentLoad = await this.loadMonitor.getGatewayLoad(
+        this.preferredGateway,
+      )
+
+      if (currentLoad > this.loadThreshold) {
+        console.log(
+          `⚡ Preferred gateway load too high (${currentLoad}), using fallback`,
+        )
+        return this.fallbackStrategy.selectGateway({ gateways })
+      }
+    }
+
+    return super.selectGateway({ gateways })
+  }
+}
+```
+
+## Error Handling
+
+### Common Error Types
+
+```javascript
+try {
+  const selectedGateway = await strategy.selectGateway({ gateways })
+  console.log('Selected gateway:', selectedGateway)
+} catch (error) {
+  switch (error.constructor.name) {
+    case 'PreferredGatewayUnavailableError':
+      console.error('Preferred gateway is unavailable')
+      // Log gateway downtime, check infrastructure
+      break
+
+    case 'FallbackStrategyFailedError':
+      console.error('Both preferred and fallback strategies failed')
+      // Critical failure - all routing options exhausted
+      break
+
+    case 'HealthCheckFailedError':
+      console.error('Health check failed for preferred gateway')
+      // Gateway is responding but not healthy
+      break
+
+    case 'CircuitBreakerOpenError':
+      console.error('Circuit breaker is open for preferred gateway')
+      // Too many recent failures, circuit protection activated
+      break
+
+    case 'ConfigurationError':
+      console.error('Invalid configuration for preferred gateway strategy')
+      // Check strategy configuration
+      break
+
+    default:
+      console.error('Unknown routing error:', error.message)
+  }
+}
+```
+
+### Graceful Degradation
+
+```javascript
+const robustStrategy = new PreferredWithFallbackRoutingStrategy({
+  preferredGateway: 'https://my-gateway.com',
+  fallbackStrategy: new FastestPingRoutingStrategy({ timeoutMs: 2000 }),
+  onPreferredGatewayFailed: (error, context) => {
+    console.warn('Preferred gateway failed:', {
+      error: error.message,
+      gateway: context.gateway,
+      attempt: context.attempt,
+      timestamp: new Date().toISOString(),
+    })
+
+    // Report to monitoring
+    monitoring.reportGatewayFailure(context.gateway, error)
+
+    // Continue with fallback
+    return true
+  },
+  onFallbackActivated: (context) => {
+    console.log('Fallback strategy activated:', {
+      reason: context.reason,
+      fallbackGateway: context.selectedGateway,
+    })
+
+    // Update metrics
+    metrics.increment('fallback_activated', {
+      reason: context.reason,
+    })
+  },
+  gracefulDegradation: true, // Always try to return a gateway
+})
+```
+
+## Performance Optimization
+
+### Caching and Preloading
+
+```javascript
+class OptimizedPreferredFallbackStrategy extends PreferredWithFallbackRoutingStrategy {
+  constructor(options) {
+    super(options)
+    this.gatewayCache = new Map()
+    this.preloadFallback = options.preloadFallback || false
+  }
+
+  async initialize() {
+    if (this.preloadFallback) {
+      // Preload fallback strategy results
+      console.log('🔄 Preloading fallback strategy...')
+      try {
+        const fallbackGateways = await this.gatewaysProvider.getGateways()
+        await this.fallbackStrategy.selectGateway({
+          gateways: fallbackGateways,
+        })
+        console.log('✅ Fallback strategy preloaded')
+      } catch (error) {
+        console.warn('⚠️ Failed to preload fallback strategy:', error.message)
+      }
+    }
+  }
+
+  async selectGateway({ gateways }) {
+    // Check cache first
+    const cacheKey = `${this.preferredGateway}-${Date.now()}`
+    if (this.gatewayCache.has(this.preferredGateway)) {
+      const cached = this.gatewayCache.get(this.preferredGateway)
+      if (Date.now() - cached.timestamp < 30000) {
+        // 30 second cache
+        return cached.gateway
+      }
+    }
+
+    const result = await super.selectGateway({ gateways })
+
+    // Cache the result
+    this.gatewayCache.set(this.preferredGateway, {
+      gateway: result,
+      timestamp: Date.now(),
+    })
+
+    return result
+  }
+}
+```
+
+### Parallel Health Checks
+
+```javascript
+class ParallelHealthCheckStrategy extends PreferredWithFallbackRoutingStrategy {
+  constructor(options) {
+    super(options)
+    this.parallelHealthChecks = options.parallelHealthChecks || false
+  }
+
+  async selectGateway({ gateways }) {
+    if (this.parallelHealthChecks) {
+      // Perform health check and fallback strategy selection in parallel
+      const [healthCheck, fallbackGateway] = await Promise.allSettled([
+        this.performHealthCheck(this.preferredGateway),
+        this.fallbackStrategy.selectGateway({ gateways }),
+      ])
+
+      if (healthCheck.status === 'fulfilled' && healthCheck.value) {
+        return this.preferredGateway
+      } else if (fallbackGateway.status === 'fulfilled') {
+        return fallbackGateway.value
+      } else {
+        throw new Error('Both preferred and fallback strategies failed')
+      }
+    }
+
+    return super.selectGateway({ gateways })
+  }
+}
+```
+
+## Use Cases
+
+### CDN with Origin Fallback
+
+```javascript
+const cdnStrategy = new PreferredWithFallbackRoutingStrategy({
+  preferredGateway: 'https://cdn.myapp.com', // CDN endpoint
+  fallbackStrategy: new FastestPingRoutingStrategy({
+    timeoutMs: 2000,
+  }), // Origin servers
+  healthCheckEnabled: true,
+  healthCheckInterval: 15000,
+  maxFailures: 2,
+})
+
+const wayfinder = new Wayfinder({
+  routingSettings: {
+    strategy: cdnStrategy,
+  },
+})
+```
+
+### Enterprise Gateway with Public Fallback
+
+```javascript
+const enterpriseStrategy = new PreferredWithFallbackRoutingStrategy({
+  preferredGateway: 'https://enterprise-gateway.company.com',
+  fallbackStrategy: new PreferredWithFallbackRoutingStrategy({
+    preferredGateway: 'https://arweave.net',
+    fallbackStrategy: new FastestPingRoutingStrategy({ timeoutMs: 3000 }),
+  }),
+  healthCheckEnabled: true,
+  circuitBreakerEnabled: true,
+  circuitBreakerThreshold: 0.2, // Very sensitive for enterprise
+})
+```
+
+### Development Environment
+
+```javascript
+const devStrategy = new PreferredWithFallbackRoutingStrategy({
+  preferredGateway: 'http://localhost:3000', // Local development server
+  fallbackStrategy: new FastestPingRoutingStrategy({
+    timeoutMs: 1000,
+  }),
+  healthCheckEnabled: false, // Disable health checks for dev
+  maxFailures: 1, // Quick fallback for dev
+})
+```
+
+### Production Environment
+
+```javascript
+const prodStrategy = new PreferredWithFallbackRoutingStrategy({
+  preferredGateway: 'https://primary-production-gateway.com',
+  fallbackStrategy: new PreferredWithFallbackRoutingStrategy({
+    preferredGateway: 'https://secondary-production-gateway.com',
+    fallbackStrategy: new FastestPingRoutingStrategy({
+      timeoutMs: 3000,
+      cacheResultsMs: 60000,
+    }),
+  }),
+  healthCheckEnabled: true,
+  healthCheckInterval: 30000,
+  circuitBreakerEnabled: true,
+  maxFailures: 3,
+  recoveryDelayMs: 30000,
+})
+```
+
+### High-Availability Setup
+
+```javascript
+const haStrategy = new PreferredWithFallbackRoutingStrategy({
+  preferredGateway: 'https://primary.ha-cluster.com',
+  fallbackStrategy: new RoundRobinRoutingStrategy({
+    gateways: [
+      'https://secondary-1.ha-cluster.com',
+      'https://secondary-2.ha-cluster.com',
+      'https://secondary-3.ha-cluster.com',
+    ],
+  }),
+  healthCheckEnabled: true,
+  healthCheckInterval: 10000, // Frequent health checks
+  maxFailures: 1, // Immediate failover
+  recoveryAttempts: 10,
+  recoveryDelayMs: 5000,
+})
+```
+
+## Testing
+
+### Unit Testing
+
+```javascript
+import {
+  PreferredWithFallbackRoutingStrategy,
+  FastestPingRoutingStrategy,
+} from '@ar.io/wayfinder-core'
+
+describe('PreferredWithFallbackRoutingStrategy', () => {
+  let strategy
+  let mockFallbackStrategy
+
+  beforeEach(() => {
+    mockFallbackStrategy = {
+      selectGateway: jest
+        .fn()
+        .mockResolvedValue('https://fallback-gateway.com'),
+    }
+
+    strategy = new PreferredWithFallbackRoutingStrategy({
+      preferredGateway: 'https://preferred-gateway.com',
+      fallbackStrategy: mockFallbackStrategy,
+    })
+  })
+
+  test('should use preferred gateway when healthy', async () => {
+    jest.spyOn(strategy, 'performHealthCheck').mockResolvedValue(true)
+
+    const result = await strategy.selectGateway({
+      gateways: ['https://preferred-gateway.com', 'https://other-gateway.com'],
+    })
+
+    expect(result).toBe('https://preferred-gateway.com')
+    expect(mockFallbackStrategy.selectGateway).not.toHaveBeenCalled()
+  })
+
+  test('should use fallback when preferred gateway fails', async () => {
+    jest.spyOn(strategy, 'performHealthCheck').mockResolvedValue(false)
+
+    const result = await strategy.selectGateway({
+      gateways: ['https://preferred-gateway.com', 'https://other-gateway.com'],
+    })
+
+    expect(result).toBe('https://fallback-gateway.com')
+    expect(mockFallbackStrategy.selectGateway).toHaveBeenCalledWith({
+      gateways: ['https://preferred-gateway.com', 'https://other-gateway.com'],
+    })
+  })
+
+  test('should handle circuit breaker', async () => {
+    const cbStrategy = new PreferredWithFallbackRoutingStrategy({
+      preferredGateway: 'https://preferred-gateway.com',
+      fallbackStrategy: mockFallbackStrategy,
+      circuitBreakerEnabled: true,
+      circuitBreakerThreshold: 0.5,
+    })
+
+    // Simulate failures to open circuit breaker
+    jest.spyOn(cbStrategy, 'performHealthCheck').mockResolvedValue(false)
+
+    // Multiple failures should open circuit breaker
+    await cbStrategy.selectGateway({
+      gateways: ['https://preferred-gateway.com'],
+    })
+    await cbStrategy.selectGateway({
+      gateways: ['https://preferred-gateway.com'],
+    })
+
+    // Next call should use fallback immediately due to open circuit
+    const result = await cbStrategy.selectGateway({
+      gateways: ['https://preferred-gateway.com'],
+    })
+
+    expect(result).toBe('https://fallback-gateway.com')
+  })
+})
+```
+
+### Integration Testing
+
+```javascript
+describe('PreferredWithFallbackRoutingStrategy Integration', () => {
+  test('should work with real gateways', async () => {
+    const strategy = new PreferredWithFallbackRoutingStrategy({
+      preferredGateway: 'https://arweave.net',
+      fallbackStrategy: new FastestPingRoutingStrategy({ timeoutMs: 5000 }),
+      healthCheckTimeout: 3000,
+    })
+
+    const gateways = ['https://arweave.net', 'https://ar-io.net']
+
+    const selected = await strategy.selectGateway({ gateways })
+    expect(gateways).toContain(selected)
+  })
+
+  test('should handle preferred gateway downtime', async () => {
+    const strategy = new PreferredWithFallbackRoutingStrategy({
+      preferredGateway: 'https://nonexistent-gateway.invalid',
+      fallbackStrategy: new FastestPingRoutingStrategy({ timeoutMs: 3000 }),
+      healthCheckTimeout: 1000,
+      maxFailures: 1,
+    })
+
+    const gateways = [
+      'https://nonexistent-gateway.invalid',
+      'https://arweave.net',
+    ]
+
+    const selected = await strategy.selectGateway({ gateways })
+    expect(selected).toBe('https://arweave.net')
+  })
+})
+```
+
+## Best Practices
+
+1. **Choose Appropriate Fallback Strategies**: Use strategies that complement your preferred gateway
+2. **Configure Health Checks**: Regular health checks prevent using failed gateways
+3. **Set Reasonable Timeouts**: Balance between quick failover and false positives
+4. **Monitor Gateway Performance**: Track preferred gateway uptime and performance
+5. **Implement Circuit Breakers**: Prevent cascade failures with circuit breaker pattern
+6. **Plan Recovery Strategy**: Define how and when to return to preferred gateway
+7. **Use Nested Fallbacks**: Create multiple levels of fallback for high availability
+8. **Test Failover Scenarios**: Regularly test fallback behavior in staging environments
+
+## Comparison with Other Strategies
+
+| Aspect                     | Preferred + Fallback     | Fastest Ping   | Round Robin    | Random              |
+| -------------------------- | ------------------------ | -------------- | -------------- | ------------------- |
+| **Performance**            | ⭐⭐⭐⭐                 | ⭐⭐⭐⭐⭐     | ⭐⭐           | ⭐⭐                |
+| **Reliability**            | ⭐⭐⭐                   | ⭐⭐⭐⭐       | ⭐⭐⭐         | ⭐⭐⭐              |
+| **Predictability**         | ⭐⭐⭐⭐⭐               | ⭐⭐⭐         | ⭐⭐⭐⭐       | ⭐                  |
+| **Infrastructure Control** | ⭐⭐⭐⭐⭐               | ⭐⭐           | ⭐⭐           | ⭐⭐                |
+| **Complexity**             | ⭐⭐⭐⭐                 | ⭐⭐⭐         | ⭐⭐           | ⭐⭐⭐⭐⭐          |
+| **Use Case**               | Dedicated infrastructure | Real-time apps | Load balancing | Simple distribution |
+
+The `PreferredWithFallbackRoutingStrategy` is ideal for applications with dedicated infrastructure that need predictable routing behavior with reliable fallback options.
