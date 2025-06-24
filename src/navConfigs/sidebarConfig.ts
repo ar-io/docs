@@ -1099,6 +1099,10 @@ export const singleNavigation: Array<NavGroup> = [
             href: '/wayfinder/core/request',
           },
           {
+            title: 'resolveUrl()',
+            href: '/wayfinder/core/resolve-url',
+          },
+          {
             title: 'Events',
             href: '/wayfinder/core/events',
           },
@@ -1125,28 +1129,7 @@ export const singleNavigation: Array<NavGroup> = [
           },
           {
             title: 'Routing Strategies',
-            children: [
-              {
-                title: 'Overview',
-                href: '/wayfinder/core/routing-strategies',
-              },
-              {
-                title: 'FastestPingRoutingStrategy',
-                href: '/wayfinder/core/routing-strategies/fastest-ping',
-              },
-              {
-                title: 'PreferredWithFallbackRoutingStrategy',
-                href: '/wayfinder/core/routing-strategies/preferred-with-fallback',
-              },
-              {
-                title: 'RandomRoutingStrategy',
-                href: '/wayfinder/core/routing-strategies/random',
-              },
-              {
-                title: 'RoundRobinRoutingStrategy',
-                href: '/wayfinder/core/routing-strategies/round-robin',
-              },
-            ],
+            href: '/wayfinder/core/routing-strategies',
           },
           {
             title: 'Telemetry',
@@ -1205,6 +1188,14 @@ export const singleNavigation: Array<NavGroup> = [
           {
             title: 'Round Robin',
             href: '/wayfinder/routing-strategies/round-robin',
+          },
+          {
+            title: 'Simple Cache',
+            href: '/wayfinder/routing-strategies/simple-cache',
+          },
+          {
+            title: 'Static',
+            href: '/wayfinder/routing-strategies/static',
           },
         ],
       },
