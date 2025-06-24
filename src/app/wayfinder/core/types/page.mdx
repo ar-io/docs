@@ -1,0 +1,300 @@
+export const metadata = {
+  title: 'TypeScript Types',
+  description:
+    'Complete TypeScript type definitions and interfaces for the Wayfinder SDK core functionality.',
+}
+
+# TypeScript Types
+
+The Wayfinder SDK provides comprehensive TypeScript support with well-defined types and interfaces for all core functionality.
+
+## Core Types
+
+### WayfinderConfig
+
+Configuration interface for initializing Wayfinder instances.
+
+```typescript
+interface WayfinderConfig {
+  logger?: Logger
+  gatewaysProvider?: GatewaysProvider
+  verificationSettings?: VerificationSettings
+  routingSettings?: RoutingSettings
+  telemetrySettings?: TelemetrySettings
+}
+```
+
+### Logger Interface
+
+```typescript
+interface Logger {
+  info(message: string, ...args: any[]): void
+  warn(message: string, ...args: any[]): void
+  error(message: string, ...args: any[]): void
+  debug(message: string, ...args: any[]): void
+}
+```
+
+### Gateway Types
+
+```typescript
+interface Gateway {
+  host: string
+  port?: number
+  protocol?: 'http' | 'https'
+  path?: string
+}
+
+interface GatewayHealth {
+  gateway: Gateway
+  responseTime: number
+  isHealthy: boolean
+  lastChecked: Date
+}
+```
+
+### Request Types
+
+```typescript
+interface RequestOptions {
+  timeout?: number
+  retries?: number
+  headers?: Record<string, string>
+  signal?: AbortSignal
+}
+
+interface RequestResult<T = any> {
+  data: T
+  gateway: Gateway
+  responseTime: number
+  fromCache?: boolean
+}
+```
+
+## Routing Strategy Types
+
+### Base Strategy Interface
+
+```typescript
+interface RoutingStrategy {
+  selectGateway(gateways: Gateway[]): Promise<Gateway>
+  name: string
+}
+```
+
+### Strategy-Specific Types
+
+```typescript
+// Fastest Ping Strategy
+interface FastestPingOptions {
+  timeout?: number
+  maxConcurrent?: number
+}
+
+// Preferred with Fallback Strategy
+interface PreferredWithFallbackOptions {
+  preferred: Gateway[]
+  fallback: RoutingStrategy
+}
+
+// Simple Cache Strategy
+interface SimpleCacheOptions {
+  ttl?: number
+  maxSize?: number
+  strategy: RoutingStrategy
+}
+
+// Static Strategy
+interface StaticOptions {
+  gateway: Gateway
+}
+```
+
+## Verification Types
+
+### Verification Settings
+
+```typescript
+interface VerificationSettings {
+  enabled: boolean
+  strategies: VerificationStrategy[]
+  timeout?: number
+}
+
+interface VerificationStrategy {
+  verify(data: any, metadata: any): Promise<boolean>
+  name: string
+}
+```
+
+### Verification Results
+
+```typescript
+interface VerificationResult {
+  isValid: boolean
+  strategy: string
+  details?: any
+  error?: Error
+}
+```
+
+## Telemetry Types
+
+### Telemetry Configuration
+
+```typescript
+interface TelemetrySettings {
+  enabled: boolean
+  endpoint?: string
+  batchSize?: number
+  flushInterval?: number
+}
+
+interface TelemetryEvent {
+  type: string
+  timestamp: Date
+  data: Record<string, any>
+  gateway?: Gateway
+}
+```
+
+### Metrics Types
+
+```typescript
+interface RequestMetrics {
+  duration: number
+  gateway: Gateway
+  success: boolean
+  retries: number
+  fromCache: boolean
+}
+
+interface GatewayMetrics {
+  gateway: Gateway
+  totalRequests: number
+  successfulRequests: number
+  averageResponseTime: number
+  lastUsed: Date
+}
+```
+
+## Event Types
+
+### Event System
+
+```typescript
+interface EventEmitter {
+  on(event: string, listener: Function): void
+  off(event: string, listener: Function): void
+  emit(event: string, ...args: any[]): void
+}
+
+interface WayfinderEvents {
+  'gateway:selected': (gateway: Gateway) => void
+  'gateway:failed': (gateway: Gateway, error: Error) => void
+  'request:start': (url: string, options: RequestOptions) => void
+  'request:complete': (result: RequestResult) => void
+  'request:error': (error: Error) => void
+  'cache:hit': (key: string) => void
+  'cache:miss': (key: string) => void
+}
+```
+
+## Utility Types
+
+### Helper Types
+
+```typescript
+// Simplified utility types that don't overwhelm the regex parser
+type RequiredKeys<T> = {
+  [K in keyof T]: T[K] extends Required<T>[K] ? K : never
+}[keyof T]
+
+type OptionalKeys<T> = {
+  [K in keyof T]: T[K] extends Required<T>[K] ? never : K
+}[keyof T]
+
+type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>
+
+type RequiredBy<T, K extends keyof T> = Omit<T, K> & Required<Pick<T, K>>
+```
+
+### Response Types
+
+```typescript
+type WayfinderResponse<T> = Promise<RequestResult<T>>
+
+type GatewaySelector = (gateways: Gateway[]) => Promise<Gateway>
+
+type VerificationCallback = (data: any, metadata: any) => Promise<boolean>
+```
+
+## Error Types
+
+### Custom Errors
+
+```typescript
+class WayfinderError extends Error {
+  constructor(
+    message: string,
+    public code?: string,
+  ) {
+    super(message)
+    this.name = 'WayfinderError'
+  }
+}
+
+class GatewayError extends WayfinderError {
+  constructor(
+    message: string,
+    public gateway: Gateway,
+  ) {
+    super(message, 'GATEWAY_ERROR')
+    this.name = 'GatewayError'
+  }
+}
+
+class VerificationError extends WayfinderError {
+  constructor(
+    message: string,
+    public strategy: string,
+  ) {
+    super(message, 'VERIFICATION_ERROR')
+    this.name = 'VerificationError'
+  }
+}
+```
+
+## Usage Examples
+
+### Type Guards
+
+```typescript
+function isGateway(obj: any): obj is Gateway {
+  return obj && typeof obj.host === 'string'
+}
+
+function isRequestResult<T>(obj: any): obj is RequestResult<T> {
+  return obj && obj.data !== undefined && isGateway(obj.gateway)
+}
+```
+
+### Generic Constraints
+
+```typescript
+interface TypedWayfinder<T = any> {
+  request<R = T>(url: string, options?: RequestOptions): WayfinderResponse<R>
+  resolveUrl(url: string): string
+}
+
+// Usage with specific types
+const wayfinder: TypedWayfinder<ArweaveData> = new Wayfinder(config)
+const result = await wayfinder.request<TransactionData>('/tx/abc123')
+```
+
+## Next Steps
+
+- **[Core Wayfinder Class](/wayfinder/core)**: Main SDK class implementation
+- **[Request Method](/wayfinder/core/request)**: Making requests with full type safety
+- **[Routing Strategies](/wayfinder/routing-strategies)**: Type-safe routing implementations
+- **[React Integration](/wayfinder/react)**: React hooks with TypeScript support
