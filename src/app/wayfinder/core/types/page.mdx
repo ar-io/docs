@@ -370,12 +370,14 @@ class TimeoutError extends WayfinderError {
 ```typescript
 type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>
 
+// Utility type to extract required keys from an interface
 type RequiredKeys<T> = {
-  [K in keyof T]-?: {} extends Pick<T, K> ? never : K
+  [K in keyof T]: T[K] extends Required<T>[K] ? K : never
 }[keyof T]
 
+// Utility type to extract optional keys from an interface
 type OptionalKeys<T> = {
-  [K in keyof T]-?: {} extends Pick<T, K> ? K : never
+  [K in keyof T]: T[K] extends Required<T>[K] ? never : K
 }[keyof T]
 ```
 
