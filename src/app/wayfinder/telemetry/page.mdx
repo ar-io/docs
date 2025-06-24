@@ -15,7 +15,7 @@ Wayfinder's telemetry system provides:
 
 Wayfinder telemetry is **completely opt-in** and gives you control over where your data is sent:
 
-- **Default Destination**: When enabled without specifying an `exporterUrl`, telemetry data is sent to `https://api.honeycomb.io` in the `wayfinder-dev` dataset (managed by the AR.IO team) to help improve the service
+- **Default Destination**: When enabled without specifying an <code>exporterUrl</code>, telemetry data is sent to <code>https://api.honeycomb.io</code> in the <code>wayfinder-dev</code> dataset (managed by the AR.IO team) to help improve the service
 - **Your Own Infrastructure**: Override the default by configuring telemetry to send to your own observability platforms (Jaeger, Datadog, etc.)
 - **AR.IO Network Insights** _(Optional)_: Optionally contribute anonymized usage data to help the AR.IO team improve gateway performance and reliability
 - **Disabled**: Keep telemetry completely disabled (default state)
@@ -23,7 +23,7 @@ Wayfinder telemetry is **completely opt-in** and gives you control over where yo
 <Tip title="Important">
   All telemetry is disabled by default. When you enable telemetry, data is sent
   to the AR.IO team's Honeycomb dataset unless you specify a different
-  `exporterUrl`.
+  'exporterUrl'.
 </Tip>
 
 ## Basic Configuration
@@ -46,15 +46,14 @@ const wayfinder = new Wayfinder({
 ```
 
 <Tip title="Note">
-  Without specifying an `exporterUrl`, telemetry data is sent to
-  `https://api.honeycomb.io` in the `wayfinder-dev` dataset (managed by the
-  AR.IO team). Specify your own `exporterUrl` to send data to your preferred
-  destination.
+  Without specifying an 'exporterUrl', telemetry data is sent to
+  'api.honeycomb.io' in the 'wayfinder-dev' dataset (managed by the AR.IO team).
+  Specify your own 'exporterUrl' to send data to your preferred destination.
 </Tip>
 
 ### Required Configuration
 
-The `TelemetryConfig` interface requires these fields:
+The <code>TelemetryConfig</code> interface requires these fields:
 
 ```typescript
 interface TelemetryConfig {
@@ -276,32 +275,36 @@ const wayfinder = new Wayfinder({
 
 Wayfinder generates traces with the following structure:
 
-### Root Span: `wayfinder.request`
+### Root Span: <code>wayfinder.request</code>
 
-- **Operation**: `wayfinder.request`
+- **Operation**: <code>wayfinder.request</code>
 - **Attributes**:
-  - `wayfinder.protocol`: `ar://`
-  - `wayfinder.transaction_id`: Transaction ID being requested
-  - `wayfinder.url`: Original ar:// URL
-  - `http.status_code`: Final HTTP status code
-  - `http.response.size`: Response size in bytes
+  - <code>wayfinder.protocol</code>: <code>ar://</code>
+  - <code>wayfinder.transaction_id</code>: Transaction ID being requested
+  - <code>wayfinder.url</code>: Original ar:// URL
+  - <code>http.status_code</code>: Final HTTP status code
+  - <code>http.response.size</code>: Response size in bytes
 
-### Child Span: `wayfinder.routing`
+### Child Span: <code>wayfinder.routing</code>
 
-- **Operation**: `wayfinder.routing`
+- **Operation**: <code>wayfinder.routing</code>
 - **Attributes**:
-  - `wayfinder.routing.strategy`: Routing strategy used
-  - `wayfinder.routing.available_gateways`: Number of available gateways
-  - `wayfinder.routing.selected_gateway`: Selected gateway URL
-  - `wayfinder.routing.selection_time_ms`: Time taken to select gateway
+  - <code>wayfinder.routing.strategy</code>: Routing strategy used
+  - <code>wayfinder.routing.available_gateways</code>: Number of available
+    gateways
+  - <code>wayfinder.routing.selected_gateway</code>: Selected gateway URL
+  - <code>wayfinder.routing.selection_time_ms</code>: Time taken to select
+    gateway
 
-### Child Span: `wayfinder.verification`
+### Child Span: <code>wayfinder.verification</code>
 
-- **Operation**: `wayfinder.verification`
+- **Operation**: <code>wayfinder.verification</code>
 - **Attributes**:
-  - `wayfinder.verification.enabled`: Whether verification was enabled
-  - `wayfinder.verification.strategy`: Verification strategy used
-  - `wayfinder.verification.result`: Verification result (success/failure)
+  - <code>wayfinder.verification.enabled</code>: Whether verification was
+    enabled
+  - <code>wayfinder.verification.strategy</code>: Verification strategy used
+  - <code>wayfinder.verification.result</code>: Verification result
+    (success/failure)
 
 ## Custom Instrumentation
 
