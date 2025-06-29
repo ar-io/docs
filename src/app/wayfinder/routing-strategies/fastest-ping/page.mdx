@@ -4,6 +4,57 @@
 
 The `FastestPingRoutingStrategy` selects the gateway with the lowest latency by performing HEAD requests to all available gateways and choosing the one that responds fastest. This strategy optimizes for performance by dynamically selecting the most responsive gateway for each request.
 
+## Routing Strategy Comparison
+
+<Table>
+  <thead>
+    <tr>
+      <th>Strategy</th>
+      <th>Best For</th>
+      <th>Use Case</th>
+      <th>Predictability</th>
+      <th>Infrastructure Control</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Fastest Ping</td>
+      <td>Real-time applications</td>
+      <td>Performance-critical apps, gaming</td>
+      <td>Medium</td>
+      <td>Low</td>
+    </tr>
+    <tr>
+      <td>Preferred + Fallback</td>
+      <td>Dedicated infrastructure</td>
+      <td>CDN with origin fallback, enterprise gateways</td>
+      <td>High</td>
+      <td>Maximum</td>
+    </tr>
+    <tr>
+      <td>Round Robin</td>
+      <td>Load balancing</td>
+      <td>Even distribution across known gateways</td>
+      <td>High</td>
+      <td>High</td>
+    </tr>
+    <tr>
+      <td>Random</td>
+      <td>Simple distribution</td>
+      <td>Basic load spreading, testing</td>
+      <td>Low</td>
+      <td>Medium</td>
+    </tr>
+    <tr>
+      <td>Static</td>
+      <td>Single gateway</td>
+      <td>Development, specific gateway requirements</td>
+      <td>Maximum</td>
+      <td>High</td>
+    </tr>
+  </tbody>
+</Table>
+
 ## How It Works
 
 1. **Ping All Gateways**: Send HEAD requests to all available gateways
@@ -20,48 +71,31 @@ The `FastestPingRoutingStrategy` selects the gateway with the lowest latency by 
 import { FastestPingRoutingStrategy } from '@ar.io/wayfinder-core'
 
 const strategy = new FastestPingRoutingStrategy({
-  timeoutMs: 2000,
+  timeoutMs: 500,
   pingPath: '/ar-io/info',
 })
 ```
 
-### Advanced Configuration
+### With Caching
 
 ```javascript
 const strategy = new FastestPingRoutingStrategy({
-  timeoutMs: 3000,
-  pingPath: '/ar-io/info',
-  retryAttempts: 2,
-  retryDelayMs: 500,
+  timeoutMs: 500,
   cacheResultsMs: 30000, // Cache ping results for 30 seconds
-  maxConcurrentPings: 10,
-  pingMethod: 'HEAD',
-  includeHeaders: {
-    'User-Agent': 'Wayfinder/1.0',
-  },
-  failureThreshold: 0.8, // Consider gateway failed if >80% of pings fail
-  healthCheckInterval: 60000, // Re-ping unhealthy gateways every minute
+  pingPath: '/ar-io/info',
 })
 ```
 
 ## Parameters
 
-| Parameter             | Type     | Default         | Description                                    |
-| --------------------- | -------- | --------------- | ---------------------------------------------- |
-| `timeoutMs`           | `number` | `2000`          | Timeout for ping requests in milliseconds      |
-| `pingPath`            | `string` | `'/ar-io/info'` | Path to ping on each gateway                   |
-| `retryAttempts`       | `number` | `1`             | Number of retry attempts for failed pings      |
-| `retryDelayMs`        | `number` | `500`           | Delay between retry attempts                   |
-| `cacheResultsMs`      | `number` | `0`             | How long to cache ping results (0 = no cache)  |
-| `maxConcurrentPings`  | `number` | `Infinity`      | Maximum number of concurrent ping requests     |
-| `pingMethod`          | `string` | `'HEAD'`        | HTTP method to use for pings                   |
-| `includeHeaders`      | `object` | `{}`            | Additional headers to include in ping requests |
-| `failureThreshold`    | `number` | `1.0`           | Threshold for marking gateways as unhealthy    |
-| `healthCheckInterval` | `number` | `0`             | Interval for re-checking unhealthy gateways    |
+| Parameter        | Type     | Default         | Description                                   |
+| ---------------- | -------- | --------------- | --------------------------------------------- |
+| `timeoutMs`      | `number` | `500`           | Timeout for ping requests in milliseconds     |
+| `pingPath`       | `string` | `'/ar-io/info'` | Path to ping on each gateway                  |
+| `cacheResultsMs` | `number` | `0`             | How long to cache ping results (0 = no cache) |
+| `logger`         | `Logger` | `defaultLogger` | Optional logger instance                      |
 
-## Integration Examples
-
-### With Wayfinder
+## Integration with Wayfinder
 
 ```javascript
 import { Wayfinder, FastestPingRoutingStrategy } from '@ar.io/wayfinder-core'
@@ -69,539 +103,54 @@ import { Wayfinder, FastestPingRoutingStrategy } from '@ar.io/wayfinder-core'
 const wayfinder = new Wayfinder({
   routingSettings: {
     strategy: new FastestPingRoutingStrategy({
-      timeoutMs: 2000,
+      timeoutMs: 500,
       cacheResultsMs: 30000, // Cache results for 30 seconds
     }),
-    events: {
-      onRoutingStarted: (event) => {
-        console.log('🔄 Finding fastest gateway for:', event.originalUrl)
-      },
-      onRoutingSucceeded: (event) => {
-        console.log('✅ Selected fastest gateway:', {
-          gateway: event.selectedGateway,
-          responseTime: event.responseTime,
-          originalUrl: event.originalUrl,
-        })
-      },
-      onRoutingFailed: (error) => {
-        console.error('❌ Fastest ping routing failed:', error.message)
-      },
-    },
   },
 })
-```
-
-### With Performance Monitoring
-
-```javascript
-const strategy = new FastestPingRoutingStrategy({
-  timeoutMs: 3000,
-  cacheResultsMs: 60000,
-  onPingResult: (result) => {
-    console.log('📊 Ping result:', {
-      gateway: result.gateway,
-      responseTime: result.responseTime,
-      success: result.success,
-      error: result.error,
-    })
-
-    // Send to analytics
-    analytics.track('gateway_ping', {
-      gateway: result.gateway,
-      response_time: result.responseTime,
-      success: result.success,
-    })
-  },
-  onGatewaySelected: (selection) => {
-    console.log('🎯 Gateway selected:', {
-      selected: selection.gateway,
-      responseTime: selection.responseTime,
-      alternatives: selection.alternatives,
-    })
-  },
-})
-```
-
-### Standalone Usage
-
-```javascript
-const strategy = new FastestPingRoutingStrategy({
-  timeoutMs: 2000,
-  pingPath: '/ar-io/info',
-})
-
-// Manual gateway selection
-const gateways = [
-  'https://arweave.net',
-  'https://ar-io.net',
-  'https://permagate.io',
-]
-
-try {
-  const selectedGateway = await strategy.selectGateway({ gateways })
-  console.log('Fastest gateway:', selectedGateway)
-} catch (error) {
-  console.error('Failed to select gateway:', error.message)
-}
-```
-
-## Performance Optimization
-
-### Caching Strategy
-
-```javascript
-// Cache ping results to avoid repeated pings
-const cachedStrategy = new FastestPingRoutingStrategy({
-  timeoutMs: 2000,
-  cacheResultsMs: 30000, // 30 second cache
-  staleWhileRevalidate: true, // Use stale cache while refreshing
-  backgroundRefresh: true, // Refresh cache in background
-})
-```
-
-### Concurrent Ping Limiting
-
-```javascript
-// Limit concurrent pings to avoid overwhelming the network
-const limitedStrategy = new FastestPingRoutingStrategy({
-  timeoutMs: 1500,
-  maxConcurrentPings: 5, // Only ping 5 gateways at once
-  batchSize: 3, // Process gateways in batches of 3
-  batchDelayMs: 100, // 100ms delay between batches
-})
-```
-
-### Adaptive Timeout
-
-```javascript
-class AdaptiveFastestPingStrategy extends FastestPingRoutingStrategy {
-  constructor(options) {
-    super(options)
-    this.pingHistory = new Map()
-    this.baseTimeout = options.timeoutMs || 2000
-  }
-
-  async selectGateway({ gateways }) {
-    // Adjust timeout based on historical performance
-    const avgResponseTime = this.getAverageResponseTime(gateways)
-    const adaptiveTimeout = Math.max(
-      this.baseTimeout,
-      avgResponseTime * 2, // 2x average response time
-    )
-
-    return super.selectGateway({
-      gateways,
-      timeoutMs: adaptiveTimeout,
-    })
-  }
-
-  getAverageResponseTime(gateways) {
-    const times = gateways
-      .map((gateway) => this.pingHistory.get(gateway.toString()))
-      .filter(Boolean)
-      .map((history) => history.averageTime)
-
-    return times.length > 0
-      ? times.reduce((a, b) => a + b, 0) / times.length
-      : this.baseTimeout
-  }
-}
-```
-
-## Error Handling
-
-### Common Error Types
-
-```javascript
-try {
-  const selectedGateway = await strategy.selectGateway({ gateways })
-  console.log('Selected gateway:', selectedGateway)
-} catch (error) {
-  switch (error.constructor.name) {
-    case 'AllGatewaysFailedError':
-      console.error('All gateways failed to respond to pings')
-      // Fall back to a default gateway or retry with different strategy
-      break
-
-    case 'PingTimeoutError':
-      console.error('Ping requests timed out')
-      // Increase timeout or reduce number of concurrent pings
-      break
-
-    case 'NetworkError':
-      console.error('Network connectivity issues')
-      // Check internet connection
-      break
-
-    case 'InvalidGatewayError':
-      console.error('One or more gateways have invalid URLs')
-      // Validate gateway URLs
-      break
-
-    default:
-      console.error('Unknown routing error:', error.message)
-  }
-}
-```
-
-### Graceful Fallback
-
-```javascript
-const robustStrategy = new FastestPingRoutingStrategy({
-  timeoutMs: 2000,
-  onAllPingsFailed: (gateways) => {
-    console.warn('All pings failed, falling back to first gateway')
-    return gateways[0] // Use first gateway as fallback
-  },
-  onPartialPingFailure: (results) => {
-    console.warn('Some pings failed:', {
-      successful: results.successful.length,
-      failed: results.failed.length,
-    })
-
-    // Use fastest successful ping
-    return results.successful[0]?.gateway
-  },
-})
-```
-
-## Advanced Features
-
-### Health Monitoring
-
-```javascript
-class HealthMonitoringFastestPingStrategy extends FastestPingRoutingStrategy {
-  constructor(options) {
-    super(options)
-    this.gatewayHealth = new Map()
-    this.healthCheckInterval = options.healthCheckInterval || 60000
-    this.startHealthMonitoring()
-  }
-
-  startHealthMonitoring() {
-    setInterval(() => {
-      this.performHealthCheck()
-    }, this.healthCheckInterval)
-  }
-
-  async performHealthCheck() {
-    const unhealthyGateways = Array.from(this.gatewayHealth.entries())
-      .filter(([_, health]) => !health.healthy)
-      .map(([gateway, _]) => gateway)
-
-    if (unhealthyGateways.length > 0) {
-      console.log(
-        '🏥 Performing health check on',
-        unhealthyGateways.length,
-        'gateways',
-      )
-
-      for (const gateway of unhealthyGateways) {
-        try {
-          const startTime = Date.now()
-          await this.pingGateway(gateway)
-          const responseTime = Date.now() - startTime
-
-          this.gatewayHealth.set(gateway, {
-            healthy: true,
-            lastCheck: Date.now(),
-            responseTime,
-          })
-
-          console.log('✅ Gateway recovered:', gateway)
-        } catch (error) {
-          console.log('❌ Gateway still unhealthy:', gateway)
-        }
-      }
-    }
-  }
-
-  async selectGateway({ gateways }) {
-    // Filter out unhealthy gateways
-    const healthyGateways = gateways.filter((gateway) => {
-      const health = this.gatewayHealth.get(gateway.toString())
-      return !health || health.healthy
-    })
-
-    if (healthyGateways.length === 0) {
-      console.warn('No healthy gateways available, using all gateways')
-      return super.selectGateway({ gateways })
-    }
-
-    return super.selectGateway({ gateways: healthyGateways })
-  }
-}
-```
-
-### Geographic Optimization
-
-```javascript
-class GeographicFastestPingStrategy extends FastestPingRoutingStrategy {
-  constructor(options) {
-    super(options)
-    this.userLocation = options.userLocation
-    this.gatewayLocations = options.gatewayLocations || new Map()
-  }
-
-  async selectGateway({ gateways }) {
-    // Pre-filter gateways by geographic proximity
-    const nearbyGateways = this.filterByProximity(gateways, 1000) // 1000km radius
-
-    if (nearbyGateways.length > 0) {
-      console.log('🌍 Using nearby gateways for ping test')
-      return super.selectGateway({ gateways: nearbyGateways })
-    }
-
-    // Fall back to all gateways if no nearby ones
-    return super.selectGateway({ gateways })
-  }
-
-  filterByProximity(gateways, maxDistanceKm) {
-    if (!this.userLocation) return gateways
-
-    return gateways.filter((gateway) => {
-      const gatewayLocation = this.gatewayLocations.get(gateway.toString())
-      if (!gatewayLocation) return true // Include if location unknown
-
-      const distance = this.calculateDistance(
-        this.userLocation,
-        gatewayLocation,
-      )
-      return distance <= maxDistanceKm
-    })
-  }
-
-  calculateDistance(loc1, loc2) {
-    // Haversine formula for calculating distance between two points
-    const R = 6371 // Earth's radius in kilometers
-    const dLat = this.toRadians(loc2.lat - loc1.lat)
-    const dLon = this.toRadians(loc2.lon - loc1.lon)
-
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(this.toRadians(loc1.lat)) *
-        Math.cos(this.toRadians(loc2.lat)) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2)
-
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-    return R * c
-  }
-
-  toRadians(degrees) {
-    return degrees * (Math.PI / 180)
-  }
-}
 ```
 
 ## Use Cases
 
-### Real-Time Applications
+### Performance-Critical Applications
 
-Optimize for lowest latency:
-
-```javascript
-const realtimeStrategy = new FastestPingRoutingStrategy({
-  timeoutMs: 1000, // Aggressive timeout
-  cacheResultsMs: 10000, // Short cache duration
-  maxConcurrentPings: 20, // Ping many gateways quickly
-  pingPath: '/ar-io/healthcheck', // Lightweight endpoint
-})
-
-const wayfinder = new Wayfinder({
-  routingSettings: {
-    strategy: realtimeStrategy,
-  },
-})
-```
-
-### Gaming Applications
-
-Ultra-low latency with geographic optimization:
+Perfect for applications where response time is crucial and you want the fastest possible data access.
 
 ```javascript
-const gamingStrategy = new GeographicFastestPingStrategy({
+const performanceStrategy = new FastestPingRoutingStrategy({
   timeoutMs: 500,
-  cacheResultsMs: 5000,
-  userLocation: { lat: 40.7128, lon: -74.006 }, // New York
-  gatewayLocations: new Map([
-    ['https://us-east.ar-io.net', { lat: 40.7128, lon: -74.006 }],
-    ['https://us-west.ar-io.net', { lat: 37.7749, lon: -122.4194 }],
-    ['https://eu.ar-io.net', { lat: 51.5074, lon: -0.1278 }],
-  ]),
+  cacheResultsMs: 10000, // Short cache for frequent updates
 })
 ```
 
-### Development Environment
+### Gaming and Real-Time Apps
 
-Fast iteration with simple configuration:
+Ideal for gaming applications or real-time data feeds where latency matters most.
 
 ```javascript
-const devStrategy = new FastestPingRoutingStrategy({
+const gamingStrategy = new FastestPingRoutingStrategy({
+  timeoutMs: 300, // Very fast timeout
+  cacheResultsMs: 5000, // Frequent re-evaluation
+})
+```
+
+### Load Testing and Benchmarking
+
+Useful for testing gateway performance and identifying the fastest gateways in your region.
+
+```javascript
+const benchmarkStrategy = new FastestPingRoutingStrategy({
   timeoutMs: 1000,
-  cacheResultsMs: 60000, // Long cache for dev
-  maxConcurrentPings: 3, // Limit network usage
-})
-```
-
-### Production Environment
-
-Balanced performance and reliability:
-
-```javascript
-const prodStrategy = new FastestPingRoutingStrategy({
-  timeoutMs: 3000,
-  retryAttempts: 2,
-  cacheResultsMs: 30000,
-  healthCheckInterval: 60000,
-  failureThreshold: 0.7,
-  maxConcurrentPings: 8,
-})
-```
-
-### High-Load Environment
-
-Optimized for high-traffic applications:
-
-```javascript
-const highLoadStrategy = new FastestPingRoutingStrategy({
-  timeoutMs: 2000,
-  cacheResultsMs: 120000, // 2 minute cache
-  maxConcurrentPings: 5, // Limit concurrent pings
-  batchSize: 3,
-  backgroundRefresh: true,
-  staleWhileRevalidate: true,
-})
-```
-
-## Testing
-
-### Unit Testing
-
-```javascript
-import { FastestPingRoutingStrategy } from '@ar.io/wayfinder-core'
-
-describe('FastestPingRoutingStrategy', () => {
-  let strategy
-
-  beforeEach(() => {
-    strategy = new FastestPingRoutingStrategy({
-      timeoutMs: 1000,
-    })
-  })
-
-  test('should select fastest responding gateway', async () => {
-    const gateways = [
-      'https://slow-gateway.com',
-      'https://fast-gateway.com',
-      'https://medium-gateway.com',
-    ]
-
-    // Mock ping responses
-    jest.spyOn(strategy, 'pingGateway').mockImplementation(async (gateway) => {
-      const delays = {
-        'https://slow-gateway.com': 1000,
-        'https://fast-gateway.com': 100,
-        'https://medium-gateway.com': 500,
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, delays[gateway]))
-      return { responseTime: delays[gateway] }
-    })
-
-    const selected = await strategy.selectGateway({ gateways })
-    expect(selected).toBe('https://fast-gateway.com')
-  })
-
-  test('should handle ping failures gracefully', async () => {
-    const gateways = [
-      'https://failing-gateway.com',
-      'https://working-gateway.com',
-    ]
-
-    jest.spyOn(strategy, 'pingGateway').mockImplementation(async (gateway) => {
-      if (gateway === 'https://failing-gateway.com') {
-        throw new Error('Connection failed')
-      }
-      return { responseTime: 200 }
-    })
-
-    const selected = await strategy.selectGateway({ gateways })
-    expect(selected).toBe('https://working-gateway.com')
-  })
-
-  test('should use cached results when available', async () => {
-    const cachedStrategy = new FastestPingRoutingStrategy({
-      timeoutMs: 1000,
-      cacheResultsMs: 30000,
-    })
-
-    const gateways = ['https://test-gateway.com']
-    const pingSpy = jest
-      .spyOn(cachedStrategy, 'pingGateway')
-      .mockResolvedValue({ responseTime: 200 })
-
-    // First call should ping
-    await cachedStrategy.selectGateway({ gateways })
-    expect(pingSpy).toHaveBeenCalledTimes(1)
-
-    // Second call should use cache
-    await cachedStrategy.selectGateway({ gateways })
-    expect(pingSpy).toHaveBeenCalledTimes(1) // Still 1, not 2
-  })
-})
-```
-
-### Integration Testing
-
-```javascript
-describe('FastestPingRoutingStrategy Integration', () => {
-  test('should work with real gateways', async () => {
-    const strategy = new FastestPingRoutingStrategy({
-      timeoutMs: 5000,
-      pingPath: '/ar-io/info',
-    })
-
-    const gateways = ['https://arweave.net', 'https://ar-io.net']
-
-    const selected = await strategy.selectGateway({ gateways })
-    expect(gateways).toContain(selected)
-  })
-
-  test('should handle network timeouts', async () => {
-    const strategy = new FastestPingRoutingStrategy({
-      timeoutMs: 100, // Very short timeout
-    })
-
-    const gateways = ['https://arweave.net']
-
-    await expect(strategy.selectGateway({ gateways })).rejects.toThrow(
-      'timeout',
-    )
-  })
+  cacheResultsMs: 0, // No caching for accurate measurements
 })
 ```
 
 ## Best Practices
 
-1. **Set Reasonable Timeouts**: Balance between responsiveness and reliability
-2. **Use Caching**: Cache ping results to avoid repeated network calls
-3. **Limit Concurrent Pings**: Prevent overwhelming the network or gateways
-4. **Monitor Performance**: Track ping times and gateway health
-5. **Implement Fallbacks**: Always have a fallback strategy for when all pings fail
-6. **Consider Geography**: Use geographic proximity to pre-filter gateways
-7. **Handle Errors Gracefully**: Don't let ping failures break the application
-8. **Use Appropriate Ping Paths**: Choose lightweight endpoints for pings
+1. **Set Appropriate Timeouts**: Balance between speed and reliability
+2. **Use Caching**: Cache ping results to avoid repeated measurements
+3. **Monitor Performance**: Track which gateways perform best over time
+4. **Consider Network Conditions**: Results may vary based on user location and network
+5. **Combine with Fallback**: Use with other strategies for high availability
 
-## Comparison with Other Strategies
-
-| Aspect               | Fastest Ping   | Preferred + Fallback     | Round Robin    | Random              |
-| -------------------- | -------------- | ------------------------ | -------------- | ------------------- |
-| **Performance**      | ⭐⭐⭐⭐⭐     | ⭐⭐⭐⭐                 | ⭐⭐           | ⭐⭐                |
-| **Reliability**      | ⭐⭐⭐⭐       | ⭐⭐⭐                   | ⭐⭐⭐         | ⭐⭐⭐              |
-| **Initial Latency**  | ⭐⭐           | ⭐⭐⭐⭐                 | ⭐⭐⭐⭐⭐     | ⭐⭐⭐⭐⭐          |
-| **Network Overhead** | ⭐⭐           | ⭐⭐⭐                   | ⭐⭐⭐⭐⭐     | ⭐⭐⭐⭐⭐          |
-| **Complexity**       | ⭐⭐⭐         | ⭐⭐⭐⭐                 | ⭐⭐           | ⭐⭐⭐⭐⭐          |
-| **Use Case**         | Real-time apps | Dedicated infrastructure | Load balancing | Simple distribution |
-
-The `FastestPingRoutingStrategy` is ideal for applications where performance is critical and you can tolerate the initial latency of ping tests. It provides the best ongoing performance by always selecting the most responsive gateway.
+The `FastestPingRoutingStrategy` is ideal for applications where performance and low latency are the primary concerns.

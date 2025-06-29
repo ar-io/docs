@@ -1,8 +1,75 @@
+export const metadata = {
+  title: 'Routing Strategies',
+  description:
+    'Overview of Wayfinder routing strategies that determine how gateways are selected for each request.',
+  openGraph: {
+    title: 'Routing Strategies',
+  },
+}
+
 import { Table } from '@/components/Table'
 
 # Routing Strategies
 
 Routing strategies determine how Wayfinder selects which AR.IO gateway to use for each request. Different strategies optimize for different goals like performance, reliability, or load distribution.
+
+## Strategy Comparison
+
+<Table>
+  <thead>
+    <tr>
+      <th>Strategy</th>
+      <th>Best For</th>
+      <th>Use Case</th>
+      <th>Predictability</th>
+      <th>Infrastructure Control</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Fastest Ping</td>
+      <td>Real-time applications</td>
+      <td>Performance-critical apps, gaming</td>
+      <td>Medium</td>
+      <td>Low</td>
+    </tr>
+    <tr>
+      <td>Preferred + Fallback</td>
+      <td>Dedicated infrastructure</td>
+      <td>CDN with origin fallback, enterprise gateways</td>
+      <td>High</td>
+      <td>Maximum</td>
+    </tr>
+    <tr>
+      <td>Round Robin</td>
+      <td>Load balancing</td>
+      <td>Even distribution across known gateways</td>
+      <td>High</td>
+      <td>High</td>
+    </tr>
+    <tr>
+      <td>Random</td>
+      <td>Simple distribution</td>
+      <td>Basic load spreading, testing</td>
+      <td>Low</td>
+      <td>Medium</td>
+    </tr>
+    <tr>
+      <td>Static</td>
+      <td>Single gateway</td>
+      <td>Development, specific gateway requirements</td>
+      <td>Maximum</td>
+      <td>High</td>
+    </tr>
+    <tr>
+      <td>Simple Cache</td>
+      <td>Performance optimization</td>
+      <td>Wrapping expensive strategies like FastestPing</td>
+      <td>Medium</td>
+      <td>Medium</td>
+    </tr>
+  </tbody>
+</Table>
 
 ## Available Strategies
 
@@ -14,7 +81,7 @@ Selects the gateway with the lowest latency based on HEAD request ping times. Pe
 import { FastestPingRoutingStrategy } from '@ar.io/wayfinder-core'
 
 const strategy = new FastestPingRoutingStrategy({
-  timeoutMs: 2000,
+  timeoutMs: 500,
   pingPath: '/ar-io/info',
   cacheResultsMs: 30000,
 })
@@ -35,9 +102,7 @@ import {
 
 const strategy = new PreferredWithFallbackRoutingStrategy({
   preferredGateway: 'https://my-gateway.com',
-  fallbackStrategy: new FastestPingRoutingStrategy({ timeoutMs: 2000 }),
-  healthCheckEnabled: true,
-  circuitBreakerEnabled: true,
+  fallbackStrategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
 })
 ```
 
@@ -53,12 +118,10 @@ import { RoundRobinRoutingStrategy } from '@ar.io/wayfinder-core'
 
 const strategy = new RoundRobinRoutingStrategy({
   gateways: [
-    'https://gateway-1.com',
-    'https://gateway-2.com',
-    'https://gateway-3.com',
+    new URL('https://gateway-1.com'),
+    new URL('https://gateway-2.com'),
+    new URL('https://gateway-3.com'),
   ],
-  healthCheckEnabled: true,
-  weightedRotation: true,
 })
 ```
 
@@ -73,7 +136,6 @@ Randomly selects a gateway from the available options. Provides simple load dist
 import { RandomRoutingStrategy } from '@ar.io/wayfinder-core'
 
 const strategy = new RandomRoutingStrategy({
-  healthCheckEnabled: true,
   weightedSelection: true,
   weights: new Map([
     ['https://high-capacity.com', 3],
@@ -85,54 +147,39 @@ const strategy = new RandomRoutingStrategy({
 **Best for**: Simple load distribution, avoiding patterns, testing environments
 **Trade-offs**: No optimization for performance or reliability, unpredictable behavior
 
-## Strategy Comparison
+### [StaticRoutingStrategy](/wayfinder/routing-strategies/static)
 
-<Table>
-  <Table.Head>
-    <Table.Row>
-      <Table.Header>Strategy</Table.Header>
-      <Table.Header>Performance</Table.Header>
-      <Table.Header>Reliability</Table.Header>
-      <Table.Header>Load Distribution</Table.Header>
-      <Table.Header>Complexity</Table.Header>
-      <Table.Header>Initial Latency</Table.Header>
-    </Table.Row>
-  </Table.Head>
-  <Table.Body>
-    <Table.Row>
-      <Table.Cell>Fastest Ping</Table.Cell>
-      <Table.Cell>⭐⭐⭐⭐⭐</Table.Cell>
-      <Table.Cell>⭐⭐⭐⭐</Table.Cell>
-      <Table.Cell>⭐⭐</Table.Cell>
-      <Table.Cell>⭐⭐⭐</Table.Cell>
-      <Table.Cell>⭐⭐</Table.Cell>
-    </Table.Row>
-    <Table.Row>
-      <Table.Cell>Preferred + Fallback</Table.Cell>
-      <Table.Cell>⭐⭐⭐⭐</Table.Cell>
-      <Table.Cell>⭐⭐⭐</Table.Cell>
-      <Table.Cell>⭐</Table.Cell>
-      <Table.Cell>⭐⭐⭐⭐</Table.Cell>
-      <Table.Cell>⭐⭐⭐⭐</Table.Cell>
-    </Table.Row>
-    <Table.Row>
-      <Table.Cell>Round Robin</Table.Cell>
-      <Table.Cell>⭐⭐</Table.Cell>
-      <Table.Cell>⭐⭐⭐</Table.Cell>
-      <Table.Cell>⭐⭐⭐⭐⭐</Table.Cell>
-      <Table.Cell>⭐⭐</Table.Cell>
-      <Table.Cell>⭐⭐⭐⭐⭐</Table.Cell>
-    </Table.Row>
-    <Table.Row>
-      <Table.Cell>Random</Table.Cell>
-      <Table.Cell>⭐⭐</Table.Cell>
-      <Table.Cell>⭐⭐⭐</Table.Cell>
-      <Table.Cell>⭐⭐⭐⭐</Table.Cell>
-      <Table.Cell>⭐⭐⭐⭐⭐</Table.Cell>
-      <Table.Cell>⭐⭐⭐⭐⭐</Table.Cell>
-    </Table.Row>
-  </Table.Body>
-</Table>
+Always returns the same configured gateway, ignoring provided gateway lists. Useful for development, testing, or when you need to force all requests through a specific gateway.
+
+```javascript
+import { StaticRoutingStrategy } from '@ar.io/wayfinder-core'
+
+const strategy = new StaticRoutingStrategy({
+  gateway: 'https://arweave.net',
+})
+```
+
+**Best for**: Development, testing, compliance requirements, dedicated gateway setups
+**Trade-offs**: Single point of failure, no load distribution or optimization
+
+### [SimpleCacheRoutingStrategy](/wayfinder/routing-strategies/simple-cache)
+
+Wraps another routing strategy and caches its results for improved performance. Reduces overhead from expensive operations like network pings.
+
+```javascript
+import {
+  SimpleCacheRoutingStrategy,
+  FastestPingRoutingStrategy,
+} from '@ar.io/wayfinder-core'
+
+const strategy = new SimpleCacheRoutingStrategy({
+  strategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
+  cacheTimeMs: 30000,
+})
+```
+
+**Best for**: Wrapping expensive strategies, high-traffic applications, performance optimization
+**Trade-offs**: May serve stale gateway selections, adds complexity
 
 ## Custom Strategies
 
@@ -172,11 +219,10 @@ class WeightedRandomStrategy implements RoutingStrategy {
 ```javascript
 // Prioritize fast iteration and debugging
 const wayfinder = new Wayfinder({
-  gatewaysProvider: new StaticGatewaysProvider({
-    gateways: ['https://arweave.net'],
-  }),
   routingSettings: {
-    strategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
+    strategy: new StaticRoutingStrategy({
+      gateway: 'http://localhost:1984',
+    }),
   },
 })
 ```
@@ -186,31 +232,11 @@ const wayfinder = new Wayfinder({
 ```javascript
 // Prioritize reliability and performance
 const wayfinder = new Wayfinder({
-  gatewaysProvider: new SimpleCacheGatewaysProvider({
-    gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
-    ttlSeconds: 60 * 60, // 1 hour cache
-  }),
   routingSettings: {
     strategy: new PreferredWithFallbackRoutingStrategy({
       preferredGateway: 'https://your-primary-gateway.com',
-      fallbackStrategy: new FastestPingRoutingStrategy({ timeoutMs: 2000 }),
+      fallbackStrategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
     }),
-  },
-})
-```
-
-### High-Load Configuration
-
-```javascript
-// Distribute load evenly across gateways
-const gateways = await new NetworkGatewaysProvider({
-  ario: ARIO.mainnet(),
-}).getGateways()
-
-const wayfinder = new Wayfinder({
-  gatewaysProvider: new StaticGatewaysProvider({ gateways }),
-  routingSettings: {
-    strategy: new RoundRobinRoutingStrategy({ gateways }),
   },
 })
 ```

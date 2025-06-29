@@ -1131,10 +1131,6 @@ export const singleNavigation: Array<NavGroup> = [
             title: 'Routing Strategies',
             href: '/wayfinder/core/routing-strategies',
           },
-          {
-            title: 'Utilities',
-            href: '/wayfinder/core/utilities',
-          },
         ],
       },
       {

@@ -1,3 +1,12 @@
+export const metadata = {
+  title: '@ar.io/wayfinder-react',
+  description:
+    'React-specific components and hooks for integrating Wayfinder into React applications.',
+  openGraph: {
+    title: '@ar.io/wayfinder-react',
+  },
+}
+
 # @ar.io/wayfinder-react
 
 ## Overview
@@ -7,9 +16,9 @@ The `@ar.io/wayfinder-react` package provides React-specific components and hook
 ## Installation
 
 ```bash
-npm install @ar.io/wayfinder-react @ar.io/wayfinder-core 
+npm install @ar.io/wayfinder-react @ar.io/wayfinder-core
 # or
-yarn add @ar.io/wayfinder-react @ar.io/wayfinder-core 
+yarn add @ar.io/wayfinder-react @ar.io/wayfinder-core
 ```
 
 ## Quick Start
@@ -29,7 +38,7 @@ function App() {
     <WayfinderProvider
       gatewaysProvider={new NetworkGatewaysProvider({ ario: ARIO.mainnet() })}
       routingSettings={{
-        strategy: new FastestPingRoutingStrategy({ timeoutMs: 2000 }),
+        strategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
       }}
       telemetrySettings={{
         enabled: true,
@@ -92,7 +101,7 @@ function App() {
     <WayfinderProvider
       gatewaysProvider={new NetworkGatewaysProvider({ ario: ARIO.mainnet() })}
       routingSettings={{
-        strategy: new FastestPingRoutingStrategy({ timeoutMs: 2000 }),
+        strategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
       }}
     >
       <YourApp />
@@ -121,7 +130,7 @@ function App() {
       routingSettings={{
         strategy: new PreferredWithFallbackRoutingStrategy({
           preferredGateway: 'https://my-gateway.com',
-          fallbackStrategy: new FastestPingRoutingStrategy({ timeoutMs: 1000 }),
+          fallbackStrategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
         }),
         events: {
           onRoutingSucceeded: (event) =>
@@ -202,7 +211,7 @@ function App() {
     <WayfinderProvider
       gatewaysProvider={new NetworkGatewaysProvider({ ario: ARIO.mainnet() })}
       routingSettings={{
-        strategy: new FastestPingRoutingStrategy({ timeoutMs: 2000 }),
+        strategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
       }}
     >
       <Header />
@@ -212,7 +221,7 @@ function App() {
       <WayfinderProvider
         gatewaysProvider={
           new StaticGatewaysProvider({
-            gateways: ['https://arweave.net', 'https://ar-io.net'],
+            gateways: ['https://arweave.net', 'https://permagate.io'],
           })
         }
         verificationSettings={{
@@ -296,7 +305,7 @@ import { WayfinderOptions } from '@ar.io/wayfinder-core'
 const wayfinderConfig: WayfinderOptions = {
   gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
   routingSettings: {
-    strategy: new FastestPingRoutingStrategy({ timeoutMs: 2000 }),
+    strategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
   },
   telemetrySettings: {
     enabled: true,
@@ -422,7 +431,7 @@ function OptimizedProvider({ children }) {
 
   const routingSettings = useMemo(
     () => ({
-      strategy: new FastestPingRoutingStrategy({ timeoutMs: 2000 }),
+      strategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
     }),
     [],
   )

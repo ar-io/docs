@@ -1,7 +1,7 @@
 export const metadata = {
   title: 'SimpleCacheRoutingStrategy',
   description:
-    'A caching wrapper around other routing strategies that caches gateway selection results for improved performance.',
+    'A routing strategy that caches the result of another strategy for a specified duration to improve performance.',
   openGraph: {
     title: 'SimpleCacheRoutingStrategy',
   },
@@ -9,29 +9,70 @@ export const metadata = {
 
 # SimpleCacheRoutingStrategy
 
-A caching wrapper around other routing strategies that caches gateway selection results for improved performance.
-
 ## Overview
 
-The `SimpleCacheRoutingStrategy` is a decorator pattern implementation that wraps any other routing strategy and caches its results for a specified time-to-live (TTL) period. This reduces the overhead of repeated gateway selection operations, especially for expensive strategies like `FastestPingRoutingStrategy`.
+The `SimpleCacheRoutingStrategy` wraps another routing strategy and caches its results for a specified duration. This improves performance by avoiding repeated expensive operations like network pings or complex calculations.
 
-## Constructor
+## Routing Strategy Comparison
 
-```typescript
-new SimpleCacheRoutingStrategy({
-  routingStrategy: RoutingStrategy,
-  ttlSeconds?: number,
-  logger?: Logger
-})
-```
+<Table>
+  <thead>
+    <tr>
+      <th>Strategy</th>
+      <th>Best For</th>
+      <th>Use Case</th>
+      <th>Predictability</th>
+      <th>Infrastructure Control</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Simple Cache</td>
+      <td>Performance optimization</td>
+      <td>Wrapping expensive strategies like FastestPing</td>
+      <td>Medium</td>
+      <td>Medium</td>
+    </tr>
+    <tr>
+      <td>Fastest Ping</td>
+      <td>Real-time applications</td>
+      <td>Performance-critical apps, gaming</td>
+      <td>Medium</td>
+      <td>Low</td>
+    </tr>
+    <tr>
+      <td>Preferred + Fallback</td>
+      <td>Dedicated infrastructure</td>
+      <td>CDN with origin fallback, enterprise gateways</td>
+      <td>High</td>
+      <td>Maximum</td>
+    </tr>
+    <tr>
+      <td>Round Robin</td>
+      <td>Load balancing</td>
+      <td>Even distribution across known gateways</td>
+      <td>High</td>
+      <td>High</td>
+    </tr>
+    <tr>
+      <td>Random</td>
+      <td>Simple distribution</td>
+      <td>Basic load spreading, testing</td>
+      <td>Low</td>
+      <td>Medium</td>
+    </tr>
+  </tbody>
+</Table>
 
-### Parameters
+## How It Works
 
-- **`routingStrategy`** (`RoutingStrategy`): The underlying routing strategy to cache
-- **`ttlSeconds`** (`number`, optional): Cache TTL in seconds. Default: `3600` (1 hour)
-- **`logger`** (`Logger`, optional): Custom logger instance
+1. **Check Cache**: Look for a cached result from previous strategy calls
+2. **Cache Hit**: Return cached gateway if still valid (within TTL)
+3. **Cache Miss**: Call the wrapped strategy to get a new gateway
+4. **Store Result**: Cache the new gateway with timestamp
+5. **Return Gateway**: Return the selected gateway
 
-## Examples
+## Configuration
 
 ### Basic Usage
 
@@ -39,365 +80,104 @@ new SimpleCacheRoutingStrategy({
 import {
   SimpleCacheRoutingStrategy,
   FastestPingRoutingStrategy,
-  Wayfinder,
-  NetworkGatewaysProvider,
 } from '@ar.io/wayfinder-core'
-import { ARIO } from '@ar.io/sdk'
 
-// Cache FastestPing results for 30 minutes
-const cachedStrategy = new SimpleCacheRoutingStrategy({
-  routingStrategy: new FastestPingRoutingStrategy({
-    timeoutMs: 2000,
-    maxConcurrency: 5,
-  }),
-  ttlSeconds: 30 * 60, // 30 minutes
-})
-
-const wayfinder = new Wayfinder({
-  gatewaysProvider: new NetworkGatewaysProvider({
-    ario: ARIO.mainnet(),
-  }),
-  routingSettings: {
-    strategy: cachedStrategy,
-  },
+const strategy = new SimpleCacheRoutingStrategy({
+  strategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
+  cacheTimeMs: 30000, // Cache for 30 seconds
 })
 ```
 
-### With Custom TTL
+### With Different Strategies
 
 ```javascript
 import {
   SimpleCacheRoutingStrategy,
   PreferredWithFallbackRoutingStrategy,
-  FastestPingRoutingStrategy,
-} from '@ar.io/wayfinder-core'
-
-// Cache for 5 minutes
-const shortCacheStrategy = new SimpleCacheRoutingStrategy({
-  routingStrategy: new PreferredWithFallbackRoutingStrategy({
-    preferredGateway: new URL('https://permagate.io'),
-    fallbackStrategy: new FastestPingRoutingStrategy(),
-  }),
-  ttlSeconds: 5 * 60, // 5 minutes
-})
-
-// Cache for 2 hours
-const longCacheStrategy = new SimpleCacheRoutingStrategy({
-  routingStrategy: new FastestPingRoutingStrategy(),
-  ttlSeconds: 2 * 60 * 60, // 2 hours
-})
-```
-
-### With Custom Logger
-
-```javascript
-const logger = {
-  debug: (msg, data) => console.debug(`[CACHE] ${msg}`, data),
-  info: (msg, data) => console.info(`[CACHE] ${msg}`, data),
-  warn: (msg, data) => console.warn(`[CACHE] ${msg}`, data),
-  error: (msg, data) => console.error(`[CACHE] ${msg}`, data),
-}
-
-const cachedStrategy = new SimpleCacheRoutingStrategy({
-  routingStrategy: new FastestPingRoutingStrategy(),
-  ttlSeconds: 60 * 60, // 1 hour
-  logger,
-})
-```
-
-### Nested Caching
-
-```javascript
-import {
-  SimpleCacheRoutingStrategy,
   RandomRoutingStrategy,
 } from '@ar.io/wayfinder-core'
 
-// You can nest caching strategies, though this is rarely needed
-const nestedCache = new SimpleCacheRoutingStrategy({
-  routingStrategy: new SimpleCacheRoutingStrategy({
-    routingStrategy: new RandomRoutingStrategy(),
-    ttlSeconds: 10 * 60, // Inner cache: 10 minutes
-  }),
-  ttlSeconds: 60 * 60, // Outer cache: 1 hour
-})
-```
-
-## Behavior
-
-### Cache Hit
-
-When a cached gateway is available and not expired:
-
-```javascript
-// First request - cache miss, executes underlying strategy
-const gateway1 = await cachedStrategy.selectGateway({ gateways })
-console.log('Selected:', gateway1.toString())
-
-// Second request within TTL - cache hit, returns cached result
-const gateway2 = await cachedStrategy.selectGateway({ gateways })
-console.log('Cached:', gateway2.toString())
-// gateway1 === gateway2
-```
-
-### Cache Miss
-
-When cache is expired or empty:
-
-```javascript
-// After TTL expires, next request triggers new selection
-await new Promise((resolve) => setTimeout(resolve, ttlSeconds * 1000 + 1000))
-
-const gateway3 = await cachedStrategy.selectGateway({ gateways })
-console.log('New selection:', gateway3.toString())
-// gateway3 may be different from gateway1/gateway2
-```
-
-### Fallback on Error
-
-If the underlying strategy fails but a cached gateway exists:
-
-```javascript
-// If underlying strategy throws but cache exists, returns cached gateway
-try {
-  const gateway = await cachedStrategy.selectGateway({ gateways: [] })
-  console.log('Fallback to cached:', gateway.toString())
-} catch (error) {
-  // Only throws if both underlying strategy fails AND no cache exists
-  console.error('No cached gateway available:', error.message)
-}
-```
-
-## Performance Benefits
-
-### Reduced Latency
-
-```javascript
-import { performance } from 'perf_hooks'
-
-const strategy = new SimpleCacheRoutingStrategy({
-  routingStrategy: new FastestPingRoutingStrategy({
-    timeoutMs: 2000,
-  }),
-  ttlSeconds: 60 * 60,
-})
-
-// First request - full ping test
-const start1 = performance.now()
-const gateway1 = await strategy.selectGateway({ gateways })
-const time1 = performance.now() - start1
-console.log(`First request: ${time1.toFixed(2)}ms`)
-
-// Second request - cached result
-const start2 = performance.now()
-const gateway2 = await strategy.selectGateway({ gateways })
-const time2 = performance.now() - start2
-console.log(`Cached request: ${time2.toFixed(2)}ms`)
-// time2 should be much smaller than time1
-```
-
-### Reduced Network Overhead
-
-```javascript
-// Without caching: Each request triggers ping tests
-const uncachedStrategy = new FastestPingRoutingStrategy()
-
-// With caching: Ping tests only run when cache expires
+// Cache a preferred with fallback strategy
 const cachedStrategy = new SimpleCacheRoutingStrategy({
-  routingStrategy: uncachedStrategy,
-  ttlSeconds: 30 * 60, // 30 minutes
-})
-
-// 100 requests within 30 minutes = 1 ping test instead of 100
-for (let i = 0; i < 100; i++) {
-  await cachedStrategy.selectGateway({ gateways })
-}
-```
-
-## Configuration Recommendations
-
-### TTL Guidelines
-
-```javascript
-// Development: Short TTL for quick testing
-const devStrategy = new SimpleCacheRoutingStrategy({
-  routingStrategy: baseStrategy,
-  ttlSeconds: 60, // 1 minute
-})
-
-// Production: Longer TTL for stability
-const prodStrategy = new SimpleCacheRoutingStrategy({
-  routingStrategy: baseStrategy,
-  ttlSeconds: 60 * 60, // 1 hour
-})
-
-// High-frequency apps: Medium TTL
-const highFreqStrategy = new SimpleCacheRoutingStrategy({
-  routingStrategy: baseStrategy,
-  ttlSeconds: 10 * 60, // 10 minutes
-})
-```
-
-### Strategy Combinations
-
-```javascript
-// Cache expensive ping-based selection
-const cachedPing = new SimpleCacheRoutingStrategy({
-  routingStrategy: new FastestPingRoutingStrategy({
-    timeoutMs: 3000,
-    maxConcurrency: 10,
+  strategy: new PreferredWithFallbackRoutingStrategy({
+    preferredGateway: 'https://my-gateway.com',
+    fallbackStrategy: new RandomRoutingStrategy(),
   }),
-  ttlSeconds: 45 * 60, // 45 minutes
-})
-
-// Cache preferred-with-fallback
-const cachedPreferred = new SimpleCacheRoutingStrategy({
-  routingStrategy: new PreferredWithFallbackRoutingStrategy({
-    preferredGateway: new URL('https://arweave.net'),
-    fallbackStrategy: new FastestPingRoutingStrategy(),
-  }),
-  ttlSeconds: 30 * 60, // 30 minutes
-})
-
-// Don't cache random or round-robin (defeats their purpose)
-// ❌ const cachedRandom = new SimpleCacheRoutingStrategy({
-//     routingStrategy: new RandomRoutingStrategy()
-//   })
-```
-
-## Monitoring and Debugging
-
-### Cache Status Logging
-
-```javascript
-const logger = {
-  debug: (msg, data) => {
-    if (msg.includes('Cache expired')) {
-      console.log('🔄 Cache miss - selecting new gateway')
-    } else if (msg.includes('Using cached gateway')) {
-      console.log('⚡ Cache hit - using cached gateway')
-    } else if (msg.includes('Updated gateway cache')) {
-      console.log('💾 Cache updated:', data.selectedGateway)
-    }
-  },
-  info: console.info,
-  warn: console.warn,
-  error: console.error,
-}
-
-const monitoredStrategy = new SimpleCacheRoutingStrategy({
-  routingStrategy: new FastestPingRoutingStrategy(),
-  ttlSeconds: 30 * 60,
-  logger,
+  cacheTimeMs: 60000, // Cache for 1 minute
 })
 ```
 
-### Cache Metrics
+## Parameters
+
+| Parameter     | Type              | Default         | Description                               |
+| ------------- | ----------------- | --------------- | ----------------------------------------- |
+| `strategy`    | `RoutingStrategy` | **required**    | The routing strategy to wrap and cache    |
+| `cacheTimeMs` | `number`          | `30000`         | How long to cache results in milliseconds |
+| `logger`      | `Logger`          | `defaultLogger` | Optional logger instance                  |
+
+## Integration with Wayfinder
 
 ```javascript
-class CacheMetrics {
-  constructor() {
-    this.hits = 0
-    this.misses = 0
-    this.errors = 0
-  }
+import {
+  Wayfinder,
+  SimpleCacheRoutingStrategy,
+  FastestPingRoutingStrategy,
+} from '@ar.io/wayfinder-core'
 
-  logHit() {
-    this.hits++
-  }
-  logMiss() {
-    this.misses++
-  }
-  logError() {
-    this.errors++
-  }
-
-  getStats() {
-    const total = this.hits + this.misses
-    return {
-      hits: this.hits,
-      misses: this.misses,
-      errors: this.errors,
-      hitRate: total > 0 ? ((this.hits / total) * 100).toFixed(1) + '%' : '0%',
-    }
-  }
-}
-
-const metrics = new CacheMetrics()
-
-const strategy = new SimpleCacheRoutingStrategy({
-  routingStrategy: baseStrategy,
-  ttlSeconds: 60 * 60,
-  logger: {
-    debug: (msg, data) => {
-      if (msg.includes('Using cached gateway')) metrics.logHit()
-      else if (msg.includes('Cache expired')) metrics.logMiss()
-    },
-    info: console.info,
-    warn: console.warn,
-    error: (msg, data) => {
-      metrics.logError()
-      console.error(msg, data)
-    },
+const wayfinder = new Wayfinder({
+  routingSettings: {
+    strategy: new SimpleCacheRoutingStrategy({
+      strategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
+      cacheTimeMs: 30000,
+    }),
   },
 })
-
-// Check cache performance
-setInterval(() => {
-  console.log('Cache stats:', metrics.getStats())
-}, 60000) // Every minute
 ```
 
 ## Use Cases
 
-### High-Traffic Applications
+### Caching Expensive Ping Operations
+
+Perfect for wrapping FastestPingRoutingStrategy to avoid repeated network calls.
 
 ```javascript
-// Cache expensive operations for high-traffic scenarios
-const highTrafficStrategy = new SimpleCacheRoutingStrategy({
-  routingStrategy: new FastestPingRoutingStrategy({
-    timeoutMs: 5000,
-    maxConcurrency: 20,
+const cachedPingStrategy = new SimpleCacheRoutingStrategy({
+  strategy: new FastestPingRoutingStrategy({ timeoutMs: 1000 }),
+  cacheTimeMs: 30000, // Cache ping results for 30 seconds
+})
+```
+
+### Reducing Complex Calculations
+
+Ideal for strategies that perform complex calculations or multiple network requests.
+
+```javascript
+const cachedComplexStrategy = new SimpleCacheRoutingStrategy({
+  strategy: new PreferredWithFallbackRoutingStrategy({
+    preferredGateway: 'https://primary.com',
+    fallbackStrategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
   }),
-  ttlSeconds: 60 * 60, // 1 hour cache
+  cacheTimeMs: 60000, // Cache for 1 minute
 })
 ```
 
 ### Development and Testing
 
-```javascript
-// Quick cache expiration for development
-const devStrategy = new SimpleCacheRoutingStrategy({
-  routingStrategy: new FastestPingRoutingStrategy(),
-  ttlSeconds: 30, // 30 seconds for quick testing
-})
-```
-
-### Resilient Production Systems
+Useful for consistent behavior during development and testing.
 
 ```javascript
-// Longer cache with fallback protection
-const resilientStrategy = new SimpleCacheRoutingStrategy({
-  routingStrategy: new PreferredWithFallbackRoutingStrategy({
-    preferredGateway: new URL('https://primary-gateway.com'),
-    fallbackStrategy: new FastestPingRoutingStrategy(),
-  }),
-  ttlSeconds: 2 * 60 * 60, // 2 hours
+const testStrategy = new SimpleCacheRoutingStrategy({
+  strategy: new RandomRoutingStrategy({ seed: 42 }),
+  cacheTimeMs: 300000, // Cache for 5 minutes during testing
 })
 ```
 
 ## Best Practices
 
-1. **Choose appropriate TTL**: Balance between performance and freshness
-2. **Monitor cache hit rates**: Ensure caching is effective
-3. **Don't cache random strategies**: Defeats randomization purpose
-4. **Use with expensive strategies**: Most beneficial with ping-based routing
-5. **Consider error handling**: Cache provides fallback when underlying strategy fails
-6. **Log cache events**: Monitor cache behavior in production
+1. **Choose Appropriate Cache Time**: Balance between performance and freshness
+2. **Wrap Expensive Strategies**: Use with strategies that perform network calls
+3. **Monitor Cache Hit Rates**: Track how often cache is used vs. strategy calls
+4. **Consider Cache Invalidation**: Plan for scenarios where cache should be cleared
+5. **Test Cache Behavior**: Verify caching works correctly in your use cases
 
-## Related Strategies
-
-- **[FastestPingRoutingStrategy](/wayfinder/routing-strategies/fastest-ping)**: Most common strategy to cache
-- **[PreferredWithFallbackRoutingStrategy](/wayfinder/routing-strategies/preferred-with-fallback)**: Good candidate for caching
-- **[RandomRoutingStrategy](/wayfinder/routing-strategies/random)**: Generally not cached
-- **[RoundRobinRoutingStrategy](/wayfinder/routing-strategies/round-robin)**: Generally not cached
+The `SimpleCacheRoutingStrategy` is ideal for improving performance by caching results from expensive routing strategies.

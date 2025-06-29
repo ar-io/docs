@@ -9,32 +9,93 @@ Choose the package that fits your project:
 ### Core Library (JavaScript/TypeScript)
 
 ```bash
-npm install @ar.io/wayfinder-core 
+npm install @ar.io/wayfinder-core
 # or
-yarn add @ar.io/wayfinder-core 
+yarn add @ar.io/wayfinder-core
 ```
 
 ### React Components
 
 ```bash
-npm install @ar.io/wayfinder-react 
+npm install @ar.io/wayfinder-react
 # or
-yarn add @ar.io/wayfinder-react 
-```
-
-### Browser Extension
-
-Install from the Chrome Web Store or load as an unpacked extension during development.
-
-### CLI Tool
-
-```bash
-npm install -g @ar.io/wayfinder-cli
-# or
-npx @ar.io/wayfinder-cli
+yarn add @ar.io/wayfinder-react
 ```
 
 ## Quick Start
+
+### Available Strategies
+
+#### Routing Strategies
+
+<Table>
+  <Table.Head>
+    <Table.Row>
+      <Table.Header>Strategy</Table.Header>
+      <Table.Header>Description</Table.Header>
+      <Table.Header>Use Case</Table.Header>
+    </Table.Row>
+  </Table.Head>
+  <Table.Body>
+    <Table.Row>
+      <Table.Cell>FastestPingRoutingStrategy</Table.Cell>
+      <Table.Cell>Selects gateway with lowest latency</Table.Cell>
+      <Table.Cell>Performance-critical applications</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>PreferredWithFallbackRoutingStrategy</Table.Cell>
+      <Table.Cell>
+        Tries preferred gateway first, falls back to others
+      </Table.Cell>
+      <Table.Cell>When you have a trusted primary gateway</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>RoundRobinRoutingStrategy</Table.Cell>
+      <Table.Cell>Distributes requests evenly across gateways</Table.Cell>
+      <Table.Cell>Load balancing and fair distribution</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>RandomRoutingStrategy</Table.Cell>
+      <Table.Cell>Randomly selects from available gateways</Table.Cell>
+      <Table.Cell>Simple load distribution</Table.Cell>
+    </Table.Row>
+  </Table.Body>
+</Table>
+
+#### Verification Strategies
+
+<Table>
+  <Table.Head>
+    <Table.Row>
+      <Table.Header>Strategy</Table.Header>
+      <Table.Header>Description</Table.Header>
+      <Table.Header>Use Case</Table.Header>
+    </Table.Row>
+  </Table.Head>
+  <Table.Body>
+    <Table.Row>
+      <Table.Cell>HashVerificationStrategy</Table.Cell>
+      <Table.Cell>Verifies data against trusted gateway hashes</Table.Cell>
+      <Table.Cell>Fast verification with trusted sources</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>SignatureVerificationStrategy</Table.Cell>
+      <Table.Cell>Validates Arweave transaction signatures</Table.Cell>
+      <Table.Cell>Cryptographic proof of authenticity</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>DataRootVerificationStrategy</Table.Cell>
+      <Table.Cell>Verifies against transaction data roots</Table.Cell>
+      <Table.Cell>Block-level verification</Table.Cell>
+    </Table.Row>
+  </Table.Body>
+</Table>
+
+<Tip>
+  Verification strategies may be dependent on the gateway being used having the
+  data indexed locally. A gateway cannot verify data it doesn't have access to
+  or hasn't indexed yet.
+</Tip>
 
 ### Basic Usage with Default Settings
 
@@ -56,7 +117,53 @@ try {
 }
 ```
 
-### Custom Configuration
+### Handling Unknown Data Types
+
+When you're not sure what type of data you're fetching, check the content type and handle accordingly:
+
+```javascript
+import { Wayfinder } from '@ar.io/wayfinder-core'
+
+const wayfinder = new Wayfinder()
+
+async function fetchUnknownData(txId) {
+  try {
+    const response = await wayfinder.request(`ar://${txId}`)
+    const contentType = response.headers.get('content-type') || ''
+
+    if (contentType.includes('application/json')) {
+      // Handle JSON data
+      const jsonData = await response.json()
+      console.log('JSON data:', jsonData)
+      return jsonData
+    } else if (contentType.startsWith('text/')) {
+      // Handle text data
+      const textData = await response.text()
+      console.log('Text data:', textData)
+      return textData
+    } else if (contentType.startsWith('image/')) {
+      // Handle image data
+      const blob = await response.blob()
+      const imageUrl = URL.createObjectURL(blob)
+      console.log('Image URL:', imageUrl)
+      return imageUrl
+    } else {
+      // Handle binary/unknown data as ArrayBuffer
+      const buffer = await response.arrayBuffer()
+      console.log('Binary data size:', buffer.byteLength, 'bytes')
+      return buffer
+    }
+  } catch (error) {
+    console.error('Failed to fetch data:', error)
+    throw error
+  }
+}
+
+// Usage
+fetchUnknownData('your-transaction-id')
+```
+
+### Advanced Configuration
 
 For production applications, you'll want to configure gateway providers, routing strategies, and verification:
 
@@ -81,7 +188,7 @@ const wayfinder = new Wayfinder({
   // Use fastest ping routing strategy
   routingSettings: {
     strategy: new FastestPingRoutingStrategy({
-      timeoutMs: 2000,
+      timeoutMs: 500,
     }),
     events: {
       onRoutingSucceeded: (event) => {
@@ -108,6 +215,22 @@ const wayfinder = new Wayfinder({
     enabled: true,
     serviceName: 'my-app',
     sampleRate: 0.1, // 10% sampling
+  },
+
+  // Configure event handlers
+  events: {
+    onGatewaysRefreshed: (event) => {
+      console.log(`Refreshed ${event.gateways.length} gateways`)
+    },
+    onRequestStarted: (event) => {
+      console.log(`Starting request for ${event.url}`)
+    },
+    onRequestCompleted: (event) => {
+      console.log(`Request completed in ${event.duration}ms`)
+    },
+    onRequestFailed: (event) => {
+      console.error(`Request failed: ${event.error.message}`)
+    },
   },
 })
 ```
@@ -152,7 +275,7 @@ function App() {
     <WayfinderProvider
       gatewaysProvider={new NetworkGatewaysProvider({ ario: ARIO.mainnet() })}
       routingSettings={{
-        strategy: new FastestPingRoutingStrategy({ timeoutMs: 2000 }),
+        strategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
       }}
     >
       <MyComponent />
@@ -178,30 +301,6 @@ function MyComponent() {
 }
 ```
 
-## Error Handling
-
-Wayfinder provides comprehensive error handling:
-
-```javascript
-try {
-  const response = await wayfinder.request('ar://transaction-id')
-
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-  }
-
-  const data = await response.text()
-} catch (error) {
-  if (error.name === 'TimeoutError') {
-    console.error('Request timed out')
-  } else if (error.name === 'VerificationError') {
-    console.error('Data verification failed')
-  } else {
-    console.error('Request failed:', error.message)
-  }
-}
-```
-
 ## Event Monitoring
 
 Monitor wayfinder operations using events:
@@ -219,86 +318,4 @@ wayfinder.emitter.on('verification-succeeded', (event) => {
 wayfinder.emitter.on('verification-failed', (event) => {
   console.error('Verification failed:', event)
 })
-```
-
-## Performance Tips
-
-### Gateway Caching
-
-Use `SimpleCacheGatewaysProvider` to cache gateway lists:
-
-```javascript
-import {
-  SimpleCacheGatewaysProvider,
-  NetworkGatewaysProvider,
-} from '@ar.io/wayfinder-core'
-
-const gatewaysProvider = new SimpleCacheGatewaysProvider({
-  gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
-  ttlSeconds: 60 * 60, // Cache for 1 hour
-})
-```
-
-### Request Optimization
-
-For better performance:
-
-- Set appropriate timeouts for your use case
-- Use verification selectively (not all data needs verification)
-- Consider sampling rates for telemetry in production
-- Cache frequently accessed data
-
-### Telemetry Configuration
-
-Configure telemetry for production monitoring:
-
-```javascript
-telemetrySettings: {
-  enabled: true,
-  serviceName: 'my-production-app',
-  sampleRate: 0.01, // 1% sampling for production
-  exporterUrl: 'https://your-telemetry-endpoint.com',
-  apiKey: 'your-api-key'
-}
-```
-
-## Next Steps
-
-- Learn about [Core API](/wayfinder/core) for advanced usage
-- Explore [React Components](/wayfinder/react) for React integration
-- Check out [Routing Strategies](/wayfinder/routing-strategies) for optimal gateway selection
-- Set up [Verification](/wayfinder/verification-strategies) for data integrity
-- Configure [Telemetry](/wayfinder/core/telemetry) for monitoring
-
-## Common Patterns
-
-### Image Loading with Verification
-
-```javascript
-async function loadVerifiedImage(txId) {
-  const response = await wayfinder.request(`ar://${txId}`)
-  const blob = await response.blob()
-  return URL.createObjectURL(blob)
-}
-```
-
-### Batch Data Fetching
-
-```javascript
-async function fetchMultiple(txIds) {
-  return Promise.all(txIds.map((txId) => wayfinder.request(`ar://${txId}`)))
-}
-```
-
-### Progressive Enhancement
-
-```javascript
-// Fallback for environments without wayfinder support
-const fetchData = async (url) => {
-  if (url.startsWith('ar://') && typeof wayfinder !== 'undefined') {
-    return wayfinder.request(url)
-  } else {
-    return fetch(url.replace('ar://', 'https://arweave.net/'))
-  }
-}
 ```
