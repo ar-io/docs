@@ -9,464 +9,149 @@ export const metadata = {
 
 # StaticRoutingStrategy
 
-A routing strategy that always returns the same configured gateway, ignoring provided gateway lists.
-
 ## Overview
 
 The `StaticRoutingStrategy` is the simplest routing strategy that always returns a single, pre-configured gateway URL. This strategy ignores any gateways provided by the `GatewaysProvider` and is useful for scenarios where you want to force all requests to use a specific gateway.
 
-## Constructor
+## Routing Strategy Comparison
 
-```typescript
-new StaticRoutingStrategy({
-  gateway: string,
-  logger?: Logger
-})
-```
+<Table>
+  <thead>
+    <tr>
+      <th>Strategy</th>
+      <th>Best For</th>
+      <th>Use Case</th>
+      <th>Predictability</th>
+      <th>Infrastructure Control</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Static</td>
+      <td>Single gateway</td>
+      <td>Development, specific gateway requirements</td>
+      <td>Maximum</td>
+      <td>High</td>
+    </tr>
+    <tr>
+      <td>Fastest Ping</td>
+      <td>Real-time applications</td>
+      <td>Performance-critical apps, gaming</td>
+      <td>Medium</td>
+      <td>Low</td>
+    </tr>
+    <tr>
+      <td>Preferred + Fallback</td>
+      <td>Dedicated infrastructure</td>
+      <td>CDN with origin fallback, enterprise gateways</td>
+      <td>High</td>
+      <td>Maximum</td>
+    </tr>
+    <tr>
+      <td>Round Robin</td>
+      <td>Load balancing</td>
+      <td>Even distribution across known gateways</td>
+      <td>High</td>
+      <td>High</td>
+    </tr>
+    <tr>
+      <td>Random</td>
+      <td>Simple distribution</td>
+      <td>Basic load spreading, testing</td>
+      <td>Low</td>
+      <td>Medium</td>
+    </tr>
+  </tbody>
+</Table>
 
-### Parameters
+## How It Works
 
-- **`gateway`** (`string`): The gateway URL to always use (will be converted to URL object)
-- **`logger`** (`Logger`, optional): Custom logger instance
+The strategy always returns the configured gateway, ignoring any provided gateway lists:
 
-## Examples
+1. **Configure Gateway**: Set a single gateway URL during initialization
+2. **Ignore Provided Gateways**: Any gateways from providers are ignored
+3. **Return Static Gateway**: Always return the same configured gateway
+4. **Log Warnings**: Warn when provided gateways are ignored
+
+## Configuration
 
 ### Basic Usage
 
 ```javascript
-import {
-  StaticRoutingStrategy,
-  Wayfinder,
-  NetworkGatewaysProvider,
-} from '@ar.io/wayfinder-core'
-import { ARIO } from '@ar.io/sdk'
+import { StaticRoutingStrategy } from '@ar.io/wayfinder-core'
 
-// Always use arweave.net
-const staticStrategy = new StaticRoutingStrategy({
+const strategy = new StaticRoutingStrategy({
   gateway: 'https://arweave.net',
 })
-
-const wayfinder = new Wayfinder({
-  gatewaysProvider: new NetworkGatewaysProvider({
-    ario: ARIO.mainnet(),
-  }),
-  routingSettings: {
-    strategy: staticStrategy,
-  },
-})
-
-// All requests will use arweave.net regardless of available gateways
-const response = await wayfinder.request('ar://ardrive')
 ```
 
 ### With Custom Gateway
 
 ```javascript
-import { StaticRoutingStrategy } from '@ar.io/wayfinder-core'
-
-// Use a specific gateway
-const permagateStrategy = new StaticRoutingStrategy({
-  gateway: 'https://permagate.io',
-})
-
-// Use a custom gateway
-const customStrategy = new StaticRoutingStrategy({
+const strategy = new StaticRoutingStrategy({
   gateway: 'https://my-custom-gateway.com',
 })
-
-// Use a gateway with custom port
-const localStrategy = new StaticRoutingStrategy({
-  gateway: 'http://localhost:1984',
-})
 ```
 
-### With Custom Logger
+## Parameters
+
+| Parameter | Type     | Default         | Description                   |
+| --------- | -------- | --------------- | ----------------------------- |
+| `gateway` | `string` | **required**    | The gateway URL to always use |
+| `logger`  | `Logger` | `defaultLogger` | Optional logger instance      |
+
+## Integration with Wayfinder
 
 ```javascript
-const logger = {
-  debug: (msg, data) => console.debug(`[STATIC] ${msg}`, data),
-  info: (msg, data) => console.info(`[STATIC] ${msg}`, data),
-  warn: (msg, data) => console.warn(`[STATIC] ${msg}`, data),
-  error: (msg, data) => console.error(`[STATIC] ${msg}`, data),
-}
-
-const staticStrategy = new StaticRoutingStrategy({
-  gateway: 'https://arweave.net',
-  logger,
-})
-```
-
-### Development Environment
-
-```javascript
-// Use local gateway for development
-const devStrategy = new StaticRoutingStrategy({
-  gateway: 'http://localhost:1984',
-})
+import { Wayfinder, StaticRoutingStrategy } from '@ar.io/wayfinder-core'
 
 const wayfinder = new Wayfinder({
-  gatewaysProvider: new NetworkGatewaysProvider({
-    ario: ARIO.mainnet(),
-  }),
   routingSettings: {
-    strategy: devStrategy,
+    strategy: new StaticRoutingStrategy({
+      gateway: 'https://arweave.net',
+    }),
   },
 })
-```
-
-## Behavior
-
-### Gateway Selection
-
-The strategy always returns the configured gateway:
-
-```javascript
-const strategy = new StaticRoutingStrategy({
-  gateway: 'https://permagate.io',
-})
-
-// Returns https://permagate.io regardless of input
-const gateway1 = await strategy.selectGateway({
-  gateways: [new URL('https://arweave.net'), new URL('https://g8way.io')],
-})
-console.log(gateway1.toString()) // https://permagate.io
-
-// Still returns https://permagate.io
-const gateway2 = await strategy.selectGateway({ gateways: [] })
-console.log(gateway2.toString()) // https://permagate.io
-```
-
-### Ignoring Provided Gateways
-
-When gateways are provided, they are ignored with a warning:
-
-```javascript
-const strategy = new StaticRoutingStrategy({
-  gateway: 'https://arweave.net',
-  logger: {
-    warn: (msg, data) => console.log('Warning:', msg, data),
-    // ... other logger methods
-  },
-})
-
-await strategy.selectGateway({
-  gateways: [new URL('https://permagate.io')],
-})
-// Logs: "Warning: StaticRoutingStrategy does not accept provided gateways..."
 ```
 
 ## Use Cases
 
-### Dedicated Gateway
+### Development Environment
+
+Perfect for local development or testing against a specific gateway.
 
 ```javascript
-// Always use your organization's dedicated gateway
+const devStrategy = new StaticRoutingStrategy({
+  gateway: 'http://localhost:1984',
+})
+```
+
+### Dedicated Gateway
+
+Ideal when you need to ensure all requests use your organization's specific gateway.
+
+```javascript
 const dedicatedStrategy = new StaticRoutingStrategy({
   gateway: 'https://gateway.mycompany.com',
 })
 ```
 
-### Testing and Development
+### Compliance Requirements
+
+Useful when compliance requires all requests to go through an approved gateway.
 
 ```javascript
-// Test against a specific gateway
-const testStrategy = new StaticRoutingStrategy({
-  gateway: 'https://testnet-gateway.ar.io',
-})
-
-// Local development
-const localStrategy = new StaticRoutingStrategy({
-  gateway: 'http://localhost:1984',
-})
-```
-
-### Compliance and Control
-
-```javascript
-// Ensure all requests go through approved gateway
 const complianceStrategy = new StaticRoutingStrategy({
   gateway: 'https://approved-gateway.enterprise.com',
 })
 ```
 
-### Fallback Strategy
-
-```javascript
-import {
-  StaticRoutingStrategy,
-  PreferredWithFallbackRoutingStrategy,
-  FastestPingRoutingStrategy,
-} from '@ar.io/wayfinder-core'
-
-// Use static strategy as final fallback
-const strategyWithStaticFallback = new PreferredWithFallbackRoutingStrategy({
-  preferredGateway: new URL('https://primary.gateway.com'),
-  fallbackStrategy: new StaticRoutingStrategy({
-    gateway: 'https://backup.gateway.com',
-  }),
-})
-```
-
-## Configuration Examples
-
-### Environment-Based Configuration
-
-```javascript
-const getGatewayForEnvironment = () => {
-  switch (process.env.NODE_ENV) {
-    case 'development':
-      return 'http://localhost:1984'
-    case 'staging':
-      return 'https://staging-gateway.ar.io'
-    case 'production':
-      return 'https://arweave.net'
-    default:
-      return 'https://arweave.net'
-  }
-}
-
-const strategy = new StaticRoutingStrategy({
-  gateway: getGatewayForEnvironment(),
-})
-```
-
-### Regional Gateways
-
-```javascript
-// Select gateway based on region
-const getRegionalGateway = (region) => {
-  const gateways = {
-    'us-east': 'https://us-east.gateway.com',
-    'us-west': 'https://us-west.gateway.com',
-    eu: 'https://eu.gateway.com',
-    asia: 'https://asia.gateway.com',
-  }
-  return gateways[region] || 'https://arweave.net'
-}
-
-const strategy = new StaticRoutingStrategy({
-  gateway: getRegionalGateway('us-east'),
-})
-```
-
-### Load Balancer Gateway
-
-```javascript
-// Use a load balancer that distributes across multiple gateways
-const loadBalancerStrategy = new StaticRoutingStrategy({
-  gateway: 'https://lb.gateways.com', // Load balancer handles distribution
-})
-```
-
-## Performance Characteristics
-
-### Advantages
-
-- **Fastest selection**: No network requests or computations
-- **Predictable**: Always returns the same gateway
-- **Simple**: Minimal configuration required
-- **Reliable**: No dependency on external gateway discovery
-
-### Considerations
-
-- **No redundancy**: Single point of failure
-- **No optimization**: Doesn't adapt to gateway performance
-- **Limited flexibility**: Cannot route based on content or location
-
-## Performance Comparison
-
-```javascript
-import { performance } from 'perf_hooks'
-
-// Static strategy - instant selection
-const staticStrategy = new StaticRoutingStrategy({
-  gateway: 'https://arweave.net',
-})
-
-const start = performance.now()
-const gateway = await staticStrategy.selectGateway({ gateways })
-const time = performance.now() - start
-console.log(`Static selection: ${time.toFixed(2)}ms`) // ~0.01ms
-
-// Compare with ping-based strategy
-const pingStrategy = new FastestPingRoutingStrategy()
-const pingStart = performance.now()
-const pingGateway = await pingStrategy.selectGateway({ gateways })
-const pingTime = performance.now() - pingStart
-console.log(`Ping selection: ${pingTime.toFixed(2)}ms`) // ~500-2000ms
-```
-
-## Monitoring and Debugging
-
-### Gateway Usage Tracking
-
-```javascript
-let requestCount = 0
-
-const strategy = new StaticRoutingStrategy({
-  gateway: 'https://arweave.net',
-  logger: {
-    debug: (msg, data) => {
-      requestCount++
-      console.log(`Request #${requestCount} using static gateway`)
-    },
-    info: console.info,
-    warn: console.warn,
-    error: console.error,
-  },
-})
-```
-
-### Health Monitoring
-
-```javascript
-// Monitor the health of your static gateway
-const monitorGatewayHealth = async (gatewayUrl) => {
-  try {
-    const response = await fetch(`${gatewayUrl}/info`, {
-      method: 'HEAD',
-      timeout: 5000,
-    })
-    return response.ok
-  } catch (error) {
-    return false
-  }
-}
-
-const strategy = new StaticRoutingStrategy({
-  gateway: 'https://arweave.net',
-})
-
-// Periodically check gateway health
-setInterval(async () => {
-  const isHealthy = await monitorGatewayHealth('https://arweave.net')
-  console.log(`Gateway health: ${isHealthy ? 'OK' : 'FAILED'}`)
-}, 60000) // Check every minute
-```
-
-## Integration Patterns
-
-### With Circuit Breaker
-
-```javascript
-class CircuitBreakerStaticStrategy {
-  constructor({ gateway, failureThreshold = 5, resetTimeoutMs = 60000 }) {
-    this.strategy = new StaticRoutingStrategy({ gateway })
-    this.failureCount = 0
-    this.failureThreshold = failureThreshold
-    this.resetTimeoutMs = resetTimeoutMs
-    this.lastFailureTime = 0
-    this.isOpen = false
-  }
-
-  async selectGateway(params) {
-    if (this.isOpen) {
-      if (Date.now() - this.lastFailureTime > this.resetTimeoutMs) {
-        this.isOpen = false
-        this.failureCount = 0
-      } else {
-        throw new Error('Circuit breaker is open')
-      }
-    }
-
-    try {
-      return await this.strategy.selectGateway(params)
-    } catch (error) {
-      this.failureCount++
-      this.lastFailureTime = Date.now()
-
-      if (this.failureCount >= this.failureThreshold) {
-        this.isOpen = true
-      }
-
-      throw error
-    }
-  }
-}
-```
-
-### With Retry Logic
-
-```javascript
-class RetryStaticStrategy {
-  constructor({ gateway, maxRetries = 3, retryDelayMs = 1000 }) {
-    this.strategy = new StaticRoutingStrategy({ gateway })
-    this.maxRetries = maxRetries
-    this.retryDelayMs = retryDelayMs
-  }
-
-  async selectGateway(params) {
-    let lastError
-
-    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
-      try {
-        return await this.strategy.selectGateway(params)
-      } catch (error) {
-        lastError = error
-
-        if (attempt < this.maxRetries) {
-          await new Promise((resolve) =>
-            setTimeout(resolve, this.retryDelayMs * (attempt + 1)),
-          )
-        }
-      }
-    }
-
-    throw lastError
-  }
-}
-```
-
 ## Best Practices
 
-1. **Use for specific scenarios**: Development, testing, dedicated gateways
-2. **Monitor gateway health**: Ensure your static gateway is reliable
-3. **Consider fallbacks**: Use as part of a fallback strategy
-4. **Environment configuration**: Use different gateways per environment
-5. **Load balancing**: Consider using a load balancer URL for redundancy
-6. **Documentation**: Clearly document why static routing is used
+1. **Use for Development**: Great for local development and testing
+2. **Ensure Gateway Reliability**: Make sure your static gateway is highly available
+3. **Monitor Performance**: Track the performance of your single gateway
+4. **Plan for Failures**: Consider fallback strategies for production use
+5. **Document Gateway Choice**: Clearly document why a static gateway is needed
 
-## Common Patterns
-
-### Development vs Production
-
-```javascript
-const createStrategy = () => {
-  if (process.env.NODE_ENV === 'development') {
-    return new StaticRoutingStrategy({
-      gateway: 'http://localhost:1984',
-    })
-  }
-
-  return new FastestPingRoutingStrategy({
-    timeoutMs: 2000,
-  })
-}
-```
-
-### Gateway Override
-
-```javascript
-const createStrategy = (overrideGateway) => {
-  if (overrideGateway) {
-    return new StaticRoutingStrategy({
-      gateway: overrideGateway,
-    })
-  }
-
-  return new PreferredWithFallbackRoutingStrategy({
-    preferredGateway: new URL('https://arweave.net'),
-    fallbackStrategy: new FastestPingRoutingStrategy(),
-  })
-}
-
-// Usage
-const strategy = createStrategy(process.env.FORCE_GATEWAY)
-```
-
-## Related Strategies
-
-- **[FastestPingRoutingStrategy](/wayfinder/routing-strategies/fastest-ping)**: Dynamic gateway selection
-- **[PreferredWithFallbackRoutingStrategy](/wayfinder/routing-strategies/preferred-with-fallback)**: Can use static as fallback
-- **[RandomRoutingStrategy](/wayfinder/routing-strategies/random)**: Random selection from multiple gateways
-- **[SimpleCacheRoutingStrategy](/wayfinder/routing-strategies/simple-cache)**: Can wrap static strategy for consistency
+The `StaticRoutingStrategy` is ideal for development, testing, or scenarios where you need complete control over which gateway is used.

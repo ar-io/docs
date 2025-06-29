@@ -1,131 +1,81 @@
 # Wayfinder
 
-## Overview
-
-Wayfinder is a set of tools and libraries that enable decentralized and cryptographically verified access to data stored on Arweave via the [AR.IO Network](/gateways). Wayfinder provides client-side routing and verification protocols for the permaweb, automatically selecting optimal gateways and ensuring data integrity.
-
-## Packages
-
-The Wayfinder ecosystem consists of multiple specialized packages:
-
-- **[@ar.io/wayfinder-core](/wayfinder/core)**: Core JavaScript library for routing, verification, and telemetry
-- **[@ar.io/wayfinder-react](/wayfinder/react)**: React components, hooks, and context providers
-- **[@ar.io/wayfinder-extension](/wayfinder/extension)**: Chrome extension for seamless ar:// protocol support
-- **[@ar.io/wayfinder-cli](/wayfinder/cli)**: Command-line interface for terminal-based interactions
+Wayfinder is a client-side routing and verification protocol that provides decentralized, cryptographically verified access to data stored on Arweave via the [AR.IO Network](/gateways). It automatically selects optimal gateways and ensures data integrity for seamless permaweb experiences.
 
 ## What is Wayfinder?
 
-Wayfinder is a simple, open-source client-side routing and verification protocol for the permaweb. It leverages the [AR.IO Network](/gateways) to:
+Wayfinder solves the challenge of reliable data access on the permaweb by:
 
-- **Route requests** to the most optimal gateway for performance and reliability
-- **Verify data integrity** using cryptographic verification strategies
-- **Provide telemetry** for monitoring and debugging gateway performance
-- **Support ar:// protocol** natively in web applications and browsers
+- **Intelligent Routing**: Automatically selects the best gateway for each request based on performance, availability, and user preferences
+- **Data Verification**: Cryptographically verifies data integrity to ensure you're getting authentic, unmodified content
+- **Decentralized Access**: Eliminates single points of failure by distributing requests across multiple AR.IO gateways
+- **Seamless Integration**: Works behind the scenes to provide fast, reliable access without requiring users to understand the underlying infrastructure
 
-## Key Features
+## Who is Wayfinder For?
 
-### Intelligent Gateway Routing
+### Builders
 
-Multiple routing strategies to select the best gateway:
+_People who build dApps on the permaweb_
 
-- **Preferred with Fallback**: Try a preferred gateway first, fallback to alternatives
-- **Fastest Ping**: Select the gateway with the lowest latency
-- **Round Robin**: Distribute requests evenly across gateways
-- **Random**: Randomly select from available gateways
+Wayfinder enables developers to build robust decentralized applications with:
 
-### Data Verification
+- **Reliable Data Access**: Never worry about gateway downtime or slow responses
+- **Built-in Verification**: Ensure data integrity without implementing complex verification logic
+- **Developer-Friendly APIs**: Simple JavaScript/TypeScript libraries and React components
+- **Performance Monitoring**: Built-in telemetry to track and optimize application performance
+- **Flexible Configuration**: Choose routing strategies and verification methods that fit your use case
 
-Cryptographic verification ensures data integrity:
+### Browsers
 
-- **Hash Verification**: Verify data against trusted gateway hashes
-- **Signature Verification**: Validate Arweave transaction signatures
-- **Data Root Verification**: Verify data against transaction data roots
+_People who browse the permaweb_
 
-### Gateway Discovery
+Wayfinder provides end users with:
 
-Multiple ways to discover and manage gateways:
+- **Fast Loading**: Automatically routes to the fastest available gateway for optimal performance
+- **Reliable Access**: Seamlessly switches between gateways if one becomes unavailable
+- **Data Integrity**: Verifies that content hasn't been tampered with or corrupted
+- **Transparent Operation**: Works invisibly in the background without requiring user interaction
+- **No Tokens Required**: Access permaweb content without needing AR tokens or wallet connections
 
-- **Network Provider**: Automatically discover gateways from the AR.IO Network
-- **Static Provider**: Use predefined gateway lists
-- **Cache Provider**: Cache gateway lists for performance
+### Operators
 
-### Event-Driven Architecture
+_People who operate AR.IO gateways_
 
-Comprehensive event system for monitoring:
+Wayfinder helps gateway operators by:
 
-- **Routing Events**: Track gateway selection and performance
-- **Verification Events**: Monitor data integrity checks
-- **Telemetry Integration**: OpenTelemetry support for observability
+- **Performance Insights**: Provides telemetry data to help optimize gateway performance
+- **Network Participation**: Enables gateways to participate in the decentralized routing ecosystem
+- **Load Distribution**: Intelligently distributes traffic based on gateway capabilities and performance
+- **Quality Monitoring**: Tracks gateway reliability and performance metrics
+- **Network Health**: Contributes to overall AR.IO network resilience and performance
 
-## Who is it for?
+## What Can Wayfinder Do?
 
-### End Users
+### Routing Strategies
 
-- Browse the permaweb without requiring wallets or tokens
-- Access decentralized content through the most reliable gateways
-- Benefit from automatic verification and optimal routing
+- **Fastest Ping**: Selects gateways with the lowest latency for optimal performance
+- **Preferred with Fallback**: Uses trusted gateways first, with automatic fallback options
+- **Round Robin**: Distributes requests evenly to balance load across gateways
+- **Random**: Provides simple load distribution for basic use cases
 
-### Developers
+### Verification Methods
 
-- Integrate ar:// protocol support into web applications
-- Build decentralized apps with reliable data access
-- Leverage React components for rapid development
-- Monitor application performance with built-in telemetry
+- **Hash Verification**: Compares data against trusted gateway hashes for quick integrity checks
+- **Signature Verification**: Validates Arweave transaction signatures for cryptographic proof
+- **Data Root Verification**: Verifies data against blockchain-recorded transaction roots
 
-### Gateway Operators
 
-- Optimize their gateway performance and reliability
-- Participate in the decentralized routing network
-- Monitor usage patterns and performance metrics
+### Monitoring & Observability
+
+- **Real-time Events**: Track routing decisions, verification results, and performance metrics
+- **OpenTelemetry Integration**: Standard telemetry for integration with existing monitoring tools
+- **Performance Analytics**: Detailed insights into gateway performance and user experience
+
+## Available Packages
+
+- **[@ar.io/wayfinder-core](/wayfinder/core)**: Core JavaScript/TypeScript library for any web application
+- **[@ar.io/wayfinder-react](/wayfinder/react)**: React components, hooks, and providers for React applications
 
 ## Getting Started
 
-Choose the package that best fits your needs:
-
-- **Web Applications**: Start with [@ar.io/wayfinder-react](/wayfinder/react) for React apps or [@ar.io/wayfinder-core](/wayfinder/core) for vanilla JavaScript
-- **Browser Extension**: Install [@ar.io/wayfinder-extension](/wayfinder/extension) for system-wide ar:// support
-- **Command Line**: Use [@ar.io/wayfinder-cli](/wayfinder/cli) for scripting and automation
-
-For a quick start with the core library, check out our [Getting Started Guide](/wayfinder/getting-started).
-
-## Example: Basic Usage
-
-```javascript
-import {
-  Wayfinder,
-  NetworkGatewaysProvider,
-  FastestPingRoutingStrategy,
-} from '@ar.io/wayfinder-core'
-import { ARIO } from '@ar.io/sdk'
-
-const wayfinder = new Wayfinder({
-  gatewaysProvider: new NetworkGatewaysProvider({
-    ario: ARIO.mainnet(),
-  }),
-  routingSettings: {
-    strategy: new FastestPingRoutingStrategy({
-      timeoutMs: 2000,
-    }),
-  },
-  telemetrySettings: {
-    enabled: true,
-    serviceName: 'my-app',
-  },
-})
-
-// Fetch data using ar:// protocol
-const response = await wayfinder.request('ar://your-transaction-id')
-const data = await response.text()
-```
-
-## Architecture
-
-Wayfinder follows a modular architecture:
-
-1. **Gateway Providers** discover and manage available gateways
-2. **Routing Strategies** select optimal gateways for each request
-3. **Verification Strategies** ensure data integrity and authenticity
-4. **Event System** provides observability and debugging capabilities
-5. **Telemetry Integration** enables performance monitoring and analytics
-
-This separation of concerns allows developers to mix and match components based on their specific requirements.
+Ready to integrate Wayfinder into your project? Check out our [Getting Started Guide](/wayfinder/getting-started) for installation instructions and basic configuration examples.

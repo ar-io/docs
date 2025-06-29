@@ -1,3 +1,12 @@
+export const metadata = {
+  title: 'useWayfinder',
+  description:
+    'React hook that provides access to the complete Wayfinder instance from the React context.',
+  openGraph: {
+    title: 'useWayfinder',
+  },
+}
+
 # useWayfinder
 
 ## Overview
@@ -133,7 +142,7 @@ function AdvancedComponent() {
 import { useWayfinder } from '@ar.io/wayfinder-react'
 import { useState } from 'react'
 import {
-  StaticGatewaysProvider,
+  StaticRoutingStrategy,
   HashVerificationStrategy,
 } from '@ar.io/wayfinder-core'
 
@@ -151,8 +160,8 @@ function CustomRequestComponent({ txId }) {
       // Override routing and verification for this specific request
       const response = await wayfinder.request(`ar://${txId}`, {
         routingSettings: {
-          strategy: new StaticGatewaysProvider({
-            gateways: ['https://arweave.net'],
+          strategy: new StaticRoutingStrategy({
+            gateway: 'https://arweave.net',
           }),
         },
         verificationSettings: {

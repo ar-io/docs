@@ -1,34 +1,24 @@
 # Telemetry Configuration
 
-Wayfinder includes built-in OpenTelemetry (OTEL) support for comprehensive observability, allowing you to monitor performance, track errors, and gain insights into gateway routing behavior.
+Wayfinder includes optional telemetry support built on the OpenTelemetry standard. Telemetry is **completely opt-in** and **disabled by default**.
 
 ## Overview
 
-Wayfinder's telemetry system provides:
+Wayfinder's telemetry system:
 
-- **Distributed Tracing**: Track requests across gateway routing and data fetching
-- **Metrics Collection**: Monitor performance, success rates, and gateway health
-- **Error Tracking**: Capture and analyze failures in routing and verification
-- **Custom Instrumentation**: Add your own telemetry data alongside Wayfinder's built-in metrics
+- **100% Opt-in**: Disabled by default, only enabled when you explicitly configure it
+- **OpenTelemetry Standard**: Built on the industry-standard [OpenTelemetry](https://opentelemetry.io/) framework
+- **Your Choice of Destination**: Send data to your own servers
+- **Configurable**: Full control over what data is collected and where it goes
 
-### Telemetry Data Destinations
-
-Wayfinder telemetry is **completely opt-in** and gives you control over where your data is sent:
-
-- **Default Destination**: When enabled without specifying an <code>exporterUrl</code>, telemetry data is sent to <code>https://api.honeycomb.io</code> in the <code>wayfinder-dev</code> dataset (managed by the AR.IO team) to help improve the service
-- **Your Own Infrastructure**: Override the default by configuring telemetry to send to your own observability platforms (Jaeger, Datadog, etc.)
-- **AR.IO Network Insights** _(Optional)_: Optionally contribute anonymized usage data to help the AR.IO team improve gateway performance and reliability
-- **Disabled**: Keep telemetry completely disabled (default state)
-
-<Tip title="Important">
-  All telemetry is disabled by default. When you enable telemetry, data is sent
-  to the AR.IO team's Honeycomb dataset unless you specify a different
-  'exporterUrl'.
+<Tip>
+  All telemetry is **disabled by default**. It only activates when you
+  explicitly enable it in your configuration.
 </Tip>
 
 ## Basic Configuration
 
-### Enabling Telemetry
+### Minimal Setup
 
 ```javascript
 import { Wayfinder, NetworkGatewaysProvider } from '@ar.io/wayfinder-core'
@@ -39,52 +29,39 @@ const wayfinder = new Wayfinder({
   telemetrySettings: {
     enabled: true,
     serviceName: 'my-application',
-    sampleRate: 0.1, // 10% sampling rate
-    // exporterUrl: 'your-telemetry-endpoint' // Optional: override default Honeycomb destination
+    sampleRate: 0.1, // 10% of requests
   },
 })
 ```
 
-<Tip title="Note">
-  Without specifying an 'exporterUrl', telemetry data is sent to
-  'api.honeycomb.io' in the 'wayfinder-dev' dataset (managed by the AR.IO team).
-  Specify your own 'exporterUrl' to send data to your preferred destination.
-</Tip>
-
-### Required Configuration
-
-The <code>TelemetryConfig</code> interface requires these fields:
-
-```typescript
-interface TelemetryConfig {
-  enabled: boolean // Enable/disable telemetry
-  serviceName: string // Service name for trace identification
-  sampleRate: number // Sampling rate (0.0 to 1.0)
-  apiKey?: string // Optional API key for telemetry backend
-  exporterUrl?: string // Optional custom exporter endpoint
-}
-```
-
-## Configuration Options
-
-### Development Configuration
-
-For development environments, use higher sampling rates for detailed debugging:
+### Send to Your Own Infrastructure
 
 ```javascript
 const wayfinder = new Wayfinder({
   gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
   telemetrySettings: {
     enabled: true,
-    serviceName: 'my-app-dev',
-    sampleRate: 1.0, // 100% sampling for development
+    serviceName: 'my-application',
+    sampleRate: 0.1,
+    exporterUrl: 'https://your-telemetry-server.com/traces',
+    apiKey: 'your-api-key',
   },
 })
 ```
 
-### Production Configuration
+## Advanced Configuration
 
-For production, use lower sampling rates to minimize performance impact:
+For advanced telemetry configuration, custom instrumentation, and detailed trace management, refer to the [OpenTelemetry documentation](https://opentelemetry.io/docs/languages/js/).
+
+Wayfinder uses these OpenTelemetry packages:
+
+- `@opentelemetry/api`
+- `@opentelemetry/exporter-trace-otlp-http`
+- `@opentelemetry/sdk-trace-base`
+
+## Best Practices
+
+### Production Settings
 
 ```javascript
 const wayfinder = new Wayfinder({
@@ -93,459 +70,34 @@ const wayfinder = new Wayfinder({
     enabled: true,
     serviceName: 'my-app-prod',
     sampleRate: 0.01, // 1% sampling for production
-    apiKey: process.env.TELEMETRY_API_KEY,
-    exporterUrl: 'https://your-telemetry-backend.com/traces',
-  },
-})
-```
-
-### Environment-Based Configuration
-
-Use environment variables for flexible configuration:
-
-```javascript
-const wayfinder = new Wayfinder({
-  gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
-  telemetrySettings: {
-    enabled:
-      process.env.NODE_ENV === 'production' ||
-      process.env.ENABLE_TELEMETRY === 'true',
-    serviceName: process.env.SERVICE_NAME || 'wayfinder-app',
-    sampleRate: parseFloat(process.env.TELEMETRY_SAMPLE_RATE || '0.1'),
-    apiKey: process.env.TELEMETRY_API_KEY,
     exporterUrl: process.env.TELEMETRY_EXPORTER_URL,
   },
 })
 ```
 
-## Contributing to AR.IO Network Improvements
-
-### Optional Network Insights
-
-You can optionally contribute anonymized telemetry data to help the AR.IO team improve gateway performance, reliability, and the overall network experience.
-
-<Tip title="Completely Voluntary">
-  Contributing telemetry data to AR.IO network improvements is entirely optional
-  and voluntary. You maintain full control over your data.
-</Tip>
-
-This helps with:
-
-- **Gateway Performance Analysis**: Understanding which gateways perform best under different conditions
-- **Network Reliability Improvements**: Identifying and addressing common failure patterns
-- **Routing Strategy Optimization**: Improving routing algorithms based on real-world usage
-- **Service Quality Monitoring**: Ensuring the AR.IO network maintains high availability
-
-### How to Contribute Network Insights
+### Development Settings
 
 ```javascript
 const wayfinder = new Wayfinder({
   gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
   telemetrySettings: {
     enabled: true,
-    serviceName: 'my-application',
-    sampleRate: 0.1,
-    // Optional: Contribute to AR.IO network improvements
-    exporterUrl: 'https://telemetry.ar.io/traces',
-    // Your own telemetry can run alongside this
+    serviceName: 'my-app-dev',
+    sampleRate: 0.5, // Higher sampling for debugging
   },
 })
 ```
 
-### Dual Telemetry Setup
+## Frequently Asked Questions
 
-You can send telemetry to both your own infrastructure AND contribute to AR.IO improvements:
+**Q: Is telemetry enabled by default?**
+A: No, telemetry is completely disabled by default and only activates when you explicitly configure it.
 
-```javascript
-// Your primary telemetry for your application monitoring
-const myWayfinder = new Wayfinder({
-  gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
-  telemetrySettings: {
-    enabled: true,
-    serviceName: 'my-company-app',
-    sampleRate: 0.1,
-    exporterUrl: 'https://my-observability-platform.com/traces',
-    apiKey: process.env.MY_TELEMETRY_API_KEY,
-  },
-})
+**Q: Can I use my own telemetry backend?**
+A: Yes, specify your own `exporterUrl` to send data to any OpenTelemetry-compatible backend.
 
-// Optional: Separate instance contributing to AR.IO network insights
-// (with much lower sampling rate to minimize overhead)
-const networkInsightsWayfinder = new Wayfinder({
-  gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
-  telemetrySettings: {
-    enabled: true,
-    serviceName: 'network-insights-contributor',
-    sampleRate: 0.001, // Very low sampling for network insights
-    exporterUrl: 'https://telemetry.ar.io/traces',
-  },
-})
-```
+**Q: Does this affect performance?**
+A: Minimal impact when using appropriate sampling rates (1-10% for production).
 
-### Data Privacy and Anonymization
-
-When contributing to AR.IO network insights:
-
-- **No Personal Data**: Only technical performance metrics are collected
-- **Anonymized**: No user identifiers or application-specific data is included
-- **Aggregated**: Data is used only for network-wide performance analysis
-- **Opt-in Only**: Never enabled without explicit configuration
-- **Transparent**: All collected data points are documented in the trace structure below
-
-## Telemetry Backends
-
-### Your Own Infrastructure
-
-Configure Wayfinder to send telemetry data to your own observability platforms:
-
-<Tip title="Third-Party Tools">
-  The following examples show popular observability platforms that you would
-  need to install, configure, and manage yourself. These are provided as
-  examples only and are not endorsements. Wayfinder SDK does not provide or
-  include these tools.
-</Tip>
-
-### Jaeger
-
-Configure Wayfinder to send traces to Jaeger:
-
-```javascript
-const wayfinder = new Wayfinder({
-  gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
-  telemetrySettings: {
-    enabled: true,
-    serviceName: 'my-wayfinder-app',
-    sampleRate: 0.1,
-    exporterUrl: 'http://localhost:14268/api/traces', // Jaeger collector endpoint
-  },
-})
-```
-
-### Zipkin
-
-Configure for Zipkin tracing:
-
-```javascript
-const wayfinder = new Wayfinder({
-  gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
-  telemetrySettings: {
-    enabled: true,
-    serviceName: 'my-wayfinder-app',
-    sampleRate: 0.1,
-    exporterUrl: 'http://localhost:9411/api/v2/spans', // Zipkin endpoint
-  },
-})
-```
-
-### Honeycomb
-
-Configure for Honeycomb observability platform:
-
-```javascript
-const wayfinder = new Wayfinder({
-  gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
-  telemetrySettings: {
-    enabled: true,
-    serviceName: 'my-wayfinder-app',
-    sampleRate: 0.1,
-    apiKey: 'your-honeycomb-api-key',
-    exporterUrl: 'https://api.honeycomb.io/1/traces',
-  },
-})
-```
-
-### Datadog
-
-Configure for Datadog APM:
-
-```javascript
-const wayfinder = new Wayfinder({
-  gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
-  telemetrySettings: {
-    enabled: true,
-    serviceName: 'my-wayfinder-app',
-    sampleRate: 0.1,
-    apiKey: 'your-datadog-api-key',
-    exporterUrl: 'https://trace.agent.datadoghq.com/v0.4/traces',
-  },
-})
-```
-
-## Trace Data Structure
-
-Wayfinder generates traces with the following structure:
-
-### Root Span: <code>wayfinder.request</code>
-
-- **Operation**: <code>wayfinder.request</code>
-- **Attributes**:
-  - <code>wayfinder.protocol</code>: <code>ar://</code>
-  - <code>wayfinder.transaction_id</code>: Transaction ID being requested
-  - <code>wayfinder.url</code>: Original ar:// URL
-  - <code>http.status_code</code>: Final HTTP status code
-  - <code>http.response.size</code>: Response size in bytes
-
-### Child Span: <code>wayfinder.routing</code>
-
-- **Operation**: <code>wayfinder.routing</code>
-- **Attributes**:
-  - <code>wayfinder.routing.strategy</code>: Routing strategy used
-  - <code>wayfinder.routing.available_gateways</code>: Number of available
-    gateways
-  - <code>wayfinder.routing.selected_gateway</code>: Selected gateway URL
-  - <code>wayfinder.routing.selection_time_ms</code>: Time taken to select
-    gateway
-
-### Child Span: <code>wayfinder.verification</code>
-
-- **Operation**: <code>wayfinder.verification</code>
-- **Attributes**:
-  - <code>wayfinder.verification.enabled</code>: Whether verification was
-    enabled
-  - <code>wayfinder.verification.strategy</code>: Verification strategy used
-  - <code>wayfinder.verification.result</code>: Verification result
-    (success/failure)
-
-## Custom Instrumentation
-
-Add your own telemetry data alongside Wayfinder's built-in traces:
-
-```javascript
-import { trace } from '@opentelemetry/api'
-
-// Get the active tracer
-const tracer = trace.getTracer('my-application')
-
-// Create custom spans
-const span = tracer.startSpan('custom-operation')
-span.setAttributes({
-  'custom.attribute': 'value',
-  'custom.user_id': userId,
-})
-
-try {
-  // Your application logic
-  const response = await wayfinder.request('ar://transaction-id')
-
-  span.setAttributes({
-    'custom.success': true,
-    'custom.response_size': response.headers.get('content-length'),
-  })
-} catch (error) {
-  span.recordException(error)
-  span.setStatus({ code: trace.SpanStatusCode.ERROR, message: error.message })
-} finally {
-  span.end()
-}
-```
-
-## Monitoring Best Practices
-
-### Sampling Strategies
-
-Choose appropriate sampling rates based on your environment and needs:
-
-```javascript
-// High-traffic production application
-const prodConfig = {
-  enabled: true,
-  serviceName: 'high-traffic-app',
-  sampleRate: 0.001, // 0.1% sampling to minimize overhead
-}
-
-// Medium-traffic application
-const mediumConfig = {
-  enabled: true,
-  serviceName: 'medium-traffic-app',
-  sampleRate: 0.01, // 1% sampling
-}
-
-// Development/staging
-const devConfig = {
-  enabled: true,
-  serviceName: 'dev-app',
-  sampleRate: 0.1, // 10% sampling for better debugging
-}
-```
-
-### Key Metrics to Monitor
-
-Monitor these key metrics from Wayfinder telemetry:
-
-- **Request Success Rate**: Percentage of successful ar:// requests
-- **Gateway Selection Time**: Time taken to select optimal gateway
-- **Response Times**: End-to-end request latency
-- **Gateway Health**: Success rates per gateway
-- **Verification Failures**: Data integrity verification failures
-- **Error Rates**: Different types of errors (network, timeout, verification)
-
-### Alerting Setup
-
-Set up alerts based on Wayfinder telemetry:
-
-```javascript
-// Example alert conditions
-const alertConditions = {
-  // High error rate
-  errorRate: 'error_rate > 5%',
-
-  // Slow gateway selection
-  routingLatency: 'p95(wayfinder.routing.selection_time_ms) > 2000',
-
-  // Low success rate
-  successRate: 'success_rate < 95%',
-
-  // Verification failures
-  verificationFailures: 'verification_failure_rate > 1%',
-}
-```
-
-## Troubleshooting
-
-### Common Issues
-
-#### Telemetry Not Working
-
-1. **Check Configuration**:
-
-   ```javascript
-   // Ensure all required fields are provided
-   const config = {
-     enabled: true,
-     serviceName: 'my-app', // Required
-     sampleRate: 0.1, // Required
-   }
-   ```
-
-2. **Verify Network Connectivity**:
-   ```javascript
-   // Test exporter URL accessibility
-   const config = {
-     enabled: true,
-     serviceName: 'my-app',
-     sampleRate: 1.0, // Temporary high sampling for testing
-     exporterUrl: 'https://your-backend.com/traces',
-   }
-   ```
-
-#### High Performance Impact
-
-1. **Reduce Sampling Rate**:
-
-   ```javascript
-   const config = {
-     enabled: true,
-     serviceName: 'my-app',
-     sampleRate: 0.01, // Reduce from higher rate
-   }
-   ```
-
-2. **Disable in Development**:
-   ```javascript
-   const config = {
-     enabled: process.env.NODE_ENV === 'production',
-     serviceName: 'my-app',
-     sampleRate: 0.1,
-   }
-   ```
-
-### Debug Mode
-
-Enable debug logging to troubleshoot telemetry issues:
-
-```javascript
-// Set environment variable for OpenTelemetry debug logging
-process.env.OTEL_LOG_LEVEL = 'debug'
-
-const wayfinder = new Wayfinder({
-  gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
-  telemetrySettings: {
-    enabled: true,
-    serviceName: 'debug-app',
-    sampleRate: 1.0, // High sampling for debugging
-  },
-})
-```
-
-## Integration Examples
-
-### Next.js Application
-
-```javascript
-// pages/_app.js or app/layout.js
-import { Wayfinder, NetworkGatewaysProvider } from '@ar.io/wayfinder-core'
-import { ARIO } from '@ar.io/sdk'
-
-// Initialize wayfinder with telemetry
-const wayfinder = new Wayfinder({
-  gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
-  telemetrySettings: {
-    enabled: process.env.NODE_ENV === 'production',
-    serviceName: 'nextjs-wayfinder-app',
-    sampleRate: parseFloat(
-      process.env.NEXT_PUBLIC_TELEMETRY_SAMPLE_RATE || '0.1',
-    ),
-    apiKey: process.env.TELEMETRY_API_KEY,
-    exporterUrl: process.env.TELEMETRY_EXPORTER_URL,
-  },
-})
-
-export { wayfinder }
-```
-
-### Express.js Server
-
-```javascript
-// server.js
-import express from 'express'
-import { Wayfinder, NetworkGatewaysProvider } from '@ar.io/wayfinder-core'
-import { ARIO } from '@ar.io/sdk'
-
-const app = express()
-
-const wayfinder = new Wayfinder({
-  gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
-  telemetrySettings: {
-    enabled: true,
-    serviceName: 'express-wayfinder-server',
-    sampleRate: 0.1,
-    exporterUrl: process.env.TELEMETRY_EXPORTER_URL,
-  },
-})
-
-app.get('/data/:txId', async (req, res) => {
-  try {
-    const response = await wayfinder.request(`ar://${req.params.txId}`)
-    const data = await response.text()
-    res.json({ data })
-  } catch (error) {
-    res.status(500).json({ error: error.message })
-  }
-})
-```
-
-## Performance Impact
-
-Telemetry adds minimal overhead when configured properly:
-
-- **CPU Impact**: < 1% with appropriate sampling rates
-- **Memory Impact**: < 10MB for trace buffering
-- **Network Impact**: Depends on sampling rate and trace size
-
-### Optimization Tips
-
-1. **Use Appropriate Sampling**: Start with 1% sampling in production
-2. **Batch Exports**: Telemetry data is batched automatically
-3. **Async Processing**: Telemetry processing doesn't block requests
-4. **Resource Limits**: Set reasonable limits for trace data
-
-```javascript
-const wayfinder = new Wayfinder({
-  gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
-  telemetrySettings: {
-    enabled: true,
-    serviceName: 'optimized-app',
-    sampleRate: 0.01, // 1% sampling for production
-  },
-})
-```
+**Q: Can I disable telemetry after enabling it?**
+A: Yes, simply set `enabled: false` or remove the telemetrySettings configuration entirely.

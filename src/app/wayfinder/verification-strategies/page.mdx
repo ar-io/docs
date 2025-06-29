@@ -1,3 +1,12 @@
+export const metadata = {
+  title: 'Verification Strategies',
+  description:
+    'Cryptographic verification methods in Wayfinder that ensure data integrity and authenticity when fetching content from Arweave through AR.IO gateways.',
+  openGraph: {
+    title: 'Verification Strategies',
+  },
+}
+
 import { Table } from '@/components/Table'
 
 # Verification Strategies
@@ -6,50 +15,6 @@ import { Table } from '@/components/Table'
 
 Verification strategies in Wayfinder ensure data integrity and authenticity when fetching content from Arweave through AR.IO gateways. These strategies use cryptographic methods to verify that the data you receive matches what was originally stored on Arweave, protecting against tampering, corruption, or malicious gateways.
 
-## Available Strategies
-
-### [HashVerificationStrategy](/wayfinder/verification-strategies/hash-verification)
-
-Verifies data integrity using SHA-256 hash comparison against trusted sources.
-
-```javascript
-const strategy = new HashVerificationStrategy({
-  trustedGateways: ['https://arweave.net'],
-})
-```
-
-**Best for**: Fast verification of known transaction data  
-**Security**: High (cryptographic hash verification)  
-**Performance**: Excellent (single hash computation)
-
-### [SignatureVerificationStrategy](/wayfinder/verification-strategies/signature-verification)
-
-Validates Arweave transaction signatures to ensure authenticity.
-
-```javascript
-const strategy = new SignatureVerificationStrategy({
-  trustedGateways: ['https://arweave.net'],
-})
-```
-
-**Best for**: Verifying transaction authenticity and ownership  
-**Security**: Very High (cryptographic signature validation)  
-**Performance**: Good (signature verification computation)
-
-### [DataRootVerificationStrategy](/wayfinder/verification-strategies/data-root-verification)
-
-Validates data using Arweave's Merkle tree proofs for maximum security.
-
-```javascript
-const strategy = new DataRootVerificationStrategy({
-  trustedGateways: ['https://arweave.net'],
-})
-```
-
-**Best for**: Maximum security for critical data verification  
-**Security**: Highest (Merkle proof validation)  
-**Performance**: Moderate (Merkle tree computation)
-
 ## Strategy Comparison
 
 <Table>
@@ -57,7 +22,7 @@ const strategy = new DataRootVerificationStrategy({
     <Table.Row>
       <Table.Header>Strategy</Table.Header>
       <Table.Header>Security Level</Table.Header>
-      <Table.Header>Performance</Table.Header>
+      <Table.Header>Best For</Table.Header>
       <Table.Header>Use Case</Table.Header>
       <Table.Header>Verification Method</Table.Header>
     </Table.Row>
@@ -66,420 +31,182 @@ const strategy = new DataRootVerificationStrategy({
     <Table.Row>
       <Table.Cell>Hash Verification</Table.Cell>
       <Table.Cell>High</Table.Cell>
-      <Table.Cell>⭐⭐⭐⭐⭐</Table.Cell>
-      <Table.Cell>Fast integrity checks</Table.Cell>
-      <Table.Cell>SHA-256 hash comparison</Table.Cell>
+      <Table.Cell>Fast integrity checks and development</Table.Cell>
+      <Table.Cell>High-throughput applications</Table.Cell>
+      <Table.Cell>SHA-256 hash vs trusted gateway digest</Table.Cell>
     </Table.Row>
     <Table.Row>
       <Table.Cell>Signature Verification</Table.Cell>
       <Table.Cell>Very High</Table.Cell>
-      <Table.Cell>⭐⭐⭐⭐</Table.Cell>
-      <Table.Cell>Authenticity validation</Table.Cell>
-      <Table.Cell>Cryptographic signatures</Table.Cell>
+      <Table.Cell>Authenticity validation and ownership proof</Table.Cell>
+      <Table.Cell>Financial or legal documents</Table.Cell>
+      <Table.Cell>Transaction signature validation</Table.Cell>
     </Table.Row>
     <Table.Row>
       <Table.Cell>Data Root Verification</Table.Cell>
       <Table.Cell>Highest</Table.Cell>
-      <Table.Cell>⭐⭐⭐</Table.Cell>
-      <Table.Cell>Maximum security</Table.Cell>
-      <Table.Cell>Merkle tree proofs</Table.Cell>
+      <Table.Cell>Maximum security and critical data</Table.Cell>
+      <Table.Cell>Production applications</Table.Cell>
+      <Table.Cell>Merkle tree data root comparison</Table.Cell>
     </Table.Row>
   </Table.Body>
 </Table>
 
+## What Are Verification Strategies?
+
+Verification strategies are cryptographic methods that ensure the data you receive from AR.IO gateways is authentic and hasn't been tampered with. They work by comparing the received data against trusted sources or using mathematical proofs to validate integrity.
+
+<Tip title="Important">
+  Verification methods require that the gateway being used has
+  the relevant transaction data indexed locally. Gateways cannot proxy out
+  verification requests to other sources, as this would compromise the security
+  and reliability of the verification process. If a gateway doesn't have the
+  required data indexed, verification will fail.
+</Tip>
+
+### Why Verification Matters
+
+- **Data Integrity**: Ensures content hasn't been corrupted during transmission
+- **Security**: Protects against malicious gateways serving fake data
+- **Trust**: Provides cryptographic proof that data is authentic
+- **Compliance**: Meets security requirements for sensitive applications
+
+## Available Strategies
+
+### [Hash Verification Strategy](/wayfinder/verification-strategies/hash-verification)
+
+**What it does**: Compares SHA-256 hashes of received data against trusted gateway digest headers
+
+**How it works**: Fetches the data from a gateway, computes its SHA-256 hash, then requests the digest from trusted gateways via HTTP headers and compares them
+
+**Best for**:
+
+- Development and testing environments
+- High-throughput applications where speed matters
+- Basic integrity checking
+- Applications with trusted gateway infrastructure
+
+**Security**: High - Uses cryptographic hashing to detect tampering
+
+### [Signature Verification Strategy](/wayfinder/verification-strategies/signature-verification)
+
+**What it does**: Validates the cryptographic signatures of Arweave transactions and data items
+
+**How it works**: Fetches transaction metadata from trusted gateways, reconstructs the signature data using the received content, and verifies the signature matches the claimed owner's public key
+
+**Best for**:
+
+- Financial applications
+- Legal document storage
+- Identity verification systems
+- Applications requiring proof of ownership
+
+**Security**: Very High - Provides cryptographic proof of authenticity and ownership
+
+### [Data Root Verification Strategy](/wayfinder/verification-strategies/data-root-verification)
+
+**What it does**: Verifies data integrity by reconstructing and comparing Merkle tree data roots
+
+**How it works**: Computes the data root from received content by chunking it and building a Merkle tree, then compares this against the data root fetched from trusted gateways
+
+**Best for**:
+
+- Production applications with critical data
+- Maximum security requirements
+- Regulatory compliance scenarios
+- Long-term data archival systems
+
+**Security**: Highest - Provides mathematical proof of data integrity using blockchain records
+
 ## Configuration Options
 
-### Strict vs Non-Strict Mode
+### Verification Modes
 
-```javascript
-// Strict mode: Verification failures block the request
-const wayfinder = new Wayfinder({
-  verificationSettings: {
-    enabled: true,
-    strict: true,
-    strategy: new HashVerificationStrategy(),
-  },
-})
+**Strict Mode**: Blocks requests when verification fails - ensures maximum security but may impact availability
 
-// Non-strict mode: Verification failures are logged but don't block
-const wayfinder = new Wayfinder({
-  verificationSettings: {
-    enabled: true,
-    strict: false,
-    strategy: new HashVerificationStrategy(),
-  },
-})
-```
+**Non-Strict Mode**: Logs verification failures but allows requests to proceed - balances security with user experience
 
-### Event Handling
+### Event Monitoring
 
-Monitor verification progress and results:
+All verification strategies emit events that allow you to:
 
-```javascript
-const wayfinder = new Wayfinder({
-  verificationSettings: {
-    enabled: true,
-    strategy: new HashVerificationStrategy(),
-    events: {
-      onVerificationSucceeded: (event) => {
-        console.log('✅ Verification passed:', event.txId)
-      },
-      onVerificationFailed: (error) => {
-        console.error('❌ Verification failed:', error.message)
-      },
-      onVerificationProgress: (event) => {
-        const progress = (event.processedBytes / event.totalBytes) * 100
-        console.log(`🔄 Verification progress: ${progress.toFixed(1)}%`)
-      },
-    },
-  },
-})
-```
+- Track verification success and failure rates
+- Monitor performance metrics
+- Log security incidents
+- Implement custom alerting
 
-## Combining Strategies
+### Trusted Gateways
 
-### Sequential Verification
+Verification strategies can be configured with lists of trusted gateways used as reference sources for validation.
 
-Run multiple verification strategies in sequence:
+## Advanced Capabilities
 
-```javascript
-class SequentialVerificationStrategy {
-  constructor(strategies) {
-    this.strategies = strategies
-  }
+### Strategy Combination
 
-  async verifyData(params) {
-    for (const strategy of this.strategies) {
-      await strategy.verifyData(params)
-    }
-  }
-}
+**Sequential Verification**: Run multiple strategies one after another for layered security
 
-const wayfinder = new Wayfinder({
-  verificationSettings: {
-    enabled: true,
-    strategy: new SequentialVerificationStrategy([
-      new HashVerificationStrategy(),
-      new SignatureVerificationStrategy(),
-    ]),
-  },
-})
-```
+**Parallel Verification**: Run multiple strategies simultaneously for comprehensive validation
 
-### Parallel Verification
+**Fallback Verification**: Try strategies in order until one succeeds, providing resilience
 
-Run multiple verification strategies in parallel:
+### Custom Strategies
 
-```javascript
-class ParallelVerificationStrategy {
-  constructor(strategies) {
-    this.strategies = strategies
-  }
+Implement your own verification logic by creating custom strategies that integrate with Wayfinder's verification system.
 
-  async verifyData(params) {
-    await Promise.all(
-      this.strategies.map((strategy) => strategy.verifyData(params)),
-    )
-  }
-}
+### Performance Optimization
 
-const wayfinder = new Wayfinder({
-  verificationSettings: {
-    enabled: true,
-    strategy: new ParallelVerificationStrategy([
-      new HashVerificationStrategy(),
-      new DataRootVerificationStrategy(),
-    ]),
-  },
-})
-```
+- **Caching**: Cache verification results to avoid repeated computations
+- **Circuit Breakers**: Automatically disable verification when failure rates are too high
+- **Timeout Management**: Configure appropriate timeouts for different verification methods
 
-### Fallback Verification
+## Use Cases by Environment
 
-Try strategies in order until one succeeds:
+### Development
 
-```javascript
-class FallbackVerificationStrategy {
-  constructor(strategies) {
-    this.strategies = strategies
-  }
+- Use Hash Verification for fast iteration
+- Enable non-strict mode to avoid blocking
+- Focus on basic integrity checking
 
-  async verifyData(params) {
-    let lastError
+### Production
 
-    for (const strategy of this.strategies) {
-      try {
-        await strategy.verifyData(params)
-        return // Success, exit early
-      } catch (error) {
-        lastError = error
-        console.warn(
-          `Strategy ${strategy.constructor.name} failed:`,
-          error.message,
-        )
-      }
-    }
+- Use Data Root Verification for maximum security
+- Enable strict mode for critical applications
+- Implement comprehensive monitoring
 
-    throw lastError || new Error('All verification strategies failed')
-  }
-}
+### High-Security
 
-const wayfinder = new Wayfinder({
-  verificationSettings: {
-    enabled: true,
-    strategy: new FallbackVerificationStrategy([
-      new DataRootVerificationStrategy(), // Try most secure first
-      new SignatureVerificationStrategy(), // Fallback to signature
-      new HashVerificationStrategy(), // Final fallback
-    ]),
-  },
-})
-```
+- Combine multiple verification strategies
+- Use strict mode with comprehensive logging
+- Implement custom verification logic for specific requirements
 
-## Use Case Examples
+### High-Performance
 
-### Development Environment
-
-Fast verification for development and testing:
-
-```javascript
-const wayfinder = new Wayfinder({
-  verificationSettings: {
-    enabled: true,
-    strict: false, // Don't block on verification failures
-    strategy: new HashVerificationStrategy({
-      trustedGateways: ['https://arweave.net'],
-    }),
-  },
-})
-```
-
-### Production Environment
-
-Robust verification for production applications:
-
-```javascript
-const wayfinder = new Wayfinder({
-  verificationSettings: {
-    enabled: true,
-    strict: true, // Block on verification failures
-    strategy: new DataRootVerificationStrategy({
-      trustedGateways: ['https://arweave.net', 'https://ar-io.net'],
-    }),
-    events: {
-      onVerificationSucceeded: (event) => {
-        metrics.increment('verification.success', { txId: event.txId })
-      },
-      onVerificationFailed: (error) => {
-        metrics.increment('verification.failure', { error: error.name })
-        logger.error('Verification failed:', error)
-      },
-    },
-  },
-})
-```
-
-### High-Security Environment
-
-Maximum security with multiple verification layers:
-
-```javascript
-const wayfinder = new Wayfinder({
-  verificationSettings: {
-    enabled: true,
-    strict: true,
-    strategy: new SequentialVerificationStrategy([
-      new SignatureVerificationStrategy({
-        trustedGateways: ['https://arweave.net'],
-      }),
-      new DataRootVerificationStrategy({
-        trustedGateways: ['https://arweave.net'],
-      }),
-      new HashVerificationStrategy({
-        trustedGateways: ['https://arweave.net', 'https://ar-io.net'],
-      }),
-    ]),
-  },
-})
-```
-
-### Performance-Optimized Environment
-
-Balance security and performance:
-
-```javascript
-const wayfinder = new Wayfinder({
-  verificationSettings: {
-    enabled: true,
-    strict: false,
-    strategy: new FallbackVerificationStrategy([
-      new HashVerificationStrategy(), // Fast primary verification
-      new SignatureVerificationStrategy(), // Fallback if hash fails
-    ]),
-  },
-})
-```
-
-## Custom Verification Strategies
-
-Implement custom verification logic by implementing the `VerificationStrategy` interface:
-
-```typescript
-import { VerificationStrategy } from '@ar.io/wayfinder-core'
-
-class CustomVerificationStrategy implements VerificationStrategy {
-  constructor(private config: CustomVerificationConfig) {}
-
-  async verifyData(params: VerificationParams): Promise<void> {
-    const { data, txId, originalUrl } = params
-
-    // Implement your custom verification logic
-    const isValid = await this.customVerificationLogic(data, txId)
-
-    if (!isValid) {
-      throw new Error(`Custom verification failed for ${txId}`)
-    }
-  }
-
-  private async customVerificationLogic(
-    data: ArrayBuffer,
-    txId: string,
-  ): Promise<boolean> {
-    // Your custom verification implementation
-    return true
-  }
-}
-```
-
-## Error Handling
-
-### Verification Error Types
-
-```javascript
-try {
-  const response = await wayfinder.request('ar://transaction-id')
-  const data = await response.text()
-} catch (error) {
-  switch (error.constructor.name) {
-    case 'HashMismatchError':
-      console.error('Data hash does not match trusted source')
-      break
-    case 'SignatureVerificationError':
-      console.error('Transaction signature validation failed')
-      break
-    case 'MerkleProofError':
-      console.error('Merkle proof validation failed')
-      break
-    case 'VerificationTimeoutError':
-      console.error('Verification process timed out')
-      break
-    default:
-      console.error('Unknown verification error:', error.message)
-  }
-}
-```
-
-### Graceful Degradation
-
-Handle verification failures gracefully:
-
-```javascript
-const wayfinder = new Wayfinder({
-  verificationSettings: {
-    enabled: true,
-    strict: false, // Allow requests to proceed even if verification fails
-    strategy: new HashVerificationStrategy(),
-    events: {
-      onVerificationFailed: (error) => {
-        // Log the failure but don't block the user
-        console.warn('Verification failed, proceeding anyway:', error.message)
-
-        // Optionally show a warning to the user
-        showUserWarning('Data verification failed - content may be untrusted')
-      },
-    },
-  },
-})
-```
+- Use Hash Verification with caching
+- Implement circuit breakers for resilience
+- Balance security with performance requirements
 
 ## Best Practices
 
-### 1. Choose the Right Strategy
+1. **Choose the Right Strategy**: Match verification strength to your security requirements
+2. **Monitor Performance**: Track verification success rates and response times
+3. **Handle Failures Gracefully**: Implement appropriate fallback behavior
+4. **Use Trusted Sources**: Configure reliable gateways for verification
+5. **Plan for Scale**: Consider performance implications at high request volumes
 
-- **Development**: Use `HashVerificationStrategy` for fast iteration
-- **Production**: Use `DataRootVerificationStrategy` for maximum security
-- **High-throughput**: Use `HashVerificationStrategy` with caching
+## Error Handling
 
-### 2. Configure Appropriate Timeouts
+Verification strategies can fail for various reasons:
 
-```javascript
-const strategy = new DataRootVerificationStrategy({
-  trustedGateways: ['https://arweave.net'],
-  timeoutMs: 10000, // 10 second timeout
-})
-```
+- **Network Issues**: Trusted gateways are unreachable
+- **Data Corruption**: Content has been tampered with
+- **Timeout Errors**: Verification takes too long
+- **Configuration Issues**: Invalid trusted gateway lists
 
-### 3. Monitor Verification Performance
+Understanding these failure modes helps you implement appropriate error handling and recovery strategies.
 
-```javascript
-const verificationMetrics = {
-  successCount: 0,
-  failureCount: 0,
-  averageTime: 0,
-}
+## Next Steps
 
-wayfinder.emitter.on('verification-succeeded', (event) => {
-  verificationMetrics.successCount++
-})
-
-wayfinder.emitter.on('verification-failed', (error) => {
-  verificationMetrics.failureCount++
-})
-```
-
-### 4. Use Trusted Gateway Lists
-
-```javascript
-const TRUSTED_GATEWAYS = [
-  'https://arweave.net',
-  'https://ar-io.net',
-  'https://permagate.io',
-]
-
-const strategy = new HashVerificationStrategy({
-  trustedGateways: TRUSTED_GATEWAYS,
-})
-```
-
-### 5. Implement Circuit Breakers
-
-```javascript
-class CircuitBreakerVerificationStrategy {
-  constructor(strategy, threshold = 5) {
-    this.strategy = strategy
-    this.failureCount = 0
-    this.threshold = threshold
-    this.isOpen = false
-  }
-
-  async verifyData(params) {
-    if (this.isOpen) {
-      throw new Error('Circuit breaker is open - verification disabled')
-    }
-
-    try {
-      await this.strategy.verifyData(params)
-      this.failureCount = 0 // Reset on success
-    } catch (error) {
-      this.failureCount++
-      if (this.failureCount >= this.threshold) {
-        this.isOpen = true
-        console.warn('Circuit breaker opened - too many verification failures')
-      }
-      throw error
-    }
-  }
-}
-```
-
-For detailed information about each verification strategy, see their individual documentation pages.
+- **[Hash Verification](/wayfinder/verification-strategies/hash-verification)**: Learn about fast integrity checking
+- **[Signature Verification](/wayfinder/verification-strategies/signature-verification)**: Understand authenticity validation
+- **[Data Root Verification](/wayfinder/verification-strategies/data-root-verification)**: Explore maximum security verification
+- **[Wayfinder Core](/wayfinder/core)**: See how to configure verification in your application

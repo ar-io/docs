@@ -1,3 +1,12 @@
+export const metadata = {
+  title: 'useWayfinderRequest',
+  description:
+    'React hook that provides direct access to the Wayfinder request function for fetching data from ar:// URLs.',
+  openGraph: {
+    title: 'useWayfinderRequest',
+  },
+}
+
 # useWayfinderRequest
 
 ## Overview
@@ -164,7 +173,7 @@ function ImageComponent({ txId }) {
 ```jsx
 import { useWayfinderRequest } from '@ar.io/wayfinder-react'
 import { useState } from 'react'
-import { StaticGatewaysProvider } from '@ar.io/wayfinder-core'
+import { StaticRoutingStrategy } from '@ar.io/wayfinder-core'
 
 function CustomRequestComponent({ txId }) {
   const request = useWayfinderRequest()
@@ -187,8 +196,8 @@ function CustomRequestComponent({ txId }) {
         timeout: 10000, // 10 second timeout
         routingSettings: {
           // Override routing for this request
-          strategy: new StaticGatewaysProvider({
-            gateways: ['https://arweave.net'],
+          strategy: new StaticRoutingStrategy({
+            gateway: 'https://arweave.net',
           }),
         },
         verificationSettings: {
