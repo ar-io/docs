@@ -17,6 +17,20 @@ export const metadata = {
 
 Welcome to the documentation page for the AR.IO gateway release notes. Here, you will find detailed information about each version of the AR.IO gateway, including the enhancements, bug fixes, and any other changes introduced in every release. This page serves as a comprehensive resource to keep you informed about the latest developments and updates in the AR.IO gateway. For those interested in exploring the source code, each release's code is readily accessible at our GitHub repository: AR.IO gateway [change logs](https://github.com/ar-io/ar-io-node/blob/main/CHANGELOG.md). Stay updated with the continuous improvements and advancements in the AR.IO gateway by referring to this page for all release-related information.
 
+## [Release 40] - 2025-06-23
+
+This is an optional release that primarily improves caching when data is fetched from peers.
+
+### Added
+
+- Added experimental `flush-to-stable` script for manual database maintenance. This script allows operators to manually flush stable chain and data item tables, mirroring the logic of `StandaloneSqliteDatabase.flushStableDataItems`. **WARNING: This script is experimental and directly modifies database contents. Use with caution and ensure proper backups before running.**
+
+### Changed
+
+- Replaced yesql with custom SQL loader that handles comments better, improving SQL file parsing and maintenance.
+- Switched to SPDX license headers to reduce LLM token usage, making the codebase more efficient for AI-assisted development.
+- Improved untrusted data handling and hash validation in cache operations. The cache now allows caching when a hash is available for validation even for untrusted data sources, but only finalizes the cache when the computed hash matches a known trusted hash. This prevents cache poisoning while still allowing data caching from untrusted sources when the data can be validated.
+
 ## [Release 39] - 2025-06-17
 
 This release enhances observability and reliability with new cache metrics, improved data verification capabilities, and automatic failover between chain data sources. The addition of ArNS-aware headers enables better data prioritization across the gateway network. This is a recommended but not urgent upgrade.
