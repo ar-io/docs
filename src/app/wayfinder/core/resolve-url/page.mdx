@@ -51,10 +51,17 @@ console.log('Resolved URL:', url.toString())
 
 // Resolve an ArNS name
 const arnsUrl = await wayfinder.resolveUrl({
-  originalUrl: 'ar://ardrive',
+  arnsName: 'ardrive',
 })
 console.log('ArNS URL:', arnsUrl.toString())
 // Output: https://ardrive.arweave.net
+
+//Resolve an Arweave txId
+const txIdUrl = await wayfinder.resolveUrl({
+  txId: 'ABC123...XYZ',
+})
+console.log('Arweave txId URL:', txIdUrl.toString())
+// Output: https://arweave.net/ABC123...XYZ
 ```
 
 ### Transaction ID Resolution
@@ -62,8 +69,7 @@ console.log('ArNS URL:', arnsUrl.toString())
 ```javascript
 // Transaction IDs are resolved to sandboxed subdomains
 const txUrl = await wayfinder.resolveUrl({
-  originalUrl:
-    'ar://YTB0dGJURWpqQ25iS2NaY1RPSi1TOUQxMmd3cGRFaHUzV2hiWnVlZ2o5WT0',
+  txId: 'YTB0dGJURWpqQ25iS2NaY1RPSi1TOUQxMmd3cGRFaHUzV2hiWnVlZ2o5WT0',
 })
 console.log('Transaction URL:', txUrl.toString())
 // Output: https://ytb0dgjuqwpqq25iy2naytpsi1tpuqxnz3dqrfaohuzwhiwnu5j9y.arweave.net
@@ -74,7 +80,7 @@ console.log('Transaction URL:', txUrl.toString())
 ```javascript
 // ArNS names resolve to subdomain format
 const arnsUrl = await wayfinder.resolveUrl({
-  originalUrl: 'ar://ardrive',
+  arnsName: 'ardrive',
 })
 console.log('ArNS URL:', arnsUrl.toString())
 // Output: https://ardrive.arweave.net
@@ -212,7 +218,7 @@ await wayfinder.resolveUrl({
 ```javascript
 // Resolves to ArNS subdomain
 await wayfinder.resolveUrl({
-  originalUrl: 'ar://my-app',
+  arnsName: 'my-app',
 })
 // → https://my-app.arweave.net
 
@@ -237,16 +243,6 @@ await wayfinder.resolveUrl({
   originalUrl: 'ar:///price/1024',
 })
 // → https://arweave.net/price/1024
-```
-
-### Non-ar:// URLs
-
-```javascript
-// Regular URLs are returned unchanged
-const regularUrl = await wayfinder.resolveUrl({
-  originalUrl: 'https://example.com/api',
-})
-console.log(regularUrl.toString()) // https://example.com/api
 ```
 
 ## Comparison with request()
