@@ -1074,44 +1074,144 @@ export const singleNavigation: Array<NavGroup> = [
           },
         ],
       },
-      // {
-      //   title: 'Wayfinder Class',
-      //   children: [
-      //     {
-      //       title: 'Info',
-      //       href: '/ar-io-sdk/wayfinder',
-      //     },
-      //     {
-      //       title: 'Configuration',
-      //       href: '/ar-io-sdk/wayfinder/configuration',
-      //     },
-      //     {
-      //       title: 'request',
-      //       href: '/ar-io-sdk/wayfinder/request',
-      //     },
-      //     {
-      //       title: 'resolveUrl',
-      //       href: '/ar-io-sdk/wayfinder/resolve-url',
-      //     },
-      //     {
-      //       title: 'Events',
-      //       href: '/ar-io-sdk/wayfinder/events',
-      //     },
-      //     {
-      //       title: 'Routing Strategies',
-      //       children: [
-      //         {
-      //           title: 'Fastest Ping',
-      //           href: '/ar-io-sdk/wayfinder/routing-strategies/fastest-ping',
-      //         },
-      //         {
-      //           title: 'Preferred with Fallback',
-      //           href: '/ar-io-sdk/wayfinder/routing-strategies/preferred-with-fallback',
-      //         },
-      //       ],
-      //     },
-      //   ],
-      // },
+    ],
+  },
+  {
+    title: 'Wayfinder SDK',
+    links: [
+      {
+        title: 'Info',
+        href: '/wayfinder',
+      },
+      {
+        title: 'Getting Started',
+        href: '/wayfinder/getting-started',
+      },
+      {
+        title: 'Core',
+        children: [
+          {
+            title: 'Wayfinder Class',
+            href: '/wayfinder/core',
+          },
+          {
+            title: 'request()',
+            href: '/wayfinder/core/request',
+          },
+          {
+            title: 'resolveUrl()',
+            href: '/wayfinder/core/resolve-url',
+          },
+          {
+            title: 'Events',
+            href: '/wayfinder/core/events',
+          },
+          {
+            title: 'Gateway Providers',
+            children: [
+              {
+                title: 'Overview',
+                href: '/wayfinder/core/gateway-providers',
+              },
+              {
+                title: 'NetworkGatewaysProvider',
+                href: '/wayfinder/core/gateway-providers/network',
+              },
+              {
+                title: 'StaticGatewaysProvider',
+                href: '/wayfinder/core/gateway-providers/static',
+              },
+              {
+                title: 'SimpleCacheGatewaysProvider',
+                href: '/wayfinder/core/gateway-providers/cache',
+              },
+            ],
+          },
+          {
+            title: 'Routing Strategies',
+            href: '/wayfinder/core/routing-strategies',
+          },
+        ],
+      },
+      {
+        title: 'React Integration',
+        children: [
+          {
+            title: 'Overview',
+            href: '/wayfinder/react',
+          },
+          {
+            title: 'useWayfinder',
+            href: '/wayfinder/react/use-wayfinder',
+          },
+          {
+            title: 'useWayfinderRequest',
+            href: '/wayfinder/react/use-wayfinder-request',
+          },
+          {
+            title: 'useWayfinderUrl',
+            href: '/wayfinder/react/use-wayfinder-url',
+          },
+        ],
+      },
+      {
+        title: 'Routing Strategies',
+        children: [
+          {
+            title: 'Overview',
+            href: '/wayfinder/routing-strategies',
+          },
+          {
+            title: 'Fastest Ping',
+            href: '/wayfinder/routing-strategies/fastest-ping',
+          },
+          {
+            title: 'Preferred with Fallback',
+            href: '/wayfinder/routing-strategies/preferred-with-fallback',
+          },
+          {
+            title: 'Random',
+            href: '/wayfinder/routing-strategies/random',
+          },
+          {
+            title: 'Round Robin',
+            href: '/wayfinder/routing-strategies/round-robin',
+          },
+          {
+            title: 'Simple Cache',
+            href: '/wayfinder/routing-strategies/simple-cache',
+          },
+          {
+            title: 'Static',
+            href: '/wayfinder/routing-strategies/static',
+          },
+        ],
+      },
+      {
+        title: 'Verification Strategies',
+        children: [
+          {
+            title: 'Overview',
+            href: '/wayfinder/verification-strategies',
+          },
+          {
+            title: 'Data Root Verification',
+            href: '/wayfinder/verification-strategies/data-root-verification',
+          },
+          {
+            title: 'Hash Verification',
+            href: '/wayfinder/verification-strategies/hash-verification',
+          },
+          {
+            title: 'Signature Verification',
+            href: '/wayfinder/verification-strategies/signature-verification',
+          },
+        ],
+      },
+      {
+        title: 'Telemetry',
+        href: '/wayfinder/telemetry',
+      },
     ],
   },
   {

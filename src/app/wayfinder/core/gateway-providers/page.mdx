@@ -1,0 +1,677 @@
+import { Table } from '@/components/Table'
+
+# Gateway Providers
+
+## Overview
+
+Gateway providers are responsible for discovering and managing AR.IO gateways that Wayfinder can use to access Arweave data. They abstract the complexity of gateway discovery and provide a consistent interface for routing strategies to select optimal gateways.
+
+## Available Providers
+
+### [NetworkGatewaysProvider](/wayfinder/core/gateway-providers/network)
+
+Discovers gateways from the AR.IO Network using the AR.IO SDK. This is the recommended provider for production applications as it provides access to the full network of verified gateways.
+
+```javascript
+import { NetworkGatewaysProvider } from '@ar.io/wayfinder-core'
+import { ARIO } from '@ar.io/sdk'
+
+const provider = new NetworkGatewaysProvider({
+  ario: ARIO.mainnet(),
+  minStake: 10000, // Minimum stake required (in mIO tokens)
+  maxGateways: 50, // Maximum number of gateways to return
+  includeOperatorStake: true,
+  includeDelegatedStake: true,
+})
+```
+
+**Best for**: Production applications, dynamic gateway discovery, accessing the full AR.IO network
+
+### [StaticGatewaysProvider](/wayfinder/core/gateway-providers/static)
+
+Uses a predefined list of gateway URLs. Ideal for testing, development, or when you want to use specific trusted gateways.
+
+```javascript
+import { StaticGatewaysProvider } from '@ar.io/wayfinder-core'
+
+const provider = new StaticGatewaysProvider({
+  gateways: [
+    'https://arweave.net',
+    'https://ar-io.net',
+    'https://permagate.io',
+  ],
+})
+```
+
+**Best for**: Development, testing, specific gateway requirements, offline environments
+
+### [SimpleCacheGatewaysProvider](/wayfinder/core/gateway-providers/cache)
+
+Wraps another gateway provider and caches the results for improved performance. Reduces the overhead of repeated gateway discovery calls.
+
+```javascript
+import {
+  SimpleCacheGatewaysProvider,
+  NetworkGatewaysProvider,
+} from '@ar.io/wayfinder-core'
+import { ARIO } from '@ar.io/sdk'
+
+const provider = new SimpleCacheGatewaysProvider({
+  gatewaysProvider: new NetworkGatewaysProvider({
+    ario: ARIO.mainnet(),
+  }),
+  ttlSeconds: 60 * 60, // Cache for 1 hour
+  maxCacheSize: 1000,
+})
+```
+
+**Best for**: Production applications with frequent gateway lookups, performance optimization
+
+## Provider Interface
+
+All gateway providers implement the `GatewaysProvider` interface:
+
+```typescript
+interface GatewaysProvider {
+  getGateways(): Promise<string[]>
+  refresh?(): Promise<void>
+}
+```
+
+### getGateways()
+
+Returns a list of available gateway URLs.
+
+**Signature:**
+
+```typescript
+async getGateways(): Promise<string[]>
+```
+
+**Returns:** Promise&lt;string[]&gt; - Array of gateway URLs
+
+**Usage:**
+
+```javascript
+const gateways = await provider.getGateways()
+console.log('Available gateways:', gateways)
+// ['https://arweave.net', 'https://ar-io.net', ...]
+```
+
+### refresh() (Optional)
+
+Forces a refresh of the gateway list, bypassing any caches.
+
+**Signature:**
+
+```typescript
+async refresh?(): Promise<void>
+```
+
+**Usage:**
+
+```javascript
+if (provider.refresh) {
+  await provider.refresh()
+  console.log('Gateway list refreshed')
+}
+```
+
+## Configuration Examples
+
+### Production Configuration
+
+```javascript
+import {
+  SimpleCacheGatewaysProvider,
+  NetworkGatewaysProvider,
+} from '@ar.io/wayfinder-core'
+import { ARIO } from '@ar.io/sdk'
+
+// Cached network provider for production
+const provider = new SimpleCacheGatewaysProvider({
+  gatewaysProvider: new NetworkGatewaysProvider({
+    ario: ARIO.mainnet(),
+    minStake: 50000, // Higher stake requirement for reliability
+    maxGateways: 20, // Limit to top 20 gateways
+    includeOperatorStake: true,
+    includeDelegatedStake: true,
+  }),
+  ttlSeconds: 30 * 60, // 30 minute cache
+  maxCacheSize: 100,
+})
+
+const wayfinder = new Wayfinder({
+  gatewaysProvider: provider,
+})
+```
+
+### Development Configuration
+
+```javascript
+import { StaticGatewaysProvider } from '@ar.io/wayfinder-core'
+
+// Static provider for development
+const provider = new StaticGatewaysProvider({
+  gateways: [
+    'http://localhost:3000', // Local development gateway
+    'https://arweave.net', // Fallback to public gateway
+  ],
+})
+
+const wayfinder = new Wayfinder({
+  gatewaysProvider: provider,
+})
+```
+
+### Testing Configuration
+
+```javascript
+import { StaticGatewaysProvider } from '@ar.io/wayfinder-core'
+
+// Mock provider for testing
+const provider = new StaticGatewaysProvider({
+  gateways: [
+    'https://test-gateway-1.example.com',
+    'https://test-gateway-2.example.com',
+  ],
+})
+
+const wayfinder = new Wayfinder({
+  gatewaysProvider: provider,
+})
+```
+
+### High-Performance Configuration
+
+```javascript
+import {
+  SimpleCacheGatewaysProvider,
+  NetworkGatewaysProvider,
+} from '@ar.io/wayfinder-core'
+import { ARIO } from '@ar.io/sdk'
+
+// Optimized for high-performance applications
+const provider = new SimpleCacheGatewaysProvider({
+  gatewaysProvider: new NetworkGatewaysProvider({
+    ario: ARIO.mainnet(),
+    minStake: 100000, // Very high stake requirement
+    maxGateways: 10, // Limit to top 10 gateways
+    includeOperatorStake: true,
+    includeDelegatedStake: true,
+  }),
+  ttlSeconds: 60 * 60, // 1 hour cache
+  maxCacheSize: 50,
+})
+```
+
+## Advanced Usage
+
+### Custom Gateway Provider
+
+Create a custom provider for specialized requirements:
+
+```javascript
+class CustomGatewaysProvider {
+  constructor(options) {
+    this.primaryGateways = options.primaryGateways || []
+    this.fallbackProvider = options.fallbackProvider
+    this.healthChecker = options.healthChecker
+  }
+
+  async getGateways() {
+    // Try primary gateways first
+    const healthyPrimary = await this.filterHealthyGateways(
+      this.primaryGateways,
+    )
+
+    if (healthyPrimary.length > 0) {
+      return healthyPrimary
+    }
+
+    // Fallback to network provider if primary gateways are unavailable
+    if (this.fallbackProvider) {
+      const fallbackGateways = await this.fallbackProvider.getGateways()
+      return this.filterHealthyGateways(fallbackGateways)
+    }
+
+    throw new Error('No healthy gateways available')
+  }
+
+  async filterHealthyGateways(gateways) {
+    if (!this.healthChecker) {
+      return gateways
+    }
+
+    const healthChecks = await Promise.allSettled(
+      gateways.map((gateway) => this.healthChecker.check(gateway)),
+    )
+
+    return gateways.filter(
+      (gateway, index) =>
+        healthChecks[index].status === 'fulfilled' &&
+        healthChecks[index].value.healthy,
+    )
+  }
+
+  async refresh() {
+    if (this.fallbackProvider?.refresh) {
+      await this.fallbackProvider.refresh()
+    }
+  }
+}
+
+// Usage
+const customProvider = new CustomGatewaysProvider({
+  primaryGateways: [
+    'https://my-primary-gateway.com',
+    'https://my-secondary-gateway.com',
+  ],
+  fallbackProvider: new NetworkGatewaysProvider({
+    ario: ARIO.mainnet(),
+  }),
+  healthChecker: {
+    check: async (gateway) => {
+      try {
+        const response = await fetch(`${gateway}/ar-io/info`, {
+          method: 'HEAD',
+          signal: AbortSignal.timeout(2000),
+        })
+        return { healthy: response.ok }
+      } catch (error) {
+        return { healthy: false, error: error.message }
+      }
+    },
+  },
+})
+```
+
+### Composite Gateway Provider
+
+Combine multiple providers for redundancy:
+
+```javascript
+class CompositeGatewaysProvider {
+  constructor(providers) {
+    this.providers = providers
+  }
+
+  async getGateways() {
+    const allGateways = new Set()
+
+    for (const provider of this.providers) {
+      try {
+        const gateways = await provider.getGateways()
+        gateways.forEach((gateway) => allGateways.add(gateway))
+      } catch (error) {
+        console.warn('Provider failed:', error.message)
+        // Continue with other providers
+      }
+    }
+
+    if (allGateways.size === 0) {
+      throw new Error('All gateway providers failed')
+    }
+
+    return Array.from(allGateways)
+  }
+
+  async refresh() {
+    await Promise.allSettled(
+      this.providers
+        .filter((provider) => provider.refresh)
+        .map((provider) => provider.refresh()),
+    )
+  }
+}
+
+// Usage
+const compositeProvider = new CompositeGatewaysProvider([
+  new StaticGatewaysProvider({
+    gateways: ['https://my-trusted-gateway.com'],
+  }),
+  new NetworkGatewaysProvider({
+    ario: ARIO.mainnet(),
+    maxGateways: 10,
+  }),
+])
+```
+
+### Geographic Gateway Provider
+
+Filter gateways by geographic location:
+
+```javascript
+class GeographicGatewaysProvider {
+  constructor(options) {
+    this.baseProvider = options.baseProvider
+    this.userLocation = options.userLocation
+    this.gatewayLocations = options.gatewayLocations || new Map()
+    this.maxDistance = options.maxDistance || 5000 // km
+  }
+
+  async getGateways() {
+    const allGateways = await this.baseProvider.getGateways()
+
+    if (!this.userLocation) {
+      return allGateways
+    }
+
+    const nearbyGateways = allGateways.filter((gateway) => {
+      const gatewayLocation = this.gatewayLocations.get(gateway)
+      if (!gatewayLocation) {
+        return true // Include if location unknown
+      }
+
+      const distance = this.calculateDistance(
+        this.userLocation,
+        gatewayLocation,
+      )
+      return distance <= this.maxDistance
+    })
+
+    return nearbyGateways.length > 0 ? nearbyGateways : allGateways
+  }
+
+  calculateDistance(loc1, loc2) {
+    const R = 6371 // Earth's radius in kilometers
+    const dLat = this.toRadians(loc2.lat - loc1.lat)
+    const dLon = this.toRadians(loc2.lon - loc1.lon)
+
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(this.toRadians(loc1.lat)) *
+        Math.cos(this.toRadians(loc2.lat)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2)
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+    return R * c
+  }
+
+  toRadians(degrees) {
+    return degrees * (Math.PI / 180)
+  }
+
+  async refresh() {
+    if (this.baseProvider.refresh) {
+      await this.baseProvider.refresh()
+    }
+  }
+}
+
+// Usage
+const geoProvider = new GeographicGatewaysProvider({
+  baseProvider: new NetworkGatewaysProvider({
+    ario: ARIO.mainnet(),
+  }),
+  userLocation: { lat: 40.7128, lon: -74.006 }, // New York
+  gatewayLocations: new Map([
+    ['https://us-east.ar-io.net', { lat: 40.7128, lon: -74.006 }],
+    ['https://us-west.ar-io.net', { lat: 37.7749, lon: -122.4194 }],
+    ['https://eu.ar-io.net', { lat: 51.5074, lon: -0.1278 }],
+  ]),
+  maxDistance: 2000, // 2000km radius
+})
+```
+
+## Error Handling
+
+### Common Error Types
+
+```javascript
+try {
+  const gateways = await provider.getGateways()
+  console.log('Available gateways:', gateways)
+} catch (error) {
+  switch (error.constructor.name) {
+    case 'NetworkError':
+      console.error('Failed to connect to AR.IO network')
+      // Fallback to static gateways or retry
+      break
+
+    case 'NoGatewaysFoundError':
+      console.error('No gateways found matching criteria')
+      // Relax filtering criteria or use fallback
+      break
+
+    case 'ConfigurationError':
+      console.error('Invalid provider configuration')
+      // Check provider settings
+      break
+
+    case 'TimeoutError':
+      console.error('Gateway discovery timed out')
+      // Increase timeout or use cached results
+      break
+
+    default:
+      console.error('Unknown provider error:', error.message)
+  }
+}
+```
+
+### Graceful Degradation
+
+```javascript
+class RobustGatewaysProvider {
+  constructor(options) {
+    this.primaryProvider = options.primaryProvider
+    this.fallbackProviders = options.fallbackProviders || []
+    this.emergencyGateways = options.emergencyGateways || [
+      'https://arweave.net',
+    ]
+  }
+
+  async getGateways() {
+    // Try primary provider first
+    try {
+      const gateways = await this.primaryProvider.getGateways()
+      if (gateways.length > 0) {
+        return gateways
+      }
+    } catch (error) {
+      console.warn('Primary provider failed:', error.message)
+    }
+
+    // Try fallback providers
+    for (const provider of this.fallbackProviders) {
+      try {
+        const gateways = await provider.getGateways()
+        if (gateways.length > 0) {
+          console.log('Using fallback provider')
+          return gateways
+        }
+      } catch (error) {
+        console.warn('Fallback provider failed:', error.message)
+      }
+    }
+
+    // Use emergency gateways as last resort
+    console.warn('All providers failed, using emergency gateways')
+    return this.emergencyGateways
+  }
+}
+
+// Usage
+const robustProvider = new RobustGatewaysProvider({
+  primaryProvider: new NetworkGatewaysProvider({
+    ario: ARIO.mainnet(),
+  }),
+  fallbackProviders: [
+    new StaticGatewaysProvider({
+      gateways: ['https://backup-gateway.com'],
+    }),
+  ],
+  emergencyGateways: ['https://arweave.net', 'https://ar-io.net'],
+})
+```
+
+## Performance Optimization
+
+### Preloading Gateways
+
+```javascript
+class PreloadingGatewaysProvider {
+  constructor(baseProvider, preloadInterval = 60000) {
+    this.baseProvider = baseProvider
+    this.preloadInterval = preloadInterval
+    this.cachedGateways = []
+    this.lastUpdate = 0
+    this.isPreloading = false
+
+    this.startPreloading()
+  }
+
+  startPreloading() {
+    // Initial load
+    this.preloadGateways()
+
+    // Periodic updates
+    setInterval(() => {
+      this.preloadGateways()
+    }, this.preloadInterval)
+  }
+
+  async preloadGateways() {
+    if (this.isPreloading) return
+
+    this.isPreloading = true
+    try {
+      const gateways = await this.baseProvider.getGateways()
+      this.cachedGateways = gateways
+      this.lastUpdate = Date.now()
+      console.log('Preloaded', gateways.length, 'gateways')
+    } catch (error) {
+      console.warn('Failed to preload gateways:', error.message)
+    } finally {
+      this.isPreloading = false
+    }
+  }
+
+  async getGateways() {
+    // Return cached gateways if available and recent
+    if (
+      this.cachedGateways.length > 0 &&
+      Date.now() - this.lastUpdate < this.preloadInterval * 2
+    ) {
+      return this.cachedGateways
+    }
+
+    // Otherwise fetch fresh gateways
+    return this.baseProvider.getGateways()
+  }
+
+  async refresh() {
+    await this.preloadGateways()
+  }
+}
+
+const preloadingProvider = new PreloadingGatewaysProvider(
+  new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
+  30000, // Preload every 30 seconds
+)
+```
+
+## Testing
+
+### Unit Testing
+
+```javascript
+import { StaticGatewaysProvider } from '@ar.io/wayfinder-core'
+
+describe('StaticGatewaysProvider', () => {
+  test('should return configured gateways', async () => {
+    const gateways = ['https://gateway1.com', 'https://gateway2.com']
+
+    const provider = new StaticGatewaysProvider({ gateways })
+    const result = await provider.getGateways()
+
+    expect(result).toEqual(gateways)
+  })
+
+  test('should handle empty gateway list', async () => {
+    const provider = new StaticGatewaysProvider({ gateways: [] })
+    const result = await provider.getGateways()
+
+    expect(result).toEqual([])
+  })
+})
+
+describe('SimpleCacheGatewaysProvider', () => {
+  test('should cache gateway results', async () => {
+    const mockProvider = {
+      getGateways: jest.fn().mockResolvedValue(['https://gateway.com']),
+    }
+
+    const cacheProvider = new SimpleCacheGatewaysProvider({
+      gatewaysProvider: mockProvider,
+      ttlSeconds: 60,
+    })
+
+    // First call should hit the underlying provider
+    await cacheProvider.getGateways()
+    expect(mockProvider.getGateways).toHaveBeenCalledTimes(1)
+
+    // Second call should use cache
+    await cacheProvider.getGateways()
+    expect(mockProvider.getGateways).toHaveBeenCalledTimes(1)
+  })
+})
+```
+
+## Best Practices
+
+1. **Use Caching in Production**: Wrap providers with `SimpleCacheGatewaysProvider` to reduce discovery overhead
+2. **Set Appropriate Stake Requirements**: Use `minStake` to filter for reliable gateways
+3. **Limit Gateway Count**: Use `maxGateways` to prevent overwhelming routing strategies
+4. **Implement Fallbacks**: Always have a fallback strategy for when providers fail
+5. **Monitor Provider Performance**: Track how long gateway discovery takes
+6. **Handle Network Failures**: Implement proper error handling for network issues
+7. **Use Geographic Filtering**: Consider user location when selecting gateways
+8. **Test with Static Providers**: Use static providers for predictable testing
+
+## Provider Comparison
+
+<Table>
+  <Table.Head>
+    <Table.Row>
+      <Table.Header>Provider</Table.Header>
+      <Table.Header>Discovery</Table.Header>
+      <Table.Header>Performance</Table.Header>
+      <Table.Header>Reliability</Table.Header>
+      <Table.Header>Use Case</Table.Header>
+    </Table.Row>
+  </Table.Head>
+  <Table.Body>
+    <Table.Row>
+      <Table.Cell>**NetworkGatewaysProvider**</Table.Cell>
+      <Table.Cell>Dynamic</Table.Cell>
+      <Table.Cell>Medium</Table.Cell>
+      <Table.Cell>High</Table.Cell>
+      <Table.Cell>Production</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>**StaticGatewaysProvider**</Table.Cell>
+      <Table.Cell>Static</Table.Cell>
+      <Table.Cell>High</Table.Cell>
+      <Table.Cell>Medium</Table.Cell>
+      <Table.Cell>Development/Testing</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>**SimpleCacheGatewaysProvider**</Table.Cell>
+      <Table.Cell>Cached</Table.Cell>
+      <Table.Cell>High</Table.Cell>
+      <Table.Cell>High</Table.Cell>
+      <Table.Cell>Production (wrapped)</Table.Cell>
+    </Table.Row>
+  </Table.Body>
+</Table>
+
+## Related Documentation
+
+- **[NetworkGatewaysProvider](/wayfinder/core/gateway-providers/network)**: Network-based gateway discovery
+- **[StaticGatewaysProvider](/wayfinder/core/gateway-providers/static)**: Static gateway configuration
+- **[SimpleCacheGatewaysProvider](/wayfinder/core/gateway-providers/cache)**: Caching wrapper for providers
+- **[Routing Strategies](/wayfinder/routing-strategies)**: How gateways are selected for requests
+- **[Wayfinder Configuration](/wayfinder/core)**: Main wayfinder setup and usage

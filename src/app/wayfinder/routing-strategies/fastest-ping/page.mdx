@@ -1,0 +1,156 @@
+# FastestPingRoutingStrategy
+
+## Overview
+
+The `FastestPingRoutingStrategy` selects the gateway with the lowest latency by performing HEAD requests to all available gateways and choosing the one that responds fastest. This strategy optimizes for performance by dynamically selecting the most responsive gateway for each request.
+
+## Routing Strategy Comparison
+
+<Table>
+  <thead>
+    <tr>
+      <th>Strategy</th>
+      <th>Best For</th>
+      <th>Use Case</th>
+      <th>Predictability</th>
+      <th>Infrastructure Control</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Fastest Ping</td>
+      <td>Real-time applications</td>
+      <td>Performance-critical apps, gaming</td>
+      <td>Medium</td>
+      <td>Low</td>
+    </tr>
+    <tr>
+      <td>Preferred + Fallback</td>
+      <td>Dedicated infrastructure</td>
+      <td>CDN with origin fallback, enterprise gateways</td>
+      <td>High</td>
+      <td>Maximum</td>
+    </tr>
+    <tr>
+      <td>Round Robin</td>
+      <td>Load balancing</td>
+      <td>Even distribution across known gateways</td>
+      <td>High</td>
+      <td>High</td>
+    </tr>
+    <tr>
+      <td>Random</td>
+      <td>Simple distribution</td>
+      <td>Basic load spreading, testing</td>
+      <td>Low</td>
+      <td>Medium</td>
+    </tr>
+    <tr>
+      <td>Static</td>
+      <td>Single gateway</td>
+      <td>Development, specific gateway requirements</td>
+      <td>Maximum</td>
+      <td>High</td>
+    </tr>
+  </tbody>
+</Table>
+
+## How It Works
+
+1. **Ping All Gateways**: Send HEAD requests to all available gateways
+2. **Measure Response Times**: Record the time taken for each gateway to respond
+3. **Select Fastest**: Choose the gateway with the lowest response time
+4. **Cache Results**: Optionally cache ping results for a specified duration
+5. **Fallback**: If all pings fail, fall back to the first available gateway
+
+## Configuration
+
+### Basic Usage
+
+```javascript
+import { FastestPingRoutingStrategy } from '@ar.io/wayfinder-core'
+
+const strategy = new FastestPingRoutingStrategy({
+  timeoutMs: 500,
+  pingPath: '/ar-io/info',
+})
+```
+
+### With Caching
+
+```javascript
+const strategy = new FastestPingRoutingStrategy({
+  timeoutMs: 500,
+  cacheResultsMs: 30000, // Cache ping results for 30 seconds
+  pingPath: '/ar-io/info',
+})
+```
+
+## Parameters
+
+| Parameter        | Type     | Default         | Description                                   |
+| ---------------- | -------- | --------------- | --------------------------------------------- |
+| `timeoutMs`      | `number` | `500`           | Timeout for ping requests in milliseconds     |
+| `pingPath`       | `string` | `'/ar-io/info'` | Path to ping on each gateway                  |
+| `cacheResultsMs` | `number` | `0`             | How long to cache ping results (0 = no cache) |
+| `logger`         | `Logger` | `defaultLogger` | Optional logger instance                      |
+
+## Integration with Wayfinder
+
+```javascript
+import { Wayfinder, FastestPingRoutingStrategy } from '@ar.io/wayfinder-core'
+
+const wayfinder = new Wayfinder({
+  routingSettings: {
+    strategy: new FastestPingRoutingStrategy({
+      timeoutMs: 500,
+      cacheResultsMs: 30000, // Cache results for 30 seconds
+    }),
+  },
+})
+```
+
+## Use Cases
+
+### Performance-Critical Applications
+
+Perfect for applications where response time is crucial and you want the fastest possible data access.
+
+```javascript
+const performanceStrategy = new FastestPingRoutingStrategy({
+  timeoutMs: 500,
+  cacheResultsMs: 10000, // Short cache for frequent updates
+})
+```
+
+### Gaming and Real-Time Apps
+
+Ideal for gaming applications or real-time data feeds where latency matters most.
+
+```javascript
+const gamingStrategy = new FastestPingRoutingStrategy({
+  timeoutMs: 300, // Very fast timeout
+  cacheResultsMs: 5000, // Frequent re-evaluation
+})
+```
+
+### Load Testing and Benchmarking
+
+Useful for testing gateway performance and identifying the fastest gateways in your region.
+
+```javascript
+const benchmarkStrategy = new FastestPingRoutingStrategy({
+  timeoutMs: 1000,
+  cacheResultsMs: 0, // No caching for accurate measurements
+})
+```
+
+## Best Practices
+
+1. **Set Appropriate Timeouts**: Balance between speed and reliability
+2. **Use Caching**: Cache ping results to avoid repeated measurements
+3. **Monitor Performance**: Track which gateways perform best over time
+4. **Consider Network Conditions**: Results may vary based on user location and network
+5. **Combine with Fallback**: Use with other strategies for high availability
+
+The `FastestPingRoutingStrategy` is ideal for applications where performance and low latency are the primary concerns.

@@ -33,18 +33,28 @@ function rehypeShiki() {
         node.properties.code = textNode.value
 
         if (node.properties.language) {
-          let tokens = highlighter.codeToThemedTokens(
-            textNode.value,
-            node.properties.language,
-          )
+          try {
+            let tokens = highlighter.codeToThemedTokens(
+              textNode.value,
+              node.properties.language,
+            )
 
-          textNode.value = shiki.renderToHtml(tokens, {
-            elements: {
-              pre: ({ children }) => children,
-              code: ({ children }) => children,
-              line: ({ children }) => `<span>${children}</span>`,
-            },
-          })
+            textNode.value = shiki.renderToHtml(tokens, {
+              elements: {
+                pre: ({ children }) => children,
+                code: ({ children }) => children,
+                line: ({ children }) => `<span>${children}</span>`,
+              },
+            })
+          } catch (error) {
+            // If Shiki fails (e.g., due to complex regex patterns), fall back to plain text
+            console.warn(
+              `Shiki highlighting failed for ${node.properties.language}:`,
+              error.message,
+            )
+            // Keep the original text content without highlighting
+            textNode.value = textNode.value
+          }
         }
       }
     })

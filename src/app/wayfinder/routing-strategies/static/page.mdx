@@ -1,0 +1,157 @@
+export const metadata = {
+  title: 'StaticRoutingStrategy',
+  description:
+    'A routing strategy that always returns the same configured gateway, ignoring provided gateway lists.',
+  openGraph: {
+    title: 'StaticRoutingStrategy',
+  },
+}
+
+# StaticRoutingStrategy
+
+## Overview
+
+The `StaticRoutingStrategy` is the simplest routing strategy that always returns a single, pre-configured gateway URL. This strategy ignores any gateways provided by the `GatewaysProvider` and is useful for scenarios where you want to force all requests to use a specific gateway.
+
+## Routing Strategy Comparison
+
+<Table>
+  <thead>
+    <tr>
+      <th>Strategy</th>
+      <th>Best For</th>
+      <th>Use Case</th>
+      <th>Predictability</th>
+      <th>Infrastructure Control</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Static</td>
+      <td>Single gateway</td>
+      <td>Development, specific gateway requirements</td>
+      <td>Maximum</td>
+      <td>High</td>
+    </tr>
+    <tr>
+      <td>Fastest Ping</td>
+      <td>Real-time applications</td>
+      <td>Performance-critical apps, gaming</td>
+      <td>Medium</td>
+      <td>Low</td>
+    </tr>
+    <tr>
+      <td>Preferred + Fallback</td>
+      <td>Dedicated infrastructure</td>
+      <td>CDN with origin fallback, enterprise gateways</td>
+      <td>High</td>
+      <td>Maximum</td>
+    </tr>
+    <tr>
+      <td>Round Robin</td>
+      <td>Load balancing</td>
+      <td>Even distribution across known gateways</td>
+      <td>High</td>
+      <td>High</td>
+    </tr>
+    <tr>
+      <td>Random</td>
+      <td>Simple distribution</td>
+      <td>Basic load spreading, testing</td>
+      <td>Low</td>
+      <td>Medium</td>
+    </tr>
+  </tbody>
+</Table>
+
+## How It Works
+
+The strategy always returns the configured gateway, ignoring any provided gateway lists:
+
+1. **Configure Gateway**: Set a single gateway URL during initialization
+2. **Ignore Provided Gateways**: Any gateways from providers are ignored
+3. **Return Static Gateway**: Always return the same configured gateway
+4. **Log Warnings**: Warn when provided gateways are ignored
+
+## Configuration
+
+### Basic Usage
+
+```javascript
+import { StaticRoutingStrategy } from '@ar.io/wayfinder-core'
+
+const strategy = new StaticRoutingStrategy({
+  gateway: 'https://arweave.net',
+})
+```
+
+### With Custom Gateway
+
+```javascript
+const strategy = new StaticRoutingStrategy({
+  gateway: 'https://my-custom-gateway.com',
+})
+```
+
+## Parameters
+
+| Parameter | Type     | Default         | Description                   |
+| --------- | -------- | --------------- | ----------------------------- |
+| `gateway` | `string` | **required**    | The gateway URL to always use |
+| `logger`  | `Logger` | `defaultLogger` | Optional logger instance      |
+
+## Integration with Wayfinder
+
+```javascript
+import { Wayfinder, StaticRoutingStrategy } from '@ar.io/wayfinder-core'
+
+const wayfinder = new Wayfinder({
+  routingSettings: {
+    strategy: new StaticRoutingStrategy({
+      gateway: 'https://arweave.net',
+    }),
+  },
+})
+```
+
+## Use Cases
+
+### Development Environment
+
+Perfect for local development or testing against a specific gateway.
+
+```javascript
+const devStrategy = new StaticRoutingStrategy({
+  gateway: 'http://localhost:1984',
+})
+```
+
+### Dedicated Gateway
+
+Ideal when you need to ensure all requests use your organization's specific gateway.
+
+```javascript
+const dedicatedStrategy = new StaticRoutingStrategy({
+  gateway: 'https://gateway.mycompany.com',
+})
+```
+
+### Compliance Requirements
+
+Useful when compliance requires all requests to go through an approved gateway.
+
+```javascript
+const complianceStrategy = new StaticRoutingStrategy({
+  gateway: 'https://approved-gateway.enterprise.com',
+})
+```
+
+## Best Practices
+
+1. **Use for Development**: Great for local development and testing
+2. **Ensure Gateway Reliability**: Make sure your static gateway is highly available
+3. **Monitor Performance**: Track the performance of your single gateway
+4. **Plan for Failures**: Consider fallback strategies for production use
+5. **Document Gateway Choice**: Clearly document why a static gateway is needed
+
+The `StaticRoutingStrategy` is ideal for development, testing, or scenarios where you need complete control over which gateway is used.

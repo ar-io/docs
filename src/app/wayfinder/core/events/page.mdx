@@ -1,0 +1,709 @@
+# Events System
+
+## Overview
+
+Wayfinder provides a comprehensive event system that allows you to monitor and respond to various operations including routing, verification, telemetry, and errors. This enables detailed logging, metrics collection, and custom behavior based on wayfinder operations.
+
+## Event Types
+
+### Routing Events
+
+Events related to gateway selection and routing operations.
+
+```typescript
+interface RoutingEvents {
+  'routing-started': {
+    originalUrl: string
+    timestamp: number
+    requestId: string
+  }
+  'routing-succeeded': {
+    originalUrl: string
+    selectedGateway: string
+    responseTime: number
+    timestamp: number
+    requestId: string
+  }
+  'routing-failed': {
+    originalUrl: string
+    error: Error
+    timestamp: number
+    requestId: string
+  }
+}
+```
+
+### Verification Events
+
+Events related to data verification operations.
+
+```typescript
+interface VerificationEvents {
+  'verification-started': {
+    txId: string
+    strategy: string
+    timestamp: number
+  }
+  'verification-succeeded': {
+    txId: string
+    strategy: string
+    verificationTime: number
+    timestamp: number
+  }
+  'verification-failed': {
+    txId: string
+    strategy: string
+    error: Error
+    timestamp: number
+  }
+}
+```
+
+### Telemetry Events
+
+Events related to telemetry and tracing operations.
+
+```typescript
+interface TelemetryEvents {
+  'telemetry-span-started': {
+    spanName: string
+    spanId: string
+    timestamp: number
+  }
+  'telemetry-span-ended': {
+    spanName: string
+    spanId: string
+    duration: number
+    timestamp: number
+  }
+  'telemetry-error': {
+    error: Error
+    spanName?: string
+    timestamp: number
+  }
+}
+```
+
+### Gateway Events
+
+Events related to gateway operations and health.
+
+```typescript
+interface GatewayEvents {
+  'gateway-discovered': {
+    gateways: string[]
+    source: string
+    timestamp: number
+  }
+  'gateway-health-check': {
+    gateway: string
+    healthy: boolean
+    responseTime?: number
+    timestamp: number
+  }
+  'gateway-error': {
+    gateway: string
+    error: Error
+    timestamp: number
+  }
+}
+```
+
+## Basic Usage
+
+### Listening to Events
+
+```javascript
+import { Wayfinder, NetworkGatewaysProvider } from '@ar.io/wayfinder-core'
+import { ARIO } from '@ar.io/sdk'
+
+const wayfinder = new Wayfinder({
+  gatewaysProvider: new NetworkGatewaysProvider({
+    ario: ARIO.mainnet(),
+  }),
+})
+
+// Listen to routing events
+wayfinder.emitter.on('routing-started', (event) => {
+  console.log('Routing started for:', event.originalUrl)
+})
+
+wayfinder.emitter.on('routing-succeeded', (event) => {
+  console.log('Selected gateway:', event.selectedGateway)
+  console.log('Response time:', event.responseTime, 'ms')
+})
+
+wayfinder.emitter.on('routing-failed', (event) => {
+  console.error('Routing failed:', event.error.message)
+})
+
+// Listen to verification events
+wayfinder.emitter.on('verification-started', (event) => {
+  console.log('Verifying transaction:', event.txId)
+})
+
+wayfinder.emitter.on('verification-succeeded', (event) => {
+  console.log('Verification passed for:', event.txId)
+})
+
+wayfinder.emitter.on('verification-failed', (event) => {
+  console.warn('Verification failed:', event.error.message)
+})
+```
+
+### Event Configuration
+
+Configure events during wayfinder initialization:
+
+```javascript
+import {
+  Wayfinder,
+  NetworkGatewaysProvider,
+  HashVerificationStrategy,
+} from '@ar.io/wayfinder-core'
+import { ARIO } from '@ar.io/sdk'
+
+const wayfinder = new Wayfinder({
+  gatewaysProvider: new NetworkGatewaysProvider({
+    ario: ARIO.mainnet(),
+  }),
+  routingSettings: {
+    events: {
+      onRoutingStarted: (event) => {
+        console.log(`Starting routing for ${event.originalUrl}`)
+      },
+      onRoutingSucceeded: (event) => {
+        console.log(
+          `Routing succeeded: ${event.selectedGateway} (${event.responseTime}ms)`,
+        )
+      },
+      onRoutingFailed: (error) => {
+        console.error(`Routing failed: ${error.message}`)
+      },
+    },
+  },
+  verificationSettings: {
+    enabled: true,
+    strategy: new HashVerificationStrategy({
+      trustedGateways: ['https://arweave.net'],
+    }),
+    events: {
+      onVerificationStarted: (event) => {
+        console.log(`Verifying ${event.txId} with ${event.strategy}`)
+      },
+      onVerificationSucceeded: (event) => {
+        console.log(`Verification passed for ${event.txId}`)
+      },
+      onVerificationFailed: (error) => {
+        console.warn(`Verification failed: ${error.message}`)
+      },
+    },
+  },
+})
+```
+
+## Advanced Usage
+
+### Event Aggregation
+
+```javascript
+class EventAggregator {
+  constructor(wayfinder) {
+    this.wayfinder = wayfinder
+    this.stats = {
+      routing: { success: 0, failed: 0, totalTime: 0 },
+      verification: { success: 0, failed: 0, totalTime: 0 },
+      gateways: new Map(),
+    }
+
+    this.setupEventListeners()
+  }
+
+  setupEventListeners() {
+    // Routing events
+    this.wayfinder.emitter.on('routing-succeeded', (event) => {
+      this.stats.routing.success++
+      this.stats.routing.totalTime += event.responseTime
+
+      // Track gateway usage
+      const usage = this.stats.gateways.get(event.selectedGateway) || 0
+      this.stats.gateways.set(event.selectedGateway, usage + 1)
+    })
+
+    this.wayfinder.emitter.on('routing-failed', () => {
+      this.stats.routing.failed++
+    })
+
+    // Verification events
+    this.wayfinder.emitter.on('verification-succeeded', (event) => {
+      this.stats.verification.success++
+      this.stats.verification.totalTime += event.verificationTime
+    })
+
+    this.wayfinder.emitter.on('verification-failed', () => {
+      this.stats.verification.failed++
+    })
+  }
+
+  getStats() {
+    const routingTotal = this.stats.routing.success + this.stats.routing.failed
+    const verificationTotal =
+      this.stats.verification.success + this.stats.verification.failed
+
+    return {
+      routing: {
+        successRate:
+          routingTotal > 0 ? this.stats.routing.success / routingTotal : 0,
+        averageResponseTime:
+          this.stats.routing.success > 0
+            ? this.stats.routing.totalTime / this.stats.routing.success
+            : 0,
+        totalRequests: routingTotal,
+      },
+      verification: {
+        successRate:
+          verificationTotal > 0
+            ? this.stats.verification.success / verificationTotal
+            : 0,
+        averageVerificationTime:
+          this.stats.verification.success > 0
+            ? this.stats.verification.totalTime /
+              this.stats.verification.success
+            : 0,
+        totalVerifications: verificationTotal,
+      },
+      gatewayUsage: Object.fromEntries(this.stats.gateways),
+    }
+  }
+
+  reset() {
+    this.stats = {
+      routing: { success: 0, failed: 0, totalTime: 0 },
+      verification: { success: 0, failed: 0, totalTime: 0 },
+      gateways: new Map(),
+    }
+  }
+}
+
+// Usage
+const aggregator = new EventAggregator(wayfinder)
+
+// Later, get aggregated statistics
+console.log('Performance stats:', aggregator.getStats())
+```
+
+### Event Filtering
+
+```javascript
+class EventFilter {
+  constructor(wayfinder, options = {}) {
+    this.wayfinder = wayfinder
+    this.options = options
+    this.setupFilters()
+  }
+
+  setupFilters() {
+    // Filter routing events by response time
+    if (this.options.slowRequestThreshold) {
+      this.wayfinder.emitter.on('routing-succeeded', (event) => {
+        if (event.responseTime > this.options.slowRequestThreshold) {
+          console.warn(
+            `Slow request detected: ${event.originalUrl} took ${event.responseTime}ms`,
+          )
+
+          // Emit custom event
+          this.wayfinder.emitter.emit('slow-request', {
+            ...event,
+            threshold: this.options.slowRequestThreshold,
+          })
+        }
+      })
+    }
+
+    // Filter verification events by strategy
+    if (this.options.verificationStrategies) {
+      this.wayfinder.emitter.on('verification-failed', (event) => {
+        if (this.options.verificationStrategies.includes(event.strategy)) {
+          console.error(
+            `Critical verification failure: ${event.txId} with ${event.strategy}`,
+          )
+
+          // Emit custom event
+          this.wayfinder.emitter.emit('critical-verification-failure', event)
+        }
+      })
+    }
+
+    // Filter gateway events by specific gateways
+    if (this.options.monitoredGateways) {
+      this.wayfinder.emitter.on('gateway-error', (event) => {
+        if (this.options.monitoredGateways.includes(event.gateway)) {
+          console.error(`Monitored gateway error: ${event.gateway}`)
+
+          // Emit custom event
+          this.wayfinder.emitter.emit('monitored-gateway-error', event)
+        }
+      })
+    }
+  }
+}
+
+// Usage
+const filter = new EventFilter(wayfinder, {
+  slowRequestThreshold: 5000, // 5 seconds
+  verificationStrategies: ['DataRootVerificationStrategy'],
+  monitoredGateways: ['https://my-critical-gateway.com'],
+})
+
+// Listen to filtered events
+wayfinder.emitter.on('slow-request', (event) => {
+  console.log('Slow request alert:', event)
+})
+
+wayfinder.emitter.on('critical-verification-failure', (event) => {
+  console.log('Critical verification failure:', event)
+})
+```
+
+### Event Persistence
+
+```javascript
+class EventLogger {
+  constructor(wayfinder, options = {}) {
+    this.wayfinder = wayfinder
+    this.logLevel = options.logLevel || 'info'
+    this.logFile = options.logFile
+    this.maxLogSize = options.maxLogSize || 10 * 1024 * 1024 // 10MB
+    this.logs = []
+
+    this.setupLogging()
+  }
+
+  setupLogging() {
+    // Log all events based on log level
+    const eventTypes = [
+      'routing-started',
+      'routing-succeeded',
+      'routing-failed',
+      'verification-started',
+      'verification-succeeded',
+      'verification-failed',
+      'telemetry-span-started',
+      'telemetry-span-ended',
+      'telemetry-error',
+      'gateway-discovered',
+      'gateway-health-check',
+      'gateway-error',
+    ]
+
+    eventTypes.forEach((eventType) => {
+      this.wayfinder.emitter.on(eventType, (event) => {
+        this.logEvent(eventType, event)
+      })
+    })
+  }
+
+  logEvent(eventType, event) {
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      type: eventType,
+      data: event,
+    }
+
+    // Add to memory log
+    this.logs.push(logEntry)
+
+    // Trim logs if too large
+    if (this.logs.length > 1000) {
+      this.logs = this.logs.slice(-1000)
+    }
+
+    // Console logging based on level
+    if (this.shouldLog(eventType)) {
+      console.log(`[${logEntry.timestamp}] ${eventType}:`, event)
+    }
+
+    // File logging (Node.js only)
+    if (this.logFile && typeof require !== 'undefined') {
+      this.writeToFile(logEntry)
+    }
+  }
+
+  shouldLog(eventType) {
+    const levels = {
+      error: [
+        'routing-failed',
+        'verification-failed',
+        'telemetry-error',
+        'gateway-error',
+      ],
+      warn: ['verification-failed', 'gateway-error'],
+      info: [
+        'routing-succeeded',
+        'verification-succeeded',
+        'gateway-discovered',
+      ],
+      debug: [
+        'routing-started',
+        'verification-started',
+        'telemetry-span-started',
+      ],
+    }
+
+    switch (this.logLevel) {
+      case 'error':
+        return levels.error.includes(eventType)
+      case 'warn':
+        return (
+          levels.error.includes(eventType) || levels.warn.includes(eventType)
+        )
+      case 'info':
+        return (
+          levels.error.includes(eventType) ||
+          levels.warn.includes(eventType) ||
+          levels.info.includes(eventType)
+        )
+      case 'debug':
+        return true
+      default:
+        return false
+    }
+  }
+
+  writeToFile(logEntry) {
+    try {
+      const fs = require('fs')
+      const logLine = JSON.stringify(logEntry) + '\n'
+
+      // Check file size and rotate if needed
+      if (fs.existsSync(this.logFile)) {
+        const stats = fs.statSync(this.logFile)
+        if (stats.size > this.maxLogSize) {
+          fs.renameSync(this.logFile, `${this.logFile}.old`)
+        }
+      }
+
+      fs.appendFileSync(this.logFile, logLine)
+    } catch (error) {
+      console.error('Failed to write log to file:', error.message)
+    }
+  }
+
+  getLogs(filter = {}) {
+    let filteredLogs = this.logs
+
+    if (filter.type) {
+      filteredLogs = filteredLogs.filter((log) => log.type === filter.type)
+    }
+
+    if (filter.since) {
+      const since = new Date(filter.since)
+      filteredLogs = filteredLogs.filter(
+        (log) => new Date(log.timestamp) >= since,
+      )
+    }
+
+    if (filter.limit) {
+      filteredLogs = filteredLogs.slice(-filter.limit)
+    }
+
+    return filteredLogs
+  }
+
+  clearLogs() {
+    this.logs = []
+  }
+}
+
+// Usage
+const logger = new EventLogger(wayfinder, {
+  logLevel: 'info',
+  logFile: './wayfinder.log',
+  maxLogSize: 50 * 1024 * 1024, // 50MB
+})
+
+// Later, retrieve logs
+const recentErrors = logger.getLogs({
+  type: 'routing-failed',
+  since: new Date(Date.now() - 24 * 60 * 60 * 1000), // Last 24 hours
+  limit: 100,
+})
+```
+
+## Event-Driven Architecture Patterns
+
+### Circuit Breaker Pattern
+
+```javascript
+class CircuitBreakerEventHandler {
+  constructor(wayfinder, options = {}) {
+    this.wayfinder = wayfinder
+    this.failureThreshold = options.failureThreshold || 5
+    this.resetTimeout = options.resetTimeout || 60000 // 1 minute
+    this.gatewayStates = new Map()
+
+    this.setupCircuitBreaker()
+  }
+
+  setupCircuitBreaker() {
+    this.wayfinder.emitter.on('routing-failed', (event) => {
+      this.recordFailure(event.selectedGateway || 'unknown')
+    })
+
+    this.wayfinder.emitter.on('routing-succeeded', (event) => {
+      this.recordSuccess(event.selectedGateway)
+    })
+  }
+
+  recordFailure(gateway) {
+    const state = this.getGatewayState(gateway)
+    state.failures++
+    state.lastFailure = Date.now()
+
+    if (state.failures >= this.failureThreshold && state.status !== 'open') {
+      state.status = 'open'
+      console.warn(`Circuit breaker opened for gateway: ${gateway}`)
+
+      // Emit custom event
+      this.wayfinder.emitter.emit('circuit-breaker-opened', {
+        gateway,
+        failures: state.failures,
+        timestamp: Date.now(),
+      })
+
+      // Schedule reset attempt
+      setTimeout(() => {
+        state.status = 'half-open'
+        console.info(`Circuit breaker half-open for gateway: ${gateway}`)
+      }, this.resetTimeout)
+    }
+  }
+
+  recordSuccess(gateway) {
+    const state = this.getGatewayState(gateway)
+
+    if (state.status === 'half-open') {
+      state.status = 'closed'
+      state.failures = 0
+      console.info(`Circuit breaker closed for gateway: ${gateway}`)
+
+      // Emit custom event
+      this.wayfinder.emitter.emit('circuit-breaker-closed', {
+        gateway,
+        timestamp: Date.now(),
+      })
+    }
+  }
+
+  getGatewayState(gateway) {
+    if (!this.gatewayStates.has(gateway)) {
+      this.gatewayStates.set(gateway, {
+        status: 'closed',
+        failures: 0,
+        lastFailure: null,
+      })
+    }
+    return this.gatewayStates.get(gateway)
+  }
+
+  isGatewayAvailable(gateway) {
+    const state = this.getGatewayState(gateway)
+    return state.status !== 'open'
+  }
+}
+
+// Usage
+const circuitBreaker = new CircuitBreakerEventHandler(wayfinder, {
+  failureThreshold: 3,
+  resetTimeout: 30000,
+})
+
+// Listen to circuit breaker events
+wayfinder.emitter.on('circuit-breaker-opened', (event) => {
+  console.log('Circuit breaker opened:', event)
+})
+
+wayfinder.emitter.on('circuit-breaker-closed', (event) => {
+  console.log('Circuit breaker closed:', event)
+})
+```
+
+## Testing Events
+
+### Event Testing
+
+```javascript
+import { Wayfinder, StaticGatewaysProvider } from '@ar.io/wayfinder-core'
+
+describe('Wayfinder Events', () => {
+  let wayfinder
+  let eventSpy
+
+  beforeEach(() => {
+    wayfinder = new Wayfinder({
+      gatewaysProvider: new StaticGatewaysProvider({
+        gateways: ['https://test-gateway.com'],
+      }),
+    })
+
+    eventSpy = jest.fn()
+  })
+
+  test('should emit routing events', async () => {
+    wayfinder.emitter.on('routing-started', eventSpy)
+    wayfinder.emitter.on('routing-succeeded', eventSpy)
+
+    await wayfinder.request('ar://test-transaction-id')
+
+    expect(eventSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        originalUrl: expect.stringContaining('test-transaction-id'),
+      }),
+    )
+  })
+
+  test('should emit verification events when enabled', async () => {
+    wayfinder = new Wayfinder({
+      gatewaysProvider: new StaticGatewaysProvider({
+        gateways: ['https://test-gateway.com'],
+      }),
+      verificationSettings: {
+        enabled: true,
+        strategy: new HashVerificationStrategy({
+          trustedGateways: ['https://arweave.net'],
+        }),
+      },
+    })
+
+    wayfinder.emitter.on('verification-started', eventSpy)
+    wayfinder.emitter.on('verification-succeeded', eventSpy)
+
+    await wayfinder.request('ar://test-transaction-id')
+
+    expect(eventSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        txId: 'test-transaction-id',
+      }),
+    )
+  })
+})
+```
+
+## Best Practices
+
+1. **Use Events for Monitoring**: Implement comprehensive event listeners for production monitoring
+2. **Avoid Blocking Operations**: Keep event handlers lightweight and non-blocking
+3. **Handle Event Errors**: Wrap event handlers in try-catch blocks
+4. **Filter Events Appropriately**: Only listen to events you need to avoid performance overhead
+5. **Implement Circuit Breakers**: Use events to implement circuit breaker patterns for reliability
+6. **Log Important Events**: Log critical events for debugging and analysis
+7. **Use Event Aggregation**: Aggregate events for metrics and analytics
+8. **Test Event Handlers**: Write tests for your event handling logic
+
+## Related Documentation
+
+- **[Wayfinder Class](/wayfinder/core)**: Main wayfinder class and configuration
+- **[Routing Strategies](/wayfinder/routing-strategies)**: Gateway selection algorithms
+- **[Verification Strategies](/wayfinder/verification-strategies)**: Data integrity verification
+- **[Telemetry](/wayfinder/core/telemetry)**: OpenTelemetry integration
+  {/* - **[Error Handling](/wayfinder/core/error-handling)**: Error handling patterns */}

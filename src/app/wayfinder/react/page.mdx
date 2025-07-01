@@ -1,0 +1,525 @@
+export const metadata = {
+  title: '@ar.io/wayfinder-react',
+  description:
+    'React-specific components and hooks for integrating Wayfinder into React applications.',
+  openGraph: {
+    title: '@ar.io/wayfinder-react',
+  },
+}
+
+# @ar.io/wayfinder-react
+
+## Overview
+
+The `@ar.io/wayfinder-react` package provides React-specific components and hooks for integrating Wayfinder into React applications. It offers a provider pattern for configuration and convenient hooks for fetching data with built-in loading states and error handling.
+
+## Installation
+
+```bash
+npm install @ar.io/wayfinder-react @ar.io/wayfinder-core
+# or
+yarn add @ar.io/wayfinder-react @ar.io/wayfinder-core
+```
+
+## Quick Start
+
+### 1. Wrap Your App with WayfinderProvider
+
+```jsx
+import { WayfinderProvider } from '@ar.io/wayfinder-react'
+import {
+  NetworkGatewaysProvider,
+  FastestPingRoutingStrategy,
+} from '@ar.io/wayfinder-core'
+import { ARIO } from '@ar.io/sdk'
+
+function App() {
+  return (
+    <WayfinderProvider
+      gatewaysProvider={new NetworkGatewaysProvider({ ario: ARIO.mainnet() })}
+      routingSettings={{
+        strategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
+      }}
+      telemetrySettings={{
+        enabled: true,
+        serviceName: 'my-react-app',
+        sampleRate: 0.1,
+      }}
+    >
+      <YourApp />
+    </WayfinderProvider>
+  )
+}
+```
+
+### 2. Use Hooks in Your Components
+
+```jsx
+import { useWayfinderRequest } from '@ar.io/wayfinder-react'
+
+function MyComponent() {
+  const request = useWayfinderRequest()
+
+  const handleFetch = async () => {
+    const response = await request('ar://transaction-id')
+    const data = await response.text()
+    console.log(data)
+  }
+
+  return <button onClick={handleFetch}>Fetch Data</button>
+}
+```
+
+## Components
+
+### WayfinderProvider
+
+The `WayfinderProvider` component wraps your application to make Wayfinder available throughout your component tree. It accepts all the same configuration options as the core Wayfinder constructor.
+
+#### Props
+
+```typescript
+interface WayfinderProviderProps extends WayfinderOptions {
+  children: React.ReactNode
+}
+```
+
+All `WayfinderOptions` from the core package are supported. See the [Core Configuration](/wayfinder/core) documentation for details.
+
+#### Basic Configuration
+
+```jsx
+import { WayfinderProvider } from '@ar.io/wayfinder-react'
+import {
+  NetworkGatewaysProvider,
+  FastestPingRoutingStrategy,
+} from '@ar.io/wayfinder-core'
+import { ARIO } from '@ar.io/sdk'
+
+function App() {
+  return (
+    <WayfinderProvider
+      gatewaysProvider={new NetworkGatewaysProvider({ ario: ARIO.mainnet() })}
+      routingSettings={{
+        strategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
+      }}
+    >
+      <YourApp />
+    </WayfinderProvider>
+  )
+}
+```
+
+#### Advanced Configuration
+
+```jsx
+import { WayfinderProvider } from '@ar.io/wayfinder-react'
+import {
+  NetworkGatewaysProvider,
+  PreferredWithFallbackRoutingStrategy,
+  FastestPingRoutingStrategy,
+  HashVerificationStrategy,
+  StaticGatewaysProvider,
+} from '@ar.io/wayfinder-core'
+import { ARIO } from '@ar.io/sdk'
+
+function App() {
+  return (
+    <WayfinderProvider
+      gatewaysProvider={new NetworkGatewaysProvider({ ario: ARIO.mainnet() })}
+      routingSettings={{
+        strategy: new PreferredWithFallbackRoutingStrategy({
+          preferredGateway: 'https://my-gateway.com',
+          fallbackStrategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
+        }),
+        events: {
+          onRoutingSucceeded: (event) =>
+            console.log('Gateway selected:', event.selectedGateway),
+          onRoutingFailed: (error) => console.error('Routing failed:', error),
+        },
+      }}
+      verificationSettings={{
+        enabled: true,
+        strategy: new HashVerificationStrategy({
+          trustedGateways: ['https://arweave.net'],
+        }),
+        strict: false,
+        events: {
+          onVerificationSucceeded: (event) =>
+            console.log('Verified:', event.txId),
+          onVerificationFailed: (error) =>
+            console.error('Verification failed:', error),
+        },
+      }}
+      telemetrySettings={{
+        enabled: process.env.NODE_ENV === 'production',
+        serviceName: 'my-react-app',
+        sampleRate: 0.05,
+        exporterUrl: process.env.REACT_APP_TELEMETRY_URL,
+      }}
+    >
+      <YourApp />
+    </WayfinderProvider>
+  )
+}
+```
+
+## Available Hooks
+
+The package provides three main hooks for different use cases:
+
+### [useWayfinder](/wayfinder/react/use-wayfinder)
+
+Access the complete Wayfinder instance with full control over all methods and configuration.
+
+```jsx
+const { wayfinder } = useWayfinder()
+```
+
+**Best for**: Advanced usage, custom implementations, accessing multiple Wayfinder methods
+
+### [useWayfinderRequest](/wayfinder/react/use-wayfinder-request)
+
+Get direct access to the request function for data fetching with ar:// URLs.
+
+```jsx
+const request = useWayfinderRequest()
+```
+
+**Best for**: Data fetching, most common use case, cleaner component code
+
+### [useWayfinderUrl](/wayfinder/react/use-wayfinder-url)
+
+Resolve ar:// URLs to gateway URLs with built-in loading states and error handling.
+
+```jsx
+const { resolvedUrl, isLoading, error } = useWayfinderUrl({ txId })
+```
+
+**Best for**: Creating links, displaying resolved URLs, URL resolution with state management
+
+## Provider Patterns
+
+### Multiple Providers for Different Configurations
+
+Use nested providers for different parts of your application that need different Wayfinder configurations:
+
+```jsx
+function App() {
+  return (
+    // Main app configuration
+    <WayfinderProvider
+      gatewaysProvider={new NetworkGatewaysProvider({ ario: ARIO.mainnet() })}
+      routingSettings={{
+        strategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
+      }}
+    >
+      <Header />
+      <MainContent />
+
+      {/* Secure section with verification enabled */}
+      <WayfinderProvider
+        gatewaysProvider={
+          new StaticGatewaysProvider({
+            gateways: ['https://arweave.net', 'https://permagate.io'],
+          })
+        }
+        verificationSettings={{
+          enabled: true,
+          strict: true,
+          strategy: new HashVerificationStrategy({
+            trustedGateways: ['https://arweave.net'],
+          }),
+        }}
+      >
+        <SecureDataSection />
+      </WayfinderProvider>
+
+      <Footer />
+    </WayfinderProvider>
+  )
+}
+```
+
+### Context Composition
+
+Combine Wayfinder with other React contexts:
+
+```jsx
+import { createContext, useContext } from 'react'
+import { WayfinderProvider, useWayfinder } from '@ar.io/wayfinder-react'
+
+// Application-specific context
+const AppContext = createContext()
+
+function AppProvider({ children }) {
+  const appState = {
+    user: { id: 'user123' },
+    preferences: { theme: 'dark' },
+  }
+
+  return (
+    <AppContext.Provider value={appState}>
+      <WayfinderProvider
+        gatewaysProvider={new NetworkGatewaysProvider({ ario: ARIO.mainnet() })}
+        telemetrySettings={{
+          enabled: true,
+          serviceName: 'my-app',
+          sampleRate: 0.1,
+        }}
+      >
+        {children}
+      </WayfinderProvider>
+    </AppContext.Provider>
+  )
+}
+
+// Combined hook
+function useApp() {
+  const appContext = useContext(AppContext)
+  const wayfinderContext = useWayfinder()
+
+  return {
+    ...appContext,
+    ...wayfinderContext,
+  }
+}
+```
+
+## TypeScript Support
+
+The package includes comprehensive TypeScript definitions:
+
+```tsx
+import {
+  useWayfinder,
+  useWayfinderRequest,
+  useWayfinderUrl,
+  WayfinderProvider,
+  WayfinderContextValue,
+  WayfinderProviderProps,
+} from '@ar.io/wayfinder-react'
+import { WayfinderOptions } from '@ar.io/wayfinder-core'
+
+// Typed provider configuration
+const wayfinderConfig: WayfinderOptions = {
+  gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
+  routingSettings: {
+    strategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
+  },
+  telemetrySettings: {
+    enabled: true,
+    serviceName: 'typed-app',
+    sampleRate: 0.1,
+  },
+}
+
+function TypedApp() {
+  return (
+    <WayfinderProvider {...wayfinderConfig}>
+      <DataComponent txId="your-transaction-id" />
+    </WayfinderProvider>
+  )
+}
+```
+
+## Error Handling
+
+### Global Error Boundary
+
+```jsx
+import { Component } from 'react'
+
+class WayfinderErrorBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error }
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('Wayfinder error:', error, errorInfo)
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div>
+          <h2>Something went wrong with Wayfinder</h2>
+          <details>
+            <summary>Error details</summary>
+            <pre>{this.state.error?.toString()}</pre>
+          </details>
+          <button
+            onClick={() => this.setState({ hasError: false, error: null })}
+          >
+            Try again
+          </button>
+        </div>
+      )
+    }
+
+    return this.props.children
+  }
+}
+
+// Usage
+function App() {
+  return (
+    <WayfinderErrorBoundary>
+      <WayfinderProvider {...config}>
+        <YourApp />
+      </WayfinderProvider>
+    </WayfinderErrorBoundary>
+  )
+}
+```
+
+### Hook-Level Error Handling
+
+```jsx
+import { useWayfinderRequest } from '@ar.io/wayfinder-react'
+import { useState } from 'react'
+
+function ErrorHandlingExample() {
+  const request = useWayfinderRequest()
+  const [error, setError] = useState(null)
+
+  const handleRequest = async (txId) => {
+    try {
+      setError(null)
+      const response = await request(`ar://${txId}`)
+      const data = await response.text()
+      // Handle success
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  return (
+    <div>
+      {error && (
+        <div className="error">
+          Error: {error}
+          <button onClick={() => setError(null)}>Dismiss</button>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+## Performance Optimization
+
+### Memoization Best Practices
+
+The Wayfinder instance is automatically memoized in the provider based on the configuration options:
+
+```jsx
+import { useMemo } from 'react'
+import { WayfinderProvider } from '@ar.io/wayfinder-react'
+
+function OptimizedProvider({ children }) {
+  // Memoize provider configuration to prevent unnecessary re-renders
+  const gatewaysProvider = useMemo(
+    () => new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
+    [],
+  )
+
+  const routingSettings = useMemo(
+    () => ({
+      strategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
+    }),
+    [],
+  )
+
+  const telemetrySettings = useMemo(
+    () => ({
+      enabled: process.env.NODE_ENV === 'production',
+      serviceName: 'optimized-app',
+      sampleRate: 0.1,
+    }),
+    [],
+  )
+
+  return (
+    <WayfinderProvider
+      gatewaysProvider={gatewaysProvider}
+      routingSettings={routingSettings}
+      telemetrySettings={telemetrySettings}
+    >
+      {children}
+    </WayfinderProvider>
+  )
+}
+```
+
+### Lazy Loading and Code Splitting
+
+```jsx
+import { lazy, Suspense } from 'react'
+import { WayfinderProvider } from '@ar.io/wayfinder-react'
+
+// Lazy load components that use Wayfinder
+const DataViewer = lazy(() => import('./DataViewer'))
+const ImageGallery = lazy(() => import('./ImageGallery'))
+
+function App() {
+  return (
+    <WayfinderProvider {...config}>
+      <Suspense fallback={<div>Loading Wayfinder components...</div>}>
+        <DataViewer />
+        <ImageGallery />
+      </Suspense>
+    </WayfinderProvider>
+  )
+}
+```
+
+## Testing
+
+### Mocking Wayfinder in Tests
+
+```jsx
+import { render, screen, waitFor } from '@testing-library/react'
+import { WayfinderProvider } from '@ar.io/wayfinder-react'
+import { StaticGatewaysProvider } from '@ar.io/wayfinder-core'
+
+// Mock implementation for testing
+const MockWayfinderProvider = ({ children }) => (
+  <WayfinderProvider
+    gatewaysProvider={
+      new StaticGatewaysProvider({ gateways: ['https://test.com'] })
+    }
+    telemetrySettings={{ enabled: false }}
+  >
+    {children}
+  </WayfinderProvider>
+)
+
+// Custom render helper for tests
+const renderWithWayfinder = (ui, options = {}) => {
+  const Wrapper = ({ children }) => (
+    <MockWayfinderProvider {...options}>{children}</MockWayfinderProvider>
+  )
+
+  return render(ui, { wrapper: Wrapper })
+}
+
+// Usage in tests
+test('component with wayfinder', () => {
+  renderWithWayfinder(<MyComponent />)
+  // Test assertions
+})
+```
+
+## API Reference
+
+- **[useWayfinder](/wayfinder/react/use-wayfinder)**: Access the complete Wayfinder instance
+- **[useWayfinderRequest](/wayfinder/react/use-wayfinder-request)**: Direct access to the request function
+- **[useWayfinderUrl](/wayfinder/react/use-wayfinder-url)**: URL resolution with loading states
+
+For more advanced configuration options, see the [Core Documentation](/wayfinder/core).

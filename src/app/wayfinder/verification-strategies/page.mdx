@@ -1,0 +1,214 @@
+export const metadata = {
+  title: 'Verification Strategies',
+  description:
+    'Cryptographic verification methods in Wayfinder that ensure data integrity and authenticity when fetching content from Arweave through AR.IO gateways.',
+  openGraph: {
+    title: 'Verification Strategies',
+  },
+}
+
+import { Table } from '@/components/Table'
+
+# Verification Strategies
+
+## Overview
+
+Verification strategies in Wayfinder ensure data integrity and authenticity when fetching content from Arweave through AR.IO gateways. These strategies use cryptographic methods to verify that the data you receive matches what was originally stored on Arweave, protecting against tampering, corruption, or malicious gateways.
+
+<Tip title="Important">
+  Verification methods require that the gateway being used has
+  the relevant transaction data indexed locally. Gateways cannot proxy out
+  verification requests to other sources, as this would compromise the security
+  and reliability of the verification process. If a gateway doesn't have the
+  required data indexed, verification will fail.
+</Tip>
+
+## Strategy Comparison
+
+<Table>
+  <Table.Head>
+    <Table.Row>
+      <Table.Header>Strategy</Table.Header>
+      <Table.Header>Security Level</Table.Header>
+      <Table.Header>Best For</Table.Header>
+      <Table.Header>Use Case</Table.Header>
+      <Table.Header>Verification Method</Table.Header>
+    </Table.Row>
+  </Table.Head>
+  <Table.Body>
+    <Table.Row>
+      <Table.Cell>Hash Verification</Table.Cell>
+      <Table.Cell>High</Table.Cell>
+      <Table.Cell>Fast integrity checks and development</Table.Cell>
+      <Table.Cell>High-throughput applications</Table.Cell>
+      <Table.Cell>SHA-256 hash vs trusted gateway digest</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>Signature Verification</Table.Cell>
+      <Table.Cell>Very High</Table.Cell>
+      <Table.Cell>Authenticity validation and ownership proof</Table.Cell>
+      <Table.Cell>Financial or legal documents</Table.Cell>
+      <Table.Cell>Transaction signature validation</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>Data Root Verification</Table.Cell>
+      <Table.Cell>Highest</Table.Cell>
+      <Table.Cell>Maximum security and critical data</Table.Cell>
+      <Table.Cell>Production applications</Table.Cell>
+      <Table.Cell>Merkle tree data root comparison</Table.Cell>
+    </Table.Row>
+  </Table.Body>
+</Table>
+
+## What Are Verification Strategies?
+
+Verification strategies are cryptographic methods that ensure the data you receive from AR.IO gateways is authentic and hasn't been tampered with. They work by comparing the received data against trusted sources or using mathematical proofs to validate integrity.
+
+
+
+### Why Verification Matters
+
+- **Data Integrity**: Ensures content hasn't been corrupted during transmission
+- **Security**: Protects against malicious gateways serving fake data
+- **Trust**: Provides cryptographic proof that data is authentic
+- **Compliance**: Meets security requirements for sensitive applications
+
+## Available Strategies
+
+### [Hash Verification Strategy](/wayfinder/verification-strategies/hash-verification)
+
+**What it does**: Compares SHA-256 hashes of received data against trusted gateway digest headers
+
+**How it works**: Fetches the data from a gateway, computes its SHA-256 hash, then requests the digest from trusted gateways via HTTP headers and compares them
+
+**Best for**:
+
+- Development and testing environments
+- High-throughput applications where speed matters
+- Basic integrity checking
+- Applications with trusted gateway infrastructure
+
+**Security**: High - Uses cryptographic hashing to detect tampering
+
+### [Signature Verification Strategy](/wayfinder/verification-strategies/signature-verification)
+
+**What it does**: Validates the cryptographic signatures of Arweave transactions and data items
+
+**How it works**: Fetches transaction metadata from trusted gateways, reconstructs the signature data using the received content, and verifies the signature matches the claimed owner's public key
+
+**Best for**:
+
+- Financial applications
+- Legal document storage
+- Identity verification systems
+- Applications requiring proof of ownership
+
+**Security**: Very High - Provides cryptographic proof of authenticity and ownership
+
+### [Data Root Verification Strategy](/wayfinder/verification-strategies/data-root-verification)
+
+**What it does**: Verifies data integrity by reconstructing and comparing Merkle tree data roots
+
+**How it works**: Computes the data root from received content by chunking it and building a Merkle tree, then compares this against the data root fetched from trusted gateways
+
+**Best for**:
+
+- Production applications with critical data
+- Maximum security requirements
+- Regulatory compliance scenarios
+- Long-term data archival systems
+
+**Security**: Highest - Provides mathematical proof of data integrity using blockchain records
+
+## Configuration Options
+
+### Verification Modes
+
+**Strict Mode**: Blocks requests when verification fails - ensures maximum security but may impact availability
+
+**Non-Strict Mode**: Logs verification failures but allows requests to proceed - balances security with user experience
+
+### Event Monitoring
+
+All verification strategies emit events that allow you to:
+
+- Track verification success and failure rates
+- Monitor performance metrics
+- Log security incidents
+- Implement custom alerting
+
+### Trusted Gateways
+
+Verification strategies can be configured with lists of trusted gateways used as reference sources for validation.
+
+## Advanced Capabilities
+
+### Strategy Combination
+
+**Sequential Verification**: Run multiple strategies one after another for layered security
+
+**Parallel Verification**: Run multiple strategies simultaneously for comprehensive validation
+
+**Fallback Verification**: Try strategies in order until one succeeds, providing resilience
+
+### Custom Strategies
+
+Implement your own verification logic by creating custom strategies that integrate with Wayfinder's verification system.
+
+### Performance Optimization
+
+- **Caching**: Cache verification results to avoid repeated computations
+- **Circuit Breakers**: Automatically disable verification when failure rates are too high
+- **Timeout Management**: Configure appropriate timeouts for different verification methods
+
+## Use Cases by Environment
+
+### Development
+
+- Use Hash Verification for fast iteration
+- Enable non-strict mode to avoid blocking
+- Focus on basic integrity checking
+
+### Production
+
+- Use Data Root Verification for maximum security
+- Enable strict mode for critical applications
+- Implement comprehensive monitoring
+
+### High-Security
+
+- Combine multiple verification strategies
+- Use strict mode with comprehensive logging
+- Implement custom verification logic for specific requirements
+
+### High-Performance
+
+- Use Hash Verification with caching
+- Implement circuit breakers for resilience
+- Balance security with performance requirements
+
+## Best Practices
+
+1. **Choose the Right Strategy**: Match verification strength to your security requirements
+2. **Monitor Performance**: Track verification success rates and response times
+3. **Handle Failures Gracefully**: Implement appropriate fallback behavior
+4. **Use Trusted Sources**: Configure reliable gateways for verification
+5. **Plan for Scale**: Consider performance implications at high request volumes
+
+## Error Handling
+
+Verification strategies can fail for various reasons:
+
+- **Network Issues**: Trusted gateways are unreachable
+- **Data Corruption**: Content has been tampered with
+- **Timeout Errors**: Verification takes too long
+- **Configuration Issues**: Invalid trusted gateway lists
+
+Understanding these failure modes helps you implement appropriate error handling and recovery strategies.
+
+## Next Steps
+
+- **[Hash Verification](/wayfinder/verification-strategies/hash-verification)**: Learn about fast integrity checking
+- **[Signature Verification](/wayfinder/verification-strategies/signature-verification)**: Understand authenticity validation
+- **[Data Root Verification](/wayfinder/verification-strategies/data-root-verification)**: Explore maximum security verification
+- **[Wayfinder Core](/wayfinder/core)**: See how to configure verification in your application

@@ -1,0 +1,327 @@
+# Getting Started with Wayfinder
+
+Wayfinder provides decentralized and verified access to data stored on Arweave. This guide will help you get started with the core concepts and basic usage.
+
+<Tip>
+  Verification strategies may be dependent on the gateway being used having the
+  data indexed locally. A gateway cannot verify data it doesn't have access to
+  or hasn't indexed yet.
+</Tip>
+
+## Installation
+
+Choose the package that fits your project:
+
+### Core Library (JavaScript/TypeScript)
+
+```bash
+npm install @ar.io/wayfinder-core
+# or
+yarn add @ar.io/wayfinder-core
+```
+
+### React Components
+
+```bash
+npm install @ar.io/wayfinder-react
+# or
+yarn add @ar.io/wayfinder-react
+```
+
+## Quick Start
+
+### Basic Usage with Default Settings
+
+The simplest way to get started is with the default configuration:
+
+```javascript
+import { Wayfinder } from '@ar.io/wayfinder-core'
+
+// Create wayfinder with default settings
+const wayfinder = new Wayfinder()
+
+// Fetch data using ar:// protocol
+try {
+  const response = await wayfinder.request('ar://transaction-id')
+  const data = await response.text()
+  console.log('Data:', data)
+} catch (error) {
+  console.error('Failed to fetch data:', error)
+}
+```
+
+### React Integration
+
+For React applications, use the wayfinder-react package:
+
+```jsx
+import { WayfinderProvider, useWayfinder } from '@ar.io/wayfinder-react'
+
+// Wrap your app with the provider
+function App() {
+  return (
+    <WayfinderProvider
+      gatewaysProvider={new NetworkGatewaysProvider({ ario: ARIO.mainnet() })}
+      routingSettings={{
+        strategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
+      }}
+    >
+      <MyComponent />
+    </WayfinderProvider>
+  )
+}
+
+// Use the hook in your components
+function MyComponent() {
+  const { wayfinder, isReady } = useWayfinder()
+  const [data, setData] = useState(null)
+
+  useEffect(() => {
+    if (isReady) {
+      wayfinder
+        .request('ar://transaction-id')
+        .then((response) => response.text())
+        .then(setData)
+    }
+  }, [wayfinder, isReady])
+
+  return <div>{data}</div>
+}
+```
+
+### Available Strategies
+
+#### Routing Strategies
+
+<Table>
+  <Table.Head>
+    <Table.Row>
+      <Table.Header>Strategy</Table.Header>
+      <Table.Header>Description</Table.Header>
+      <Table.Header>Use Case</Table.Header>
+    </Table.Row>
+  </Table.Head>
+  <Table.Body>
+    <Table.Row>
+      <Table.Cell>FastestPingRoutingStrategy</Table.Cell>
+      <Table.Cell>Selects gateway with lowest latency</Table.Cell>
+      <Table.Cell>Performance-critical applications</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>PreferredWithFallbackRoutingStrategy</Table.Cell>
+      <Table.Cell>
+        Tries preferred gateway first, falls back to others
+      </Table.Cell>
+      <Table.Cell>When you have a trusted primary gateway</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>RoundRobinRoutingStrategy</Table.Cell>
+      <Table.Cell>Distributes requests evenly across gateways</Table.Cell>
+      <Table.Cell>Load balancing and fair distribution</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>RandomRoutingStrategy</Table.Cell>
+      <Table.Cell>Randomly selects from available gateways</Table.Cell>
+      <Table.Cell>Simple load distribution</Table.Cell>
+    </Table.Row>
+  </Table.Body>
+</Table>
+
+#### Verification Strategies
+
+<Table>
+  <Table.Head>
+    <Table.Row>
+      <Table.Header>Strategy</Table.Header>
+      <Table.Header>Description</Table.Header>
+      <Table.Header>Use Case</Table.Header>
+    </Table.Row>
+  </Table.Head>
+  <Table.Body>
+    <Table.Row>
+      <Table.Cell>HashVerificationStrategy</Table.Cell>
+      <Table.Cell>Verifies data against trusted gateway hashes</Table.Cell>
+      <Table.Cell>Fast verification with trusted sources</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>SignatureVerificationStrategy</Table.Cell>
+      <Table.Cell>Validates Arweave transaction signatures</Table.Cell>
+      <Table.Cell>Cryptographic proof of authenticity</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>DataRootVerificationStrategy</Table.Cell>
+      <Table.Cell>Verifies against transaction data roots</Table.Cell>
+      <Table.Cell>Block-level verification</Table.Cell>
+    </Table.Row>
+  </Table.Body>
+</Table>
+
+
+
+
+
+### Handling Unknown Data Types
+
+When you're not sure what type of data you're fetching, check the content type and handle accordingly:
+
+```javascript
+import { Wayfinder } from '@ar.io/wayfinder-core'
+
+const wayfinder = new Wayfinder()
+
+async function fetchUnknownData(txId) {
+  try {
+    const response = await wayfinder.request(`ar://${txId}`)
+    const contentType = response.headers.get('content-type') || ''
+
+    if (contentType.includes('application/json')) {
+      // Handle JSON data
+      const jsonData = await response.json()
+      console.log('JSON data:', jsonData)
+      return jsonData
+    } else if (contentType.startsWith('text/')) {
+      // Handle text data
+      const textData = await response.text()
+      console.log('Text data:', textData)
+      return textData
+    } else if (contentType.startsWith('image/')) {
+      // Handle image data
+      const blob = await response.blob()
+      const imageUrl = URL.createObjectURL(blob)
+      console.log('Image URL:', imageUrl)
+      return imageUrl
+    } else {
+      // Handle binary/unknown data as ArrayBuffer
+      const buffer = await response.arrayBuffer()
+      console.log('Binary data size:', buffer.byteLength, 'bytes')
+      return buffer
+    }
+  } catch (error) {
+    console.error('Failed to fetch data:', error)
+    throw error
+  }
+}
+
+// Usage
+fetchUnknownData('your-transaction-id')
+```
+
+### Event Monitoring
+
+Monitor wayfinder operations using events:
+
+```javascript
+// Listen to all events
+wayfinder.emitter.on('routing-succeeded', (event) => {
+  console.log('Gateway selected:', event.selectedGateway)
+})
+
+wayfinder.emitter.on('verification-succeeded', (event) => {
+  console.log('Data verified for transaction:', event.txId)
+})
+
+wayfinder.emitter.on('verification-failed', (event) => {
+  console.error('Verification failed:', event)
+})
+```
+
+### Advanced Configuration
+
+For production applications, you'll want to configure gateway providers, routing strategies, and verification:
+
+```javascript
+import {
+  Wayfinder,
+  NetworkGatewaysProvider,
+  FastestPingRoutingStrategy,
+  HashVerificationStrategy,
+} from '@ar.io/wayfinder-core'
+import { ARIO } from '@ar.io/sdk'
+
+const wayfinder = new Wayfinder({
+  // Discover gateways from the AR.IO Network
+  gatewaysProvider: new NetworkGatewaysProvider({
+    ario: ARIO.mainnet(),
+    limit: 10,
+    sortBy: 'operatorStake',
+    sortOrder: 'desc',
+  }),
+
+  // Use fastest ping routing strategy
+  routingSettings: {
+    strategy: new FastestPingRoutingStrategy({
+      timeoutMs: 500,
+    }),
+    events: {
+      onRoutingSucceeded: (event) => {
+        console.log('Selected gateway:', event.selectedGateway)
+      },
+    },
+  },
+
+  // Enable data verification
+  verificationSettings: {
+    enabled: true,
+    strategy: new HashVerificationStrategy({
+      trustedGateways: ['https://arweave.net'],
+    }),
+    events: {
+      onVerificationSucceeded: (event) => {
+        console.log('Verification passed for:', event.txId)
+      },
+    },
+  },
+
+  // Enable telemetry
+  telemetrySettings: {
+    enabled: true,
+    serviceName: 'my-app',
+    sampleRate: 0.1, // 10% sampling
+  },
+
+  // Configure event handlers
+  events: {
+    onGatewaysRefreshed: (event) => {
+      console.log(`Refreshed ${event.gateways.length} gateways`)
+    },
+    onRequestStarted: (event) => {
+      console.log(`Starting request for ${event.url}`)
+    },
+    onRequestCompleted: (event) => {
+      console.log(`Request completed in ${event.duration}ms`)
+    },
+    onRequestFailed: (event) => {
+      console.error(`Request failed: ${event.error.message}`)
+    },
+  },
+})
+```
+
+## Core Concepts
+
+### Gateway Providers
+
+Gateway providers discover and manage the list of available AR.IO gateways:
+
+- **NetworkGatewaysProvider**: Fetches gateways from the AR.IO Network
+- **StaticGatewaysProvider**: Uses a predefined list of gateways
+- **SimpleCacheGatewaysProvider**: Caches gateway lists for performance
+
+### Routing Strategies
+
+Routing strategies determine which gateway to use for each request:
+
+- **FastestPingRoutingStrategy**: Selects the gateway with lowest latency
+- **PreferredWithFallbackRoutingStrategy**: Tries a preferred gateway first
+- **RoundRobinRoutingStrategy**: Distributes requests evenly
+- **RandomRoutingStrategy**: Randomly selects gateways
+
+### Verification Strategies
+
+Verification strategies ensure data integrity:
+
+- **HashVerificationStrategy**: Verifies data against trusted gateway hashes
+- **SignatureVerificationStrategy**: Validates Arweave transaction signatures
+- **DataRootVerificationStrategy**: Verifies against transaction data roots
+
+

@@ -1,0 +1,183 @@
+export const metadata = {
+  title: 'SimpleCacheRoutingStrategy',
+  description:
+    'A routing strategy that caches the result of another strategy for a specified duration to improve performance.',
+  openGraph: {
+    title: 'SimpleCacheRoutingStrategy',
+  },
+}
+
+# SimpleCacheRoutingStrategy
+
+## Overview
+
+The `SimpleCacheRoutingStrategy` wraps another routing strategy and caches its results for a specified duration. This improves performance by avoiding repeated expensive operations like network pings or complex calculations.
+
+## Routing Strategy Comparison
+
+<Table>
+  <thead>
+    <tr>
+      <th>Strategy</th>
+      <th>Best For</th>
+      <th>Use Case</th>
+      <th>Predictability</th>
+      <th>Infrastructure Control</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Simple Cache</td>
+      <td>Performance optimization</td>
+      <td>Wrapping expensive strategies like FastestPing</td>
+      <td>Medium</td>
+      <td>Medium</td>
+    </tr>
+    <tr>
+      <td>Fastest Ping</td>
+      <td>Real-time applications</td>
+      <td>Performance-critical apps, gaming</td>
+      <td>Medium</td>
+      <td>Low</td>
+    </tr>
+    <tr>
+      <td>Preferred + Fallback</td>
+      <td>Dedicated infrastructure</td>
+      <td>CDN with origin fallback, enterprise gateways</td>
+      <td>High</td>
+      <td>Maximum</td>
+    </tr>
+    <tr>
+      <td>Round Robin</td>
+      <td>Load balancing</td>
+      <td>Even distribution across known gateways</td>
+      <td>High</td>
+      <td>High</td>
+    </tr>
+    <tr>
+      <td>Random</td>
+      <td>Simple distribution</td>
+      <td>Basic load spreading, testing</td>
+      <td>Low</td>
+      <td>Medium</td>
+    </tr>
+  </tbody>
+</Table>
+
+## How It Works
+
+1. **Check Cache**: Look for a cached result from previous strategy calls
+2. **Cache Hit**: Return cached gateway if still valid (within TTL)
+3. **Cache Miss**: Call the wrapped strategy to get a new gateway
+4. **Store Result**: Cache the new gateway with timestamp
+5. **Return Gateway**: Return the selected gateway
+
+## Configuration
+
+### Basic Usage
+
+```javascript
+import {
+  SimpleCacheRoutingStrategy,
+  FastestPingRoutingStrategy,
+} from '@ar.io/wayfinder-core'
+
+const strategy = new SimpleCacheRoutingStrategy({
+  strategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
+  cacheTimeMs: 30000, // Cache for 30 seconds
+})
+```
+
+### With Different Strategies
+
+```javascript
+import {
+  SimpleCacheRoutingStrategy,
+  PreferredWithFallbackRoutingStrategy,
+  RandomRoutingStrategy,
+} from '@ar.io/wayfinder-core'
+
+// Cache a preferred with fallback strategy
+const cachedStrategy = new SimpleCacheRoutingStrategy({
+  strategy: new PreferredWithFallbackRoutingStrategy({
+    preferredGateway: 'https://my-gateway.com',
+    fallbackStrategy: new RandomRoutingStrategy(),
+  }),
+  cacheTimeMs: 60000, // Cache for 1 minute
+})
+```
+
+## Parameters
+
+| Parameter     | Type              | Default         | Description                               |
+| ------------- | ----------------- | --------------- | ----------------------------------------- |
+| `strategy`    | `RoutingStrategy` | **required**    | The routing strategy to wrap and cache    |
+| `cacheTimeMs` | `number`          | `30000`         | How long to cache results in milliseconds |
+| `logger`      | `Logger`          | `defaultLogger` | Optional logger instance                  |
+
+## Integration with Wayfinder
+
+```javascript
+import {
+  Wayfinder,
+  SimpleCacheRoutingStrategy,
+  FastestPingRoutingStrategy,
+} from '@ar.io/wayfinder-core'
+
+const wayfinder = new Wayfinder({
+  routingSettings: {
+    strategy: new SimpleCacheRoutingStrategy({
+      strategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
+      cacheTimeMs: 30000,
+    }),
+  },
+})
+```
+
+## Use Cases
+
+### Caching Expensive Ping Operations
+
+Perfect for wrapping FastestPingRoutingStrategy to avoid repeated network calls.
+
+```javascript
+const cachedPingStrategy = new SimpleCacheRoutingStrategy({
+  strategy: new FastestPingRoutingStrategy({ timeoutMs: 1000 }),
+  cacheTimeMs: 30000, // Cache ping results for 30 seconds
+})
+```
+
+### Reducing Complex Calculations
+
+Ideal for strategies that perform complex calculations or multiple network requests.
+
+```javascript
+const cachedComplexStrategy = new SimpleCacheRoutingStrategy({
+  strategy: new PreferredWithFallbackRoutingStrategy({
+    preferredGateway: 'https://primary.com',
+    fallbackStrategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
+  }),
+  cacheTimeMs: 60000, // Cache for 1 minute
+})
+```
+
+### Development and Testing
+
+Useful for consistent behavior during development and testing.
+
+```javascript
+const testStrategy = new SimpleCacheRoutingStrategy({
+  strategy: new RandomRoutingStrategy({ seed: 42 }),
+  cacheTimeMs: 300000, // Cache for 5 minutes during testing
+})
+```
+
+## Best Practices
+
+1. **Choose Appropriate Cache Time**: Balance between performance and freshness
+2. **Wrap Expensive Strategies**: Use with strategies that perform network calls
+3. **Monitor Cache Hit Rates**: Track how often cache is used vs. strategy calls
+4. **Consider Cache Invalidation**: Plan for scenarios where cache should be cleared
+5. **Test Cache Behavior**: Verify caching works correctly in your use cases
+
+The `SimpleCacheRoutingStrategy` is ideal for improving performance by caching results from expensive routing strategies.

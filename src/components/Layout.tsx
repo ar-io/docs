@@ -14,6 +14,7 @@ import DiagramWithWayfinder from '@/components/DiagramWithWayfinder'
 import Tip from '@/components/Tip'
 import { Table } from '@/components/Table'
 import { GatewayProvider } from '@/components/GatewayProvider'
+import { HeroPattern } from '@/components/HeroPattern'
 
 export function Layout({
   children,
@@ -64,6 +65,7 @@ export function Layout({
             </div>
           </motion.header>
           <div className="relative flex h-full flex-col px-3 pt-14 sm:px-4 md:px-6 lg:px-8">
+            <HeroPattern />
             <MDXProvider components={components}>
               <main className="max-w-full flex-auto overflow-x-hidden">
                 {children}

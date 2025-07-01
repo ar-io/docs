@@ -1,0 +1,528 @@
+export const metadata = {
+  title: 'useWayfinder',
+  description:
+    'React hook that provides access to the complete Wayfinder instance from the React context.',
+  openGraph: {
+    title: 'useWayfinder',
+  },
+}
+
+# useWayfinder
+
+## Overview
+
+The `useWayfinder` hook provides access to the complete Wayfinder instance from the React context. This hook gives you full control over all Wayfinder methods and is ideal for advanced usage scenarios where you need access to multiple Wayfinder capabilities.
+
+## Signature
+
+```typescript
+function useWayfinder(): WayfinderContextValue
+
+interface WayfinderContextValue {
+  wayfinder: Wayfinder
+}
+```
+
+## Usage
+
+### Basic Usage
+
+```jsx
+import { useWayfinder } from '@ar.io/wayfinder-react'
+
+function MyComponent() {
+  const { wayfinder } = useWayfinder()
+
+  const handleFetch = async () => {
+    try {
+      const response = await wayfinder.request('ar://transaction-id')
+      const data = await response.text()
+      console.log(data)
+    } catch (error) {
+      console.error('Failed to fetch:', error)
+    }
+  }
+
+  const handleResolve = async () => {
+    try {
+      const url = await wayfinder.resolveUrl({
+        originalUrl: 'ar://transaction-id',
+      })
+      console.log('Resolved URL:', url.toString())
+    } catch (error) {
+      console.error('Failed to resolve:', error)
+    }
+  }
+
+  return (
+    <div>
+      <button onClick={handleFetch}>Fetch Data</button>
+      <button onClick={handleResolve}>Resolve URL</button>
+    </div>
+  )
+}
+```
+
+### Advanced Usage with Event Listeners
+
+```jsx
+import { useWayfinder } from '@ar.io/wayfinder-react'
+import { useEffect, useState } from 'react'
+
+function AdvancedComponent() {
+  const { wayfinder } = useWayfinder()
+  const [events, setEvents] = useState([])
+
+  useEffect(() => {
+    // Listen to routing events
+    const handleRoutingSuccess = (event) => {
+      setEvents((prev) => [
+        ...prev,
+        {
+          type: 'routing-success',
+          data: event,
+          timestamp: Date.now(),
+        },
+      ])
+    }
+
+    const handleRoutingFailed = (error) => {
+      setEvents((prev) => [
+        ...prev,
+        {
+          type: 'routing-failed',
+          data: error,
+          timestamp: Date.now(),
+        },
+      ])
+    }
+
+    const handleVerificationSuccess = (event) => {
+      setEvents((prev) => [
+        ...prev,
+        {
+          type: 'verification-success',
+          data: event,
+          timestamp: Date.now(),
+        },
+      ])
+    }
+
+    // Subscribe to events
+    wayfinder.emitter.on('routing-succeeded', handleRoutingSuccess)
+    wayfinder.emitter.on('routing-failed', handleRoutingFailed)
+    wayfinder.emitter.on('verification-succeeded', handleVerificationSuccess)
+
+    // Cleanup
+    return () => {
+      wayfinder.emitter.off('routing-succeeded', handleRoutingSuccess)
+      wayfinder.emitter.off('routing-failed', handleRoutingFailed)
+      wayfinder.emitter.off('verification-succeeded', handleVerificationSuccess)
+    }
+  }, [wayfinder])
+
+  return (
+    <div>
+      <h3>Wayfinder Events</h3>
+      <ul>
+        {events.map((event, index) => (
+          <li key={index}>
+            {event.type} - {new Date(event.timestamp).toLocaleTimeString()}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+```
+
+### Custom Request with Overrides
+
+```jsx
+import { useWayfinder } from '@ar.io/wayfinder-react'
+import { useState } from 'react'
+import {
+  StaticRoutingStrategy,
+  HashVerificationStrategy,
+} from '@ar.io/wayfinder-core'
+
+function CustomRequestComponent({ txId }) {
+  const { wayfinder } = useWayfinder()
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  const fetchWithCustomSettings = async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      // Override routing and verification for this specific request
+      const response = await wayfinder.request(`ar://${txId}`, {
+        routingSettings: {
+          strategy: new StaticRoutingStrategy({
+            gateway: 'https://arweave.net',
+          }),
+        },
+        verificationSettings: {
+          enabled: true,
+          strict: true,
+          strategy: new HashVerificationStrategy({
+            trustedGateways: ['https://arweave.net'],
+          }),
+        },
+      })
+
+      const text = await response.text()
+      setData(text)
+    } catch (err) {
+      setError(err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div>
+      <button onClick={fetchWithCustomSettings} disabled={loading}>
+        {loading
+          ? 'Fetching with custom settings...'
+          : 'Fetch with Custom Settings'}
+      </button>
+
+      {error && <div className="error">Error: {error.message}</div>}
+      {data && <pre>{data}</pre>}
+    </div>
+  )
+}
+```
+
+## Error Handling
+
+### Provider Context Error
+
+The hook throws an error if used outside of a `WayfinderProvider`:
+
+```jsx
+function ComponentOutsideProvider() {
+  try {
+    const { wayfinder } = useWayfinder()
+    // This will never execute
+  } catch (error) {
+    // Error: useWayfinder must be used within a WayfinderProvider
+    console.error(error.message)
+  }
+
+  return <div>Component outside provider</div>
+}
+```
+
+### Proper Error Handling
+
+```jsx
+import { useWayfinder } from '@ar.io/wayfinder-react'
+import { useState, useCallback } from 'react'
+
+function RobustComponent() {
+  const { wayfinder } = useWayfinder()
+  const [error, setError] = useState(null)
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(false)
+
+  const handleRequest = useCallback(
+    async (txId) => {
+      setLoading(true)
+      setError(null)
+
+      try {
+        const response = await wayfinder.request(`ar://${txId}`)
+        const result = await response.text()
+        setData(result)
+      } catch (err) {
+        setError(err)
+
+        // Log different error types
+        if (err.name === 'TimeoutError') {
+          console.error('Request timed out')
+        } else if (err.name === 'VerificationError') {
+          console.error('Data verification failed')
+        } else if (err.name === 'NetworkError') {
+          console.error('Network error occurred')
+        } else {
+          console.error('Unknown error:', err)
+        }
+      } finally {
+        setLoading(false)
+      }
+    },
+    [wayfinder],
+  )
+
+  const clearError = useCallback(() => {
+    setError(null)
+  }, [])
+
+  return (
+    <div>
+      {error && (
+        <div className="error-banner">
+          <p>Error: {error.message}</p>
+          <button onClick={clearError}>Dismiss</button>
+          <button onClick={() => handleRequest('retry')}>Retry</button>
+        </div>
+      )}
+
+      {loading && <div>Loading...</div>}
+      {data && <pre>{data}</pre>}
+    </div>
+  )
+}
+```
+
+## Performance Considerations
+
+### Memoization
+
+The Wayfinder instance is automatically memoized in the provider, but you should memoize callbacks that use it:
+
+```jsx
+import { useWayfinder } from '@ar.io/wayfinder-react'
+import { useCallback, useMemo } from 'react'
+
+function OptimizedComponent({ txIds }) {
+  const { wayfinder } = useWayfinder()
+
+  // Memoize the request function
+  const fetchData = useCallback(
+    async (txId) => {
+      const response = await wayfinder.request(`ar://${txId}`)
+      return response.text()
+    },
+    [wayfinder],
+  )
+
+  // Memoize derived data
+  const processedTxIds = useMemo(() => {
+    return txIds.filter((id) => id.length === 43) // Valid Arweave TX IDs
+  }, [txIds])
+
+  return (
+    <div>
+      {processedTxIds.map((txId) => (
+        <DataItem key={txId} txId={txId} fetchData={fetchData} />
+      ))}
+    </div>
+  )
+}
+```
+
+### Event Listener Cleanup
+
+Always clean up event listeners to prevent memory leaks:
+
+```jsx
+import { useWayfinder } from '@ar.io/wayfinder-react'
+import { useEffect, useRef } from 'react'
+
+function EventListenerComponent() {
+  const { wayfinder } = useWayfinder()
+  const handlersRef = useRef({})
+
+  useEffect(() => {
+    // Store handlers in ref for cleanup
+    handlersRef.current.onRoutingSuccess = (event) => {
+      console.log('Routing succeeded:', event)
+    }
+
+    handlersRef.current.onRoutingFailed = (error) => {
+      console.error('Routing failed:', error)
+    }
+
+    // Add listeners
+    wayfinder.emitter.on(
+      'routing-succeeded',
+      handlersRef.current.onRoutingSuccess,
+    )
+    wayfinder.emitter.on('routing-failed', handlersRef.current.onRoutingFailed)
+
+    // Cleanup function
+    return () => {
+      wayfinder.emitter.off(
+        'routing-succeeded',
+        handlersRef.current.onRoutingSuccess,
+      )
+      wayfinder.emitter.off(
+        'routing-failed',
+        handlersRef.current.onRoutingFailed,
+      )
+    }
+  }, [wayfinder])
+
+  return <div>Component with event listeners</div>
+}
+```
+
+## TypeScript Support
+
+### Typed Usage
+
+```tsx
+import { useWayfinder } from '@ar.io/wayfinder-react'
+import { WayfinderContextValue } from '@ar.io/wayfinder-react'
+import { Wayfinder, WayfinderEvent } from '@ar.io/wayfinder-core'
+
+interface ComponentProps {
+  txId: string
+  onSuccess?: (data: string) => void
+  onError?: (error: Error) => void
+}
+
+const TypedComponent: React.FC<ComponentProps> = ({
+  txId,
+  onSuccess,
+  onError,
+}) => {
+  const context: WayfinderContextValue = useWayfinder()
+  const wayfinder: Wayfinder = context.wayfinder
+
+  const handleFetch = async (): Promise<void> => {
+    try {
+      const response = await wayfinder.request(`ar://${txId}`)
+      const data = await response.text()
+      onSuccess?.(data)
+    } catch (error) {
+      onError?.(error as Error)
+    }
+  }
+
+  // Type-safe event handling
+  const handleRoutingEvent = (
+    event: WayfinderEvent['routing-succeeded'],
+  ): void => {
+    console.log('Selected gateway:', event.selectedGateway)
+  }
+
+  return <button onClick={handleFetch}>Fetch Data</button>
+}
+```
+
+### Custom Hook with TypeScript
+
+```tsx
+import { useWayfinder } from '@ar.io/wayfinder-react'
+import { useState, useCallback } from 'react'
+
+interface UseWayfinderDataResult {
+  data: string | null
+  loading: boolean
+  error: Error | null
+  fetchData: (txId: string) => Promise<void>
+  clearData: () => void
+}
+
+function useWayfinderData(): UseWayfinderDataResult {
+  const { wayfinder } = useWayfinder()
+  const [data, setData] = useState<string | null>(null)
+  const [loading, setLoading] = useState<boolean>(false)
+  const [error, setError] = useState<Error | null>(null)
+
+  const fetchData = useCallback(
+    async (txId: string): Promise<void> => {
+      setLoading(true)
+      setError(null)
+
+      try {
+        const response = await wayfinder.request(`ar://${txId}`)
+        const result = await response.text()
+        setData(result)
+      } catch (err) {
+        setError(err as Error)
+      } finally {
+        setLoading(false)
+      }
+    },
+    [wayfinder],
+  )
+
+  const clearData = useCallback((): void => {
+    setData(null)
+    setError(null)
+  }, [])
+
+  return {
+    data,
+    loading,
+    error,
+    fetchData,
+    clearData,
+  }
+}
+
+// Usage
+function MyComponent() {
+  const { data, loading, error, fetchData, clearData } = useWayfinderData()
+
+  return (
+    <div>
+      <button onClick={() => fetchData('transaction-id')}>Fetch</button>
+      <button onClick={clearData}>Clear</button>
+      {loading && <div>Loading...</div>}
+      {error && <div>Error: {error.message}</div>}
+      {data && <pre>{data}</pre>}
+    </div>
+  )
+}
+```
+
+## Testing
+
+### Mocking the Hook
+
+```tsx
+import { render, screen } from '@testing-library/react'
+import { useWayfinder } from '@ar.io/wayfinder-react'
+
+// Mock the hook
+jest.mock('@ar.io/wayfinder-react', () => ({
+  useWayfinder: jest.fn(),
+}))
+
+const mockUseWayfinder = useWayfinder as jest.MockedFunction<
+  typeof useWayfinder
+>
+
+test('component using useWayfinder', () => {
+  const mockWayfinder = {
+    request: jest.fn().mockResolvedValue({
+      text: () => Promise.resolve('test data'),
+    }),
+    resolveUrl: jest.fn(),
+    emitter: {
+      on: jest.fn(),
+      off: jest.fn(),
+    },
+  }
+
+  mockUseWayfinder.mockReturnValue({ wayfinder: mockWayfinder })
+
+  render(<MyComponent />)
+
+  // Test component behavior
+  expect(screen.getByText('Fetch Data')).toBeInTheDocument()
+})
+```
+
+## When to Use
+
+Use `useWayfinder` when you need:
+
+- **Full Wayfinder API access**: Access to all methods like `request()`, `resolveUrl()`, and event emitters
+- **Event monitoring**: Listening to routing, verification, or other Wayfinder events
+- **Custom request configurations**: Overriding routing or verification settings per request
+- **Advanced integrations**: Building complex components that need multiple Wayfinder capabilities
+- **Custom abstractions**: Creating your own hooks or utilities that wrap Wayfinder functionality
+
+For simpler use cases, consider:
+
+- **[useWayfinderRequest](/wayfinder/react/use-wayfinder-request)** for basic data fetching
+- **[useWayfinderUrl](/wayfinder/react/use-wayfinder-url)** for URL resolution with loading states
