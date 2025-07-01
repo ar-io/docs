@@ -36,9 +36,14 @@ The simplest way to get started is with the default configuration:
 
 ```javascript
 import { Wayfinder } from '@ar.io/wayfinder-core'
+import { ARIO } from '@ar.io/sdk'
 
 // Create wayfinder with default settings
-const wayfinder = new Wayfinder()
+const wayfinder = new Wayfinder({
+  gatewaysProvider: new NetworkGatewaysProvider({
+    ario: ARIO.mainnet(),
+  }),
+})
 
 // Fetch data using ar:// protocol
 try {
@@ -166,8 +171,13 @@ When you're not sure what type of data you're fetching, check the content type a
 
 ```javascript
 import { Wayfinder } from '@ar.io/wayfinder-core'
+import { ARIO } from '@ar.io/sdk'
 
-const wayfinder = new Wayfinder()
+const wayfinder = new Wayfinder({
+  gatewaysProvider: new NetworkGatewaysProvider({
+    ario: ARIO.mainnet(),
+  }),
+})
 
 async function fetchUnknownData(txId) {
   try {
