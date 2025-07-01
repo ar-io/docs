@@ -2,6 +2,12 @@
 
 Wayfinder provides decentralized and verified access to data stored on Arweave. This guide will help you get started with the core concepts and basic usage.
 
+<Tip>
+  Verification strategies may be dependent on the gateway being used having the
+  data indexed locally. A gateway cannot verify data it doesn't have access to
+  or hasn't indexed yet.
+</Tip>
+
 ## Installation
 
 Choose the package that fits your project:
@@ -23,6 +29,65 @@ yarn add @ar.io/wayfinder-react
 ```
 
 ## Quick Start
+
+### Basic Usage with Default Settings
+
+The simplest way to get started is with the default configuration:
+
+```javascript
+import { Wayfinder } from '@ar.io/wayfinder-core'
+
+// Create wayfinder with default settings
+const wayfinder = new Wayfinder()
+
+// Fetch data using ar:// protocol
+try {
+  const response = await wayfinder.request('ar://transaction-id')
+  const data = await response.text()
+  console.log('Data:', data)
+} catch (error) {
+  console.error('Failed to fetch data:', error)
+}
+```
+
+### React Integration
+
+For React applications, use the wayfinder-react package:
+
+```jsx
+import { WayfinderProvider, useWayfinder } from '@ar.io/wayfinder-react'
+
+// Wrap your app with the provider
+function App() {
+  return (
+    <WayfinderProvider
+      gatewaysProvider={new NetworkGatewaysProvider({ ario: ARIO.mainnet() })}
+      routingSettings={{
+        strategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
+      }}
+    >
+      <MyComponent />
+    </WayfinderProvider>
+  )
+}
+
+// Use the hook in your components
+function MyComponent() {
+  const { wayfinder, isReady } = useWayfinder()
+  const [data, setData] = useState(null)
+
+  useEffect(() => {
+    if (isReady) {
+      wayfinder
+        .request('ar://transaction-id')
+        .then((response) => response.text())
+        .then(setData)
+    }
+  }, [wayfinder, isReady])
+
+  return <div>{data}</div>
+}
+```
 
 ### Available Strategies
 
@@ -91,31 +156,9 @@ yarn add @ar.io/wayfinder-react
   </Table.Body>
 </Table>
 
-<Tip>
-  Verification strategies may be dependent on the gateway being used having the
-  data indexed locally. A gateway cannot verify data it doesn't have access to
-  or hasn't indexed yet.
-</Tip>
 
-### Basic Usage with Default Settings
 
-The simplest way to get started is with the default configuration:
 
-```javascript
-import { Wayfinder } from '@ar.io/wayfinder-core'
-
-// Create wayfinder with default settings
-const wayfinder = new Wayfinder()
-
-// Fetch data using ar:// protocol
-try {
-  const response = await wayfinder.request('ar://transaction-id')
-  const data = await response.text()
-  console.log('Data:', data)
-} catch (error) {
-  console.error('Failed to fetch data:', error)
-}
-```
 
 ### Handling Unknown Data Types
 
@@ -161,6 +204,25 @@ async function fetchUnknownData(txId) {
 
 // Usage
 fetchUnknownData('your-transaction-id')
+```
+
+### Event Monitoring
+
+Monitor wayfinder operations using events:
+
+```javascript
+// Listen to all events
+wayfinder.emitter.on('routing-succeeded', (event) => {
+  console.log('Gateway selected:', event.selectedGateway)
+})
+
+wayfinder.emitter.on('verification-succeeded', (event) => {
+  console.log('Data verified for transaction:', event.txId)
+})
+
+wayfinder.emitter.on('verification-failed', (event) => {
+  console.error('Verification failed:', event)
+})
 ```
 
 ### Advanced Configuration
@@ -262,60 +324,4 @@ Verification strategies ensure data integrity:
 - **SignatureVerificationStrategy**: Validates Arweave transaction signatures
 - **DataRootVerificationStrategy**: Verifies against transaction data roots
 
-## React Integration
 
-For React applications, use the wayfinder-react package:
-
-```jsx
-import { WayfinderProvider, useWayfinder } from '@ar.io/wayfinder-react'
-
-// Wrap your app with the provider
-function App() {
-  return (
-    <WayfinderProvider
-      gatewaysProvider={new NetworkGatewaysProvider({ ario: ARIO.mainnet() })}
-      routingSettings={{
-        strategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
-      }}
-    >
-      <MyComponent />
-    </WayfinderProvider>
-  )
-}
-
-// Use the hook in your components
-function MyComponent() {
-  const { wayfinder, isReady } = useWayfinder()
-  const [data, setData] = useState(null)
-
-  useEffect(() => {
-    if (isReady) {
-      wayfinder
-        .request('ar://transaction-id')
-        .then((response) => response.text())
-        .then(setData)
-    }
-  }, [wayfinder, isReady])
-
-  return <div>{data}</div>
-}
-```
-
-## Event Monitoring
-
-Monitor wayfinder operations using events:
-
-```javascript
-// Listen to all events
-wayfinder.emitter.on('routing-succeeded', (event) => {
-  console.log('Gateway selected:', event.selectedGateway)
-})
-
-wayfinder.emitter.on('verification-succeeded', (event) => {
-  console.log('Data verified for transaction:', event.txId)
-})
-
-wayfinder.emitter.on('verification-failed', (event) => {
-  console.error('Verification failed:', event)
-})
-```
