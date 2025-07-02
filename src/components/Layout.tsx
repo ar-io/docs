@@ -64,14 +64,16 @@ export function Layout({
               <Navigation className="hidden lg:mt-10 lg:block" />
             </div>
           </motion.header>
-          <div className="relative flex h-full flex-col px-3 pt-14 sm:px-4 md:px-6 lg:px-8">
-            <HeroPattern />
-            <MDXProvider components={components}>
-              <main className="max-w-full flex-auto overflow-x-hidden">
-                {children}
-              </main>
-            </MDXProvider>
-            <Footer />
+          <div className="relative flex h-full justify-center px-3 pt-14 sm:px-4 md:px-6 lg:px-8">
+            <div className="flex h-full max-w-4xl flex-col">
+              <HeroPattern />
+              <MDXProvider components={components}>
+                <main className="w-full flex-auto overflow-x-hidden">
+                  {children}
+                </main>
+              </MDXProvider>
+              <Footer />
+            </div>
           </div>
         </div>
       </SectionProvider>
