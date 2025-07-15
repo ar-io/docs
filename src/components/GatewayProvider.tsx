@@ -92,8 +92,10 @@ async function createGlobalWayfinder(): Promise<Wayfinder> {
     },
     telemetrySettings: {
       enabled: true,
+      clientName: 'ar-io-docs',
+      clientVersion: '2.0.0',
       sampleRate: 1,
-    },
+    } as any,
   })
 
   console.log('✅ Global Wayfinder created successfully')

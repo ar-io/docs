@@ -29,6 +29,8 @@ const wayfinder = new Wayfinder({
   telemetrySettings: {
     enabled: true,
     serviceName: 'my-application',
+    clientName: 'my-app',
+    clientVersion: '1.0.0',
     sampleRate: 0.1, // 10% of requests
   },
 })
@@ -42,12 +44,35 @@ const wayfinder = new Wayfinder({
   telemetrySettings: {
     enabled: true,
     serviceName: 'my-application',
+    clientName: 'my-app',
+    clientVersion: '1.0.0',
     sampleRate: 0.1,
     exporterUrl: 'https://your-telemetry-server.com/traces',
     apiKey: 'your-api-key',
   },
 })
 ```
+
+## Configuration Options
+
+### Client Identification
+
+You can identify your client application and version in telemetry data:
+
+```javascript
+const wayfinder = new Wayfinder({
+  gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
+  telemetrySettings: {
+    enabled: true,
+    serviceName: 'my-application',
+    clientName: 'my-react-app', // Identifies your application
+    clientVersion: '2.1.0', // Your application version
+    sampleRate: 0.1,
+  },
+})
+```
+
+The `clientName` and `clientVersion` are added as OpenTelemetry resource attributes (`client.name` and `client.version`) to help identify and filter telemetry data from different clients.
 
 ## Advanced Configuration
 
@@ -69,6 +94,8 @@ const wayfinder = new Wayfinder({
   telemetrySettings: {
     enabled: true,
     serviceName: 'my-app-prod',
+    clientName: 'my-app-prod',
+    clientVersion: '1.0.0',
     sampleRate: 0.01, // 1% sampling for production
     exporterUrl: process.env.TELEMETRY_EXPORTER_URL,
   },
@@ -83,6 +110,8 @@ const wayfinder = new Wayfinder({
   telemetrySettings: {
     enabled: true,
     serviceName: 'my-app-dev',
+    clientName: 'my-app-dev',
+    clientVersion: '1.0.0',
     sampleRate: 0.5, // Higher sampling for debugging
   },
 })
