@@ -1,8 +1,8 @@
-# Wayfinder Core
+# Wayfinder
 
 The `@ar.io/wayfinder-core` library provides intelligent gateway routing and data verification for accessing Arweave data through the AR.IO network. It's the foundational package that powers all other Wayfinder tools.
 
-## What is Wayfinder Core?
+## What is Wayfinder?
 
 Wayfinder Core is a JavaScript/TypeScript library that:
 
@@ -201,64 +201,9 @@ const gatewayUrl = await wayfinder.resolveUrl('ar://transaction-id', {
 })
 ```
 
-## Event Monitoring
-
-Monitor wayfinder operations using the built-in event system:
-
-```javascript
-// Routing events
-wayfinder.emitter.on('routing-succeeded', (event) => {
-  console.log('Gateway selected:', event.selectedGateway)
-})
-
-wayfinder.emitter.on('routing-failed', (error) => {
-  console.error('Routing failed:', error.message)
-})
-
-// Verification events
-wayfinder.emitter.on('verification-succeeded', (event) => {
-  console.log('Verification passed for:', event.txId)
-})
-
-wayfinder.emitter.on('verification-failed', (error) => {
-  console.warn('Verification failed:', error.message)
-})
-```
-
-## What Can Wayfinder Core Do?
-
-### Gateway Providers
-
-- **[NetworkGatewaysProvider](/wayfinder/core/gateway-providers)**: Discovers gateways from the AR.IO Network
-- **StaticGatewaysProvider**: Uses predefined gateway lists
-- **SimpleCacheGatewaysProvider**: Caches gateway lists for performance
-
-### Routing Strategies
-
-- **[FastestPingRoutingStrategy](/wayfinder/routing-strategies/fastest-ping)**: Selects lowest latency gateway
-- **[PreferredWithFallbackRoutingStrategy](/wayfinder/routing-strategies/preferred-with-fallback)**: Tries preferred gateway first
-- **[RoundRobinRoutingStrategy](/wayfinder/routing-strategies/round-robin)**: Distributes requests evenly
-- **[RandomRoutingStrategy](/wayfinder/routing-strategies/random)**: Randomly selects gateways
-
-### Verification Strategies
-
-- **[HashVerificationStrategy](/wayfinder/verification-strategies/hash-verification)**: Verifies against trusted gateway hashes
-- **[SignatureVerificationStrategy](/wayfinder/verification-strategies/signature-verification)**: Validates Arweave signatures
-- **[DataRootVerificationStrategy](/wayfinder/verification-strategies/data-root-verification)**: Verifies against data roots
-
-## Best Practices
-
-1. **Choose Appropriate Routing**: Use `FastestPingRoutingStrategy` for performance-critical apps
-2. **Enable Verification**: Use verification for important or sensitive data
-3. **Handle Errors**: Implement proper error handling for different failure scenarios
-4. **Monitor Performance**: Use events to track gateway performance and success rates
-5. **Configure Timeouts**: Set appropriate timeouts based on your application needs
-6. **Use Telemetry**: Enable telemetry in production for monitoring and debugging
-
 ## Next Steps
 
-- **[Events System](/wayfinder/core/events)**: Learn about event handling and monitoring
 - **[Gateway Providers](/wayfinder/core/gateway-providers)**: Understand gateway discovery options
-- **[Routing Strategies](/wayfinder/routing-strategies)**: Explore different routing algorithms
-- **[Verification Strategies](/wayfinder/verification-strategies)**: Learn about data integrity verification
-- **[Telemetry](/wayfinder/telemetry)**: Set up monitoring and observability
+- **[Routing Strategies](/wayfinder/core/routing-strategies)**: Explore different routing algorithms
+- **[Verification Strategies](/wayfinder/core/verification-strategies)**: Learn about data integrity verification
+- **[Telemetry](/wayfinder/core/telemetry)**: Set up monitoring and observability
