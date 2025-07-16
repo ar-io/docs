@@ -1,0 +1,43 @@
+# PreferredWithFallbackRoutingStrategy
+
+## Overview
+
+The `PreferredWithFallbackRoutingStrategy` attempts to use a designated preferred gateway first, and only falls back to an alternative routing strategy if the preferred gateway fails or is unavailable. This strategy is ideal for applications with dedicated infrastructure or specific gateway requirements.
+
+## How It Works
+
+1. **Health Check**: Performs a HEAD request to the preferred gateway with a 1000ms timeout
+2. **Success**: If the preferred gateway responds with a successful status, it's used
+3. **Failure**: If the preferred gateway fails or times out, the fallback strategy is used
+4. **Logging**: All attempts and failures are logged for monitoring
+
+
+## Basic Usage
+
+```javascript
+import {
+  PreferredWithFallbackRoutingStrategy,
+  FastestPingRoutingStrategy,
+} from '@ar.io/wayfinder-core'
+
+const strategy = new PreferredWithFallbackRoutingStrategy({
+  preferredGateway: 'https://my-gateway.com',
+  fallbackStrategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
+})
+```
+
+## Parameters
+
+| Parameter          | Type              | Default                        | Description                                  |
+| ------------------ | ----------------- | ------------------------------ | -------------------------------------------- |
+| `preferredGateway` | `string`          | **required**                   | URL of the preferred gateway                 |
+| `fallbackStrategy` | `RoutingStrategy` | `FastestPingRoutingStrategy()` | Strategy to use when preferred gateway fails |
+| `logger`           | `Logger`          | `defaultLogger`                | Optional logger instance                     |
+
+
+## Related
+
+- **[FastestPingRoutingStrategy](/wayfinder/core/routing-strategies/fastest-ping)**: Network-based gateway discovery
+- **[RoundRobinRoutingStrategy](/wayfinder/core/routing-strategies/round-robin)**: Even distribution across gateways
+- **[RandomRoutingStrategy](/wayfinder/core/routing-strategies/random)**: Randomized gateway selection
+- **[StaticRoutingStrategy](/wayfinder/core/routing-strategies/static)**: Always use a single, fixed gateway

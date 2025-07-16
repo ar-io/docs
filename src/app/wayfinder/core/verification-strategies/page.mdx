@@ -1,0 +1,77 @@
+export const metadata = {
+  title: 'Verification Strategies',
+  description:
+    'Cryptographic verification methods in Wayfinder that ensure data integrity and authenticity when fetching content from Arweave through AR.IO gateways.',
+  openGraph: {
+    title: 'Verification Strategies',
+  },
+}
+
+import { Table } from '@/components/Table'
+
+# Verification Strategies
+
+## Overview
+
+Verification strategies in Wayfinder ensure data integrity and authenticity when fetching content from Arweave through AR.IO gateways. These strategies use cryptographic methods to verify that the data you receive matches what was originally stored on Arweave, protecting against tampering, corruption, or malicious gateways.
+
+### Why Verification Matters
+
+- **Data Integrity**: Ensures content hasn't been corrupted during transmission
+- **Security**: Protects against malicious gateways serving fake data
+- **Trust**: Provides cryptographic proof that data is authentic
+- **Compliance**: Meets security requirements for sensitive applications
+
+
+## Strategy Comparison
+
+<Table>
+  <Table.Head>
+    <Table.Row>
+      <Table.Header>Strategy</Table.Header>
+      <Table.Header>Security Level</Table.Header>
+      <Table.Header>Best For</Table.Header>
+      <Table.Header>Use Case</Table.Header>
+      <Table.Header>Verification Method</Table.Header>
+    </Table.Row>
+  </Table.Head>
+  <Table.Body>
+    <Table.Row>
+      <Table.Cell>Hash Verification</Table.Cell>
+      <Table.Cell>High</Table.Cell>
+      <Table.Cell>Fast integrity checks and development</Table.Cell>
+      <Table.Cell>High-throughput applications</Table.Cell>
+      <Table.Cell>SHA-256 hash vs trusted gateway digest</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>Signature Verification</Table.Cell>
+      <Table.Cell>Very High</Table.Cell>
+      <Table.Cell>Authenticity validation and ownership proof</Table.Cell>
+      <Table.Cell>Financial or legal documents</Table.Cell>
+      <Table.Cell>Transaction signature validation</Table.Cell>
+    </Table.Row>
+    <Table.Row>
+      <Table.Cell>Data Root Verification</Table.Cell>
+      <Table.Cell>Highest</Table.Cell>
+      <Table.Cell>Maximum security and critical data</Table.Cell>
+      <Table.Cell>Production applications</Table.Cell>
+      <Table.Cell>Merkle tree data root comparison</Table.Cell>
+    </Table.Row>
+  </Table.Body>
+</Table>
+
+<Tip title="Important">
+  Verification methods require that the gateway being used has the relevant
+  transaction data indexed locally. Gateways cannot proxy out verification
+  requests to other sources, as this would compromise the security and
+  reliability of the verification process. If a gateway doesn't have the
+  required data indexed, verification will fail.
+</Tip>
+
+
+## Related
+
+- **[Hash Verification](/wayfinder/verification-strategies/hash-verification)**: Learn about fast integrity checking
+- **[Signature Verification](/wayfinder/verification-strategies/signature-verification)**: Understand authenticity validation
+- **[Data Root Verification](/wayfinder/verification-strategies/data-root-verification)**: Explore maximum security verification
+- **[Wayfinder Core](/wayfinder/core)**: See how to configure verification in your application

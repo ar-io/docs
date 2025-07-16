@@ -1,0 +1,73 @@
+export const metadata = {
+  title: 'Routing Strategies',
+  description:
+    'Overview of Wayfinder routing strategies that determine how gateways are selected for each request.',
+  openGraph: {
+    title: 'Routing Strategies',
+  },
+}
+
+import { Table } from '@/components/Table'
+
+# Routing Strategies
+
+Routing strategies determine how Wayfinder selects which AR.IO gateway to use for each request. Different strategies optimize for different goals like performance, reliability, or load distribution.
+
+## Strategy Comparison
+
+<Table>
+  <thead>
+    <tr>
+      <th>Strategy</th>
+      <th>Best For</th>
+      <th>Use Case</th>
+      <th>Predictability</th>
+      <th>Infrastructure Control</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Fastest Ping</td>
+      <td>Real-time applications</td>
+      <td>Performance-critical apps, gaming</td>
+      <td>Medium</td>
+      <td>Low</td>
+    </tr>
+    <tr>
+      <td>Preferred + Fallback</td>
+      <td>Dedicated infrastructure</td>
+      <td>CDN with origin fallback, enterprise gateways</td>
+      <td>High</td>
+      <td>Maximum</td>
+    </tr>
+    <tr>
+      <td>Round Robin</td>
+      <td>Load balancing</td>
+      <td>Even distribution across known gateways</td>
+      <td>High</td>
+      <td>High</td>
+    </tr>
+    <tr>
+      <td>Random</td>
+      <td>Simple distribution</td>
+      <td>Basic load spreading, testing</td>
+      <td>Low</td>
+      <td>Medium</td>
+    </tr>
+    <tr>
+      <td>Static</td>
+      <td>Single gateway</td>
+      <td>Development, specific gateway requirements</td>
+      <td>Maximum</td>
+      <td>High</td>
+    </tr>
+  </tbody>
+</Table>
+
+## Related
+
+- **[FastestPingRoutingStrategy](/wayfinder/core/routing-strategies/fastest-ping)**: Network-based gateway discovery
+- **[PreferredWithFallbackRoutingStrategy](/wayfinder/core/routing-strategies/prefrred-with-fallback)**: Static gateway configuration
+- **[RoundRobinRoutingStrategy](/wayfinder/core/routing-strategies/round-robin)**: Even distribution across gateways
+- **[RandomRoutingStrategy](/wayfinder/core/routing-strategies/random)**: Randomized gateway selection
+- **[StaticRoutingStrategy](/wayfinder/core/routing-strategies/static)**: Always use a single, fixed gateway

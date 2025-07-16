@@ -2,12 +2,6 @@
 
 Wayfinder provides decentralized and verified access to data stored on Arweave. This guide will help you get started with the core concepts and basic usage.
 
-<Tip>
-  Verification strategies may be dependent on the gateway being used having the
-  data indexed locally. A gateway cannot verify data it doesn't have access to
-  or hasn't indexed yet.
-</Tip>
-
 ## Installation
 
 Choose the package that fits your project:
@@ -30,7 +24,7 @@ yarn add @ar.io/wayfinder-react
 
 ## Quick Start
 
-### Basic Usage with Default Settings
+### Basic Usage
 
 The simplest way to get started is with the default configuration:
 
@@ -60,13 +54,18 @@ try {
 For React applications, use the wayfinder-react package:
 
 ```jsx
+import { LocalStorageGatewaysProvider, NetworkGatewaysProvider } from '@ar.io/wayfinder-core'
 import { WayfinderProvider, useWayfinder } from '@ar.io/wayfinder-react'
 
 // Wrap your app with the provider
 function App() {
   return (
     <WayfinderProvider
-      gatewaysProvider={new NetworkGatewaysProvider({ ario: ARIO.mainnet() })}
+      gatewaysProvider={new LocalStorageGatewaysProvider({
+        gatewaysProvider: new NetworkGatewaysProvider({
+          ario: ARIO.mainnet()
+        })
+      })};
       routingSettings={{
         strategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
       }}
@@ -76,21 +75,46 @@ function App() {
   )
 }
 
-// Use the hook in your components
-function MyComponent() {
-  const { wayfinder, isReady } = useWayfinder()
-  const [data, setData] = useState(null)
+function YourComponent() {
+  const txId = 'your-transaction-id'; // Replace with actual txId
+
+  // Use custom hooks for URL resolution and data fetching
+  const request = useWayfinderRequest();
+
+  // store the fetched data
+  const [data, setData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+  const [dataError, setDataError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (isReady) {
-      wayfinder
-        .request('ar://transaction-id')
-        .then((response) => response.text())
-        .then(setData)
-    }
-  }, [wayfinder, isReady])
+    (async () => {
+      try {
+        setDataLoading(true);
+        setDataError(null);
+        // fetch the data for the txId using wayfinder
+        const response = await request(`ar://${txId}`, {
+          verificationSettings: {
+            enabled: true, // enable verification on the request
+            strict: true, // don't use the data if it's not verified
+          },
+        });
+        const data = await response.arrayBuffer(); // or response.json() if you want to parse the data as JSON
+        setData(data);
+      } catch (error) {
+        setDataError(error as Error);
+      } finally {
+        setDataLoading(false);
+      }
+    })();
+  }, [request, txId]);
 
-  return <div>{data}</div>
+  return (
+    <div>
+      {dataLoading && <p>Loading data...</p>}
+      {dataError && <p>Error loading data: {dataError.message}</p>}
+      <pre>{data}</pre>
+    </div>
+  );
 }
 ```
 
@@ -134,6 +158,12 @@ function MyComponent() {
 
 #### Verification Strategies
 
+<Tip>
+  Verification strategies may be dependent on the gateway being used having the
+  data indexed locally. A gateway cannot verify data it doesn't have access to
+  or hasn't indexed yet.
+</Tip>
+
 <Table>
   <Table.Head>
     <Table.Row>
@@ -161,76 +191,6 @@ function MyComponent() {
   </Table.Body>
 </Table>
 
-### Handling Unknown Data Types
-
-When you're not sure what type of data you're fetching, check the content type and handle accordingly:
-
-```javascript
-import { Wayfinder } from '@ar.io/wayfinder-core'
-import { ARIO } from '@ar.io/sdk'
-
-const wayfinder = new Wayfinder({
-  gatewaysProvider: new NetworkGatewaysProvider({
-    ario: ARIO.mainnet(),
-  }),
-})
-
-async function fetchUnknownData(txId) {
-  try {
-    const response = await wayfinder.request(`ar://${txId}`)
-    const contentType = response.headers.get('content-type') || ''
-
-    if (contentType.includes('application/json')) {
-      // Handle JSON data
-      const jsonData = await response.json()
-      console.log('JSON data:', jsonData)
-      return jsonData
-    } else if (contentType.startsWith('text/')) {
-      // Handle text data
-      const textData = await response.text()
-      console.log('Text data:', textData)
-      return textData
-    } else if (contentType.startsWith('image/')) {
-      // Handle image data
-      const blob = await response.blob()
-      const imageUrl = URL.createObjectURL(blob)
-      console.log('Image URL:', imageUrl)
-      return imageUrl
-    } else {
-      // Handle binary/unknown data as ArrayBuffer
-      const buffer = await response.arrayBuffer()
-      console.log('Binary data size:', buffer.byteLength, 'bytes')
-      return buffer
-    }
-  } catch (error) {
-    console.error('Failed to fetch data:', error)
-    throw error
-  }
-}
-
-// Usage
-fetchUnknownData('your-transaction-id')
-```
-
-### Event Monitoring
-
-Monitor wayfinder operations using events:
-
-```javascript
-// Listen to all events
-wayfinder.emitter.on('routing-succeeded', (event) => {
-  console.log('Gateway selected:', event.selectedGateway)
-})
-
-wayfinder.emitter.on('verification-succeeded', (event) => {
-  console.log('Data verified for transaction:', event.txId)
-})
-
-wayfinder.emitter.on('verification-failed', (event) => {
-  console.error('Verification failed:', event)
-})
-```
-
 ### Advanced Configuration
 
 For production applications, you'll want to configure gateway providers, routing strategies, and verification:
@@ -246,11 +206,13 @@ import { ARIO } from '@ar.io/sdk'
 
 const wayfinder = new Wayfinder({
   // Discover gateways from the AR.IO Network
-  gatewaysProvider: new NetworkGatewaysProvider({
-    ario: ARIO.mainnet(),
-    limit: 10,
-    sortBy: 'operatorStake',
-    sortOrder: 'desc',
+  gatewaysProvider: new SimpleCacheGatewaysProvider({
+    gatewaysProvider: new NetworkGatewaysProvider({
+      ario: ARIO.mainnet(),
+      limit: 10,
+      sortBy: 'operatorStake',
+      sortOrder: 'desc',
+    }),
   }),
 
   // Use fastest ping routing strategy
@@ -275,32 +237,18 @@ const wayfinder = new Wayfinder({
       onVerificationSucceeded: (event) => {
         console.log('Verification passed for:', event.txId)
       },
+      onVerificationFailed: (event) => {
+        console.log('Verification failed for:', event.txId)
+      },
     },
   },
 
   // Enable telemetry
   telemetrySettings: {
     enabled: true,
-    serviceName: 'my-app',
     clientName: 'my-app',
     clientVersion: '1.0.0',
     sampleRate: 0.1, // 10% sampling
-  },
-
-  // Configure event handlers
-  events: {
-    onGatewaysRefreshed: (event) => {
-      console.log(`Refreshed ${event.gateways.length} gateways`)
-    },
-    onRequestStarted: (event) => {
-      console.log(`Starting request for ${event.url}`)
-    },
-    onRequestCompleted: (event) => {
-      console.log(`Request completed in ${event.duration}ms`)
-    },
-    onRequestFailed: (event) => {
-      console.error(`Request failed: ${event.error.message}`)
-    },
   },
 })
 ```
@@ -313,7 +261,8 @@ Gateway providers discover and manage the list of available AR.IO gateways:
 
 - **NetworkGatewaysProvider**: Fetches gateways from the AR.IO Network
 - **StaticGatewaysProvider**: Uses a predefined list of gateways
-- **SimpleCacheGatewaysProvider**: Caches gateway lists for performance
+- **SimpleCacheGatewaysProvider**: Caches gateway lists for performance in-memory
+- **LocalStorageGatewaysProvider** Caches gateway lists for performance in `window.localStorage`
 
 ### Routing Strategies
 

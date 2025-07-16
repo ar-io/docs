@@ -1088,31 +1088,28 @@ export const singleNavigation: Array<NavGroup> = [
         href: '/wayfinder/getting-started',
       },
       {
-        title: 'Core',
+        title: 'Core SDK',
+        href: '/wayfinder/core',
         children: [
           {
-            title: 'Wayfinder Class',
+            title: 'Initialization',
             href: '/wayfinder/core',
-          },
-          {
-            title: 'request()',
-            href: '/wayfinder/core/request',
-          },
-          {
-            title: 'resolveUrl()',
-            href: '/wayfinder/core/resolve-url',
-          },
-          {
-            title: 'Events',
-            href: '/wayfinder/core/events',
-          },
-          {
-            title: 'Gateway Providers',
             children: [
               {
-                title: 'Overview',
-                href: '/wayfinder/core/gateway-providers',
+                title: 'request()',
+                href: '/wayfinder/core/request',
               },
+              {
+                title: 'resolveUrl()',
+                href: '/wayfinder/core/resolve-url',
+              },
+            ],
+          },
+
+          {
+            title: 'Gateway Providers',
+            href: '/wayfinder/core/gateway-providers',
+            children: [
               {
                 title: 'NetworkGatewaysProvider',
                 href: '/wayfinder/core/gateway-providers/network',
@@ -1123,94 +1120,84 @@ export const singleNavigation: Array<NavGroup> = [
               },
               {
                 title: 'SimpleCacheGatewaysProvider',
-                href: '/wayfinder/core/gateway-providers/cache',
+                href: '/wayfinder/core/gateway-providers/simple-cache',
+              },
+              {
+                title: 'LocalStorageGatewaysProvider',
+                href: '/wayfinder/core/gateway-providers/local-storage',
               },
             ],
           },
           {
             title: 'Routing Strategies',
             href: '/wayfinder/core/routing-strategies',
+            children: [
+              {
+                title: 'Fastest Ping',
+                href: '/wayfinder/core/routing-strategies/fastest-ping',
+              },
+              {
+                title: 'Preferred with Fallback',
+                href: '/wayfinder/core/routing-strategies/preferred-with-fallback',
+              },
+              {
+                title: 'Random',
+                href: '/wayfinder/core/routing-strategies/random',
+              },
+              {
+                title: 'Round Robin',
+                href: '/wayfinder/core/routing-strategies/round-robin',
+              },
+            ],
+          },
+          {
+            title: 'Verification Strategies',
+            href: '/wayfinder/core/verification-strategies',
+            children: [
+              {
+                title: 'Hash Verification',
+                href: '/wayfinder/core/verification-strategies/hash-verification',
+              },
+              {
+                title: 'Signature Verification',
+                href: '/wayfinder/core/verification-strategies/signature-verification',
+              },
+              {
+                title: 'Data Root Verification',
+                href: '/wayfinder/core/verification-strategies/data-root-verification',
+              },
+
+            ],
           },
         ],
       },
       {
-        title: 'React Integration',
+        title: 'React SDK',
+        href: '/wayfinder/react',
         children: [
           {
-            title: 'Overview',
+            title: 'Initialization',
             href: '/wayfinder/react',
           },
           {
-            title: 'useWayfinder',
+            title: 'Hooks',
             href: '/wayfinder/react/use-wayfinder',
-          },
-          {
-            title: 'useWayfinderRequest',
-            href: '/wayfinder/react/use-wayfinder-request',
-          },
-          {
-            title: 'useWayfinderUrl',
-            href: '/wayfinder/react/use-wayfinder-url',
-          },
-        ],
-      },
-      {
-        title: 'Routing Strategies',
-        children: [
-          {
-            title: 'Overview',
-            href: '/wayfinder/routing-strategies',
-          },
-          {
-            title: 'Fastest Ping',
-            href: '/wayfinder/routing-strategies/fastest-ping',
-          },
-          {
-            title: 'Preferred with Fallback',
-            href: '/wayfinder/routing-strategies/preferred-with-fallback',
-          },
-          {
-            title: 'Random',
-            href: '/wayfinder/routing-strategies/random',
-          },
-          {
-            title: 'Round Robin',
-            href: '/wayfinder/routing-strategies/round-robin',
-          },
-          {
-            title: 'Simple Cache',
-            href: '/wayfinder/routing-strategies/simple-cache',
-          },
-          {
-            title: 'Static',
-            href: '/wayfinder/routing-strategies/static',
+            children: [
+              {
+                title: 'useWayfinder',
+                href: '/wayfinder/react/use-wayfinder',
+              },
+              {
+                title: 'useWayfinderRequest',
+                href: '/wayfinder/react/use-wayfinder-request',
+              },
+              {
+                title: 'useWayfinderUrl',
+                href: '/wayfinder/react/use-wayfinder-url',
+              },
+            ],
           },
         ],
-      },
-      {
-        title: 'Verification Strategies',
-        children: [
-          {
-            title: 'Overview',
-            href: '/wayfinder/verification-strategies',
-          },
-          {
-            title: 'Data Root Verification',
-            href: '/wayfinder/verification-strategies/data-root-verification',
-          },
-          {
-            title: 'Hash Verification',
-            href: '/wayfinder/verification-strategies/hash-verification',
-          },
-          {
-            title: 'Signature Verification',
-            href: '/wayfinder/verification-strategies/signature-verification',
-          },
-        ],
-      },
-      {
-        title: 'Telemetry',
-        href: '/wayfinder/telemetry',
       },
     ],
   },

@@ -1,0 +1,67 @@
+export const metadata = {
+  title: 'Signature Verification Strategy',
+  description:
+    'Cryptographic authenticity verification by validating Arweave transaction signatures to provide proof of ownership for financial and legal documents.',
+  openGraph: {
+    title: 'Signature Verification Strategy',
+  },
+}
+
+# SignatureVerificationStrategy
+
+## Overview
+
+The `SignatureVerificationStrategy` validates Arweave transaction signatures to ensure data authenticity and ownership. This strategy provides cryptographic proof that the data was created by the claimed wallet address and hasn't been tampered with since signing.
+
+<Tip title="Important">
+  `SignatureVerificationStrategy` requires that the trusted gateway has the relevant
+  transaction data indexed locally. Gateways cannot proxy out verification
+  requests to other sources, as this would compromise the security and
+  reliability of the verification process. If a gateway doesn't have the
+  required data indexed, verification will fail.
+</Tip>
+
+## How It Works
+
+1. **Fetch Metadata**: Retrieve transaction metadata from trusted gateways
+2. **Reconstruct Signature Data**: Build the signature data using the received content
+3. **Verify Signature**: Validate the signature matches the claimed owner's public key
+4. **Check Ownership**: Confirm the transaction was signed by the claimed wallet
+5. **Result**: Pass or fail based on signature validation
+
+
+## Basic Usage
+
+```javascript
+import { SignatureVerificationStrategy, Wayfinder } from '@ar.io/wayfinder-core'
+
+const wayfinder = new Wayfinder({ /* ...global wayfinder configuration */  });
+const strategy = new SignatureVerificationStrategy({
+  trustedGateways: [new URL('https://arweave.net')],
+})
+
+// use it in a request
+const verifiedData = await wayfinder.request('ar://<some-tx-id', {
+  verificationSettings: {
+    enabled: true,
+    strategy: verificationStrategy,
+    strict: true // block the flow of bytes until verification has passed
+    events: {
+      onVerificationProgress: (e) => {
+        console.debug('Verification progress: ${ e.processBytes / e.totalBytes * 100}%)
+      },
+      onVerificationFailed: (e) => {
+        console.error('Verification failed!, e)
+      },
+      onVerificationSucceeded: (e) => {
+        console.log('Verification succeeded!, e)
+      }
+    }
+  }
+})
+```
+
+## Related
+
+- **[Hash Verification](/wayfinder/verification-strategies/hash-verification)**: Learn about fast integrity checking
+- **[Signature Verification](/wayfinder/verification-strategies/signature-verification)**: Understand authenticity validation

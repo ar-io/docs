@@ -1,0 +1,58 @@
+export const metadata = {
+  title: 'Hash Verification Strategy',
+  description:
+    'Fast integrity verification by comparing SHA-256 hashes of fetched data against trusted gateway digest headers for high-throughput applications.',
+  openGraph: {
+    title: 'Hash Verification Strategy',
+  },
+}
+
+# HashVerificationStrategy
+
+## Overview
+
+The `HashVerificationStrategy` verifies data integrity by comparing SHA-256 hashes of fetched data against trusted gateway digest headers. This strategy provides fast, cryptographically secure verification for high-throughput applications.
+
+## How It Works
+
+1. **Fetch Data**: Retrieve content from the selected gateway
+3. **Request Digest**: Get the digest from trusted gateways via HTTP headers using HEAD/GET requests from a trusted gatweay
+2. **Compute Hash**: Calculate the SHA-256 hash of the received data
+4. **Compare**: Verify that both hashes match exactly
+5. **Result**: Pass or fail based on hash comparison
+
+
+## Basic Usage
+
+```javascript
+import { HashVerificationStrategy, Wayfinder } from '@ar.io/wayfinder-core'
+
+const wayfinder = new Wayfinder({ /* ...global wayfinder configuration */  });
+const verificationStrategy = new HashVerificationStrategy({
+  trustedGateways: [new URL('https://arweave.net')],
+})
+
+// use it in a request
+const verifiedData = await wayfinder.request('ar://<some-tx-id', {
+  verificationSettings: {
+    enabled: true,
+    strategy: verificationStrategy,
+    strict: true // block the flow of bytes until verification has passed
+    events: {
+      onVerificationProgress: (e) => {
+        console.debug('Verification progress: ${ e.processBytes / e.totalBytes * 100}%)
+      },
+      onVerificationFailed: (e) => {
+        console.error('Verification failed!, e)
+      },
+      onVerificationSucceeded: (e) => {
+        console.log('Verification succeeded!, e)
+      }
+    }
+  }
+})
+```
+
+## Related
+- **[Signature Verification](/wayfinder/verification-strategies/signature-verification)**: Understand authenticity validation
+- **[Data Root Verification](/wayfinder/verification-strategies/data-root-verification)**: Explore maximum security verification

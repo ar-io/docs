@@ -7,37 +7,15 @@ export const metadata = {
   },
 }
 
-# wayfinder.request()
+## Overview
+`request()` fetches data from Arweave using the `ar://` protocol with intelligent routing and optional verification. This method is a wrapper around the native [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API), providing the same interface with additional Wayfinder-specific functionality.
 
-Fetch data from Arweave using the ar:// protocol with intelligent routing and verification. This method is a wrapper around the native [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API), providing the same interface with additional Wayfinder-specific functionality.
 
-## Syntax
-
-```javascript
-const response = await wayfinder.request(input, init)
-```
 
 ## Parameters
 
 - **`input`** (`string | URL | RequestInfo`): The ar:// URL or standard fetch input
 - **`init`** (`RequestInit & WayfinderRequestOptions`, optional): Standard fetch options plus Wayfinder overrides
-
-### Wayfinder-Specific Options
-
-```typescript
-interface WayfinderRequestOptions {
-  verificationSettings?: {
-    enabled?: boolean
-    strategy?: VerificationStrategy
-    strict?: boolean
-    events?: WayfinderVerificationEventArgs
-  }
-  routingSettings?: {
-    strategy?: RoutingStrategy
-    events?: WayfinderRoutingEventArgs
-  }
-}
-```
 
 ## Returns
 
@@ -45,59 +23,103 @@ interface WayfinderRequestOptions {
 
 Returns a standard [Response object](https://developer.mozilla.org/en-US/docs/Web/API/Response) that can be processed with methods like `response.text()`, `response.json()`, `response.blob()`, etc.
 
+
 ## Basic Usage
 
-### Fetching Different Data Types
-
 ```javascript
-import { Wayfinder } from '@ar.io/wayfinder-core'
+import { ARIO } from '@ar.io/sdk';
+import { Wayfinder, NetworkGatewaysProvider } from '@ar.io/wayfinder-core'
 
 const wayfinder = new Wayfinder({
-  gatewaysProvider: gatewaysProvider,
+  gatewaysProvider: new NetworkGatewaysProvider({
+    ario: ARIO.mainnet()
+  }),
 })
 
-// Fetch text content
+// parse text
 const response = await wayfinder.request('ar://transaction-id')
 const text = await response.text()
 
-// Fetch JSON data
+// parse JSON data
 const jsonResponse = await wayfinder.request('ar://json-transaction-id')
 const data = await jsonResponse.json()
 
-// Fetch binary data (images, files, etc.)
+// parse binary data (images, files, etc.)
 const imageResponse = await wayfinder.request('ar://image-transaction-id')
 const blob = await imageResponse.blob()
 const imageUrl = URL.createObjectURL(blob)
 ```
 
-### Handling Unknown Data Types
 
-When you don't know the MIME type in advance, check the `Content-Type` header to determine how to process the response:
+## Supported URL Formats
+
+### Transaction IDs
 
 ```javascript
-const response = await wayfinder.request('ar://unknown-content-id')
-
-// Check the content type
-const contentType = response.headers.get('content-type')
-
-let processedData
-if (contentType?.includes('application/json')) {
-  processedData = await response.json()
-  console.log('JSON data:', processedData)
-} else if (contentType?.includes('text/')) {
-  processedData = await response.text()
-  console.log('Text content:', processedData)
-} else if (contentType?.startsWith('image/')) {
-  processedData = await response.blob()
-  const imageUrl = URL.createObjectURL(processedData)
-  console.log('Image URL:', imageUrl)
-} else {
-  // Handle as binary data
-  processedData = await response.arrayBuffer()
-  console.log('Binary data size:', processedData.byteLength, 'bytes')
-}
+await wayfinder.request('ar://ABC123...XYZ')
 ```
 
+### ArNS Names
+
+```javascript
+await wayfinder.request('ar://domain-name')
+await wayfinder.request('ar://domain-name/path/to/file.txt')
+await wayfinder.request('ar://subdomain.domain-name')
+```
+
+### Gateway Endpoints
+
+```javascript
+await wayfinder.request('ar:///info') // Gateway information
+await wayfinder.request('ar:///peers') // Network peers (if supported)
+await wayfinder.request('ar:///graphql') // GraphQL endpoint (if supported)
+```
+
+## overrides
+For a given request, you can override the initialized routing and verification settings by passing an `overrides` option to `wayfinder.request()`. This allows you to specify a different routing strategy, verification strategy, or even a custom logger for just that request, without affecting the global configuration.
+
+
+Example:
+```javascript
+import { HashVerificationStrategy } from '@ar.io/wayfinder-core'
+
+const response = await wayfinder.request('ar://transaction-id', {
+  verificationSettings: {
+    enabled: true,
+    strategy: new HashVerificationStrategy({
+      trustedGateways: [new URL('https://arweave.net')],
+    }),
+    strict: true,
+    events: {
+      onVerificationSucceeded: (event) => {
+        console.log('Verification passed for:', event.txId)
+      },
+      onVerificationFailed: (error) => {
+        console.error('Verification failed:', error)
+      },
+    },
+  },
+})
+```
+
+### Override Routing Settings
+
+```javascript
+import { FastestPingRoutingStrategy } from '@ar.io/wayfinder-core'
+
+const response = await wayfinder.request('ar://transaction-id', {
+  routingSettings: {
+    strategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
+    events: {
+      onRoutingSucceeded: (event) => {
+        console.log('Selected gateway:', event.selectedGateway)
+      },
+    },
+  },
+})
+```
+
+## Advanced Configurations
 ### Custom Headers
 
 You can pass custom headers with your requests using the standard fetch options:
@@ -156,96 +178,10 @@ const response = await wayfinder.request('ar://transaction-id', {
 })
 ```
 
-## Wayfinder Override Settings
-
-You can override the global Wayfinder configuration for individual requests:
-
-### Override Verification Settings
-
-```javascript
-import { HashVerificationStrategy } from '@ar.io/wayfinder-core'
-
-const response = await wayfinder.request('ar://transaction-id', {
-  verificationSettings: {
-    enabled: true,
-    strategy: new HashVerificationStrategy({
-      trustedGateways: [new URL('https://arweave.net')],
-    }),
-    strict: true,
-    events: {
-      onVerificationSucceeded: (event) => {
-        console.log('Verification passed for:', event.txId)
-      },
-      onVerificationFailed: (error) => {
-        console.error('Verification failed:', error)
-      },
-    },
-  },
-})
-```
-
-### Override Routing Settings
-
-```javascript
-import { FastestPingRoutingStrategy } from '@ar.io/wayfinder-core'
-
-const response = await wayfinder.request('ar://transaction-id', {
-  routingSettings: {
-    strategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
-    events: {
-      onRoutingSucceeded: (event) => {
-        console.log('Selected gateway:', event.selectedGateway)
-      },
-    },
-  },
-})
-```
-
-## Supported URL Formats
-
-### Transaction IDs
-
-```javascript
-await wayfinder.request('ar://ABC123...XYZ')
-```
-
-### ArNS Names
-
-```javascript
-await wayfinder.request('ar://domain-name')
-await wayfinder.request('ar://domain-name/path/to/file.txt')
-await wayfinder.request('ar://subdomain.domain-name')
-```
-
-### Gateway Endpoints
-
-```javascript
-await wayfinder.request('ar:///info') // Gateway information
-await wayfinder.request('ar:///peers') // Network peers (if supported)
-await wayfinder.request('ar:///graphql') // GraphQL endpoint (if supported)
-```
-
-<Tip>
-  Gateway endpoint availability varies by gateway implementation. The `/info`
-  endpoint is standard, while others like `/peers` and `/graphql` may not be
-  available on all gateways.
-</Tip>
-
-## Additional Usage Patterns
-
-For advanced usage patterns, configuration options, and detailed examples, refer to the [MDN Fetch API documentation](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API). Since `wayfinder.request()` is a wrapper around the native fetch function, all standard fetch patterns apply:
-
-- Request configuration and headers
-- Response processing methods
-- Streaming data handling
-- Caching strategies
-- CORS handling
-- Error types and handling
-
-The Wayfinder-specific additions (verification and routing overrides) work seamlessly with all standard fetch functionality.
-
-## Related Methods
+## Related
 
 - **[resolveUrl()](/wayfinder/core/resolve-url)**: Resolve ar:// URLs without fetching data
-- **[Events System](/wayfinder/core/events)**: Monitor request events and performance
-- **[Configuration](/wayfinder/core)**: Set up global request settings
+- **[Gateway Providers](/wayfinder/core/gateway-providers)**: Understand gateway discovery options
+- **[Routing Strategies](/wayfinder/core/routing-strategies)**: Explore different routing algorithms
+- **[Verification Strategies](/wayfinder/core/verification-strategies)**: Learn about data integrity verification
+- **[Telemetry](/wayfinder/core/telemetry)**: Set up monitoring and observability

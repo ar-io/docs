@@ -1,0 +1,46 @@
+# LocalStorageGatewaysProvider
+
+The `LocalStorageGatewaysProvider` is a gateway provider that caches gateway lists in the browser's `localStorage`. This allows gateway data to persist across page reloads and browser sessions, making it ideal for web applications that require fast access to gateway information without repeated network requests. The provider automatically manages cache expiration based on a configurable TTL (time-to-live), ensuring that gateway data remains fresh while minimizing network usage. Use this provider when you want persistent, client-side caching of gateway lists in browser environments.
+
+> **Note:** If you are building a React-based application, consider using [`@ar.io/wayfinder-react`](/wayfinder/react) for seamless integration with React components, hooks, and context providers. This package is designed to work hand-in-hand with gateway providers like `LocalStorageGatewaysProvider` for optimal developer experience.
+
+## Basic Usage
+
+```typescript
+// Example: Using LocalStorageGatewaysProvider in a web app
+
+import {
+  LocalStorageGatewaysProvider,
+  NetworkGatewaysProvider,
+} from '@ar.io/wayfinder-core'
+import { ARIO } from '@ar.io/sdk'
+
+// Initialize the provider with localStorage caching
+const gatewaysProvider = new LocalStorageGatewaysProvider({
+  ttlSeconds: 3600, // cache for 1 hour
+  gatewaysProvider: new NetworkGatewaysProvider({
+    ario: ARIO.mainnet(),
+  }),
+})
+
+// hits the local storage cache until TTL expires
+const gateways = await provider.getGateways()
+console.log('Available gateways:', gateways)
+```
+
+### Configuration Options
+
+```javascript
+interface CachedGatewaysProvider {
+    gatewaysProvider: GatewaysProvider,
+    ttlSeconds: number;
+}
+```
+
+## Related Documentation
+
+- **[Gateway Providers Overview](/wayfinder/core/gateway-providers)**: Compare all gateway providers
+- **[NetworkGatewaysProvider](/wayfinder/core/gateway-providers/network)**: Dynamic network discovery
+- **[StaticGatewaysProvider](/wayfinder/core/gateway-providers/static)**: Static gateway configuration
+- **[Wayfinder Configuration](/wayfinder/core)**: Main wayfinder setup
+  {/* - **[Performance Optimization](/wayfinder/core/performance)**: Performance tuning guides */}

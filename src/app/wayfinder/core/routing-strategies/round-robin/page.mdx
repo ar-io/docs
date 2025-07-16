@@ -1,0 +1,54 @@
+# RoundRobinRoutingStrategy
+
+## Overview
+
+The `RoundRobinRoutingStrategy` distributes requests evenly across all available gateways in a cyclical manner. Each gateway is selected in turn, ensuring fair load distribution and preventing any single gateway from being overwhelmed.
+
+## How It Works
+
+1. **Initialize Gateway List**: Start with an ordered list of available gateways
+2. **Track Current Position**: Maintain a pointer to the current gateway in the rotation
+3. **Select Next Gateway**: Choose the next gateway in the sequence
+4. **Cycle Through List**: Return to the first gateway after reaching the end
+5. **Handle Failures**: Skip failed gateways and continue rotation
+
+## Configuration
+
+### Basic Usage
+
+```javascript
+import { RoundRobinRoutingStrategy } from '@ar.io/wayfinder-core'
+
+const strategy = new RoundRobinRoutingStrategy({
+  gateways: [new URL('https://arweave.net'), new URL('https://permagate.io')],
+})
+```
+
+### With Weighted Rotation
+
+```javascript
+const strategy = new RoundRobinRoutingStrategy({
+  gateways: [
+    new URL('https://high-capacity-gateway.com'),
+    new URL('https://medium-capacity-gateway.com'),
+    new URL('https://low-capacity-gateway.com'),
+  ],
+});
+
+// selects the next gateway in the list
+const selectedGateway = strategy.selectGateway()
+```
+
+## Parameters
+
+| Parameter          | Type                  | Default         | Description                             |
+| ------------------ | --------------------- | --------------- | --------------------------------------- |
+| `gateways`         | `URL[]`               | **required**    | Array of gateway URLs to rotate through |
+| `logger`           | `Logger`              | `defaultLogger` | Optional logger instance                |
+
+## Related
+
+- **[FastestPingRoutingStrategy](/wayfinder/core/routing-strategies/fastest-ping)**: Network-based gateway discovery
+- **[PreferredWithFallbackRoutingStrategy](/wayfinder/core/routing-strategies/prefrred-with-fallback)**: Static gateway configuration
+- **[RandomRoutingStrategy](/wayfinder/core/routing-strategies/random)**: Randomized gateway selection
+- **[StaticRoutingStrategy](/wayfinder/core/routing-strategies/static)**: Always use a single, fixed gateway

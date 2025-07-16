@@ -1,0 +1,46 @@
+# FastestPingRoutingStrategy
+
+## Overview
+
+The `FastestPingRoutingStrategy` selects the gateway with the lowest latency by performing HEAD requests to all available gateways and choosing the one that responds fastest. This strategy optimizes for performance by dynamically selecting the most responsive gateway for each request.
+
+## How It Works
+
+1. **Ping All Gateways**: Send HEAD requests to all available gateways for the provided path and subdomain
+2. **Measure Response Times**: Records the time taken for each gateway to respond
+3. **Select Fastest**: Choose the gateway with the lowest response time
+
+
+## Basic Usage
+
+```javascript
+import { FastestPingRoutingStrategy } from '@ar.io/wayfinder-core'
+
+const strategy = new FastestPingRoutingStrategy({
+  timeoutMs: 500,
+  maxConcurrency: 3,
+})
+
+const selectedGateway = await strategy.selectGateawy({
+  path: '/'
+  subdomain: 'ardrive',
+  gateways: ['https://arweave.net', 'htps://permagate.io', 'https://arweave.dev']
+})
+
+// does a HEAD request on each and selects the one that responded the fastest
+```
+
+## Parameters
+
+| Parameter        | Type     | Default         | Description                                   |
+| ---------------- | -------- | --------------- | --------------------------------------------- |
+| `timeoutMs`      | `number` | `500`           | Timeout for ping requests in milliseconds     |
+| `maxConcurrency` | `number` | `3` | Number that determines how many HEAD checks to send at once |
+| `logger`         | `Logger` | `defaultLogger` | Optional logger instance                      |
+
+
+## Related
+- **[PreferredWithFallbackRoutingStrategy](/wayfinder/core/routing-strategies/prefrred-with-fallback)**: Static gateway configuration
+- **[RoundRobinRoutingStrategy](/wayfinder/core/routing-strategies/round-robin)**: Even distribution across gateways
+- **[RandomRoutingStrategy](/wayfinder/core/routing-strategies/random)**: Randomized gateway selection
+- **[StaticRoutingStrategy](/wayfinder/core/routing-strategies/static)**: Always use a single, fixed gateway

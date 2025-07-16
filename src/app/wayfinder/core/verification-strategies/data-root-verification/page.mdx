@@ -1,0 +1,73 @@
+export const metadata = {
+  title: 'Data Root Verification Strategy',
+  description:
+    'Maximum security verification using Arweave Merkle tree proofs to provide mathematical proof of data integrity for production applications.',
+  openGraph: {
+    title: 'Data Root Verification Strategy',
+  },
+}
+
+# DataRootVerificationStrategy
+
+## Overview
+
+The `DataRootVerificationStrategy` provides the highest level of data integrity verification by validating data using Arweave's Merkle tree proofs. This strategy ensures maximum security by verifying that the data matches the cryptographic data root stored in the transaction, providing mathematical proof of data integrity.
+
+<Tip title="Important">
+  `DataRootVerificationStrategy` requires that the trusted gateway has the relevant
+  transaction data indexed locally. Gateways cannot proxy out verification
+  requests to other sources, as this would compromise the security and
+  reliability of the verification process. If a gateway doesn't have the
+  required data indexed, verification will fail.
+</Tip>
+
+
+
+
+## How It Works
+
+1. **Compute Data Root**: Chunk the received content and build a Merkle tree
+2. **Calculate Root Hash**: Compute the root hash of the Merkle tree
+3. **Fetch Trusted Root**: Get the data root from trusted gateways via `/tx/{txId}/data_root`
+4. **Compare Roots**: Verify the calculated root matches the trusted data root
+5. **Result**: Pass or fail based on data root validation
+
+<Tip title="Warning">
+  **ANS-104 Data Items Not Supported**: This strategy currently only works with regular Arweave transactions, not ANS-104 bundled data items. If you attempt to verify an ANS-104 data item, it will throw an error.
+</Tip>
+
+## Basic Usage
+
+```javascript
+import { DataRootVerificationStrategym, Wayfinder } from '@ar.io/wayfinder-core'
+
+const wayfinder = new Wayfinder({ /* ...global wayfinder configuration */  });
+const verificationStrategy = new DataRootVerificationStrategy({
+  trustedGateways: [new URL('https://arweave.net')],
+})
+
+// use it in a request
+const verifiedData = await wayfinder.request('ar://<some-tx-id', {
+  verificationSettings: {
+    enabled: true,
+    strategy: verificationStrategy,
+    strict: true // block the flow of bytes until verification has passed
+    events: {
+      onVerificationProgress: (e) => {
+        console.debug('Verification progress: ${ e.processBytes / e.totalBytes * 100}%)
+      },
+      onVerificationFailed: (e) => {
+        console.error('Verification failed!, e)
+      },
+      onVerificationSucceeded: (e) => {
+        console.log('Verification succeeded!, e)
+      }
+    }
+  }
+})
+```
+
+## Related
+
+- **[Hash Verification](/wayfinder/verification-strategies/hash-verification)**: Learn about fast integrity checking
+- **[Signature Verification](/wayfinder/verification-strategies/signature-verification)**: Understand authenticity validation

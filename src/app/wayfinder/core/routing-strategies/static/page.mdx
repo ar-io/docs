@@ -1,0 +1,59 @@
+export const metadata = {
+  title: 'StaticRoutingStrategy',
+  description:
+    'A routing strategy that always returns the same configured gateway, ignoring provided gateway lists.',
+  openGraph: {
+    title: 'StaticRoutingStrategy',
+  },
+}
+
+# StaticRoutingStrategy
+
+## Overview
+
+The `StaticRoutingStrategy` is the simplest routing strategy that always returns a single, pre-configured gateway URL. This strategy ignores any gateways provided by the `GatewaysProvider` and is useful for scenarios where you want to force all requests to use a specific gateway.
+
+## How It Works
+
+The strategy always returns the configured gateway, ignoring any provided gateway lists:
+
+1. **Configure Gateway**: Set a single gateway URL during initialization
+2. **Ignore Provided Gateways**: Any gateways from providers are ignored
+3. **Return Static Gateway**: Always return the same configured gateway
+4. **Log Warnings**: Warn when provided gateways are ignored
+
+## Configuration
+
+### Basic Usage
+
+```javascript
+import { StaticRoutingStrategy } from '@ar.io/wayfinder-core'
+
+const strategy = new StaticRoutingStrategy({
+  gateway: 'https://arweave.net',
+})
+```
+
+### With Custom Gateway
+
+```javascript
+const strategy = new StaticRoutingStrategy({
+  gateway: 'https://my-custom-gateway.com',
+})
+
+// will always return the provided gateway
+const selectedGateway = await strategy.selectGateway();
+```
+
+## Parameters
+
+| Parameter | Type     | Default         | Description                   |
+| --------- | -------- | --------------- | ----------------------------- |
+| `gateway` | `string` | **required**    | The gateway URL to always use |
+| `logger`  | `Logger` | `defaultLogger` | Optional logger instance      |
+
+## Related
+
+- **[FastestPingRoutingStrategy](/wayfinder/core/routing-strategies/fastest-ping)**: Network-based gateway discovery
+- **[PreferredWithFallbackRoutingStrategy](/wayfinder/core/routing-strategies/prefrred-with-fallback)**: Static gateway configuration
+- **[RandomRoutingStrategy](/wayfinder/core/routing-strategies/random)**: Randomized gateway selection

@@ -1,0 +1,38 @@
+# RandomRoutingStrategy
+
+## Overview
+
+The `RandomRoutingStrategy` selects gateways randomly from the available pool. This strategy provides simple load distribution without maintaining state or performing complex calculations, making it ideal for scenarios where unpredictability is desired or where simplicity is paramount.
+
+## How It Works
+
+1. **Receive Gateway List**: Accept the list of available gateways
+2. **Generate Random Index**: Create a random number within the gateway list range
+3. **Select Gateway**: Choose the gateway at the random index
+4. **Apply Filters**: Optionally filter out unhealthy or blocked gateways
+5. **Return Selection**: Return the randomly selected gateway
+
+## Basic Usage
+
+```javascript
+import { RandomRoutingStrategy } from '@ar.io/wayfinder-core'
+
+const strategy = new RandomRoutingStrategy()
+
+// randomly selects a gateway from the provided list
+const selectedGateway = strategy.selectGateway({
+  gateways: ['https://arweave.net', 'https://permagate.io', 'https://ardrive.net']
+})
+```
+
+## Parameters
+
+| Parameter           | Type                  | Default         | Description                                                 |
+| ------------------- | --------------------- | --------------- | ----------------------------------------------------------- |
+| `logger`            | `Logger`              | `defaultLogger` | Optional logger instance                                    |
+
+## Related
+
+- **[FastestPingRoutingStrategy](/wayfinder/core/routing-strategies/fastest-ping)**: Network-based gateway discovery
+- **[PreferredWithFallbackRoutingStrategy](/wayfinder/core/routing-strategies/prefrred-with-fallback)**: Static gateway configuration
+- **[RandomRoutingStrategy](/wayfinder/core/routing-strategies/random)**: Randomized gateway selection
