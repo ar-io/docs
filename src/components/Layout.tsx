@@ -65,11 +65,11 @@ export function Layout({
             </div>
           </motion.header>
           <div className="relative flex h-full justify-center px-3 pt-14 sm:px-4 md:px-6 lg:px-8">
-            <div className="flex h-full max-w-4xl flex-col">
+            <div className="flex h-full w-full flex-col overflow-hidden">
               <HeroPattern />
               <MDXProvider components={components}>
                 <main className="w-full flex-auto overflow-x-hidden">
-                  {children}
+                  <div className="hyphens-auto break-words">{children}</div>
                 </main>
               </MDXProvider>
               <Footer />
