@@ -65,7 +65,7 @@ export function Layout({
             </div>
           </motion.header>
           <div className="relative flex h-full justify-center px-3 pt-14 sm:px-4 md:px-6 lg:px-8">
-            <div className="flex h-full w-full flex-col overflow-hidden">
+            <div className="flex h-full w-full max-w-sm flex-col overflow-hidden sm:max-w-2xl md:max-w-4xl lg:max-w-6xl xl:max-w-none">
               <HeroPattern />
               <MDXProvider components={components}>
                 <main className="w-full flex-auto overflow-x-hidden">
