@@ -159,50 +159,10 @@ const wayfinder = new Wayfinder({
 })
 ```
 
-## Core Methods
-
-### request()
-
-Fetches data from Arweave with intelligent routing and optional verification.
-
-```javascript
-// Basic usage
-const response = await wayfinder.request('ar://transaction-id')
-const data = await response.text()
-
-// With custom options
-const response = await wayfinder.request('ar://transaction-id', {
-  headers: { Accept: 'application/json' },
-  signal: AbortSignal.timeout(5000),
-})
-const json = await response.json()
-
-// Override settings for specific request
-const response = await wayfinder.request('ar://transaction-id', {
-  wayfinderOptions: {
-    verificationEnabled: false,
-    preferredGateways: ['https://my-gateway.com'],
-  },
-})
-```
-
-### resolveUrl()
-
-Resolves an ar:// URL to a gateway URL without fetching data.
-
-```javascript
-// Basic URL resolution
-const gatewayUrl = await wayfinder.resolveUrl('ar://transaction-id')
-console.log(gatewayUrl) // https://selected-gateway.com/transaction-id
-
-// With custom routing
-const gatewayUrl = await wayfinder.resolveUrl('ar://transaction-id', {
-  routingStrategy: new FastestPingRoutingStrategy({ timeoutMs: 1000 }),
-})
-```
-
 ## Next Steps
 
+- **[request()](/wayfinder/core/request)**: How to fetch Arweave data using Wayfinder
+- **[resolveUrl()](/wayfinder/core/resolve-url)**: Use dynamic URLs for transaction IDs, ArNS names, etc.
 - **[Gateway Providers](/wayfinder/core/gateway-providers)**: Understand gateway discovery options
 - **[Routing Strategies](/wayfinder/core/routing-strategies)**: Explore different routing algorithms
 - **[Verification Strategies](/wayfinder/core/verification-strategies)**: Learn about data integrity verification

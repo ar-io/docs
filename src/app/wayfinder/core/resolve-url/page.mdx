@@ -9,13 +9,7 @@ export const metadata = {
 
 # wayfinder.resolveUrl()
 
-Resolve ar:// URLs to fully-qualified gateway URLs using the configured routing strategy without making a network request.
-
-## Syntax
-
-```javascript
-const url = await wayfinder.resolveUrl({ originalUrl, logger })
-```
+Resolve ar:// URLs to dynamic gateway URLs using the configured routing strategy.
 
 ## Parameters
 
@@ -30,7 +24,7 @@ Returns a fully-qualified URL object that points to the selected gateway.
 
 ## Examples
 
-### Basic URL Resolution
+### Legacy URLs
 
 ```javascript
 import { Wayfinder, NetworkGatewaysProvider } from '@ar.io/wayfinder-core'
@@ -42,29 +36,15 @@ const wayfinder = new Wayfinder({
   }),
 })
 
-// Resolve a transaction ID
+// An existing arweave.net URL
 const url = await wayfinder.resolveUrl({
-  originalUrl: 'ar://ABC123...XYZ',
+  originalUrl: 'https://arweave.net/<some-tx-id>',
 })
 console.log('Resolved URL:', url.toString())
-// Output: https://arweave.net/ABC123...XYZ
-
-// Resolve an ArNS name
-const arnsUrl = await wayfinder.resolveUrl({
-  arnsName: 'ardrive',
-})
-console.log('ArNS URL:', arnsUrl.toString())
-// Output: https://ardrive.arweave.net
-
-//Resolve an Arweave txId
-const txIdUrl = await wayfinder.resolveUrl({
-  txId: 'ABC123...XYZ',
-})
-console.log('Arweave txId URL:', txIdUrl.toString())
-// Output: https://arweave.net/ABC123...XYZ
+// Output: https://<some-other-gateway>/ABC123...XYZ
 ```
 
-### Transaction ID Resolution
+### Transaction IDs
 
 ```javascript
 // Transaction IDs are resolved to sandboxed subdomains
@@ -72,10 +52,10 @@ const txUrl = await wayfinder.resolveUrl({
   txId: 'YTB0dGJURWpqQ25iS2NaY1RPSi1TOUQxMmd3cGRFaHUzV2hiWnVlZ2o5WT0',
 })
 console.log('Transaction URL:', txUrl.toString())
-// Output: https://ytb0dgjuqwpqq25iy2naytpsi1tpuqxnz3dqrfaohuzwhiwnu5j9y.arweave.net
+// Output: https://ytb0dgjuqwpqq25iy2naytpsi1tpuqxnz3dqrfaohuzwhiwnu5j9y.<some-gateway>
 ```
 
-### ArNS Name Resolution
+### ArNS Names
 
 ```javascript
 // ArNS names resolve to subdomain format
@@ -83,17 +63,10 @@ const arnsUrl = await wayfinder.resolveUrl({
   arnsName: 'ardrive',
 })
 console.log('ArNS URL:', arnsUrl.toString())
-// Output: https://ardrive.arweave.net
-
-// ArNS with path
-const arnsPathUrl = await wayfinder.resolveUrl({
-  originalUrl: 'ar://ardrive/docs/getting-started.html',
-})
-console.log('ArNS Path URL:', arnsPathUrl.toString())
-// Output: https://ardrive.arweave.net/docs/getting-started.html
+// Output: https://ardrive.<some-gateway>
 ```
 
-### Gateway Endpoint Resolution
+### Gateway Endpoints
 
 ```javascript
 // Gateway info endpoint
@@ -101,256 +74,21 @@ const infoUrl = await wayfinder.resolveUrl({
   originalUrl: 'ar:///info',
 })
 console.log('Info URL:', infoUrl.toString())
-// Output: https://arweave.net/info
-
-// GraphQL endpoint
-const graphqlUrl = await wayfinder.resolveUrl({
-  originalUrl: 'ar:///graphql',
-})
-console.log('GraphQL URL:', graphqlUrl.toString())
-// Output: https://arweave.net/graphql
+// Output: https://<some-gateway>/info
 ```
 
-### With Custom Logger
-
-```javascript
-const customLogger = {
-  debug: (msg, ...args) => console.debug(`[RESOLVE] ${msg}`, ...args),
-  info: (msg, ...args) => console.info(`[RESOLVE] ${msg}`, ...args),
-  warn: (msg, ...args) => console.warn(`[RESOLVE] ${msg}`, ...args),
-  error: (msg, ...args) => console.error(`[RESOLVE] ${msg}`, ...args),
-}
-
-const url = await wayfinder.resolveUrl({
-  originalUrl: 'ar://ardrive',
-  logger: customLogger,
-})
-```
-
-### Batch URL Resolution
-
-```javascript
-const urls = [
-  'ar://ABC123...XYZ',
-  'ar://ardrive',
-  'ar://ardrive/docs',
-  'ar:///info',
-  'ar:///graphql',
-]
-
-// Resolve multiple URLs in parallel
-const resolvedUrls = await Promise.all(
-  urls.map((originalUrl) => wayfinder.resolveUrl({ originalUrl })),
-)
-
-urls.forEach((original, index) => {
-  console.log(`${original} → ${resolvedUrls[index].toString()}`)
-})
-```
-
-### Using Different Routing Strategies
-
-```javascript
-import {
-  Wayfinder,
-  NetworkGatewaysProvider,
-  PreferredWithFallbackRoutingStrategy,
-  FastestPingRoutingStrategy,
-} from '@ar.io/wayfinder-core'
-import { ARIO } from '@ar.io/sdk'
-
-// Wayfinder with preferred gateway strategy
-const wayfinder = new Wayfinder({
-  gatewaysProvider: new NetworkGatewaysProvider({
-    ario: ARIO.mainnet(),
-  }),
-  routingSettings: {
-    strategy: new PreferredWithFallbackRoutingStrategy({
-      preferredGateway: new URL('https://permagate.io'),
-      fallbackStrategy: new FastestPingRoutingStrategy(),
-    }),
-  },
-})
-
-const url = await wayfinder.resolveUrl({
-  originalUrl: 'ar://ardrive',
-})
-console.log('Preferred gateway URL:', url.toString())
-// Output: https://ardrive.permagate.io
-```
-
-### Handling Resolution Errors
-
-```javascript
-try {
-  const url = await wayfinder.resolveUrl({
-    originalUrl: 'ar://invalid-name',
-  })
-  console.log('Resolved:', url.toString())
-} catch (error) {
-  if (error.name === 'RoutingError') {
-    console.error('Failed to select gateway:', error.message)
-  } else if (error.name === 'NetworkError') {
-    console.error('Network connectivity issue:', error.message)
-  } else {
-    console.error('Resolution failed:', error.message)
-  }
-}
-```
-
-## URL Format Support
-
-The `resolveUrl()` method supports various ar:// URL formats:
-
-### Transaction IDs (43 characters)
-
-```javascript
-// Resolves to sandboxed subdomain
-await wayfinder.resolveUrl({
-  originalUrl:
-    'ar://YTB0dGJURWpqQ25iS2NaY1RPSi1TOUQxMmd3cGRFaHUzV2hiWnVlZ2o5WT0',
-})
-// → https://ytb0dgjuqwpqq25iy2naytpsi1tpuqxnz3dqrfaohuzwhiwnu5j9y.arweave.net
-```
-
-### ArNS Names (1-51 characters, alphanumeric + hyphens/underscores)
-
-```javascript
-// Resolves to ArNS subdomain
-await wayfinder.resolveUrl({
-  arnsName: 'my-app',
-})
-// → https://my-app.arweave.net
-
-// With path
-await wayfinder.resolveUrl({
-  originalUrl: 'ar://my-app/api/data.json',
-})
-// → https://my-app.arweave.net/api/data.json
-```
-
-### Gateway Endpoints
-
-```javascript
-// Gateway info
-await wayfinder.resolveUrl({
-  originalUrl: 'ar:///info',
-})
-// → https://arweave.net/info
-
-// Price endpoint
-await wayfinder.resolveUrl({
-  originalUrl: 'ar:///price/1024',
-})
-// → https://arweave.net/price/1024
-```
 
 ## Comparison with request()
 
 | Method         | Network Request | Verification | Use Case                            |
 | -------------- | --------------- | ------------ | ----------------------------------- |
-| `resolveUrl()` | ❌ No           | ❌ No        | Get gateway URL for manual requests |
-| `request()`    | ✅ Yes          | ✅ Optional  | Fetch and optionally verify data    |
+| `resolveUrl()` | ✅ Yes          | ❌ No        | Get a dynamic URL for transaction id, ArNS name or gateway endpoint |
+| `request()`    | ✅ Yes          | ✅ Optional  | Fetch and optionally verify data from an AR.IO gateway  |
 
-### When to use resolveUrl()
 
-- **URL preview**: Show users which gateway will be used
-- **Manual fetch**: You want to use your own fetch implementation
-- **URL sharing**: Generate shareable gateway URLs
-- **Caching**: Pre-resolve URLs for caching strategies
-
-### When to use request()
-
-- **Data fetching**: You want to fetch and consume the data
-- **Verification**: You want automatic data verification
-- **Event monitoring**: You want routing and verification events
-
-## Example: Manual Fetch with resolveUrl()
-
-```javascript
-// Resolve URL first, then make manual request
-const resolvedUrl = await wayfinder.resolveUrl({
-  originalUrl: 'ar://ardrive',
-})
-
-// Make manual fetch with custom options
-const response = await fetch(resolvedUrl, {
-  headers: {
-    Accept: 'text/html',
-    'User-Agent': 'MyApp/1.0',
-  },
-  timeout: 10000,
-})
-
-const html = await response.text()
-console.log('Fetched HTML:', html.length, 'bytes')
-```
-
-## Performance Considerations
-
-- **Gateway Selection**: `resolveUrl()` triggers gateway selection, which may involve network requests to test gateway availability
-- **Caching**: Results are not cached between calls - consider caching resolved URLs if making multiple requests
-- **Concurrent Calls**: Multiple `resolveUrl()` calls may use the same gateway selection process
-
-## Integration Examples
-
-### With React
-
-```javascript
-import { useState, useEffect } from 'react'
-
-function ArweaveLink({ arUrl, children }) {
-  const [resolvedUrl, setResolvedUrl] = useState(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    wayfinder
-      .resolveUrl({ originalUrl: arUrl })
-      .then((url) => {
-        setResolvedUrl(url.toString())
-        setLoading(false)
-      })
-      .catch((error) => {
-        console.error('Failed to resolve URL:', error)
-        setLoading(false)
-      })
-  }, [arUrl])
-
-  if (loading) return <span>Resolving...</span>
-  if (!resolvedUrl) return <span>Failed to resolve</span>
-
-  return (
-    <a href={resolvedUrl} target="_blank" rel="noopener noreferrer">
-      {children}
-    </a>
-  )
-}
-```
-
-### With URL Shortening
-
-```javascript
-async function createShortUrl(arUrl) {
-  try {
-    const resolvedUrl = await wayfinder.resolveUrl({
-      originalUrl: arUrl,
-    })
-
-    // Use your URL shortening service
-    const shortUrl = await shortener.create(resolvedUrl.toString())
-    return shortUrl
-  } catch (error) {
-    console.error('Failed to create short URL:', error)
-    throw error
-  }
-}
-```
-
-## Next Steps
-
-After resolving URLs:
-
-1. **Make requests**: Use the resolved URL with `fetch()` or other HTTP clients
-2. **Cache results**: Store resolved URLs to avoid repeated gateway selection
-3. **Monitor performance**: Track resolution times and gateway selection patterns
-4. **Handle errors**: Implement proper error handling for resolution failures
+## Related
+- **[request()](./wayfinder/core/request)**: Fetching data via Wayfinder
+- **[Gateway Providers](/wayfinder/core/gateway-providers)**: Understand gateway discovery options
+- **[Routing Strategies](/wayfinder/core/routing-strategies)**: Explore different routing algorithms
+- **[Verification Strategies](/wayfinder/core/verification-strategies)**: Learn about data integrity verification
+- **[Telemetry](/wayfinder/core/telemetry)**: Set up monitoring and observability

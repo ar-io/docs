@@ -4,57 +4,6 @@
 
 The `RoundRobinRoutingStrategy` distributes requests evenly across all available gateways in a cyclical manner. Each gateway is selected in turn, ensuring fair load distribution and preventing any single gateway from being overwhelmed.
 
-## Routing Strategy Comparison
-
-<Table>
-  <thead>
-    <tr>
-      <th>Strategy</th>
-      <th>Best For</th>
-      <th>Use Case</th>
-      <th>Predictability</th>
-      <th>Infrastructure Control</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>Round Robin</td>
-      <td>Load balancing</td>
-      <td>Even distribution across known gateways</td>
-      <td>High</td>
-      <td>High</td>
-    </tr>
-    <tr>
-      <td>Fastest Ping</td>
-      <td>Real-time applications</td>
-      <td>Performance-critical apps, gaming</td>
-      <td>Medium</td>
-      <td>Low</td>
-    </tr>
-    <tr>
-      <td>Preferred + Fallback</td>
-      <td>Dedicated infrastructure</td>
-      <td>CDN with origin fallback, enterprise gateways</td>
-      <td>High</td>
-      <td>Maximum</td>
-    </tr>
-    <tr>
-      <td>Random</td>
-      <td>Simple distribution</td>
-      <td>Basic load spreading, testing</td>
-      <td>Low</td>
-      <td>Medium</td>
-    </tr>
-    <tr>
-      <td>Static</td>
-      <td>Single gateway</td>
-      <td>Development, specific gateway requirements</td>
-      <td>Maximum</td>
-      <td>High</td>
-    </tr>
-  </tbody>
-</Table>
-
 ## How It Works
 
 1. **Initialize Gateway List**: Start with an ordered list of available gateways
@@ -84,13 +33,10 @@ const strategy = new RoundRobinRoutingStrategy({
     new URL('https://medium-capacity-gateway.com'),
     new URL('https://low-capacity-gateway.com'),
   ],
-  weightedRotation: true,
-  weights: new Map([
-    ['https://high-capacity-gateway.com', 3],
-    ['https://medium-capacity-gateway.com', 2],
-    ['https://low-capacity-gateway.com', 1],
-  ]),
-})
+});
+
+// selects the next gateway in the list
+const selectedGateway = strategy.selectGateway()
 ```
 
 ## Parameters
@@ -98,86 +44,11 @@ const strategy = new RoundRobinRoutingStrategy({
 | Parameter          | Type                  | Default         | Description                             |
 | ------------------ | --------------------- | --------------- | --------------------------------------- |
 | `gateways`         | `URL[]`               | **required**    | Array of gateway URLs to rotate through |
-| `weightedRotation` | `boolean`             | `false`         | Use weighted rotation                   |
-| `weights`          | `Map<string, number>` | `new Map()`     | Gateway weights for weighted rotation   |
-| `shuffleOnStart`   | `boolean`             | `false`         | Randomize initial gateway order         |
 | `logger`           | `Logger`              | `defaultLogger` | Optional logger instance                |
 
-## Integration with Wayfinder
+## Related
 
-```javascript
-import { Wayfinder, RoundRobinRoutingStrategy } from '@ar.io/wayfinder-core'
-
-const wayfinder = new Wayfinder({
-  routingSettings: {
-    strategy: new RoundRobinRoutingStrategy({
-      gateways: [
-        new URL('https://gateway-1.com'),
-        new URL('https://gateway-2.com'),
-        new URL('https://gateway-3.com'),
-      ],
-    }),
-  },
-})
-```
-
-## Use Cases
-
-### Even Load Distribution
-
-Perfect for distributing load evenly across multiple known gateways.
-
-```javascript
-const loadBalanceStrategy = new RoundRobinRoutingStrategy({
-  gateways: [
-    new URL('https://gateway-1.com'),
-    new URL('https://gateway-2.com'),
-    new URL('https://gateway-3.com'),
-    new URL('https://gateway-4.com'),
-  ],
-})
-```
-
-### Capacity-Based Distribution
-
-Ideal for gateways with different capacities using weighted rotation.
-
-```javascript
-const capacityStrategy = new RoundRobinRoutingStrategy({
-  gateways: [
-    new URL('https://high-capacity.com'),
-    new URL('https://medium-capacity.com'),
-    new URL('https://low-capacity.com'),
-  ],
-  weightedRotation: true,
-  weights: new Map([
-    ['https://high-capacity.com', 5],
-    ['https://medium-capacity.com', 3],
-    ['https://low-capacity.com', 1],
-  ]),
-})
-```
-
-### Predictable Testing
-
-Useful for testing scenarios where you need predictable gateway selection.
-
-```javascript
-const testStrategy = new RoundRobinRoutingStrategy({
-  gateways: [
-    new URL('https://test-gateway-1.com'),
-    new URL('https://test-gateway-2.com'),
-  ],
-  shuffleOnStart: false, // Maintain order for predictable testing
-})
-```
-
-## Best Practices
-
-1. **Define Gateway Order**: Carefully consider the order of gateways in your list
-2. **Use Weighted Rotation**: Apply weights when gateways have different capacities
-3. **Monitor Distribution**: Track requests to ensure even distribution
-4. **Consider Shuffling**: Use `shuffleOnStart` to avoid predictable patterns
-5. **Plan for Failures**: Combine with health checking for production use
-
-The `RoundRobinRoutingStrategy` is ideal for applications that need predictable, even distribution of requests across a known set of gateways.
+- **[FastestPingRoutingStrategy](/wayfinder/core/routing-strategies/fastest-ping)**: Network-based gateway discovery
+- **[PreferredWithFallbackRoutingStrategy](/wayfinder/core/routing-strategies/prefrred-with-fallback)**: Static gateway configuration
+- **[RandomRoutingStrategy](/wayfinder/core/routing-strategies/random)**: Randomized gateway selection
+- **[StaticRoutingStrategy](/wayfinder/core/routing-strategies/static)**: Always use a single, fixed gateway

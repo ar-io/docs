@@ -4,57 +4,6 @@
 
 The `RandomRoutingStrategy` selects gateways randomly from the available pool. This strategy provides simple load distribution without maintaining state or performing complex calculations, making it ideal for scenarios where unpredictability is desired or where simplicity is paramount.
 
-## Routing Strategy Comparison
-
-<Table>
-  <thead>
-    <tr>
-      <th>Strategy</th>
-      <th>Best For</th>
-      <th>Use Case</th>
-      <th>Predictability</th>
-      <th>Infrastructure Control</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>Random</td>
-      <td>Simple distribution</td>
-      <td>Basic load spreading, testing</td>
-      <td>Low</td>
-      <td>Medium</td>
-    </tr>
-    <tr>
-      <td>Fastest Ping</td>
-      <td>Real-time applications</td>
-      <td>Performance-critical apps, gaming</td>
-      <td>Medium</td>
-      <td>Low</td>
-    </tr>
-    <tr>
-      <td>Preferred + Fallback</td>
-      <td>Dedicated infrastructure</td>
-      <td>CDN with origin fallback, enterprise gateways</td>
-      <td>High</td>
-      <td>Maximum</td>
-    </tr>
-    <tr>
-      <td>Round Robin</td>
-      <td>Load balancing</td>
-      <td>Even distribution across known gateways</td>
-      <td>High</td>
-      <td>High</td>
-    </tr>
-    <tr>
-      <td>Static</td>
-      <td>Single gateway</td>
-      <td>Development, specific gateway requirements</td>
-      <td>Maximum</td>
-      <td>High</td>
-    </tr>
-  </tbody>
-</Table>
-
 ## How It Works
 
 1. **Receive Gateway List**: Accept the list of available gateways
@@ -63,26 +12,16 @@ The `RandomRoutingStrategy` selects gateways randomly from the available pool. T
 4. **Apply Filters**: Optionally filter out unhealthy or blocked gateways
 5. **Return Selection**: Return the randomly selected gateway
 
-## Configuration
-
-### Basic Usage
+## Basic Usage
 
 ```javascript
 import { RandomRoutingStrategy } from '@ar.io/wayfinder-core'
 
 const strategy = new RandomRoutingStrategy()
-```
 
-### With Weighted Selection
-
-```javascript
-const strategy = new RandomRoutingStrategy({
-  weightedSelection: true,
-  weights: new Map([
-    ['https://high-capacity-gateway.com', 3],
-    ['https://medium-capacity-gateway.com', 2],
-    ['https://low-capacity-gateway.com', 1],
-  ]),
+// randomly selects a gateway from the provided list
+const selectedGateway = strategy.selectGateway({
+  gateways: ['https://arweave.net', 'https://permagate.io', 'https://ardrive.net']
 })
 ```
 
@@ -90,71 +29,10 @@ const strategy = new RandomRoutingStrategy({
 
 | Parameter           | Type                  | Default         | Description                                                 |
 | ------------------- | --------------------- | --------------- | ----------------------------------------------------------- |
-| `seed`              | `number`              | `undefined`     | Seed for random number generator (for reproducible results) |
-| `weightedSelection` | `boolean`             | `false`         | Use weighted random selection                               |
-| `weights`           | `Map<string, number>` | `new Map()`     | Gateway weights for weighted selection                      |
 | `logger`            | `Logger`              | `defaultLogger` | Optional logger instance                                    |
 
-## Integration with Wayfinder
+## Related
 
-```javascript
-import { Wayfinder, RandomRoutingStrategy } from '@ar.io/wayfinder-core'
-
-const wayfinder = new Wayfinder({
-  routingSettings: {
-    strategy: new RandomRoutingStrategy(),
-  },
-})
-```
-
-## Use Cases
-
-### Load Testing and Development
-
-Perfect for testing applications with unpredictable gateway selection patterns.
-
-```javascript
-const testStrategy = new RandomRoutingStrategy({
-  seed: 42, // Reproducible randomness for testing
-})
-```
-
-### Simple Load Distribution
-
-Ideal for applications that need basic load spreading without complex logic.
-
-```javascript
-const loadStrategy = new RandomRoutingStrategy({
-  weightedSelection: true,
-  weights: new Map([
-    ['https://primary-gateway.com', 3],
-    ['https://secondary-gateway.com', 1],
-  ]),
-})
-```
-
-### Backup Strategy
-
-Useful as a fallback strategy when other routing methods fail.
-
-```javascript
-import {
-  PreferredWithFallbackRoutingStrategy,
-  RandomRoutingStrategy,
-} from '@ar.io/wayfinder-core'
-
-const strategy = new PreferredWithFallbackRoutingStrategy({
-  preferredGateway: 'https://my-gateway.com',
-  fallbackStrategy: new RandomRoutingStrategy(),
-})
-```
-
-## Best Practices
-
-1. **Use for Testing**: Great for testing applications with unpredictable traffic patterns
-2. **Consider Weighted Selection**: Use weights to favor higher-capacity gateways
-3. **Combine with Other Strategies**: Works well as a fallback strategy
-4. **Set Seeds for Testing**: Use reproducible randomness in test environments
-5. **Monitor Distribution**: Track which gateways are selected over time
-
-The `RandomRoutingStrategy` is ideal for applications that need simple, unpredictable load distribution or as a fallback strategy for more complex routing methods.
+- **[FastestPingRoutingStrategy](/wayfinder/core/routing-strategies/fastest-ping)**: Network-based gateway discovery
+- **[PreferredWithFallbackRoutingStrategy](/wayfinder/core/routing-strategies/prefrred-with-fallback)**: Static gateway configuration
+- **[RandomRoutingStrategy](/wayfinder/core/routing-strategies/random)**: Randomized gateway selection

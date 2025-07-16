@@ -14,12 +14,15 @@ export const metadata = {
 The `DataRootVerificationStrategy` provides the highest level of data integrity verification by validating data using Arweave's Merkle tree proofs. This strategy ensures maximum security by verifying that the data matches the cryptographic data root stored in the transaction, providing mathematical proof of data integrity.
 
 <Tip title="Important">
-  Verification methods require that the gateway being used has the relevant
+  `DataRootVerificationStrategy` requires that the trusted gateway has the relevant
   transaction data indexed locally. Gateways cannot proxy out verification
   requests to other sources, as this would compromise the security and
   reliability of the verification process. If a gateway doesn't have the
   required data indexed, verification will fail.
 </Tip>
+
+
+
 
 ## How It Works
 
@@ -29,294 +32,42 @@ The `DataRootVerificationStrategy` provides the highest level of data integrity 
 4. **Compare Roots**: Verify the calculated root matches the trusted data root
 5. **Result**: Pass or fail based on data root validation
 
-## Important Limitation
+<Tip title="Warning">
+  **ANS-104 Data Items Not Supported**: This strategy currently only works with regular Arweave transactions, not ANS-104 bundled data items. If you attempt to verify an ANS-104 data item, it will throw an error.
+</Tip>
 
-**ANS-104 Data Items Not Supported**: This strategy currently only works with regular Arweave transactions, not ANS-104 bundled data items. If you attempt to verify an ANS-104 data item, it will throw an error.
-
-## Configuration
-
-### Basic Usage
+## Basic Usage
 
 ```javascript
-import { DataRootVerificationStrategy } from '@ar.io/wayfinder-core'
+import { DataRootVerificationStrategym, Wayfinder } from '@ar.io/wayfinder-core'
 
-const strategy = new DataRootVerificationStrategy({
+const wayfinder = new Wayfinder({ /* ...global wayfinder configuration */  });
+const verificationStrategy = new DataRootVerificationStrategy({
   trustedGateways: [new URL('https://arweave.net')],
 })
-```
 
-### Advanced Configuration
-
-```javascript
-const strategy = new DataRootVerificationStrategy({
-  trustedGateways: [
-    new URL('https://arweave.net'),
-    new URL('https://permagate.io'),
-  ],
-  maxConcurrency: 2, // Process multiple gateway requests concurrently
-  logger: customLogger, // Optional custom logger
-  classifier: customClassifier, // Optional data classifier
-})
-```
-
-## Parameters
-
-<Table>
-  <Table.Head>
-    <Table.Row>
-      <Table.Header>Parameter</Table.Header>
-      <Table.Header>Type</Table.Header>
-      <Table.Header>Default</Table.Header>
-      <Table.Header>Description</Table.Header>
-    </Table.Row>
-  </Table.Head>
-  <Table.Body>
-    <Table.Row>
-      <Table.Cell>trustedGateways</Table.Cell>
-      <Table.Cell>URL[]</Table.Cell>
-      <Table.Cell>Required</Table.Cell>
-      <Table.Cell>
-        Array of trusted gateway URLs for data root fetching
-      </Table.Cell>
-    </Table.Row>
-    <Table.Row>
-      <Table.Cell>maxConcurrency</Table.Cell>
-      <Table.Cell>number</Table.Cell>
-      <Table.Cell>1</Table.Cell>
-      <Table.Cell>Maximum number of concurrent requests to gateways</Table.Cell>
-    </Table.Row>
-    <Table.Row>
-      <Table.Cell>logger</Table.Cell>
-      <Table.Cell>Logger</Table.Cell>
-      <Table.Cell>defaultLogger</Table.Cell>
-      <Table.Cell>Custom logger instance for debugging</Table.Cell>
-    </Table.Row>
-    <Table.Row>
-      <Table.Cell>classifier</Table.Cell>
-      <Table.Cell>DataClassifier</Table.Cell>
-      <Table.Cell>GqlClassifier</Table.Cell>
-      <Table.Cell>Data classifier to determine transaction type</Table.Cell>
-    </Table.Row>
-  </Table.Body>
-</Table>
-
-## Integration Examples
-
-### With Wayfinder
-
-```javascript
-import { Wayfinder, DataRootVerificationStrategy } from '@ar.io/wayfinder-core'
-
-const wayfinder = new Wayfinder({
-  gatewaysProvider: gatewaysProvider,
+// use it in a request
+const verifiedData = await wayfinder.request('ar://<some-tx-id', {
   verificationSettings: {
     enabled: true,
-    strategy: new DataRootVerificationStrategy({
-      trustedGateways: [new URL('https://arweave.net')],
-    }),
-    strict: true,
-  },
-})
-
-// Maximum security verification happens automatically
-const response = await wayfinder.request('ar://transaction-id')
-const data = await response.text()
-```
-
-### With Event Monitoring
-
-```javascript
-const wayfinder = new Wayfinder({
-  gatewaysProvider: gatewaysProvider,
-  verificationSettings: {
-    enabled: true,
-    strategy: new DataRootVerificationStrategy({
-      trustedGateways: [new URL('https://arweave.net')],
-    }),
+    strategy: verificationStrategy,
+    strict: true // block the flow of bytes until verification has passed
     events: {
-      onVerificationSucceeded: (event) => {
-        console.log('✅ Data root verification passed:', {
-          txId: event.txId,
-        })
+      onVerificationProgress: (e) => {
+        console.debug('Verification progress: ${ e.processBytes / e.totalBytes * 100}%)
       },
-      onVerificationFailed: (error) => {
-        console.error('❌ Data root verification failed:', {
-          error: error.message,
-        })
+      onVerificationFailed: (e) => {
+        console.error('Verification failed!, e)
       },
-    },
-  },
-})
-```
-
-### Standalone Usage
-
-```javascript
-const strategy = new DataRootVerificationStrategy({
-  trustedGateways: [new URL('https://arweave.net')],
-})
-
-// Manual verification
-try {
-  await strategy.verifyData({
-    data: dataBuffer,
-    txId: 'transaction-id',
-  })
-  console.log('Verification passed!')
-} catch (error) {
-  console.error('Verification failed:', error.message)
-}
-```
-
-## How Merkle Tree Processing Works
-
-The strategy uses Arweave's standard Merkle tree implementation:
-
-### Chunking Process
-
-1. **Chunk Size**: Uses Arweave's standard chunk sizes (MAX_CHUNK_SIZE and MIN_CHUNK_SIZE)
-2. **Smart Chunking**: Automatically adjusts chunk sizes to avoid small remainder chunks
-3. **Sequential Processing**: Processes data streams chunk by chunk
-
-### Merkle Tree Construction
-
-1. **Generate Leaves**: Creates Merkle tree leaves from data chunks
-2. **Build Layers**: Constructs the full Merkle tree structure
-3. **Compute Root**: Calculates the final root hash
-
-### Data Root Fetching
-
-- Fetches data root from trusted gateways via `/tx/{txId}/data_root` endpoint
-- Uses concurrent requests with configurable concurrency limits
-- Returns first successful response from any gateway
-
-## Use Cases
-
-### Maximum Security Applications
-
-Perfect for applications requiring the highest level of verification:
-
-```javascript
-const strategy = new DataRootVerificationStrategy({
-  trustedGateways: [
-    new URL('https://arweave.net'),
-    new URL('https://permagate.io'),
-  ],
-  maxConcurrency: 2, // Use multiple gateways for reliability
-})
-```
-
-### Legal and Financial Documents
-
-Critical document verification:
-
-```javascript
-const legalStrategy = new DataRootVerificationStrategy({
-  trustedGateways: [new URL('https://arweave.net')],
-  logger: auditLogger, // Detailed logging for compliance
-})
-```
-
-### Production vs Development
-
-```javascript
-// Production - multiple gateways for maximum reliability
-const prodStrategy = new DataRootVerificationStrategy({
-  trustedGateways: [
-    new URL('https://arweave.net'),
-    new URL('https://permagate.io'),
-  ],
-  maxConcurrency: 2,
-})
-
-// Development - single gateway with debug logging
-const devStrategy = new DataRootVerificationStrategy({
-  trustedGateways: [new URL('https://arweave.net')],
-  logger: debugLogger,
-})
-```
-
-## Error Handling
-
-### ANS-104 Data Items
-
-```javascript
-try {
-  await strategy.verifyData({
-    data: dataBuffer,
-    txId: 'ans104-data-item-id',
-  })
-} catch (error) {
-  if (error.message.includes('ANS-104 data is not supported')) {
-    console.log('This is an ANS-104 data item, use a different strategy')
-    // Fall back to signature verification or hash verification
+      onVerificationSucceeded: (e) => {
+        console.log('Verification succeeded!, e)
+      }
+    }
   }
-}
+})
 ```
 
-### Data Root Mismatch
+## Related
 
-```javascript
-try {
-  await strategy.verifyData({
-    data: dataBuffer,
-    txId: 'transaction-id',
-  })
-} catch (error) {
-  if (error.message.includes('Data root does not match')) {
-    console.error('Data integrity verification failed:', {
-      computedDataRoot: error.cause?.computedDataRoot,
-      trustedDataRoot: error.cause?.trustedDataRoot,
-    })
-  }
-}
-```
-
-## Best Practices
-
-1. **Use Multiple Trusted Gateways**: Increases reliability for data root fetching
-2. **Set Appropriate Concurrency**: Balance between performance and gateway load
-3. **Monitor for ANS-104**: Check transaction types before verification
-4. **Handle Large Files**: Be aware that Merkle tree computation can be resource-intensive
-5. **Use for Critical Data**: Reserve for applications requiring maximum security
-
-## Comparison with Other Strategies
-
-<Table>
-  <Table.Head>
-    <Table.Row>
-      <Table.Header>Aspect</Table.Header>
-      <Table.Header>Data Root Verification</Table.Header>
-      <Table.Header>Hash Verification</Table.Header>
-      <Table.Header>Signature Verification</Table.Header>
-    </Table.Row>
-  </Table.Head>
-  <Table.Body>
-    <Table.Row>
-      <Table.Cell>Security</Table.Cell>
-      <Table.Cell>Highest</Table.Cell>
-      <Table.Cell>High</Table.Cell>
-      <Table.Cell>Very High</Table.Cell>
-    </Table.Row>
-    <Table.Row>
-      <Table.Cell>Performance</Table.Cell>
-      <Table.Cell>Slower</Table.Cell>
-      <Table.Cell>Fastest</Table.Cell>
-      <Table.Cell>Fast</Table.Cell>
-    </Table.Row>
-    <Table.Row>
-      <Table.Cell>ANS-104 Support</Table.Cell>
-      <Table.Cell>❌ No</Table.Cell>
-      <Table.Cell>✅ Yes</Table.Cell>
-      <Table.Cell>✅ Yes</Table.Cell>
-    </Table.Row>
-    <Table.Row>
-      <Table.Cell>Best For</Table.Cell>
-      <Table.Cell>Production applications</Table.Cell>
-      <Table.Cell>High-throughput applications</Table.Cell>
-      <Table.Cell>Financial or legal documents</Table.Cell>
-    </Table.Row>
-  </Table.Body>
-</Table>
-
-The `DataRootVerificationStrategy` provides the highest level of security by using Arweave's native Merkle tree structure. It's ideal for applications where data integrity is absolutely critical and performance is secondary to security. However, note that it currently only supports regular Arweave transactions, not ANS-104 bundled data items.
+- **[Hash Verification](/wayfinder/verification-strategies/hash-verification)**: Learn about fast integrity checking
+- **[Signature Verification](/wayfinder/verification-strategies/signature-verification)**: Understand authenticity validation

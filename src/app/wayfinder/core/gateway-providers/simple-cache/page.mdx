@@ -1,0 +1,48 @@
+
+# SimpleCacheGatewaysProvider
+
+## Overview
+
+The `SimpleCacheGatewaysProvider` holds the resulting gateways in memory for the provided TTL, making it ideal for Node environments. This helps avoid rate-limits and unnecessary network requests to the underlying gateways provider.
+
+<Tip title="Important">
+`SimpleCacheGatewaysProvider` is ideal for Node.js/server environments. For browser-based web applications, use `LocalStorageGatewaysProvider` instead to persist gateway lists across sessions.
+</Tip>
+
+## Basic Usage
+
+```javascript
+import {
+  SimpleCacheGatewaysProvider,
+  NetworkGatewaysProvider,
+} from '@ar.io/wayfinder-core'
+import { ARIO } from '@ar.io/sdk'
+
+const provider = new SimpleCacheGatewaysProvider({
+  gatewaysProvider: new NetworkGatewaysProvider({
+    ario: ARIO.mainnet(),
+  }),
+  ttlSeconds: 60 * 60, // Cache for 1 hour
+})
+
+// hits the in-memory cache for gateways until TTL expires
+const gateways = await provider.getGateways()
+console.log('Available gateways:', gateways)
+```
+
+### Configuration Options
+
+```javascript
+interface CachedGatewaysProvider{
+    gatewaysProvider: GatewaysProvider,
+    ttlSeconds: number;
+}
+```
+
+## Related Documentation
+
+- **[Gateway Providers](/wayfinder/core/gateway-providers)**: Compare all gateway providers
+- **[NetworkGatewaysProvider](/wayfinder/core/gateway-providers/network)**: Dynamic network discovery
+- **[StaticGatewaysProvider](/wayfinder/core/gateway-providers/static)**: Static gateway configuration
+- **[Wayfinder Configuration](/wayfinder/core)**: Main wayfinder setup
+  {/* - **[Performance Optimization](/wayfinder/core/performance)**: Performance tuning guides */}
