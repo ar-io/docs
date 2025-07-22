@@ -7,12 +7,46 @@ export const metadata = {
   },
 }
 
-
 # AR.IO Release Notes
 
 ## Overview
 
 Welcome to the documentation page for the AR.IO gateway release notes. Here, you will find detailed information about each version of the AR.IO gateway, including the enhancements, bug fixes, and any other changes introduced in every release. This page serves as a comprehensive resource to keep you informed about the latest developments and updates in the AR.IO gateway. For those interested in exploring the source code, each release's code is readily accessible at our GitHub repository: AR.IO gateway [change logs](https://github.com/ar-io/ar-io-node/blob/main/CHANGELOG.md). Stay updated with the continuous improvements and advancements in the AR.IO gateway by referring to this page for all release-related information.
+
+## [Release 43] - 2025-07-21
+
+This is a recommended release that enables data verification by default for data items linked to ArNS names, improves chunk broadcasting efficiency, and adds automatic chunk data cache cleanup.
+
+### Added
+
+- Added automatic chunk data cache cleanup functionality with configurable retention period. Chunks are now automatically removed after 4 hours by default (configurable via `CHUNK_DATA_CACHE_CLEANUP_THRESHOLD`). The cleanup can be disabled by setting `ENABLE_CHUNK_DATA_CACHE_CLEANUP=false`. This helps manage disk space usage while maintaining cache performance benefits.
+- Added demand-driven opt-out background verification for ArNS data. When ArNS names are requested, the system now proactively verifies the underlying data asynchronously in the background by unbundling verified chunk data retrieved directly from Arweave nodes. This ensures ArNS-served content is prioritized for verification, improving data integrity guarantees for frequently accessed named content.
+
+### Changed
+
+- Simplified chunk data storage by removing the dual-storage approach (by-hash and by-dataroot with symlinks). Chunks are now stored directly by data root only, reducing complexity and improving performance.
+- Revamped chunk broadcasting architecture from 3-tier system to unified peer-based approach. Chunk broadcasting now uses individual fastq queues per peer with configurable concurrency and queue depth protection. Added support for preferred chunk POST peers via `PREFERRED_CHUNK_POST_URLS` environment variable. Configuration defaults have been optimized: `CHUNK_POST_PEER_CONCURRENCY` now defaults to match `CHUNK_POST_MIN_SUCCESS_COUNT` (3) to avoid over-broadcasting, and `CHUNK_POST_PER_NODE_CONCURRENCY` defaults to match `CHUNK_POST_QUEUE_DEPTH_THRESHOLD` (10) for consistent per-node load management. This change improves broadcast reliability and performance while simplifying the codebase by removing circuit breakers and tier-based logic.
+- Modified `DataVerificationWorker` to ensure data item IDs (not just root IDs) have their retry count incremented, preventing IDs from being stuck without retry attempts. This improves the reliability of the data verification process.
+
+### Fixed
+
+- Fixed experiment bash Parquet export script generating filenames with `count_star()` instead of actual row counts for blocks and tags files. The script now correctly uses the `-noheader` flag when retrieving counts for filename generation.
+- Fixed missing directory existence checks in FsCleanupWorker to prevent errors when attempting to scan non-existent directories during filesystem cleanup operations.
+
+## [Release 42] - 2025-07-14
+
+This is an optional release that improves peer request traceability, adds HyperBEAM URL support, and includes draft AI-generated technical documentation.
+
+### Added
+
+- Added support for optional HyperBEAM URL configuration via `AO_ANT_HYPERBEAM_URL` environment variable. In the future this allows ANT processes to use HyperBEAM nodes for caching and serving state, reducing pressure on compute units for simple read requests.
+- Added AI-generated technical documentation covering AR.IO gateway architecture, data retrieval, Arweave connectivity, ArNS name resolution system, centralization analysis, and database architecture. These guides in `docs/drafts/` are generally correct but should not be considered authoritative.
+- Added origin and release information to query string parameters in outbound requests to both peer gateways and trusted gateways. Data requests now include `ar-io-hops`, `ar-io-origin`, `ar-io-origin-release`, `ar-io-arns-record`, and `ar-io-arns-basename` as query parameters, improving network observability and request tracing across the entire gateway network.
+
+### Changed
+
+- Implemented X-AR-IO header initialization for outbound peer requests while removing `x-ar-io-origin` and `x-ar-io-origin-node-release` headers from responses. This change maintains necessary header functionality for peer communication while reducing unnecessary header overhead in responses.
+- Updated `@ar.io/sdk` dependency to support optional HyperBEAM URL functionality.
 
 ## [Release 41] - 2025-06-30
 
