@@ -14,6 +14,7 @@ import clsx from 'clsx'
 import { create } from 'zustand'
 
 import { Tag } from '@/components/Tag'
+import React, { useLayoutEffect } from 'react'
 
 const languageNames: Record<string, string> = {
   js: 'JavaScript',
@@ -160,7 +161,9 @@ function CodePanel({
     <div className="group dark:bg-white/2.5">
       <CodePanelHeader tag={tag} label={label} />
       <div className="relative">
-        <pre className="overflow-x-auto p-4 text-xs text-white">{children}</pre>
+        <pre className="box-border block w-full max-w-full overflow-x-auto whitespace-pre-wrap break-all p-4 text-xs text-white">
+          {children}
+        </pre>
         <CopyButton code={code} />
       </div>
     </div>
@@ -284,11 +287,13 @@ const usePreferredLanguageStore = create<{
 function useTabGroupProps(availableLanguages: Array<string>, id?: string) {
   let { preferredLanguages, addPreferredLanguage } = usePreferredLanguageStore()
   let [selectedIndex, setSelectedIndex] = useState(0)
-  
+
   // If no id is provided, use a default empty string to maintain backward compatibility
   const groupId = id || ''
   let activeLanguage = [...availableLanguages].sort(
-    (a, z) => (preferredLanguages[groupId]?.indexOf(z) ?? -1) - (preferredLanguages[groupId]?.indexOf(a) ?? -1),
+    (a, z) =>
+      (preferredLanguages[groupId]?.indexOf(z) ?? -1) -
+      (preferredLanguages[groupId]?.indexOf(a) ?? -1),
   )[0]
   let languageIndex = availableLanguages.indexOf(activeLanguage)
   let newSelectedIndex = languageIndex === -1 ? selectedIndex : languageIndex
@@ -317,10 +322,11 @@ export function CodeGroup({
   title,
   id,
   ...props
-}: React.ComponentPropsWithoutRef<typeof CodeGroupPanels> & { 
+}: React.ComponentPropsWithoutRef<typeof CodeGroupPanels> & {
   title: string
-  id?: string 
+  id?: string
 }) {
+  const MAX_HEIGHT = 400 // px
   let languages =
     Children.map(children, (child) =>
       getPanelTitle(isValidElement(child) ? child.props : {}),
@@ -329,13 +335,48 @@ export function CodeGroup({
   let hasTabs = Children.count(children) > 1
 
   let containerClassName =
-    'my-6 overflow-hidden rounded-2xl bg-zinc-900 shadow-md dark:ring-1 dark:ring-white/10'
+    'my-6 overflow-hidden overflow-x-hidden rounded-2xl bg-zinc-900 shadow-md dark:ring-1 dark:ring-white/10'
   let header = (
     <CodeGroupHeader title={title} selectedIndex={tabGroupProps.selectedIndex}>
       {children}
     </CodeGroupHeader>
   )
-  let panels = <CodeGroupPanels {...props}>{children}</CodeGroupPanels>
+
+  // --- Begin: Expand/Collapse logic ---
+  const [expanded, setExpanded] = useState(false)
+  const [showExpand, setShowExpand] = useState(false)
+  const contentRef = useRef<HTMLDivElement>(null)
+
+  useLayoutEffect(() => {
+    if (contentRef.current) {
+      setShowExpand(contentRef.current.scrollHeight > MAX_HEIGHT)
+    }
+  }, [children, expanded])
+
+  // Style for the scrollable/collapsed state
+  const contentStyle =
+    expanded || !showExpand
+      ? ({
+          width: '100%',
+          maxWidth: '100%',
+          overflowX: 'hidden',
+          boxSizing: 'border-box',
+        } as React.CSSProperties)
+      : ({
+          maxHeight: MAX_HEIGHT,
+          overflowY: 'auto',
+          width: '100%',
+          maxWidth: '100%',
+          overflowX: 'hidden',
+          boxSizing: 'border-box',
+        } as React.CSSProperties)
+
+  let panels = (
+    <div ref={contentRef} style={contentStyle}>
+      <CodeGroupPanels {...props}>{children}</CodeGroupPanels>
+    </div>
+  )
+  // --- End: Expand/Collapse logic ---
 
   return (
     <CodeGroupContext.Provider value={true}>
@@ -344,6 +385,16 @@ export function CodeGroup({
           <div className="not-prose">
             {header}
             {panels}
+            {showExpand && (
+              <div className="flex justify-end bg-zinc-900 px-4 pb-4">
+                <button
+                  className="mt-2 rounded border border-zinc-700 bg-zinc-800 px-3 py-1 text-xs font-medium text-white hover:bg-zinc-700"
+                  onClick={() => setExpanded((v) => !v)}
+                >
+                  {expanded ? 'Collapse' : 'Expand'}
+                </button>
+              </div>
+            )}
           </div>
         </TabGroup>
       ) : (
@@ -351,6 +402,16 @@ export function CodeGroup({
           <div className="not-prose">
             {header}
             {panels}
+            {showExpand && (
+              <div className="flex justify-end bg-zinc-900 px-4 pb-4">
+                <button
+                  className="mt-2 rounded border border-zinc-700 bg-zinc-800 px-3 py-1 text-xs font-medium text-white hover:bg-zinc-700"
+                  onClick={() => setExpanded((v) => !v)}
+                >
+                  {expanded ? 'Collapse' : 'Expand'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
