@@ -1,3 +1,5 @@
+import { CodeGroup } from '@/components/Code'
+
 export const metadata = {
   title: 'Crossmint NFT Minting App',
   description: 'Build a decentralized NFT minting app with Arweave and Crossmint',
@@ -140,7 +142,9 @@ Let's create a collection for your semi-fungible tokens using Crossmint's API:
 2. Add the following code:
     
 
-```javascript
+<CodeGroup>
+
+    ```javascript {{ title: 'NodeJS' }}
 const apiKey = "YOUR_API_KEY";
 const env = "staging"; // Using staging environment for development
 
@@ -171,7 +175,8 @@ fetch(url, options)
         console.log("Save this Collection ID for the next steps");
     })
     .catch((err) => console.error("Error:", err));
-```
+    ```
+</CodeGroup>
 
 3. Replace the placeholders:
     
@@ -190,7 +195,9 @@ Now, let's create a template within your collection from which you can mint mult
 
 2. Add the following code:
 
-```javascript
+<CodeGroup>
+
+    ```javascript {{ title: 'NodeJS' }}
 const apiKey = "YOUR_API_KEY";
 const env = "staging"; // Using staging environment for development
 const collectionId = "YOUR_COLLECTION_ID"; // From the previous step
@@ -237,7 +244,7 @@ fetch(url, options)
         console.log("Save this Template ID for minting SFTs");
     })
     .catch((err) => console.error("Error:", err));
-```
+</CodeGroup>
 
 3. Replace the placeholders:
     
@@ -259,7 +266,9 @@ Now that you have your collection and template set up, let's mint an SFT from yo
     
 2. Add the following code:
 
-```javascript
+<CodeGroup>
+
+    ```javascript {{ title: 'NodeJS' }}
 const apiKey = "YOUR_API_KEY";
 const env = "staging"; // Using staging environment for development
 const collectionId = "YOUR_COLLECTION_ID"; // From Step 2
@@ -290,6 +299,7 @@ fetch(url, options)
     })
     .catch((err) => console.error("Error:", err));
 ```
+</CodeGroup>
 
 3. Replace the placeholders:
     
@@ -308,7 +318,9 @@ Since blockchain transactions take time to confirm, you need to check the status
 
 1. Create a new file called `checkMintStatus.js` with the following code:
 
-```javascript
+<CodeGroup>
+
+    ```javascript {{ title: 'NodeJS' }}
 const apiKey = "YOUR_API_KEY";
 const env = "staging";
 const actionId = "YOUR_ACTION_ID"; // From the previous step
@@ -327,6 +339,7 @@ fetch(url, options)
     })
     .catch((err) => console.error(err));
 ```
+</CodeGroup>
 
 2. Replace the placeholders with your API key and the Action ID from the previous step
     
@@ -358,23 +371,28 @@ Now that you have your image stored on Arweave and your NFT contract deployed wi
 1. Open your terminal and clone the starter kit repository:
     
 
-```bash
+<CodeGroup>
+
+    ```bash
 git clone https://github.com/ar-io/ZeroToArweave-StarterKit.git
 cd ZeroToArweave-StarterKit
 ```
+</CodeGroup>
 
 ### Install Dependencies
 
 2. Install the required dependencies using your preferred package manager:
     
+<CodeGroup>
 
-```bash
-# Using pnpm
+```bash {{ title: 'pnpm'}}
 pnpm install
+```
 
-# OR using yarn
+```bash {{ title: 'yarn'}}
 yarn install
 ```
+</CodeGroup>
 
 ### Configure Your Arweave Wallet
 
@@ -389,7 +407,9 @@ Never commit your wallet file to version control. The starter kit includes `wall
 4. Take a moment to understand the project structure:
     
 
-```plaintext
+<CodeGroup>
+
+    ```plaintext {{ title: 'NodeJS' }}
 ├── public/              # Static assets
 ├── scripts/             # Deployment and configuration scripts
 ├── src/
@@ -403,11 +423,13 @@ Never commit your wallet file to version control. The starter kit includes `wall
 ├── package.json         # Project dependencies and scripts
 ├── vite.config.js       # Vite configuration
 ```
+</CodeGroup>
 
 ### Customize the Application
 
 5. Let's customize the application for your NFT minting project. First, update the title and description in `index.html`:
     
+<CodeGroup>
 
 ```html
 <!DOCTYPE html>
@@ -426,9 +448,12 @@ Never commit your wallet file to version control. The starter kit includes `wall
 </html>
 ```
 
+</CodeGroup>
+
 6. Update the homepage in `src/pages/Home.jsx` to include information about your NFT minting application:
     
 
+<CodeGroup>
 ```jsx
 import React from 'react';
 import { ConnectButton } from '@arweave-wallet-kit/react';
@@ -462,15 +487,23 @@ const Home = () => {
 
 export default Home;
 ```
+</CodeGroup>
 
 ### Start the Development Server
 
 7. Run the development server to make sure everything is working properly:
     
 
-```bash
-pnpm run dev  # or yarn dev
+<CodeGroup>
+
+```bash {{ title: 'pnpm'}}
+pnpm run dev 
 ```
+
+```bash {{ title: 'yarn'}}
+yarn dev
+```
+</CodeGroup>
 
 8. Open your browser to the URL shown in the terminal (typically [`http://localhost:5173`](http://localhost:5173)) to see your application.
     
@@ -523,24 +556,29 @@ Now you need to integrate Crossmint's client-side authentication into your app. 
 9. Create a `.env` file in the root of your project (or modify the existing one) and add your Crossmint API key:
     
 
+<CodeGroup>
 ```plaintext
 VITE_CROSSMINT_API_KEY="YOUR_CLIENT_SIDE_API_KEY"
 ```
+</CodeGroup>
 
 ### Install the Crossmint SDK
 
 10. Install the Crossmint React SDK:
     
 
+<CodeGroup>
 ```bash
 pnpm add @crossmint/client-sdk-react-ui
 ```
+</CodeGroup>
 
 ### Create a Providers Component
 
 11. Create a new file at `src/components/CrossmintProviders.jsx`:
     
 
+<CodeGroup>
 ```jsx
 import { CrossmintProvider, CrossmintAuthProvider } from "@crossmint/client-sdk-react-ui";
 
@@ -556,12 +594,14 @@ export default function CrossmintProviders({ children }) {
   );
 }
 ```
+</CodeGroup>
 
 ### Update Main Application Entry Point
 
 12. Modify your `src/main.jsx` file to include the Crossmint providers:
     
 
+<CodeGroup>
 ```jsx
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -601,12 +641,14 @@ createRoot(document.getElementById('root')).render(
   </StrictMode>,
 )
 ```
+</CodeGroup>
 
 ### Create an Authentication Component
 
 13. Create a new component at `src/components/AuthButton.jsx`:
     
 
+<CodeGroup>
 ```jsx
 import { useAuth } from "@crossmint/client-sdk-react-ui";
 
@@ -652,12 +694,14 @@ function AuthButton() {
 
 export default AuthButton;
 ```
+</CodeGroup>
 
 ### Simplify the NavBar Component
 
 14. We'll create a simplified NavBar component that only includes the AuthButton:
     
 
+<CodeGroup>
 ```jsx
 import AuthButton from './AuthButton';
 
@@ -690,12 +734,14 @@ function NavBar() {
 
 export default NavBar;
 ```
+</CodeGroup>
 
 ### Create a Protected Route Component
 
 15. Create a component to protect routes that require authentication at `src/components/ProtectedRoute.jsx`:
     
 
+<CodeGroup>
 ```jsx
 import { useAuth } from "@crossmint/client-sdk-react-ui";
 import { Navigate } from "react-router-dom";
@@ -716,15 +762,23 @@ const ProtectedRoute = ({ children }) => {
 
 export default ProtectedRoute;
 ```
+</CodeGroup>
 
 ### Test the Authentication Flow
 
 16. Start your development server:
     
 
-```bash
+<CodeGroup>
+
+    ```bash {{ title: 'pnpm'}}
 pnpm run dev
 ```
+
+```bash {{ title: 'yarn'}}
+yarn dev
+```
+</CodeGroup>
 
 17. Visit your application in the browser and test these features:
     
@@ -757,10 +811,12 @@ For your fully decentralized NFT minting application, you've implemented a clien
 
 You've configured your application with the necessary environment variables:
 
+<CodeGroup>
 ```plaintext
 VITE_CROSSMINT_API_KEY="your_staging_client_side_api_key"
 VITE_CROSSMINT_COLLECTION_ID="your_staging_collection_id"
 ```
+</CodeGroup>
 
 Both the API key and collection ID are from the staging environment, ensuring compatibility between the two.
 
@@ -776,6 +832,7 @@ You've created a `Purchase.jsx` component that implements the complete crypto pa
 
 Here's an overview of how your Purchase component is structured:
 
+<CodeGroup>
 ```jsx
 // Purchase.jsx
 import React, { useState, useEffect } from 'react';
@@ -806,20 +863,26 @@ const Purchase = () => {
 
 export default Purchase;
 ```
+</CodeGroup>
 
 ### Crypto Payment Flow
 
 The crypto payment flow in your application follows these steps:
 
 1. **Connect Wallet**: User connects their MetaMask wallet to the application
+
+<CodeGroup>
    ```jsx
    const connectWallet = async () => {
      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
      setPayerAddress(accounts[0]);
    };
    ```
+   </CodeGroup>
 
 2. **Create Order**: Application creates an order with Crossmint's API
+
+<CodeGroup>
    ```jsx
    const createOrder = async () => {
      const response = await fetch('https://staging.crossmint.com/api/2022-06-09/orders', {
@@ -845,8 +908,11 @@ The crypto payment flow in your application follows these steps:
      // Handle response...
    };
    ```
+   </CodeGroup>
 
 3. **Update Order with Recipient**: Application assigns the NFT to the authenticated user
+
+<CodeGroup>
    ```jsx
    const updateOrderWithRecipient = async (id) => {
      const response = await fetch(`https://staging.crossmint.com/api/2022-06-09/orders/${id}`, {
@@ -864,8 +930,11 @@ The crypto payment flow in your application follows these steps:
      // Handle response and set serializedTransaction...
    };
    ```
+   </CodeGroup>
 
 4. **Send Transaction**: User signs and sends the transaction from their wallet
+
+<CodeGroup>
    ```jsx
    const sendTransaction = async () => {
      await window.ethereum.request({
@@ -875,8 +944,11 @@ The crypto payment flow in your application follows these steps:
      // Start polling for status...
    };
    ```
+   </CodeGroup>
 
 5. **Poll for Status**: Application checks the order status until completion
+
+<CodeGroup>
    ```jsx
    const pollOrderStatus = async () => {
      const response = await fetch(`https://staging.crossmint.com/api/2022-06-09/orders/${orderId}`, {
@@ -887,6 +959,7 @@ The crypto payment flow in your application follows these steps:
      // Update status and continue polling if needed...
    };
    ```
+   </CodeGroup>
 
 ### User Interface Elements
 
@@ -910,6 +983,7 @@ Your payment flow is integrated with Crossmint's authentication system:
 
 You've updated the application routes to include the Purchase page:
 
+<CodeGroup>
 ```jsx
 // App.jsx
 import { Routes, Route } from 'react-router-dom';
@@ -939,54 +1013,43 @@ function App() {
 
 export default App;
 ```
+</CodeGroup>
 
 ### NavBar Update
 
 You've also updated the NavBar component to include a link to the Purchase page:
 
+<CodeGroup>
 ```jsx
-import { Link } from 'react-router-dom';
-import AuthButton from './AuthButton';
-import { useAuth } from "@crossmint/client-sdk-react-ui";
+// App.jsx
+import { Routes, Route } from 'react-router-dom';
+import Home from './pages/Home';
+import Purchase from './pages/Purchase';
+import ProtectedRoute from './components/ProtectedRoute';
+import NavBar from './components/NavBar';
 
-function NavBar() {
-  const { user } = useAuth();
-  
+function App() {
   return (
-    <nav className="bg-white shadow-lg">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16 items-center">
-          {/* Logo/Brand */}
-          <div className="flex-shrink-0">
-            <Link to="/" className="text-xl font-bold text-gray-800 hover:text-gray-600 transition-colors">
-              lil dumdumz NFT
-            </Link>
-          </div>
-
-          {/* Center Navigation */}
-          <div className="flex-1 flex justify-center items-center">
-            {user && (
-              <Link 
-                to="/purchase" 
-                className="mx-4 px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100"
-              >
-                Purchase NFT
-              </Link>
-            )}
-          </div>
-
-          {/* Authentication Button */}
-          <div className="flex-shrink-0 ml-4">
-            <AuthButton />
-          </div>
-        </div>
-      </div>
-    </nav>
+    <>
+      <NavBar />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route 
+          path="/purchase" 
+          element={
+            <ProtectedRoute>
+              <Purchase />
+            </ProtectedRoute>
+          } 
+        />
+      </Routes>
+    </>
   );
 }
 
-export default NavBar;
+export default App;
 ```
+</CodeGroup>
 
 ### Testing the Crypto Payment Flow
 
@@ -1021,6 +1084,7 @@ After implementing the core functionality of your application, it's important to
 
 First, let's enhance your NavBar with a modern design and responsive functionality:
 
+<CodeGroup>
 ```jsx
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
@@ -1184,6 +1248,7 @@ function NavBar() {
 
 export default NavBar;
 ```
+</CodeGroup>
 
 This updated NavBar includes:
 
@@ -1215,6 +1280,7 @@ This updated NavBar includes:
 
 Next, you'll update your App.jsx to use a more structured layout that provides consistency across all pages:
 
+<CodeGroup>
 ```jsx
 import NavBar from './components/NavBar';
 import { useConnection } from '@arweave-wallet-kit/react';
@@ -1247,6 +1313,7 @@ function App() {
 
 export default App;
 ```
+</CodeGroup>
 
 The new App.jsx layout includes:
 - A full-height flexible layout with a subtle gradient background
@@ -1258,6 +1325,7 @@ The new App.jsx layout includes:
 
 A good landing page is crucial for NFT platforms. You've redesigned your Home component to create a more engaging and informative experience:
 
+<CodeGroup>
 ```jsx
 import React from 'react';
 import { Link } from 'react-router-dom';
@@ -1467,6 +1535,7 @@ const Home = () => {
 
 export default Home;
 ```
+</CodeGroup>
 
 This enhanced Home page includes several key elements:
 
@@ -1529,9 +1598,15 @@ Before deploying, make sure you have:
 1. Build your application for production:
     
 
-```bash
-pnpm run build  # or yarn build
+<CodeGroup>
+```bash {{ title: 'pnpm'}}
+pnpm run build 
 ```
+
+```bash {{ title: 'yarn'}}
+yarn build
+```
+</CodeGroup>
 
 This will create optimized production files in the `dist` directory.
 
@@ -1540,9 +1615,15 @@ This will create optimized production files in the `dist` directory.
 2. The starter kit comes with a pre-configured deployment script. Run it to deploy your application:
     
 
-```bash
-pnpm run deploy  # or yarn deploy
+<CodeGroup>
+```bash {{ title: 'pnpm'}}
+pnpm run deploy 
 ```
+
+```bash {{ title: 'yarn'}}
+yarn deploy
+```
+</CodeGroup>
 
 This script will:
 
@@ -1558,11 +1639,13 @@ This script will:
 3. Once the deployment completes, you'll see output similar to:
     
 
+<CodeGroup>
 ```plaintext
 ✅ Deployment successful!
 📝 Manifest ID: YOUR_MANIFEST_ID
 🔗 Your application is now available at: https://arweave.net/YOUR_MANIFEST_ID
 ```
+</CodeGroup>
 
 4. **Important:** Save this manifest ID as you'll need it for the next step.
     
@@ -1649,16 +1732,19 @@ Before configuring your domain, ensure you have:
 4. Update the `processId` in the configuration:
     
 
+<CodeGroup>
 ```javascript
 const ant = ANT.init({
     signer: new ArweaveSigner(jwk),
     processId: 'YOUR_PROCESS_ID_HERE'  // Replace with your Process ID
 });
 ```
+</CodeGroup>
 
 5. Update the `dataLink` value with your deployment's manifest ID:
     
 
+<CodeGroup>
 ```javascript
 const result = await ant.setRecord({
     name: '@',
@@ -1666,23 +1752,32 @@ const result = await ant.setRecord({
     dataLink: 'YOUR_MANIFEST_ID'  // Replace with the manifest ID from Step 8
 });
 ```
+</CodeGroup>
 
 ### Set the Base Record
 
 6. Run the command to update your ARNS name with your application's manifest ID:
     
 
-```bash
-pnpm run set-base  # or yarn set-base
+<CodeGroup>
+```bash {{ title: 'pnpm'}}
+pnpm run set-base 
 ```
+
+```bash {{ title: 'yarn'}}
+yarn set-base
+```
+</CodeGroup>
 
 7. The script will connect to AR.IO, submit the transaction, and update your name to point to your application. When successful, you'll see output similar to:
     
 
+<CodeGroup>
 ```plaintext
 ✅ Base record update successful!
 🔗 Your application is now available at: https://YOUR-NAME.ar.io
 ```
+</CodeGroup>
 
 ### Optional: Configure Undernames
 
@@ -1697,9 +1792,15 @@ pnpm run set-base  # or yarn set-base
     * Run:
         
 
-```bash
-pnpm run set-undername  # or yarn set-undername
+<CodeGroup>
+```bash {{ title: 'pnpm'}}
+pnpm run set-undername 
 ```
+
+```bash {{ title: 'yarn'}}
+yarn set-undername
+```
+</CodeGroup>
 
 ### Verify Your Domain Configuration
 
@@ -1712,9 +1813,15 @@ pnpm run set-undername  # or yarn set-undername
     * Run:
         
 
-```bash
-pnpm run records  # or yarn records
+<CodeGroup>
+```bash {{ title: 'pnpm'}}
+pnpm run records 
 ```
+
+```bash {{ title: 'yarn'}}
+yarn records
+```
+</CodeGroup>
 
 10. This will display all the records for your ARNS name, including the base record that should now point to your application.
     
