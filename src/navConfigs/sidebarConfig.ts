@@ -1278,6 +1278,10 @@ export const singleNavigation: Array<NavGroup> = [
             title: 'React',
             href: '/wayfinder/release-notes/react',
           },
+          {
+            title: 'Extension',
+            href: '/wayfinder/release-notes/extension',
+          },
         ],
       },
     ],
