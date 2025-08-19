@@ -5,7 +5,7 @@ const {
   ArweaveSigner,
   developmentTurboConfiguration,
 } = require("@ardrive/turbo-sdk");
-const { ANT, AOProcess } = require("@ar.io/sdk");
+const { ANT, AOProcess, ARIO } = require("@ar.io/sdk");
 const axios = require("axios");
 const crypto = require("crypto"); // For generating file hashes
 const { Readable } = require("stream");
@@ -141,10 +141,13 @@ manifest.paths = updatedPaths;
 
   console.log(manifestId);
 
+  const ario = ARIO.init()
+  const pid = await ario.getArNSRecord({name: 'docs'})
+
   const signer = new ArweaveSigner(jwk);
-  const ant = ANT.init({ processId: process.env.DEPLOY_ANT_PROCESS_ID, signer,
+  const ant = ANT.init({ processId: pid.processId, signer,
     process: new AOProcess ({
-      processId: process.env.DEPLOY_ANT_PROCESS_ID,
+      processId: pid.processId,
       ao: connect({
         CU_URL: "https://cu.ardrive.io"
       })

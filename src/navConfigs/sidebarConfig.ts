@@ -625,6 +625,7 @@ export const secondaryNavigation: Array<NavGroup> = [] //Not used
 export const singleNavigation: Array<NavGroup> = [
   {
     title: 'General',
+    href: '/introduction',
     links: [
       {
         title: 'White Paper',
@@ -684,6 +685,7 @@ export const singleNavigation: Array<NavGroup> = [
   },
   {
     title: 'AR.IO SDK',
+    href: '/ar-io-sdk',
     links: [
       {
         title: 'Info',
@@ -699,6 +701,7 @@ export const singleNavigation: Array<NavGroup> = [
       },
       {
         title: 'ARIO Class',
+        href: '/ar-io-sdk/ario/configuration',
         children: [
           {
             title: 'Configuration',
@@ -706,6 +709,7 @@ export const singleNavigation: Array<NavGroup> = [
           },
           {
             title: 'General',
+            href: '/ar-io-sdk/ario/general/get-info',
             children: [
               {
                 title: 'getInfo',
@@ -731,6 +735,7 @@ export const singleNavigation: Array<NavGroup> = [
           },
           {
             title: 'Gateways',
+            href: '/ar-io-sdk/ario/gateways/get-gateway',
             children: [
               {
                 title: 'getGateway',
@@ -804,6 +809,7 @@ export const singleNavigation: Array<NavGroup> = [
           },
           {
             title: 'Vaults',
+            href: '/ar-io-sdk/ario/vaults/create-vault',
             children: [
               {
                 title: 'createVault',
@@ -821,6 +827,7 @@ export const singleNavigation: Array<NavGroup> = [
           },
           {
             title: 'Epochs',
+            href: '/ar-io-sdk/ario/epochs/get-current-epoch',
             children: [
               {
                 title: 'getEpoch',
@@ -858,6 +865,7 @@ export const singleNavigation: Array<NavGroup> = [
           },
           {
             title: 'ArNS',
+            href: '/ar-io-sdk/ario/arns/buy-record',
             children: [
               {
                 title: 'buyRecord',
@@ -886,6 +894,10 @@ export const singleNavigation: Array<NavGroup> = [
               {
                 title: 'getArNSReservedNames',
                 href: '/ar-io-sdk/ario/arns/get-arns-reserved-names',
+              },
+              {
+                title: 'resolveArNSName',
+                href: '/ar-io-sdk/ario/arns/resolve-arns-name',
               },
               {
                 title: 'getCostDetails',
@@ -923,7 +935,12 @@ export const singleNavigation: Array<NavGroup> = [
           },
           {
             title: 'Primary Names',
+            href: '/ar-io-sdk/ario/primary-names/get-primary-name',
             children: [
+              {
+                title: 'setPrimaryName',
+                href: '/ar-io-sdk/ario/primary-names/set-primary-name',
+              },
               {
                 title: 'getPrimaryName',
                 href: '/ar-io-sdk/ario/primary-names/get-primary-name',
@@ -942,10 +959,41 @@ export const singleNavigation: Array<NavGroup> = [
               },
             ],
           },
+          {
+            title: 'Faucet',
+            href: '/ar-io-sdk/faucet',
+            children: [
+              {
+                title: 'Info',
+                href: '/ar-io-sdk/faucet',
+              },
+              {
+                title: 'captchaUrl',
+                href: '/ar-io-sdk/faucet/captcha-url',
+              },
+              {
+                title: 'requestAuthToken',
+                href: '/ar-io-sdk/faucet/request-auth-token',
+              },
+              {
+                title: 'claimWithCaptchaResponse',
+                href: '/ar-io-sdk/faucet/claim-with-captcha-response',
+              },
+              {
+                title: 'claimWithAuthToken',
+                href: '/ar-io-sdk/faucet/claim-with-auth-token',
+              },
+              {
+                title: 'verifyAuthToken',
+                href: '/ar-io-sdk/faucet/verify-auth-token',
+              },
+            ],
+          },
         ],
       },
       {
         title: 'ANT Class',
+        href: '/ar-io-sdk/ants/configuration',
         children: [
           {
             title: 'Configuration',
@@ -1059,6 +1107,7 @@ export const singleNavigation: Array<NavGroup> = [
       },
       {
         title: 'ANTRegistry Class',
+        href: '/ar-io-sdk/ant-registry',
         children: [
           {
             title: 'Info',
@@ -1069,8 +1118,34 @@ export const singleNavigation: Array<NavGroup> = [
             href: '/ar-io-sdk/ant-registry/access-control-list',
           },
           {
+            title: 'getAntsForAddress',
+            href: '/ar-io-sdk/ant-registry/get-ants-for-address',
+          },
+          {
             title: 'register',
             href: '/ar-io-sdk/ant-registry/register',
+          },
+        ],
+      },
+      {
+        title: 'ANTVersions Class',
+        href: '/ar-io-sdk/ant-versions',
+        children: [
+          {
+            title: 'Info',
+            href: '/ar-io-sdk/ant-versions',
+          },
+          {
+            title: 'getANTVersions',
+            href: '/ar-io-sdk/ant-versions/get-ant-versions',
+          },
+          {
+            title: 'getLatestANTVersion',
+            href: '/ar-io-sdk/ant-versions/get-latest-ant-version',
+          },
+          {
+            title: 'addVersion',
+            href: '/ar-io-sdk/ant-versions/add-version',
           },
         ],
       },
@@ -1078,6 +1153,7 @@ export const singleNavigation: Array<NavGroup> = [
   },
   {
     title: 'Wayfinder SDK',
+    href: '/wayfinder',
     links: [
       {
         title: 'Info',
@@ -1094,6 +1170,10 @@ export const singleNavigation: Array<NavGroup> = [
           {
             title: 'Initialization',
             href: '/wayfinder/core',
+          },
+          {
+            title: 'Methods',
+            href: '/wayfinder/core/request',
             children: [
               {
                 title: 'request()',
@@ -1105,6 +1185,7 @@ export const singleNavigation: Array<NavGroup> = [
               },
             ],
           },
+
 
           {
             title: 'Gateway Providers',
@@ -1137,6 +1218,10 @@ export const singleNavigation: Array<NavGroup> = [
                 href: '/wayfinder/core/routing-strategies/fastest-ping',
               },
               {
+                title: 'Ping',
+                href: '/wayfinder/core/routing-strategies/ping',
+              },
+              {
                 title: 'Preferred with Fallback',
                 href: '/wayfinder/core/routing-strategies/preferred-with-fallback',
               },
@@ -1166,8 +1251,11 @@ export const singleNavigation: Array<NavGroup> = [
                 title: 'Data Root Verification',
                 href: '/wayfinder/core/verification-strategies/data-root-verification',
               },
-
             ],
+          },
+                    {
+            title: 'Telemetry',
+            href: '/wayfinder/core/telemetry',
           },
         ],
       },
@@ -1199,11 +1287,29 @@ export const singleNavigation: Array<NavGroup> = [
           },
         ],
       },
+      {
+        title: 'Release Notes',
+        href: '/wayfinder/release-notes/core',
+        children: [
+          {
+            title: 'Core',
+            href: '/wayfinder/release-notes/core',
+          },
+          {
+            title: 'React',
+            href: '/wayfinder/release-notes/react',
+          },
+          {
+            title: 'Extension',
+            href: '/wayfinder/release-notes/extension',
+          },
+        ],
+      },
     ],
   },
   {
     title: 'Gateways',
-    // href: '/build/gateways',
+    href: '/gateways',
     links: [
       {
         title: 'Architecture',
@@ -1215,7 +1321,7 @@ export const singleNavigation: Array<NavGroup> = [
       },
       {
         title: 'Setup and Operation',
-        // href: '/build/gateways/setup-and-operation',
+        href: '/gateways/linux-setup',
         children: [
           {
             title: 'Linux Setup',
@@ -1291,7 +1397,7 @@ export const singleNavigation: Array<NavGroup> = [
           },
           {
             title: 'Automating SSL',
-            // href: '/build/gateways/networking',
+            href: '/gateways/networking',
             children: [
               {
                 title: 'Cloudflare',
@@ -1341,6 +1447,7 @@ export const singleNavigation: Array<NavGroup> = [
       },
       {
         title: 'Deploy to Arweave',
+        href: '/guides/permaweb-deploy',
         children: [
           {
             title: 'Permaweb Deploy',
@@ -1357,15 +1464,6 @@ export const singleNavigation: Array<NavGroup> = [
         ],
       },
       {
-        title: 'Projects',
-        children: [
-          {
-            title: 'ArNS Viewer',
-            href: '/guides/arns-viewer',
-          },
-        ],
-      },
-      {
         title: 'ANTs on Bazar',
         href: '/guides/ants-on-bazar',
       },
@@ -1375,10 +1473,15 @@ export const singleNavigation: Array<NavGroup> = [
       },
       {
         title: 'Example Apps',
+        href: '/guides/example-apps/crossmint-app',
         children: [
           {
             title: 'Crossmint App',
             href: '/guides/example-apps/crossmint-app',
+          },
+          {
+            title: 'ArNS Viewer',
+            href: '/guides/arns-viewer',
           },
         ],
       },
@@ -1386,6 +1489,7 @@ export const singleNavigation: Array<NavGroup> = [
   },
   {
     title: 'References',
+    href: '/glossary',
     links: [
       {
         title: 'Glossary',

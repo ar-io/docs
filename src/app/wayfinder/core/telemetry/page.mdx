@@ -1,3 +1,11 @@
+export const metadata = {
+  title: 'Telemetry',
+  description: 'Configure OpenTelemetry-based telemetry in Wayfinder Core.',
+  openGraph: {
+    title: 'Telemetry',
+  },
+}
+
 # Telemetry Configuration
 
 Wayfinder includes optional telemetry support built on the OpenTelemetry standard. Telemetry is **completely opt-in** and **disabled by default**.
@@ -7,8 +15,11 @@ Wayfinder includes optional telemetry support built on the OpenTelemetry standar
 Wayfinder's telemetry system:
 
 - **100% Opt-in**: Disabled by default, only enabled when you explicitly configure it
+
 - **OpenTelemetry Standard**: Built on the industry-standard [OpenTelemetry](https://opentelemetry.io/) framework
+
 - **Your Choice of Destination**: Send data to your own servers
+
 - **Configurable**: Full control over what data is collected and where it goes
 
 <Tip>
@@ -28,7 +39,6 @@ const wayfinder = new Wayfinder({
   gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
   telemetrySettings: {
     enabled: true,
-    serviceName: 'my-application',
     clientName: 'my-app',
     clientVersion: '1.0.0',
     sampleRate: 0.1, // 10% of requests
@@ -43,7 +53,6 @@ const wayfinder = new Wayfinder({
   gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
   telemetrySettings: {
     enabled: true,
-    serviceName: 'my-application',
     clientName: 'my-app',
     clientVersion: '1.0.0',
     sampleRate: 0.1,
@@ -53,23 +62,12 @@ const wayfinder = new Wayfinder({
 })
 ```
 
-## Configuration Options
-
-### Client Identification
-
-You can identify your client application and version in telemetry data:
-
-```javascript
-const wayfinder = new Wayfinder({
-  gatewaysProvider: new NetworkGatewaysProvider({ ario: ARIO.mainnet() }),
-  telemetrySettings: {
-    enabled: true,
-    clientName: 'my-react-app', // Identifies your application
-    clientVersion: '2.1.0', // Your application version
-    sampleRate: 0.1,
-  },
-})
-```
+<Tip>
+  Wayfinder uses Honeycomb OTLP by default (exporter URL and Honeycomb headers).
+  Using other endpoints may require an OTLP-compatible collector or intermediary
+  that accepts Honeycomb headers. The dataset is currently fixed to
+  `wayfinder-core`.
+</Tip>
 
 ## Frequently Asked Questions
 

@@ -13,6 +13,52 @@ export const metadata = {
 
 Welcome to the documentation page for the AR.IO gateway release notes. Here, you will find detailed information about each version of the AR.IO gateway, including the enhancements, bug fixes, and any other changes introduced in every release. This page serves as a comprehensive resource to keep you informed about the latest developments and updates in the AR.IO gateway. For those interested in exploring the source code, each release's code is readily accessible at our GitHub repository: AR.IO gateway [change logs](https://github.com/ar-io/ar-io-node/blob/main/CHANGELOG.md). Stay updated with the continuous improvements and advancements in the AR.IO gateway by referring to this page for all release-related information.
 
+## [Release 46] - 2025-08-18
+
+This is a recommended release that introduces AR.IO network chunk retrieval with cryptographic validation and enhanced observability. Gateway operators can now retrieve chunks directly from AR.IO peers with the same security guarantees as Arweave network chunks, significantly improving chunk caching and retrieval performance.
+
+### Added
+
+- Added AR.IO network chunk source enabling chunk retrieval from AR.IO peers with weighted peer selection, retry logic, and cryptographic validation to prevent serving of corrupted or malicious data.
+- Added comprehensive OpenTelemetry tracing for chunk retrieval operations providing visibility into performance, cache behavior, and source attribution across the entire pipeline.
+- Added HEAD request support to `/chunk/{offset}` endpoint with ETag headers for efficient caching and conditional request handling with If-None-Match support.
+- Added chunk source headers for traceability: `X-AR-IO-Chunk-Source-Type` indicating data source, `X-AR-IO-Chunk-Host` with peer hostname, and `X-Cache` for cache status.
+- Added RFC 9530 `Content-Digest` header support for standard-compliant content integrity verification in data and chunk responses.
+- Added configurable composite chunk sources with parallelism control via `CHUNK_DATA_RETRIEVAL_ORDER` and `CHUNK_METADATA_RETRIEVAL_ORDER` environment variables supporting comma-separated source ordering.
+- Added OpenAPI documentation for `/ar-io/peers` endpoint.
+
+### Changed
+
+- Renamed `ar-io-peers` to `ar-io-network` as the preferred configuration name while maintaining backwards compatibility.
+- Enhanced `/ar-io/peers` endpoint to include both data and chunk weights for AR.IO gateway peers.
+
+### Fixed
+
+- Fixed ArNS custom 404 pages to prevent incorrect ArNS headers from being propagated to other gateways.
+
+## [Release 45] - 2025-08-11
+
+This is an optional release that enhances chunk broadcasting with improved preferred peer management, adds a hash-based partitioning filter for distributed data processing, fixes ArNS basename cache refresh issues, and includes comprehensive documentation improvements with a new glossary of AR.IO Node terminology.
+
+### Added
+
+- Added hash partitioning filter (`MatchHashPartition`) for distributing transaction and data item processing across multiple nodes with configurable partition ranges.
+- Added comprehensive glossary documentation covering AR.IO Node terminology, concepts, and architectural components.
+
+### Changed
+
+- Improved chunk broadcasting preferred peer management with doubled default per-node queue depth threshold and ensured preferred peers are always prioritized first.
+- Enhanced circuit breaker metrics with more detailed labels for better monitoring of data source failures.
+- Improved ArNS resolution to properly propagate 404 errors from trusted gateway resolution (a more complete fix is coming in the next release).
+- Expanded OTEL tracing to include ArNS cache operations for improved observability of name resolution and cache hydration.
+
+### Fixed
+
+- Fixed unreliable ArNS basename cache refreshes by adding retry logic for pagination failures and replacing p-debounce with timestamp-based debouncing for more predictable behavior.
+- Fixed undefined headers handling in data requests.
+- Fixed invalid cache hits by ensuring base64url encoded IDs are properly validated before use.
+- Fixed routes data handling for undefined IDs in validity checks.
+
 ## [Release 44] - 2025-07-28
 
 This is a recommended release that introduces efficient range request support for contiguous data retrieval from chunks, adds bundle metadata columns with offset indexing to improve offset availability throughout the network, enhances Merkle path parsing compatibility, and includes comprehensive documentation for offsets and Merkle paths.

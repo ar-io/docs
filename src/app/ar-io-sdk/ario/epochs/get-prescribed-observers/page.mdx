@@ -1,37 +1,19 @@
 import { CodeGroup } from '@/components/Code'
 import { Table } from '@/components/Table'
 
-
 # getPrescribedObservers
 
 `getPrescribedObservers` is a method on the `ARIO` class that returns the prescribed observers of the ARIO process. If no epoch index is provided, the current epoch is used.
 
 `getPrescribedObservers` does not require authentication.
 
-## Parameters
-
-<Table>
-  <Table.Head>
-    <Table.Row>
-      <Table.Header>Parameter</Table.Header>
-      <Table.Header>Type</Table.Header>
-      <Table.Header>Description</Table.Header>
-      <Table.Header>Optional</Table.Header>
-    </Table.Row>
-  </Table.Head>
-  <Table.Body>
-    <Table.Row>
-      <Table.Cell className="font-semibold">epochIndex</Table.Cell>
-      <Table.Cell>number</Table.Cell>
-      <Table.Cell>Epoch index for the requested prescribed observer data.</Table.Cell>
-      <Table.Cell>true</Table.Cell>
-    </Table.Row>
-  </Table.Body>
-</Table>
-
 ## Examples
 
 <CodeGroup title="getPrescribedObservers">
+
+    ```typescript {{title: "Basic"}}
+    const observers = await ario.getPrescribedObservers({ epochIndex: 0 });
+    ```
 
     ```typescript {{ title: 'NodeJS' }}
     const { ARIO } = require('@ar.io/sdk');
@@ -61,21 +43,44 @@ import { Table } from '@/components/Table'
 
 </CodeGroup>
 
+## Parameters
+
+<Table>
+  <Table.Head>
+    <Table.Row>
+      <Table.Header>Parameter</Table.Header>
+      <Table.Header>Type</Table.Header>
+      <Table.Header>Description</Table.Header>
+      <Table.Header>Optional</Table.Header>
+    </Table.Row>
+  </Table.Head>
+  <Table.Body>
+    <Table.Row>
+      <Table.Cell className="font-semibold">epochIndex</Table.Cell>
+      <Table.Cell>number</Table.Cell>
+      <Table.Cell>
+        Epoch index for the requested prescribed observer data.
+      </Table.Cell>
+      <Table.Cell>true</Table.Cell>
+    </Table.Row>
+  </Table.Body>
+</Table>
+
 ## Output
 
 ```js
-[
+;[
   {
-    "gatewayAddress": "BpQlyhREz4lNGS-y3rSS1WxADfxPpAuing9Lgfdrj2U",
-    "observerAddress": "2Fk8lCmDegPg6jjprl57-UCpKmNgYiKwyhkU4vMNDnE",
-    "stake": 10000000000, // value in mARIO
-    "start": 1296976,
-    "stakeWeight": 1,
-    "tenureWeight": 0.41453703703703704,
-    "gatewayRewardRatioWeight": 1,
-    "observerRewardRatioWeight": 1,
-    "compositeWeight": 0.41453703703703704,
-    "normalizedCompositeWeight": 0.0018972019546783507
-  }
+    gatewayAddress: 'BpQlyhREz4lNGS-y3rSS1WxADfxPpAuing9Lgfdrj2U',
+    observerAddress: '2Fk8lCmDegPg6jjprl57-UCpKmNgYiKwyhkU4vMNDnE',
+    stake: 10000000000, // value in mARIO
+    start: 1296976,
+    stakeWeight: 1,
+    tenureWeight: 0.41453703703703704,
+    gatewayRewardRatioWeight: 1,
+    observerRewardRatioWeight: 1,
+    compositeWeight: 0.41453703703703704,
+    normalizedCompositeWeight: 0.0018972019546783507,
+  },
 ]
 ```
