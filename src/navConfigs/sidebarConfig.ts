@@ -888,6 +888,10 @@ export const singleNavigation: Array<NavGroup> = [
                 href: '/ar-io-sdk/ario/arns/get-arns-records',
               },
               {
+                title: 'getArNSNamesForAddress',
+                href: '/ar-io-sdk/ario/arns/get-arns-names-for-address',
+              },
+              {
                 title: 'getArNSReservedName',
                 href: '/ar-io-sdk/ario/arns/get-arns-reserved-name',
               },
@@ -1186,7 +1190,6 @@ export const singleNavigation: Array<NavGroup> = [
             ],
           },
 
-
           {
             title: 'Gateway Providers',
             href: '/wayfinder/core/gateway-providers',
@@ -1253,7 +1256,7 @@ export const singleNavigation: Array<NavGroup> = [
               },
             ],
           },
-                    {
+          {
             title: 'Telemetry',
             href: '/wayfinder/core/telemetry',
           },
