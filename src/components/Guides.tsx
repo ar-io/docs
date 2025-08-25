@@ -14,18 +14,18 @@ const guides = [
       'Learn the process of purchasing and managing an ArNS name.',
   },
   {
-    href: '/permaweb-deploy',
+    href: '/guides/permaweb-deploy',
     name: 'Deploy a dApp',
     description:
       'Learn how to easily deploy a website or application on the permaweb.',
   },
   {
-    href: '/ants-on-bazar',
+    href: '/guides/ants-on-bazar',
     name: 'ANTs on Bazar',
     description: 'In a few simple steps, learn how to make an ANT tradable on Bazar.',
   },
   {
-    href: '/gql',
+    href: '/guides/gql',
     name: 'GraphQL',
     description: 'Learn how to leverage GraphQL to efficiently fetch data via AR.IO gateways.',
   },
