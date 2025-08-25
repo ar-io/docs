@@ -1,0 +1,55 @@
+name: Check docs.ar.io links
+
+on:
+  schedule:
+    - cron: '0 14 * * *' # 10AM ET (14:00 UTC)
+  workflow_dispatch:
+
+jobs:
+  check-links:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Run link checker
+        id: linkcheck
+        run: |
+          yarn check-links --format json --output report.json
+
+      - name: Count non-403 broken links
+        id: parse
+        run: |
+          # Anything not OK and not 403 is considered broken
+          COUNT=$(jq '[.links[] | select(.state!="OK" and (.status|tonumber)!=403)] | length' report.json)
+          echo "broken_non403=$COUNT" >> $GITHUB_OUTPUT
+
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: linkcheck-report
+          path: report.json
+
+      - name: Fail if broken (non-403)
+        if: ${{ steps.parse.outputs.broken_non403 != '0' }}
+        run: |
+          echo "::error::Broken links found in docs.ar.io"
+          exit 1
+
+      - name: Notify 
+        if: failure()
+        uses: rtCamp/action-slack-notify@v2
+        with:
+          SLACK_TITLE: 'Bad links detected in docs.ar.io!'
+          SLACK_COLOR: 'danger'
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_FILE_UPLOAD: report.json
+
