@@ -13,6 +13,21 @@ export const metadata = {
 
 Welcome to the documentation page for the AR.IO gateway release notes. Here, you will find detailed information about each version of the AR.IO gateway, including the enhancements, bug fixes, and any other changes introduced in every release. This page serves as a comprehensive resource to keep you informed about the latest developments and updates in the AR.IO gateway. For those interested in exploring the source code, each release's code is readily accessible at our GitHub repository: AR.IO gateway [change logs](https://github.com/ar-io/ar-io-node/blob/main/CHANGELOG.md). Stay updated with the continuous improvements and advancements in the AR.IO gateway by referring to this page for all release-related information.
 
+## [Release 47] - 2025-08-25
+
+This is an optional release that lays the groundwork for the gateway network to become completely independent of the legacy arweave.net gateway by enabling data item retrieval directly from chunks using root transaction ID lookups. It also introduces comprehensive distributed tracing for improved observability.
+
+### Added
+
+- Added comprehensive OpenTelemetry distributed tracing with proper span linking across all data request operations, providing end-to-end visibility from HTTP requests through data source failovers, cache operations, and peer retrievals with hierarchical parent-child span relationships.
+- Added `RootParentDataSource` and `Ans104OffsetSource` to enable retrieving data items by ID directly from chunks when only the root transaction ID is indexed, transparently resolving data items to their root transactions and calculating correct byte ranges within ANS-104 bundles (temporarily disabled pending additional offset sources).
+
+### Changed
+
+### Fixed
+
+- Removed incorrect `Content-Digest` header from chunk endpoint which was misleadingly representing only chunk data hash instead of complete JSON response body hash (will be reintroduced with correct semantics).
+
 ## [Release 46] - 2025-08-18
 
 This is a recommended release that introduces AR.IO network chunk retrieval with cryptographic validation and enhanced observability. Gateway operators can now retrieve chunks directly from AR.IO peers with the same security guarantees as Arweave network chunks, significantly improving chunk caching and retrieval performance.
