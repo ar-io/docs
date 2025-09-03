@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useState } from 'react'
+import { Fragment, useState, useEffect } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import clsx from 'clsx'
 
@@ -8,20 +8,35 @@ interface FeedbackModalProps {
   isOpen: boolean
   onClose: () => void
   onSubmit: (comment: string, isHelpful: boolean) => void
+  preSelectedResponse?: boolean | null // Optional prop to pre-select response
 }
 
 export function FeedbackModal({
   isOpen,
   onClose,
   onSubmit,
+  preSelectedResponse = null,
 }: FeedbackModalProps) {
   const [comment, setComment] = useState('')
-  const [isHelpful, setIsHelpful] = useState<boolean | null>(null)
+  const [isHelpful, setIsHelpful] = useState<boolean | null>(
+    preSelectedResponse,
+  )
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Reset state when modal opens with new preSelectedResponse
+  useEffect(() => {
+    if (isOpen) {
+      setIsHelpful(preSelectedResponse)
+      setComment('')
+    }
+  }, [isOpen, preSelectedResponse])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!comment.trim() || isHelpful === null) return
+    if (isHelpful === null) return
+
+    // Require comment when "No" is selected
+    if (isHelpful === false && !comment.trim()) return
 
     setIsSubmitting(true)
     try {
@@ -116,7 +131,8 @@ export function FeedbackModal({
                       htmlFor="comment"
                       className="block text-sm font-medium text-gray-700 dark:text-gray-300"
                     >
-                      Tell us more (optional)
+                      Tell us more{' '}
+                      {isHelpful === false ? '(required)' : '(optional)'}
                     </label>
                     <textarea
                       id="comment"
@@ -140,7 +156,11 @@ export function FeedbackModal({
                     </button>
                     <button
                       type="submit"
-                      disabled={isHelpful === null || isSubmitting}
+                      disabled={
+                        isHelpful === null ||
+                        isSubmitting ||
+                        (isHelpful === false && !comment.trim())
+                      }
                       className="flex-1 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50 dark:focus:ring-offset-gray-900"
                     >
                       {isSubmitting ? 'Sending...' : 'Send Feedback'}

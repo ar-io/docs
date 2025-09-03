@@ -34,9 +34,12 @@ function FeedbackButton(
 
 const FeedbackForm = forwardRef<
   React.ElementRef<'form'>,
-  React.ComponentPropsWithoutRef<'form'> & { onCommentClick: () => void }
+  React.ComponentPropsWithoutRef<'form'> & {
+    onCommentClick: () => void
+    onNoClick: () => void
+  }
 >(function FeedbackForm(
-  { onSubmit, onCommentClick, className, ...props },
+  { onSubmit, onCommentClick, onNoClick, className, ...props },
   ref,
 ) {
   return (
@@ -55,7 +58,13 @@ const FeedbackForm = forwardRef<
       <div className="group grid h-8 grid-cols-[1fr,1px,1fr,1px,1fr] overflow-hidden rounded-full border border-zinc-900/10 dark:border-white/10">
         <FeedbackButton data-response="yes">Yes</FeedbackButton>
         <div className="bg-zinc-900/10 dark:bg-white/10" />
-        <FeedbackButton data-response="no">No</FeedbackButton>
+        <button
+          type="button"
+          onClick={onNoClick}
+          className="px-3 text-sm font-medium text-zinc-600 transition hover:bg-zinc-900/2.5 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-white"
+        >
+          No
+        </button>
         <div className="bg-zinc-900/10 dark:bg-white/10" />
         <button
           type="button"
@@ -139,6 +148,9 @@ User Agent: ${typeof window !== 'undefined' ? window.navigator.userAgent : 'Unkn
 export function Feedback() {
   let [submitted, setSubmitted] = useState(false)
   let [modalOpen, setModalOpen] = useState(false)
+  let [preSelectedResponse, setPreSelectedResponse] = useState<boolean | null>(
+    null,
+  )
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -155,6 +167,12 @@ export function Feedback() {
   }
 
   function onCommentClick() {
+    setPreSelectedResponse(null)
+    setModalOpen(true)
+  }
+
+  function onNoClick() {
+    setPreSelectedResponse(false)
     setModalOpen(true)
   }
 
@@ -177,6 +195,7 @@ export function Feedback() {
             className="duration-300 data-[leave]:pointer-events-none data-[closed]:opacity-0"
             onSubmit={onSubmit}
             onCommentClick={onCommentClick}
+            onNoClick={onNoClick}
           />
         </Transition>
         <Transition show={submitted}>
@@ -188,6 +207,7 @@ export function Feedback() {
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         onSubmit={onModalSubmit}
+        preSelectedResponse={preSelectedResponse}
       />
     </>
   )
