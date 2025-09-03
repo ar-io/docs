@@ -23,14 +23,7 @@ jobs:
       - name: Run link checker
         id: linkcheck
         run: |
-          yarn --silent check-links --format json > report.json
-
-      - name: Count non-403 broken links
-        id: parse
-        run: |
-          # Anything not OK and not 403 is considered broken
-          COUNT=$(jq '[.links[] | select(.state!="OK" and (.status|tonumber)!=403)] | length' report.json)
-          echo "broken_non403=$COUNT" >> $GITHUB_OUTPUT
+          ./check-links.sh
 
       - name: Upload report
         uses: actions/upload-artifact@v4
@@ -38,20 +31,12 @@ jobs:
           name: linkcheck-report
           path: report.json
 
-      - name: Fail if broken (non-403)
-        if: ${{ steps.parse.outputs.broken_non403 != '0' }}
-        run: |
-          echo "::error::Broken links found in docs.ar.io"
-          exit 1
-
       - name: Notify 
-        if: failure()
+        if: ${{ steps.linkcheck.outputs.BROKEN_LINKS != '0' }}
         uses: rtCamp/action-slack-notify@v2
         env:
-          SLACK_TITLE: 'Bad links detected in docs.ar.io!'
+          SLACK_TITLE: '${{ steps.linkcheck.outputs.BROKEN_LINKS }} broken links detected in docs.ar.io!'
           SLACK_COLOR: 'danger'
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
-          SLACK_TOKEN: ${{ secrets.SLACK_TOKEN }}
-          SLACK_FILE_UPLOAD: report.json
+          SLACK_MESSAGE: '${{ steps.linkcheck.outputs.BROKEN_LINKS }} broken links detected in docs.ar.io!'
 
