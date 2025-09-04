@@ -10,11 +10,11 @@ echo "Total bad links: $TOTAL"
 FOUND_403=$(jq '[.links[] | select(.status==403)] | length' report.json)
 echo "Total 403 links: $FOUND_403"
 
-# Count links that are not 403
-NOT_403=$(jq '[.links[] | select(.state!="OK" and (.status|tonumber)!=403)] | length' report.json)
-echo "Total not 403 links: $NOT_403"
+# Count links that are not 403 or 429 (these are often expected)
+NOT_403_429=$(jq '[.links[] | select(.state!="OK" and (.status|tonumber)!=403 and (.status|tonumber)!=429)] | length' report.json)
+echo "Total not 403/429 links: $NOT_403_429"
 
 # if there's a github output, output the results to the github output
 if [ $GITHUB_OUTPUT ]; then
-    echo "BROKEN_LINKS=$NOT_403" >> $GITHUB_OUTPUT
+    echo "BROKEN_LINKS=$NOT_403_429" >> $GITHUB_OUTPUT
 fi
