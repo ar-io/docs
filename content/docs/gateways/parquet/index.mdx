@@ -1,0 +1,272 @@
+---
+title: "Parquet and ClickHouse Usage Guide"
+description: "Learn how to use Parquet files and ClickHouse to improve performance and scalability of your AR.IO gateway for large datasets."
+---
+
+
+
+# Parquet and ClickHouse Usage Guide
+
+## Overview
+
+AR.IO gateway Release 33 introduces a new configuration option for using Parquet files and ClickHouse to improve performance and scalability of your AR.IO gateway for large datasets.
+
+This guide will walk you through the process of setting up ClickHouse with your AR.IO gateway, and importing Parquet files to bootstrap your ClickHouse database.
+
+## What is Parquet?
+
+Apache Parquet is a columnar storage file format designed for efficient data storage and retrieval. Unlike row-based storage formats like SQLite, Parquet organizes data by column rather than by row, which provides several advantages for analytical workloads:
+
+- **Efficient compression**: Similar data is stored together, leading to better compression ratios
+- **Columnar access**: You can read only the columns you need, reducing I/O operations
+- **Predicate pushdown**: Filter operations can be pushed down to the storage layer, improving query performance
+
+## Current Integration with AR.IO Gateways
+
+In the current AR.IO gateway implementation, Parquet and ClickHouse run alongside SQLite rather than replacing it. This parallel architecture allows each database to handle what it does best:
+
+- **SQLite** continues to handle transaction writes and updates
+- **ClickHouse** with Parquet files is optimized for fast query performance, especially with large datasets
+
+The gateway continues to operate with SQLite just as it always has, maintaining all of its normal functionality. Periodically, the gateway will export batches of data from SQLite to Parquet files, which are then imported into ClickHouse. This batch-oriented approach is much more efficient than attempting to synchronize the databases in real-time, as it leverages Parquet's strength in handling large, immutable data sets.
+
+Note that despite Parquet's efficient compression, gateways may not see significant disk space reduction in all cases. While bundled transaction data is exported to Parquet, L1 data remains in SQLite. Without substantial unbundling and indexing filters, minimal data gets exported to Parquet, limiting potential storage savings.
+
+With ClickHouse integration enabled, GraphQL queries are primarily routed to ClickHouse, leveraging its superior performance for large datasets. This significantly improves response times while maintaining SQLite's reliability for transaction processing.
+
+## Parquet vs. SQLite in AR.IO Gateways
+
+While SQLite is excellent for transactional workloads and small to medium datasets, it faces challenges with very large datasets:
+
+| Feature | SQLite | Parquet + ClickHouse |
+|---------|--------|----------------------|
+| Storage model | Row-based | Column-based |
+| Query optimization | Basic | Advanced analytical optimization |
+| Compression | Limited | High compression ratios |
+| Scaling | Limited by single file | Distributed processing capable |
+| Write speed | Fast for small transactions | Optimized for batch operations |
+| Read speed for analytics | Slower for large datasets | Optimized for analytical queries |
+| Ideal use case | Recent transaction data, OLTP | Historical data, OLAP workloads |
+
+## Benefits for Gateway Operators
+
+Implementing Parquet and ClickHouse alongside SQLite in your AR.IO gateway offers several key advantages:
+
+- **Dramatically improved query performance** for GraphQL endpoints, especially for large result sets
+- **Reduced storage requirements** through efficient columnar compression
+- **Better scalability** for growing datasets
+- **Faster bootstrapping** of new gateways through Parquet file imports
+- **Reduced load on SQLite** by offloading query operations to ClickHouse
+
+The primary focus of the Parquet/ClickHouse integration is the significant speed improvement for querying large datasets. Gateway operators managing significant volumes of data will notice substantial performance gains when using this configuration.
+
+## Storage Considerations
+
+While Parquet files offer more efficient compression for the data they contain, it's important to understand the storage impact:
+
+- Bundled transaction data is exported to Parquet and removed from SQLite, potentially saving space
+- L1 data remains in SQLite regardless of Parquet configuration
+- Space savings are highly dependent on your unbundling filters - without substantial unbundling configurations, minimal data gets exported to Parquet
+- The more data you unbundle and export to Parquet, the greater the potential storage efficiency
+
+For gateway operators, this means proper filter configuration is crucial to realize storage benefits. The primary advantage remains significantly improved query performance for large datasets, with potential space savings as a secondary benefit depending on your specific configuration.
+
+The following sections will guide you through setting up ClickHouse with your AR.IO gateway, exporting data from SQLite to Parquet, and importing Parquet files to bootstrap your ClickHouse database.
+
+<Tip title="Note" type="info">
+The below instructions are designed to be used in a linux environment. Windows and MacOS users must modify the instructions to use the appropriate package manager/ command syntax for their platform.
+
+Unless otherwise specified, all commands should be run from the root directory of the gateway.
+
+</Tip>
+
+## Installing ClickHouse
+
+ClickHouse is a powerful, open-source analytical database that excels at handling large datasets and complex queries. It is the tool used by the gateway to integrate with the Parquet format. To integrate ClickHouse with your AR.IO gateway, follow these steps:
+
+It is recommended to use [official pre-compiled deb packages for Debian or Ubuntu](https://clickhouse.com/docs/install#quick-install). Run these commands to install packages:
+
+```bash
+sudo apt-get install -y apt-transport-https ca-certificates curl gnupg
+curl -fsSL 'https://packages.clickhouse.com/rpm/lts/repodata/repomd.xml.key' | sudo gpg --dearmor -o /usr/share/keyrings/clickhouse-keyring.gpg
+
+ARCH=$(dpkg --print-architecture)
+echo "deb [signed-by=/usr/share/keyrings/clickhouse-keyring.gpg arch=${ARCH}] https://packages.clickhouse.com/deb stable main" | sudo tee /etc/apt/sources.list.d/clickhouse.list
+sudo apt-get update
+```
+
+This will verify the installation package from official sources and enable installation via `apt-get`.
+
+```bash
+sudo apt-get install -y clickhouse-client
+```
+
+This will perform the actual installation of the ClickHouse server and client.
+
+During installation, you will be prompted to set a password for the `default` user. This is required to connect to the ClickHouse server.
+
+Advanced users may also choose to create a designated user account in clickhouse for the gateway to use, but the default gateway configuration will assume the `default` user.
+
+## Configure Gateway to use ClickHouse
+
+Because the gateway will be accessing ClickHouse, host address andthe password for the selected user must be provided. This is done via the `CLICKHOUSE_PASSWORD` environment variable.
+
+Update your .env file with the following:
+
+```bash
+CLICKHOUSE_URL="http://clickhouse:8123"
+CLICKHOUSE_PASSWORD=<your-password>
+```
+
+If you set a specific user account for the gateway to use, you can set the `CLICKHOUSE_USER` environment variable to the username.
+
+```bash
+CLICKHOUSE_USER=<your-username>
+```
+
+If omitted, the gateway will use the `default` user.
+
+Additionally, The Parquet file provided below contains an unbundled data set that includes all data items uploaded via an ArDrive product, including Turbo. Because of this, it is recommended to include unbundling filters that match, or expand, this configuration.
+
+```bash
+ANS104_UNBUNDLE_FILTER='{ "and": [ { "not": { "or": [ { "tags": [ { "name": "Bundler-App-Name", "value": "Warp" } ] }, { "tags": [ { "name": "Bundler-App-Name", "value": "Redstone" } ] }, { "tags": [ { "name": "Bundler-App-Name", "value": "KYVE" } ] }, { "tags": [ { "name": "Bundler-App-Name", "value": "AO" } ] }, { "attributes": { "owner_address": "-OXcT1sVRSA5eGwt2k6Yuz8-3e3g9WJi5uSE99CWqsBs" } }, { "attributes": { "owner_address": "ZE0N-8P9gXkhtK-07PQu9d8me5tGDxa_i4Mee5RzVYg" } }, { "attributes": { "owner_address": "6DTqSgzXVErOuLhaP0fmAjqF4yzXkvth58asTxP3pNw" } } ] } }, { "tags": [ { "name": "App-Name", "valueStartsWith": "ArDrive" } ] } ] }'
+ANS104_INDEX_FILTER='{ "tags": [ { "name": "App-Name", "value": "ArDrive-App" } ] }'
+```
+
+Lastly, you must have a gateway admin password set. This is used for the periodic export of data from SQLite to Parquet.
+
+```bash
+ADMIN_API_KEY=<example>
+```
+
+Once the .env file is updated, restart the gateway to apply the changes.
+
+## Downloading the Parquet File
+
+A Parquet archive file is available for download from [ar://JVmsuD2EmFkhitzWN71oi9woADE4WUfvrbBYgremCBM](ar://JVmsuD2EmFkhitzWN71oi9woADE4WUfvrbBYgremCBM). This file contains an unbundled data set that includes all data items uploaded via an ArDrive product, current to April 23, 2025, and compressed using tar.gz.
+
+To download the file, run the following command:
+
+```bash
+curl -L https://arweave.net/JVmsuD2EmFkhitzWN71oi9woADE4WUfvrbBYgremCBM -o 2025-04-23-ardrive-ans104-parquet.tar.gz
+```
+
+or visit the url [https://arweave.net/JVmsuD2EmFkhitzWN71oi9woADE4WUfvrbBYgremCBM](ar://JVmsuD2EmFkhitzWN71oi9woADE4WUfvrbBYgremCBM) and download the file manually.
+
+<Tip title="Note" type="info">
+If downloaded manually, it will download as a binary file named `JVmsuD2EmFkhitzWN71oi9woADE4WUfvrbBYgremCBM`. This is normal and must be converted to a tar.gz file by renaming it to `2025-04-23-ardrive-ans104-parquet.tar.gz`.
+
+It should also be placed in the root directory of the gateway.
+
+</Tip>
+
+The downloaded file will be approximately 3.5GB in size.
+
+## Extracting and Importing the Parquet File
+
+With the parquet file downloaded and placed in the root directory of the gateway, you can extract the file and import it into ClickHouse.
+
+```bash
+tar -xzf 2025-04-23-ardrive-ans104-parquet.tar.gz
+```
+
+This will extract the file into a directory named `2025-04-23-ardrive-ans104-parquet`, and take a while to complete.
+
+Next, if you do not already have a `data/parquet` directory, you must create it. Release 33 does not have this directory by default, but future Releases will. You can create the directory by using the following command:
+
+```bash
+mkdir -p data/parquet
+```
+
+or by starting the gateway ClickHouse container with the following command:
+
+```bash
+docker compose --profile clickhouse up clickhouse -d
+```
+
+<Tip title="Note" type="info">
+Depending on your system configurations, allowing the gateway to create the directory may result in the directory being created with incorrect permissions. If this is the case, you can remove the restrictions by running the following command:
+
+```bash
+sudo chmod -R 777 data/parquet
+```
+
+</Tip>
+
+With the directory created, you can now move the extracted parquet files into it.
+
+```bash
+mv 2025-04-23-ardrive-ans104-parquet/* data/parquet
+```
+
+When this is complete, you can run the import script to import the parquet files into ClickHouse.
+
+If you haven't done so already, start the ClickHouse container with the following command:
+
+```bash
+docker compose --profile clickhouse up clickhouse -d
+```
+
+Then run the import script with the following command:
+
+```bash
+./scripts/clickhouse-import
+```
+
+This process will take several minutes, and will output the progress of the import.
+
+## Verifying Successful Import
+
+To verify that the import was successful, run the following commands:
+
+```bash
+clickhouse client --password <your-password> -h localhost -q 'SELECT COUNT(DISTINCT id) FROM transactions'
+```
+
+Being sure to replace `<your-password>` with the password you set for the selected ClickHouse user.
+
+This should return a count of the number of unique transactions in the parquet file, which is `32712311`.
+
+You can also verify that the data is being served by the gateway's GraphQL endpoint by ensuring the gateway is not proxying its GraphQL queries (Make sure `GRAPHQL_HOST` is not set) and running the following command:
+
+```bash
+curl -g -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"query":"query { transactions(ids: [\"YSNwoYB01EFIzbs6HmkGUjjxHW3xuqh-rckYhi0av4A\"]) { edges { node { block { height } bundledIn { id } } } } }"}' \
+  http://localhost:3000/graphql
+
+# Expected output:
+# {"data":{"transactions":{"edges":[{"node":{"block":{"height":1461918},"bundledIn":{"id":"ylhb0PqDtG5HwBg00_RYztUl0x2RuKvbNzT6YiNR2JA"}}}]}}}
+```
+
+## Starting and Stopping the Gateway with ClickHouse
+
+The gateway ClickHouse container is run as a "profile" in the main docker compose file. That means you must specify the profile when starting or stopping the gateway if you want to include the ClickHouse container in the commands.
+
+To start the gateway with the ClickHouse profile, run the following command:
+
+```bash
+docker compose --profile clickhouse up -d
+```
+
+This will start all of the containers normally covered by the `docker compose up` command, but will also start the ClickHouse container.
+
+To stop the gateway with the ClickHouse profile, run the following command:
+
+```bash
+docker compose --profile clickhouse down
+```
+
+This will stop all of the containers normally covered by the `docker compose down` command, but will also stop the ClickHouse container.
+
+To start or stop only the ClickHouse container, you can use the following commands:
+
+```bash
+docker compose --profile clickhouse up clickhouse -d
+```
+
+and
+
+```bash
+docker compose --profile clickhouse down clickhouse
+```

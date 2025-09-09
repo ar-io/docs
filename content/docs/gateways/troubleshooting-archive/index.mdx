@@ -1,0 +1,112 @@
+---
+title: "Troubleshooting"
+description: "Troubleshooting guide for common AR.IO Gateway issues including release version problems, connection issues, and general debugging tips"
+---
+
+# Troubleshooting
+
+## My Gateway Seems to be Running but...
+
+###
+
+<details>
+<summary><strong>My release number doesn't match the latest version, or includes "-pre"</strong></summary>
+
+This is likely perfectly normal and likely indicates you're running a recently updated version of the AR.IO Gateway. The `-pre` suffix is added to version numbers when building from source code rather than from a tagged release. If you cloned the repository more recently, you may have updates that have not yet been released. This is expected behavior, particularly for those following the latest development changes.
+
+No action is typically required.
+
+</details>
+
+###
+
+<details>
+<summary><strong>I get a "Failed to connect to server" message when trying to access my gateway</strong></summary>
+
+This can be caused by a few different problems:
+
+1. **Nginx Configuration Issues**: Ensure your nginx configuration is correct and includes the necessary proxy settings. Check your nginx configuration file (typically `/etc/nginx/sites-available/your-site`) to ensure it's properly forwarding requests to the AR.IO gateway.
+
+2. **Gateway Not Running**: Verify that the AR.IO gateway is actually running:
+   ```bash
+   docker ps
+   ```
+   Look for the AR.IO container. If it's not running, start it with:
+   ```bash
+   docker compose up -d
+   ```
+
+3. **Port Issues**: Ensure the gateway is running on the expected port (default is 4000) and that this port is open and not blocked by a firewall.
+
+4. **SSL/TLS Issues**: If you're using HTTPS, ensure your SSL certificates are properly configured and not expired.
+
+</details>
+
+###
+
+<details>
+<summary><strong>My gateway shows a high "Missing Data Items" count on ar://gateways</strong></summary>
+
+A high missing data items count typically indicates that your gateway is having trouble keeping up with indexing new data or has missed some data during sync. Here are steps to resolve this:
+
+1. **Check Gateway Resources**: Ensure your gateway has adequate CPU, RAM, and disk space.
+
+2. **Review Logs**: Check your gateway logs for any errors:
+   ```bash
+   docker compose logs ar-io-core
+   ```
+
+3. **Consider Re-syncing**: If the problem persists, you may need to re-sync your gateway's data.
+
+</details>
+
+###
+
+<details>
+<summary><strong>ArNS names aren't resolving through my gateway</strong></summary>
+
+If ArNS names aren't resolving properly:
+
+1. **Check Contract State**: Ensure your gateway is properly tracking the ARIO contract state.
+
+2. **Verify ArNS Configuration**: Check that your gateway's ArNS configuration is correct in your `.env` file.
+
+3. **Check Network Connection**: Ensure your gateway can connect to other nodes in the network.
+
+4. **Review Logs**: Look for ArNS-related errors in your gateway logs.
+
+</details>
+
+##
+
+<details>
+<summary><strong>General Debugging Tips</strong></summary>
+
+When troubleshooting your AR.IO gateway:
+
+1. **Check Container Status**:
+   ```bash
+   docker compose ps
+   ```
+
+2. **View Logs**:
+   ```bash
+   docker compose logs ar-io-core -f
+   ```
+
+3. **Check Resource Usage**:
+   ```bash
+   docker stats
+   ```
+
+4. **Verify Network Connectivity**:
+   ```bash
+   curl -I http://localhost:4000/ar-io/info
+   ```
+
+5. **Check Configuration**:
+   - Ensure your `.env` file is properly configured
+   - Verify domain configuration matches your actual domain
+   - Check that all required environment variables are set
+
+</details>

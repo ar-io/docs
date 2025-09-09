@@ -1,0 +1,114 @@
+---
+title: "Setup Certbot with Auto Renewal for NameCheap"
+description: "Guide to configure Certbot with automatic SSL certificate renewal using NameCheap DNS API for AR.IO Gateway"
+---
+
+# Setup Certbot with Auto Renewal for NameCheap
+
+#### Note: Namecheap has specific requirements to create an API key. As of ~October 2024 they are:
+
+- At least 20 domains under your account.
+- A minimum of $50 in your account balance.
+- At least $50 spent within the last 2 years.
+
+If you do not meet these requirements, you can request a waiver by contacting Namecheap support.
+
+#### Steps:
+
+1. Navigate to Namecheap -> Profile > Tools > Manage API Access Keys
+
+   (Go to your Namecheap account, click on your profile, then navigate to Tools > Manage API Access Keys to create your API credentials)
+
+
+2. On your server, install certbot and DNS plugin for Namecheap
+
+```bash
+apt update
+apt install certbot -y
+```
+
+3. Install pip
+
+```bash
+apt install python3-pip -y
+```
+
+4. Install DNS plugin for Namecheap
+
+```bash
+pip install certbot-dns-namecheap -y
+```
+
+5. Create ini file with api key and secret
+
+```bash
+nano /etc/letsencrypt/namecheap.ini
+```
+
+4. Add api key and secret created in step 1
+
+```
+dns_namecheap_username = <your_username>
+dns_namecheap_api_key = <your_api_key>
+```
+
+5. Save the file and update permissions
+
+```
+chmod 600 /etc/letsencrypt/namecheap.ini
+```
+
+6. Generate certificate using certbot with DNS plugin for Namecheap
+
+```bash
+certbot certonly --dns-namecheap --dns-namecheap-credentials /etc/letsencrypt/namecheap.ini -d <domain.com> -d <\*.domain.com>
+```
+
+Results:
+
+```bash
+Successfully received certificate.
+Certificate is saved at: /etc/letsencrypt/live/<domain.com>/fullchain.pem
+Key is saved at: /etc/letsencrypt/live/<domain.com>/privkey.pem
+```
+
+7. Validate certificate and dns update with dry run (this will not create a new certificate or update dns)
+
+```bash
+certbot renew --dry-run
+```
+
+Results:
+
+```bash
+Saving debug log to /var/log/letsencrypt/letsencrypt.log
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Processing /etc/letsencrypt/renewal/<domain.com>.conf
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Account registered.
+Simulating renewal of an existing certificate for <domain.com> and <*.domain.com>
+Waiting 10 seconds for DNS changes to propagate
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Congratulations, all simulated renewals succeeded:
+  /etc/letsencrypt/live/<domain.com>/fullchain.pem (success)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+```
+
+8. Reload nginx to apply new certificate (optional)
+
+```bash
+systemctl reload nginx
+```
+
+9. Validate certbot timer
+
+```bash
+systemctl list-timers | grep certbot
+```
+
+Results:
+
+```bash
+Tue 2024-11-05 02:22:10 UTC      3h 21min Mon 2024-11-04 17:16:51 UTC  5h 43min ago certbot.timer                  certbot.service
+```

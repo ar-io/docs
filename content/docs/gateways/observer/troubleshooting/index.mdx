@@ -1,0 +1,81 @@
+---
+title: "Troubleshooting Observer"
+description: "Troubleshooting guide for AR.IO Gateway Observer issues including connection problems, wallet configuration, and common error messages"
+---
+
+# Troubleshooting Observer
+
+## Overview
+
+ar.io observer epoch distribution reports include a list of failed observers for the epoch, along with an accounting of the errors which caused the observer to fail. When possible, the error messages will give you a starting point to being the troubleshooting process. Below is a list of possible error messages, along with more detailed information on how to address the issues.
+
+## Observer not running and/or unable to connect
+###
+
+<details>
+<summary>Your observer was not able to connect with the contract at all. The most likely causes for this are internet connection problems, or your observer not running.</summary>
+
+Verify your observer is running
+
+`sudo docker ps`
+
+Your output should look something like this:
+
+```
+    CONTAINER ID   IMAGE                                                                   COMMAND                  CREATED       STATUS                PORTS                                                                                             NAMES
+    264637d3e24d   ghcr.io/ar-io/ar-io-envoy:01952702b78be1e464b9d192e77b38a119bdc4ee      "/docker-entrypoint.…"   2 days ago    Up 2 days             0.0.0.0:3000->3000/tcp, :::3000->3000/tcp, 0.0.0.0:9901->9901/tcp, :::9901->9901/tcp, 10000/tcp   ar-io-node_envoy_1
+    f42a4fbed8c5   ghcr.io/ar-io/ar-io-core:484bd31abb78709e09395f139ca57792bc6c3eb0       "/bin/sh docker-entr…"   2 days ago    Up 2 days (healthy)   0.0.0.0:4000->4000/tcp, :::4000->4000/tcp                                                         ar-io-node_core_1
+    dd2e0b64b0b4   redis:7                                                                 "docker-entrypoint.s…"   10 days ago   Up 2 days             0.0.0.0:6379->6379/tcp, :::6379->6379/tcp                                                         ar-io-node_redis_1
+    ed98aba1c4f6   ghcr.io/ar-io/ar-io-observer:6449bcb6dda778fef68a94bd29343190524439db   "/nodejs/bin/node ./…"   10 days ago   Up 2 days (healthy)   0.0.0.0:5000->5000/tcp, :::5000->5000/tcp                                                         ar-io-node_observer_1
+```
+
+If the line for observer does not say "up", then your observer is not running. You should restart your gateway, and then watch your observer logs to get a better idea of why your observer stopped:
+
+`sudo docker-compose down`
+
+`sudo docker-compose up -d`
+    
+`sudo docker-compose logs -f observer`
+
+</details>
+
+## Observer wallet has no AR
+###
+
+<details>
+<summary>Your Observer Wallet does not have any AR tokens.</summary>
+
+Your observer wallet needs to be able to submit reports to the Arweave blockchain. To do this, it needs to have a small amount of [Turbo Credits](https://docs.ardrive.io/docs/turbo/credits/#overview) in order to pay for the submission. ar.io recommends purchasing 1 Turbo Credit with your observer wallet to ensure that you remain funded.
+
+</details>
+
+## Observer wallet ... does not match the 'observerWallet' set on the gateway ...
+###
+
+<details>
+<summary>The observer wallet set locally on your gateway does not match the observer wallet for your gateway in the ar.io network.</summary>
+
+Check to make sure that you have `OBSERVER_WALLET` set in your `.env` file, and that the keyfile for your observer wallet is properly provided in the wallets directory in your gateway. 
+
+You will need to restart your gateway if you make any changes to the `.env` file or your observer wallet keyfile.
+
+Then check to make sure that the value for observerWallet on your gateway in the contract matches that.
+
+[This video](https://youtu.be/wJsCa3FnloY?si=4_aplF8yTIbfC1W-) shows exactly what should be done to correct it if it does not.
+
+
+</details>
+
+## Uncertain - confirm your OBSERVER_WALLET is set in the .env file and corresponding wallet is located in wallets/< address >.json...
+###
+
+<details>
+<summary>The cause for the error could not be reliably determined.</summary>
+
+"Uncertain" is the default value returned when evaluating a failed observer. It means that none of the above error messages perfectly matched the problems with your gateway. 
+
+You should first ensure that your observer wallet is [set correctly locally](https://youtu.be/wJsCa3FnloY?si=4_aplF8yTIbfC1W-), and then check your observer logs for any additional error messages.
+
+`sudo docker-compose logs -f --tail=50 observer`
+
+</details>

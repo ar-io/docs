@@ -18,6 +18,9 @@ export const docs = defineDocs({
 
 export default defineConfig({
   mdxOptions: {
-    // MDX options
+    remarkImageOptions: {
+      external: true,       // allow remote images
+      onError: 'ignore',    // don’t fail build if size fetch fails
+    },
   },
 });
