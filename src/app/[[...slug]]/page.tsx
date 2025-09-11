@@ -11,8 +11,11 @@ export default async function Page(props: {
 }) {
   const params = await props.params;
 
-  // Handle root route (no slug)
-  if (!params.slug || params.slug.length === 0) {
+  // Try to get the page content first (this will work for both root and other pages)
+  const page = source.getPage(params.slug);
+
+  // If no page found, show fallback content
+  if (!page) {
     return (
       <main className="flex flex-1 flex-col justify-center text-center">
         <h1 className="mb-4 text-2xl font-bold">Hello World</h1>
@@ -26,10 +29,6 @@ export default async function Page(props: {
       </main>
     );
   }
-
-  // Handle docs pages
-  const page = source.getPage(params.slug);
-  if (!page) notFound();
 
   const MDXContent = page.data.body;
 
@@ -58,8 +57,11 @@ export async function generateMetadata(props: {
 }): Promise<Metadata> {
   const params = await props.params;
 
-  // Handle root route (no slug)
-  if (!params.slug || params.slug.length === 0) {
+  // Try to get the page content first
+  const page = source.getPage(params.slug);
+
+  // If no page found, return default metadata
+  if (!page) {
     return {
       title: "AR.IO Documentation",
       description: "Documentation for AR.IO",
@@ -96,9 +98,6 @@ export async function generateMetadata(props: {
       },
     };
   }
-
-  const page = source.getPage(params.slug);
-  if (!page) notFound();
 
   // Extract metadata from the page frontmatter
   const frontmatter = page.data as {
