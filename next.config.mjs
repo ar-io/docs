@@ -1,10 +1,10 @@
-import { createMDX } from 'fumadocs-mdx/next';
+import { createMDX } from "fumadocs-mdx/next";
 
 const withMDX = createMDX();
 
 /** @type {import('next').NextConfig} */
 const config = {
-  output: 'standalone', // required for Docker deployment
+  output: "standalone", // required for Docker deployment
   reactStrictMode: true,
   eslint: {
     // Warning: This allows production builds to successfully complete even if
