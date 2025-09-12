@@ -1,0 +1,121 @@
+---
+title: "Direct to Network Uploads"
+description: "Upload data directly to Arweave using arweave-js with full programmatic control"
+---
+
+# Direct to Network Uploads
+
+Upload data directly to Arweave with **full programmatic control**. Perfect for developers who need complete customization and native Arweave features.
+
+## Why Choose Direct to Network?
+
+**Perfect for:**
+
+- Advanced users
+- Custom implementations
+- Maximum control
+- Production applications
+
+**Pros:**
+
+- Full programmatic control
+- Native Arweave features
+- No third-party dependencies
+- Complete customization
+
+**Cons:**
+
+- Requires AR tokens
+- More complex implementation
+- Higher technical barrier
+- Manual error handling
+
+## Quick Start with arweave-js
+
+The [arweave-js](https://github.com/ArweaveTeam/arweave-js) library provides the most comprehensive way to interact with Arweave directly.
+
+### Installation
+
+```bash
+npm install arweave
+```
+
+### Basic Setup
+
+```js
+import Arweave from "arweave";
+
+// Initialize Arweave instance
+const arweave = Arweave.init({
+  host: "arweave.net",
+  port: 443,
+  protocol: "https",
+});
+```
+
+### Access your Wallet
+
+```js
+// From existing wallet (JSON file)
+const wallet = JSON.parse(fs.readFileSync("wallet.json", "utf8"));
+
+// Or create a new wallet
+const wallet = await arweave.wallets.generate();
+```
+
+### Upload Data
+
+```js tab="Upload File"
+// Upload a file
+const data = fs.readFileSync("./myfile.jpg");
+
+const transaction = await arweave.createTransaction(
+  {
+    data: data,
+  },
+  wallet
+);
+
+// Add tags
+transaction.addTag("Content-Type", "image/jpeg");
+transaction.addTag("Title", "My Image");
+
+// Sign and submit
+await arweave.transactions.sign(transaction, wallet);
+const response = await arweave.transactions.post(transaction);
+
+console.log("Transaction ID:", transaction.id);
+```
+
+```js tab="Upload Raw Data"
+// Upload raw data (string, JSON, etc.)
+const data = JSON.stringify({
+  message: "Hello Arweave!",
+  timestamp: Date.now(),
+});
+
+const transaction = await arweave.createTransaction(
+  {
+    data: data,
+  },
+  wallet
+);
+
+// Add tags
+transaction.addTag("Content-Type", "application/json");
+transaction.addTag("App-Name", "MyApp");
+
+// Sign and submit
+await arweave.transactions.sign(transaction, wallet);
+const response = await arweave.transactions.post(transaction);
+
+console.log("Transaction ID:", transaction.id);
+```
+
+## Ready to Build?
+
+**Start with arweave-js** - the most feature-complete JavaScript library.
+
+**Need simpler integration?** Check out [Bundling Services](/how-to-upload-data/bundling-services) for easier implementation.
+
+**Want no-code solutions?** Try [No-Code Uploads](/how-to-upload-data/no-code) for simple drag-and-drop.

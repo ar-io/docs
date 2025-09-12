@@ -1,0 +1,108 @@
+---
+title: "Bundling Services"
+description: "Upload data to Arweave using bundling services with multiple payment options and optimized performance"
+---
+
+# Bundling Services
+
+⭐ Recommended
+
+Upload data to Arweave using **bundling services** - the recommended approach for most developers. Get multiple payment options, optimized performance, and built-in reliability.
+
+## Why Choose Bundling Services?
+
+**Perfect for:**
+
+- Most developers
+- Production applications
+- Cost optimization
+- High-volume uploads
+
+**Pros:**
+
+- Multiple payment options (AR, ETH, credit cards, [Turbo Credits](https://docs.ardrive.io/docs/turbo/credits/#overview))
+- Optimized performance
+- Cost-effective for large uploads
+- Built-in retry mechanisms
+
+**Cons:**
+
+- Requires API integration
+- Dependency on third-party service
+
+## Quick Start with Turbo
+
+[Turbo](https://github.com/ardriveapp/turbo-sdk) provides the most comprehensive bundling service with fiat payments and advanced features.
+
+### Installation
+
+```bash
+npm install @ardrive/turbo-sdk
+```
+
+### Access your Wallet
+
+```js
+import { TurboFactory, ArweaveSigner } from "@ardrive/turbo-sdk";
+import fs from "fs";
+
+// Load your wallet
+const jwk = JSON.parse(fs.readFileSync("./my-jwk.json", "utf-8"));
+const signer = new ArweaveSigner(jwk);
+
+// Initialize Turbo
+const turbo = TurboFactory.authenticated({ signer });
+```
+
+### Upload Data
+
+<CodeGroup>
+```js tab="Upload File"
+// Upload a file
+const fileData = fs.readFileSync("./myfile.jpg");
+
+const result = await turbo.upload({
+data: fileData,
+dataItemOpts: {
+tags: [
+{ name: "Content-Type", value: "image/jpeg" },
+{ name: "Title", value: "My Image" },
+],
+},
+});
+
+console.log("Upload ID:", result.id);
+console.log("Owner:", result.owner);
+
+```
+
+```js tab="Upload Raw Data"
+// Upload raw data (string, JSON, etc.)
+const data = JSON.stringify({
+  message: "Hello Arweave!",
+  timestamp: Date.now(),
+});
+
+const result = await turbo.upload({
+  data: data,
+  dataItemOpts: {
+    tags: [
+      { name: "Content-Type", value: "application/json" },
+      { name: "App-Name", value: "MyApp" },
+    ],
+  },
+});
+
+console.log("Upload ID:", result.id);
+console.log("Owner:", result.owner);
+```
+
+</CodeGroup>
+
+## Ready to Upload?
+
+**Start with Turbo** - the most feature-complete bundling service.
+
+**Need simpler integration?** Try [No-Code Uploads](/how-to-upload-data/no-code) for drag-and-drop solutions.
+
+**Want maximum control?** Explore [Direct to Network](/how-to-upload-data/direct-to-network) uploads.
