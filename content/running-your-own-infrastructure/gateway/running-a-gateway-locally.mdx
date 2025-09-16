@@ -1,0 +1,174 @@
+---
+title: "Running a Gateway Locally"
+description: "Get started with AR.IO gateway using Docker - minimal setup, maximum results"
+---
+
+# Running a Gateway Locally
+
+Get your AR.IO gateway running in **30 seconds** with Docker. No configuration needed - just run and test.
+
+## Prerequisites
+
+**You'll need Docker installed on your system.**
+
+- **Install Docker** - Follow the [Docker installation guide](https://docs.docker.com/engine/install/) for your platform
+
+## How to Get Started Running Your Own AR.IO Gateway
+
+**Run a gateway with one command:**
+
+```bash
+docker run -p 4000:4000 -v ar-io-data:/app/data ghcr.io/ar-io/ar-io-core:latest
+```
+
+**What this does:**
+
+- **Pulls the image** - Downloads the pre-built AR.IO gateway from GitHub Container Registry
+- **Creates a container** - Runs the gateway in an isolated environment
+- **Maps port 4000** - Makes the gateway accessible on your local machine
+- **Creates data volume** - Persists gateway data between restarts
+
+**That's it!** Your gateway is now running on `localhost:4000`.
+
+## Test Your Gateway
+
+**Verify it's working:**
+
+```bash
+curl localhost:4000/agYcCFJtrMG6cqMuZfskIkFTGvUPddICmtQSBIoPdiA
+```
+
+**Expected output:**
+
+```
+1984
+```
+
+If you see `1984`, your gateway is working perfectly!
+
+## What Just Happened?
+
+### Docker Command Breakdown
+
+- **`docker run`** - Start a new container
+- **`-p 4000:4000`** - Map port 4000 from container to host
+- **`-v ar-io-data:/app/data`** - Create persistent data volume
+- **`ghcr.io/ar-io/ar-io-core:latest`** - AR.IO gateway image
+
+### Gateway Features
+
+Your local gateway now provides:
+
+- **HTTP access** to Arweave data
+- **Data caching** for faster retrieval
+- **Basic indexing** capabilities
+- **ArNS routing** support
+
+## Accessing Data
+
+**Basic data access:**
+
+```bash
+# Access any Arweave transaction
+curl localhost:4000/<transaction-id>
+
+# Example with a real transaction
+curl localhost:4000/bVLEkL1SOPFCzIYi8T_QNnh17VlDp4RylU6YTwCMVRw
+```
+
+**ArNS domain access:**
+
+```bash
+# Access via ArNS names (if configured)
+curl localhost:4000/myapp.arweave.net
+```
+
+## Gateway Health Check
+
+**Check if your gateway is healthy:**
+
+```bash
+# Basic health check
+curl localhost:4000/health
+
+# More detailed status
+curl localhost:4000/status
+```
+
+## Stopping Your Gateway
+
+**Stop the gateway:**
+
+```bash
+# Find the container ID
+docker ps
+
+# Stop the container
+docker stop <container-id>
+```
+
+**Remove the container:**
+
+```bash
+docker rm <container-id>
+```
+
+**Keep your data:**
+The `ar-io-data` volume persists, so your cached data remains available when you restart.
+
+## Restarting Your Gateway
+
+**Start again with the same data:**
+
+```bash
+docker run -p 4000:4000 -v ar-io-data:/app/data ghcr.io/ar-io/ar-io-core:latest
+```
+
+Your previously cached data will be available immediately.
+
+## Troubleshooting
+
+### Port Already in Use
+
+```bash
+# Use a different port
+docker run -p 4001:4000 -v ar-io-data:/app/data ghcr.io/ar-io/ar-io-core:latest
+
+# Then test with
+curl localhost:4001/agYcCFJtrMG6cqMuZfskIkFTGvUPddICmtQSBIoPdiA
+```
+
+### Permission Issues
+
+```bash
+# Run with proper permissions
+docker run --user $(id -u):$(id -g) -p 4000:4000 -v ar-io-data:/app/data ghcr.io/ar-io/ar-io-core:latest
+```
+
+### Check Logs
+
+```bash
+# View gateway logs
+docker logs <container-id>
+
+# Follow logs in real-time
+docker logs -f <container-id>
+```
+
+## What's Next?
+
+**Your gateway is running locally!** Now you can:
+
+1. **Test with different data** - try various Arweave transaction IDs
+2. **Explore ArNS** - set up friendly domain names
+3. **Scale up** - move to [Expanding Your Gateway](/running-your-own-infrastructure/expanding-your-gateway) for production
+
+## Ready for Production?
+
+**Local testing complete?**
+
+**Want to scale up?** Explore [Expanding Your Gateway](/running-your-own-infrastructure/expanding-your-gateway) for production deployment and network registration.
+
+**Need more context?** Learn [What is an AR.IO Gateway](/running-your-own-infrastructure/what-is-an-ar-io-gateway) to understand the full capabilities.
+
+**Want to understand the benefits?** See [Why Run Your Own Gateway](/running-your-own-infrastructure/why-run-your-own-gateway) for incentives and opportunities.

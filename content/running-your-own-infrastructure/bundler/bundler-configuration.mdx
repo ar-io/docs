@@ -1,0 +1,82 @@
+---
+title: "Bundler Configuration"
+description: "Essential configuration for AR.IO bundler production deployment"
+---
+
+# Bundler Configuration
+
+Configure your AR.IO bundler for production use with essential settings.
+
+## Wallet Whitelist
+
+**By default, bundlers use a whitelist system** - only approved wallet addresses can upload data.
+
+**Configure whitelist:**
+
+```yaml
+# docker-compose.bundler.yaml
+services:
+  bundler:
+    environment:
+      - WHITELIST_WALLETS=wallet1,wallet2,wallet3
+      - WHITELIST_ENABLED=true
+```
+
+**Add your wallet:**
+
+1. Get your wallet address
+2. Add it to the whitelist in the compose file
+3. Restart the services
+
+## Payment Model
+
+**Default behavior:**
+
+- **Whitelisted wallets** upload for free
+- **Bundler pays** for Arweave transactions
+- **Simple model** for trusted users
+
+**Custom payment integration:**
+
+- **Turbo Payment Service** - [Open source example](https://github.com/ardriveapp/turbo-payment-service) (requires custom integration)
+- **No integration guides** exist - all payment integration requires custom development
+
+## Essential Settings
+
+**Key environment variables:**
+
+```yaml
+environment:
+  - ARWEAVE_WALLET=your-wallet-json
+  - DATABASE_URL=postgresql://bundler:password@postgres:5432/bundler
+  - S3_ENDPOINT=http://minio:9000
+  - MAX_UPLOAD_SIZE=100MB
+  - BUNDLE_SIZE_LIMIT=2500000
+```
+
+**Network settings:**
+
+```yaml
+environment:
+  - ARWEAVE_NETWORK=mainnet
+  - ARWEAVE_GATEWAY_URL=https://arweave.net
+  - ARWEAVE_TIMEOUT=30000
+```
+
+## Production Checklist
+
+**Before going live:**
+
+- [ ] Wallet whitelist configured
+- [ ] Database properly configured
+- [ ] Object storage connected
+- [ ] Security settings enabled
+- [ ] Monitoring enabled
+
+## Ready for More?
+
+**Want to integrate with gateways?** See [Bundler as Gateway Extension](/running-your-own-infrastructure/bundler/bundler-as-gateway-extension).
+
+**Need local setup?** Go to [Running a Bundler Locally](/running-your-own-infrastructure/bundler/running-bundler-locally).
+
+**Want the basics?** Learn [What is a Bundler](/running-your-own-infrastructure/bundler/what-is-a-bundler).

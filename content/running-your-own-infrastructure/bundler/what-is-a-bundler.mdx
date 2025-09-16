@@ -1,0 +1,108 @@
+---
+title: "What is a Bundler?"
+description: "Learn what AR.IO bundlers are and how they optimize data submission to Arweave using ANS-104 standards"
+---
+
+# What is a Bundler?
+
+AR.IO Bundlers are **data packaging services** that efficiently bundle multiple data items and submit them to Arweave as single transactions, reducing costs and improving reliability.
+
+## The Problem Bundlers Solve
+
+**Individual Arweave transactions have limitations:**
+
+- **High costs** for small data items
+- **Network congestion** from many small transactions
+- **Reliability issues** with individual submissions
+
+**Bundlers provide:**
+
+- **Cost optimization** through batching
+- **Improved reliability** with retry mechanisms
+- **Simplified payments** with multiple options
+- **Better performance** for high-volume uploads
+
+## How Bundling Works
+
+### ANS-104 Standard
+
+AR.IO Bundlers use the [ANS-104 specification](https://github.com/ArweaveTeam/arweave-standards/blob/master/ans/ANS-104.md):
+
+- **Data Items** - Individual pieces of data to be stored
+- **Bundle** - Single Arweave transaction containing multiple data items
+- **Efficient Storage** - Reduces transaction overhead
+- **Cost Savings** - Pay once for multiple items
+
+### Bundling Process
+
+1. **Collect Data Items** - Gather multiple uploads
+2. **Package Bundle** - Combine items using ANS-104 format
+3. **Sign Bundle** - Create single Arweave transaction
+4. **Submit to Network** - Send to Arweave miners
+5. **Track Status** - Monitor submission progress
+
+## AR.IO Bundler Features
+
+**Core capabilities:**
+
+- **ANS-104 Compliance** - Standard bundling format
+- **Multiple Payment Options** - AR, ETH, credit cards, Turbo Credits
+- **Retry Mechanisms** - Automatic retry on failures
+- **Status Tracking** - Real-time upload progress
+- **Cost Optimization** - Batch processing for efficiency
+
+**Security features:**
+
+- **Wallet Whitelisting** - Control who can upload
+- **Signature Verification** - Validate data authenticity
+- **Access Control** - Configurable permissions
+
+## Open Source Implementation
+
+**AR.IO Bundlers are based on the [Turbo Upload Service](https://github.com/ardriveapp/turbo-upload-service):**
+
+- **Open Source** - Full source code available
+- **Production Ready** - Used by Turbo service
+- **Well Maintained** - Active development
+- **Extensible** - Customizable for your needs
+
+**Key components:**
+
+- **Upload Service** - Accepts incoming data
+- **Fulfillment Service** - Handles Arweave submission
+- **Database** - PostgreSQL for state management
+- **Object Store** - S3-compatible storage
+- **Job Queues** - SQS for async processing
+
+## Payment Integration
+
+**Bundlers can integrate with payment services:**
+
+- **Turbo Payment Service** - [Open source payment processing example](https://github.com/ardriveapp/turbo-payment-service) (requires custom integration)
+- **Custom Solutions** - Build your own payment integration (no integration guides available)
+
+## Deployment Options
+
+**AR.IO Bundlers can be deployed in two ways:**
+
+### Standalone Bundler
+
+- **Independent Service** - Run separately from gateways
+- **Turbo Upload Service** - Use the [Turbo Upload Service](https://github.com/ardriveapp/turbo-upload-service) directly
+- **Specialized Focus** - Dedicated to bundling operations
+- **Scalable Architecture** - Handle high-volume uploads
+
+### Gateway Extension
+
+- **Integrated Service** - Part of your AR.IO gateway
+- **Docker Compose Setup** - Use docker-compose.bundler.yaml from AR.IO node
+- **Unified Interface** - Single endpoint for all operations
+- **Shared Resources** - Use gateway infrastructure
+
+## Ready for More?
+
+**Want to get started?** See [Running a Bundler Locally](/running-your-own-infrastructure/bundler/running-bundler-locally).
+
+**Need configuration?** Check [Bundler Configuration](/running-your-own-infrastructure/bundler/bundler-configuration).
+
+**Want integration?** Explore [Bundler as Gateway Extension](/running-your-own-infrastructure/bundler/bundler-as-gateway-extension).
