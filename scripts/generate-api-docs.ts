@@ -2,10 +2,10 @@
 
 const openApiMap: Record<string, string | Record<string, string>> = {
   'ar-io-node': 'https://raw.githubusercontent.com/ar-io/ar-io-node/refs/heads/main/docs/openapi.yaml',
-  'turbo': {
-    'upload-service': 'https://raw.githubusercontent.com/ardriveapp/upload-service/refs/heads/dev/docs/openapi.yaml?token=GHSAT0AAAAAAC35OTIXCUC4JAAMGGU35E622GJTURA',
-    'payment-service': 'https://raw.githubusercontent.com/ardriveapp/payment-service/refs/heads/dev/docs/openapi.yaml?token=GHSAT0AAAAAAC35OTIWEQMKPEEMIAGNJ6LS2GJTL2A',
-  },
+  // 'turbo': {
+  //   'upload-service': 'https://raw.githubusercontent.com/ardriveapp/upload-service/refs/heads/main/docs/openapi.yaml',
+  //   'payment-service': 'https://raw.githubusercontent.com/ardriveapp/payment-service/refs/heads/main/docs/openapi.yaml',
+  // },
 };
 
 (async () => {
