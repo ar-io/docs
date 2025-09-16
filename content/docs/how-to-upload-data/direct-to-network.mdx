@@ -1,49 +1,48 @@
 ---
-title: "Direct to Network Uploads"
+title: "Direct to Network (Advanced)"
 description: "Upload data directly to Arweave using arweave-js with full programmatic control"
 ---
 
-# Direct to Network Uploads
+# Upload Data Directly to Arweave
 
-Upload data directly to Arweave with **full programmatic control**. Perfect for developers who need complete customization and native Arweave features.
+Upload data directly to Arweave nodes using **arweave-js** - the most advanced approach requiring careful consideration of trade-offs.
 
-## Why Choose Direct to Network?
+## Are You Building a Production Application?
 
-**Perfect for:**
+<Callout type="warning">
+**For Most Applications:** We recommend [Turbo bundling](/how-to-upload-data/bundling-services) instead. Direct uploads are risky for scaled applications due to inconsistent IDs, manual verification requirements, and slower indexing.
+</Callout>
 
-- Advanced users
-- Custom implementations
-- Maximum control
-- Production applications
+## For Advanced Use Cases: Direct Network Access
 
-**Pros:**
+Direct uploads use **arweave-js** to upload data as L1 transactions directly to Arweave nodes. Each upload gets a unique transaction ID with no consistency guarantees.
 
-- Full programmatic control
-- Native Arweave features
-- No third-party dependencies
-- Complete customization
+## Get Started with Direct Uploads
 
-**Cons:**
-
-- Requires AR tokens
-- More complex implementation
-- Higher technical barrier
-- Manual error handling
-
-## Quick Start with arweave-js
-
-The [arweave-js](https://github.com/ArweaveTeam/arweave-js) library provides the most comprehensive way to interact with Arweave directly.
-
-### Installation
+<Steps>
+<Step>
+### Install arweave-js
 
 ```bash
 npm install arweave
 ```
+</Step>
 
-### Basic Setup
+<Step>
+### Set Up Your Wallet
+
+Create a new wallet or use an existing one:
+
+```bash
+# Create a new wallet (easy way)
+npx permaweb/wallet > key.json
+```
+
+Then load it in your code:
 
 ```js
 import Arweave from "arweave";
+import fs from "fs";
 
 // Initialize Arweave instance
 const arweave = Arweave.init({
@@ -51,20 +50,33 @@ const arweave = Arweave.init({
   port: 443,
   protocol: "https",
 });
-```
 
-### Access your Wallet
+// Load your wallet
+const wallet = JSON.parse(fs.readFileSync("./key.json", "utf-8"));
+```
+</Step>
+
+<Step>
+### Fund Your Wallet with AR Tokens
+
+You must have AR tokens to pay for transactions:
 
 ```js
-// From existing wallet (JSON file)
-const wallet = JSON.parse(fs.readFileSync("wallet.json", "utf8"));
+// Check your AR balance
+const address = await arweave.wallets.jwkToAddress(wallet);
+const balance = await arweave.wallets.getBalance(address);
+const arBalance = arweave.ar.winstonToAr(balance);
 
-// Or create a new wallet
-const wallet = await arweave.wallets.generate();
+console.log(`AR Balance: ${arBalance} AR`);
 ```
 
-### Upload Data
+**Note:** You need AR tokens for transaction fees. Buy AR on exchanges like Binance, Kraken, or use [Turbo](#) for fiat payments.
+</Step>
 
+<Step>
+### Upload Your Data
+
+<CodeGroup>
 ```js tab="Upload File"
 // Upload a file
 const data = fs.readFileSync("./myfile.jpg");
@@ -85,6 +97,7 @@ await arweave.transactions.sign(transaction, wallet);
 const response = await arweave.transactions.post(transaction);
 
 console.log("Transaction ID:", transaction.id);
+console.log("Response:", response.status);
 ```
 
 ```js tab="Upload Raw Data"
@@ -110,12 +123,60 @@ await arweave.transactions.sign(transaction, wallet);
 const response = await arweave.transactions.post(transaction);
 
 console.log("Transaction ID:", transaction.id);
+console.log("Response:", response.status);
 ```
+</CodeGroup>
 
-## Ready to Build?
+**⚠️ Important:** You must manually verify the transaction was mined and seeded across nodes.
+</Step>
+</Steps>
 
-**Start with arweave-js** - the most feature-complete JavaScript library.
+## Why Direct Network is Risky for Production
 
-**Need simpler integration?** Check out [Bundling Services](/how-to-upload-data/bundling-services) for easier implementation.
+Direct uploads come with significant challenges that make them unsuitable for most applications.
 
-**Want no-code solutions?** Try [No-Code Uploads](/how-to-upload-data/no-code) for simple drag-and-drop.
+<Callout type="note">
+**Perfect for:** Specialized use cases, research projects, custom protocol implementations, and applications that need maximum control over every aspect of the upload process.
+</Callout>
+
+| Issue | Direct Network | Turbo Bundling |
+|-------|----------------|----------------|
+| **Transaction IDs** | Different ID every upload | Consistent data item IDs |
+| **Upload Guarantees** | No guarantees it works | Built-in redundancy & retries |
+| **Manual Verification** | Must verify seeding manually | Automatic verification |
+| **Indexing Speed** | Slow to appear in GraphQL | Optimistically indexed & cached |
+| **Payment** | AR tokens only | Fiat + multiple tokens |
+| **Error Handling** | Manual implementation | Built-in retry logic |
+
+<Callout type="warning">
+**Production Risk:** Each piece of data uploaded as L1 gets different transaction IDs, making it impossible to predict data addresses. You must manually verify that transactions are mined and properly seeded across Arweave nodes.
+</Callout>
+
+## Ready to Get Started?
+
+<Cards>
+  <Card 
+    href="https://github.com/ArweaveTeam/arweave-js" 
+    title="arweave-js Documentation"
+    icon={<Code />}
+    arrow
+  >
+    Explore the complete arweave-js library documentation.
+  </Card>
+
+  <Card 
+    href="/how-to-upload-data/bundling-services" 
+    title="Try Turbo Instead"
+    icon={<Zap />}
+  >
+    Most applications should use Turbo for reliable uploads.
+  </Card>
+
+  <Card 
+    href="/how-to-upload-data/no-code" 
+    title="Need Something Simpler?"
+    icon={<FolderOpen />}
+  >
+    ArDrive provides a user-friendly interface.
+  </Card>
+</Cards>
