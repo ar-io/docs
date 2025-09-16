@@ -15,6 +15,7 @@ export const docs = defineDocs({
   meta: {
     schema: metaSchema,
   },
+  exclude: ["migrated/**"],
 });
 
 export default defineConfig({
