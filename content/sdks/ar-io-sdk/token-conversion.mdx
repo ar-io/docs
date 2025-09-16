@@ -1,0 +1,22 @@
+---
+title: "Token Conversion"
+description: "TypeScript/JavaScript SDK for interacting with the AR.IO ecosystem"
+---
+
+# Token Conversion
+
+The ARIO process stores all values as mARIO (milli-ARIO) to avoid floating-point arithmetic issues. The SDK provides an `ARIOToken` and `mARIOToken` classes to handle the conversion between ARIO and mARIO, along with rounding logic for precision.
+
+**All process interactions expect values in mARIO. If numbers are provided as inputs, they are assumed to be in raw mARIO values.**
+
+### Converting ARIO to mARIO
+
+```typescript
+import { ARIOToken, mARIOToken } from '@ar.io/sdk';
+
+const arioValue = 1;
+const mARIOValue = new ARIOToken(arioValue).toMARIO();
+
+const mARIOValue = 1_000_000;
+const arioValue = new mARIOToken(mARIOValue).toARIO();
+```

@@ -1,0 +1,69 @@
+---
+title: "Usage"
+description: "TypeScript/JavaScript SDK for interacting with the AR.IO ecosystem"
+---
+
+# Usage
+
+The SDK is provided in both CommonJS and ESM formats and is compatible with bundlers such as Webpack, Rollup, and ESbuild. Utilize the appropriately named exports provided by this SDK's [package.json] based on your project's configuration. Refer to the [examples] directory to see how to use the SDK in various environments.
+
+### Web
+
+> [!WARNING]
+> Polyfills are not provided by default for bundled web projects (Vite, ESBuild, Webpack, Rollup, etc.) . Depending on your apps bundler configuration and plugins, you will need to provide polyfills for various imports including `crypto`, `process` and `buffer`. Refer to [examples/webpack] and [examples/vite] for examples. For other project configurations, refer to your bundler's documentation for more information on how to provide the necessary polyfills.
+
+#### Bundlers (Webpack, Rollup, ESbuild, etc.)
+
+```javascript
+import { ARIO } from '@ar.io/sdk/web';
+
+// set up client
+const ario = ARIO.mainnet();
+// fetch gateways
+const gateways = await ario.getGateways();
+```
+
+#### Browser
+
+```html
+\<script type="module"\>
+  // replace <@version> with a pinned version (e.g. @3.8.4) or @latest, if you're risky :)
+  import { ARIO } from 'https://unpkg.com/@ar.io/sdk<@version>';
+
+  // set up client
+  const ario = ARIO.mainnet();
+  // fetch gateways
+  const gateways = await ario.getGateways();
+\</script\>
+```
+
+### Node
+
+#### ESM (NodeNext)
+
+```javascript
+import { ARIO } from '@ar.io/sdk/node';
+
+// set up client
+const ario = ARIO.mainnet();
+// fetch gateways
+const gateways = await ario.getGateways();
+```
+
+#### CJS
+
+```javascript
+import { ARIO } from '@ar.io/sdk';
+
+// set up client
+const ario = ARIO.mainnet();
+// fetch gateways
+const gateways = await ario.getGateways();
+```
+
+### Typescript
+
+The SDK provides TypeScript types. When you import the SDK in a TypeScript project types are exported from `./lib/types/[node/web]/index.d.ts` and should be automatically recognized by package managers, offering benefits such as type-checking and autocompletion.
+
+> [!NOTE]
+> Typescript version 5.3 or higher is recommended.

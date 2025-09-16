@@ -1,0 +1,84 @@
+---
+title: "Quick Start"
+description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
+---
+
+# Quick Start
+
+```typescript
+import { ArweaveSigner, TurboFactory } from '@ardrive/turbo-sdk';
+import Arweave from 'arweave';
+import fs from 'fs';
+import open from 'open';
+import path from 'path';
+
+async function uploadWithTurbo() {
+  const jwk = JSON.parse(fs.readFileSync('./my-jwk.json', 'utf-8'));
+  const signer = new ArweaveSigner(jwk);
+  const turbo = TurboFactory.authenticated({ signer });
+
+  try {
+    // upload some simple data - log upload progress events
+    const { id, owner, dataCaches, fastFinalityIndexes } = await turbo.upload({
+      data: 'Hello, world!',
+      events: {
+        // overall events (includes signing and upload events)
+        onProgress: ({ totalBytes, processedBytes, step }) => {
+          console.log('Overall progress:', { totalBytes, processedBytes, step });
+        },
+        onError: ({ error, step }) => {
+          console.log('Overall error:', { error, step });
+        },
+      },
+    });
+
+    // upload a file - log signing and upload progress events
+    const filePath = path.join(__dirname, './my-image.png');
+    const fileSize = fs.statSync(filePath).size;
+    const { id, owner, dataCaches, fastFinalityIndexes } =
+      await turbo.uploadFile({
+        fileStreamFactory: () => fs.createReadStream(filePath),
+        fileSizeFactory: () => fileSize,
+        events: {
+          // overall events (includes signing and upload events)
+          onProgress: ({ totalBytes, processedBytes, step }) => {
+            console.log('Overall progress:', { totalBytes, processedBytes, step });
+          },
+          onError: ({ error, step }) => {
+            console.log('Overall error:', { error, step });
+          },
+          // signing events
+          onSigningProgress: ({ totalBytes, processedBytes }) => {
+            console.log('Signing progress:', { totalBytes, processedBytes });
+          },
+          onSigningError: (error) => {
+            console.log('Signing error:', { error });
+          },
+          onSigningSuccess: () => {
+            console.log('Signing success!');
+          },
+          // upload events
+          onUploadProgress: ({ totalBytes, processedBytes }) => {
+            console.log('Upload progress:', { totalBytes, processedBytes });
+          },
+          onUploadError: (error) => {
+            console.log('Upload error:', { error });
+          },
+          onUploadSuccess: () => {
+            console.log('Upload success!');
+          },
+        },
+      });
+    // upload complete!
+    console.log('Successfully upload data item!', {
+      id,
+      owner,
+      dataCaches,
+      fastFinalityIndexes,
+    });
+  } catch (error) {
+    // upload failed
+    console.error('Failed to upload data item!', error);
+  }
+}
+```

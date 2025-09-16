@@ -1,0 +1,75 @@
+---
+title: "Usage"
+description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
+---
+
+# Usage
+
+The SDK is provided in both CommonJS and ESM formats, and it's compatible with bundlers such as Webpack, Rollup, and ESbuild. Utilize the appropriately named exports provided by this SDK's [package.json] based on your project's configuration. Refer to the [examples] directory to see how to use the SDK in various environments.
+
+### Web
+
+> [!WARNING]
+> Polyfills are not provided by default for bundled web projects (Vite, ESBuild, Webpack, Rollup, etc.) . Depending on your apps bundler configuration and plugins, you will need to provide polyfills for various imports including `crypto`, `process`, `fs` and `buffer`. Refer to your bundler's documentation for how to provide the necessary polyfills.
+
+#### Bundlers (Webpack, Rollup, ESbuild, etc.)
+
+```typescript
+import { TurboFactory } from '@ardrive/turbo-sdk/web';
+
+const turbo = TurboFactory.unauthenticated();
+const rates = await turbo.getFiatRates();
+```
+
+#### Browser
+
+```html
+\<script type="module"\>
+  import { TurboFactory } from 'https://unpkg.com/@ardrive/turbo-sdk';
+
+  const turbo = TurboFactory.unauthenticated();
+  const rates = await turbo.getFiatRates();
+\</script\>
+```
+
+### NodeJS
+
+#### CommonJS
+
+Full example available in the [examples/typescript/cjs].
+
+```typescript
+import { TurboFactory } from '@ardrive/turbo-sdk';
+
+const turbo = TurboFactory.unauthenticated();
+const rates = await turbo.getFiatRates();
+```
+
+#### ESM
+
+Full example available in the [examples/typescript/esm].
+
+```typescript
+import { TurboFactory } from '@ardrive/turbo-sdk/node';
+
+const turbo = TurboFactory.unauthenticated();
+const rates = await turbo.getFiatRates();
+```
+
+### Typescript
+
+The SDK provides TypeScript types. When you import the SDK in a TypeScript project:
+
+```typescript
+import { TurboFactory } from '@ardrive/turbo-sdk/<node/web>';
+```
+
+Types are exported from `./lib/types/[node/web]/index.d.ts` and should be automatically recognized, offering benefits such as type-checking and autocompletion.
+
+### Examples
+
+Examples are available in the [examples] directory. To run examples:
+
+- `yarn example:web` - opens up the example web page
+- `yarn example:cjs` - runs example CJS node script
+- `yarn example:esm` - runs example ESM node script
