@@ -22,6 +22,12 @@ const { createOpenAPI } = await import('fumadocs-openapi/server');
       output: `./content/api/${key}/`,
       includeDescription: true,
       per: 'tag',
+      frontmatter: (title) => {
+        // Fix title capitalization
+        if (title.toLowerCase() === 'ar n s') return { title: 'ArNS' };
+        if (title.toLowerCase() === 'ar-io') return { title: 'AR.IO' };
+        return { title };
+      },
     });
     } else {
       for (const [nestedKey, nestedOpenapi] of Object.entries(openapi)) {
