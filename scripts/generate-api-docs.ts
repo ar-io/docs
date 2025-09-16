@@ -38,6 +38,7 @@ const { createOpenAPI } = await import('fumadocs-openapi/server');
         // Fix title capitalization
         if (title.toLowerCase() === 'ar n s') return { title: 'ArNS' };
         if (title.toLowerCase() === 'ar io') return { title: 'AR.IO' };
+        if (title.toLowerCase() === 'ar io node') return { title: 'AR.IO Node' };
         return { title };
       },
     });
