@@ -7,59 +7,41 @@ description: "JavaScript/TypeScript SDK for accessing Arweave data with built-in
 
 The following sequence diagram illustrates how Wayfinder processes requests:
 
-<Mermaid chart={`
-sequenceDiagram
+\<Mermaid chart={`sequenceDiagram
     participant Client
     participant Wayfinder
-    participant GatewaysProvider as Gateways Provider
-    participant RoutingStrategy as Routing Strategy
-    participant SelectedGateway as Selected Gateway
-    participant VerificationStrategy as Verification Strategy
-    participant TrustedGateways as Trusted Gateways
+    participant Gateways Provider
+    participant Routing Strategy
+    participant Selected Gateway
+    participant Verification Strategy
+    participant Trusted Gateways
 
-    Client->>Wayfinder: request('ar://example')
+    Client-\>>Wayfinder: request('ar://example')
     activate Wayfinder
 
-    Wayfinder->>+GatewaysProvider: getGateways()
-    GatewaysProvider-->>-Wayfinder: List of gateway URLs
+    Wayfinder->>+Gateways Provider: getGateways()
+    Gateways Provider-->>-Wayfinder: List of gateway URLs
 
-    Wayfinder->>+RoutingStrategy: selectGateway()
-    RoutingStrategy-->>-Wayfinder: Select gateway for request
+    Wayfinder->>+Routing Strategy: selectGateway() from list of gateways
+    Routing Strategy-->>-Wayfinder: Select gateway for request
 
-    Wayfinder->>+SelectedGateway: Send HTTP request
-    SelectedGateway-->>-Wayfinder: Response with data and txId
+    Wayfinder->>+Selected Gateway: Send HTTP request to target gateway
+    Selected Gateway-->>-Wayfinder: Response with data & txId
 
-    activate VerificationStrategy
-    Wayfinder->>+VerificationStrategy: verifyData(responseData, txId)
-    VerificationStrategy->>Wayfinder: Emit verification-progress events
-    VerificationStrategy->>TrustedGateways: Request verification headers
-    TrustedGateways-->>VerificationStrategy: Return verification headers
-    VerificationStrategy->>VerificationStrategy: Compare computed vs trusted data
-    VerificationStrategy-->>-Wayfinder: Return data with verification result
+    activate Verification Strategy
+    Wayfinder->>+Verification Strategy: verifyData(responseData, txId)
+    Verification Strategy->>Wayfinder: Emit 'verification-progress' events
+    Verification Strategy->>Trusted Gateways: Request verification headers
+    Trusted Gateways-->>Verification Strategy: Return verification headers
+    Verification Strategy->>Verification Strategy: Compare computed vs trusted data
+    Verification Strategy-->>-Wayfinder: Return request data with verification result
 
     alt Verification passed
-        Wayfinder->>Wayfinder: Emit verification-passed event
+        Wayfinder->>Wayfinder: Emit 'verification-passed' event
         Wayfinder-->>Client: Return verified response
     else Verification failed
-        Wayfinder->>Wayfinder: Emit verification-failed event
+        Wayfinder->>Wayfinder: Emit 'verification-failed' event
         Wayfinder-->>Client: Throw verification error
     end
 
-    deactivate Wayfinder
-`} />
-
-## Request Flow Steps
-
-1. **Client Request**: The client initiates a request using the `ar://` protocol
-2. **Gateway Discovery**: Wayfinder queries the gateways provider for available gateways
-3. **Gateway Selection**: The routing strategy selects the optimal gateway for the request
-4. **Data Retrieval**: Wayfinder sends an HTTP request to the selected gateway
-5. **Verification Process**: The verification strategy validates the returned data against trusted sources
-6. **Result Handling**: Based on verification results, Wayfinder either returns the verified data or throws an error
-
-## Key Components
-
-- **Gateways Provider**: Manages the list of available AR.IO gateways
-- **Routing Strategy**: Determines which gateway to use for each request
-- **Verification Strategy**: Validates data integrity and authenticity
-- **Event System**: Emits events throughout the process for monitoring and debugging
+    deactivate Wayfinder`} />

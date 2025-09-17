@@ -1,0 +1,130 @@
+---
+title: "Wayfinder"
+description: "Decentralized access to Arweave data with built-in verification and gateway routing"
+---
+
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { BookOpen, Network, Server, Globe } from 'lucide-react';
+
+# Wayfinder
+
+Wayfinder leverages the decentralized AR.IO Network to provide robust, censorship-resistant access to data stored on Arweave, removing reliance on centralized gateways. By routing requests through a distributed set of community-operated gateways, Wayfinder ensures high availability, redundancy, and improved performance for users and applications.
+
+The `ar://` protocol enables decentralized resolution and access to Arweave data using several flexible URL formats:
+
+- `ar://TRANSACTION_ID` — Direct access to a specific Arweave transaction
+- `ar://NAME` — Resolution of ArNS names (with optional path support)
+- `ar:///info` — Direct access to gateway endpoints (e.g., `/info`)
+
+## Quick Start
+
+<Tabs items={['Node.js (Core)', 'Web (React)']}>
+  <Tab value="Node.js (Core)">
+    <Steps>
+      <Step>
+        ### Install Wayfinder Core
+
+        ```bash
+        npm install @ar.io/wayfinder-core @ar.io/sdk
+        ```
+      </Step>
+      <Step>
+        ### Import and configure
+
+        ```javascript
+        import { createWayfinderClient } from '@ar.io/wayfinder-core';
+        import { ARIO } from '@ar.io/sdk';
+
+        // use the top-ranked gateways in the network
+        const wayfinder = createWayfinderClient({
+          ario: ARIO.mainnet(),
+        });
+        ```
+      </Step>
+      <Step>
+        ### Fetch Data
+
+        ```javascript
+        // Use Wayfinder to fetch and verify data using ar:// protocol
+        const response = await wayfinder.request('ar://ardrive');
+        console.log(response);
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+  
+  <Tab value="Web (React)">
+    <Steps>
+      <Step>
+        ### Install Wayfinder React
+
+        ```bash
+        npm install @ar.io/wayfinder-react @ar.io/wayfinder-core @ar.io/sdk
+        ```
+      </Step>
+      <Step>
+        ### Setup the provider
+
+        ```jsx
+        import { WayfinderProvider } from '@ar.io/wayfinder-react';
+        import { ARIO } from '@ar.io/sdk';
+
+        function App() {
+          return (
+            <WayfinderProvider ario={ARIO.mainnet()}>
+              <YourApp />
+            </WayfinderProvider>
+          );
+        }
+        ```
+      </Step>
+      <Step>
+        ### Use the hook
+
+        ```jsx
+        import { useWayfinder } from '@ar.io/wayfinder-react';
+
+        function MyComponent() {
+          const { data, loading, error } = useWayfinder('ar://ardrive');
+          
+          if (loading) return <div>Loading...</div>;
+          if (error) return <div>Error: {error.message}</div>;
+          
+          return <div>{data}</div>;
+        }
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+## Next Steps
+
+<Cards>
+  <Card
+    icon={<Network />}
+    title="Learn about the AR.IO Network"
+    description="Understanding the AR.IO decentralized infrastructure"
+    href="https://ar.io/network"
+  />
+  <Card
+    icon={<BookOpen />}
+    title="Decentralized Access"
+    description="Learn how to access Arweave data in a decentralized way"
+    href="/docs/how-to-access-data"
+  />
+  <Card
+    icon={<Server />}
+    title="Run a Gateway"
+    description="Join the network by operating your own AR.IO gateway"
+    href="/docs/infra/gateway/running-a-gateway-locally"
+  />
+  <Card
+    icon={<Globe />}
+    title="Integrate Wayfinder into your App"
+    description="Advanced integration patterns and best practices"
+    href="/sdks/wayfinder/integration-guide"
+  />
+</Cards>
