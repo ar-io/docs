@@ -1,0 +1,117 @@
+---
+title: "Wayfinder React"
+description: "React hooks and components for integrating Wayfinder into React applications"
+---
+
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { BookOpen, Zap, Settings, Code } from 'lucide-react';
+
+# Wayfinder React
+
+A set of React hooks and components for integrating Wayfinder, the decentralized data access system for Arweave. 
+
+Wayfinder-react wraps the functionality of wayfinder-core in user-friendly React components and hooks, making it easy to integrate AR.IO network functionality into your React applications with built-in loading states, error handling, and caching.
+
+## Quick Start
+
+<Steps>
+  <Step>
+    ### Install Wayfinder React
+
+    ```bash
+    npm install @ar.io/wayfinder-react @ar.io/wayfinder-core @ar.io/sdk
+    ```
+  </Step>
+  <Step>
+    ### Install polyfills (required for web environments)
+
+    <Callout type="warn">
+    Crypto polyfills are required for web environments when using bundlers.
+    </Callout>
+
+    ```bash
+    npm install --save-dev crypto-browserify stream-browserify buffer
+    ```
+
+    Configure your bundler (Webpack, Vite, Rollup, etc.) to provide polyfills for `crypto`, `process`, and `buffer`. Refer to your bundler's documentation for polyfill configuration.
+  </Step>
+  <Step>
+    ### Setup the provider
+
+    ```jsx
+    import { WayfinderProvider } from '@ar.io/wayfinder-react';
+    import { ARIO } from '@ar.io/sdk';
+
+    function App() {
+      return (
+        <WayfinderProvider ario={ARIO.mainnet()}>
+          <YourApp />
+        </WayfinderProvider>
+      );
+    }
+    ```
+  </Step>
+  <Step>
+    ### Use the hook
+
+    ```jsx
+    import { useWayfinder } from '@ar.io/wayfinder-react';
+
+    function MyComponent() {
+      const { data, loading, error } = useWayfinder('ar://ardrive');
+      
+      if (loading) return <div>Loading...</div>;
+      if (error) return <div>Error: {error.message}</div>;
+      
+      return <div>{data}</div>;
+    }
+    ```
+  </Step>
+  <Step>
+    ### Handle multiple requests (optional)
+
+    ```jsx
+    function MultipleRequestsComponent() {
+      const request1 = useWayfinder('ar://example-name-1');
+      const request2 = useWayfinder('ar://example-name-2');
+      
+      return (
+        <div>
+          <div>Request 1: {request1.loading ? 'Loading...' : request1.data}</div>
+          <div>Request 2: {request2.loading ? 'Loading...' : request2.data}</div>
+        </div>
+      );
+    }
+    ```
+  </Step>
+</Steps>
+
+## Next Steps
+
+<Cards>
+  <Card
+    icon={<Zap />}
+    title="Hooks Reference"
+    description="Comprehensive guide to all available React hooks"
+    href="/sdks/wayfinder/wayfinder-react/hooks"
+  />
+  <Card
+    icon={<Settings />}
+    title="Provider Configuration"
+    description="Advanced configuration options for WayfinderProvider"
+    href="/sdks/wayfinder/wayfinder-react/provider-config"
+  />
+  <Card
+    icon={<Code />}
+    title="Integration Examples"
+    description="Real-world examples and integration patterns"
+    href="/sdks/wayfinder/wayfinder-react/examples"
+  />
+  <Card
+    icon={<BookOpen />}
+    title="Wayfinder Core"
+    description="Learn about the underlying core library"
+    href="/sdks/wayfinder/wayfinder-core"
+  />
+</Cards>
