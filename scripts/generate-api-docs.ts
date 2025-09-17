@@ -9,11 +9,11 @@ const openApiMap: Record<string, {
   },
   'turbo/upload-service': {
     name: 'Upload Service',
-    openapi: 'https://raw.githubusercontent.com/ardriveapp/turbo-upload-service/refs/heads/release/31175801/docs/openapi.yaml',
+    openapi: 'https://raw.githubusercontent.com/ardriveapp/turbo-upload-service/refs/heads/main/docs/openapi.yaml',
   },
   'turbo/payment-service': {
     name: 'Payment Service',
-    openapi: 'https://raw.githubusercontent.com/ardriveapp/turbo-payment-service/refs/heads/release/8d1d320/docs/openapi.yaml',
+    openapi: 'https://raw.githubusercontent.com/ardriveapp/turbo-payment-service/refs/heads/main/docs/openapi.yaml',
   },
 };
 
