@@ -1,0 +1,388 @@
+---
+title: "GraphQL Queries (Recommended)"
+description: "Query Arweave data using GraphQL for powerful search and filtering capabilities"
+---
+
+# Find Data with GraphQL Queries
+
+Use **GraphQL** to **find and identify** Arweave data with powerful search and filtering capabilities. GraphQL is used for discovery - you query to get transaction IDs, then use those IDs to fetch the actual data.
+
+## Are You Just Accessing Known Data?
+
+<Callout type="info">
+  **For Simple Access:** If you already know the transaction ID and just need to
+  access the data, use [HTTP Requests](/how-to-access-data/http-requests)
+  instead. GraphQL is perfect for discovering data when you don't know the
+  transaction ID.
+</Callout>
+
+## Important: GraphQL is for Discovery, Not Direct Access
+
+**GraphQL finds data, it doesn't access it directly.**
+
+- **Use GraphQL to:** Find transactions by tags, metadata, owner, etc.
+- **Get transaction IDs** from your GraphQL queries
+- **Use transaction IDs** with HTTP requests to access the actual data
+
+**Example Workflow:**
+
+1. **Query GraphQL** to find all videos: `Content-Type: video/mp4`
+2. **Get transaction IDs** from the query results
+3. **Fetch actual video** using: `https://arweave.net/{transaction-id}`
+
+This method is perfect for applications that need to find specific transactions based on metadata, tags, or other criteria.
+
+## Why Use GraphQL?
+
+**Perfect for:**
+
+- Complex data queries
+- Metadata filtering
+- Application development
+- Search functionality
+
+**Pros:**
+
+- Powerful querying capabilities
+- Filter by tags and metadata
+- Flexible data retrieval
+- Single endpoint for all queries
+
+**Cons:**
+
+- Requires GraphQL knowledge
+- More complex than HTTP
+- Gateway-dependent
+
+## Basic Query Structure
+
+Query transactions using GraphQL:
+
+```graphql
+query {
+  transactions(
+    tags: [
+      { name: "Content-Type", values: ["text/html"] }
+      { name: "App-Name", values: ["MyApp"] }
+    ]
+    first: 10
+  ) {
+    edges {
+      node {
+        id
+        tags {
+          name
+          value
+        }
+        data {
+          size
+        }
+      }
+    }
+  }
+}
+```
+
+## Popular GraphQL Endpoints
+
+- **arweave.net** - `https://arweave.net/graphql`
+- **Goldsky** - `https://arweave-search.goldsky.com/graphql`
+- **AR.IO Gateways** - Various gateways provide GraphQL endpoints
+
+## GraphQL Playground
+
+For testing and exploring queries, use the interactive GraphQL playground:
+
+1. Navigate to [https://arweave.net/graphql](https://arweave.net/graphql) in your browser
+2. Enter your GraphQL query in the interface
+3. Press the "play" button to execute and see results
+
+This is perfect for experimenting with queries before implementing them in your application.
+
+## Example: Finding Video Data
+
+Here's how to find videos using GraphQL:
+
+```js
+import axios from "axios";
+
+const findVideos = async () => {
+  const query = `
+    query {
+      transactions(
+        tags: [{ name: "Content-Type", values: ["video/mp4"] }]
+        first: 10
+      ) {
+        edges {
+          node {
+            id
+            tags {
+              name
+              value
+            }
+            data {
+              size
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  const response = await axios.post("https://arweave.net/graphql", {
+    query,
+  });
+
+  return response.data.data.transactions.edges;
+};
+
+// This returns transaction IDs that you can use with HTTP requests
+const videos = await findVideos();
+console.log(
+  "Found video IDs:",
+  videos.map((v) => v.node.id)
+);
+```
+
+## Advanced Queries
+
+**Filter by Owner:**
+
+```js
+import axios from "axios";
+
+const query = `
+  query {
+    transactions(owners: ["your-wallet-address"], first: 10) {
+      edges {
+        node {
+          id
+          tags {
+            name
+            value
+          }
+        }
+      }
+    }
+  }
+`;
+
+const response = await axios.post("https://arweave.net/graphql", {
+  query,
+});
+
+console.log(response.data.data);
+```
+
+**Filter by Block Height:**
+
+```js
+import axios from "axios";
+
+const query = `
+  query {
+    transactions(block: { min: 1000000, max: 1100000 }, first: 10) {
+      edges {
+        node {
+          id
+          block {
+            height
+          }
+        }
+      }
+    }
+  }
+`;
+
+const response = await axios.post("https://arweave.net/graphql", {
+  query,
+});
+
+console.log(response.data.data);
+```
+
+**Pagination with Cursors:**
+
+```js
+import axios from "axios";
+
+// First page
+const query = `
+  query {
+    transactions(
+      tags: [{ name: "App-Name", values: ["MyApp"] }]
+      first: 10
+    ) {
+      pageInfo {
+        hasNextPage
+      }
+      edges {
+        cursor
+        node {
+          id
+          tags {
+            name
+            value
+          }
+        }
+      }
+    }
+  }
+`;
+
+const response = await axios.post("https://arweave.net/graphql", {
+  query,
+});
+
+const { edges, pageInfo } = response.data.data.transactions;
+
+// Next page using cursor
+if (pageInfo.hasNextPage) {
+  const nextQuery = `
+    query($cursor: String) {
+      transactions(
+        tags: [{ name: "App-Name", values: ["MyApp"] }]
+        after: $cursor
+        first: 10
+      ) {
+        pageInfo {
+          hasNextPage
+        }
+        edges {
+          cursor
+          node {
+            id
+            tags {
+              name
+              value
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  const nextResponse = await axios.post("https://arweave.net/graphql", {
+    query: nextQuery,
+    variables: { cursor: edges[edges.length - 1].cursor },
+  });
+
+  console.log(nextResponse.data.data);
+}
+```
+
+## Query Optimization Tips
+
+Based on [GraphQL best practices](https://docs.bobinstein.com/guides/gql), follow these guidelines for optimal performance:
+
+**Specificity:**
+
+- Use the most precise tags possible to narrow search scope
+- Query with essential tags only to reduce processing time
+
+**Schema Design:**
+
+- Design your app's schema to reflect query patterns
+- Use tags that encapsulate frequent combinations of criteria
+
+**Include Non-tag Fields:**
+
+- Add fields like `owner` to refine your search
+- This makes queries more efficient and targeted
+
+**Order Your Tags:**
+
+- Arrange tags from most specific to most general
+- This leverages Arweave's indexing more effectively
+
+**Example Optimized Query:**
+
+```js
+// Well-optimized query with specific tags and useful fields
+const query = `
+  query {
+    transactions(
+      tags: [
+        { name: "App-Name", values: ["MyApp"] }
+        { name: "Content-Type", values: ["application/json"] }
+        { name: "Version", values: ["1.0"] }
+      ]
+      owners: ["your-wallet-address"]
+      first: 20
+    ) {
+      edges {
+        node {
+          id
+          data {
+            size
+            type
+          }
+          tags {
+            name
+            value
+          }
+          block {
+            height
+            timestamp
+          }
+          owner {
+            address
+          }
+        }
+      }
+    }
+  }
+`;
+```
+
+## Why Choose GraphQL Queries?
+
+GraphQL provides the most powerful way to discover and search Arweave data.
+
+<Callout type="note">
+  **Perfect for:** Application development, data discovery, complex queries, and
+  any use case where you need to find data based on metadata, tags, or other
+  criteria.
+</Callout>
+
+| Feature              | GraphQL Queries | HTTP Requests | ArNS       | Wayfinder       |
+| -------------------- | --------------- | ------------- | ---------- | --------------- |
+| **Discovery**        | Excellent       | None          | None       | Good            |
+| **Query Power**      | Very High       | None          | None       | Medium          |
+| **Setup Complexity** | Medium          | None          | High       | High            |
+| **Performance**      | Good            | Excellent     | Excellent  | Excellent       |
+| **Use Case**         | Data discovery  | Direct access | Human URLs | Production apps |
+
+<Callout type="info">
+  **Need help deciding?** Use GraphQL when you need to find data by tags or
+  metadata. Use HTTP requests for direct access to known transaction IDs.
+</Callout>
+
+## Ready to Query Data?
+
+<Cards>
+  <Card 
+    href="https://arweave.net/graphql" 
+    title="Try GraphQL Playground"
+    icon={<Code />}
+    arrow
+  >
+    Test GraphQL queries in the interactive playground.
+  </Card>
+
+<Card
+  href="/how-to-access-data/http-requests"
+  title="Need Simple Access?"
+  icon={<Globe />}
+>
+  Use HTTP requests for direct data access.
+</Card>
+
+  <Card 
+    href="/how-to-access-data/arns" 
+    title="Want Human-Readable URLs?"
+    icon={<Link />}
+  >
+    Set up ArNS for memorable, permanent addresses.
+  </Card>
+</Cards>

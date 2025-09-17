@@ -6,7 +6,18 @@ import Mermaid from '@/components/Mermaid';
 import { openapi } from '@/lib/openapi';
 import { APIPage } from 'fumadocs-openapi/ui';
 import { Step, Steps } from 'fumadocs-ui/components/steps';
-import { FolderOpen, Info, Zap, Code, MousePointer, Network, Package } from 'lucide-react';
+import {
+  FolderOpen,
+  Info,
+  Zap,
+  Code,
+  MousePointer,
+  Network,
+  Package,
+  Globe,
+  Search,
+  Link,
+} from "lucide-react";
 
 // use this function to get MDX components, you will need it for rendering MDX
 export function getMDXComponents(components?: MDXComponents): MDXComponents {
@@ -24,6 +35,9 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     MousePointer,
     Network,
     Package,
+    Globe,
+    Search,
+    Link,
     APIPage: (props) => <APIPage {...openapi.getAPIPageProps(props)} />,
     ...components,
   };
