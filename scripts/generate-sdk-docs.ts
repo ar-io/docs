@@ -58,6 +58,19 @@ function sanitizeFilename(title: string): string {
 function escapeContent(content: string): string {
   // Escape content that might be interpreted as JSX
   return content
+    // Convert GitHub-style alerts to Fumadocs Callout components
+    .replace(/>\s*\[!(WARNING|CAUTION|IMPORTANT)\]\s*\n((?:>.*\n?)*)/gm, (match, type, content) => {
+      const cleanContent = content.replace(/^>\s?/gm, '').trim();
+      return `<Callout type="warn">\n${cleanContent}\n</Callout>\n`;
+    })
+    .replace(/>\s*\[!(INFO|NOTE|TIP)\]\s*\n((?:>.*\n?)*)/gm, (match, type, content) => {
+      const cleanContent = content.replace(/^>\s?/gm, '').trim();
+      return `<Callout type="info">\n${cleanContent}\n</Callout>\n`;
+    })
+    // Convert mermaid code blocks to Mermaid component
+    .replace(/```mermaid\n([\s\S]*?)\n```/g, (match, chart) => {
+      return `<Mermaid chart={\`${chart.trim()}\`} />`;
+    })
     // Remove backticks from any header and simplify function signatures
     .replace(/(#{1,6}\s*)`?([^`\n]+)`?/g, (match, headerPrefix, headerContent) => {
       // Remove backticks and simplify function signatures (remove parameters, keep just function name with ())
@@ -76,7 +89,7 @@ function escapeContent(content: string): string {
         'div', 'span', 'p', 'a', 'strong', 'em', 'code', 'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
         'ul', 'ol', 'li', 'table', 'tr', 'td', 'th', 'thead', 'tbody', 'tfoot',
         'details', 'summary', 'blockquote', 'cite', 'abbr', 'time', 'mark', 'del', 'ins',
-        'sup', 'sub', 'small', 'big', 'b', 'i', 'u', 's', 'strike'
+        'sup', 'sub', 'small', 'big', 'b', 'i', 'u', 's', 'strike', 'script', 'callout'
       ];
       
       if (htmlTags.includes(cleanTagName)) {
@@ -121,29 +134,14 @@ async function processPackage(pkg: typeof PACKAGES[0]) {
     console.log(`Fetching README from: ${pkg.readmeUrl}`);
     const content = await fetchReadme(pkg.readmeUrl);
     
-    // Extract title from first heading or use default
-    const titleMatch = content.match(/^#\s+(.+)$/m);
-    const mainTitle = titleMatch ? titleMatch[1] : pkg.title;
-    
     // Split content by ## headers
     const sections = content.split(/(?=^## )/m).filter(section => section.trim());
-    
-    const pages: string[] = [];
-    
-    // Process intro section (everything before first ##)
-    const introSection = sections[0];
-    if (introSection && !introSection.startsWith('## ')) {
-      const escapedIntro = escapeContent(introSection);
-      const indexContent = `---
-title: "${mainTitle}"
-description: "${pkg.description}"
----
 
-${escapedIntro}`;
-      
-      await fs.writeFile(path.join(pkg.dest, "index.mdx"), indexContent);
-    }
-    
+
+    // we skip the intro section as index.mdx is curated with mdx specific content
+
+    const pages: string[] = [];
+  
     // Process each ## section as a separate page
     for (const section of sections) {
       if (!section.startsWith('## ')) continue;
@@ -152,12 +150,15 @@ ${escapedIntro}`;
       const headerLine = lines[0];
       const sectionTitle = headerLine.replace(/^## /, '').trim();
       
-      // Skip table of contents, developers, and cli sections
+      // Skip table of contents, developers, cli, installation, usage, and quick start sections
       if (sectionTitle.toLowerCase().includes('table of contents') || 
           sectionTitle.toLowerCase().includes('toc') ||
           sectionTitle.toLowerCase() === 'contents' ||
           sectionTitle.toLowerCase() === 'developers' ||
-          sectionTitle.toLowerCase() === 'cli') {
+          sectionTitle.toLowerCase() === 'cli' ||
+          sectionTitle.toLowerCase() === 'installation' ||
+          sectionTitle.toLowerCase() === 'usage' ||
+          sectionTitle.toLowerCase().includes('quick start')) {
         console.log(`Skipping section: ${sectionTitle}`);
         continue;
       }
