@@ -7,16 +7,14 @@ const openApiMap: Record<string, {
     name: 'AR.IO Node',
     openapi: 'https://raw.githubusercontent.com/ar-io/ar-io-node/refs/heads/openapi-update/docs/openapi.yaml',
   },
-  // 'turbo/upload-service': {
-  //   name: 'Turbo Upload Service',
-  //   openapi: 'https://raw.githubusercontent.com/ardriveapp/upload-service/refs/heads/main/docs/openapi.yaml',
-  //   proxyUrl: 'https://ardrive.net',
-  // },
-  // 'turbo/payment-service': {
-  //   name: 'Turbo Payment Service',
-  //   openapi: 'https://raw.githubusercontent.com/ardriveapp/payment-service/refs/heads/main/docs/openapi.yaml',
-  //   proxyUrl: 'https://ardrive.net',
-  // },
+  'turbo/upload-service': {
+    name: 'Upload Service',
+    openapi: 'https://raw.githubusercontent.com/ardriveapp/turbo-upload-service/refs/heads/release/31175801/docs/openapi.yaml',
+  },
+  'turbo/payment-service': {
+    name: 'Payment Service',
+    openapi: 'https://raw.githubusercontent.com/ardriveapp/turbo-payment-service/refs/heads/release/8d1d320/docs/openapi.yaml',
+  },
 };
 
 (async () => {
@@ -34,7 +32,7 @@ const { createOpenAPI } = await import('fumadocs-openapi/server');
       output: `./content/api/${key}/`,
       includeDescription: true,
       per: 'tag',
-      frontmatter: (title) => {
+      frontmatter: (title: string) => {
         // Fix title capitalization
         if (title.toLowerCase() === 'ar n s') return { title: 'ArNS' };
         if (title.toLowerCase() === 'ar io') return { title: 'AR.IO' };
