@@ -67,10 +67,6 @@ function escapeContent(content: string): string {
       const cleanContent = content.replace(/^>\s?/gm, '').trim();
       return `<Callout type="info">\n${cleanContent}\n</Callout>\n`;
     })
-    // Convert mermaid code blocks to Mermaid component
-    .replace(/```mermaid\n([\s\S]*?)\n```/g, (match, chart) => {
-      return `<Mermaid chart={\`${chart.trim()}\`} />`;
-    })
     // Remove backticks from any header and simplify function signatures
     .replace(/(#{1,6}\s*)`?([^`\n]+)`?/g, (match, headerPrefix, headerContent) => {
       // Remove backticks and simplify function signatures (remove parameters, keep just function name with ())

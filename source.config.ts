@@ -4,6 +4,8 @@ import {
   frontmatterSchema,
   metaSchema,
 } from "fumadocs-mdx/config";
+import { remarkMdxMermaid } from 'fumadocs-core/mdx-plugins';
+
 
 // You can customise Zod schemas for frontmatter and `meta.json` here
 // see https://fumadocs.dev/docs/mdx/collections#define-docs
@@ -19,6 +21,7 @@ export const docs = defineDocs({
 
 export default defineConfig({
   mdxOptions: {
+    remarkPlugins: [remarkMdxMermaid],
     remarkImageOptions: {
       external: true, // allow remote images
       onError: "ignore", // don’t fail build if size fetch fails
