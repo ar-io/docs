@@ -7,7 +7,7 @@ description: "SDK for interacting with Turbo, a fast and efficient data upload s
 
 ### TurboFactory
 
-#### `unauthenticated()`
+#### unauthenticated()
 
 Creates an instance of a client that accesses Turbo's unauthenticated services.
 
@@ -15,7 +15,7 @@ Creates an instance of a client that accesses Turbo's unauthenticated services.
 const turbo = TurboFactory.unauthenticated();
 ```
 
-#### `authenticated()`
+#### authenticated()
 
 Creates an instance of a client that accesses Turbo's authenticated and unauthenticated services. Requires either a signer, or private key to be provided.
 
@@ -103,7 +103,7 @@ const turbo = TurboFactory.authenticated({
 
 ### TurboUnauthenticatedClient
 
-#### `getSupportedCurrencies()`
+#### getSupportedCurrencies()
 
 Returns the list of currencies supported by the Turbo Payment Service for topping up a user balance of AR Credits (measured in Winston Credits, or winc).
 
@@ -111,7 +111,7 @@ Returns the list of currencies supported by the Turbo Payment Service for toppin
 const currencies = await turbo.getSupportedCurrencies();
 ```
 
-#### `getSupportedCountries()`
+#### getSupportedCountries()
 
 Returns the list of countries supported by the Turbo Payment Service's top up workflow.
 
@@ -119,7 +119,7 @@ Returns the list of countries supported by the Turbo Payment Service's top up wo
 const countries = await turbo.getSupportedCountries();
 ```
 
-#### `getFiatToAR()`
+#### getFiatToAR()
 
 Returns the current raw fiat to AR conversion rate for a specific currency as reported by third-party pricing oracles.
 
@@ -127,7 +127,7 @@ Returns the current raw fiat to AR conversion rate for a specific currency as re
 const fiatToAR = await turbo.getFiatToAR({ currency: 'USD' });
 ```
 
-#### `getFiatRates()`
+#### getFiatRates()
 
 Returns the current fiat rates for 1 GiB of data for supported currencies, including all top-up adjustments and fees.
 
@@ -135,7 +135,7 @@ Returns the current fiat rates for 1 GiB of data for supported currencies, inclu
 const rates = await turbo.getFiatRates();
 ```
 
-#### `getWincForFiat()`
+#### getWincForFiat()
 
 Returns the current amount of Winston Credits including all adjustments for the provided fiat currency.
 
@@ -146,7 +146,7 @@ const { winc, actualPaymentAmount, quotedPaymentAmount, adjustments } =
   });
 ```
 
-#### `getWincForToken()`
+#### getWincForToken()
 
 Returns the current amount of Winston Credits including all adjustments for the provided token amount.
 
@@ -157,7 +157,7 @@ const { winc, actualTokenAmount, equivalentWincTokenAmount } =
   });
 ```
 
-#### `getFiatEstimateForBytes()`
+#### getFiatEstimateForBytes()
 
 Get the current price from the Turbo Payment Service, denominated in the specified fiat currency, for uploading a specified number of bytes to Turbo.
 
@@ -185,7 +185,7 @@ console.log(amount); // Estimated usd price for 1 GiB
 
 </details>
 
-#### `getTokenPriceForBytes()`
+#### getTokenPriceForBytes()
 
 Get the current price from the Turbo Payment Service, denominated in the specified token, for uploading a specified number of bytes to Turbo.
 
@@ -198,7 +198,7 @@ const { tokenPrice } = await turbo.getTokenPriceForBytes({
 console.log(tokenPrice); // Estimated SOL Price for 100 MiB
 ```
 
-#### `getUploadCosts()`
+#### getUploadCosts()
 
 Returns the estimated cost in Winston Credits for the provided file sizes, including all upload adjustments and fees.
 
@@ -207,7 +207,7 @@ const [uploadCostForFile] = await turbo.getUploadCosts({ bytes: [1024] });
 const { winc, adjustments } = uploadCostForFile;
 ```
 
-#### `uploadSignedDataItem()`
+#### uploadSignedDataItem()
 
 Uploads a signed data item. The provided `dataItemStreamFactory` should produce a NEW signed data item stream each time is it invoked. The `dataItemSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. The `events` parameter is an optional object that can be used to listen to upload progress, errors, and success (refer to the [Events] section for more details).
 
@@ -233,7 +233,7 @@ const uploadResponse = await turbo.uploadSignedDataItem({
 });
 ```
 
-#### `createCheckoutSession()`
+#### createCheckoutSession()
 
 Creates a Stripe checkout session for a Turbo Top Up with the provided amount, currency, owner. The returned URL can be opened in the browser, all payments are processed by Stripe. To leverage promo codes, see [TurboAuthenticatedClient].
 
@@ -295,7 +295,7 @@ const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
 });
 ```
 
-#### `submitFundTransaction()`
+#### submitFundTransaction()
 
 Submits the transaction ID of a funding transaction to Turbo Payment Service for top up processing. The `txId` is the transaction ID of the transaction to be submitted.
 
@@ -311,7 +311,7 @@ const { status, id, ...fundResult } = await turbo.submitFundTransaction({
 
 ### TurboAuthenticatedClient
 
-#### `getBalance()`
+#### getBalance()
 
 Issues a signed request to get the credit balance of a wallet measured in AR (measured in Winston Credits, or winc).
 
@@ -319,7 +319,7 @@ Issues a signed request to get the credit balance of a wallet measured in AR (me
 const { winc: balance } = await turbo.getBalance();
 ```
 
-#### `signer.getNativeAddress()`
+#### signer.getNativeAddress()
 
 Returns the [native address][docs/native-address] of the connected signer.
 
@@ -327,7 +327,7 @@ Returns the [native address][docs/native-address] of the connected signer.
 const address = await turbo.signer.getNativeAddress();
 ```
 
-#### `getWincForFiat()`
+#### getWincForFiat()
 
 Returns the current amount of Winston Credits including all adjustments for the provided fiat currency, amount, and optional promo codes.
 
@@ -339,7 +339,7 @@ const { winc, paymentAmount, quotedPaymentAmount, adjustments } =
   });
 ```
 
-#### `createCheckoutSession()`
+#### createCheckoutSession()
 
 Creates a Stripe checkout session for a Turbo Top Up with the provided amount, currency, owner, and optional promo codes. The returned URL can be opened in the browser, all payments are processed by Stripe. Promo codes require an authenticated client.
 
@@ -355,7 +355,7 @@ const { url, winc, paymentAmount, quotedPaymentAmount, adjustments } =
 window.open(url, '_blank');
 ```
 
-#### `upload()`
+#### upload()
 
 The easiest way to upload data to Turbo. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload.
 
@@ -372,14 +372,14 @@ const uploadResult = await turbo.upload({
 });
 ```
 
-#### `uploadFile()`
+#### uploadFile()
 
 Signs and uploads a raw file. There are two ways to provide the file to the SDK:
 
 1. Using a `file` parameter
 2. Using a `fileStreamFactory` and `fileSizeFactory`
 
-##### Using `file`
+##### Using file`
 
 In Web with a file input:
 
@@ -417,7 +417,7 @@ const uploadResult = await turbo.uploadFile({
 });
 ```
 
-##### Using `fileStreamFactory` and `fileSizeFactory`
+##### Using fileStreamFactory` and `fileSizeFactory`
 
 Note: The provided `fileStreamFactory` should produce a NEW file data stream each time it is invoked. The `fileSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload.
 
@@ -464,7 +464,7 @@ await turbo.upload({
 });
 ```
 
-#### `uploadFolder()`
+#### uploadFolder()
 
 Signs and uploads a folder of files. For NodeJS, the `folderPath` of the folder to upload is required. For the browser, an array of `files` is required. The `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. The `maxConcurrentUploads` is an optional number that can be used to limit the number of concurrent uploads. The `throwOnFailure` is an optional boolean that can be used to throw an error if any upload fails. The `manifestOptions` is an optional object that can be used to configure the manifest file, including a custom index file, fallback file, or whether to disable manifests altogether. Manifests are enabled by default.
 
@@ -519,7 +519,7 @@ const { manifest, fileResponses, manifestResponse } = await turbo.uploadFolder({
 \</script\>
 ```
 
-#### `topUpWithTokens()`
+#### topUpWithTokens()
 
 Tops up the connected wallet with Credits by submitting a payment transaction for the token amount to the Turbo wallet and then submitting that transaction id to Turbo Payment Service for top up processing.
 
@@ -597,7 +597,7 @@ const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
 });
 ```
 
-#### `shareCredits()`
+#### shareCredits()
 
 Shares credits from the connected wallet to the provided native address and approved winc amount. This action will create a signed data item for the approval
 
@@ -609,7 +609,7 @@ const { approvalDataItemId, approvedWincAmount } = await turbo.shareCredits({
 });
 ```
 
-#### `revokeCredits()`
+#### revokeCredits()
 
 Revokes all credits shared from the connected wallet to the provided native address.
 
@@ -619,7 +619,7 @@ const revokedApprovals = await turbo.revokeCredits({
 });
 ```
 
-#### `getCreditShareApprovals()`
+#### getCreditShareApprovals()
 
 Returns all given or received credit share approvals for the connected wallet or the provided native address.
 

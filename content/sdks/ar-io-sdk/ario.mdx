@@ -7,7 +7,7 @@ description: "TypeScript/JavaScript SDK for interacting with the AR.IO ecosystem
 
 ### General
 
-#### `init()`
+#### init()
 
 Factory function to that creates a read-only or writeable client. By providing a `signer` additional write APIs that require signing, like `joinNetwork` and `delegateStake` are available. By default, a read-only client is returned and no write APIs are available.
 
@@ -23,7 +23,7 @@ const ario = ARIO.init({ signer: new ArweaveSigner(JWK) });
 
 ```
 
-#### `getInfo()`
+#### getInfo()
 
 Retrieves the information of the ARIO process.
 
@@ -49,7 +49,7 @@ const info = await ario.getInfo();
 
 </details>
 
-#### `getTokenSupply()`
+#### getTokenSupply()
 
 Retrieves the total supply of tokens, returned in mARIO. The total supply includes the following:
 
@@ -83,7 +83,7 @@ const supply = await ario.getTokenSupply();
 
 </details>
 
-#### `getBalance()`
+#### getBalance()
 
 Retrieves the balance of the specified wallet address.
 
@@ -106,7 +106,7 @@ const balance = await ario
 
 </details>
 
-#### `getBalances()`
+#### getBalances()
 
 Retrieves the balances of the ARIO process in `mARIO`, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last wallet address from the previous request.
 
@@ -146,7 +146,7 @@ const balances = await ario.getBalances({
 
 </details>
 
-#### `transfer()`
+#### transfer()
 
 Transfers `mARIO` to the designated `target` recipient address. Requires `signer` to be provided on `ARIO.init` to sign the transaction.
 
@@ -168,7 +168,7 @@ const { id: txId } = await ario.transfer(
 
 ### Vaults
 
-#### `getVault()`
+#### getVault()
 
 Retrieves the locked-balance user vault of the ARIO process by the specified wallet address and vault ID.
 
@@ -193,7 +193,7 @@ const vault = await ario.getVault({
 
 </details>
 
-#### `getVaults()`
+#### getVaults()
 
 Retrieves all locked-balance user vaults of the ARIO process, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last wallet address from the previous request.
 
@@ -239,7 +239,7 @@ const vaults = await ario.getVaults({
 
 </details>
 
-#### `vaultedTransfer()`
+#### vaultedTransfer()
 
 Transfers `mARIO` to the designated `recipient` address and locks the balance for the specified `lockLengthMs` milliseconds. The `revokable` flag determines if the vaulted transfer can be revoked by the sender.
 
@@ -259,7 +259,7 @@ const { id: txId } = await ario.vaultedTransfer(
 );
 ```
 
-#### `revokeVault()`
+#### revokeVault()
 
 Revokes a vaulted transfer by the recipient address and vault ID. Only the sender of the vaulted transfer can revoke it.
 
@@ -273,7 +273,7 @@ const { id: txId } = await ario.revokeVault({
 });
 ```
 
-#### `createVault()`
+#### createVault()
 
 Creates a vault for the specified `quantity` of mARIO from the signer's balance and locks it for the specified `lockLengthMs` milliseconds.
 
@@ -286,7 +286,7 @@ const { id: txId } = await ario.createVault({
 });
 ```
 
-#### `extendVault()`
+#### extendVault()
 
 Extends the lock length of a signer's vault by the specified `extendLengthMs` milliseconds.
 
@@ -299,7 +299,7 @@ const { id: txId } = await ario.extendVault({
 });
 ```
 
-#### `increaseVault()`
+#### increaseVault()
 
 Increases the balance of a signer's vault by the specified `quantity` of mARIO.
 
@@ -313,7 +313,7 @@ const { id: txId } = await ario.increaseVault({
 
 ### Gateways
 
-#### `getGateway()`
+#### getGateway()
 
 Retrieves a gateway's info by its staking wallet address.
 
@@ -362,7 +362,7 @@ const gateway = await ario.getGateway({
 
 </details>
 
-#### `getGateways()`
+#### getGateways()
 
 Retrieves registered gateways of the ARIO process, using pagination and sorting by the specified criteria. The `cursor` used for pagination is the last gateway address from the previous request.
 
@@ -425,7 +425,7 @@ Available `sortBy` options are any of the keys on the gateway object, e.g. `oper
 
 </details>
 
-#### `getGatewayDelegates()`
+#### getGatewayDelegates()
 
 Retrieves all delegates for a specific gateway, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last delegate address from the previous request.
 
@@ -472,7 +472,7 @@ const delegates = await ario.getGatewayDelegates({
 
 </details>
 
-#### `joinNetwork()`
+#### joinNetwork()
 
 Joins a gateway to the ar.io network via its associated wallet.
 
@@ -500,7 +500,7 @@ const { id: txId } = await ario.joinNetwork(
 );
 ```
 
-#### `leaveNetwork()`
+#### leaveNetwork()
 
 Sets the gateway as `leaving` on the ar.io network. Requires `signer` to be provided on `ARIO.init` to sign the transaction. The gateways operator and delegate stakes are vaulted and will be returned after leave periods. The gateway will be removed from the network after the leave period.
 
@@ -515,7 +515,7 @@ const { id: txId } = await ario.leaveNetwork(
 );
 ```
 
-#### `updateGatewaySettings()`
+#### updateGatewaySettings()
 
 Writes new gateway settings to the callers gateway configuration.
 
@@ -533,7 +533,7 @@ const { id: txId } = await ario.updateGatewaySettings(
 );
 ```
 
-#### `increaseDelegateStake()`
+#### increaseDelegateStake()
 
 Increases the callers stake on the target gateway.
 
@@ -551,7 +551,7 @@ const { id: txId } = await ario.increaseDelegateStake(
 );
 ```
 
-#### `decreaseDelegateStake()`
+#### decreaseDelegateStake()
 
 Decreases the callers stake on the target gateway. Can instantly decrease stake by setting instant to `true`.
 
@@ -581,7 +581,7 @@ const { id: txId } = await ario.decreaseDelegateStake({
 });
 ```
 
-#### `getDelegations()`
+#### getDelegations()
 
 Retrieves all active and vaulted stakes across all gateways for a specific address, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last delegationId (concatenated gateway and startTimestamp of the delgation) from the previous request.
 
@@ -630,7 +630,7 @@ const vaults = await ario.getDelegations({
 
 </details>
 
-#### `instantWithdrawal()`
+#### instantWithdrawal()
 
 Instantly withdraws an existing vault on a gateway. If no `gatewayAddress` is provided, the signer's address will be used.
 
@@ -659,7 +659,7 @@ const { id: txId } = await ario.instantWithdrawal(
 );
 ```
 
-#### `cancelWithdrawal()`
+#### cancelWithdrawal()
 
 Cancels an existing vault on a gateway. The vaulted stake will be returned to the callers stake. If no `gatewayAddress` is provided, the signer's address will be used.
 
@@ -687,7 +687,7 @@ const { id: txId } = await ario.cancelWithdrawal(
 );
 ```
 
-#### `getAllowedDelegates()`
+#### getAllowedDelegates()
 
 Retrieves all allowed delegates for a specific address. The `cursor` used for pagination is the last address from the previous request.
 
@@ -718,7 +718,7 @@ const allowedDelegates = await ario.getAllowedDelegates({
 
 </details>
 
-#### `getGatewayVaults()`
+#### getGatewayVaults()
 
 Retrieves all vaults across all gateways for a specific address, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last vaultId from the previous request.
 
@@ -753,7 +753,7 @@ const vaults = await ario.getGatewayVaults({
 
 </details>
 
-#### `getAllGatewayVaults()`
+#### getAllGatewayVaults()
 
 Retrieves all vaults across all gateways, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last vaultId from the previous request.
 
@@ -792,7 +792,7 @@ const vaults = await ario.getAllGatewayVaults({
 
 </details>
 
-#### `increaseOperatorStake()`
+#### increaseOperatorStake()
 
 Increases the callers operator stake. Must be executed with a wallet registered as a gateway operator.
 
@@ -810,7 +810,7 @@ const { id: txId } = await ario.increaseOperatorStake(
 );
 ```
 
-#### `decreaseOperatorStake()`
+#### decreaseOperatorStake()
 
 Decreases the callers operator stake. Must be executed with a wallet registered as a gateway operator. Requires `signer` to be provided on `ARIO.init` to sign the transaction.
 
@@ -828,7 +828,7 @@ const { id: txId } = await ario.decreaseOperatorStake(
 );
 ```
 
-#### `redelegateStake()`
+#### redelegateStake()
 
 Redelegates the stake of a specific address to a new gateway. Vault ID may be optionally included in order to redelegate from an existing withdrawal vault. The redelegation fee is calculated based on the fee rate and the stake amount. Users are allowed one free redelegation every seven epochs. Each additional redelegation beyond the free redelegation will increase the fee by 10%, capping at a 60% redelegation fee.
 
@@ -845,7 +845,7 @@ const { id: txId } = await ario.redelegateStake({
 });
 ```
 
-#### `getRedelegationFee()`
+#### getRedelegationFee()
 
 Retrieves the fee rate as percentage required to redelegate the stake of a specific address. Fee rate ranges from 0% to 60% based on the number of redelegations since the last fee reset.
 
@@ -869,7 +869,7 @@ const fee = await ario.getRedelegationFee({
 
 </details>
 
-#### `getAllDelegates()`
+#### getAllDelegates()
 
 Retrieves all delegates across all gateways, paginated and sorted by the specified criteria. The `cursor` used for pagination is a `cursorId` derived from delegate address and the gatewayAddress from the previous request. e.g `address_gatewayAddress`.
 
@@ -918,7 +918,7 @@ const delegates = await ario.getAllDelegates({
 
 ### Arweave Name System (ArNS)
 
-#### `resolveArNSName()`
+#### resolveArNSName()
 
 Resolves an ArNS name to the underlying data id stored on the names corresponding ANT id.
 
@@ -970,7 +970,7 @@ const record = await ario.resolveArNSName({ name: 'logo_ardrive' });
 
 </details>
 
-#### `buyRecord()`
+#### buyRecord()
 
 Purchases a new ArNS record with the specified name, type, processId, and duration.
 
@@ -1016,7 +1016,7 @@ const record = await ario.buyRecord(
 );
 ```
 
-#### `upgradeRecord()`
+#### upgradeRecord()
 
 Upgrades an existing leased ArNS record to a permanent ownership. The record must be currently owned by the caller and be of type "lease".
 
@@ -1036,7 +1036,7 @@ const record = await ario.upgradeRecord(
 );
 ```
 
-#### `getArNSRecord()`
+#### getArNSRecord()
 
 Retrieves the record info of the specified ArNS name.
 
@@ -1060,7 +1060,7 @@ const record = await ario.getArNSRecord({ name: 'ardrive' });
 
 </details>
 
-#### `getArNSRecords()`
+#### getArNSRecords()
 
 Retrieves all registered ArNS records of the ARIO process, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last ArNS name from the previous request.
 
@@ -1139,7 +1139,7 @@ Available `sortBy` options are any of the keys on the record object, e.g. `name`
 
 </details>
 
-#### `getArNSRecordsForAddress()`
+#### getArNSRecordsForAddress()
 
 Retrieves all registered ArNS records of the specified address according to the `ANTRegistry` access control list, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last ArNS name from the previous request.
 
@@ -1182,7 +1182,7 @@ Available `sortBy` options are any of the keys on the record object, e.g. `name`
 
 </details>
 
-#### `increaseUndernameLimit()`
+#### increaseUndernameLimit()
 
 Increases the undername support of a domain up to a maximum of 10k. Domains, by default, support up to 10 undernames.
 
@@ -1201,7 +1201,7 @@ const { id: txId } = await ario.increaseUndernameLimit(
 );
 ```
 
-#### `extendLease()`
+#### extendLease()
 
 Extends the lease of a registered ArNS domain, with an extension of 1-5 years depending on grace period status. Permanently registered domains cannot be extended.
 
@@ -1218,7 +1218,7 @@ const { id: txId } = await ario.extendLease(
 );
 ```
 
-#### `getTokenCost()`
+#### getTokenCost()
 
 Calculates the price in mARIO to perform the interaction in question, eg a 'Buy-Name' interaction, where args are the specific params for that interaction.
 
@@ -1241,7 +1241,7 @@ const price = await ario
 
 </details>
 
-#### `getCostDetails()`
+#### getCostDetails()
 
 Calculates the expanded cost details for the interaction in question, e.g a 'Buy-Name' interaction, where args are the specific params for that interaction. The fromAddress is the address that would be charged for the interaction, and fundFrom is where the funds would be taken from, either `balance`, `stakes`, or `any`.
 
@@ -1278,7 +1278,7 @@ const costDetails = await ario.getCostDetails({
 
 </details>
 
-#### `getDemandFactor()`
+#### getDemandFactor()
 
 Retrieves the current demand factor of the network. The demand factor is a multiplier applied to the cost of ArNS interactions based on the current network demand.
 
@@ -1296,7 +1296,7 @@ const demandFactor = await ario.getDemandFactor();
 
 </details>
 
-#### `getArNSReturnedNames()`
+#### getArNSReturnedNames()
 
 Retrieves all active returned names of the ARIO process, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last returned name from the previous request.
 
@@ -1339,7 +1339,7 @@ const returnedNames = await ario.getArNSReturnedNames({
 
 </details>
 
-#### `getArNSReturnedName()`
+#### getArNSReturnedName()
 
 Retrieves the returned name data for the specified returned name.
 
@@ -1372,7 +1372,7 @@ const returnedName = await ario.getArNSReturnedName({ name: 'permalink' });
 
 ### Epochs
 
-#### `getCurrentEpoch()`
+#### getCurrentEpoch()
 
 Returns the current epoch data.
 
@@ -1428,7 +1428,7 @@ const epoch = await ario.getCurrentEpoch();
 
 </details>
 
-#### `getEpoch()`
+#### getEpoch()
 
 Returns the epoch data for the specified block height. If no epoch index is provided, the current epoch is used.
 
@@ -1490,7 +1490,7 @@ const epoch = await ario.getEpoch({ epochIndex: 0 });
 
 </details>
 
-#### `getEligibleEpochRewards()`
+#### getEligibleEpochRewards()
 
 Returns the eligible epoch rewards for the specified block height. If no epoch index is provided, the current epoch is used.
 
@@ -1523,7 +1523,7 @@ const rewards = await ario.getEligibleEpochRewards({ epochIndex: 0 });
 ```
 </details>
 
-#### `getObservations()`
+#### getObservations()
 
 Returns the epoch-indexed observation list. If no epoch index is provided, the current epoch is used.
 
@@ -1556,7 +1556,7 @@ const observations = await ario.getObservations();
 
 </details>
 
-#### `getDistributions()`
+#### getDistributions()
 
 Returns the current rewards distribution information. If no epoch index is provided, the current epoch is used.
 
@@ -1590,7 +1590,7 @@ const distributions = await ario.getDistributions({ epochIndex: 0 });
 }
 ```
 
-#### `saveObservations()`
+#### saveObservations()
 
 Saves the observations of the current epoch. Requires `signer` to be provided on `ARIO.init` to sign the transaction.
 
@@ -1611,7 +1611,7 @@ const { id: txId } = await ario.saveObservations(
 
 </details>
 
-#### `getPrescribedObservers()`
+#### getPrescribedObservers()
 
 Retrieves the prescribed observers of the ARIO process. To fetch prescribed observers for a previous epoch set the `epochIndex` to the desired epoch index.
 
@@ -1644,7 +1644,7 @@ const observers = await ario.getPrescribedObservers({ epochIndex: 0 });
 
 ### Primary Names
 
-#### `getPrimaryNames()`
+#### getPrimaryNames()
 
 Retrieves all primary names paginated and sorted by the specified criteria. The `cursor` used for pagination is the last name from the previous request.
 
@@ -1681,7 +1681,7 @@ const names = await ario.getPrimaryNames({
 
 </details>
 
-#### `getPrimaryName()`
+#### getPrimaryName()
 
 Retrieves the primary name for a given name or address.
 
@@ -1709,7 +1709,7 @@ const name = await ario.getPrimaryName({
 
 </details>
 
-#### `setPrimaryName()`
+#### setPrimaryName()
 
 Sets an ArNS name already owned by the `signer` as their primary name. Note: `signer` must be the owner of the `processId` that is assigned to the name. If not, the transaction will fail.
 
@@ -1721,7 +1721,7 @@ const ario = ARIO.mainnet({ signer });
 await ario.setPrimaryName({ name: 'my-arns-name' }); // the caller must already have purchased the name my-arns-name and be assigned as the owner of the processId that is assigned to the name
 ```
 
-#### `requestPrimaryName()`
+#### requestPrimaryName()
 
 Requests a primary name for the `signer`'s address. The request must be approved by the new owner of the requested name via the `approvePrimaryNameRequest`[#approveprimarynamerequest-name-address-] API.
 
@@ -1734,7 +1734,7 @@ const { id: txId } = await ario.requestPrimaryName({
 });
 ```
 
-#### `getPrimaryNameRequest()`
+#### getPrimaryNameRequest()
 
 Retrieves the primary name request for a a wallet address.
 

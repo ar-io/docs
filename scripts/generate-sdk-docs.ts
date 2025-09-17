@@ -58,9 +58,12 @@ function sanitizeFilename(title: string): string {
 function escapeContent(content: string): string {
   // Escape content that might be interpreted as JSX
   return content
-    // First simplify function signatures in headers (remove parameters, keep just function name with ())
-    .replace(/(#{1,6}\s*)`?(\w+)\([^)]*\)(\([^)]*\))*`?/g, (match, headerPrefix, functionName) => {
-      return `${headerPrefix}\`${functionName}()\``;
+    // Remove backticks from any header and simplify function signatures
+    .replace(/(#{1,6}\s*)`?([^`\n]+)`?/g, (match, headerPrefix, headerContent) => {
+      // Remove backticks and simplify function signatures (remove parameters, keep just function name with ())
+      let cleanHeader = headerContent.replace(/`/g, '');
+      cleanHeader = cleanHeader.replace(/(\w+)\([^)]*\)(\([^)]*\))*/g, '$1()');
+      return `${headerPrefix}${cleanHeader}`;
     })
     // Handle angle brackets for placeholders like <tx-id>, <subdomain>
     .replace(/<(\/?[\w-]+)(\s[^>]*)?>/g, (match, tagName, attributes) => {
