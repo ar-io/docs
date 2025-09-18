@@ -21,32 +21,32 @@ The weighted selection criteria will consider the following for each gateway:
 
 This factor considers how financially committed a gateway is to the network. It is the ratio of the total amount of ARIO tokens staked by the gateway (plus any delegated stake) relative to the network minimum and is expressed as:
 
-```
-SW = (Gateway Stake + Delegated Stake) / (Minimum Network Join Stake)
+```math
+SW = \frac{\text{Gateway Stake} + \text{Delegated Stake}}{\text{Minimum Network Join Stake}}
 ```
 
 ### Tenure Weight (TW)
 
 This factor considers how long a gateway has been part of the network, with a maximum value capped at four (4). This means that the maximum value is achieved after 2-years of participation in the network. It is calculated as:
 
-```
-TW = (Gateway Network Tenure) / (6 months)
+```math
+TW = \frac{\text{Gateway Network Tenure}}{6 \text{ months}}
 ```
 
 ### Gateway Performance Ratio Weight (GPRW)
 
 This factor is a proxy for a gateway's performance at resolving ArNS names. The weight represents the ratio of epochs in which a gateway received rewards for correctly resolving names relative to their total time on the network. To prevent division by zero conditions, it is calculated as:
 
-```
-GPRW = (1 + Passed Epochs) / (1 + Participated Epochs)
+```math
+GPRW = \frac{1 + \text{Passed Epochs}}{1 + \text{Participated Epochs}}
 ```
 
 ### Observer Performance Ratio Weight (OPRW)
 
 This factor is a proxy for a gateway's performance at fulfilling observation duties. The weight reflects the ratio of epochs in which a gateway, as an observer, successfully submitted observation reports relative to their total periods of service as an observer. To prevent division by zero conditions thus unfairly harming a newly joined gateway, it is calculated as:
 
-```
-OPRW = (1 + Submitted Epochs) / (1 + Selected Epochs)
+```math
+OPRW = \frac{1 + \text{Submitted Epochs}}{1 + \text{Selected Epochs}}
 ```
 
 ## Weight Calculation
@@ -55,8 +55,8 @@ For each gateway, a composite weight (CW) is computed, combining the Stake Weigh
 
 The formula used is:
 
-```
-CW = SW × TW × GPRW × OPRW
+```math
+CW = SW \times TW \times GPRW \times OPRW
 ```
 
 These weights are then normalized across the network to create a continuous range, allowing for proportional random selection based on the weighted scores. The normalized composite weight (N_CW) for each gateway indicates its likelihood of being chosen as an observer and is calculated by dividing the gateway's CW by the sum of all CWs.
