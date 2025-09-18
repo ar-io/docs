@@ -1,0 +1,26 @@
+---
+title: "Data Sharing"
+description: "Gateways are the workhorses of the AR.IO Network. Their primary role is to act as a bridge between the Arweave network and the outside world."
+---
+
+## Data Sharing
+
+A key advantage and incentive for networked AR.IO gateways over standalone gateways is their ability to preferentially share various kinds of Arweave data among one another.
+Each gateway advertises its registered Arweave wallet address, so other network participants know who they are.
+
+Gateways can identify AR.IO Network peers by evaluating the Gateway Address Registry (GAR) within the AR.IO smart contract.
+They utilize that peer list to request as-yet-uncached data on behalf of their requesting clients or in service of their internal workflows.
+This can include requests for transaction header data, data items, and chunks. The Arweave Network shall act as the backstop for all block data, transaction header data, and chunk data.
+
+Additionally, gateways that receive requests for cache-missed data from other gateways can provide a higher quality of service to other AR.IO gateways than that which is provided to general users, apps, and infrastructure.
+However, gateways are not forced to share data with one another and can choose not to share their data if the intended recipient is acting maliciously.
+Such behaviors might include failure to reciprocate in data sharing, engaging in dishonest activities / observation, or distributing invalid data.
+
+## Data Verification
+
+Gateway data verification is achieved by linking content hashes of transactions and data items to data roots on the Arweave base layer chain.
+Gateways index the chain from a trusted Arweave node and compute data roots for the base layer transaction data they download, ensuring that their data aligns with what was originally uploaded to Arweave.
+For base layer bundles that have already been verified, gateways compute hashes of individual data items, establishing a connection between the data root, the verified bundle, and the data items it contains.
+Gateways then expose these hashes and their verification status to users via HTTP headers on data responses.
+
+TODO: ADD CARDS AND DIAGRAMS FOR HOW GATEWAYS SHARE DATA
