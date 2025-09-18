@@ -1,0 +1,124 @@
+---
+title: "ArNS Primary Names"
+description: "Create web3 identity using ArNS names that resolve to wallet addresses"
+---
+
+# ArNS Primary Names
+
+Create **web3 identity** using ArNS names. Primary names allow you to use human-readable names as your identity in the Arweave ecosystem, making it easy for others to find and interact with you.
+
+## What Are Primary Names?
+
+**Primary names** are [ArNS names used as identity](https://docs.ar.io/arns#primary-names) that:
+
+- **Resolve to wallet addresses** - Link human-readable names to wallet addresses
+- **Provide web3 identity** - Give users friendly names for their Arweave identity
+- **Are bidirectional** - Can resolve from name to address or address to name
+- **Require ownership** - Only the owner of an ArNS name can set it as their primary name
+- **Enable secure verification** - Ownership requirement ensures identity authenticity
+- **Work across gateways** - Accessible from any AR.IO gateway
+
+## How It Works
+
+### 1. Identity Registration
+
+**Register a primary name:**
+
+- Choose a unique name (e.g., `jonniesparkles`)
+- Pay the registration fee
+- Link the name to your wallet address
+- Use as your web3 identity
+
+### 2. Bidirectional Resolution
+
+**Name to address resolution:**
+
+- `jonniesparkles` → `OU48aJtcq3KjsEqSUWDVpynh1xP2Y1VI-bwiSukAktU`
+- Others can find your wallet using your name
+- Use in dApps and applications
+
+**Address to name resolution:**
+
+- `OU48aJtcq3KjsEqSUWDVpynh1xP2Y1VI-bwiSukAktU` → `jonniesparkles`
+- Find the name associated with any wallet
+- Verify identity in transactions
+
+### 3. Application Integration
+
+**Use in supported apps:**
+
+- **Send tokens to "jonniesparkles"** instead of copying long wallet addresses
+- **Display friendly names** as usernames when connecting wallets
+- **Apps resolve names** to wallet addresses using the AR.IO SDK
+- **Seamless user experience** with human-readable identifiers
+
+## Basic Integration
+
+### Using the AR.IO SDK
+
+**Get a primary name by address:**
+
+```javascript
+import { ARIO } from "@ar-io/sdk";
+
+const ario = new ARIO();
+
+// Get the primary name for a wallet address
+const nameData = await ario.getPrimaryName({
+  address: "OU48aJtcq3KjsEqSUWDVpynh1xP2Y1VI-bwiSukAktU",
+});
+console.log(nameData.name); // e.g., "jonniesparkles"
+```
+
+**Get primary name data:**
+
+```javascript
+import { ARIO } from "@ar-io/sdk";
+
+const ario = new ARIO();
+
+// Get primary name data for a name
+const nameData = await ario.getPrimaryName({
+  name: "jonniesparkles",
+});
+console.log(nameData.owner); // e.g., "OU48aJtcq3KjsEqSUWDVpynh1xP2Y1VI-bwiSukAktU"
+console.log(nameData.name); // e.g., "jonniesparkles"
+```
+
+## How Apps Use Primary Names
+
+**Token transfers:**
+
+- Send tokens to "jonniesparkles" instead of copying `OU48aJtcq3KjsEqSUWDVpynh1xP2Y1VI-bwiSukAktU`
+- Apps automatically resolve the name to the wallet address
+- Much more user-friendly than long wallet addresses
+
+**User interfaces:**
+
+- Display "jonniesparkles" as username when wallet is connected
+- Show friendly names in transaction histories
+- Make interactions more personal and memorable
+
+**Developer integration:**
+
+- Use the [AR.IO SDK](https://docs.ar.io/ar-io-sdk/ario/primary-names/get-primary-name) to resolve names
+- Support primary names in your dApp
+- Enhance user experience with human-readable identifiers
+- **Trust identity ownership** - Only name owners can set primary names, ensuring secure verification
+
+## Benefits
+
+- **Web3 identity** - Use human-readable names as your identity
+- **Easy discovery** - Others can find you by name instead of wallet address
+- **Bidirectional resolution** - Resolve name to address or address to name
+- **Secure verification** - Only name owners can set primary names, preventing impersonation
+- **Permanent ownership** - Own your identity forever
+- **App integration** - Works in any app that supports primary names
+
+## Ready to Learn More?
+
+**Want to trade domains?** Check out [ArNS Marketplace](/use-cases/arns-marketplace) for buying and selling.
+
+**Need deployment help?** See [Hosting Decentralized Websites](/use-cases/hosting-decentralized-websites) for website setup.
+
+**Want technical details?** Explore the [ArNS documentation](https://docs.ar.io/arns) for advanced features.

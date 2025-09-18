@@ -3,46 +3,25 @@ title: "Architecture"
 description: "Gateways are the workhorses of the AR.IO Network. Their primary role is to act as a bridge between the Arweave network and the outside world."
 ---
 
-
 # Architecture
 
 ## Overview
 
-Gateways are the workhorses of the AR.IO Network. 
-Their primary role is to act as a bridge between the Arweave network and the outside world. 
-This means that a gateway's main task is to make it easier for users to interact with the Arweave network by simplifying the technical processes of writing, reading, and discovering data on the blockweave in a trust-minimized fashion.  
+Gateways are the workhorses of the AR.IO Network.
+Their primary role is to act as a bridge between the Arweave network and the outside world.
+This means that a gateway's main task is to make it easier for users to interact with the Arweave network by simplifying the technical processes of writing, reading, and discovering data on the blockweave in a trust-minimized fashion.
 
 ## Gateway functions
 
-The functions of an AR.IO gateway are broken down into the following categories: 
+The functions of an AR.IO gateway are broken down into the following categories:
 
-**Writing data involves**:
-    - Proxying base layer transaction headers to one or more healthy and active Arweave nodes (miners) to facilitate inclusion in the mempools of as many nodes as possible. 
-    - Proxying chunks for base layer Arweave transactions to Arweave nodes to help facilitate storage and replication of the chunks on the blockweave. 
-    - Receiving and bundling so-called bundled data items (e.g., ANS-104 spec) as base layer transactions. 
+**Writing data involves**: - Proxying base layer transaction headers to one or more healthy and active Arweave nodes (miners) to facilitate inclusion in the mempools of as many nodes as possible. - Proxying chunks for base layer Arweave transactions to Arweave nodes to help facilitate storage and replication of the chunks on the blockweave. - Receiving and bundling so-called bundled data items (e.g., ANS-104 spec) as base layer transactions.
 
-**Reading involves retrieving**: 
-    - Transaction headers for a base layer Arweave transaction. 
-    - Individual data chunks for a base layer Arweave transaction. 
-    - Blocks from the blockweave. 
-    - Storage pricing rates for data from the Arweave node network. 
-    - Contiguous streams of chunks representing an entire base layer transaction. 
-    - Bundled data items (e.g., ANS-104). 
-    - Wallet information (e.g., token balance). 
+**Reading involves retrieving**: - Transaction headers for a base layer Arweave transaction. - Individual data chunks for a base layer Arweave transaction. - Blocks from the blockweave. - Storage pricing rates for data from the Arweave node network. - Contiguous streams of chunks representing an entire base layer transaction. - Bundled data items (e.g., ANS-104). - Wallet information (e.g., token balance).
 
-**Discovering data involves**: 
-    - Facilitating efficient, structured queries for base layer transactions, bundled data items, and wallet data by: 
-        - examining incoming streams of data (i.e., directly ingested transactions and data items, blocks emitted by the chain, etc.). 
-        - managing index data in a database or analogous data store. 
-    - Parsing and executing user queries. 
-    - Facilitating friendly-path routing via Arweave manifest indexing. 
+**Discovering data involves**: - Facilitating efficient, structured queries for base layer transactions, bundled data items, and wallet data by: - examining incoming streams of data (i.e., directly ingested transactions and data items, blocks emitted by the chain, etc.). - managing index data in a database or analogous data store. - Parsing and executing user queries. - Facilitating friendly-path routing via Arweave manifest indexing.
 
-**Including other benefits and capabilities such as**: 
-    - Facilitating friendly-subdomain-name routing to Arweave transactions via a direct integration with the Arweave Name System (ArNS). 
-    - Providing the modularity and configurability necessary for operating extensible gateways that can be deployed at small or large scales to meet the needs of specific applications, use cases, communities, or business models. 
-    - Providing pluggable means for consuming telemetry data for internal and external monitoring and alerting. 
-    - Facilitating configurable content moderation policies. 
-    - Providing connectivity to a decentralized network of other AR.IO gateways, enabling data sharing and other shared workloads. 
+**Including other benefits and capabilities such as**: - Facilitating friendly-subdomain-name routing to Arweave transactions via a direct integration with the Arweave Name System (ArNS). - Providing the modularity and configurability necessary for operating extensible gateways that can be deployed at small or large scales to meet the needs of specific applications, use cases, communities, or business models. - Providing pluggable means for consuming telemetry data for internal and external monitoring and alerting. - Facilitating configurable content moderation policies. - Providing connectivity to a decentralized network of other AR.IO gateways, enabling data sharing and other shared workloads.
 
 ## AR.IO Gateway Benefits
 
@@ -70,10 +49,10 @@ This flexibility also allows operators to utilize the technologies that are appr
 
 For example, small scale operators might want to use low-overhead relational databases to power their indexing while larger scale operators might opt to use cloud-native, horizontally scalable databases. Analogous examples for storage and caching exist as well.
 
-| Topology | Chain Index | Bundle Index | Data Index | Data Store |
-|----------|-------------|--------------|------------|------------|
+| Topology | Chain Index | Bundle Index | Data Index | Data Store        |
+| -------- | ----------- | ------------ | ---------- | ----------------- |
 | Small    | SQLite      | SQLite       | SQLite     | Local File System |
-| Large    | PostgreSQL  | Cassandra    | Cassandra  | S3 Compatible |
+| Large    | PostgreSQL  | Cassandra    | Cassandra  | S3 Compatible     |
 
 ## ARNS Indexing and Routing
 
