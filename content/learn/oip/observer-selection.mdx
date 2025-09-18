@@ -1,0 +1,76 @@
+---
+title: "Observer Selection"
+description: "Learn about how gateways are selected as observers using weighted random selection"
+---
+
+# Observer Selection
+
+## Selection Process
+
+The observer selection process commences at the beginning of each epoch and employs a random-weighted selection method. By combining random selection with weighted criteria like stake, tenure, and past rewards, the process aims to ensure both fairness and acknowledgment of consistent performance.
+
+This method allows for a systematic yet randomized approach to selecting gateways for observation tasks.
+
+## Selection Criteria
+
+Up to **fifty (50)** gateways can be chosen as observers per epoch. If the [GAR](/learn/gateways/gateway-network#gateway-address-registry-gar) is below that amount, then every gateway is designated as an observer for that epoch. If there are greater than 50, then randomized selection shall be utilized.
+
+The weighted selection criteria will consider the following for each gateway:
+
+### Stake Weight (SW)
+
+This factor considers how financially committed a gateway is to the network. It is the ratio of the total amount of ARIO tokens staked by the gateway (plus any delegated stake) relative to the network minimum and is expressed as:
+
+```
+SW = (Gateway Stake + Delegated Stake) / (Minimum Network Join Stake)
+```
+
+### Tenure Weight (TW)
+
+This factor considers how long a gateway has been part of the network, with a maximum value capped at four (4). This means that the maximum value is achieved after 2-years of participation in the network. It is calculated as:
+
+```
+TW = (Gateway Network Tenure) / (6 months)
+```
+
+### Gateway Performance Ratio Weight (GPRW)
+
+This factor is a proxy for a gateway's performance at resolving ArNS names. The weight represents the ratio of epochs in which a gateway received rewards for correctly resolving names relative to their total time on the network. To prevent division by zero conditions, it is calculated as:
+
+```
+GPRW = (1 + Passed Epochs) / (1 + Participated Epochs)
+```
+
+### Observer Performance Ratio Weight (OPRW)
+
+This factor is a proxy for a gateway's performance at fulfilling observation duties. The weight reflects the ratio of epochs in which a gateway, as an observer, successfully submitted observation reports relative to their total periods of service as an observer. To prevent division by zero conditions thus unfairly harming a newly joined gateway, it is calculated as:
+
+```
+OPRW = (1 + Submitted Epochs) / (1 + Selected Epochs)
+```
+
+## Weight Calculation
+
+For each gateway, a composite weight (CW) is computed, combining the Stake Weight, Tenure Weight, Gateway Performance Ratio Weight, and Observer Performance Ratio Weight.
+
+The formula used is:
+
+```
+CW = SW × TW × GPRW × OPRW
+```
+
+These weights are then normalized across the network to create a continuous range, allowing for proportional random selection based on the weighted scores. The normalized composite weight (N_CW) for each gateway indicates its likelihood of being chosen as an observer and is calculated by dividing the gateway's CW by the sum of all CWs.
+
+Any gateway with a composite weight equal to zero shall be ineligible for selection as an observer during the associated epoch.
+
+## Random Selection Process
+
+The selection of observers is randomized within the framework of these weights. A set of unique random numbers is generated with entropy within the total range of normalized weights. For each random number, the gateway whose normalized weight range encompasses this number is selected.
+
+This system ensures that while gateways with higher weights are more likely to be chosen, all gateways maintain a non-zero chance of selection, preserving both fairness and meritocracy in the observer assignment process.
+
+The current epoch's selected / prescribed observers as well as prescribed ArNS names to be evaluated shall be saved in the contract state at the beginning of the epoch to ensure that any activities during that epoch do not affect the selection of observers or awards distribution.
+
+## Next Steps
+
+Ready to understand how performance is evaluated? Learn about [Performance Evaluation](/learn/oip/performance-evaluation) to see how gateways are scored, or explore [Reward Distribution](/learn/oip/reward-distribution) to understand how rewards are calculated and distributed.

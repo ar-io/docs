@@ -1,0 +1,77 @@
+---
+title: "Reward Distribution"
+description: "Learn about how rewards are calculated and distributed in the OIP system"
+---
+
+# Reward Distribution
+
+## Epoch Allocation
+
+Each epoch, a portion of the protocol balance is earmarked for distribution as rewards. This value shall begin at 0.1% per epoch for the first year of operation, then linearly decline down to and stabilize at 0.05% over the following 6 months.
+
+From this allocation, two distinct reward categories are derived:
+
+## Base Rewards
+
+### Base Gateway Reward (BGR)
+
+This is the portion of the reward allocated to each Functional Gateway within the network and is calculated as:
+
+```
+BGR = (Epoch Reward Allocation × 0.9) / Total Gateways in the Network
+```
+
+### Base Observer Reward (BOR)
+
+Observers, due to their additional responsibilities, have a separate reward calculated as:
+
+```
+BOR = (Epoch Reward Allocation × 0.1) / Total Selected Observers for the Epoch
+```
+
+## Distribution Based on Performance
+
+The reward distribution is contingent on the performance classifications derived from the Performance Evaluation:
+
+- **Functional Gateways**: Gateways that meet the performance criteria receive the Base Gateway Reward.
+- **Deficient Gateways**: Gateways falling short in performance do not receive any gateway rewards.
+- **Functional Observers**: Observers that fulfilled their duty receive the Base Observer Reward.
+- **Deficient Observers**: Observers failing to meet their responsibilities do not receive observer rewards. Furthermore, if they are also Functional Gateways, their gateway reward is reduced by **25%** for that epoch as a consequence for not performing their observation duty.
+
+## Auto-Staking
+
+Gateways shall be given the option to have their reward tokens "auto-staked" to their existing stake or sent to their wallet as unlocked tokens. The default setting shall be "auto-staked".
+
+## Distribution to Delegates
+
+The protocol will automatically distribute a Functional Gateway's shared rewards with its delegates. The distribution will consider the gateway's total reward for the period (including observation rewards), the gateway's "Delegate Reward Share Ratio", and each delegate's stake proportional to the total delegation.
+
+Each individual delegate reward is calculated as:
+
+```
+DRi = Total Rewards × Reward Share Ratio × (Delegate's Stake / Total Delegated Stake)
+```
+
+Unlike gateways, token reward distributions to delegated stakers will only be "auto-staked" in that they will be automatically added to the delegate's existing stake associated with the rewarded gateway. The delegated staker is then free to withdraw their staked rewards at any time (subject to withdrawal delays).
+
+## Undistributed Rewards
+
+In cases where rewards are not distributed, either due to the inactivity or deficiency of gateways or observers, the allocated tokens shall remain in the protocol balance and carry forward to the next epoch.
+
+This mechanism is in place to discourage observers from frivolously marking their peers as offline in hopes of attaining a higher portion of the reward pool.
+
+Note that if a gateway (and its delegates) leaves the network or a delegate fully withdraws stake from a gateway, they become ineligible to receive rewards within the corresponding epoch and the earmarked rewards will not be distributed.
+
+## Handling Deficient Gateways
+
+To maintain network efficiency and reduce contract state bloat, gateways that are marked as deficient, and thus fail to receive rewards, for **thirty (30)** consecutive epochs will automatically trigger a "Network Leave" action and be subject to the associated stake withdrawal durations for both gateway stake and any delegated stake.
+
+In addition, the gateway shall have its **minimum network-join stake slashed by 100%**. The slashed stake shall be immediately sent to the protocol balance.
+
+## Next Steps
+
+Congratulations! You now understand the complete OIP system. Ready to learn more?
+
+- **Explore Gateways** → [Gateway Documentation](/learn/gateways/) for technical details
+- **Learn about ArNS** → [ArNS Documentation](/learn/arns/) for naming system details
+- **Back to Introduction** → [OIP Introduction](/learn/oip/introduction) to review the basics
