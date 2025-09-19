@@ -1,21 +1,23 @@
 ---
-title: "Turbo (Recommended)"
-description: "Upload data to Arweave using Turbo's bundling services with multiple payment options and optimized performance"
+title: "Getting Started with Turbo"
+description: "Complete guide to using Turbo's bundling services for reliable Arweave uploads"
 ---
 
-# Turbo (Recommended)
+# Getting Started with Turbo
 
-Upload data to Arweave using **bundling services** - the recommended approach for developers and applications. Choose the path that fits your needs:
+Upload data to Arweave using **Turbo's bundling services** - the recommended approach for developers and applications. Turbo provides enterprise-grade infrastructure with flexible payment options and optimized performance.
 
-## Are You a Non-Technical User?
-
-<Callout type="info">
-**For Simple File Uploads:** If you just need to upload files without coding, check out [ArDrive](/how-to-upload-data/no-code) - our user-friendly drag-and-drop solution that uses Turbo under the hood.
-</Callout>
-
-## For Developers: Turbo Bundling Service
+## Why Choose Turbo?
 
 [Turbo](https://turbo.ardrive.net) uses the **[ANS-104 specification](https://github.com/ArweaveTeam/arweave-standards/blob/master/ans/ANS-104.md)** to upload "data items" that are bundled compactly and seeded on the Arweave network. Pay with fiat currencies, tokens, or AR - making it accessible for any application.
+
+### Key Benefits
+
+- **Multiple Payment Options**: Credit cards, ARIO, USDC, SOL, MATIC, AR
+- **Enterprise Reliability**: Built-in redundancy and retry mechanisms
+- **Optimized Performance**: Fast uploads with intelligent bundling
+- **Developer Friendly**: Simple SDK with comprehensive documentation
+- **Open Source**: Run your own bundler or use our scaled service
 
 ## Get Started with Turbo
 
@@ -26,6 +28,7 @@ Upload data to Arweave using **bundling services** - the recommended approach fo
 ```bash
 npm install @ardrive/turbo-sdk
 ```
+
 </Step>
 
 <Step>
@@ -51,6 +54,7 @@ const signer = new ArweaveSigner(jwk);
 // Initialize Turbo
 const turbo = TurboFactory.authenticated({ signer });
 ```
+
 </Step>
 
 <Step>
@@ -59,23 +63,27 @@ const turbo = TurboFactory.authenticated({ signer });
 Purchase Turbo Credits to pay for uploads. When you upload, credits are automatically used and Turbo handles the payment to Arweave.
 
 **Option 1: Via the Web Interface**
+
 - Go to [turbo-topup.com](https://turbo-topup.com)
 - Pay with fiat currencies (credit cards) or crypto tokens (ARIO, USDC, SOL, MATIC, AR)
 
 **Option 2: Via the SDK**
+
 ```js
 // Purchase credits programmatically
 const fundResult = await turbo.topUpWithTokens({
   tokenAmount: TOKEN_AMOUNT,
-  tokenType: 'solana' // or 'ethereum', 'matic', 'arweave'
+  tokenType: "solana", // or 'ethereum', 'matic', 'arweave'
 });
 ```
 
 **Check Your Balance**
+
 ```js
 const balance = await turbo.getBalance();
 console.log(`Balance: ${balance.winc} Winston Credits`);
 ```
+
 </Step>
 
 <Step>
@@ -87,18 +95,19 @@ console.log(`Balance: ${balance.winc} Winston Credits`);
 const fileData = fs.readFileSync("./myfile.jpg");
 
 const result = await turbo.upload({
-  data: fileData,
-  dataItemOpts: {
-    tags: [
-      { name: "Content-Type", value: "image/jpeg" },
-      { name: "Title", value: "My Image" },
-    ],
-  },
+data: fileData,
+dataItemOpts: {
+tags: [
+{ name: "Content-Type", value: "image/jpeg" },
+{ name: "Title", value: "My Image" },
+],
+},
 });
 
 console.log("Upload ID:", result.id);
 console.log("Owner:", result.owner);
-```
+
+````
 
 ```js tab="Upload Folder"
 // Upload an entire folder
@@ -114,7 +123,7 @@ const folderResult = await turbo.uploadFolder({
 
 console.log("Folder Upload ID:", folderResult.id);
 console.log("Manifest ID:", folderResult.manifestId);
-```
+````
 
 ```js tab="Upload Raw Data"
 // Upload raw data (string, JSON, etc.)
@@ -136,29 +145,48 @@ const result = await turbo.upload({
 console.log("Upload ID:", result.id);
 console.log("Owner:", result.owner);
 ```
+
 </CodeGroup>
 </Step>
 </Steps>
 
-## Why Choose Turbo Bundling?
+## Advanced Features
+
+### Turbo Credits System
+
+Learn about our flexible payment system that supports multiple currencies and payment methods.
+
+→ [Understanding Turbo Credits](/how-to-upload-data/turbo-credits)
+
+### Data Organization
+
+- [**Tagging**](/how-to-upload-data/tagging) - Organize your data with metadata
+- [**Manifests**](/how-to-upload-data/manifests) - Create folder structures and bundles
+- [**Encryption**](/how-to-upload-data/encryption) - Secure your sensitive data
+- [**ArFS**](/how-to-upload-data/arfs) - File system protocol for structured storage
+
+## Production Ready
 
 Turbo implements the **[ANS-104 bundling specification](https://github.com/ArweaveTeam/arweave-standards/blob/master/ans/ANS-104.md)**, providing enterprise-grade infrastructure for permanent data storage.
 
 <Callout type="note">
-**Perfect for:** Developers, production applications, high-volume uploads, and any project needing reliable permanent storage with flexible payment options.
+  **Perfect for:** Developers, production applications, high-volume uploads, and
+  any project needing reliable permanent storage with flexible payment options.
 </Callout>
 
-| Feature | Turbo Bundling | Direct to Network |
-|---------|----------------|-------------------|
-| **Payment Options** | Fiat, ARIO, USDC, SOL, MATIC, AR | AR tokens only |
-| **Implementation** | Simple SDK integration | Manual transaction handling |
-| **Performance** | Optimized bundling & retry logic | Depends on implementation |
-| **Reliability** | Built-in redundancy | Manual error handling |
-| **Cost** | Optimized for large uploads | Higher per-transaction costs |
-| **Setup Complexity** | Easy with SDK | Complex protocol knowledge |
+| Feature              | Turbo Bundling                   | Alternative Options          |
+| -------------------- | -------------------------------- | ---------------------------- |
+| **Payment Options**  | Fiat, ARIO, USDC, SOL, MATIC, AR | AR tokens only               |
+| **Implementation**   | Simple SDK integration           | Manual transaction handling  |
+| **Performance**      | Optimized bundling & retry logic | Depends on implementation    |
+| **Reliability**      | Built-in redundancy              | Manual error handling        |
+| **Cost**             | Optimized for large uploads      | Higher per-transaction costs |
+| **Setup Complexity** | Easy with SDK                    | Complex protocol knowledge   |
 
 <Callout type="info">
-**Need help deciding?** Most developers should use Turbo for its simplicity and payment flexibility. Only consider direct network access for specialized use cases requiring maximum control.
+  **Need help deciding?** Most developers should use Turbo for its simplicity
+  and payment flexibility. Only consider alternatives for specialized use cases
+  requiring maximum control.
 </Callout>
 
 ## Ready to Get Started?
@@ -173,19 +201,15 @@ Turbo implements the **[ANS-104 bundling specification](https://github.com/Arwea
     Start building with Turbo's powerful bundling service.
   </Card>
 
-  <Card 
-    href="/sdks/turbo-sdk" 
-    title="Turbo SDK Documentation"
-    icon={<Code />}
-  >
-    Explore the full SDK documentation and examples.
-  </Card>
+<Card href="/sdks/turbo-sdk" title="Turbo SDK Documentation" icon={<Code />}>
+  Explore the full SDK documentation and examples.
+</Card>
 
   <Card 
-    href="/how-to-upload-data/no-code" 
-    title="Try ArDrive Instead"
-    icon={<FolderOpen />}
+    href="/how-to-upload-data/tagging" 
+    title="Learn About Tagging"
+    icon={<Tag />}
   >
-    Need a simple UI? ArDrive uses Turbo under the hood.
+    Organize your data with metadata and tags.
   </Card>
 </Cards>

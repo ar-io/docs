@@ -1,0 +1,165 @@
+---
+title: "Encryption"
+description: "Understanding data encryption for secure storage on Arweave"
+---
+
+# Encryption
+
+Arweave is **data-agnostic** - it doesn't care what type of data you store. This means you can encrypt your data before uploading it to Arweave, making it secure and private while still benefiting from permanent storage.
+
+## How Encryption Works on Arweave
+
+**Key Points:**
+
+- **No built-in encryption**: Arweave doesn't provide native encryption
+- **Data-agnostic storage**: Arweave stores any data type, including encrypted data
+- **Client-side encryption**: You encrypt data before uploading
+- **Permanent security**: Once encrypted and stored, data remains secure forever
+
+## Encryption Options
+
+### 1. Manual Client-Side Encryption
+
+Encrypt your data before uploading with Turbo:
+
+```js
+import CryptoJS from "crypto-js";
+
+// Encrypt sensitive data
+const data = "Sensitive information";
+const secretKey = "your-secret-key";
+const encryptedData = CryptoJS.AES.encrypt(data, secretKey).toString();
+
+// Upload encrypted data
+const result = await turbo.upload({
+  data: encryptedData,
+  dataItemOpts: {
+    tags: [
+      { name: "Content-Type", value: "application/octet-stream" },
+      { name: "Encrypted", value: "true" },
+      { name: "Cipher", value: "AES-256-GCM" },
+    ],
+  },
+});
+```
+
+### 2. ArDrive Encryption Service
+
+ArDrive provides built-in encryption using:
+
+- **AES-256-GCM** for small files and metadata
+- **AES-256-CTR** for large files (over 100MB)
+- **Wallet signature + password** for key derivation
+- **Military-grade encryption** that's quantum-resistant
+
+<Callout type="info">
+  **ArDrive Integration:** ArDrive handles encryption automatically for private
+  drives, combining your wallet signature with a user-defined password to create
+  secure encryption keys.
+</Callout>
+
+## Encryption Standards
+
+### Supported Algorithms
+
+- **AES-256-GCM**: Authenticated encryption (recommended)
+- **AES-256-CTR**: Stream cipher for large files
+- **Any encryption method** (must be indicated in `Cipher` tag)
+
+### Required Tags
+
+When uploading encrypted data, include these tags:
+
+```js
+{
+  name: "Content-Type",
+  value: "application/octet-stream"  // Required for encrypted data
+},
+{
+  name: "Cipher",
+  value: "AES-256-GCM"  // Specify encryption method
+},
+{
+  name: "Cipher-IV",
+  value: "base64-encoded-iv"  // Initialization vector
+}
+```
+
+## ArFS Privacy Model
+
+The Arweave File System (ArFS) provides a structured approach to encrypted storage:
+
+- **Private Drives**: Encrypt entire file systems
+- **File-level encryption**: Each file has its own encryption key
+- **Selective sharing**: Share individual files without exposing the entire drive
+- **Key derivation**: Uses HKDF-SHA256 with wallet signatures
+
+<Callout type="info">
+  **Coming Soon:** Detailed ArFS privacy documentation will be available in our
+  [ArFS section](/how-to-upload-data/arfs).
+</Callout>
+
+## Getting Started
+
+### Option 1: Use ArDrive (Recommended)
+
+For most users, ArDrive provides the easiest way to encrypt and store data:
+
+1. **Create a private drive** in ArDrive
+2. **Set a strong password** for your drive
+3. **Upload files** - they're automatically encrypted
+4. **Access files** using your password and wallet
+
+### Option 2: Manual Encryption
+
+For developers who need custom encryption:
+
+1. **Choose an encryption library** (Crypto-JS, Web Crypto API)
+2. **Encrypt your data** before uploading
+3. **Add proper tags** to indicate encryption
+4. **Store keys securely** for decryption
+
+## Security Considerations
+
+<Callout type="warning">
+  **Important:** Never store encryption keys in your code or public
+  repositories. Use secure key management practices and consider hardware
+  security modules for production applications.
+</Callout>
+
+**Best Practices:**
+
+- Use strong, randomly generated keys
+- Implement proper key rotation
+- Store keys securely (not in code)
+- Use authenticated encryption (AES-GCM)
+- Validate data integrity after decryption
+
+## Next Steps
+
+<Cards>
+  <Card 
+    href="https://ardrive.io" 
+    title="Try ArDrive"
+    icon={<Upload />}
+    arrow
+  >
+    Use ArDrive for easy encrypted file storage.
+  </Card>
+
+<Card
+  href="/how-to-upload-data/arfs"
+  title="Learn About ArFS"
+  icon={<FolderOpen />}
+>
+  Explore the Arweave File System for structured storage.
+</Card>
+
+  <Card 
+    href="/how-to-upload-data/turbo-credits" 
+    title="Get Turbo Credits"
+    icon={<CreditCard />}
+  >
+    Purchase credits for programmatic uploads.
+  </Card>
+</Cards>

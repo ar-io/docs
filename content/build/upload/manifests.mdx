@@ -1,0 +1,257 @@
+---
+title: "Manifests"
+description: "Understanding manifests for organizing folder structures and bundles"
+---
+
+# Manifests
+
+Manifests enable friendly-path-name routing for data on Arweave, greatly improving the programmability of data relationships. Instead of accessing data with complex transaction IDs, manifests allow you to organize files with readable paths and relative links.
+
+## What are Manifests?
+
+Manifests, also known as "Path Manifests" or "Arweave Manifests," are JSON objects that connect various Arweave data items and define relational paths for easy navigation. A common use case is permanently hosting websites on Arweave by linking all necessary files together.
+
+### The Problem Manifests Solve
+
+Without manifests, accessing data on Arweave looks like this:
+
+```
+http://<gateway domain>/cG7Hdi_iTQPoEYgQJFqJ8NMpN4KoZ-vH_j7pG4iP7NI (txID of a website's index.html)
+http://<gateway domain>/3zFsd7bkCAUtXUKBQ4XiPiQvpLVKfZ6kiLNt2XVSfoV (txID of its js/style.css)
+http://<gateway domain>/or0_fRYFcQYWh-QsozygI5Zoamw_fUsYu2w8_X1RkYZ (txID of its assets/img/logo.png)
+```
+
+With manifests, the same data becomes:
+
+```
+http://<gateway domain>/<txId of manifest> (resolves to the txID of index.html)
+http://<gateway domain>/<txId of manifest>/js/style.css
+http://<gateway domain>/<txId of manifest>/assets/img/logo.png
+```
+
+## Manifest Structure
+
+Manifests are JSON objects that define how data items are connected and accessed through friendly paths.
+
+### Sample Manifest
+
+```json
+{
+  "manifest": "arweave/paths",
+  "version": "0.2.0",
+  "index": {
+    "path": "index.html"
+  },
+  "fallback": {
+    "id": "iXo3LSfVKVtXUKBzfZ4d7bkCAp6kiLNt2XVUFsPiQvQ"
+  },
+  "paths": {
+    "index.html": {
+      "id": "cG7Hdi_iTQPoEYgQJFqJ8NMpN4KoZ-vH_j7pG4iP7NI"
+    },
+    "404.html": {
+      "id": "iXo3LSfVKVtXUKBzfZ4d7bkCAp6kiLNt2XVUFsPiQvQ"
+    },
+    "js/style.css": {
+      "id": "3zFsd7bkCAUtXUKBQ4XiPiQvpLVKfZ6kiLNt2XVSfoV"
+    },
+    "css/style.css": {
+      "id": "sPiQvpAUXLVK3zF6iXSfo7bkCVQkiLNt24dVtXUKBfZ"
+    },
+    "css/mobile.css": {
+      "id": "fZ4d7bkCAUiXSfo3zFsPiQvpLVKVtXUKB6kiLNt2XVQ"
+    },
+    "assets/img/logo.png": {
+      "id": "or0_fRYFcQYWh-QsozygI5Zoamw_fUsYu2w8_X1RkYZ"
+    },
+    "assets/img/icon.png": {
+      "id": "0543SMRGYuGKTaqLzmpOyK4AxAB96Fra2guHzYxjRGo"
+    }
+  }
+}
+```
+
+### How it Works
+
+A resolver, typically an AR.IO gateway, resolves URLs requesting content based on a manifest transaction ID to the corresponding path key in the `paths` object. The URL schema for this type of request is `https://<gateway url>/<manifest TxId>/<path>`.
+
+### Example Usage
+
+Assume the manifest above is uploaded to Arweave with the transaction ID `UyC5P5qKPZaltMmmZAWdakhlDXsBF6qmyrbWYFchRTk`. The below table shows https requests to the AR.IO gateway `arweave.dev`:
+
+| Request Path                                                                 | Manifest Path | Data served from txID                       |
+| ---------------------------------------------------------------------------- | ------------- | ------------------------------------------- |
+| https://arweave.dev/UyC5P5qKPZaltMmmZAWdakhlDXsBF6qmyrbWYFchRTk              | index         | cG7Hdi_iTQPoEYgQJFqJ8NMpN4KoZ-vH_j7pG4iP7NI |
+| https://arweave.dev/UyC5P5qKPZaltMmmZAWdakhlDXsBF6qmyrbWYFchRTk/index.html   | index.html    | cG7Hdi_iTQPoEYgQJFqJ8NMpN4KoZ-vH_j7pG4iP7NI |
+| https://arweave.dev/UyC5P5qKPZaltMmmZAWdakhlDXsBF6qmyrbWYFchRTk/js/style.css | js/style.css  | 3zFsd7bkCAUtXUKBQ4XiPiQvpLVKfZ6kiLNt2XVSfoV |
+| https://arweave.dev/UyC5P5qKPZaltMmmZAWdakhlDXsBF6qmyrbWYFchRTk/foobar       | fallback      | iXo3LSfVKVtXUKBzfZ4d7bkCAp6kiLNt2XVUFsPiQvQ |
+
+## Creating Manifests with Turbo
+
+Turbo makes it easy to create manifests automatically when uploading folders, or you can create custom manifests manually.
+
+### Folder Upload with Manifest
+
+```js
+const folderResult = await turbo.uploadFolder({
+  folderPath: "./my-website",
+  dataItemOpts: {
+    tags: [
+      { name: "Bundle-Format", value: "binary" },
+      { name: "Bundle-Version", value: "2.0.0" },
+      { name: "App-Name", value: "Website" },
+    ],
+  },
+});
+
+console.log("Folder Upload ID:", folderResult.id);
+console.log("Manifest ID:", folderResult.manifestId);
+```
+
+### Custom Manifest Creation
+
+```js
+const manifest = {
+  manifest: "arweave/paths",
+  version: "0.2.0",
+  index: {
+    path: "index.html",
+  },
+  fallback: {
+    id: "fallback-tx-id",
+  },
+  paths: {
+    "index.html": {
+      id: "abc123...def789",
+    },
+    "css/style.css": {
+      id: "def456...ghi012",
+    },
+  },
+};
+
+const manifestResult = await turbo.upload({
+  data: JSON.stringify(manifest),
+  dataItemOpts: {
+    tags: [
+      { name: "Content-Type", value: "application/x.arweave-manifest+json" },
+      { name: "App-Name", value: "CustomManifest" },
+    ],
+  },
+});
+```
+
+## Manifest Specifications
+
+### Required Transaction Tags
+
+Manifests must be uploaded with specific tags so that AR.IO gateways can recognize and properly resolve them:
+
+```json
+{ "name": "Content-Type", "value": "application/x.arweave-manifest+json" }
+```
+
+<Callout type="warning">
+  **Important:** This tag must be attached to the upload transaction, NOT placed
+  inside the JSON object. Failure to provide this tag will result in resolvers
+  not recognizing the manifest.
+</Callout>
+
+### Required JSON Attributes
+
+#### manifest
+
+```json
+"manifest": "arweave/paths"
+```
+
+Must have the value `arweave/paths` for gateways to resolve the manifest.
+
+#### version
+
+```json
+"version": "0.2.0"
+```
+
+Defines the version of manifest schema being used.
+
+#### index
+
+```json
+"index": {
+  "path": "index.html"
+}
+```
+
+or
+
+```json
+"index": {
+  "id": "cG7Hdi_iTQPoEYgQJFqJ8NMpN4KoZ-vH_j7pG4iP7NI"
+}
+```
+
+Defines the base or 'starting' data item. Accepts either `path` (key in paths object) or `id` (specific transaction ID). If both are defined, `id` overrides `path`.
+
+#### fallback
+
+```json
+"fallback": {
+  "id": "iXo3LSfVKVtXUKBzfZ4d7bkCAp6kiLNt2XVUFsPiQvQ"
+}
+```
+
+Defines a fallback data item for when requested paths don't exist (like a 404 page).
+
+#### paths
+
+```json
+"paths": {
+  "index.html": {
+    "id": "cG7Hdi_iTQPoEYgQJFqJ8NMpN4KoZ-vH_j7pG4iP7NI"
+  },
+  "css/style.css": {
+    "id": "3zFsd7bkCAUtXUKBQ4XiPiQvpLVKfZ6kiLNt2XVSfoV"
+  }
+}
+```
+
+Defines the URL paths that a manifest can resolve to. Each path maps to a specific Arweave transaction ID.
+
+## Relative Path Routing
+
+AR.IO gateways support relative path routing, making it easy to develop and maintain websites hosted on Arweave. Instead of using fully qualified URLs:
+
+```html
+<img src="https://arweave.dev/3zFsd7bkCAUtXUKBQ4XiPiQvpLVKfZ6kiLNt2XVSfoV" />
+```
+
+You can use relative paths:
+
+```html
+<img src="./logo.png" />
+```
+
+This makes HTML more readable and ensures links remain valid even if the hosting domain changes.
+
+## Best Practices
+
+### File Organization
+
+- Use descriptive file paths
+- Organize files in logical folders
+- Keep manifest files small
+- Use consistent naming conventions
+
+### Performance Considerations
+
+- Minimize manifest size
+- Use relative paths
+- Avoid deep nesting
+- Consider file size limits
+
+## Next Steps
+
+- [**Data Encryption**](/how-to-upload-data/encryption) - Secure your sensitive data
+- [**ArFS File System**](/how-to-upload-data/arfs) - Advanced file organization
+- [**Getting Started with Turbo**](/how-to-upload-data/bundling-services) - Complete upload guide

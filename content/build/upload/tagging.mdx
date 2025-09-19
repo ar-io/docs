@@ -1,0 +1,134 @@
+---
+title: "Tagging"
+description: "Understanding metadata and tagging for organized data storage"
+---
+
+# Tagging
+
+Tags are key-value pairs that provide metadata about your uploaded data on Arweave. They enable discoverability, proper content serving, and integration with various protocols.
+
+## Essential Tags
+
+Every upload should include these tags:
+
+- **Content-Type**: Required - tells gateways how to serve your data
+- **App-Name**: Best practice - identifies your application for discoverability
+
+```js
+const result = await turbo.upload({
+  data: fileData,
+  dataItemOpts: {
+    tags: [
+      { name: "Content-Type", value: "image/jpeg" },
+      { name: "App-Name", value: "MyApp" },
+      { name: "Title", value: "My Image" },
+    ],
+  },
+});
+```
+
+## Common Tag Types
+
+### Content Types
+
+- `image/jpeg`, `image/png` - Images
+- `application/json` - JSON data
+- `text/html` - HTML pages
+- `video/mp4` - Videos
+- `application/pdf` - Documents
+
+### App-Specific Tags
+
+- `App-Name` - Your application identifier
+- `Title` - Human-readable title
+- `Description` - Content description
+- `Author` - Content creator
+
+### Protocol Tags
+
+- `License` - Universal Data License (UDL) transaction ID
+- `License-Fee` - Fee for UDL licensing
+
+<Callout type="info">
+  **UDL Integration:** Learn about the [Universal Data
+  License](https://mirror.xyz/0x64eA438bd2784F2C52a9095Ec0F6158f847182d9/AjNBmiD4A4Sw-ouV9YtCO6RCq0uXXcGwVJMB5cdfbhE)
+  for monetizing your data.
+</Callout>
+
+## Advanced Tagging
+
+### Folder Uploads
+
+```js
+const folderResult = await turbo.uploadFolder({
+  folderPath: "./my-website",
+  dataItemOpts: {
+    tags: [
+      { name: "Bundle-Format", value: "binary" },
+      { name: "Bundle-Version", value: "2.0.0" },
+      { name: "App-Name", value: "Website" },
+    ],
+  },
+});
+```
+
+### Licensed Content
+
+```js
+const licensedTags = [
+  { name: "Content-Type", value: "image/jpeg" },
+  { name: "App-Name", value: "ArtGallery" },
+  { name: "License", value: "udl-tx-id-here" },
+  { name: "License-Fee", value: "1000000" }, // Fee in Winston
+];
+```
+
+## Searching by Tags
+
+Tags enable powerful discovery through GraphQL queries.
+
+<Callout type="info">
+  **Learn More:** For comprehensive GraphQL querying, see our [GraphQL Queries
+  guide](/how-to-access-data/graphql-queries).
+</Callout>
+
+```graphql
+query {
+  transactions(
+    tags: [
+      { name: "App-Name", values: ["MyApp"] }
+      { name: "Content-Type", values: ["image/jpeg"] }
+    ]
+  ) {
+    edges {
+      node {
+        id
+        tags {
+          name
+          value
+        }
+      }
+    }
+  }
+}
+```
+
+## Tag Limitations
+
+//TODO: is this real?
+
+- Maximum 2048 bytes per tag value
+- Maximum 40 tags per transaction
+- Tag names are case-sensitive
+- No duplicate tag names allowed
+
+<Callout type="warning">
+  **Important:** Tag values are limited to 2048 bytes. For larger metadata,
+  store it in the data payload instead.
+</Callout>
+
+## Next Steps
+
+- [**Understanding Manifests**](/how-to-upload-data/manifests) - Organize files with manifests
+- [**Data Encryption**](/how-to-upload-data/encryption) - Secure your sensitive data
+- [**ArFS File System**](/how-to-upload-data/arfs) - Advanced file organization
