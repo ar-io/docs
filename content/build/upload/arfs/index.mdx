@@ -1,387 +1,75 @@
 ---
-title: "ArFS"
-description: "Understanding the Arweave File System protocol for structured data storage"
+title: "ArFS Protocol"
+description: "A decentralized file system on Arweave for structured data storage and retrieval"
 ---
 
-# ArFS (Arweave File System)
-
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-
-## What is ArFS?
-
-Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit animi, id est laborum.
-
-## ArFS Structure
-
-Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.
-
-### Drive Structure
-
-```
-Drive
-├── Root Folder
-│   ├── Subfolder 1
-│   │   ├── File 1
-│   │   └── File 2
-│   ├── Subfolder 2
-│   │   └── File 3
-│   └── File 4
-└── Drive Metadata
-```
-
-### Entity Types
-
-- **Drive**: Top-level container
-- **Folder**: Directory structure
-- **File**: Data entities
-- **Snapshot**: Version control
-
-## Creating ArFS Structures
-
-Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.
-
-### Drive Creation
-
-```js
-const driveResult = await turbo.upload({
-  data: JSON.stringify({
-    name: "My Drive",
-    rootFolderId: "root-folder-id",
-    privacy: "public",
-  }),
-  dataItemOpts: {
-    tags: [
-      { name: "Content-Type", value: "application/json" },
-      { name: "ArFS", value: "0.10" },
-      { name: "Entity-Type", value: "drive" },
-      { name: "Drive-Name", value: "My Drive" },
-    ],
-  },
-});
-```
-
-### Folder Creation
-
-```js
-const folderResult = await turbo.upload({
-  data: JSON.stringify({
-    name: "Documents",
-    parentFolderId: "parent-folder-id",
-    driveId: "drive-id",
-  }),
-  dataItemOpts: {
-    tags: [
-      { name: "Content-Type", value: "application/json" },
-      { name: "ArFS", value: "0.10" },
-      { name: "Entity-Type", value: "folder" },
-      { name: "Folder-Name", value: "Documents" },
-    ],
-  },
-});
-```
-
-### File Upload
-
-```js
-const fileResult = await turbo.upload({
-  data: fileData,
-  dataItemOpts: {
-    tags: [
-      { name: "Content-Type", value: "image/jpeg" },
-      { name: "ArFS", value: "0.10" },
-      { name: "Entity-Type", value: "file" },
-      { name: "File-Name", value: "photo.jpg" },
-      { name: "Parent-Folder-Id", value: "folder-id" },
-    ],
-  },
-});
-```
-
-## ArFS Metadata
-
-Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incididunt ut labore et dolore magnam aliquam quaerat voluptatem.
-
-### Drive Metadata
-
-```json
-{
-  "name": "My Drive",
-  "rootFolderId": "abc123...def789",
-  "privacy": "public",
-  "created": "2024-01-01T00:00:00Z",
-  "modified": "2024-01-01T00:00:00Z"
-}
-```
-
-### Folder Metadata
-
-```json
-{
-  "name": "Documents",
-  "parentFolderId": "parent-folder-id",
-  "driveId": "drive-id",
-  "created": "2024-01-01T00:00:00Z",
-  "modified": "2024-01-01T00:00:00Z"
-}
-```
-
-### File Metadata
-
-```json
-{
-  "name": "document.pdf",
-  "parentFolderId": "folder-id",
-  "driveId": "drive-id",
-  "contentType": "application/pdf",
-  "size": 1024000,
-  "created": "2024-01-01T00:00:00Z",
-  "modified": "2024-01-01T00:00:00Z"
-}
-```
-
-## ArFS Operations
-
-Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur? Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur.
-
-### Listing Drive Contents
-
-```js
-// Query for drive entities
-const driveQuery = `
-  query {
-    transactions(
-      tags: [
-        { name: "ArFS", values: ["0.10"] }
-        { name: "Entity-Type", values: ["drive"] }
-        { name: "Drive-Name", values: ["My Drive"] }
-      ]
-    ) {
-      edges {
-        node {
-          id
-          tags {
-            name
-            value
-          }
-        }
-      }
-    }
-  }
-`;
-```
-
-### Folder Navigation
-
-```js
-// Get folder contents
-const folderQuery = `
-  query($parentFolderId: String!) {
-    transactions(
-      tags: [
-        { name: "ArFS", values: ["0.10"] }
-        { name: "Parent-Folder-Id", values: [$parentFolderId] }
-      ]
-    ) {
-      edges {
-        node {
-          id
-          tags {
-            name
-            value
-          }
-        }
-      }
-    }
-  }
-`;
-```
-
-## Version Control
-
-At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecat cupidatat non provident.
-
-### Snapshots
-
-```js
-const snapshotResult = await turbo.upload({
-  data: JSON.stringify({
-    driveId: "drive-id",
-    snapshotId: "snapshot-123",
-    version: "1.0.0",
-    entities: ["entity1", "entity2", "entity3"],
-  }),
-  dataItemOpts: {
-    tags: [
-      { name: "Content-Type", value: "application/json" },
-      { name: "ArFS", value: "0.10" },
-      { name: "Entity-Type", value: "snapshot" },
-      { name: "Drive-Id", value: "drive-id" },
-    ],
-  },
-});
-```
-
-### Version History
-
-```js
-// Query version history
-const versionQuery = `
-  query($driveId: String!) {
-    transactions(
-      tags: [
-        { name: "ArFS", values: ["0.10"] }
-        { name: "Entity-Type", values: ["snapshot"] }
-        { name: "Drive-Id", values: [$driveId] }
-      ]
-    ) {
-      edges {
-        node {
-          id
-          tags {
-            name
-            value
-          }
-        }
-      }
-    }
-  }
-`;
-```
-
-## Privacy and Permissions
-
-Similique sunt in culpa qui officia deserunt mollitia animi, id est laborum et dolorum fuga. Et harum quidem rerum facilis est et expedita distinctio.
-
-### Public Drives
-
-```js
-const publicDrive = {
-  name: "Public Drive",
-  privacy: "public",
-  rootFolderId: "root-folder-id",
-};
-```
-
-### Private Drives
-
-```js
-const privateDrive = {
-  name: "Private Drive",
-  privacy: "private",
-  rootFolderId: "root-folder-id",
-  encryptionKey: "encrypted-key",
-};
-```
-
-### Access Control
-
-- **Public**: Anyone can read
-- **Private**: Encrypted, key required
-- **Restricted**: Permission-based access
-
-## ArFS Best Practices
-
-Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus id quod maxime placeat facere possimus.
-
-### Naming Conventions
-
-- Use descriptive names
-- Avoid special characters
-- Keep names under 255 characters
-- Use consistent casing
-
-### Organization
-
-- Create logical folder structures
-- Use meaningful folder names
-- Implement proper versioning
-- Document your structure
-
-### Performance
-
-- Batch operations when possible
-- Use efficient queries
-- Implement caching
-- Consider file sizes
-
-## Integration with Turbo
-
-Omnis voluptas assumenda est, omnis dolor repellendus. Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet.
-
-### ArFS SDK
-
-```js
-import { ArFS } from "@ardrive/arfs-sdk";
-
-const arfs = new ArFS(turbo);
-
-// Create drive
-const drive = await arfs.createDrive({
-  name: "My Drive",
-  privacy: "public",
-});
-
-// Create folder
-const folder = await arfs.createFolder({
-  name: "Documents",
-  parentFolderId: drive.rootFolderId,
-  driveId: drive.id,
-});
-
-// Upload file
-const file = await arfs.uploadFile({
-  name: "document.pdf",
-  data: fileData,
-  parentFolderId: folder.id,
-  driveId: drive.id,
-});
-```
-
-## Examples
-
-Ut et voluptates repudiandae sint et molestiae non recusandae. Itaque earum rerum hic tenetur a sapiente delectus.
-
-### Complete File System
-
-```js
-// Create a complete file system structure
-const drive = await arfs.createDrive({
-  name: "Project Files",
-  privacy: "public",
-});
-
-const srcFolder = await arfs.createFolder({
-  name: "src",
-  parentFolderId: drive.rootFolderId,
-  driveId: drive.id,
-});
-
-const docsFolder = await arfs.createFolder({
-  name: "docs",
-  parentFolderId: drive.rootFolderId,
-  driveId: drive.id,
-});
-
-// Upload files to appropriate folders
-await arfs.uploadFile({
-  name: "index.js",
-  data: jsCode,
-  parentFolderId: srcFolder.id,
-  driveId: drive.id,
-});
-
-await arfs.uploadFile({
-  name: "README.md",
-  data: readmeContent,
-  parentFolderId: docsFolder.id,
-  driveId: drive.id,
-});
-```
+# ArFS Protocol: A Decentralized File System on Arweave
+
+Arweave File System, or "ArFS" is a data modeling, storage, and retrieval protocol designed to emulate common file system operations and to provide aspects of mutability to your data hierarchy on [Arweave](/learn/introduction/what-is-arweave)'s otherwise permanent, immutable data storage blockweave.
+
+Due to Arweave's permanent, immutable and public nature traditional file system operations such as permissions, file/folder renaming and moving, and file updates cannot be done by simply updating the on-chain data model.
+
+ArFS works around this by implementing a privacy and encryption pattern and defining an append-only transaction data model using tags within [Arweave Transaction headers](https://docs.arweave.org/developers/server/http-api#transaction-format).
+
+## Key Features
+
+### File Structure
+
+ArFS organizes files and folders using a hierarchical structure. Files are stored as individual transactions on the Arweave blockchain, while folders are metadata that reference these file transactions.
+
+### Metadata
+
+Each file and folder has associated metadata, such as the name, type, size, and modification timestamp. ArFS leverages Arweave's tagging system to store this metadata in a standardized format, which allows for easy querying and organization.
+
+### File Permissions
+
+ArFS supports public and private file permissions. Public files can be accessed by anyone on the network, while private files are encrypted using the owner's private key, ensuring only they can decrypt and access the content.
+
+### File Versioning
+
+ArFS supports versioning of files, allowing users to store multiple versions of a file and access previous versions at any time. This is achieved by linking new file transactions to previous versions through the use of metadata tags.
+
+### Data Deduplication
+
+To minimize storage redundancy and costs, ArFS employs data deduplication techniques. If a user tries to store a file that already exists on the network, the protocol will simply create a new reference to the existing file instead of storing a duplicate copy.
+
+### Search and Discovery
+
+ArFS enables users to search and discover files based on their metadata, such as file names, types, and tags. This is made possible by indexing the metadata stored within the Arweave blockchain.
+
+### Interoperability
+
+ArFS is designed to be interoperable with other decentralized applications and services built on the Arweave network. This allows for seamless integration and collaboration between different applications and users.
+
+## Getting Started
+
+To start using ArFS, you'll need to familiarize yourself with the Arweave ecosystem, acquire AR tokens to cover storage costs, and choose a compatible client or library to interact with the ArFS protocol.
+
+## ArFS Version History
+
+| Version | Date           | Release Notes                                                                                                                                |
+| ------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0.10    | August 2020    | The brief, beta version that was in use during initial testing of ArDrive across Web (Dart) and legacy CLI (Typescript).                     |
+| 0.11    | September 2020 | Includes all of the major functionality supporting file systems on Arweave including new drives, folders, files, renames, moves and privacy. |
+| 0.12    | December 2022  | Added Snapshot entities to support quick synchronization of drive state.                                                                     |
+| 0.13    | August 2023    | Added pins                                                                                                                                   |
+| 0.14    | January 2024   | Added `isHidden` property to file and folder metadata to enable clients to "hide" content from end users.                                    |
+| 0.15    | May 2025       | Added `Drive-Signature` entity type and `Signature-Type` metadata property on Drive entities.                                                |
 
 ## Next Steps
 
-Itaque earum rerum hic tenetur a sapiente delectus, ut aut reiciendis voluptatibus maiores alias consequatur aut perferendis doloribus asperiores repellat.
+Ready to dive deeper into ArFS? Here's what you should explore next:
 
-- [Getting Started with Turbo](/how-to-upload-data/bundling-services)
-- [Understanding Manifests](/how-to-upload-data/manifests)
-- [Data Encryption](/how-to-upload-data/encryption)
+- [Entity Types](/build/upload/arfs/entity-types) - Understand the different ArFS entities and their structure
+- [Data Model](/build/upload/arfs/data-model) - Learn how ArFS organizes data hierarchically
+- [Privacy & Encryption](/build/upload/arfs/privacy) - Secure your data with private drives
+- [Creating Drives](/build/upload/arfs/creating-drives) - Get started with your first ArFS drive
+- [Reading Data](/build/upload/arfs/reading-data) - Query and retrieve your ArFS data
+
+## Resources
+
+For more information, documentation, and community support, refer to the following resources:
+
+- [Arweave Official Website](https://www.arweave.org/)
+- [Arweave Developer Documentation](https://docs.arweave.org/)
+- [Arweave Community Forums](https://community.arweave.org/)
