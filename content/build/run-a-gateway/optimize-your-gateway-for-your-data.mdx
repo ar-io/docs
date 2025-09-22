@@ -1,0 +1,192 @@
+---
+title: "Optimize Your Gateway for Your Data"
+description: "Quick guide to configuring your AR.IO Gateway to process specific types of data using filters"
+---
+
+# Optimize Your Gateway for Your Data
+
+Configure your AR.IO Gateway to process only the data you need. By default, gateways process no bundles or data items - you must explicitly enable filtering to start processing data.
+
+## The Basics
+
+Your gateway uses **two main filters** to control data processing:
+
+1. **`ANS104_UNBUNDLE_FILTER`** - Controls which bundles get processed
+2. **`ANS104_INDEX_FILTER`** - Controls which data items get indexed for querying
+
+Both filters are set in your `.env` file as JSON strings.
+
+## Quick Start
+
+<Steps>
+  <Step>
+    ### Choose Your Filter Strategy
+
+    **Process everything:**
+    ```bash
+    ANS104_UNBUNDLE_FILTER='{"always": true}'
+    ANS104_INDEX_FILTER='{"always": true}'
+    ```
+
+    **Process nothing (default):**
+    ```bash
+    ANS104_UNBUNDLE_FILTER='{"never": true}'
+    ANS104_INDEX_FILTER='{"never": true}'
+    ```
+
+    **Process specific app data:**
+    ```bash
+    # Process only your app's data
+    ANS104_UNBUNDLE_FILTER='{"tags": [{"name": "App-Name", "valueStartsWith": "MyApp"}]}'
+    ANS104_INDEX_FILTER='{"tags": [{"name": "App-Name", "valueStartsWith": "MyApp"}]}'
+    ```
+
+  </Step>
+
+  <Step>
+    ### Enable Processing
+
+    Add these essential variables to your `.env` file:
+
+    ```bash
+    # Enable bundle processing
+    ANS104_UNBUNDLE_WORKERS=1
+    ANS104_DOWNLOAD_WORKERS=5
+
+    # Enable reprocessing when you change filters
+    FILTER_CHANGE_REPROCESS=true
+
+    # Enable backfilling of missing bundles
+    BACKFILL_BUNDLE_RECORDS=true
+    ```
+
+  </Step>
+
+  <Step>
+    ### Apply Your Configuration
+
+    1. **Edit your `.env` file** with your chosen filters
+    2. **Restart your gateway** to apply changes:
+       ```bash
+       docker compose down
+       docker compose up -d
+       ```
+    3. **Monitor your logs** to see processing activity
+
+  </Step>
+</Steps>
+
+## Common Filter Examples
+
+<Tabs items={['App Name', 'Content Type', 'Owner Address', 'Multiple Conditions']}>
+  <Tab value="App Name">
+    Use the App-Name tags from your uploaded data. For example, if you're using `MyApp-v1.0` as your App-Name:
+
+    ```json
+    {
+      "tags": [
+        {
+          "name": "App-Name",
+          "value": "MyApp-v1.0"
+        }
+      ]
+    }
+    ```
+
+    Or filter for all versions of your app:
+
+    ```json
+    {
+      "tags": [
+        {
+          "name": "App-Name",
+          "valueStartsWith": "MyApp"
+        }
+      ]
+    }
+    ```
+
+  </Tab>
+
+  <Tab value="Content Type">
+    ```json
+    {
+      "tags": [
+        {
+          "name": "Content-Type",
+          "valueStartsWith": "image/"
+        }
+      ]
+    }
+    ```
+  </Tab>
+
+  <Tab value="Owner Address">
+    ```json
+    {
+      "attributes": {
+        "owner_address": "YOUR_WALLET_ADDRESS"
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab value="Multiple Conditions">
+    ```json
+    {
+      "and": [
+        {
+          "tags": [
+            {
+              "name": "App-Name",
+              "valueStartsWith": "MyApp"
+            }
+          ]
+        },
+        {
+          "attributes": {
+            "owner_address": "YOUR_WALLET_ADDRESS"
+          }
+        }
+      ]
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Important Notes
+
+- **Filters are JSON strings** - must be properly formatted
+- **Restart required** - changes only take effect after restart
+- **Start simple** - begin with basic filters and refine over time
+- **Monitor resources** - processing data uses CPU, memory, and storage
+
+<Callout type="info">
+  **App-Name Best Practices:** Learn how to create effective App-Name tags in
+  our [Tagging guide](/build/upload/tagging) to make your data easily filterable
+  by gateways.
+</Callout>
+
+## Next Steps
+
+**TODO: Link to comprehensive filtering guide** - For advanced filter syntax, complex use cases, and performance optimization, see our detailed [Gateway Data Filtering Guide](/build/run-a-gateway/optimize-data).
+
+**TODO: Link to filter system documentation** - For complete filter syntax reference, see our [Filtering System documentation](/build/run-a-gateway/filters).
+
+**TODO: Link to performance monitoring** - Learn how to monitor your gateway's performance and optimize resource usage.
+
+## Quick Troubleshooting
+
+**Gateway not processing data?**
+
+- Check your filters are valid JSON
+- Ensure `ANS104_UNBUNDLE_WORKERS=1` is set
+- Restart your gateway after changes
+
+**Too much data being processed?**
+
+- Use more restrictive filters
+- Consider excluding common bundlers
+- Monitor your system resources
+
+**Need help?** Join the [AR.IO community](https://discord.gg/7zUPfN4D6g) for support.

@@ -6,6 +6,7 @@ import Mermaid from "@/components/Mermaid";
 import { openapi } from "@/lib/openapi";
 import { APIPage } from "fumadocs-openapi/ui";
 import { Step, Steps } from "fumadocs-ui/components/steps";
+import { Tabs, Tab } from "fumadocs-ui/components/tabs";
 import {
   FolderOpen,
   Info,
@@ -31,6 +32,8 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     Mermaid,
     Step,
     Steps,
+    Tabs,
+    Tab,
     FolderOpen,
     Info,
     Zap,
