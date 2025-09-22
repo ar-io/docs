@@ -99,177 +99,183 @@ For testing and exploring queries, use the interactive GraphQL playground:
 
 This is perfect for experimenting with queries before implementing them in your application.
 
-## Example: Finding Video Data
+## Example Queries
 
-Here's how to find videos using GraphQL:
+<Tabs items={['Find Videos', 'Filter by Owner', 'Filter by Block Height', 'Pagination']}>
+  <Tab value="Find Videos">
+    Here's how to find videos using GraphQL:
 
-```js
-import axios from "axios";
+    ```js
+    import axios from "axios";
 
-const findVideos = async () => {
-  const query = `
-    query {
-      transactions(
-        tags: [{ name: "Content-Type", values: ["video/mp4"] }]
-        first: 10
-      ) {
-        edges {
-          node {
-            id
-            tags {
-              name
-              value
+    const findVideos = async () => {
+      const query = `
+        query {
+          transactions(
+            tags: [{ name: "Content-Type", values: ["video/mp4"] }]
+            first: 10
+          ) {
+            edges {
+              node {
+                id
+                tags {
+                  name
+                  value
+                }
+                data {
+                  size
+                }
+              }
             }
-            data {
-              size
-            }
           }
         }
-      }
-    }
-  `;
+      `;
 
-  const response = await axios.post("https://arweave.net/graphql", {
-    query,
-  });
+      const response = await axios.post("https://arweave.net/graphql", {
+        query,
+      });
 
-  return response.data.data.transactions.edges;
-};
+      return response.data.data.transactions.edges;
+    };
 
-// This returns transaction IDs that you can use with HTTP requests
-const videos = await findVideos();
-console.log(
-  "Found video IDs:",
-  videos.map((v) => v.node.id)
-);
-```
+    // This returns transaction IDs that you can use with HTTP requests
+    const videos = await findVideos();
+    console.log(
+      "Found video IDs:",
+      videos.map((v) => v.node.id)
+    );
+    ```
 
-## Advanced Queries
+  </Tab>
 
-**Filter by Owner:**
+  <Tab value="Filter by Owner">
+    ```js
+    import axios from "axios";
 
-```js
-import axios from "axios";
-
-const query = `
-  query {
-    transactions(owners: ["your-wallet-address"], first: 10) {
-      edges {
-        node {
-          id
-          tags {
-            name
-            value
-          }
-        }
-      }
-    }
-  }
-`;
-
-const response = await axios.post("https://arweave.net/graphql", {
-  query,
-});
-
-console.log(response.data.data);
-```
-
-**Filter by Block Height:**
-
-```js
-import axios from "axios";
-
-const query = `
-  query {
-    transactions(block: { min: 1000000, max: 1100000 }, first: 10) {
-      edges {
-        node {
-          id
-          block {
-            height
-          }
-        }
-      }
-    }
-  }
-`;
-
-const response = await axios.post("https://arweave.net/graphql", {
-  query,
-});
-
-console.log(response.data.data);
-```
-
-**Pagination with Cursors:**
-
-```js
-import axios from "axios";
-
-// First page
-const query = `
-  query {
-    transactions(
-      tags: [{ name: "App-Name", values: ["MyApp"] }]
-      first: 10
-    ) {
-      pageInfo {
-        hasNextPage
-      }
-      edges {
-        cursor
-        node {
-          id
-          tags {
-            name
-            value
-          }
-        }
-      }
-    }
-  }
-`;
-
-const response = await axios.post("https://arweave.net/graphql", {
-  query,
-});
-
-const { edges, pageInfo } = response.data.data.transactions;
-
-// Next page using cursor
-if (pageInfo.hasNextPage) {
-  const nextQuery = `
-    query($cursor: String) {
-      transactions(
-        tags: [{ name: "App-Name", values: ["MyApp"] }]
-        after: $cursor
-        first: 10
-      ) {
-        pageInfo {
-          hasNextPage
-        }
-        edges {
-          cursor
-          node {
-            id
-            tags {
-              name
-              value
+    const query = `
+      query {
+        transactions(owners: ["your-wallet-address"], first: 10) {
+          edges {
+            node {
+              id
+              tags {
+                name
+                value
+              }
             }
           }
         }
       }
+    `;
+
+    const response = await axios.post("https://arweave.net/graphql", {
+      query,
+    });
+
+    console.log(response.data.data);
+    ```
+
+  </Tab>
+
+  <Tab value="Filter by Block Height">
+    ```js
+    import axios from "axios";
+
+    const query = `
+      query {
+        transactions(block: { min: 1000000, max: 1100000 }, first: 10) {
+          edges {
+            node {
+              id
+              block {
+                height
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const response = await axios.post("https://arweave.net/graphql", {
+      query,
+    });
+
+    console.log(response.data.data);
+    ```
+
+  </Tab>
+
+  <Tab value="Pagination">
+    ```js
+    import axios from "axios";
+
+    // First page
+    const query = `
+      query {
+        transactions(
+          tags: [{ name: "App-Name", values: ["MyApp"] }]
+          first: 10
+        ) {
+          pageInfo {
+            hasNextPage
+          }
+          edges {
+            cursor
+            node {
+              id
+              tags {
+                name
+                value
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const response = await axios.post("https://arweave.net/graphql", {
+      query,
+    });
+
+    const { edges, pageInfo } = response.data.data.transactions;
+
+    // Next page using cursor
+    if (pageInfo.hasNextPage) {
+      const nextQuery = `
+        query($cursor: String) {
+          transactions(
+            tags: [{ name: "App-Name", values: ["MyApp"] }]
+            after: $cursor
+            first: 10
+          ) {
+            pageInfo {
+              hasNextPage
+            }
+            edges {
+              cursor
+              node {
+                id
+                tags {
+                  name
+                  value
+                }
+              }
+            }
+          }
+        }
+      `;
+
+      const nextResponse = await axios.post("https://arweave.net/graphql", {
+        query: nextQuery,
+        variables: { cursor: edges[edges.length - 1].cursor },
+      });
+
+      console.log(nextResponse.data.data);
     }
-  `;
+    ```
 
-  const nextResponse = await axios.post("https://arweave.net/graphql", {
-    query: nextQuery,
-    variables: { cursor: edges[edges.length - 1].cursor },
-  });
-
-  console.log(nextResponse.data.data);
-}
-```
+  </Tab>
+</Tabs>
 
 ## Query Optimization Tips
 
