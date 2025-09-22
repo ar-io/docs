@@ -3,12 +3,11 @@ title: "AR.IO Gateway Grafana"
 description: "Steps for deploying Grafana to monitor AR.IO Gateway metrics."
 ---
 
-
 # Grafana Analytics
 
 ## Overview
 
-AR.IO gateways track a significant number of performance and operation metrics using [Prometheus](https://prometheus.io/). 
+AR.IO gateways track a significant number of performance and operation metrics using [Prometheus](https://prometheus.io/).
 A [Grafana](https://grafana.com/) sidecar can be deployed to visualize these metrics, and provide an easy way to monitor the health of the gateway.
 The Grafana sidecar is deployed as a separate docker container that uses the same network as the gateway, and is deployed in a similar manner.
 
@@ -22,7 +21,11 @@ docker compose -f docker-compose.grafana.yaml up -d
 
 The `-f` flag is used to specify the path to the docker-compose file, and the `up -d` flag is used to deploy the container in detached mode.
 
-<Tip title="Terminal Location">This command assumes that you are running the command from the root directory of the gateway. If you are running the command from a different directory, you will need to adjust the path to the docker-compose file.</Tip>
+<Callout type="info" title="Terminal Location">
+  This command assumes that you are running the command from the root directory
+  of the gateway. If you are running the command from a different directory, you
+  will need to adjust the path to the docker-compose file.
+</Callout>
 
 ## Checking the logs
 
@@ -50,7 +53,11 @@ sudo chmod -R 777 ./data/grafana
 
 This will give the `grafana` user ownership of the directory and all its contents.
 
-<Tip title="Terminal Location">This command assumes that you are running the command from the root directory of the gateway. If you are running the command from a different directory, you will need to adjust the path to the docker-compose file.</Tip>
+<Callout type="info" title="Terminal Location">
+  This command assumes that you are running the command from the root directory
+  of the gateway. If you are running the command from a different directory, you
+  will need to adjust the path to the docker-compose file.
+</Callout>
 
 Check the logs again to ensure that the issue is resolved.
 
@@ -61,11 +68,11 @@ The second solution is to change the user that Grafana runs as. This can be done
 In any editor, open the `docker-compose.grafana.yaml` file and add "user: root" to the `grafana` service.
 
 ```yaml
-  grafana:
-    image: grafana/grafana:latest
-    user: root
-    ports:
-      - "3000:3000"
+grafana:
+  image: grafana/grafana:latest
+  user: root
+  ports:
+    - "3000:3000"
 ```
 
 Once this is done, restart the Grafana sidecar by running the following command:
@@ -73,6 +80,7 @@ Once this is done, restart the Grafana sidecar by running the following command:
 ```bash
 docker compose -f docker-compose.grafana.yaml restart
 ```
+
 Check the logs again to ensure that the issue is resolved.
 
 ## Configure Nginx
@@ -169,7 +177,11 @@ The default credentials are:
 
 Once logged in for the first time, you will be prompted to change the password.
 
-<Tip title="Credential Reset">Updated credentials may be lost if the Grafana sidecar is restarted. Be sure to log into Grafana immediately after every start up to ensure Grafana cannot be accessed with the default credentials.</Tip>
+<Callout type="warning" title="Credential Reset">
+  Updated credentials may be lost if the Grafana sidecar is restarted. Be sure
+  to log into Grafana immediately after every start up to ensure Grafana cannot
+  be accessed with the default credentials.
+</Callout>
 
 ## Dashboards
 

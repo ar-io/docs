@@ -19,7 +19,6 @@ Before starting the installation process, ensure you have the following:
 ## Install Required Packages
 
 1. Install Docker:
-
    - Download Docker Desktop for Windows from [here](https://www.docker.com/products/docker-desktop/).
    - Run the installer and follow the prompts.
    - During installation, make sure to select the option to use WSL (Windows Subsystem for Linux) rather than Hyper-V.
@@ -49,11 +48,14 @@ Before starting the installation process, ensure you have the following:
      - Type `cmd` and press `Enter`.
    - Navigate to the directory where you want to clone the repository:
      - Use the `cd` command to change directories. For example, to navigate to the `Documents` directory:
+
        ```
        cd Documents
        ```
+
        - More detailed instructions on navigating with the `cd` command can be found [here](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/cd)
        - **NOTE**: Your database of Arweave Transaction Headers will be created in the project directory, not Docker. So, if you are using an external hard drive to turn an old machine into a node, install the node directly to that external drive.
+
    - Run the following command:
      ```
      git clone -b main https://github.com/ar-io/ar-io-node
@@ -62,7 +64,6 @@ Before starting the installation process, ensure you have the following:
 ## Create the Environment File
 
 1. Create an environmental variables file:
-
    - Open a text editor (e.g., Notepad):
      - Press `Windows Key` and search for "Notepad".
      - Click on "Notepad" to open the text editor.
@@ -85,17 +86,16 @@ Before starting the installation process, ensure you have the following:
      - `AR_IO_WALLET` is optional, and sets the wallet you want associated with your Gateway. An associated wallet is required to join the AR.IO network.
      - `OBSERVER_WALLET` is the public address of the wallet used to sign Observer transactions. This is required for Observer to run, but may be omitted if you are running a gateway outside of the AR.IO network and do not plan to run Observer. You will need to supply the keyfile to this wallet in the next step.
 
-    Advanced configuration options can be found at [docs.ar.io](https://docs.ar.io/gateways/ar-io-node/advanced-config.html)
-
+   Advanced configuration options can be found at [docs.ar.io](https://docs.ar.io/gateways/ar-io-node/advanced-config.html)
    - Save the file with the name ".env" and make sure to select "All Files" as the file type. This helps to ensure the file saves as ".env" and not ".env.txt"
 
    **Note**: The `.env` file should be saved inside the same directory where you cloned the repository (e.g., `ar-io-node`).
 
 ## Supply Your Observer Wallet Keyfile:
 
-   If you are running Observer, you need to provide a wallet keyfile in order to sign report upload transactions. The keyfile must be saved in the `wallets` directory in the root of the repository. Name the file `<Observer-Wallet-Address>.json`, replacing "\<Observer-Wallet-Address>" with the public address of the wallet. This should match your `OBSERVER_WALLET` environmental variable.
+If you are running Observer, you need to provide a wallet keyfile in order to sign report upload transactions. The keyfile must be saved in the `wallets` directory in the root of the repository. Name the file `<Observer-Wallet-Address>.json`, replacing "\<Observer-Wallet-Address>" with the public address of the wallet. This should match your `OBSERVER_WALLET` environmental variable.
 
-   Learn more about creating Arweave wallets and obtaining keyfiles [here](https://ar.io/wallet/)
+Learn more about creating Arweave wallets and obtaining keyfiles [here](https://ar.io/wallet/)
 
 ## Start the Docker Containers
 
@@ -117,21 +117,23 @@ Before starting the installation process, ensure you have the following:
        dir
        ```
    - Once you are in the correct directory, run the following command to start the Docker container:
+
      ```
      docker compose up -d
      ```
+
      - Explanation of flags:
        - `up`: Start the Docker containers.
        - `-d`: Run the containers as background processes (detached mode).
 
-        **NOTE**: Effective with Release #3, it is no longer required to include the `--build` flag when starting your gateway. Docker will automatically build using the image specified in the `docker-commpose.yaml` file. 
+         **NOTE**: Effective with Release #3, it is no longer required to include the `--build` flag when starting your gateway. Docker will automatically build using the image specified in the `docker-commpose.yaml` file.
 
-        The gateway can be shut down using the command: 
+       The gateway can be shut down using the command:
 
-        ```
-        docker compose down
-        ```
-        
+       ```
+       docker compose down
+       ```
+
    - If prompted by the firewall, allow access for Docker when requested.
 
 ## Set Up Router Port Forwarding
@@ -139,11 +141,9 @@ Before starting the installation process, ensure you have the following:
 To expose your node to the internet and use a custom domain, follow these steps:
 
 1. Obtain a Domain Name:
-
    - Choose a domain registrar (e.g., [Namecheap](https://namecheap.com)) and purchase a domain name.
 
 2. Point the Domain at Your Home Network:
-
    - In your browser, go to https://www.whatsmyip.org/ to display your public ip address. It can be found at the top of the screen. Note this number down.
    - Access your domain registrar's settings (e.g., Namecheap's cPanel).
    - Navigate to the DNS settings for your domain. In cPanel this is under the "Zone Editor" tab.
@@ -151,7 +151,6 @@ To expose your node to the internet and use a custom domain, follow these steps:
      - Instructions may vary depending on the domain registrar and cPanel. Consult your registrar's documentation or support for detailed steps.
 
 3. Obtain the Local IP Address of Your Machine:
-
    - Open the command prompt:
      - Press `Windows Key + R`.
      - Type `cmd` and press `Enter`.
@@ -177,7 +176,6 @@ To expose your node to the internet and use a custom domain, follow these steps:
 ## Install and Configure NGINX Docker
 
 1. Clone the NGINX Docker repository:
-
    - Open the command prompt:
      - Press `Windows Key + R`.
      - Type `cmd` and press `Enter`.

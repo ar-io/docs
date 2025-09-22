@@ -1,0 +1,434 @@
+---
+title: "Run a Gateway for AR.IO Network"
+description: "Complete step-by-step guide to set up and run your own AR.IO Gateway for the AR.IO Network on Linux or Windows"
+---
+
+import { Steps, Step } from "fumadocs-ui/components/steps";
+import { Tabs, Tab } from "fumadocs-ui/components/tabs";
+import { CodeGroup } from "@/components/Code";
+
+# Run a Gateway for AR.IO Network
+
+Take control of the permanent web by running your own **AR.IO Gateway**. Join the decentralized network that powers the permaweb and earn rewards for providing infrastructure services.
+
+## Why Run Your Own Gateway?
+
+**Perfect for:**
+
+- Infrastructure providers
+- Developers wanting control
+- Community contributors
+- Revenue generation
+
+**Benefits:**
+
+- Earn ARIO token rewards
+- Support the decentralized web
+- Full control over your infrastructure
+- Join the AR.IO Network
+- Extend with additional services (bundlers, etc.)
+
+## Prerequisites
+
+Before starting the installation process, ensure you have the following:
+
+**For Linux:**
+
+- A Linux machine (Ubuntu 22.04.3 recommended)
+- Administrative privileges
+- Stable internet connection
+
+**For Windows:**
+
+- A Windows computer
+- Administrative privileges
+
+## Installation Guide
+
+<Tabs items={['Linux', 'Windows']}>
+  <Tab value="Linux">
+    <Steps>
+      <Step>
+        ### System Requirements
+
+        **Minimum requirements:**
+        - 4 core CPU
+        - 4 GB RAM
+        - 500 GB storage (SSD recommended)
+        - Stable 50 Mbps internet connection
+
+        **Recommended:**
+        - 12 core CPU
+        - 32 GB RAM
+        - 2 TB SSD storage
+        - Stable 1 Gbps internet connection
+
+        External storage devices should be formatted as ext4.
+      </Step>
+
+      <Step>
+        ### Install Required Packages
+
+        **Quick install all packages:**
+        ```bash
+        sudo apt update -y && sudo apt upgrade -y && sudo apt install -y curl openssh-server git certbot nginx sqlite3 build-essential && sudo systemctl enable ssh && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash && source ~/.bashrc && sudo ufw allow 22 80 443 && sudo ufw enable
+        ```
+
+        **Install Docker:**
+        ```bash
+        # Add Docker's official GPG key
+        sudo apt-get update
+        sudo apt-get install ca-certificates curl
+        sudo install -m 0755 -d /etc/apt/keyrings
+        sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+        sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+        # Add the repository to Apt sources
+        echo \
+          "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+          $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+          sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+        sudo apt-get update
+
+        # Install Docker
+        sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+        ```
+
+        **Install Node.js and Yarn:**
+        ```bash
+        nvm install 20.11.1 && nvm use 20.11.1 && npm install -g yarn@1.22.22
+        ```
+      </Step>
+
+      <Step>
+        ### Install the Node
+
+        **Clone the repository:**
+        ```bash
+        git clone -b main https://github.com/ar-io/ar-io-node
+        cd ar-io-node
+        ```
+
+        **Note:** Your indexing databases will be created in the project directory unless otherwise specified in your .env file, not your Docker environment. So, if you are using an external hard drive, you should install the node directly to that external drive.
+
+        **Create environment file:**
+        ```bash
+        nano .env
+        ```
+
+        **Add configuration:**
+        ```bash
+        GRAPHQL_HOST=arweave.net
+        GRAPHQL_PORT=443
+        START_HEIGHT=1000000
+        RUN_OBSERVER=true
+        ARNS_ROOT_HOST=<your-domain>
+        AR_IO_WALLET=<your-public-wallet-address>
+        OBSERVER_WALLET=<hot-wallet-public-address>
+        ```
+
+        **Supply Observer Wallet Keyfile:**
+        Save your wallet keyfile as `<Observer-Wallet-Address>.json` in the `wallets` directory.
+
+        <Callout type="info" title="Payment For Observer Report Uploads">
+          By default, the Observer will use [Turbo Credits](https://docs.ardrive.io/docs/turbo/credits) to pay for uploading reports to Arweave. This allows reports under 100kb to be uploaded for free, but larger reports will fail if the Observer wallet does not contain Credits. Including `REPORT_DATA_SINK=arweave` in your `.env` file will configure the Observer to use AR tokens instead of Turbo Credits, without any free limit.
+        </Callout>
+
+        **Start the Docker container:**
+        ```bash
+        sudo docker compose up -d
+        ```
+      </Step>
+
+      <Step>
+        ### Set Up Networking
+
+        **Register a Domain Name:**
+        Choose a domain registrar (e.g., [Namecheap](https://namecheap.com)) to register a domain name.
+
+        **Point Domain at Your Home Network:**
+        - Get your public IP address: `curl ifconfig.me`
+        - Create A records for your domain and wildcard subdomains (`*.yourdomain.com`)
+
+        **Set up Port Forwarding:**
+        - Get local IP: `ip addr show | grep -w inet | awk '{print $2}' | awk -F'/' '{print $1}'`
+        - Configure router to forward ports 80 and 443 to your local machine
+
+        **Create SSL Certificates:**
+        ```bash
+        sudo certbot certonly --manual --preferred-challenges dns -d <your-domain>.com -d '*.<your-domain>.com'
+        ```
+
+        <Callout type="info" title="Email Notifications">
+          Previous versions of these instructions advised providing an email address to Certbot. As of June 2025, LetsEncrypt (the certificate authority used by Certbot) no longer supports email notifications.
+        </Callout>
+
+        **Important:** Wild card subdomain (*.&lt;your-domain&gt;.com) cannot auto renew without obtaining an API key from your domain registrar. Not all registrars offer this. Certbot certificates expire every 90 days. Be sure to consult with your chosen registrar to see if they offer an API for this purpose, or run the above command again to renew your certificates.
+      </Step>
+
+      <Step>
+        ### Configure nginx
+
+        **Open nginx configuration:**
+        ```bash
+        sudo nano /etc/nginx/sites-available/default
+        ```
+
+        **Replace with this configuration:**
+        ```nginx
+        # Force redirects from HTTP to HTTPS
+        server {
+            listen 80;
+            listen [::]:80;
+            server_name <your-domain>.com *.<your-domain>.com;
+
+            location / {
+                return 301 https://$host$request_uri;
+            }
+        }
+
+        # Forward traffic to your node and provide SSL certificates
+        server {
+            listen 443 ssl;
+            listen [::]:443 ssl;
+            server_name <your-domain>.com *.<your-domain>.com;
+
+            ssl_certificate /etc/letsencrypt/live/<your-domain>.com/fullchain.pem;
+            ssl_certificate_key /etc/letsencrypt/live/<your-domain>.com/privkey.pem;
+
+            location / {
+                proxy_pass http://localhost:3000;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_http_version 1.1;
+
+                # Forward AR.IO headers if present in the request
+                proxy_set_header X-AR-IO-Origin $http_x_ar_io_origin;
+                proxy_set_header X-AR-IO-Origin-Node-Release $http_x_ar_io_origin_node_release;
+                proxy_set_header X-AR-IO-Hops $http_x_ar_io_hops;
+            }
+        }
+        ```
+
+        **Test and restart nginx:**
+        ```bash
+        sudo nginx -t
+        sudo service nginx restart
+        ```
+
+        **Note:** Previous versions of these instructions advised checking a gateway's ability to fetch content using `localhost`. Subsequent security updates prevent this without first unsetting `ARNS_ROOT_HOST` in your `.env`.
+      </Step>
+
+      <Step>
+        ### Test Your Gateway
+
+        **Verify it's working:**
+        ```bash
+        curl https://<your-domain>/3lyxgbgEvqNSvJrTX2J7CfRychUD5KClFhhVLyTPNCQ
+        ```
+
+        **Expected output:**
+        ```
+        1984
+        ```
+
+        If you see `1984`, your gateway is working perfectly!
+      </Step>
+    </Steps>
+
+  </Tab>
+
+  <Tab value="Windows">
+    <Steps>
+      <Step>
+        ### Install Required Software
+
+        **Install Docker Desktop:**
+        - Download from [Docker Desktop for Windows](https://www.docker.com/products/docker-desktop/)
+        - Run installer and follow prompts
+        - Select WSL (Windows Subsystem for Linux) during installation
+        - Restart your PC
+        - Update WSL:
+          ```cmd
+          wsl --update
+          wsl --shutdown
+          ```
+        - Restart Docker Desktop
+
+        **Install Git:**
+        - Download from [Git for Windows](https://git-scm.com/download/win)
+        - Run installer with default settings
+      </Step>
+
+      <Step>
+        ### Clone the Repository
+
+        **Open Command Prompt:**
+        - Press `Windows Key + R`
+        - Type `cmd` and press `Enter`
+
+        **Navigate to desired directory:**
+        ```cmd
+        cd Documents
+        ```
+
+        **Clone the repository:**
+        ```cmd
+        git clone -b main https://github.com/ar-io/ar-io-node
+        ```
+
+        **Note:** Your database will be created in the project directory, not Docker. If using an external hard drive, install directly to that drive.
+      </Step>
+
+      <Step>
+        ### Create Environment File
+
+        **Open a text editor (e.g., Notepad):**
+        - Press `Windows Key` and search for "Notepad"
+
+        **Create .env file with this content:**
+        ```bash
+        GRAPHQL_HOST=arweave.net
+        GRAPHQL_PORT=443
+        START_HEIGHT=0
+        RUN_OBSERVER=true
+        ARNS_ROOT_HOST=<your-domain>
+        AR_IO_WALLET=<your-public-wallet-address>
+        OBSERVER_WALLET=<hot-wallet-public-address>
+        ```
+
+        **Save as `.env`** (select "All Files" as file type)
+
+        **Supply Observer Wallet Keyfile:**
+        Save your wallet keyfile as `<Observer-Wallet-Address>.json` in the `wallets` directory.
+      </Step>
+
+      <Step>
+        ### Start Docker Containers
+
+        **Navigate to project directory:**
+        ```cmd
+        cd Documents\ar-io-node
+        ```
+
+        **Start the container:**
+        ```cmd
+        docker compose up -d
+        ```
+
+        **Explanation of flags:**
+        - `up`: Start the Docker containers
+        - `-d`: Run containers as background processes (detached mode)
+
+        **Shutdown command:**
+        ```cmd
+        docker compose down
+        ```
+      </Step>
+
+      <Step>
+        ### Set Up Router Port Forwarding
+
+        **Obtain a Domain Name:**
+        Choose a domain registrar (e.g., [Namecheap](https://namecheap.com)) and purchase a domain name.
+
+        **Point Domain at Your Home Network:**
+        - Visit https://www.whatsmyip.org/ to get your public IP address
+        - Access your domain registrar's settings
+        - Create A records for your domain and wildcard subdomains (`*.yourdomain.com`)
+
+        **Get Local IP Address:**
+        ```cmd
+        ipconfig
+        ```
+        Look for IPv4 Address (format: `192.168.X.X` or `10.X.X.X`)
+
+        **Set Up Router Port Forwarding:**
+        - Access router settings (usually `192.168.0.1`)
+        - Navigate to port forwarding settings
+        - Forward ports 80 and 443 to your local machine's IP address
+      </Step>
+
+      <Step>
+        ### Install and Configure NGINX Docker
+
+        **Clone NGINX Docker repository:**
+        ```cmd
+        cd Documents
+        git clone -b main https://github.com/bobinstein/dockerized-nginx
+        ```
+
+        **Follow the repository instructions** for setting up NGINX Docker.
+
+        **Important:** When configuring your nginx setup, ensure that your nginx configuration includes the following AR.IO headers in the proxy configuration:
+
+        ```nginx
+        # Forward AR.IO headers if present in the request
+        proxy_set_header X-AR-IO-Origin $http_x_ar_io_origin;
+        proxy_set_header X-AR-IO-Origin-Node-Release $http_x_ar_io_origin_node_release;
+        proxy_set_header X-AR-IO-Hops $http_x_ar_io_hops;
+        ```
+
+        These headers are essential for proper AR.IO network functionality.
+      </Step>
+
+      <Step>
+        ### Test Your Gateway
+
+        **Verify it's working:**
+        Visit `https://<your-domain>/3lyxgbgEvqNSvJrTX2J7CfRychUD5KClFhhVLyTPNCQ` in your browser.
+
+        **Expected output:**
+        ```
+        1984
+        ```
+
+        If you see `1984`, your gateway is working perfectly!
+      </Step>
+    </Steps>
+
+  </Tab>
+</Tabs>
+
+## Join the AR.IO Network
+
+Once your gateway is running and tested, you can join the AR.IO Network to start earning rewards and participate in the decentralized infrastructure.
+
+### How to Join
+
+1. **Visit the Network Portal**: Go to [ar://gateways/#/gateways](https://gateways.ar.io/#/gateways)
+2. **Connect Your Wallet**: Use the wallet associated with your gateway
+3. **Register Your Gateway**: Follow the registration process to add your gateway to the network
+4. **Start Earning**: Once registered, your gateway will begin earning ARIO token rewards
+
+### Prerequisites for Joining
+
+- **Fully functional gateway** with ArNS subdomain resolution working
+- **Associated Arweave wallet** (set in your `AR_IO_WALLET` environment variable)
+- **Funded wallet** with enough ARIO tokens to meet the minimum stake requirement
+- **Stable operation** - ensure your gateway is running reliably
+
+### What Happens Next
+
+After joining the network:
+
+- Your gateway will be monitored by the Observer system
+- You'll earn rewards for providing reliable service
+- You can monitor your gateway's performance and earnings
+- You may be selected as an Observer to help monitor other gateways
+
+## Next Steps
+
+**Your gateway is now running!** Now you can:
+
+1. **Join the AR.IO Network** - Visit [https://gateways.ar.io/#/gateways](https://gateways.ar.io/#/gateways) to register
+2. **Monitor Performance** - Use the admin endpoints to track your gateway's health
+3. **Optimize Configuration** - Adjust settings based on your specific needs
+4. **Scale Up** - Add more gateways or extend with additional services
+
+## Get Help
+
+If you encounter any issues during the installation process, please seek assistance from the [AR.IO community](https://discord.gg/7zUPfN4D6g).
+
+**Ready to join the network?** Visit [https://gateways.ar.io/#/gateways](https://gateways.ar.io/#/gateways) to get started!

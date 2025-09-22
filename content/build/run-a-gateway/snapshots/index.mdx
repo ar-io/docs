@@ -3,7 +3,6 @@ title: "Importing SQLite Database Snapshots"
 description: "Learn how to import SQLite database snapshots to quickly bootstrap your AR.IO Gateway and reduce synchronization time."
 ---
 
-
 # Importing SQLite Database Snapshots
 
 ## Overview
@@ -12,11 +11,12 @@ One of the challenges of running an AR.IO Gateway is the initial synchronization
 
 This guide will walk you through the process of importing a database snapshot into your AR.IO Gateway.
 
-<Tip title="Note" type="info">
+<Callout type="info" title="Note">
 The below instructions are designed to be used in a linux environment. Windows and MacOS users must modify the instructions to use the appropriate package manager/ command syntax for their platform.
 
 Unless otherwise specified, all commands should be run from the root directory of the gateway.
-</Tip>
+
+</Callout>
 
 ## Obtaining a Database Snapshot
 
@@ -28,9 +28,12 @@ transmission-cli "magnet:?xt=urn:btih:62ca6e05248e6df59fac9e38252e9c71951294ed&d
 
 This will download a snapshot, current to April 23, 2025, of an unbundled data set that includes all data items uploaded via an ArDrive product, including Turbo. The file will be named `2025-04-23-sqlite.tar.gz` and be approximately 42.8Gb in size.
 
-<Tip title="Note" type="info">
-While continuing to seed the torrent after download is not required, it is highly recommended to help ensure the continued availability of the snapshot for others, as well as the integrity of the data. Seeding this file should not cause any issues with your internet service provider.
-</Tip>
+<Callout type="info" title="Note">
+  While continuing to seed the torrent after download is not required, it is
+  highly recommended to help ensure the continued availability of the snapshot
+  for others, as well as the integrity of the data. Seeding this file should not
+  cause any issues with your internet service provider.
+</Callout>
 
 This is a compressed tarball, so it will need to be extracted before it can be used.
 
@@ -48,9 +51,10 @@ This will extract the file into a directory matching the filename, minus the `.t
 
 Once you have an extracted database snapshot, you can import it into your AR.IO gateway by replacing the existing SQLite database files. Follow the instructions below to do so.
 
-<Tip title="IMPORTANT" type="info">
-Importing a database snapshot will delete your existing database and replace it with the snapshot you are importing.
-</Tip>
+<Callout type="warning" title="IMPORTANT">
+  Importing a database snapshot will delete your existing database and replace
+  it with the snapshot you are importing.
+</Callout>
 
 1. Stop your AR.IO gateway.
 
@@ -76,6 +80,7 @@ rm data/sqlite/*
 ```bash
 mv 2025-04-23-sqlite/* data/sqlite/
 ```
+
 Be sure to replace `2025-04-23-sqlite` with the actual directory name of the extracted snapshot you are using.
 
 5. Start your AR.IO gateway.

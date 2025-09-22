@@ -133,41 +133,41 @@ nvm install 20.11.1 && nvm use 20.11.1 && npm install -g yarn@1.22.22
 
   <CodeGroup>
 
-   ```
-   # Add Docker's official GPG key:
-   sudo apt-get update
-   sudo apt-get install ca-certificates curl
-   sudo install -m 0755 -d /etc/apt/keyrings
-   sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-   sudo chmod a+r /etc/apt/keyrings/docker.asc
+```
+# Add Docker's official GPG key:
+sudo apt-get update
+sudo apt-get install ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
 
-   # Add the repository to Apt sources:
-   echo \
-   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-   $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-   sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-   sudo apt-get update
-   ```
+# Add the repository to Apt sources:
+echo \
+"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+$(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+```
 
    </CodeGroup>
 
    <CodeGroup>
 
-   ```
-   sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-   ```
+```
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+```
 
    </CodeGroup>
 
-   - Test Docker installation:
+- Test Docker installation:
 
-     <CodeGroup>
+  <CodeGroup>
 
-     ```
-     sudo docker run hello-world
-     ```
+  ```
+  sudo docker run hello-world
+  ```
 
-     </CodeGroup>
+  </CodeGroup>
 
 6. Install Certbot:
 
@@ -248,7 +248,6 @@ These packages are not required to run a node in its basic form. However, they w
 ## Install the Node
 
 - Navigate to the desired installation location:
-
   - **NOTE**: Your indexing databases will be created in the project directory unless otherwise specified in your .env file, not your Docker environment. So, if you are using an external hard drive, you should install the node directly to that external drive.
 
 - Clone the ar-io-node repository and navigate into it:
@@ -288,13 +287,12 @@ These packages are not required to run a node in its basic form. However, they w
 
   </CodeGroup>
 
-  - The GRAPHQL values set the proxy for GQL queries to arweave.net, You may use any available gateway that supports GQL queries. If omitted, your node can support GQL queries on locally indexed transactions, but only L1 transactions are indexed by default.
-  - `START_HEIGHT` is an optional line. It sets the block number where your node will start downloading and indexing transactions headers. Omitting this line will begin indexing at block 0.
-  - `RUN_OBSERVER` turns on the Observer to generate Network Compliance Reports. This is required for full participation in the AR.IO Network. Set to `false` to run your gateway without Observer.
-  - `ARNS_ROOT_HOST` sets the starting point for resolving ARNS names, which are accessed as a subdomain of a gateway. It should be set to the url you are pointing to your node, excluding any protocol prefix. For example, use `node-ar.io` and not `https://node-ar.io`. If you are using a subdomain to access your node and do not set this value, the node will not understand incoming requests.
-  - `AR_IO_WALLET` is optional, and sets the wallet you want associated with your Gateway. An associated wallet is required to join the AR.IO network.
-  - `OBSERVER_WALLET` is the public address of the wallet used to sign Observer transactions. This is required for Observer to run, but may be omitted if you are running a gateway outside of the AR.IO network and do not plan to run Observer. You will need to supply the keyfile to this wallet in the next step.
-
+- The GRAPHQL values set the proxy for GQL queries to arweave.net, You may use any available gateway that supports GQL queries. If omitted, your node can support GQL queries on locally indexed transactions, but only L1 transactions are indexed by default.
+- `START_HEIGHT` is an optional line. It sets the block number where your node will start downloading and indexing transactions headers. Omitting this line will begin indexing at block 0.
+- `RUN_OBSERVER` turns on the Observer to generate Network Compliance Reports. This is required for full participation in the AR.IO Network. Set to `false` to run your gateway without Observer.
+- `ARNS_ROOT_HOST` sets the starting point for resolving ARNS names, which are accessed as a subdomain of a gateway. It should be set to the url you are pointing to your node, excluding any protocol prefix. For example, use `node-ar.io` and not `https://node-ar.io`. If you are using a subdomain to access your node and do not set this value, the node will not understand incoming requests.
+- `AR_IO_WALLET` is optional, and sets the wallet you want associated with your Gateway. An associated wallet is required to join the AR.IO network.
+- `OBSERVER_WALLET` is the public address of the wallet used to sign Observer transactions. This is required for Observer to run, but may be omitted if you are running a gateway outside of the AR.IO network and do not plan to run Observer. You will need to supply the keyfile to this wallet in the next step.
   - More advanced configuration options can be found [here](/gateways/advanced)
 
 - Supply Your Observer Wallet Keyfile:
@@ -303,9 +301,15 @@ These packages are not required to run a node in its basic form. However, they w
 
   Learn more about creating Arweave wallets and obtaining keyfiles [here](https://ar.io/wallet/)
 
-  <Tip title="Payment For Observer Report Uploads">
-    By default, the Observer will use [Turbo Credits](https://docs.ardrive.io/docs/turbo/credits) to pay for uploading reports to Arweave. This allows reports under 100kb to be uploaded for free, but larger reports will fail if the Observer wallet does not contain Credits. Including `REPORT_DATA_SINK=arweave` in your `.env` file will configure the Observer to use AR tokens instead of Turbo Credits, without any free limit.
-  </Tip>
+  <Callout type="info" title="Payment For Observer Report Uploads">
+    By default, the Observer will use [Turbo
+    Credits](https://docs.ardrive.io/docs/turbo/credits) to pay for uploading
+    reports to Arweave. This allows reports under 100kb to be uploaded for free,
+    but larger reports will fail if the Observer wallet does not contain
+    Credits. Including `REPORT_DATA_SINK=arweave` in your `.env` file will
+    configure the Observer to use AR tokens instead of Turbo Credits, without
+    any free limit.
+  </Callout>
 
 - Start the Docker container:
 
@@ -317,9 +321,9 @@ These packages are not required to run a node in its basic form. However, they w
 
   </CodeGroup>
 
-  - Explanation of flags:
-    - `up`: Start the Docker containers.
-    - `-d`: Run the containers as background processes (detached mode).
+- Explanation of flags:
+  - `up`: Start the Docker containers.
+  - `-d`: Run the containers as background processes (detached mode).
 
   **NOTE**: Effective with Release #3, it is no longer required to include the `--build` flag when starting your gateway. Docker will automatically build using the image specified in the `docker-compose.yaml` file.
 
@@ -335,9 +339,9 @@ These packages are not required to run a node in its basic form. However, they w
 
   </CodeGroup>
 
-  - Explanation of flags:
-    - `-f`: Follow the logs in real time.
-    - `--tail=0`: Ignore all logs from before running the command.
+- Explanation of flags:
+  - `-f`: Follow the logs in real time.
+  - `--tail=0`: Ignore all logs from before running the command.
 
   **NOTE**: Previous versions of these instructions advised checking a gateway's ability to fetch content using `localhost`. Subsequent security updates prevent this without first unsetting `ARNS_ROOT_HOST` in your `.env`.
 
@@ -349,7 +353,6 @@ The following guide assumes you are running your node on a local home computer.
   Choose a domain registrar (e.g., [Namecheap](https://namecheap.com)) to register a domain name.
 
 - Point the Domain at Your Home Internet:
-
   - Obtain your public IP address by visiting https://whatsmyip.org/ or running:
 
     <CodeGroup>
@@ -363,7 +366,6 @@ The following guide assumes you are running your node on a local home computer.
   - Create an A record with your registrar for your domain and wildcard subdomains, using your public IP address. For example, if your domain is "ar.io," create a record for "ar.io" and "\*.ar.io."
 
 - Set up Port Forwarding:
-
   - Obtain the local IP address of the machine where the node is installed by running:
 
     <CodeGroup>
@@ -374,7 +376,7 @@ The following guide assumes you are running your node on a local home computer.
 
     </CodeGroup>
 
-    - If there are multiple lines of output, choose the one starting with 192 (usually).
+- If there are multiple lines of output, choose the one starting with 192 (usually).
   - Enter your router's IP address in the address bar of a browser (e.g., `192.168.0.1`).
     - If you're unsure of your router's IP address, consult your router's documentation or contact your Internet Service Provider (ISP).
   - Navigate to the port forwarding settings in your router configuration.
@@ -393,15 +395,16 @@ The following guide assumes you are running your node on a local home computer.
 
   Follow the instructions to create the required TXT records for your domain in your chosen registrar. Use a [DNS checker](https://dnschecker.org/) to verify the propagation of each record.
 
-  <Tip title="Email Notifications">
-    Previous versions of these instructions advised providing an email address to Certbot. As of June 2025, LetsEncrypt (the certificate authority used by Certbot) no longer supports email notifications.
-  </Tip>
+  <Callout type="info" title="Email Notifications">
+    Previous versions of these instructions advised providing an email address
+    to Certbot. As of June 2025, LetsEncrypt (the certificate authority used by
+    Certbot) no longer supports email notifications.
+  </Callout>
 
   **IMPORTANT**: Wild card subdomain (\*.\<your-domain>.com) cannot auto renew without obtaining an API key from your domain registrar. Not all registrars offer this. Certbot certificates expire every 90 days. Be sure to consult with your chosen registrar to see if they offer an API for this purpose, or run the above command again to renew your certificates. You will receive an email warning at the address you provided to remind you when it is time to renew.
 
 - Configure nginx:
   nginx is a free and open-source web server and reverse proxy server. It will handle incoming traffic, provide SSL certificates, and redirect the traffic to your node.
-
   - Open the default configuration file:
 
     <CodeGroup>
@@ -409,6 +412,7 @@ The following guide assumes you are running your node on a local home computer.
     ```
     sudo nano /etc/nginx/sites-available/default
     ```
+
     </CodeGroup>
 
   - Replace the file's contents with the following configuration (replace "\<your-domain>" when necessary):
@@ -442,6 +446,11 @@ The following guide assumes you are running your node on a local home computer.
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_http_version 1.1;
+
+            # Forward AR.IO headers if present in the request
+            proxy_set_header X-AR-IO-Origin $http_x_ar_io_origin;
+            proxy_set_header X-AR-IO-Origin-Node-Release $http_x_ar_io_origin_node_release;
+            proxy_set_header X-AR-IO-Hops $http_x_ar_io_hops;
         }
     }
     ```
@@ -456,15 +465,16 @@ The following guide assumes you are running your node on a local home computer.
   ```
   sudo nginx -t
   ```
+
   </CodeGroup>
 
-  - If there are no errors, restart nginx:
+- If there are no errors, restart nginx:
 
     <CodeGroup>
 
-    ```
-    sudo service nginx restart
-    ```
+  ```
+  sudo service nginx restart
+  ```
 
     </CodeGroup>
 

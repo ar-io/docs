@@ -3,8 +3,6 @@ title: "Parquet and ClickHouse Usage Guide"
 description: "Learn how to use Parquet files and ClickHouse to improve performance and scalability of your AR.IO gateway for large datasets."
 ---
 
-
-
 # Parquet and ClickHouse Usage Guide
 
 ## Overview
@@ -38,15 +36,15 @@ With ClickHouse integration enabled, GraphQL queries are primarily routed to Cli
 
 While SQLite is excellent for transactional workloads and small to medium datasets, it faces challenges with very large datasets:
 
-| Feature | SQLite | Parquet + ClickHouse |
-|---------|--------|----------------------|
-| Storage model | Row-based | Column-based |
-| Query optimization | Basic | Advanced analytical optimization |
-| Compression | Limited | High compression ratios |
-| Scaling | Limited by single file | Distributed processing capable |
-| Write speed | Fast for small transactions | Optimized for batch operations |
-| Read speed for analytics | Slower for large datasets | Optimized for analytical queries |
-| Ideal use case | Recent transaction data, OLTP | Historical data, OLAP workloads |
+| Feature                  | SQLite                        | Parquet + ClickHouse             |
+| ------------------------ | ----------------------------- | -------------------------------- |
+| Storage model            | Row-based                     | Column-based                     |
+| Query optimization       | Basic                         | Advanced analytical optimization |
+| Compression              | Limited                       | High compression ratios          |
+| Scaling                  | Limited by single file        | Distributed processing capable   |
+| Write speed              | Fast for small transactions   | Optimized for batch operations   |
+| Read speed for analytics | Slower for large datasets     | Optimized for analytical queries |
+| Ideal use case           | Recent transaction data, OLTP | Historical data, OLAP workloads  |
 
 ## Benefits for Gateway Operators
 
@@ -73,12 +71,12 @@ For gateway operators, this means proper filter configuration is crucial to real
 
 The following sections will guide you through setting up ClickHouse with your AR.IO gateway, exporting data from SQLite to Parquet, and importing Parquet files to bootstrap your ClickHouse database.
 
-<Tip title="Note" type="info">
+<Callout type="info" title="Note">
 The below instructions are designed to be used in a linux environment. Windows and MacOS users must modify the instructions to use the appropriate package manager/ command syntax for their platform.
 
 Unless otherwise specified, all commands should be run from the root directory of the gateway.
 
-</Tip>
+</Callout>
 
 ## Installing ClickHouse
 
@@ -153,12 +151,12 @@ curl -L https://arweave.net/JVmsuD2EmFkhitzWN71oi9woADE4WUfvrbBYgremCBM -o 2025-
 
 or visit the url [https://arweave.net/JVmsuD2EmFkhitzWN71oi9woADE4WUfvrbBYgremCBM](ar://JVmsuD2EmFkhitzWN71oi9woADE4WUfvrbBYgremCBM) and download the file manually.
 
-<Tip title="Note" type="info">
+<Callout type="info" title="Note">
 If downloaded manually, it will download as a binary file named `JVmsuD2EmFkhitzWN71oi9woADE4WUfvrbBYgremCBM`. This is normal and must be converted to a tar.gz file by renaming it to `2025-04-23-ardrive-ans104-parquet.tar.gz`.
 
 It should also be placed in the root directory of the gateway.
 
-</Tip>
+</Callout>
 
 The downloaded file will be approximately 3.5GB in size.
 
@@ -184,14 +182,14 @@ or by starting the gateway ClickHouse container with the following command:
 docker compose --profile clickhouse up clickhouse -d
 ```
 
-<Tip title="Note" type="info">
+<Callout type="info" title="Note">
 Depending on your system configurations, allowing the gateway to create the directory may result in the directory being created with incorrect permissions. If this is the case, you can remove the restrictions by running the following command:
 
 ```bash
 sudo chmod -R 777 data/parquet
 ```
 
-</Tip>
+</Callout>
 
 With the directory created, you can now move the extracted parquet files into it.
 
