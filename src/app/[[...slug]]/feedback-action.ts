@@ -1,0 +1,103 @@
+'use server';
+
+import type { Feedback, ActionResponse } from '@/components/feedback';
+
+// Web3Forms configuration - Public access key for AR.IO documentation feedback
+const WEB3FORMS_ACCESS_KEY = '88dab14e-e2f1-47cc-b284-84496d1ddc59';
+const WEB3FORMS_ENDPOINT = 'https://api.web3forms.com/submit';
+
+export async function handleFeedback(pageUrl: string, feedback: Feedback): Promise<ActionResponse> {
+  try {
+    const formData = new FormData();
+    formData.append('access_key', WEB3FORMS_ACCESS_KEY);
+    
+    // Format the subject for easy email filtering
+    const feedbackType = feedback.opinion === 'good' ? '✅ POSITIVE' : '❌ NEGATIVE';
+    const subject = `[AR.IO Docs] ${feedbackType} Feedback - ${pageUrl}`;
+    formData.append('subject', subject);
+    formData.append('from_name', 'AR.IO Documentation Feedback');
+    
+    // Create a well-formatted email body
+    const message = formatFeedbackMessage(pageUrl, feedback);
+    formData.append('message', message);
+
+    const res = await fetch(WEB3FORMS_ENDPOINT, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!res.ok) {
+      throw new Error(`Web3Forms API error: ${res.status}`);
+    }
+
+    // Generate a pre-filled GitHub issue URL
+    return {
+      githubUrl: createGitHubIssueUrl(pageUrl, feedback),
+    };
+  } catch (error) {
+    console.error('[Feedback] Failed to submit:', error);
+    // Return generic issues page as fallback
+    return {
+      githubUrl: 'https://github.com/ar-io/docs-v2/issues',
+    };
+  }
+}
+
+function formatFeedbackMessage(pageUrl: string, feedback: Feedback): string {
+  const timestamp = new Date().toLocaleString('en-US', {
+    timeZone: 'UTC',
+    dateStyle: 'medium',
+    timeStyle: 'medium',
+  });
+  
+  const sentiment = feedback.opinion === 'good' ? '👍 Positive' : '👎 Negative';
+
+  
+  return `
+Documentation Feedback Report
+=============================
+
+Page URL: ${pageUrl}
+Sentiment: ${sentiment}
+Timestamp: ${timestamp} UTC
+
+User Feedback:
+--------------
+${feedback.message || 'No additional comments provided.'}
+
+---
+This feedback was submitted through the AR.IO documentation site.
+To improve our docs, please consider opening an issue on GitHub.
+  `.trim();
+}
+
+function createGitHubIssueUrl(pageUrl: string, feedback: Feedback): string {
+  const issueTitle = `[Docs Feedback] ${feedback.opinion === 'good' ? 'Positive' : 'Improvement needed'} - ${pageUrl}`;
+
+  
+  const issueBody = `
+## Documentation Feedback
+
+**Page URL:** ${pageUrl}
+**Sentiment:** ${feedback.opinion === 'good' ? '👍 Positive' : '👎 Needs Improvement'}
+
+### User Feedback
+${feedback.message}
+
+### Context
+- **Source file:** \`${pageUrl}\`
+- **Live URL:** ${pageUrl}
+- **Submitted via:** Documentation feedback widget
+
+---
+*This issue was created from user feedback on the documentation site.*
+  `.trim();
+  
+  const params = new URLSearchParams({
+    title: issueTitle,
+    body: issueBody,
+    labels: 'documentation,feedback',
+  });
+  
+  return `https://github.com/ar-io/docs-v2/issues/new?${params.toString()}`;
+}

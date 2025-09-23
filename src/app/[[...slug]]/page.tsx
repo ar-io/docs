@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { createRelativeLink } from "fumadocs-ui/mdx";
 import { getMDXComponents } from "@/mdx-components";
 import { LLMCopyButton, ViewOptions } from "@/components/page-actions";
+import { PageFeedback } from "@/components/page-feedback";
 import { redirect } from "next/navigation";
 
 export default async function Page(props: {
@@ -38,6 +39,7 @@ export default async function Page(props: {
             a: createRelativeLink(source, page),
           })}
         />
+        <PageFeedback pageUrl={page.url} />
       </DocsBody>
     </DocsPage>
   );
