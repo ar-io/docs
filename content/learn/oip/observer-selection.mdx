@@ -1,75 +1,84 @@
 ---
 title: "Observer Selection"
-description: "Learn about how gateways are selected as observers using weighted random selection"
+description: "Learn about how gateways are selected as observers each epoch and how ArNS names are chosen using weighted random selection and Hashchain entropy"
 ---
 
 # Observer Selection
 
+## Epochs and Selection Timeline
+
+The AR.IO network operates on **24-hour epochs**, during which the observer selection and evaluation process takes place. At the start of each epoch:
+
+- **50 observers** are selected to monitor the network
+- **2 prescribed ArNS names** are chosen for all observers to test
+- **8 additional names** are selected by each observer individually
+
+This creates a consistent evaluation framework where all observers test the same baseline names while having flexibility to choose additional targets for comprehensive network monitoring.
+
 ## Selection Process
 
-The observer selection process commences at the beginning of each epoch and employs a random-weighted selection method. By combining random selection with weighted criteria like stake, tenure, and past rewards, the process aims to ensure both fairness and acknowledgment of consistent performance.
+Up to **fifty (50)** gateways are selected as observers per epoch using a sophisticated weighted random selection system. The selection uses **hashchain entropy** from previous AR.IO contract state messages to ensure unpredictable and tamper-resistant selection.
 
-This method allows for a systematic yet randomized approach to selecting gateways for observation tasks.
+The hashchain-based entropy provides cryptographic randomness for selecting:
+- **Observer Gateways**: The 50 gateways chosen to perform observations
+- **Prescribed ArNS Names**: The 2 common names all observers must evaluate
 
-## Selection Criteria
+This approach prevents manipulation while maintaining weighted probabilities based on gateway performance and commitment.
 
-Up to **fifty (50)** gateways can be chosen as observers per epoch. If the [GAR](/learn/gateways/gateway-network#gateway-address-registry-gar) is below that amount, then every gateway is designated as an observer for that epoch. If there are greater than 50, then randomized selection shall be utilized.
+![Current epoch observers showing their observation chance (normalized composite weight) and report status](/observers.png)
 
-The weighted selection criteria will consider the following for each gateway:
+<p style={{textAlign: "center", fontStyle: "italic", width: "80%", margin: "0.5rem auto"}}>
+  <a href="https://gateways.ar.io/#/observers" target="_blank" rel="noopener noreferrer">gateways.ar.io/#/observers</a> shows the current epoch prescribed observers and arns names, as well as their submission status
+</p>
 
-### Stake Weight (SW)
+## Weighted Selection Criteria
 
-This factor considers how financially committed a gateway is to the network. It is the ratio of the total amount of ARIO tokens staked by the gateway (plus any delegated stake) relative to the network minimum and is expressed as:
+Observer selection is based on **normalized composite weights** that combine multiple performance and commitment factors. These weights determine each gateway's probability of being selected as an observer for the epoch.
 
-```math
-SW = \frac{\text{Gateway Stake} + \text{Delegated Stake}}{\text{Minimum Network Join Stake}}
-```
+The selection considers four key factors that are multiplied together to create a composite weight (CW):
 
-### Tenure Weight (TW)
+- **Stake Weight (SW)**: Financial commitment to the network
+- **Tenure Weight (TW)**: Length of network participation  
+- **Gateway Performance Ratio Weight (GPRW)**: Historical gateway performance
+- **Observer Performance Ratio Weight (OPRW)**: Historical observer performance
 
-This factor considers how long a gateway has been part of the network, with a maximum value capped at four (4). This means that the maximum value is achieved after 2-years of participation in the network. It is calculated as:
+These weights are then normalized across all eligible gateways to create selection probabilities. For detailed weight calculations and formulas, see [Performance Evaluation](/learn/oip/performance-evaluation).
 
-```math
-TW = \frac{\text{Gateway Network Tenure}}{6 \text{ months}}
-```
+## Hashchain Random Selection
 
-### Gateway Performance Ratio Weight (GPRW)
+The selection process uses **hashchain entropy** from previous AR.IO contract state messages to achieve cryptographically secure randomness:
 
-This factor is a proxy for a gateway's performance at resolving ArNS names. The weight represents the ratio of epochs in which a gateway received rewards for correctly resolving names relative to their total time on the network. To prevent division by zero conditions, it is calculated as:
+### How Hashchain Selection Works
+1. **Entropy Source**: Random numbers are generated from the hashchain of previous contract state messages
+2. **Weighted Mapping**: Each random number maps to normalized weight ranges of eligible gateways
+3. **Observer Selection**: The gateway whose weight range contains each random number is selected
+4. **Prescribed Names**: The same entropy selects 2 ArNS names that all observers must test
 
-```math
-GPRW = \frac{1 + \text{Passed Epochs}}{1 + \text{Participated Epochs}}
-```
+This creates tamper-resistant selection where higher-weighted gateways have proportionally better chances of selection, while maintaining true randomness that cannot be predicted or manipulated.
 
-### Observer Performance Ratio Weight (OPRW)
+## Fairness and Meritocracy
 
-This factor is a proxy for a gateway's performance at fulfilling observation duties. The weight reflects the ratio of epochs in which a gateway, as an observer, successfully submitted observation reports relative to their total periods of service as an observer. To prevent division by zero conditions thus unfairly harming a newly joined gateway, it is calculated as:
+This system ensures:
+- **Meritocratic Selection**: Higher-performing gateways have better selection odds
+- **Fair Opportunity**: All gateways maintain non-zero selection probability
+- **Tamper Resistance**: Hashchain entropy prevents manipulation
+- **Consistent Standards**: Prescribed names create common evaluation baseline
 
-```math
-OPRW = \frac{1 + \text{Submitted Epochs}}{1 + \text{Selected Epochs}}
-```
+The selection is saved in the contract state at epoch start to ensure that activities during the epoch do not affect selection or reward distribution.
 
-## Weight Calculation
+## Recap
 
-For each gateway, a composite weight (CW) is computed, combining the Stake Weight, Tenure Weight, Gateway Performance Ratio Weight, and Observer Performance Ratio Weight.
+The observer selection system operates on 24-hour epochs with cryptographically secure randomness and merit-based weighting:
 
-The formula used is:
+- **Epoch-Based**: Selection occurs every 24 hours, choosing 50 observers and 2 prescribed ArNS names
+- **Hashchain Entropy**: Uses previous contract state messages for tamper-resistant randomness
+- **Weighted Merit**: Composite weights combine stake, tenure, gateway performance, and observer performance
+- **Individual Choice**: Each observer selects 8 additional ArNS names beyond the 2 prescribed ones
+- **Live Transparency**: Current epoch observers and their selection chances are visible at gateways.ar.io
 
-```math
-CW = SW \times TW \times GPRW \times OPRW
-```
+This creates a fair yet meritocratic system where gateways earn higher selection probability through consistent performance and network commitment, while hashchain entropy ensures no party can predict or manipulate selection outcomes.
 
-These weights are then normalized across the network to create a continuous range, allowing for proportional random selection based on the weighted scores. The normalized composite weight (N_CW) for each gateway indicates its likelihood of being chosen as an observer and is calculated by dividing the gateway's CW by the sum of all CWs.
-
-Any gateway with a composite weight equal to zero shall be ineligible for selection as an observer during the associated epoch.
-
-## Random Selection Process
-
-The selection of observers is randomized within the framework of these weights. A set of unique random numbers is generated with entropy within the total range of normalized weights. For each random number, the gateway whose normalized weight range encompasses this number is selected.
-
-This system ensures that while gateways with higher weights are more likely to be chosen, all gateways maintain a non-zero chance of selection, preserving both fairness and meritocracy in the observer assignment process.
-
-The current epoch's selected / prescribed observers as well as prescribed ArNS names to be evaluated shall be saved in the contract state at the beginning of the epoch to ensure that any activities during that epoch do not affect the selection of observers or awards distribution.
+---
 
 ## Next Steps
 

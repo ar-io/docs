@@ -1,9 +1,9 @@
 ---
-title: "Performance Evaluation"
-description: "Learn about how gateways are evaluated and scored in the OIP system"
+title: "Performance and Weights"
+description: "Learn about how gateways are evaluated and how weights impact observer selection"
 ---
 
-# Performance Evaluation
+# Performance and Weights
 
 ## Gateway Classifications
 
@@ -16,16 +16,81 @@ Consider the following classifications:
 
 ## Evaluation Process
 
-At the end of an epoch, the smart contract will assess the results from the observers and determine a pass / fail score for each gateway:
+At the end of an epoch, the AR.IO Smart Contract processes observer submissions to determine gateway performance through a consensus-based vote tallying system. This evaluation transforms individual observer reports into network-wide performance assessments.
 
-- If greater than or equal to 50% of submitted observer contract interactions indicate a PASS score, then that gateway is considered Functional and eligible for gateway rewards.
-- Else, if greater than 50% of submitted observer contract interactions indicate a FAIL score, then that gateway is considered Deficient and ineligible for gateway rewards.
+### Vote Tallying and Gateway Classification
 
-These results will determine how reward distributions are made for that epoch.
+After observers submit their detailed reports (see [Reporting](/learn/oip/reporting) for submission details), the smart contract performs consensus calculation:
 
-## Evaluation Timeline
+**Vote Processing:**
+- **Data Collection**: All observer contract interactions for each gateway are collected
+- **Vote Counting**: Each observer submission contributes either a PASS or FAIL vote
+- **Majority Determination**: If ≥50% of submitted observer interactions indicate PASS, the gateway is considered Functional
+- **Binary Classification**: Gateways are classified as either Functional (eligible for rewards) or Deficient (ineligible for rewards)
 
-Rewards shall be distributed after **forty (40) minutes** (approx. **twenty (20) Arweave blocks**) in the following epoch have elapsed. This delay ensures that all observation contract interactions are safely confirmed by the Arweave network without risk of "forking out" prior to the evaluation and reward distribution process.
+**Consensus Mechanism:**
+- Multiple observers evaluate each gateway independently, ensuring reliable assessment
+- The 50% threshold requires majority agreement for positive performance determination
+- Binary scoring provides clear, unambiguous performance classification
+- Vote tallying occurs after the 40-minute confirmation period to ensure all interactions are finalized
+
+## Weight Impact on Gateway Performance
+
+Gateway performance directly affects multiple weighted factors that influence future observer selection and overall network participation:
+
+### Gateway Performance Ratio Weight (GPRW)
+A gateway's evaluation results directly impact their Gateway Performance Ratio Weight, which affects their likelihood of being selected as an observer in future epochs:
+
+```math
+GPRW = \frac{1 + \text{Passed Epochs}}{1 + \text{Participated Epochs}}
+```
+
+**Impact:**
+- **Functional Gateways**: Increase their passed epochs count, improving their GPRW
+- **Deficient Gateways**: Decrease their GPRW as participated epochs increase without corresponding passes
+- **Observer Selection**: Higher GPRW increases chances of being selected as an observer
+
+### Observer Performance Ratio Weight (OPRW)
+For gateways selected as observers, their performance in submitting reports affects future selection:
+
+```math
+OPRW = \frac{1 + \text{Submitted Epochs}}{1 + \text{Selected Epochs}}
+```
+
+**Impact:**
+- **Functional Observers**: Who submit reports increase their OPRW
+- **Deficient Observers**: Who fail to submit reports see their OPRW decrease
+- **Future Selection**: Higher OPRW improves chances of future observer selection
+
+### Composite Weight Calculation
+All performance factors combine to determine overall network influence:
+
+```math
+CW = SW \times TW \times GPRW \times OPRW
+```
+
+Where:
+- **SW** = Stake Weight (financial commitment)
+- **TW** = Tenure Weight (network longevity)
+- **GPRW** = Gateway Performance Ratio Weight
+- **OPRW** = Observer Performance Ratio Weight
+
+**Long-term Effects:**
+- Consistently functional gateways accumulate higher composite weights
+- Poor performers see diminishing influence and selection chances
+- Performance history creates compounding effects on network participation
+
+## Evaluation and Distribution Timeline
+
+Rewards are distributed **at the end of each epoch** by the AR.IO Smart Contract directly based on the tallied observer votes. The smart contract processes all observer submissions and automatically distributes rewards to functional gateways and observers based on their performance during the epoch.
+
+![Epoch reward distributions showing eligible vs distributed rewards across multiple epochs](/epoch-distributions.png)
+
+The distribution chart shows how rewards are allocated each epoch, including:
+- **Eligible Rewards**: Total available rewards from the protocol balance
+- **Distributed Rewards**: Actual rewards given to functional gateways and observers
+- **Auto-staking**: Automatic delegation and staking mechanisms
+- **Delegate Sharing**: How rewards are shared with token delegators
 
 ## Key Features
 
@@ -53,6 +118,20 @@ Rewards shall be distributed after **forty (40) minutes** (approx. **twenty (20)
 - Functional observers receive observer rewards
 - Deficient observers forfeit observer rewards
 - Deficient observers who are also functional gateways have their gateway reward reduced by 25%
+
+## Recap
+
+Performance evaluation is the cornerstone of the OIP system that maintains network quality. Key takeaways:
+
+- **Majority Rule**: Gateways need ≥50% pass votes from observers to be considered functional
+- **Compounding Effects**: Performance impacts GPRW and OPRW, affecting future observer selection chances
+- **Long-term Consequences**: Consistent performance builds network influence through composite weight accumulation
+- **Immediate Impact**: Functional gateways earn rewards; deficient ones receive nothing
+- **Observer Accountability**: Observers who fail their duties face reward penalties and reduced future selection odds
+
+Performance evaluation creates a meritocratic system where consistent quality service is rewarded with increased network participation and influence.
+
+---
 
 ## Next Steps
 

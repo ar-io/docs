@@ -1,0 +1,93 @@
+---
+title: "Reporting"
+description: "Learn about observer responsibilities for submitting reports to Arweave and the AR.IO Smart Contract"
+---
+
+# Reporting
+
+## Observer Responsibilities
+
+Selected observers have specific duties each epoch: test gateways, document results, and submit findings through two channels. Proper completion of these responsibilities determines observer rewards and future selection chances.
+
+## Dual Submission Process
+
+Observers must submit their findings through both channels to fulfill their duties:
+
+### 1. Detailed Reports to Arweave
+- **Format**: Comprehensive JSON reports with full evaluation data
+- **Purpose**: Permanent audit trail and transparency
+- **Content**: Complete test results, timing data, and failure details
+
+### 2. Contract Interactions to AR.IO Smart Contract
+- **Format**: List of failed gateways
+- **Purpose**: Efficient vote tallying for consensus
+- **Content**: Binary pass/fail determinations for each gateway tested
+
+## Observer Evaluations
+
+Observers test assigned gateways against 10 ArNS names (2 prescribed + 8 chosen) and document their findings:
+
+![Observer Report Overview showing multiple gateway evaluations](/observer-report.png)
+
+### Evaluation Results
+
+<div style={{display: "flex", gap: "2rem", margin: "2rem 0"}}>
+  <div style={{flex: 1}}>
+    <img src="/observer-report-pass.png" alt="Successful gateway evaluation report" style={{width: "100%"}} />
+    <p style={{textAlign: "center", marginTop: "1rem", fontStyle: "italic"}}>
+      <strong>Passing Report:</strong> Gateway successfully resolves ArNS names with correct status codes (200), transaction IDs, and data hashes.
+    </p>
+  </div>
+  <div style={{flex: 1}}>
+    <img src="/observer-report-fail.png" alt="Failed gateway evaluation report" style={{width: "100%"}} />
+    <p style={{textAlign: "center", marginTop: "1rem", fontStyle: "italic"}}>
+      <strong>Failing Report:</strong> Gateway fails ArNS resolution tests due to ownership issues, timeouts (5000ms), or missing content.
+    </p>
+  </div>
+</div>
+
+Observers evaluate gateways based on:
+- **Gateway Wallet Ownership**: Verifies correct wallet address
+- **ArNS Resolution**: Tests successful name-to-transaction resolution
+- **Content Hash Verification**: Ensures data integrity
+- **Response Times**: Measures performance within limits
+
+## Observer Rewards and Penalties
+
+Observer performance directly impacts rewards and future participation:
+
+### Successful Observer Performance
+- **Observer Reward**: Observers who submit both reports and contract interactions receive the Observer Reward
+- **Future Selection**: Successful reporting improves Observer Performance Ratio Weight (OPRW)
+- **Increased Chances**: Higher OPRW increases likelihood of future observer selection and more reward opportunities
+
+### Failed Observer Performance
+- **No Observer Reward**: Observers who fail to submit required reports forfeit their Observer Reward
+- **Gateway Penalty**: If the deficient observer is also a functional gateway, their gateway reward is **reduced by 25%**
+- **Reduced Selection**: Failed submissions decrease OPRW, diminishing future observer selection chances
+- **Lost Opportunities**: Lower selection probability means fewer chances to earn Observer Rewards
+
+## Observer Accountability
+
+The system tracks observer performance to ensure network quality:
+
+- **Submission Tracking**: Both Arweave reports and contract interactions must be submitted
+- **Performance History**: Observer submission record affects future selection probability
+- **Reward Impact**: Consistent reporting builds credibility and increases earning potential
+
+## Recap
+
+Observer reporting responsibilities are straightforward but critical for network operation:
+
+- **Dual Submission Required**: Both detailed reports (Arweave) and contract interactions (Smart Contract)
+- **Comprehensive Testing**: Evaluate gateways on ownership, resolution, content integrity, and performance
+- **Clear Incentives**: Successful observers earn rewards; deficient ones face penalties and reduced future selection
+- **Long-term Impact**: Observer performance compounds through OPRW, affecting future earning potential
+
+Observers play a vital role in maintaining network quality, with clear rewards for diligent service and meaningful penalties for negligence.
+
+---
+
+## Next Steps
+
+Ready to understand how these reports are processed? Learn about [Performance Evaluation](/learn/oip/performance-evaluation) to see how reports become votes and determine gateway rewards, or explore [Reward Distribution](/learn/oip/reward-distribution) to understand the complete incentive structure.

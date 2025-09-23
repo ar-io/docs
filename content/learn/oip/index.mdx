@@ -5,37 +5,90 @@ description: "The Observation and Incentive Protocol is designed to maintain and
 
 # Observation and Incentive Protocol (OIP)
 
-## What is OIP?
+## Overview
 
-The Observation and Incentive Protocol is designed to maintain and enhance the operational integrity of gateways on the AR.IO Network. It achieves this through a combination of incentivizing gateways for good performance and tasking those gateways to fulfill the role of "observers".
+The Observation and Incentive Protocol ensures network quality through peer monitoring and performance-based rewards. Gateways are incentivized to maintain high performance while also serving as "observers" that evaluate their peers' ArNS resolution capabilities.
 
-The protocol is intentionally simple and adaptable, employing a smart contract-based method for onchain "voting" to assess peer performance while being flexible on how that performance is measured. This setup permits gateway and observer nodes to experiment and evolve best practices for performance evaluation, all while operating within the bounds of the network's immutable [smart contract](/ario-contract), thus eliminating the need for frequent contract updates (forks).
+The protocol operates on **24-hour epochs** where up to 50 gateways are selected as observers to test other gateways against ArNS name resolution criteria. This creates a self-regulating ecosystem with transparent, consensus-based performance evaluation.
 
-## How OIP Works
+## Architecture Overview
 
-In this protocol, observers evaluate their gateway peers' performance to resolve ArNS names. Their aim is to ensure each gateway in the network accurately resolves a subset of names and assigning a pass / fail score based on their findings.
+The Observer Protocol operates through a systematic process where selected gateways monitor their peers and report findings to maintain network quality:
 
-A key component of the protocol is its reward mechanism. This system is predicated on gateway performance and compliance with observation duties. Gateways that excel are tagged as "Functional Gateways" and earn rewards, while those that do not meet the criteria, "Deficient Gateways" risk facing penalties – namely, the lack of rewards.
+```mermaid
+sequenceDiagram
+    participant SC as AR.IO Smart Contract
+    participant OBS as Observer Gateway
+    participant GW as Target Gateway
+    participant AR as Arweave Network
+    
+    Note over SC,AR: Epoch Start
+    SC->>SC: Select up to 50 observers<br/>(weighted random)
+    SC->>SC: Generate 2 prescribed ArNS names
+    SC->>OBS: Notify selection & provide names
+    
+    Note over SC,AR: Observation Phase
+    OBS->>OBS: Choose 8 additional ArNS names
+    loop For each gateway to test
+        OBS->>GW: Test ArNS resolution (10 names)
+        GW-->>OBS: Response data
+        OBS->>OBS: Score: Pass/Fail
+    end
+    
+    Note over SC,AR: Reporting Phase
+    OBS->>AR: Upload detailed JSON report
+    AR-->>OBS: Confirm storage
+    OBS->>SC: Submit failed gateways list
+    SC-->>OBS: Confirm interaction
+    
+    Note over SC,AR: Evaluation & Rewards
+    SC->>SC: Tally all observer votes
+    SC->>SC: Determine gateway status<br/>(≥50% pass = functional)
+    SC->>SC: Calculate reward distribution
+    SC->>OBS: Distribute observer rewards
+    SC->>GW: Distribute gateway rewards<br/>(if functional)
+```
 
-## Funding and Rewards
+## Epoch Cycle and Responsibilities
 
-Funds for incentive rewards are derived from the protocol balance, which consists of ARIO tokens initially allocated at network genesis as well as those collected from ArNS asset purchases. Every epoch, this balance is utilized to distribute rewards to qualifying gateways and observers based on certain performance metrics.
+Each 24-hour epoch follows a structured process with specific responsibilities for gateways and observers:
 
-## Key Benefits
+### Epoch Start
+- **Smart Contract**: Selects up to 50 observers using weighted random selection
+- **Smart Contract**: Generates 2 prescribed ArNS names for all observers to test
+- **Selected Observers**: Receive notification of selection and prescribed names
 
-- **Network Integrity**: Ensures gateways maintain high performance standards
-- **Decentralized Monitoring**: Uses peer-to-peer observation rather than centralized oversight
-- **Economic Incentives**: Rewards good performance and penalizes poor performance
-- **Adaptive System**: Allows for experimentation and evolution of best practices
-- **Immutable Framework**: Operates within smart contract bounds without frequent updates
+### Observation Phase
+- **Observers**: Choose 8 additional ArNS names to test (total of 10 names per gateway)
+- **Observers**: Test assigned gateways for ArNS resolution, wallet ownership, content hashes, and response times
+- **Target Gateways**: Respond to resolution requests and serve content
 
-## Documentation Sections
+### Reporting Phase
+- **Observers**: Upload detailed JSON reports to Arweave for transparency
+- **Observers**: Submit failed gateway lists to the AR.IO Smart Contract for consensus voting
 
-- **[Observation Process](/learn/oip/observation-process)** - Learn about daily epochs and reporting
-- **[Observer Selection](/learn/oip/observer-selection)** - Understand weighted selection criteria
-- **[Performance Evaluation](/learn/oip/performance-evaluation)** - See how gateways are scored
-- **[Reward Distribution](/learn/oip/reward-distribution)** - Understand reward formulas and mechanics
+### Evaluation and Distribution
+- **Smart Contract**: Tallies all observer votes (≥50% pass = functional gateway)
+- **Smart Contract**: Distributes rewards at epoch end based on performance
+- **Functional Gateways/Observers**: Receive ARIO token rewards automatically
 
-## Next Steps
+## Key Features
 
-Ready to understand how the observation process works? Learn about the [Observation Process](/learn/oip/observation-process) to see how daily epochs and reporting function, or explore [Observer Selection](/learn/oip/observer-selection) to understand how gateways are chosen as observers.
+- **Decentralized Monitoring**: Peer-to-peer evaluation ensures no single point of failure
+- **Consensus-Based Scoring**: Majority rule (≥50% pass votes) determines gateway functionality  
+- **Performance Incentives**: Only functional gateways and observers receive ARIO token rewards
+- **Transparent Accountability**: All reports permanently stored on Arweave and viewable at [gateways.ar.io](https://gateways.ar.io)
+- **Sustainable Funding**: Protocol balance funded by ArNS name purchases, aligning rewards with network usage
+
+---
+
+## Learn More
+
+Explore the detailed mechanics of each OIP component:
+
+- **[Observer Selection](/learn/oip/observer-selection)** - How gateways are chosen as observers using weighted criteria and entropy
+- **[Reporting](/learn/oip/reporting)** - Observer responsibilities for dual-channel submission to Arweave and smart contract  
+- **[Performance and Weights](/learn/oip/performance-evaluation)** - Vote tallying, consensus mechanisms, and weight calculations
+- **[Distributions](/learn/oip/reward-distribution)** - Reward formulas, funding mechanisms, and penalty structures
+
+**View Live Data**: See current observers and performance metrics at [gateways.ar.io](https://gateways.ar.io)
