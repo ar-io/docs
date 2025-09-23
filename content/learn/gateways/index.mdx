@@ -1,90 +1,77 @@
 ---
-title: "Gateway Architecture"
-description: "Gateways are the workhorses of the AR.IO Network. Their primary role is to act as a bridge between the Arweave network and the outside world."
+title: "Gateways Overview"
+description: "AR.IO gateways bridge the Arweave network and applications, providing fast, reliable access to permanent data through specialized infrastructure."
 ---
 
+# Gateways Overview
 
-# Gateway Architecture
+## What Are AR.IO Gateways?
 
-## Overview
+AR.IO gateways are specialized infrastructure nodes that serve as bridges between the Arweave network and applications. They transform raw Arweave blockchain data into a fast, reliable, and developer-friendly platform for storing and retrieving permanent data.
 
-Gateways are the workhorses of the AR.IO Network. 
-Their primary role is to act as a bridge between the Arweave network and the outside world. 
-This means that a gateway's main task is to make it easier for users to interact with the Arweave network by simplifying the technical processes of writing, reading, and discovering data on the blockweave in a trust-minimized fashion.  
+## Core Responsibilities
 
-## Gateway functions
+AR.IO gateways handle three fundamental responsibilities:
 
-The functions of an AR.IO gateway are broken down into the following categories: 
+### Data Writing & Proxying
+- **Transaction relay**: Forward transaction headers to Arweave miners for mempool inclusion
+- **Chunk distribution**: Proxy data chunks to Arweave nodes for storage and replication  
+- **Bundle processing**: Receive and bundle ANS-104 data items into base layer transactions
 
-**Writing data involves**:
-    - Proxying base layer transaction headers to one or more healthy and active Arweave nodes (miners) to facilitate inclusion in the mempools of as many nodes as possible. 
-    - Proxying chunks for base layer Arweave transactions to Arweave nodes to help facilitate storage and replication of the chunks on the blockweave. 
-    - Receiving and bundling so-called bundled data items (e.g., ANS-104 spec) as base layer transactions. 
+### Data Retrieval & Serving
+- **Fast access**: Serve cached data with optimized performance and reliability
+- **Multi-source fallback**: Retrieve data from trusted gateways, network peers, or directly from Arweave
+- **Content delivery**: Stream complete transactions, individual chunks, or bundled data items
 
-**Reading involves retrieving**: 
-    - Transaction headers for a base layer Arweave transaction. 
-    - Individual data chunks for a base layer Arweave transaction. 
-    - Blocks from the blockweave. 
-    - Storage pricing rates for data from the Arweave node network. 
-    - Contiguous streams of chunks representing an entire base layer transaction. 
-    - Bundled data items (e.g., ANS-104). 
-    - Wallet information (e.g., token balance). 
+### Data Discovery & Indexing  
+- **Structured queries**: Enable efficient searches across transactions, bundles, and wallet data
+- **Real-time indexing**: Process incoming data streams and maintain searchable databases
+- **ArNS routing**: Provide human-readable name resolution for Arweave content
 
-**Discovering data involves**: 
-    - Facilitating efficient, structured queries for base layer transactions, bundled data items, and wallet data by: 
-        - examining incoming streams of data (i.e., directly ingested transactions and data items, blocks emitted by the chain, etc.). 
-        - managing index data in a database or analogous data store. 
-    - Parsing and executing user queries. 
-    - Facilitating friendly-path routing via Arweave manifest indexing. 
+## Key Features
 
-**Including other benefits and capabilities such as**: 
-    - Facilitating friendly-subdomain-name routing to Arweave transactions via a direct integration with the Arweave Name System (ArNS). 
-    - Providing the modularity and configurability necessary for operating extensible gateways that can be deployed at small or large scales to meet the needs of specific applications, use cases, communities, or business models. 
-    - Providing pluggable means for consuming telemetry data for internal and external monitoring and alerting. 
-    - Facilitating configurable content moderation policies. 
-    - Providing connectivity to a decentralized network of other AR.IO gateways, enabling data sharing and other shared workloads. 
+### Modular Architecture
+Gateways are built with interchangeable components that operators can customize:
+- **Configurable services**: Enable or disable features based on specific needs
+- **Scalable storage**: From SQLite for small deployments to cloud databases for enterprise scale
+- **Flexible infrastructure**: Adaptable to different operational environments and requirements
 
-## AR.IO Gateway Benefits
+### Network Connectivity
+- **Decentralized network**: Connect to other AR.IO gateways for data sharing and redundancy
+- **Trust-minimized access**: Cryptographically verify data integrity without relying on central authorities
+- **Performance optimization**: Intelligent caching and content delivery strategies
 
-AR.IO gateways provide many new benefits and capabilities beyond general Arweave gateways:
+### Developer Experience
+- **HTTP APIs**: Standard web interfaces for all gateway functionality
+- **Monitoring & telemetry**: Built-in observability for operational insights
+- **Content moderation**: Configurable policies for community and compliance needs
 
-- Providing the modularity and configurability necessary for operating extensible gateways that can be deployed at small or large scales to meet the needs of specific applications, use cases, communities, or business models.
+## What Gateways Are Not
 
-- Providing pluggable means for consuming telemetry data for internal and external monitoring and alerting.
+It's important to understand the boundaries of what AR.IO gateways do and don't provide:
 
-- Facilitating friendly-subdomain-name routing to Arweave transactions via a direct integration with the Arweave Name System (ArNS).
+### Not Storage Providers
+- **Don't enforce Arweave protocol**: Gateways don't validate consensus or mining rules
+- **Don't guarantee permanence**: Storage permanence comes from Arweave itself, not gateways
+- **Don't replicate all data**: Gateways cache popular content but aren't full blockchain replicas
 
-- Facilitating configurable content moderation policies.
+### Not Compute Platforms  
+- **Don't depend on AO**: Gateways operate independently of any compute layer
+- **Don't execute smart contracts**: Computation happens on AO or other platforms, not gateways
+- **Don't process application logic**: Gateways focus purely on data access and delivery
 
-- Providing connectivity to a decentralized network of other AR.IO gateways, enabling data sharing and other shared workloads.
+### Not Centralized Services
+- **Don't control data**: Content ownership and control remain with original creators
+- **Don't gate access**: Anyone can run a gateway and access Arweave data
+- **Don't create vendor lock-in**: Gateway APIs and protocols are open and interoperable
 
-## Gateway Modularity
+## Learn More
 
-A design principle of AR.IO gateways is that their core components should be interchangeable with compatible implementations.
+Explore the technical details of how AR.IO gateways operate:
 
-The core services in the gateway are written in Typescript, with flexible interfaces to the various subsystems and databases. This allows operators to customize their gateway to meet their specific requirements. Gateway services can be turned on or off depending on the operator's needs. For example, an operator might choose to have their gateway serve data, but not actively index Layer 2 bundled data.
+- **[Architecture](/learn/gateways/architecture)** - System design, components, and technology stack
+- **[Data Indexing](/learn/gateways/data-indexing)** - How gateways organize and catalog Arweave data  
+- **[Data Retrieval](/learn/gateways/data-retrieval)** - Multi-source fallback strategies and performance optimization
+- **[Data Verification](/learn/gateways/data-verification)** - Cryptographic validation and integrity assurance
 
-![Gateway Architecture Diagram](https://arweave.net/1dD7-HGb14tsdRpNH-9Ek7I3sAfFA1Id_sdQlfZH-AY)
-
-This flexibility also allows operators to utilize the technologies that are appropriate for the scale and environments in which they operate.
-
-For example, small scale operators might want to use low-overhead relational databases to power their indexing while larger scale operators might opt to use cloud-native, horizontally scalable databases. Analogous examples for storage and caching exist as well.
-
-| Topology | Chain Index | Bundle Index | Data Index | Data Store |
-|----------|-------------|--------------|------------|------------|
-| Small    | SQLite      | SQLite       | SQLite     | Local File System |
-| Large    | PostgreSQL  | Cassandra    | Cassandra  | S3 Compatible |
-
-## ARNS Indexing and Routing
-
-The Arweave Name System’s (ArNS) state is managed by the ARIO token’s smart contract. AR.IO gateways shall perform the following minimum functions relative to ArNS:
-
-- Actively track state changes in the contract.
-
-- Maintain up-to-date indexes for routing configurations based on the state of the ARIO contract as well as the states of the Arweave Name Token (ANT) contracts to which each name is affiliated.
-
-- Manage the expiration of stale records.
-
-- Facilitate ArNS routing based on the subdomains specified on incoming requests where appropriate.
-
-- Provide a custom HTTP response header for ArNS requests indicating the corresponding Arweave transaction ID.
+Ready to operate your own gateway? Check out the **[Gateway Setup Guide](/build/gateways/)** to get started.
