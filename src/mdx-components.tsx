@@ -21,6 +21,7 @@ import {
   CreditCard,
   Upload,
   Tag,
+  Book
 } from "lucide-react";
 
 // use this function to get MDX components, you will need it for rendering MDX
@@ -47,6 +48,7 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     CreditCard,
     Upload,
     Tag,
+    Book,
     APIPage: (props) => <APIPage {...openapi.getAPIPageProps(props)} />,
     ...components,
   };
