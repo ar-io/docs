@@ -1,13 +1,112 @@
 ---
 title: "Data Verification"
-description: "Gateways are the workhorses of the AR.IO Network. Their primary role is to act as a bridge between the Arweave network and the outside world."
+description: "How AR.IO gateways ensure data integrity by verifying chunks are correctly stored and retrievable from Arweave"
 ---
 
-## Data Verification
+# Data Verification
 
-Gateway data verification is achieved by linking content hashes of transactions and data items to data roots on the Arweave base layer chain.
-Gateways index the chain from a trusted Arweave node and compute data roots for the base layer transaction data they download, ensuring that their data aligns with what was originally uploaded to Arweave.
-For base layer bundles that have already been verified, gateways compute hashes of individual data items, establishing a connection between the data root, the verified bundle, and the data items it contains.
-Gateways then expose these hashes and their verification status to users via HTTP headers on data responses.
+AR.IO gateways continuously verify that data chunks are correctly stored and retrievable from Arweave. This ensures users receive authentic, uncorrupted data with cryptographic proof of integrity.
 
-TODO: ADD CARDS AND DIAGRAMS FOR HOW GATEWAYS SHARE DATA
+## How Gateways Verify Data
+
+Gateways verify data integrity by checking that cached chunks can reconstruct the original data payload and match what was stored on Arweave:
+
+```mermaid
+graph LR
+    CHUNKS[Gateway Cached Chunks] --> COMPUTE[Compute Hash]
+    COMPUTE --> COMPARE{Compare}
+    ARWEAVE[Arweave Data Root] --> COMPARE
+    COMPARE -->|Match| VERIFIED[✓ Verified]
+    COMPARE -->|Mismatch| FAILED[✗ Re-import]
+    
+    classDef default fill:transparent,stroke:#333,stroke-width:2px
+```
+
+**The Verification Process:**
+
+**1. Identify Data to Verify**
+- Recently cached data that hasn't been verified
+- Scheduled re-verification of existing data
+- Data flagged by network monitoring
+
+**2. Fetch and Reconstruct Data**
+- Retrieve all data chunks from gateway storage
+- Reconstruct the complete data payload
+- Apply cryptographic hashing (SHA-256)
+
+**3. Compute Data Root**
+- Build Merkle trees for verification
+- Calculate the final data root hash
+- Generate cryptographic proofs
+
+**4. Compare Against Arweave**
+- Compare computed hash with the original transaction's data root
+- Verify chunks match what was stored on Arweave
+- Ensure data integrity is maintained
+
+## Verification for L1 and L2 Data
+
+### Layer 1 (L1) Transactions
+For native Arweave transactions:
+- **Direct verification** against transaction data roots
+- **Chunk reconstruction** to ensure complete data availability
+- **Hash comparison** with blockchain-recorded values
+
+### Layer 2 (L2) ANS-104 Bundles
+For bundled data items:
+- **Bundle validation** to verify the container transaction
+- **Individual item verification** for each bundled data item
+- **Merkle proof generation** linking items to verified bundles
+- **Nested verification** for bundles within bundles
+
+## Verification Results
+
+### When Verification Succeeds
+- Data is marked as verified and becomes available to users
+- Verification timestamp is recorded for audit trails
+- Status is shared with other gateways in the network
+
+### When Verification Fails
+- Discrepancy is logged with computed vs. expected hash values
+- Data is queued for re-import from Arweave
+- Retry attempts are tracked and managed
+- Consistently failing data may be quarantined
+- Network monitoring is notified of persistent issues
+
+## Chunk-Level Verification
+
+Gateways verify data integrity at the chunk level:
+
+### Ensuring Complete Reconstruction
+- All required chunks are available and uncorrupted
+- Chunks can be properly reassembled into the original data
+- Missing chunks are identified and re-fetched from Arweave
+
+### Cryptographic Validation
+- Individual chunk hashes match expected values
+- Chunk sequences produce the correct final data hash
+- Merkle proofs link chunks to their transaction roots
+
+### Performance Benefits
+- Parallel verification of multiple chunks
+- Cached verification results avoid repeated computation
+- Incremental verification as new chunks become available
+
+## Why Verification Matters
+
+### Network Trust
+- Multiple gateways independently verify the same data
+- Cross-validation between network participants ensures accuracy
+- Distributed verification creates consensus on data integrity
+
+### Proactive Quality Assurance
+- Early detection of storage or transmission issues
+- Automatic remediation of corrupted data
+- Continuous monitoring of network data health
+
+### User Confidence
+- Cryptographic proof that served data is authentic
+- Transparency through verification timestamps and status
+- Reliable access to verified permanent data
+
+Data verification works with other gateway functions to ensure reliable access to permanent data. Learn more about [Data Indexing](/learn/gateways/data-indexing) and [Data Sharing](/learn/gateways/data-sharing) capabilities.

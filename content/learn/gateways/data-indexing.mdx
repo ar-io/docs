@@ -1,0 +1,222 @@
+---
+title: "Data Indexing"
+description: "How AR.IO gateways provide indexing capabilities for L1 and L2 data items, enabling querying and header retrieval beyond raw data access"
+---
+
+# Data Indexing
+
+AR.IO gateways provide comprehensive indexing capabilities that go far beyond simple data retrieval. By indexing both Layer 1 (L1) transactions and Layer 2 (L2) ANS-104 data items, gateways enable sophisticated querying, filtering, and metadata access that makes the permaweb practical for real-world applications.
+
+## What is Data Indexing?
+
+Data indexing is the process of organizing and cataloging data to enable fast, efficient querying and retrieval. While Arweave provides permanent storage, gateways add the critical indexing layer that makes this data discoverable and usable.
+
+**Key Capabilities:**
+- **Metadata extraction** - Parse and index transaction headers, tags, and properties
+- **Content categorization** - Organize data by type, application, owner, and custom criteria
+- **Query interfaces** - Provide APIs for complex searches and filtering
+- **Performance optimization** - Enable fast lookups without scanning the entire blockweave
+
+## Layer 1 (L1) Transaction Indexing
+
+Gateways index native Arweave transactions with comprehensive metadata extraction:
+
+### Transaction Properties
+- **Transaction ID** - Unique identifier for each transaction
+- **Block height** - When the transaction was mined
+- **Owner address** - Public key of the transaction creator
+- **Data size** - Size of the attached data
+- **Reward amount** - AR tokens paid for storage
+- **Signature** - Cryptographic signature verifying authenticity
+
+### Tag-Based Indexing
+Arweave transactions can include custom tags that gateways index for querying:
+
+```json
+{
+  "id": "transaction_id",
+  "tags": [
+    {"name": "Content-Type", "value": "application/json"},
+    {"name": "App-Name", "value": "MyDApp"},
+    {"name": "App-Version", "value": "1.0.0"},
+    {"name": "Data-Protocol", "value": "Atomic-Assets"}
+  ]
+}
+```
+
+**Common Query Patterns:**
+- Find all transactions by a specific owner
+- Filter by content type or application
+- Search by date range or block height
+- Locate transactions with specific tag combinations
+
+## Layer 2 (L2) ANS-104 Data Items
+
+ANS-104 enables bundling multiple data items into a single L1 transaction, creating a Layer 2 data structure. Gateways provide specialized indexing for these bundled items:
+
+### Bundle Structure Indexing
+- **Bundle transaction** - The L1 transaction containing the bundle
+- **Data items** - Individual items within the bundle
+- **Manifests** - Indexes and references to bundle contents
+- **Nested bundles** - Support for bundles within bundles
+
+### Data Item Properties
+Each ANS-104 data item has its own indexed metadata:
+
+```json
+{
+  "id": "data_item_id", 
+  "owner": "owner_address",
+  "target": "target_address",
+  "anchor": "anchor_value",
+  "tags": [
+    {"name": "Content-Type", "value": "text/html"},
+    {"name": "Page-Title", "value": "My Web Page"}
+  ],
+  "data_size": 1024,
+  "signature": "signature_value"
+}
+```
+
+### Advanced L2 Querying
+Gateways enable complex queries across bundled data:
+- **Cross-bundle searches** - Find related data items across multiple bundles
+- **Hierarchical queries** - Navigate bundle structures and manifests
+- **Batch operations** - Retrieve multiple related data items efficiently
+- **Dependency mapping** - Track relationships between data items
+
+## Querying and Header Retrieval
+
+Gateways provide multiple interfaces for accessing indexed data beyond raw data retrieval:
+
+### GraphQL Interface
+Most gateways offer GraphQL endpoints for sophisticated querying:
+
+```graphql
+query {
+  transactions(
+    tags: [
+      {name: "App-Name", values: ["MyDApp"]},
+      {name: "Content-Type", values: ["application/json"]}
+    ]
+    first: 10
+  ) {
+    edges {
+      node {
+        id
+        owner {
+          address
+        }
+        tags {
+          name
+          value
+        }
+        block {
+          height
+          timestamp
+        }
+      }
+    }
+  }
+}
+```
+
+### REST API Endpoints
+RESTful interfaces for programmatic access:
+
+```bash
+# Get transaction metadata only
+GET /tx/{id}/status
+
+# Search by tags
+GET /graphql?query={transactions(tags:[{name:"App-Name",values:["MyDApp"]}])}
+
+# Get bundle manifest
+GET /{bundle_id}/manifest
+
+# Retrieve specific data item headers
+GET /raw/{data_item_id}/headers
+```
+
+### Header-Only Retrieval
+Gateways can return just metadata without downloading full data:
+
+```json
+{
+  "id": "transaction_id",
+  "public": "owner_public_key",
+  "signature": "transaction_signature", 
+  "target": "target_address",
+  "quantity": "0",
+  "data_size": "1024",
+  "data_tree": [],
+  "data_root": "data_root_hash",
+  "reward": "reward_amount",
+  "last_tx": "previous_tx_id",
+  "tags": [
+    {"name": "Content-Type", "value": "application/json"}
+  ]
+}
+```
+
+## Indexing vs Raw Data Retrieval
+
+Understanding the distinction between indexing and raw data retrieval is crucial:
+
+### Raw Data Retrieval
+- **Purpose**: Get the actual data content
+- **Endpoint**: `/{transaction_id}` or `/raw/{data_item_id}`
+- **Response**: The full data payload
+- **Use Case**: Displaying content, downloading files
+
+### Indexed Data Access
+- **Purpose**: Query metadata, discover content, filter results
+- **Endpoint**: `/graphql`, `/tx/{id}/status`, search APIs
+- **Response**: Structured metadata and references
+- **Use Case**: Building indexes, search functionality, analytics
+
+## Performance Benefits
+
+Gateway indexing provides significant performance advantages:
+
+### Fast Lookups
+- **Pre-computed indexes** eliminate need to scan blockweave
+- **Cached results** for common queries
+- **Optimized data structures** for specific query patterns
+
+### Reduced Bandwidth
+- **Header-only requests** avoid downloading unnecessary data
+- **Filtered results** return only relevant transactions
+- **Pagination** enables efficient browsing of large datasets
+
+### Real-Time Updates
+- **Live indexing** as new transactions are mined
+- **Webhook notifications** for applications tracking specific data
+- **Incremental updates** to maintain fresh indexes
+
+## Use Cases
+
+Data indexing enables a wide range of applications:
+
+### Content Management
+- **File browsers** for navigating permanent storage
+- **Version control** tracking document changes over time
+- **Content discovery** finding related or similar data
+
+### Application Development
+- **User profiles** aggregating all data by owner
+- **Activity feeds** chronological views of application data
+- **Search functionality** within decentralized applications
+
+### Analytics and Monitoring
+- **Usage statistics** for applications and content
+- **Network analysis** understanding data flow patterns
+- **Compliance tracking** for regulatory requirements
+
+## Next Steps
+
+Understanding data indexing is essential for building sophisticated permaweb applications. Explore how gateways implement these capabilities and how to leverage them in your applications:
+
+- Learn about [Gateway Architecture](/learn/gateways/architecture) to understand the technical implementation
+- Explore [Data Sharing](/learn/gateways/data-sharing) protocols for collaborative indexing
+- Review [API Documentation](/apis/ar-io-node/gateway) for specific query interfaces

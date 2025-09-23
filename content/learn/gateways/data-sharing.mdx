@@ -16,11 +16,88 @@ Additionally, gateways that receive requests for cache-missed data from other ga
 However, gateways are not forced to share data with one another and can choose not to share their data if the intended recipient is acting maliciously.
 Such behaviors might include failure to reciprocate in data sharing, engaging in dishonest activities / observation, or distributing invalid data.
 
-## Data Verification
+## Gateway Data Sharing Architecture
 
-Gateway data verification is achieved by linking content hashes of transactions and data items to data roots on the Arweave base layer chain.
-Gateways index the chain from a trusted Arweave node and compute data roots for the base layer transaction data they download, ensuring that their data aligns with what was originally uploaded to Arweave.
-For base layer bundles that have already been verified, gateways compute hashes of individual data items, establishing a connection between the data root, the verified bundle, and the data items it contains.
-Gateways then expose these hashes and their verification status to users via HTTP headers on data responses.
+```mermaid
+graph TD
+    subgraph "AR.IO Network"
+        GW1[Gateway 1]
+        GW2[Gateway 2]
+        GW3[Gateway 3]
+        GAR[Gateway Address Registry]
+    end
+    
+    subgraph "Arweave Network"
+        ARWEAVE[Arweave Nodes]
+    end
+    
+    USER[Client] --> GW1
+    GW1 <--> GAR
+    GW2 <--> GAR
+    GW3 <--> GAR
+    
+    GW1 <--> GW2
+    GW2 <--> GW3
+    GW1 <--> GW3
+    
+    GW1 --> ARWEAVE
+    GW2 --> ARWEAVE
+    GW3 --> ARWEAVE
+    
+    classDef gateway fill:#2563eb,stroke:#1d4ed8,stroke-width:2px,color:#fff
+    classDef registry fill:#7c3aed,stroke:#5b21b6,stroke-width:2px,color:#fff
+    classDef arweave fill:#dc2626,stroke:#b91c1c,stroke-width:2px,color:#fff
+    
+    class GW1,GW2,GW3 gateway
+    class GAR registry
+    class ARWEAVE arweave
+```
 
-TODO: ADD CARDS AND DIAGRAMS FOR HOW GATEWAYS SHARE DATA
+## Shared Data Types
+
+Gateways cooperatively share multiple types of data to improve network performance:
+
+### Transaction Header Data
+- **Metadata** about Arweave transactions
+- **Block information** and confirmations
+- **Tag indexes** for efficient querying
+
+### Data Items
+- **ANS-104 bundled items** cached across gateways
+- **Content data** for frequently accessed items
+- **Manifest information** for bundle navigation
+
+### Chunk Data
+- **Raw data chunks** from Arweave transactions
+- **Reconstructed data** for faster delivery
+- **Partial content** for streaming applications
+
+## Quality of Service Prioritization
+
+AR.IO gateways provide differentiated service levels:
+
+### Gateway-to-Gateway Requests
+- **Higher bandwidth allocation** for peer requests
+- **Priority queuing** over general user requests
+- **Extended timeout tolerances** for large data transfers
+
+### General User Requests
+- **Standard service levels** for public access
+- **Rate limiting** to prevent abuse
+- **Fair sharing** of available resources
+
+## Malicious Behavior Detection
+
+Gateways monitor peer behavior and can refuse service to bad actors:
+
+### Reciprocity Monitoring
+- **Data sharing ratios** tracked over time
+- **Request/response patterns** analyzed for fairness
+- **Blacklisting** of non-reciprocating gateways
+
+### Data Integrity Checks
+- **Hash verification** of shared data
+- **Consistency validation** across multiple sources
+- **Reporting** of invalid data distribution
+
+Learn more about how gateways ensure data integrity in [Data Verification](/learn/gateways/data-verification).
