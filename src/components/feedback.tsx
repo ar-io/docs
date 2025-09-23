@@ -11,7 +11,7 @@ import { cva } from 'class-variance-authority';
 import { usePathname } from 'next/navigation';
 
 const rateButtonVariants = cva(
-  'inline-flex items-center gap-2 px-3 py-2 rounded-full font-medium border text-sm [&_svg]:size-4 disabled:cursor-not-allowed',
+  'inline-flex items-center gap-2 px-3 py-2 rounded-full font-medium border text-sm [&_svg]:size-4 cursor-pointer hover:bg-fd-muted/50 transition-colors disabled:cursor-not-allowed disabled:hover:bg-transparent',
   {
     variants: {
       active: {
