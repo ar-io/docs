@@ -1,0 +1,832 @@
+---
+title: "Uploading to Arweave"
+description: "Learn how to upload data to Arweave using the Turbo SDK, including authentication, purchasing credits, and file uploads"
+---
+
+Learn how to upload data to Arweave using the **Turbo SDK** for a streamlined upload experience with multiple payment options and authentication methods.
+
+## What You'll Learn
+
+- How to install and authenticate with the Turbo SDK
+- Different authentication methods (Arweave, Ethereum, Solana, etc.)
+- How to purchase Turbo Credits
+- How to upload files, strings, binary data, and entire folders to Arweave
+- Browser and Node.js implementation examples
+- Using the versatile `upload` method for all data types
+
+## Prerequisites
+
+- Node.js environment or modern web browser
+- Wallet for authentication (Arweave, Ethereum, Solana, etc.)
+- Basic understanding of JavaScript/TypeScript
+
+## Quick Start
+
+<Steps>
+  <Step>
+    ### Install the Turbo SDK
+
+    ```bash
+    # For Node.js
+    npm install @ardrive/turbo-sdk
+
+    # For Yarn users
+    yarn add @ardrive/turbo-sdk
+    ```
+
+  </Step>
+
+  <Step>
+    ### Authenticate with Your Wallet
+
+    Choose your preferred authentication method:
+
+    <Tabs items={['Node.js', 'Browser']}>
+      <Tab value="Node.js">
+        <Tabs items={['Arweave JWK', 'Ethereum', 'Solana', 'Polygon', 'KYVE']}>
+          <Tab value="Arweave JWK">
+            ```typescript
+            import { TurboFactory } from '@ardrive/turbo-sdk'
+            import fs from 'fs'
+
+            // Load your Arweave JWK file
+            const jwk = JSON.parse(fs.readFileSync('wallet.json', 'utf-8'))
+            const turbo = await TurboFactory.authenticated({
+              privateKey: jwk, // ArweaveJWK type
+              token: 'arweave', // Default token type
+            })
+            ```
+
+          </Tab>
+
+          <Tab value="Ethereum">
+            ```typescript
+            import { TurboFactory, EthereumSigner } from '@ardrive/turbo-sdk'
+
+            // Your Ethereum private key (with 0x prefix)
+            const privateKey = '0x1234...' // EthPrivateKey type
+
+            // Create an Ethereum signer instance
+            const signer = new EthereumSigner(privateKey)
+            const turbo = await TurboFactory.authenticated({
+              signer,
+              token: 'ethereum',
+            })
+            ```
+
+          </Tab>
+
+          <Tab value="Solana">
+            ```typescript
+            import { TurboFactory } from '@ardrive/turbo-sdk'
+            import bs58 from 'bs58'
+
+            // Your Solana secret key (as Uint8Array)
+            const secretKey = new Uint8Array([...]) // SolSecretKey type
+
+            const turbo = await TurboFactory.authenticated({
+              privateKey: bs58.encode(secretKey),
+              token: 'solana'
+            })
+            ```
+
+          </Tab>
+
+          <Tab value="Polygon">
+            ```typescript
+            import { TurboFactory, EthereumSigner } from '@ardrive/turbo-sdk'
+
+            // Your Polygon private key (with 0x prefix)
+            const privateKey = '0x1234...' // EthPrivateKey type
+
+            // Create an Ethereum signer instance for Polygon
+            const signer = new EthereumSigner(privateKey)
+            const turbo = await TurboFactory.authenticated({
+              signer,
+              token: 'matic', // or 'pol'
+            })
+            ```
+
+          </Tab>
+
+          <Tab value="KYVE">
+            ```typescript
+            import { TurboFactory } from '@ardrive/turbo-sdk'
+
+            // Your KYVE private key (hexadecimal)
+            const privateKey = '0x1234...' // KyvePrivateKey type
+
+            const turbo = await TurboFactory.authenticated({
+              privateKey,
+              token: 'kyve',
+            })
+            ```
+
+          </Tab>
+        </Tabs>
+
+      </Tab>
+
+      <Tab value="Browser">
+        <Tabs items={['Arweave (Wander)', 'Metamask (Wagmi)', 'Metamask (Ethers)', 'Solana (Phantom)']}>
+          <Tab value="Arweave (Wander)">
+            ```typescript
+            import { TurboFactory, ArConnectSigner } from '@ardrive/turbo-sdk/web'
+
+            async function initializeTurbo() {
+              await window.arweaveWallet.connect([
+                'ACCESS_ADDRESS',
+                'ACCESS_PUBLIC_KEY',
+                'SIGN_TRANSACTIONS',
+                'SIGN_MESSAGE',
+                'SIGNATURE',
+              ])
+
+              const turbo = await TurboFactory.authenticated({
+                signer: new ArConnectSigner(window.arweaveWallet),
+              })
+            }
+            ```
+
+          </Tab>
+
+          <Tab value="Metamask (Wagmi)">
+            ```typescript
+            import { TurboFactory } from '@ardrive/turbo-sdk/web'
+            import { InjectedEthereumSigner } from '@dha-team/arbundles'
+            import { getAccount, signMessage } from 'wagmi/actions'
+            import { hashMessage, recoverPublicKey, toBytes } from 'viem'
+
+            // Global variables for Wagmi config and connector
+            let config = null
+            let connector = null
+            let turboInstance = null
+
+            // Function to set up Wagmi configuration
+            export function setWagmiConfig(wagmiConfig, wagmiConnector) {
+              config = wagmiConfig
+              connector = wagmiConnector
+            }
+
+            // Function to initialize Turbo with Wagmi
+            export async function initializeTurbo(userAddress) {
+              try {
+                if (!config || !connector) {
+                  throw new Error(
+                    'Wagmi config and connector not set. Call setWagmiConfig first.',
+                  )
+                }
+
+                console.log('Initializing Turbo client...')
+
+                // Create a provider that uses wagmi's signMessage
+                const provider = {
+                  getSigner: () => ({
+                    signMessage: async (message) => {
+                      const arg = message instanceof String ? message : { raw: message }
+                      const ethAccount = getAccount(config)
+                      return await signMessage(config, {
+                        message: arg,
+                        account: ethAccount.address,
+                        connector: connector,
+                      })
+                    },
+                  }),
+                }
+
+                // Create the Turbo signer
+                const signer = new InjectedEthereumSigner(provider)
+
+                // Set up the public key
+                signer.setPublicKey = async () => {
+                  const message = 'Sign this message to connect to Turbo'
+                  const ethAccount = getAccount(config)
+                  const signature = await signMessage(config, {
+                    message: message,
+                    account: ethAccount.address,
+                    connector: connector,
+                  })
+                  const hash = await hashMessage(message)
+                  const recoveredKey = await recoverPublicKey({
+                    hash,
+                    signature,
+                  })
+                  signer.publicKey = Buffer.from(toBytes(recoveredKey))
+                }
+
+                // Initialize the signer
+                await signer.setPublicKey()
+
+                turboInstance = await TurboFactory.authenticated({
+                  signer: signer,
+                  token: 'base-eth', // Can be changed to 'ethereum' or 'matic', etc.
+                })
+
+                console.log('Turbo client initialized successfully')
+                return turboInstance
+              } catch (error) {
+                console.error('Error initializing Turbo client:', error)
+                turboInstance = null
+                throw error
+              }
+            }
+            ```
+
+          </Tab>
+
+          <Tab value="Metamask (Ethers)">
+            ```typescript
+            import { BrowserProvider } from 'ethers'
+            import { TurboFactory } from '@ardrive/turbo-sdk/web'
+            import { InjectedEthereumSigner } from '@dha-team/arbundles'
+
+            export const connectToMetaMask = async () => {
+              if (!window.ethereum) {
+                throw new Error('Please install MetaMask to use this application')
+              }
+
+              try {
+                const accounts = await window.ethereum.request({
+                  method: 'eth_requestAccounts',
+                })
+
+                const metaMaskProvider = window.ethereum.providers?.find(
+                  (p) => p.isMetaMask,
+                )
+                const provider = new BrowserProvider(metaMaskProvider ?? window.ethereum)
+                const signer = await provider.getSigner()
+
+                const turbo = TurboFactory.authenticated({
+                  signer: new InjectedEthereumSigner({ getSigner: () => signer }),
+                  token: 'ethereum',
+                })
+
+                return { turbo, address: accounts[0] }
+              } catch (error) {
+                console.error('Connection failed:', error)
+                throw error
+              }
+            }
+            ```
+
+          </Tab>
+
+          <Tab value="Solana (Phantom)">
+            ```typescript
+            import { TurboFactory, SolanaWalletAdapter } from '@ardrive/turbo-sdk/web'
+            import { PublicKey } from '@solana/web3.js'
+
+            export async function initializeSolanaTurbo() {
+              try {
+                // Check if Phantom is installed
+                if (window.solana) {
+                  const provider = window.solana
+                  const publicKey = new PublicKey((await provider.connect()).publicKey)
+
+                  const wallet: SolanaWalletAdapter = {
+                    publicKey,
+                    signMessage: async (message: Uint8Array) => {
+                      // Call Phantom's signMessage method
+                      const { signature } = await provider.signMessage(message)
+                      return signature
+                    },
+                  }
+
+                  solanaTurboInstance = TurboFactory.authenticated({
+                    token: 'solana',
+                    walletAdapter: wallet,
+                  })
+                }
+              } catch (err) {
+                console.error(err)
+              }
+            }
+            ```
+
+          </Tab>
+        </Tabs>
+
+      </Tab>
+    </Tabs>
+
+  </Step>
+
+  <Step>
+    ### Purchase Turbo Credits
+
+    [Turbo Credits](/build/upload/turbo-credits) are the payment medium used by the Turbo Upload Service. Each Credit represents a 1:1 conversion from the upload power of the Arweave native token (AR).
+
+    <Tabs items={['Purchase Methods', 'Purchase with Crypto']}>
+      <Tab value="Purchase Methods">
+        - **Fiat Currency**: Credit/debit cards via the [Turbo Top Up App](https://turbo-topup.com/)
+        - **Cryptocurrencies**: AR, ETH, SOL, MATIC, ARIO, USDC, KYVE, ETH (BASE)
+        - **Multiple Wallets**: Ethereum, Solana, and Arweave wallets supported
+
+      </Tab>
+
+      <Tab value="Purchase with Crypto">
+        <Tabs items={['Arweave', 'Ethereum', 'Solana', 'Polygon', 'KYVE']}>
+          <Tab value="Arweave">
+            ```typescript
+            import { TurboFactory, WinstonToTokenAmount } from '@ardrive/turbo-sdk'
+
+            // Initialize authenticated client
+            const turbo = await TurboFactory.authenticated({
+              privateKey: jwk
+            })
+
+            // Top up with AR tokens
+            const topUpResult = await turbo.topUpWithTokens({
+              tokenAmount: WinstonToTokenAmount(100_000_000), // 0.0001 AR
+            })
+            ```
+
+          </Tab>
+
+          <Tab value="Ethereum">
+            ```typescript
+            import { TurboFactory, EthereumSigner } from '@ardrive/turbo-sdk'
+
+            // Initialize authenticated client
+            const turbo = await TurboFactory.authenticated({
+              signer: new EthereumSigner(privateKey),
+              token: 'ethereum',
+            })
+
+            // Top up with ETH tokens
+            const topUpResult = await turbo.topUpWithTokens({
+              tokenAmount: 0.001, // 0.001 ETH
+            })
+            ```
+
+          </Tab>
+
+          <Tab value="Solana">
+            ```typescript
+            import { TurboFactory } from '@ardrive/turbo-sdk'
+
+            // Initialize authenticated client
+            const turbo = await TurboFactory.authenticated({
+              privateKey: bs58.encode(secretKey),
+              token: 'solana'
+            })
+
+            // Top up with SOL tokens
+            const topUpResult = await turbo.topUpWithTokens({
+              tokenAmount: 0.1, // 0.1 SOL
+            })
+            ```
+
+          </Tab>
+
+          <Tab value="Polygon">
+            ```typescript
+            import { TurboFactory, EthereumSigner } from '@ardrive/turbo-sdk'
+
+            // Initialize authenticated client
+            const turbo = await TurboFactory.authenticated({
+              signer: new EthereumSigner(privateKey),
+              token: 'matic',
+            })
+
+            // Top up with MATIC tokens
+            const topUpResult = await turbo.topUpWithTokens({
+              tokenAmount: 1.0, // 1.0 MATIC
+            })
+            ```
+
+          </Tab>
+
+          <Tab value="KYVE">
+            ```typescript
+            import { TurboFactory } from '@ardrive/turbo-sdk'
+
+            // Initialize authenticated client
+            const turbo = await TurboFactory.authenticated({
+              privateKey,
+              token: 'kyve',
+            })
+
+            // Top up with KYVE tokens
+            const topUpResult = await turbo.topUpWithTokens({
+              tokenAmount: 100, // 100 KYVE
+            })
+            ```
+
+          </Tab>
+        </Tabs>
+
+      </Tab>
+    </Tabs>
+
+  </Step>
+
+  <Step>
+    ### Upload Your First File
+
+    ```typescript
+    // Upload a single file using the versatile upload method
+    const result = await turbo.upload({
+      data: file, // Can be File, Blob, Buffer, Uint8Array, ArrayBuffer, or string
+      dataItemOpts: {
+        tags: [
+          { name: "Content-Type", value: file.type || "application/octet-stream" },
+          { name: "App-Name", value: "MyApp-v1.0" },
+        ],
+      },
+    });
+
+    console.log("File uploaded!", {
+      id: result.id,
+      url: `https://arweave.net/${result.id}`,
+      owner: result.owner,
+      dataCaches: result.dataCaches,
+    });
+    ```
+
+  </Step>
+</Steps>
+
+## Uploading Files
+
+<Tabs items={['Single Files', 'Different Data Types', 'Multiple Files', 'Entire Folders']}>
+  <Tab value="Single Files">
+    ### Basic File Upload
+
+    ```typescript
+    // Upload a single file using the versatile upload method
+    const result = await turbo.upload({
+      data: file, // Can be File, Blob, Buffer, Uint8Array, ArrayBuffer, or string
+      dataItemOpts: {
+        tags: [
+          { name: "Content-Type", value: file.type || "application/octet-stream" },
+          { name: "App-Name", value: "MyApp-v1.0" },
+        ],
+      },
+    });
+
+    console.log("File uploaded!", {
+      id: result.id,
+      url: `https://arweave.net/${result.id}`,
+      owner: result.owner,
+      dataCaches: result.dataCaches,
+    });
+    ```
+
+    ### Upload with Custom Tags
+
+    ```typescript
+    const result = await turbo.upload({
+      data: file,
+      dataItemOpts: {
+        tags: [
+          { name: "Content-Type", value: "application/json" },
+          { name: "App-Name", value: "MyApp-v1.0" },
+          { name: "App-Version", value: "1.0.0" },
+          { name: "Description", value: "My application data" },
+        ],
+      },
+    });
+    ```
+
+  </Tab>
+
+  <Tab value="Different Data Types">
+    ### Upload Strings
+
+    ```typescript
+    // Upload a string
+    const stringResult = await turbo.upload({
+      data: "Hello, Arweave!",
+      dataItemOpts: {
+        tags: [
+          { name: "Content-Type", value: "text/plain" },
+          { name: "App-Name", value: "MyApp-v1.0" },
+        ],
+      },
+    });
+    ```
+
+    ### Upload JSON Data
+
+    ```typescript
+    // Upload a JSON object
+    const jsonData = { message: "Hello", timestamp: Date.now() };
+    const jsonResult = await turbo.upload({
+      data: JSON.stringify(jsonData),
+      dataItemOpts: {
+        tags: [
+          { name: "Content-Type", value: "application/json" },
+          { name: "App-Name", value: "MyApp-v1.0" },
+        ],
+      },
+    });
+    ```
+
+    ### Upload Binary Data
+
+    ```typescript
+    // Upload binary data
+    const binaryData = new Uint8Array([1, 2, 3, 4, 5]);
+    const binaryResult = await turbo.upload({
+      data: binaryData,
+      dataItemOpts: {
+        tags: [
+          { name: "Content-Type", value: "application/octet-stream" },
+          { name: "App-Name", value: "MyApp-v1.0" },
+        ],
+      },
+    });
+    ```
+
+  </Tab>
+
+  <Tab value="Multiple Files">
+    ### Upload Multiple Files
+
+    ```typescript
+    const files = [file1, file2, file3];
+    const uploadPromises = files.map((file) =>
+      turbo.upload({
+        data: file,
+        dataItemOpts: {
+          tags: [
+            {
+              name: "Content-Type",
+              value: file.type || "application/octet-stream",
+            },
+            { name: "App-Name", value: "MyApp-v1.0" },
+          ],
+        },
+      })
+    );
+
+    const results = await Promise.all(uploadPromises);
+    console.log("All files uploaded!", results);
+    ```
+
+  </Tab>
+
+  <Tab value="Entire Folders">
+    ### Upload an Entire Folder (Node.js)
+
+    ```typescript
+    const folderResult = await turbo.uploadFolder({
+      folderPath: "./my-website",
+      dataItemOpts: {
+        tags: [
+          { name: "App-Name", value: "MyWebsite-v1.0" },
+          { name: "Content-Type", value: "application/x.arweave-manifest+json" },
+        ],
+      },
+      manifestOptions: {
+        indexFile: "index.html",
+        fallbackFile: "404.html",
+      },
+    });
+
+    console.log("Folder uploaded!", {
+      manifestId: folderResult.manifestResponse?.id,
+      fileCount: folderResult.fileResponses.length,
+      manifest: folderResult.manifest,
+    });
+    ```
+
+    ### Upload Multiple Files as a Folder (Browser)
+
+    ```typescript
+    const files = [file1, file2, file3];
+    const webFolderResult = await turbo.uploadFolder({
+      files: files,
+      dataItemOpts: {
+        tags: [{ name: "App-Name", value: "MyWebsite-v1.0" }],
+      },
+      manifestOptions: {
+        indexFile: "index.html",
+      },
+    });
+    ```
+
+  </Tab>
+</Tabs>
+
+## Browser Implementation Examples
+
+### File Input with Drag & Drop
+
+```html
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Turbo Upload Example</title>
+    <style>
+      .drop-zone {
+        border: 2px dashed #ccc;
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+        margin: 20px 0;
+      }
+      .drag-over {
+        border-color: #007bff;
+        background-color: #f8f9fa;
+      }
+    </style>
+  </head>
+  <body>
+    <input type="file" id="file-input" multiple />
+    <div class="drop-zone" id="drop-zone">
+      <p>Drag and drop files here or click to select</p>
+    </div>
+
+    <script type="module">
+      // Your Turbo initialization code here
+      // ... (authentication code from above)
+
+      const fileInput = document.getElementById("file-input");
+      const dropZone = document.getElementById("drop-zone");
+
+      // File input handler
+      fileInput.addEventListener("change", async (event) => {
+        const files = Array.from(event.target.files);
+        for (const file of files) {
+          await uploadFile(file);
+        }
+      });
+
+      // Drag and drop handlers
+      dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.add("drag-over");
+      });
+
+      dropZone.addEventListener("dragleave", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove("drag-over");
+      });
+
+      dropZone.addEventListener("drop", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove("drag-over");
+
+        const files = Array.from(e.dataTransfer.files);
+        for (const file of files) {
+          await uploadFile(file);
+        }
+      });
+
+      async function uploadFile(file) {
+        try {
+          const result = await turbo.upload({
+            data: file,
+            dataItemOpts: {
+              tags: [
+                {
+                  name: "Content-Type",
+                  value: file.type || "application/octet-stream",
+                },
+                { name: "App-Name", value: "MyApp-v1.0" },
+              ],
+            },
+          });
+
+          console.log("File uploaded!", {
+            id: result.id,
+            url: `https://arweave.net/${result.id}`,
+            name: file.name,
+            size: file.size,
+          });
+        } catch (error) {
+          console.error("Upload failed:", error);
+        }
+      }
+    </script>
+  </body>
+</html>
+```
+
+## Advanced Features
+
+<Tabs items={['Cost Management', 'Progress Tracking', 'Error Handling']}>
+  <Tab value="Cost Management">
+    ### Check Upload Costs
+
+    ```typescript
+    // Get upload cost for specific file size
+    const costs = await turbo.getUploadCosts({
+      bytes: [file.size],
+    });
+
+    console.log(`Upload cost: ${costs[0].winc} Winston Credits`);
+    console.log(`USD cost: $${costs[0].usd}`);
+    ```
+
+    ### Check Balance
+
+    ```typescript
+    // Get current balance
+    const balance = await turbo.getBalance();
+    console.log(`Available credits: ${balance.controlledWinc} Winston Credits`);
+    ```
+
+  </Tab>
+
+  <Tab value="Progress Tracking">
+    ### Upload with Progress Tracking
+
+    ```typescript
+    const result = await turbo.upload({
+      data: file,
+      dataItemOpts: {
+        tags: [
+          { name: "Content-Type", value: file.type || "application/octet-stream" },
+          { name: "App-Name", value: "MyApp-v1.0" },
+        ],
+      },
+      events: {
+        onUploadProgress: (progress) => {
+          console.log(
+            `Upload progress: ${Math.round((progress.processedBytes / progress.totalBytes) * 100)}%`
+          );
+        },
+        onSigningProgress: (progress) => {
+          console.log(
+            `Signing progress: ${Math.round((progress.processedBytes / progress.totalBytes) * 100)}%`
+          );
+        },
+      },
+    });
+    ```
+
+  </Tab>
+
+  <Tab value="Error Handling">
+    ### Upload with Error Handling
+
+    ```typescript
+    try {
+      const result = await turbo.upload({
+        data: file,
+        dataItemOpts: {
+          tags: [
+            { name: "Content-Type", value: file.type || "application/octet-stream" },
+            { name: "App-Name", value: "MyApp-v1.0" },
+          ],
+        },
+        events: {
+          onUploadError: (error) => {
+            console.error("Upload failed:", error);
+          },
+          onSigningError: (error) => {
+            console.error("Signing failed:", error);
+          },
+        },
+      });
+
+      console.log("Upload successful:", result);
+    } catch (error) {
+      console.error("Upload error:", error);
+      // Handle error appropriately
+    }
+    ```
+
+  </Tab>
+</Tabs>
+
+## Benefits of Using Turbo
+
+- **Versatile upload method** - Upload files, strings, binary data, or entire folders with a single method
+- **Multiple payment options** - Pay with fiat, crypto, or AR tokens
+- **Easy integration** - Simple SDK for both Node.js and browsers
+- **Automatic retry** - Built-in retry logic for failed uploads
+- **Cost transparency** - See upload costs before confirming
+- **Fast uploads** - Optimized for speed and reliability
+- **Folder support** - Upload entire directories with automatic manifest generation
+
+## Ready to Upload?
+
+<Cards>
+  <Card
+    href="https://turbo-topup.com"
+    title="Purchase Credits"
+    icon={<CreditCard />}
+    arrow
+  >
+    Buy Turbo Credits with fiat or crypto
+  </Card>
+
+<Card href="/build/upload/tagging" title="Learn About Tagging" icon={<Tag />}>
+  Discover best practices for organizing your data
+</Card>
+
+  <Card
+    href="/build/upload/manifests"
+    title="Create Manifests"
+    icon={<FolderOpen />}
+  >
+    Learn how to organize files with manifests
+  </Card>
+</Cards>
