@@ -1,10 +1,10 @@
 import { source } from "@/lib/source";
-import { DocsBody, DocsPage } from "fumadocs-ui/page";
+import { DocsBody, DocsPage, DocsTitle } from "fumadocs-ui/page";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import { createRelativeLink } from "fumadocs-ui/mdx";
 import { getMDXComponents } from "@/mdx-components";
-import Link from "next/link";
+import { LLMCopyButton, ViewOptions } from "@/components/page-actions";
+import { redirect } from "next/navigation";
 
 export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
@@ -14,29 +14,24 @@ export default async function Page(props: {
   // Try to get the page content first (this will work for both root and other pages)
   const page = source.getPage(params.slug);
 
-  // If no page found, show fallback content
+  // If no page found, trigger 404
   if (!page) {
-    return (
-      <main className="flex flex-1 flex-col justify-center text-center">
-        <h1 className="mb-4 text-2xl font-bold">Hello World</h1>
-        <p className="text-fd-muted-foreground">
-          You can open{" "}
-          <Link href="/" className="text-fd-foreground font-semibold underline">
-            the documentation
-          </Link>{" "}
-          and see the documentation.
-        </p>
-      </main>
-    );
+   return redirect("/learn")
   }
 
   const MDXContent = page.data.body;
 
   return (
     <DocsPage toc={page.data.toc} full={page.data.full}>
-      {/* <DocsTitle>{page.data.title}</DocsTitle>
-      <DocsDescription>{page.data.description}</DocsDescription> */}
-      <DocsBody>
+        <DocsTitle>{page.data.title}</DocsTitle>
+        <DocsBody>      
+          <div className="flex flex-row gap-2 items-center border-b pt-2 pb-6">
+            <LLMCopyButton markdownUrl={`https://raw.githubusercontent.com/ar-io/docs-v2/refs/heads/fumadocs/content/${page.path}`} />
+            <ViewOptions
+              markdownUrl={`https://github.com/ar-io/docs-v2/blob/refs/heads/fumadocs/content/${page.path}`}
+              githubUrl={`https://github.com/ar-io/docs-v2/blob/refs/heads/fumadocs/content/${page.path}`}
+            />
+        </div>
         <MDXContent
           components={getMDXComponents({
             // this allows you to link to other pages with relative file paths
