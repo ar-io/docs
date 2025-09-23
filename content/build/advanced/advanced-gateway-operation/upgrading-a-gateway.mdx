@@ -1,0 +1,329 @@
+---
+title: "Upgrading your Gateway"
+description: "Step-by-step guide to upgrading your AR.IO Gateway to the latest version safely without losing data or progress"
+---
+
+# Upgrading your Gateway
+
+To ensure the optimal performance and security of your AR.IO Gateway, it's essential to regularly upgrade to the latest version. Notably, indexed data resides separate from Docker. As a result, neither upgrading the Gateway nor pruning Docker will erase your data or progress. Here's how you can perform the upgrade:
+
+## Prerequisites
+
+- Your Gateway should have been cloned using git. If you haven't, follow the installation instructions for [windows](TODO: find correct link) or [linux](TODO: find correct link).
+
+## Checking your Release Number
+
+Effective with release 3, you can view the currently implemented release on any gateway by visiting `https://<gateway>/ar-io/info` in a browser. Be sure to replace `<gateway>` with the domain of the gateway you are checking.
+
+If the release number displayed includes `-pre` it means that your gateway is using the `develop` branch of the github repo for the gateway code. Follow steps in our [troubleshooting guide](TODO: find correct link) to switch over to the more stable `main` branch.
+
+Announcements will be made in our [discord server](https://discord.gg/7zUPfN4D6g) showing each new release.
+
+## Quick Start
+
+<Steps>
+<Step>
+### Pull Latest Changes
+
+Navigate to your cloned repository directory and execute:
+
+```bash
+git pull
+```
+
+</Step>
+
+<Step>
+### Shut Down Docker
+
+Stop your gateway:
+
+<Tabs items={['Linux', 'Windows']}>
+<Tab value="Linux">
+
+```bash
+sudo docker-compose down -v
+```
+
+</Tab>
+
+<Tab value="Windows">
+
+```bash
+docker-compose down -v
+```
+
+</Tab>
+</Tabs>
+
+</Step>
+
+<Step>
+### Restart Gateway
+
+Start your gateway with the new version:
+
+<Tabs items={['Linux', 'Windows']}>
+<Tab value="Linux">
+
+```bash
+sudo docker-compose up -d
+```
+
+</Tab>
+
+<Tab value="Windows">
+
+```bash
+docker-compose up -d
+```
+
+<Callout type="info" title="Release #3 Note">
+  Effective with Release #3, it is no longer required to include the `--build`
+  flag when starting your gateway. Docker will automatically build using the
+  image specified in the `docker-compose.yaml` file.
+</Callout>
+
+</Tab>
+</Tabs>
+
+</Step>
+</Steps>
+
+## Detailed Upgrade Process
+
+<Tabs items={['Complete Steps', 'Optional Pruning', 'Environment Variables']}>
+<Tab value="Complete Steps">
+
+### Full Upgrade Process
+
+<Steps>
+<Step>
+### Pull Latest Changes
+
+Navigate to your cloned repository directory and execute:
+
+```bash
+git pull
+```
+
+</Step>
+
+<Step>
+### Shut Down Docker
+
+Stop your gateway:
+
+<Tabs items={['Linux', 'Windows']}>
+<Tab value="Linux">
+
+```bash
+sudo docker-compose down -v
+```
+
+</Tab>
+
+<Tab value="Windows">
+
+```bash
+docker-compose down -v
+```
+
+</Tab>
+</Tabs>
+
+</Step>
+
+<Step>
+### Check for New Environment Variables
+
+Read the update release change logs and community announcements to see if the new version includes any new environmental variables that you should set before restarting your gateway.
+
+</Step>
+
+<Step>
+### Restart the Gateway
+
+Start your gateway with the new version:
+
+<Tabs items={['Linux', 'Windows']}>
+<Tab value="Linux">
+
+```bash
+sudo docker-compose up -d
+```
+
+</Tab>
+
+<Tab value="Windows">
+
+```bash
+docker-compose up -d
+```
+
+<Callout type="info" title="Release #3 Note">
+  Effective with Release #3, it is no longer required to include the `--build`
+  flag when starting your gateway. Docker will automatically build using the
+  image specified in the `docker-compose.yaml` file.
+</Callout>
+
+</Tab>
+</Tabs>
+
+</Step>
+</Steps>
+
+</Tab>
+
+<Tab value="Optional Pruning">
+
+### Docker Pruning (Optional)
+
+It's a good practice to clean up unused Docker resources after shutting down your gateway.
+
+<Callout type="warning" title="Important">
+  This will erase all inactive docker containers on your machine. If you use
+  docker for anything beyond running a gateway be extremely careful using this
+  command.
+</Callout>
+
+<Steps>
+<Step>
+### Shut Down Gateway
+
+First, stop your gateway:
+
+<Tabs items={['Linux', 'Windows']}>
+<Tab value="Linux">
+
+```bash
+sudo docker-compose down -v
+```
+
+</Tab>
+
+<Tab value="Windows">
+
+```bash
+docker-compose down -v
+```
+
+</Tab>
+</Tabs>
+
+</Step>
+
+<Step>
+### Prune Docker System
+
+Clean up unused Docker resources:
+
+<Tabs items={['Linux', 'Windows']}>
+<Tab value="Linux">
+
+```bash
+sudo docker system prune
+```
+
+</Tab>
+
+<Tab value="Windows">
+
+```bash
+docker system prune
+```
+
+</Tab>
+</Tabs>
+
+</Step>
+
+<Step>
+### Restart Gateway
+
+Start your gateway:
+
+<Tabs items={['Linux', 'Windows']}>
+<Tab value="Linux">
+
+```bash
+sudo docker-compose up -d
+```
+
+</Tab>
+
+<Tab value="Windows">
+
+```bash
+docker-compose up -d
+```
+
+</Tab>
+</Tabs>
+
+</Step>
+</Steps>
+
+</Tab>
+
+<Tab value="Environment Variables">
+
+### Checking for New Environment Variables
+
+New gateway releases may introduce new environment variables that you need to configure.
+
+<Steps>
+<Step>
+### Review Release Notes
+
+Check the release notes and community announcements for any new environment variables:
+
+- Review the [GitHub releases](https://github.com/ar-io/ar-io-node/releases)
+- Check the [AR.IO Discord](https://discord.gg/7zUPfN4D6g) for announcements
+- Look for changes in the `.env.example` file
+
+</Step>
+
+<Step>
+### Update Your .env File
+
+Add any new environment variables to your `.env` file:
+
+```bash
+# Example: Add new environment variables
+NEW_FEATURE_ENABLED=true
+NEW_CONFIG_VALUE=default_value
+```
+
+</Step>
+
+<Step>
+### Restart Gateway
+
+Restart your gateway to apply the new environment variables:
+
+<Tabs items={['Linux', 'Windows']}>
+<Tab value="Linux">
+
+```bash
+sudo docker-compose up -d
+```
+
+</Tab>
+
+<Tab value="Windows">
+
+```bash
+docker-compose up -d
+```
+
+</Tab>
+</Tabs>
+
+</Step>
+</Steps>
+
+</Tab>
+</Tabs>
+
+That's it! Your AR.IO Gateway is now upgraded to the latest version. Ensure to test and verify that everything is functioning as expected. If you encounter any issues, reach out to the [AR.IO community](https://discord.gg/7zUPfN4D6g) for assistance.

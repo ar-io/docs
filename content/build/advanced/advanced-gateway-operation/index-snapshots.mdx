@@ -1,0 +1,292 @@
+---
+title: "Importing SQLite Database Snapshots"
+description: "Learn how to import SQLite database snapshots to quickly bootstrap your AR.IO Gateway and reduce synchronization time."
+---
+
+# Importing SQLite Database Snapshots
+
+## Overview
+
+One of the challenges of running an AR.IO Gateway is the initial synchronization time as your gateway builds its local index of the Arweave network. This process can take days or even weeks, depending on your hardware and the amount of data you want to index. To accelerate this process, you can import a pre-synchronized SQLite database snapshot that contains transaction and data item records already indexed.
+
+This guide will walk you through the process of importing a database snapshot into your AR.IO Gateway.
+
+<Callout type="info" title="Note">
+The below instructions are designed to be used in a linux environment. Windows and MacOS users must modify the instructions to use the appropriate package manager/ command syntax for their platform.
+
+Unless otherwise specified, all commands should be run from the root directory of the gateway.
+
+</Callout>
+
+## Quick Start
+
+<Steps>
+<Step>
+### Download Database Snapshot
+
+Download the latest database snapshot using BitTorrent:
+
+```bash
+transmission-cli "magnet:?xt=urn:btih:62ca6e05248e6df59fac9e38252e9c71951294ed&dn=2025-04-23-sqlite.tar.gz&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=http%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&tr=udp%3A%2F%2Fp4p.arenabg.com%3A1337%2Fannounce&tr=https%3A%2F%2Ftracker.bt4g.com%3A443%2Fannounce"
+```
+
+This downloads a 42.8GB snapshot current to April 23, 2025.
+
+</Step>
+
+<Step>
+### Extract the Snapshot
+
+Extract the downloaded tarball:
+
+```bash
+tar -xzf 2025-04-23-sqlite.tar.gz
+```
+
+This creates a directory with the extracted database files.
+
+</Step>
+
+<Step>
+### Import the Snapshot
+
+Replace your existing database with the snapshot:
+
+```bash
+# Stop the gateway
+docker compose down
+
+# Backup existing database (optional)
+mkdir sqlite-backup
+mv data/sqlite/* sqlite-backup/
+
+# Remove old database
+rm data/sqlite/*
+
+# Import new snapshot
+mv 2025-04-23-sqlite/* data/sqlite/
+
+# Start the gateway
+docker compose up -d
+```
+
+</Step>
+</Steps>
+
+## Detailed Instructions
+
+<Tabs items={['Download Methods', 'Extraction Process', 'Import Process', 'Verification']}>
+<Tab value="Download Methods">
+
+### Obtaining a Database Snapshot
+
+SQLite database snapshots are very large and not easy to incrementally update. For these reasons, AR.IO is distributing them using BitTorrent.
+
+<Steps>
+<Step>
+### Install Torrent Client
+
+Install a BitTorrent client. We recommend [transmission-cli](https://github.com/transmission/transmission):
+
+```bash
+# Ubuntu/Debian
+sudo apt-get install transmission-cli
+
+# CentOS/RHEL
+sudo yum install transmission-cli
+
+# macOS
+brew install transmission-cli
+```
+
+</Step>
+
+<Step>
+### Download Snapshot
+
+Download the latest snapshot using the magnet link:
+
+```bash
+transmission-cli "magnet:?xt=urn:btih:62ca6e05248e6df59fac9e38252e9c71951294ed&dn=2025-04-23-sqlite.tar.gz&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=http%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&tr=udp%3A%2F%2Fp4p.arenabg.com%3A1337%2Fannounce&tr=https%3A%2F%2Ftracker.bt4g.com%3A443%2Fannounce"
+```
+
+This will download a snapshot, current to April 23, 2025, of an unbundled data set that includes all data items uploaded via an ArDrive product, including Turbo. The file will be named `2025-04-23-sqlite.tar.gz` and be approximately 42.8GB in size.
+
+</Step>
+
+<Step>
+### Consider Seeding
+
+<Callout type="info" title="Seeding Recommendation">
+  While continuing to seed the torrent after download is not required, it is
+  highly recommended to help ensure the continued availability of the snapshot
+  for others, as well as the integrity of the data. Seeding this file should not
+  cause any issues with your internet service provider.
+</Callout>
+
+</Step>
+</Steps>
+
+</Tab>
+
+<Tab value="Extraction Process">
+
+### Extracting the Database Snapshot
+
+Once the file has downloaded, you can extract it using the following command.
+
+<Steps>
+<Step>
+### Verify Download
+
+Check that the file downloaded completely:
+
+```bash
+ls -lh 2025-04-23-sqlite.tar.gz
+# Should show approximately 42.8GB
+```
+
+</Step>
+
+<Step>
+### Extract the Archive
+
+Extract the tarball:
+
+```bash
+tar -xzf 2025-04-23-sqlite.tar.gz
+```
+
+Be sure to replace the filename with the actual filename of the snapshot you are using, if not using the example above.
+
+</Step>
+
+<Step>
+### Verify Extraction
+
+Check that the extraction was successful:
+
+```bash
+ls -la 2025-04-23-sqlite/
+# Should show SQLite database files
+```
+
+This will extract the file into a directory matching the filename, minus the `.tar.gz` extension.
+
+</Step>
+</Steps>
+
+</Tab>
+
+<Tab value="Import Process">
+
+### Importing the Database Snapshot
+
+Once you have an extracted database snapshot, you can import it into your AR.IO gateway by replacing the existing SQLite database files.
+
+<Callout type="warning" title="IMPORTANT">
+  Importing a database snapshot will delete your existing database and replace
+  it with the snapshot you are importing.
+</Callout>
+
+<Steps>
+<Step>
+### Stop the Gateway
+
+Stop your AR.IO gateway:
+
+```bash
+docker compose down
+```
+
+</Step>
+
+<Step>
+### Backup Existing Database
+
+(Optional) Backup your existing SQLite database files:
+
+```bash
+mkdir sqlite-backup
+mv data/sqlite/* sqlite-backup/
+```
+
+</Step>
+
+<Step>
+### Remove Old Database
+
+Delete the existing SQLite database files:
+
+```bash
+rm data/sqlite/*
+```
+
+</Step>
+
+<Step>
+### Import New Snapshot
+
+Move the snapshot files into the `data/sqlite` directory:
+
+```bash
+mv 2025-04-23-sqlite/* data/sqlite/
+```
+
+Be sure to replace `2025-04-23-sqlite` with the actual directory name of the extracted snapshot you are using.
+
+</Step>
+
+<Step>
+### Start the Gateway
+
+Start your AR.IO gateway:
+
+```bash
+docker compose up -d
+```
+
+</Step>
+</Steps>
+
+</Tab>
+
+<Tab value="Verification">
+
+### Verifying the Import
+
+The simplest way to verify the import is to check the gateway logs to see what block number is being imported.
+
+<Steps>
+<Step>
+### Check Gateway Logs
+
+View the gateway logs to see the current block height:
+
+```bash
+docker compose logs -f gateway
+```
+
+Look for messages indicating the current block being processed.
+
+</Step>
+
+<Step>
+### Verify Block Height
+
+The 2025-04-23 snapshot was taken at block `1645229`, so the gateway will start importing blocks after this height if the snapshot was imported successfully.
+
+You should see logs showing blocks being processed starting from block 1645230 or higher.
+
+</Step>
+
+<Step>
+### Use Grafana (Optional)
+
+You can also use the [Grafana Extension](/build/advanced/advanced-gateway-operation/monitoring-with-grafana) to view the last block imported in a more human readable format.
+
+</Step>
+</Steps>
+
+</Tab>
+</Tabs>

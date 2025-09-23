@@ -1,0 +1,710 @@
+---
+title: "Setting Apex Domain Content"
+description: "Complete guide to configuring your AR.IO Gateway to serve custom content from the apex domain"
+---
+
+# Setting Apex Domain Content
+
+Configure your AR.IO Gateway to serve custom content from the apex domain instead of the default Arweave network information. This allows you to customize your gateway's root domain with useful information, project details, or any content you wish to share.
+
+## Overview
+
+Prior to gateway Release 28, the apex domain of a gateway would only display information about the Arweave network. Release 28 introduced two new environment variables that allow a gateway to serve custom content from the apex domain:
+
+- `APEX_TX_ID`: Set to serve content from a specific transaction ID
+- `APEX_ARNS_NAME`: Set to serve content from an ArNS name
+
+These variables enable gateway operators to customize their gateway's apex domain with useful information, details about the operator or associated projects, or any other content they wish to share.
+
+## Quick Start
+
+<Steps>
+<Step>
+### Choose Your Content Source
+
+Decide how you want to serve your content:
+
+**Option 1: Direct Transaction ID**
+
+- Upload your content to Arweave
+- Use the transaction ID directly
+
+**Option 2: ArNS Name (Recommended)**
+
+- Upload your content to Arweave
+- Assign your content's transaction ID to an ArNS name
+- Use the ArNS name for easier management
+
+</Step>
+
+<Step>
+### Upload Your Content
+
+Upload your dApp, website, or other content to Arweave using your preferred method:
+
+- **ArDrive** - For simple file uploads
+- **Turbo** - For application bundles
+- **Direct upload** - For advanced users
+
+</Step>
+
+<Step>
+### Configure Environment Variable
+
+Add one of these variables to your `.env` file:
+
+```bash
+# Option 1: Direct transaction ID
+APEX_TX_ID=your-transaction-id
+
+# Option 2: ArNS name (recommended)
+APEX_ARNS_NAME=your-arns-name
+```
+
+<Callout type="warning" title="IMPORTANT">
+  You cannot set both variables simultaneously. Providing both variables will
+  result in an error.
+</Callout>
+
+</Step>
+
+<Step>
+### Restart Your Gateway
+
+Restart your gateway to apply the changes:
+
+```bash
+docker compose down
+docker compose up -d
+```
+
+</Step>
+
+<Step>
+### Verify Configuration
+
+Visit your gateway's apex domain to confirm the custom content is being served correctly.
+
+</Step>
+</Steps>
+
+## Configuration Methods
+
+<Tabs items={['Transaction ID Method', 'ArNS Name Method', 'Advanced Configuration']}>
+<Tab value="Transaction ID Method">
+
+### Using Direct Transaction ID
+
+<Steps>
+<Step>
+### Upload Content
+
+Upload your content to Arweave and note the transaction ID:
+
+```bash
+# Example: Upload using ArDrive CLI
+ardrive upload-file --file-path ./my-website.html
+
+# Note the returned transaction ID
+# Example: abc123...def789
+```
+
+</Step>
+
+<Step>
+### Set Environment Variable
+
+Add the transaction ID to your `.env` file:
+
+```bash
+APEX_TX_ID=abc123...def789
+```
+
+</Step>
+
+<Step>
+### Restart Gateway
+
+Restart your gateway to apply the configuration:
+
+```bash
+docker compose down
+docker compose up -d
+```
+
+</Step>
+
+<Step>
+### Update Content
+
+To update your content:
+
+1. Upload new content to Arweave
+2. Update `APEX_TX_ID` with the new transaction ID
+3. Restart your gateway
+
+</Step>
+</Steps>
+
+**Advantages:**
+
+- Direct control over content
+- No additional ArNS setup required
+- Simple for one-time content
+
+**Disadvantages:**
+
+- Requires gateway restart for updates
+- Less flexible for content management
+
+</Tab>
+
+<Tab value="ArNS Name Method">
+
+### Using ArNS Name (Recommended)
+
+<Steps>
+<Step>
+### Upload Content
+
+Upload your content to Arweave:
+
+```bash
+# Upload your website or dApp
+ardrive upload-file --file-path ./my-dapp.html
+# Note the transaction ID: xyz789...abc123
+```
+
+</Step>
+
+<Step>
+### Register ArNS Name
+
+Register an ArNS name pointing to your content:
+
+1. Visit [ArNS App](https://arns.app)
+2. Connect your wallet
+3. Choose your desired name (e.g., `my-gateway-content`)
+4. Set the transaction ID: `xyz789...abc123`
+5. Pay the registration fee
+
+</Step>
+
+<Step>
+### Configure Environment Variable
+
+Add the ArNS name to your `.env` file:
+
+```bash
+APEX_ARNS_NAME=my-gateway-content
+```
+
+</Step>
+
+<Step>
+### Restart Gateway
+
+Restart your gateway to apply the configuration:
+
+```bash
+docker compose down
+docker compose up -d
+```
+
+</Step>
+
+<Step>
+### Update Content
+
+To update your content:
+
+1. Upload new content to Arweave
+2. Update the ArNS name to point to the new transaction ID
+3. **No gateway restart required!**
+
+</Step>
+</Steps>
+
+**Advantages:**
+
+- No restart required for content updates
+- Easy content management
+- Professional domain naming
+- Can be updated independently
+
+**Disadvantages:**
+
+- Requires ArNS setup
+- Additional cost for ArNS registration
+
+</Tab>
+
+<Tab value="Advanced Configuration">
+
+### Advanced Setup Options
+
+<Steps>
+<Step>
+### Custom Content Types
+
+Configure different types of content:
+
+**Static Website:**
+
+```bash
+# Upload HTML/CSS/JS files
+APEX_ARNS_NAME=my-gateway-website
+```
+
+**Single Page Application:**
+
+```bash
+# Upload SPA bundle
+APEX_ARNS_NAME=my-dapp
+```
+
+**Documentation Site:**
+
+```bash
+# Upload documentation
+APEX_ARNS_NAME=my-gateway-docs
+```
+
+</Step>
+
+<Step>
+### Content Management Workflow
+
+Implement a content management workflow:
+
+1. **Development** - Test content locally
+2. **Upload** - Deploy to Arweave
+3. **Register** - Create/update ArNS name
+4. **Verify** - Check content on gateway
+5. **Monitor** - Track performance and usage
+
+</Step>
+</Steps>
+
+</Tab>
+</Tabs>
+
+## Use Cases and Examples
+
+<Tabs items={['Gateway Information', 'Project Showcase', 'Documentation', 'Community Examples']}>
+<Tab value="Gateway Information">
+
+### Display Gateway Service Information
+
+Perfect for showcasing your gateway service:
+
+**Content Ideas:**
+
+- Gateway operator information
+- Service capabilities and features
+- Contact information
+- Status and uptime statistics
+- Network participation details
+
+**Example Structure:**
+
+```html
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>My AR.IO Gateway</title>
+    <meta charset="utf-8" />
+  </head>
+  <body>
+    <h1>AR.IO Gateway Service</h1>
+    <p>Reliable gateway infrastructure for the permanent web</p>
+    <ul>
+      <li>High availability</li>
+      <li>Fast response times</li>
+      <li>Global CDN</li>
+    </ul>
+    <p>Contact: operator@example.com</p>
+  </body>
+</html>
+```
+
+</Tab>
+
+<Tab value="Project Showcase">
+
+### Showcase Associated Projects
+
+Highlight your projects and services:
+
+**Content Ideas:**
+
+- Project portfolio
+- Service offerings
+- Recent updates and news
+- Links to other projects
+- Integration examples
+
+**Example Structure:**
+
+```html
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>My Projects - AR.IO Gateway</title>
+  </head>
+  <body>
+    <h1>My Projects</h1>
+    <div class="project">
+      <h2>Project Alpha</h2>
+      <p>Description of project and its features</p>
+      <a href="https://project-alpha.example.com">Visit Project</a>
+    </div>
+    <div class="project">
+      <h2>Project Beta</h2>
+      <p>Another project description</p>
+      <a href="https://project-beta.example.com">Visit Project</a>
+    </div>
+  </body>
+</html>
+```
+
+</Tab>
+
+<Tab value="Documentation">
+
+### Host Documentation
+
+Provide comprehensive documentation:
+
+**Content Ideas:**
+
+- Gateway setup guides
+- API documentation
+- Integration tutorials
+- Troubleshooting guides
+- FAQ sections
+
+**Example Structure:**
+
+```html
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Gateway Documentation</title>
+    <style>
+      .nav {
+        float: left;
+        width: 200px;
+      }
+      .content {
+        margin-left: 220px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="nav">
+      <h3>Navigation</h3>
+      <ul>
+        <li><a href="#setup">Setup Guide</a></li>
+        <li><a href="#api">API Reference</a></li>
+        <li><a href="#troubleshooting">Troubleshooting</a></li>
+      </ul>
+    </div>
+    <div class="content">
+      <h1>Gateway Documentation</h1>
+      <section id="setup">
+        <h2>Setup Guide</h2>
+        <p>Step-by-step setup instructions...</p>
+      </section>
+    </div>
+  </body>
+</html>
+```
+
+</Tab>
+
+<Tab value="Community Examples">
+
+### Real-World Examples
+
+Several gateway operators have implemented this feature:
+
+**arweave.tech**
+
+- Serves a custom landing page with gateway service information
+- Professional presentation of capabilities
+
+**arlink.xyz**
+
+- Serves the permaDapp for the Arlink project
+- Demonstrates integration with existing projects
+
+**frostor.xyz / love4src.com**
+
+- Serves information about the Memetic Block Software Guild
+- Showcases community and project information
+
+**vilenarios.com**
+
+- Serves personalized portfolio/link tree information
+- Personal branding and contact information
+
+**permagate.io**
+
+- Serves personalized link tree information
+- Professional operator presence
+
+<Callout type="info">
+  These examples demonstrate the flexibility of the apex domain feature and how
+  different operators use it to create unique, personalized experiences for
+  their users.
+</Callout>
+
+</Tab>
+</Tabs>
+
+## Troubleshooting
+
+<Tabs items={['Configuration Issues', 'Content Problems', 'ArNS Issues']}>
+<Tab value="Configuration Issues">
+
+### Fix Configuration Problems
+
+<Steps>
+<Step>
+### Check Environment Variables
+
+Verify your `.env` file configuration:
+
+```bash
+# Check if variables are set correctly
+grep -E "APEX_(TX_ID|ARNS_NAME)" .env
+
+# Should show only one of:
+# APEX_TX_ID=your-transaction-id
+# APEX_ARNS_NAME=your-arns-name
+```
+
+<Callout type="warning">
+  Ensure you have only ONE of the APEX variables set, not both.
+</Callout>
+
+</Step>
+
+<Step>
+### Verify Gateway Restart
+
+Ensure your gateway has been restarted after configuration changes:
+
+```bash
+# Check if gateway is running
+docker compose ps
+
+# Restart if needed
+docker compose down
+docker compose up -d
+```
+
+</Step>
+
+<Step>
+### Check Gateway Logs
+
+Review logs for any error messages:
+
+```bash
+docker compose logs ar-io-core | grep -i apex
+```
+
+</Step>
+</Steps>
+
+</Tab>
+
+<Tab value="Content Problems">
+
+### Resolve Content Issues
+
+<Steps>
+<Step>
+### Verify Content Accessibility
+
+Test if your content is accessible:
+
+```bash
+# Test transaction ID directly
+curl -I https://arweave.net/your-transaction-id
+
+# Test ArNS name resolution
+curl -I https://your-arns-name.arweave.net
+```
+
+</Step>
+
+<Step>
+### Check Content Format
+
+Ensure your content is properly formatted:
+
+- **HTML content** should have proper DOCTYPE
+- **Text content** should be UTF-8 encoded
+- **Binary content** should have appropriate Content-Type headers
+
+</Step>
+
+<Step>
+### Test Content Rendering
+
+Verify content renders correctly in different browsers:
+
+1. Test in Chrome, Firefox, Safari
+2. Check mobile responsiveness
+3. Verify all links work correctly
+4. Test with different screen sizes
+
+</Step>
+</Steps>
+
+</Tab>
+
+<Tab value="ArNS Issues">
+
+### Fix ArNS Problems
+
+<Steps>
+<Step>
+### Verify ArNS Resolution
+
+Check if your ArNS name resolves correctly:
+
+```bash
+# Test ArNS resolution
+nslookup your-arns-name.arweave.net
+
+# Check if it points to the correct transaction
+curl -s https://your-arns-name.arweave.net | head -10
+```
+
+</Step>
+
+<Step>
+### Update ArNS Record
+
+If ArNS name points to wrong content:
+
+1. Go to [ArNS App](https://arns.app)
+2. Find your ArNS name
+3. Update the transaction ID
+4. Wait for propagation (usually immediate)
+
+</Step>
+
+<Step>
+### Check ArNS Status
+
+Verify ArNS name is active and not expired:
+
+1. Visit the ArNS app
+2. Check your name's status
+3. Ensure it's not expired
+4. Verify payment is up to date
+
+</Step>
+</Steps>
+
+</Tab>
+</Tabs>
+
+## Best Practices
+
+### Content Design
+
+<Steps>
+<Step>
+### Optimize for Performance
+
+- Keep file sizes reasonable
+- Use efficient HTML/CSS
+- Optimize images and assets
+- Minimize external dependencies
+
+</Step>
+
+<Step>
+### Ensure Accessibility
+
+- Use semantic HTML
+- Include alt text for images
+- Ensure good color contrast
+- Test with screen readers
+
+</Step>
+
+<Step>
+### Mobile Responsiveness
+
+- Design for mobile-first
+- Use responsive CSS
+- Test on various devices
+- Ensure touch-friendly interfaces
+
+</Step>
+</Steps>
+
+### Content Management
+
+<Steps>
+<Step>
+### Version Control
+
+- Keep content in version control
+- Document changes and updates
+- Test changes before deployment
+- Maintain backup copies
+
+</Step>
+
+<Step>
+### Regular Updates
+
+- Keep information current
+- Update contact details
+- Refresh project information
+- Monitor for broken links
+
+</Step>
+
+<Step>
+### Backup Strategy
+
+- Backup content regularly
+- Keep multiple copies
+- Document restoration procedures
+- Test backup recovery
+
+</Step>
+</Steps>
+
+## Next Steps
+
+<Callout type="info">
+  **Ready to customize your gateway?** Start with the Quick Start section above,
+  then explore the different configuration methods and use cases to find what
+  works best for your needs.
+</Callout>
+
+### Additional Resources
+
+- **ArNS Documentation** - Learn more about ArNS names and management
+- **Content Upload Guides** - Best practices for uploading content to Arweave
+- **Gateway Configuration** - Advanced gateway configuration options
+- **Community Examples** - See how other operators use this feature
+
+### Getting Help
+
+If you encounter issues:
+
+1. Check the troubleshooting section above
+2. Verify your configuration is correct
+3. Test content accessibility independently
+4. Consult the [AR.IO Discord](https://discord.gg/7zUPfN4D6g) for community support

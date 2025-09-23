@@ -1,0 +1,638 @@
+---
+title: "Optimized Gateway Indexing and Filtering"
+description: "Comprehensive guide to configuring AR.IO Gateway filters for efficient data processing and indexing"
+---
+
+# Optimized Gateway Indexing and Filtering
+
+Configure your AR.IO Gateway to efficiently process and index only the data you need. This comprehensive guide covers advanced filtering techniques, performance optimization, and real-world use cases.
+
+## Understanding the Filtering System
+
+The AR.IO Gateway uses two primary filters to control data processing:
+
+1. **ANS104_UNBUNDLE_FILTER** - Controls which bundles are processed and unbundled
+2. **ANS104_INDEX_FILTER** - Controls which data items from unbundled bundles are indexed for querying
+
+<Callout type="info">
+  By default, gateways process no bundles and index no data items. You must
+  explicitly configure filters to start processing data.
+</Callout>
+
+## Core Environment Variables
+
+<Steps>
+
+<Step>
+### Configure Data Management
+
+Optimize data storage and processing:
+
+```bash
+# Number of new data items before flushing to stable storage
+DATA_ITEM_FLUSH_COUNT_THRESHOLD=1000
+
+# Maximum time between flushes (in seconds)
+MAX_FLUSH_INTERVAL_SECONDS=600
+
+# Maximum number of data items to queue for indexing
+MAX_DATA_ITEM_QUEUE_SIZE=100000
+
+# Enable background verification
+ENABLE_BACKGROUND_DATA_VERIFICATION=true
+```
+
+</Step>
+
+<Step>
+### Set Up GraphQL Configuration
+
+Choose between local-only or proxied queries:
+
+```bash
+# For new gateways - proxy to arweave.net for complete index
+GRAPHQL_HOST=arweave.net
+GRAPHQL_PORT=443
+
+# For local-only queries (uncomment to use)
+# GRAPHQL_HOST=
+```
+
+</Step>
+</Steps>
+
+## Filter Configuration Strategies
+
+<Tabs items={['Basic Filters', 'App-Specific', 'Content-Based', 'Owner-Based', 'Advanced Combinations']}>
+<Tab value="Basic Filters">
+
+### Process Everything
+
+```json
+{
+  "always": true
+}
+```
+
+### Process Nothing (Default)
+
+```json
+{
+  "never": true
+}
+```
+
+### Process Specific App Data
+
+```json
+{
+  "tags": [
+    {
+      "name": "App-Name",
+      "valueStartsWith": "MyApp"
+    }
+  ]
+}
+```
+
+</Tab>
+
+<Tab value="App-Specific">
+
+### Single Application
+
+```json
+{
+  "tags": [
+    {
+      "name": "App-Name",
+      "value": "MyApp-v1.0"
+    }
+  ]
+}
+```
+
+### Multiple Applications
+
+```json
+{
+  "or": [
+    {
+      "tags": [
+        {
+          "name": "App-Name",
+          "value": "MyApp-v1.0"
+        }
+      ]
+    },
+    {
+      "tags": [
+        {
+          "name": "App-Name",
+          "value": "AnotherApp-v2.1"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Application with Version Range
+
+```json
+{
+  "tags": [
+    {
+      "name": "App-Name",
+      "valueStartsWith": "MyApp"
+    }
+  ]
+}
+```
+
+</Tab>
+
+<Tab value="Content-Based">
+
+### Content Type Filtering
+
+```json
+{
+  "tags": [
+    {
+      "name": "Content-Type",
+      "valueStartsWith": "image/"
+    }
+  ]
+}
+```
+
+### Specific File Types
+
+```json
+{
+  "or": [
+    {
+      "tags": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "tags": [
+        {
+          "name": "Content-Type",
+          "value": "text/plain"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### File Size Filtering
+
+```json
+{
+  "attributes": {
+    "data_size": 1000000
+  }
+}
+```
+
+</Tab>
+
+<Tab value="Owner-Based">
+
+### Single Owner
+
+```json
+{
+  "attributes": {
+    "owner_address": "YOUR_WALLET_ADDRESS"
+  }
+}
+```
+
+### Multiple Owners
+
+```json
+{
+  "or": [
+    {
+      "attributes": {
+        "owner_address": "WALLET_ADDRESS_1"
+      }
+    },
+    {
+      "attributes": {
+        "owner_address": "WALLET_ADDRESS_2"
+      }
+    }
+  ]
+}
+```
+
+### Exclude Specific Owners
+
+```json
+{
+  "not": {
+    "attributes": {
+      "owner_address": "UNWANTED_WALLET_ADDRESS"
+    }
+  }
+}
+```
+
+</Tab>
+
+<Tab value="Advanced Combinations">
+
+### Complex Multi-Condition Filter
+
+```json
+{
+  "and": [
+    {
+      "tags": [
+        {
+          "name": "App-Name",
+          "valueStartsWith": "MyApp"
+        }
+      ]
+    },
+    {
+      "attributes": {
+        "owner_address": "YOUR_WALLET_ADDRESS"
+      }
+    },
+    {
+      "not": {
+        "tags": [
+          {
+            "name": "Content-Type",
+            "value": "application/octet-stream"
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+### Exclude Common Bundlers
+
+```json
+{
+  "and": [
+    {
+      "not": {
+        "or": [
+          {
+            "tags": [
+              {
+                "name": "Bundler-App-Name",
+                "value": "Warp"
+              }
+            ]
+          },
+          {
+            "tags": [
+              {
+                "name": "Bundler-App-Name",
+                "value": "Redstone"
+              }
+            ]
+          },
+          {
+            "attributes": {
+              "owner_address": "-OXcT1sVRSA5eGwt2k6Yuz8-3e3g9WJi5uSE99CWqsBs"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "tags": [
+        {
+          "name": "App-Name",
+          "valueStartsWith": "MyApp"
+        }
+      ]
+    }
+  ]
+}
+```
+
+</Tab>
+</Tabs>
+
+## Real-World Use Cases
+
+### Personal Data Gateway
+
+Perfect for individuals who want to process only their own data:
+
+**Unbundle Filter:**
+
+```json
+{
+  "and": [
+    {
+      "not": {
+        "or": [
+          {
+            "tags": [
+              {
+                "name": "Bundler-App-Name",
+                "value": "Warp"
+              }
+            ]
+          },
+          {
+            "tags": [
+              {
+                "name": "Bundler-App-Name",
+                "value": "Redstone"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "tags": [
+        {
+          "name": "App-Name",
+          "valueStartsWith": "MyApp"
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Index Filter:**
+
+```json
+{
+  "attributes": {
+    "owner_address": "YOUR_WALLET_ADDRESS"
+  }
+}
+```
+
+### Application-Specific Service
+
+Ideal for building services around specific applications:
+
+**Unbundle Filter:**
+
+```json
+{
+  "tags": [
+    {
+      "name": "App-Name",
+      "valueStartsWith": "MyApp"
+    }
+  ]
+}
+```
+
+**Index Filter:**
+
+```json
+{
+  "or": [
+    {
+      "tags": [
+        {
+          "name": "ArFS",
+          "value": "0.10"
+        }
+      ]
+    },
+    {
+      "tags": [
+        {
+          "name": "ArFS",
+          "value": "0.11"
+        }
+      ]
+    },
+    {
+      "tags": [
+        {
+          "name": "ArFS",
+          "value": "0.12"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Content-Type Focused Gateway
+
+For gateways specializing in specific content types:
+
+**Unbundle Filter:**
+
+```json
+{
+  "tags": [
+    {
+      "name": "Content-Type",
+      "valueStartsWith": "image/"
+    }
+  ]
+}
+```
+
+**Index Filter:**
+
+```json
+{
+  "and": [
+    {
+      "tags": [
+        {
+          "name": "Content-Type",
+          "valueStartsWith": "image/"
+        }
+      ]
+    },
+    {
+      "attributes": {
+        "data_size": 100000
+      }
+    }
+  ]
+}
+```
+
+## Performance Optimization
+
+### Worker Configuration
+
+<Steps>
+<Step>
+### Understanding Default Worker Settings
+
+The gateway uses sensible defaults that work well for most users:
+
+```bash
+# Default values (no need to set unless customizing)
+# ANS104_UNBUNDLE_WORKERS=1 (default: 0, or 1 if filters are set)
+# ANS104_DOWNLOAD_WORKERS=5 (default: 5)
+
+# Only adjust if you have specific hardware requirements
+# or want to optimize for your system's capabilities
+```
+
+<Callout type="info">
+  **When to Adjust Workers:** Only modify worker counts if you have
+  high-performance hardware and want to maximize throughput, or if you're
+  experiencing resource constraints and need to reduce load.
+</Callout>
+
+</Step>
+
+<Step>
+### Optimize Data Flushing
+
+Balance between memory usage and database performance:
+
+```bash
+# For high-memory systems, increase threshold
+DATA_ITEM_FLUSH_COUNT_THRESHOLD=2000
+
+# For low-memory systems, decrease threshold
+DATA_ITEM_FLUSH_COUNT_THRESHOLD=500
+
+# Adjust flush interval based on data volume
+MAX_FLUSH_INTERVAL_SECONDS=300
+```
+
+</Step>
+
+<Step>
+### Enable Background Processing
+
+```bash
+# Enable background verification
+ENABLE_BACKGROUND_DATA_VERIFICATION=true
+
+# Enable WAL cleanup for better performance
+ENABLE_DATA_DB_WAL_CLEANUP=true
+```
+
+</Step>
+</Steps>
+
+### Resource Monitoring
+
+Monitor these key metrics:
+
+- **CPU Usage** - Should stay below 80% during processing
+- **Memory Usage** - Watch for memory leaks during long operations
+- **Disk I/O** - Monitor database write performance
+- **Network Bandwidth** - Ensure sufficient bandwidth for bundle downloads
+
+## Best Practices
+
+### Filter Design
+
+1. **Start Simple** - Begin with basic filters and gradually add complexity
+2. **Test Thoroughly** - Use `FILTER_CHANGE_REPROCESS=true` when changing filters
+3. **Monitor Performance** - Watch system resources during processing
+4. **Document Changes** - Keep track of filter modifications and their effects
+
+### Maintenance
+
+1. **Regular Monitoring** - Check gateway logs for errors and warnings
+2. **Resource Cleanup** - Periodically clean up old data and logs
+3. **Filter Optimization** - Refine filters based on actual data patterns
+4. **Backup Configuration** - Keep copies of working filter configurations
+
+### Troubleshooting
+
+<Callout type="warning">
+  If your gateway stops processing data after changing filters, check: - Filter
+  syntax is valid JSON - Required environment variables are set - Gateway has
+  been restarted after changes - System has sufficient resources
+</Callout>
+
+## Advanced Configuration
+
+### Custom Data Sources
+
+Configure multiple data sources for optimal performance:
+
+```bash
+# Primary data source order
+ON_DEMAND_RETRIEVAL_ORDER=s3,trusted-gateways,chunks,tx-data
+
+# Background processing order
+BACKGROUND_RETRIEVAL_ORDER=chunks,s3,trusted-gateways,chunks,tx-data
+```
+
+### Compression Settings
+
+Optimize storage with compression:
+
+```bash
+# Enable compression for different data types
+LMDB_BLOCK_STORE_COMPRESSION=gzip
+LMDB_BUNDLE_STORE_COMPRESSION=gzip
+LMDB_DATA_ITEM_STORE_COMPRESSION=gzip
+LMDB_TX_STORE_COMPRESSION=gzip
+LMDB_DATA_STORE_COMPRESSION=gzip
+```
+
+### Cache Management
+
+Configure cache cleanup thresholds:
+
+```bash
+# Header cache cleanup
+ENABLE_FS_HEADER_CACHE_CLEANUP=true
+HEADER_CACHE_CLEANUP_THRESHOLD=2000
+
+# Chunk cache cleanup
+CHUNK_DATA_CACHE_CLEANUP_THRESHOLD=250000
+
+# Manifest cache cleanup
+MANIFEST_CACHE_CLEANUP_THRESHOLD=250000
+
+# ANS-104 data index cache cleanup
+ANS104_DATA_INDEX_CACHE_CLEANUP_THRESHOLD=50000
+```
+
+## Next Steps
+
+<Callout type="info">
+  **Ready to implement?** Start with the [Quick Start
+  Guide](/build/run-a-gateway/optimize-your-gateway-for-your-data) for basic
+  configuration, then return here for advanced optimization techniques.
+</Callout>
+
+### Additional Resources
+
+- **Filter Syntax Reference** - Complete filter construction guide
+- **Performance Monitoring** - Set up monitoring with Grafana
+- **Troubleshooting Guide** - Common issues and solutions
+- **Community Support** - Join the AR.IO Discord for help
+
+### Getting Help
+
+If you encounter issues or need assistance:
+
+1. Check the gateway logs for error messages
+2. Verify your filter syntax is valid JSON
+3. Ensure all required environment variables are set
+4. Join the [AR.IO Discord](https://discord.gg/7zUPfN4D6g) for community support
+5. Review the troubleshooting documentation for common solutions
