@@ -9,20 +9,57 @@ AR.IO gateways continuously verify that data chunks are correctly stored and ret
 
 ## How Gateways Verify Data
 
-Data verification is an ongoing process that uses Merkle tree cryptography to provide mathematical proof of data integrity. Gateways verify data by computing cryptographic roots from cached data and comparing them against the roots stored on Arweave:
+Data verification is an ongoing process that uses Merkle tree cryptography to provide mathematical proof of data integrity. The process involves multiple specialized components working together to ensure cached data matches what's stored on Arweave:
 
 ```mermaid
-graph LR
-    CHUNKS[Gateway Cached Data] --> COMPUTE[Compute Merkle Root]
-    COMPUTE --> COMPARE{Compare Roots}
-    INDEXED[Indexed Data Root] --> COMPARE
-    COMPARE -->|Match| VERIFIED[✓ Verified]
-    COMPARE -->|Mismatch| FAILED[✗ Re-import/Unbundle]
+sequenceDiagram
+    participant Scheduler
+    participant Worker as DataVerificationWorker
+    participant ContigIndex as ContiguousDataIndex
+    participant RootTxIndex as DataItemRootTxIndex
+    participant DataRootComp as DataRootComputer
+    participant DataSource as ContiguousDataSource
+    participant Importer as DataImporter
+    participant Bundler as BundleQueue
+
+    Note over Scheduler,Bundler: Data Discovery Phase
+    Scheduler->>Worker: Triggers queueRootTx() periodically
+    Worker->>ContigIndex: getVerifiableDataIds()
+    ContigIndex-->>Worker: Returns list of data IDs
     
-    classDef default fill:transparent,stroke:#333,stroke-width:2px
+    loop For each dataId
+        Worker->>RootTxIndex: getRootTxId(dataId)
+        RootTxIndex-->>Worker: Returns rootTxId
+        Worker->>Worker: Enqueue rootTxId if not processed
+    end
+
+    Note over Scheduler,Bundler: Verification Phase
+    Worker->>ContigIndex: getDataAttributes(rootTxId)
+    ContigIndex-->>Worker: Returns attributes (indexedDataRoot, hash)
+
+    alt indexedDataRoot is present
+        Worker->>DataRootComp: computeDataRoot(rootTxId)
+        DataRootComp->>DataSource: getData(rootTxId)
+        DataSource-->>DataRootComp: Returns data stream
+        DataRootComp-->>Worker: Returns computedDataRoot
+
+        alt computedDataRoot matches indexedDataRoot
+            Worker->>ContigIndex: saveVerificationStatus(rootTxId)
+            ContigIndex-->>Worker: ✓ Verification Success
+            Note over Worker: Data is now verified and cached for serving
+        else computedDataRoot does NOT match
+            Worker->>Importer: queueItem({id: rootTxId}, priority=true)
+            Importer-->>Worker: Queued for re-import from Arweave
+        end
+    else indexedDataRoot is MISSING
+        Worker->>Bundler: queueBundle({id: rootTxId})
+        Bundler-->>Worker: Queued for bundle unbundling
+    end
 ```
 
 **The Verification Workflow:**
+
+Gateways achieve verification through a systematic five-phase process orchestrated by the DataVerificationWorker. This process ensures that every piece of cached data cryptographically matches its original form on Arweave, providing mathematical proof of integrity before serving data to users.
 
 **1. Discovery Phase**
 - Periodically scan for unverified data items
@@ -72,62 +109,7 @@ At the most granular level:
 - **Sequential integrity** ensuring chunks form complete data
 - **Parallel verification** of multiple chunks for performance
 
-## Verification Results and Recovery
 
-### When Verification Succeeds
-- Data is marked as verified with a timestamp
-- Verification status is cached to avoid repeated computation
-- Data becomes available for serving to users with integrity guarantee
-- Success metrics are tracked for monitoring gateway health
-
-### When Verification Fails
-- **Immediate Actions:**
-  - Log the discrepancy between computed and expected roots
-  - Increment retry counter for the failed item
-  - Queue for re-verification or data recovery
-  
-- **Recovery Mechanisms:**
-  - **For Transactions**: Re-import data from Arweave network
-  - **For Bundles**: Trigger unbundling to re-extract items
-  - **For Persistent Failures**: Escalate to manual intervention after retry limit
-  
-- **Eventual Consistency:**
-  - System designed to handle temporary network inconsistencies
-  - Continues attempting verification until successful
-  - Ensures long-term data integrity across the network
-
-## Performance and Architecture
-
-### Verification System Design
-The gateway implements an efficient verification architecture:
-
-- **Data Verification Worker**: Orchestrates the entire verification process
-- **Priority Queue System**: Processes high-priority items first
-- **Batch Processing**: Verifies multiple items efficiently in batches
-- **Modular Components**: Clear interfaces between verification modules
-
-### Performance Optimizations
-
-**Efficient Database Queries:**
-- Indexed lookups on verification status
-- Optimized queries for unverified items
-- Priority-based ordering for processing
-
-**Smart Retry Management:**
-- Items with fewer retry attempts are prioritized
-- Configurable retry limits prevent infinite loops
-- Exponential backoff for persistent failures (future enhancement)
-
-**Caching Strategy:**
-- Verified items are cached to avoid recomputation
-- Merkle proofs stored for quick re-validation
-- Parallel processing of independent verifications
-
-### Configurable Verification Profiles
-Gateways can adjust verification behavior based on use case:
-- **High-throughput mode**: Batch verification for efficiency
-- **High-integrity mode**: Immediate verification of all data
-- **Balanced mode**: Priority-based verification with queuing
 
 ## Why Verification Matters
 
@@ -157,17 +139,6 @@ The verification system is designed for extensibility:
 - **Enhanced Monitoring**: Real-time dashboards and alerts for verification status
 - **Cross-Gateway Validation**: Shared verification results across the network
 
-## Recap
-
-Data verification is the cornerstone of trust in the AR.IO network. Key takeaways:
-
-- **Continuous Process**: Gateways constantly verify data integrity using Merkle tree cryptography
-- **Multi-Stage Workflow**: Discovery → Retrieval → Computation → Comparison → Action
-- **Automatic Recovery**: Failed verifications trigger re-import or unbundling
-- **Performance Optimized**: Priority queues, batch processing, and smart caching
-- **Future-Ready**: Extensible architecture supports plugins and network-wide validation
-
-By ensuring every piece of data has been cryptographically verified, AR.IO gateways maintain the integrity promise of Arweave's permanent storage.
 
 ---
 

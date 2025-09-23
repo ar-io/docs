@@ -70,55 +70,6 @@ AR.IO gateways can retrieve data from multiple sources, each with different char
 - **Benefits**: Geographic distribution, community-operated infrastructure
 - **Selection**: Weighted random selection based on performance metrics
 
-## Headers and Chunks
-
-Understanding how Arweave structures data is crucial for data retrieval:
-
-### Transaction Headers
-Headers contain essential metadata without the actual data payload:
-
-```yaml
-Header Contents:
-  - Transaction ID
-  - Owner wallet address
-  - Data size and root
-  - Tags (key-value metadata)
-  - Signature
-  - Block information
-```
-
-Headers are:
-- **Lightweight**: Can be cached extensively
-- **Frequently accessed**: Used for indexing and discovery
-- **Separately retrievable**: Improves performance for metadata operations
-
-### Data Chunks
-Arweave splits large data into 256KB chunks for efficient storage and retrieval:
-
-```mermaid
-graph LR
-    DATA[Large Data File] --> SPLIT[Split Process]
-    SPLIT --> C1[Chunk 1<br/>256KB]
-    SPLIT --> C2[Chunk 2<br/>256KB]
-    SPLIT --> C3[Chunk 3<br/>256KB]
-    SPLIT --> CN[Chunk N<br/>≤256KB]
-    
-    C1 --> MERKLE[Merkle Tree]
-    C2 --> MERKLE
-    C3 --> MERKLE
-    CN --> MERKLE
-    
-    MERKLE --> ROOT[Data Root]
-    
-    classDef chunk fill:#f59e0b,stroke:#d97706,stroke-width:2px,color:#fff
-    class C1,C2,C3,CN chunk
-```
-
-Benefits of chunking:
-- **Parallel retrieval**: Multiple chunks fetched simultaneously
-- **Incremental verification**: Each chunk validated independently
-- **Efficient caching**: Only needed chunks are stored
-- **Streaming support**: Data can be served as chunks arrive
 
 ## Retrieval Strategies
 
@@ -177,80 +128,7 @@ Every piece of retrieved data undergoes validation:
 3. **Signature Verification**: Transaction signatures validated
 4. **Size Confirmation**: Data size matches header declaration
 
-## Performance Optimizations
 
-### Multi-Level Caching
-Gateways implement hierarchical caching for optimal performance:
-
-```
-Memory Cache (Hot)
-  ↓ Overflow
-Disk Cache (Warm)
-  ↓ Eviction
-Cloud Storage (Cold)
-  ↓ Miss
-Network Retrieval
-```
-
-### Request Optimization Techniques
-
-**Parallel Processing:**
-- Concurrent chunk fetching
-- Multiple source queries
-- Asynchronous validation
-
-**Intelligent Prefetching:**
-- Predict related data needs
-- Preload popular content
-- Cache warming strategies
-
-**Adaptive Concurrency:**
-- Dynamic connection limits
-- Load-based throttling
-- Resource-aware scheduling
-
-## Configuration and Flexibility
-
-Gateways offer extensive configuration options:
-
-### Source Priority Configuration
-```yaml
-retrieval_order:
-  on_demand:
-    - s3_cache
-    - trusted_peers
-    - chunk_assembly
-    - arweave_nodes
-  background:
-    - arweave_nodes
-    - chunk_assembly
-    - trusted_peers
-    - s3_cache
-```
-
-### Performance Tuning
-- **Timeout settings**: Per-source timeout configuration
-- **Retry policies**: Exponential backoff parameters
-- **Cache sizes**: Memory and disk allocation
-- **Concurrency limits**: Connection pool sizes
-
-## Resilience and Reliability
-
-### Failure Handling
-The multi-source architecture provides exceptional resilience:
-
-- **Automatic failover**: Seamless transition between sources
-- **Circuit breakers**: Prevent cascade failures
-- **Health monitoring**: Continuous source availability checks
-- **Graceful degradation**: Maintains service during partial outages
-
-### Network Participation Benefits
-By participating in the AR.IO network, gateways gain:
-
-- **Shared infrastructure**: Access to global gateway network
-- **Load distribution**: Request routing to available peers
-- **Geographic diversity**: Data retrieval from nearby sources
-- **Community support**: Shared monitoring and alerts
 
 ## Why Multi-Source Retrieval Matters
 
@@ -266,17 +144,6 @@ By participating in the AR.IO network, gateways gain:
 - **Geographic optimization**: Nearby sources preferred
 - **Consistent experience**: Transparent source selection
 
-## Recap
-
-Data retrieval is how AR.IO gateways deliver permanent data with speed and reliability. Key takeaways:
-
-- **Multi-Source Architecture**: Five data sources with automatic fallback ensure high availability
-- **Smart Caching**: Hierarchical caching from memory to cloud optimizes performance
-- **Trust-Based Selection**: Gateways choose peers based on performance and reliability metrics
-- **Flexible Strategies**: Different approaches for on-demand vs. background retrieval
-- **Built for Resilience**: Circuit breakers, health monitoring, and graceful degradation
-
-This sophisticated retrieval system enables gateways to serve data quickly while maintaining the integrity guarantees of Arweave's permanent storage.
 
 ---
 
