@@ -3,7 +3,6 @@ title: "AO Compute Unit (CU)"
 description: "Steps for deploying an AO Compute Unit (CU) sidecar alongside your AR.IO Gateway."
 ---
 
-
 ## Overview
 
 An AO Compute Unit (CU) is a critical component in the AO ecosystem responsible for executing AO processes and maintaining their state. CUs serve as the computational backbone of the AO network by:
@@ -14,6 +13,7 @@ An AO Compute Unit (CU) is a critical component in the AO ecosystem responsible 
 - **Creating Checkpoints**: CUs periodically save process state to the Arweave network as checkpoints
 
 Running a CU alongside your gateway allows you to:
+
 1. Process AO requests locally rather than relying on external services
 2. Improve response times for AO-related queries
 3. Contribute computational resources to the AO network
@@ -34,7 +34,9 @@ Before deploying a CU, ensure your system meets the following requirements:
 
 ## Deploying an AO CU
 
-### Step 1: Navigate to Gateway Directory
+<Steps>
+<Step>
+### Navigate to Gateway Directory
 
 First, navigate to the root directory of your gateway:
 
@@ -42,7 +44,10 @@ First, navigate to the root directory of your gateway:
 cd /path/to/your/gateway
 ```
 
-### Step 2: Configure Environment Variables
+</Step>
+
+<Step>
+### Configure Environment Variables
 
 Copy the example environment file:
 
@@ -71,50 +76,58 @@ nano .env.ao
 
 Configure the following settings:
 
-1. **CU_WALLET**: Replace `'[wallet json here]'` with the JSON from an Arweave wallet. 
+1. **CU_WALLET**: Replace `'[wallet json here]'` with the JSON from an Arweave wallet.
+
    > **Note:** The entire JSON must be placed on a single line for proper registration.
 
 2. **PROCESS_CHECKPOINT_TRUSTED_OWNERS**: This is a comma-separated list of trusted wallet addresses:
+
    ```
    PROCESS_CHECKPOINT_TRUSTED_OWNERS=fcoN_xJeisVsPXA-trzVAuIiqO3ydLQxM-L4XbrQKzY
    ```
-   
+
    > **Note:** Adding Your Own Wallet
-   > 
+   >
    > If you are uploading your own checkpoints, you should add your own CU wallet address after the default value, separated by a comma:
-   > 
+   >
    > ```
    > PROCESS_CHECKPOINT_TRUSTED_OWNERS=fcoN_xJeisVsPXA-trzVAuIiqO3ydLQxM-L4XbrQKzY,YOUR_WALLET_ADDRESS_HERE
    > ```
-   > 
+   >
    > This allows your CU to trust checkpoints from both the official source and your own wallet.
 
 3. **GATEWAY_URL**: By default, this is set to use your own gateway:
+
    ```
    GATEWAY_URL=http://envoy:3000
    ```
+
    A gateway must be set to index all ANS-104 data items from AO or the CU will not operate properly. Most users will want to set this to:
+
    ```
    GATEWAY_URL=https://arweave.net
    ```
 
 4. **UPLOADER_URL**: By default, this is set to use a bundler sidecar run by your gateway:
+
    ```
    UPLOADER_URL=http://envoy:3000/bundler
    ```
-   
+
    > **Note:** Important: Checkpoint Uploads Require Payment
-   > 
+   >
    > Checkpoints are uploaded to Arweave, so the upload must be paid for. You must ensure your wallet has sufficient funds:
-   > 
+   >
    > - If using `https://up.arweave.net` (recommended), your CU_WALLET must contain Turbo Credits
    > - If using your own bundler or another service, you'll need the appropriate token (AR or other)
    > - Without proper funding, checkpoints will fail to upload and your CU may not function correctly
-   
+
    The simplest option for most users is to use:
+
    ```
    UPLOADER_URL=https://up.arweave.net
    ```
+
    This requires your CU_WALLET to contain Turbo Credits.
 
 5. **Optional: Disable Checkpoint Creation**: If you want to disable checkpoint uploads, add:
@@ -134,6 +147,7 @@ UPLOADER_URL=https://up.arweave.net
 ```
 
 After making your changes, save and exit the nano editor:
+
 1. Press `Ctrl+X` to exit
 2. Press `Y` to confirm saving changes
 3. Press `Enter` to confirm the filename
@@ -143,28 +157,31 @@ After making your changes, save and exit the nano editor:
 You can fine-tune the CU's resource usage by adding these optional environment variables:
 
 1. **PROCESS_WASM_MEMORY_MAX_LIMIT**: Sets the maximum memory limit (in bytes) for WASM processes.
+
    ```
    PROCESS_WASM_MEMORY_MAX_LIMIT=17179869184  # 16GB (16 * 1024^3)
    ```
-   
+
    > **Note:** Important Memory Requirement
-   > 
+   >
    > To work with the AR.IO process, `PROCESS_WASM_MEMORY_MAX_LIMIT` must be at least `17179869184` (16GB).
-   > 
+   >
    > Note: This doesn't mean your server needs 16GB of RAM. This is the maximum memory limit the CU will support for processes. Most processes don't use their maximum allocated memory.
-   > 
+   >
    > You can set this value to 16GB even if your server only has 4GB of RAM. However, if a process requires more memory than your server has available, the CU will fail when evaluating messages that need more memory.
 
 2. **WASM_EVALUATION_MAX_WORKERS**: Sets the maximum number of worker threads for WASM evaluation.
+
    ```
    WASM_EVALUATION_MAX_WORKERS=4  # Example: Use 4 worker threads
    ```
-   
+
    > **Note:** Worker Thread Configuration
-   > 
+   >
    > This will default to (available CPUs - 1) if not specified. If you're running a gateway and unbundling on the same server, consider setting this to 2 or less to avoid overloading your CPU.
 
 3. **PROCESS_WASM_COMPUTE_MAX_LIMIT**: The maximum Compute-Limit, in bytes, supported for ao processes (defaults to 9 billion)
+
    ```
    PROCESS_WASM_COMPUTE_MAX_LIMIT=9000000000
    ```
@@ -175,10 +192,13 @@ You can fine-tune the CU's resource usage by adding these optional environment v
    ```
 
 > **Note:** Resource Tuning
-> 
+>
 > Start with conservative values and monitor performance. You can adjust these settings based on your system's capabilities and the CU's performance.
 
-### Step 3: Start the CU Container
+</Step>
+
+<Step>
+### Start the CU Container
 
 Once your environment file is configured, start the CU container:
 
@@ -187,12 +207,16 @@ docker compose --env-file .env.ao -f docker-compose.ao.yaml up -d
 ```
 
 This command uses the following flags:
+
 - `--env-file .env.ao`: Specifies the environment file to use
 - `-f docker-compose.ao.yaml`: Specifies the Docker Compose file to use
 - `up`: Creates and starts the containers
 - `-d`: Runs containers in detached mode (background)
 
-### Step 4: Check the Logs
+ </Step>
+
+<Step>
+### Check the Logs
 
 To check the logs of your CU container:
 
@@ -201,19 +225,25 @@ docker compose -f docker-compose.ao.yaml logs -f --tail=20
 ```
 
 This command uses the following flags:
+
 - `-f`: Follows the log output (continuous display)
 - `--tail=20`: Shows only the last 20 lines of logs
 
 Exit the logs by pressing `Ctrl+C`.
+
+</Step>
+</Steps>
 
 ## Connecting Your Gateway to the CU
 
 To make your gateway use your local CU:
 
 1. Add the following line to your gateway's `.env` file:
+
    ```
    AO_CU_URL=http://ao-cu:6363
    ```
+
    This assumes the CU is running on the same machine as the gateway.
 
 2. Restart your gateway:
@@ -241,6 +271,7 @@ This endpoint allows you to interact with your CU directly through your gateway'
 - **Gateway Fallback**: A gateway on release 27 or above will fallback to arweave.net if its default CU is not responding quickly enough, so gateway operations will not be significantly impacted during the initial processing.
 
 - **Monitoring Progress**: Check the CU logs after pointing a gateway at it to watch the process of working through AO history:
+
   ```bash
   docker compose -f docker-compose.ao.yaml logs -f --tail=20
   ```
