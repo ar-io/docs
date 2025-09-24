@@ -1,5 +1,5 @@
 # ---------------------------------------
-# Dockerfile (Next.js + API with Yarn)
+# Dockerfile (Next.js Static Export with Nginx)
 # ---------------------------------------
 
 # 1) deps: install node_modules with good caching
@@ -12,35 +12,32 @@ COPY package.json yarn.lock* .npmrc* .yarnrc* ./
 COPY source.config.ts ./
 RUN yarn install --frozen-lockfile
 
-# 2) build: compile Next.js (standalone output)
+# 2) build: compile Next.js (static export)
 FROM node:20-bullseye-slim AS build
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# Ensure next.config.js has:  module.exports = { output: 'standalone' }
+# Build the static export
 RUN yarn build
 
-# 3) run: minimal runtime with only the built server
-FROM node:20-bullseye-slim AS run
-ENV NODE_ENV=production
-WORKDIR /app
+# 3) run: serve static files with nginx
+FROM nginx:alpine AS run
 
-# Copy the standalone server bundle + static assets
-COPY --from=build /app/.next/standalone ./
-COPY --from=build /app/.next/static ./.next/static
-COPY --from=build /app/public ./public
+# Copy static files from build stage
+COPY --from=build /app/out /usr/share/nginx/html
 
-# Drop privileges (optional, but good practice)
-RUN useradd -m nextjs && chown -R nextjs:nextjs /app
-USER nextjs
+# Copy custom nginx config for better SPA support
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-EXPOSE 3000
-ENV PORT=3000
+# Drop privileges
+RUN chown -R nginx:nginx /usr/share/nginx/html
 
-# Healthcheck (simple home page request)
+EXPOSE 80
+
+# Healthcheck
 HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:'+process.env.PORT, r=>{if(r.statusCode<500) process.exit(0); else process.exit(1)}).on('error',()=>process.exit(1))"
+  CMD wget --quiet --tries=1 --spider http://localhost/ || exit 1
 
-# Start the Next.js server
-CMD ["node", "server.js"]
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]
