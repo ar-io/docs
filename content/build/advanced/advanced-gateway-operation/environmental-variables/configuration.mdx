@@ -1,0 +1,101 @@
+---
+title: "Configuration Examples"
+description: "Basic recommended environment settings and system requirements for AR.IO Gateway"
+---
+
+# Configuration Examples
+
+This guide provides basic recommended environment settings and system requirements for running an AR.IO Gateway.
+
+## System Requirements
+
+### Minimum Requirements
+
+| Component   | Specification                      |
+| ----------- | ---------------------------------- |
+| **CPU**     | 4 core CPU                         |
+| **RAM**     | 4 GB RAM                           |
+| **Storage** | 500 GB storage (SSD recommended)   |
+| **Network** | Stable 50 Mbps internet connection |
+
+### Recommended Requirements
+
+| Component   | Specification                     |
+| ----------- | --------------------------------- |
+| **CPU**     | 12 core CPU                       |
+| **RAM**     | 32 GB RAM                         |
+| **Storage** | 2 TB SSD storage                  |
+| **Network** | Stable 1 Gbps internet connection |
+
+<Callout type="info">
+  External storage devices should be formatted as ext4 for optimal performance.
+</Callout>
+
+## Basic Environment Configuration
+
+### Essential Environment Variables
+
+| Variable          | Value                          | Description                        |
+| ----------------- | ------------------------------ | ---------------------------------- |
+| `GRAPHQL_HOST`    | `arweave.net`                  | GraphQL host for data retrieval    |
+| `GRAPHQL_PORT`    | `443`                          | GraphQL port (HTTPS)               |
+| `START_HEIGHT`    | `1000000`                      | Starting block height for indexing |
+| `RUN_OBSERVER`    | `true`                         | Enable observer service            |
+| `ARNS_ROOT_HOST`  | `<your-domain>`                | Your domain name for ArNS          |
+| `AR_IO_WALLET`    | `<your-public-wallet-address>` | Your Arweave wallet address        |
+| `OBSERVER_WALLET` | `<hot-wallet-public-address>`  | Observer wallet address            |
+
+### Complete .env Example
+
+```bash
+# Basic Gateway Configuration
+GRAPHQL_HOST=arweave.net
+GRAPHQL_PORT=443
+START_HEIGHT=1000000
+RUN_OBSERVER=true
+ARNS_ROOT_HOST=your-domain.com
+AR_IO_WALLET=your-public-wallet-address
+OBSERVER_WALLET=hot-wallet-public-address
+
+# Optional: Use AR tokens instead of Turbo Credits for reports
+# REPORT_DATA_SINK=arweave
+```
+
+## Performance Optimization
+
+### Memory Configuration
+
+| System RAM | Node.js Memory | Redis Memory | Example Config                                                |
+| ---------- | -------------- | ------------ | ------------------------------------------------------------- |
+| 8GB        | 4GB            | 2GB          | `NODE_JS_MAX_OLD_SPACE_SIZE=4096`<br/>`REDIS_MAX_MEMORY=2gb`  |
+| 16GB       | 8GB            | 4GB          | `NODE_JS_MAX_OLD_SPACE_SIZE=8192`<br/>`REDIS_MAX_MEMORY=4gb`  |
+| 32GB       | 16GB           | 8GB          | `NODE_JS_MAX_OLD_SPACE_SIZE=16384`<br/>`REDIS_MAX_MEMORY=8gb` |
+
+### Worker Configuration
+
+| CPU Cores | Unbundle Workers | Download Workers | Example Config                                              |
+| --------- | ---------------- | ---------------- | ----------------------------------------------------------- |
+| 4 cores   | 1                | 2                | `ANS104_UNBUNDLE_WORKERS=1`<br/>`ANS104_DOWNLOAD_WORKERS=2` |
+| 8 cores   | 2                | 4                | `ANS104_UNBUNDLE_WORKERS=2`<br/>`ANS104_DOWNLOAD_WORKERS=4` |
+| 16 cores  | 4                | 8                | `ANS104_UNBUNDLE_WORKERS=4`<br/>`ANS104_DOWNLOAD_WORKERS=8` |
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Gateway not accessible via localhost** - Unset `ARNS_ROOT_HOST` in your `.env` file
+2. **SSL certificate issues** - Ensure wildcard certificates are properly configured
+3. **Port forwarding problems** - Verify router settings and firewall configuration
+4. **Docker container issues** - Check logs with `sudo docker compose logs -f`
+
+### Getting Help
+
+If you encounter issues, seek assistance from the [AR.IO community](https://discord.gg/7zUPfN4D6g).
+
+## Next Steps
+
+Once your gateway is running:
+
+1. **Join the AR.IO Network** - Visit [https://gateways.ar.io/#/gateways](https://gateways.ar.io/#/gateways)
+2. **Monitor Performance** - Use admin endpoints to track health
+3. **Optimize Settings** - Adjust configuration based on your needs
