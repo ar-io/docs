@@ -49,6 +49,7 @@ Wayfinder-react wraps the functionality of wayfinder-core in user-friendly React
         }),
       ],
     });
+    ```
 
     Configure your bundler (Webpack, Vite, Rollup, etc.) to provide polyfills for `crypto`, `process`, and `buffer`. Refer to your bundler's documentation for polyfill configuration.
   </Step>
@@ -56,6 +57,7 @@ Wayfinder-react wraps the functionality of wayfinder-core in user-friendly React
     ### Setup the provider
 
     ```jsx
+    // App.tsx
     import { WayfinderProvider } from '@ar.io/wayfinder-react';
     import { ARIO } from '@ar.io/sdk';
 
@@ -70,38 +72,27 @@ Wayfinder-react wraps the functionality of wayfinder-core in user-friendly React
 
   </Step>
   <Step>
-    ### Use the hook
+    ### Use the available hooks
+    
+    ```typescript
+    import { useWayfinderUrl } from '@ar.io/wayfinder-react';
 
-    ```jsx
-    import { useWayfinder } from '@ar.io/wayfinder-react';
+    function WayfinderImage({ txId }: { txId: string }) {
+      const { resolvedUrl, isLoading, error } = useWayfinderUrl({ txId });
 
-    function MyComponent() {
-      const { data, loading, error } = useWayfinder('ar://ardrive');
+      if (error) {
+        return <p>Error resolving URL: {error.message}</p>;
+      }
 
-      if (loading) return <div>Loading...</div>;
-      if (error) return <div>Error: {error.message}</div>;
-
-      return <div>{data}</div>;
-    }
-    ```
-
-  </Step>
-  <Step>
-    ### Handle multiple requests (optional)
-
-    ```jsx
-    function MultipleRequestsComponent() {
-      const request1 = useWayfinder('ar://example-name-1');
-      const request2 = useWayfinder('ar://example-name-2');
+      if (isLoading) {
+        return <p>Resolving URL...</p>;
+      }
 
       return (
-        <div>
-          <div>Request 1: {request1.loading ? 'Loading...' : request1.data}</div>
-          <div>Request 2: {request2.loading ? 'Loading...' : request2.data}</div>
-        </div>
+        <img src={resolvedUrl} alt={txId} />
       );
     }
-    ```
+```
 
   </Step>
 </Steps>
