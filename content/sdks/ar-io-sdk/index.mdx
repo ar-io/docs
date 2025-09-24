@@ -6,6 +6,7 @@ description: "TypeScript/JavaScript SDK for interacting with the AR.IO ecosystem
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { Tabs, Tab } from "fumadocs-ui/components/tabs";
 import { Card, Cards } from "fumadocs-ui/components/card";
+import { Callout } from "fumadocs-ui/components/callout";
 import { BookOpen, Network, Globe } from "lucide-react";
 
 [![codecov](https://codecov.io/gh/ar-io/ar-io-sdk/graph/badge.svg?token=7dXKcT7dJy)](https://codecov.io/gh/ar-io/ar-io-sdk)
@@ -20,14 +21,12 @@ This is the home of [ar.io] SDK. This SDK provides functionality for interacting
       <Step>
         ### Install the SDK
 
-        ```bash
+        ```npm
         npm install @ar.io/sdk
-        // or
-        yarn add @ar.io/sdk --ignore-engines
         ```
       </Step>
       <Callout type="info">
-      The `--ignore-engines` flag is required when using yarn, as [permaweb/aoconnect] recommends only the use of npm. Alternatively, you can add a `.yarnrc.yml` file to your project containing `ignore-engines true` to ignore the engines check.
+      The `--ignore-engines` flag is required when using yarn, as [permaweb/aoconnect](http://github.com/permaweb/ao) recommends only the use of npm. Alternatively, you can add a `.yarnrc.yml` file to your project containing `ignore-engines true` to ignore the engines check.
       </Callout>
       <Step>
         ### Import and configure
@@ -57,7 +56,7 @@ This is the home of [ar.io] SDK. This SDK provides functionality for interacting
       <Step>
         ### Install the SDK
 
-        ```bash
+        ```npm
         npm install @ar.io/sdk
         ```
       </Step>
@@ -66,20 +65,30 @@ This is the home of [ar.io] SDK. This SDK provides functionality for interacting
 
         <Callout type="warning" title="Browser Polyfills Required">
         When using ar-io-sdk in browser environments, you need to configure polyfills. For example, with Vite:
-        
-        ```bash
+        </Callout>
+
+        ```npm
         npm install --save-dev vite-plugin-node-polyfills
         ```
+
+        ```js
+        // vite.config.js
+        import { defineConfig } from 'vite';
+        import { nodePolyfills } from 'vite-plugin-node-polyfills';
+
+        export default defineConfig({
+          plugins: [
+            nodePolyfills({
+              globals: {
+                Buffer: true,
+                global: true,
+                process: true,
+              },
+            }),
+          ],
+        });
+        ```
         
-        See the [installation notes](/sdks/wayfinder/wayfinder-core/installation-notes) for detailed configuration examples.
-        </Callout>
-      </Step>
-      <Step>
-        ### Configure your bundler
-
-        Configure your bundler (Webpack, Vite, Rollup, etc.) to provide polyfills for `crypto`, `process`, and `buffer`.
-
-        Refer to the [examples directory](https://github.com/ar-io/ar-io-sdk/tree/main/examples) for Webpack and Vite configurations.
       </Step>
       <Step>
         ### Import and configure
@@ -99,6 +108,32 @@ This is the home of [ar.io] SDK. This SDK provides functionality for interacting
         const gateways = await ario.getGateways();
         console.log(gateways);
         ```
+      </Step>
+      <Step>
+        ### Use wallet for signed requests
+
+        For operations that require signatures (like purchasing ArNS names), integrate with a wallet:
+
+        ```javascript
+        import { ARIO, createAoSigner } from '@ar.io/sdk/web';
+
+        // After connecting with a wallet (e.g., ArConnect or Wander)
+        const signer = createAoSigner(window.arweaveWallet);
+        
+        // Create authenticated client
+        const authenticatedArio = ARIO.mainnet({ signer });
+        
+        // Now you can perform signed operations
+        const record = await authenticatedArio.buyRecord({
+          name: 'my-arns-name',
+          type: 'lease',
+          years: 1
+        });
+        ```
+
+        <Callout type="info">
+          We recommend using [Wander](https://docs.wander.app/wander-connect/intro) for seamless wallet integration.
+        </Callout>
       </Step>
     </Steps>
 

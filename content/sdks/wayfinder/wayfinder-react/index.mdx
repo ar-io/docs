@@ -26,15 +26,31 @@ Wayfinder-react wraps the functionality of wayfinder-core in user-friendly React
     ### Install polyfills (required for web environments)
 
     <Callout type="warn">
-    Crypto polyfills are required for web environments when using bundlers.
+    Crypto polyfills are required for web environments due to the use of `crypto`, `buffer` and `process` types in wayfinder-react dependencies (i.e. `arbundles`).
     </Callout>
 
-    ```bash
-    npm install --save-dev crypto-browserify stream-browserify buffer
+    ```npm
+    npm install --save-dev vite-plugin-node-polyfills
     ```
 
-    Configure your bundler (Webpack, Vite, Rollup, etc.) to provide polyfills for `crypto`, `process`, and `buffer`. Refer to your bundler's documentation for polyfill configuration.
+    ```js
+    // vite.config.js
+    import { defineConfig } from 'vite';
+    import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
+    export default defineConfig({
+      plugins: [
+        nodePolyfills({
+          globals: {
+            Buffer: true,
+            global: true,
+            process: true,
+          },
+        }),
+      ],
+    });
+
+    Configure your bundler (Webpack, Vite, Rollup, etc.) to provide polyfills for `crypto`, `process`, and `buffer`. Refer to your bundler's documentation for polyfill configuration.
   </Step>
   <Step>
     ### Setup the provider
