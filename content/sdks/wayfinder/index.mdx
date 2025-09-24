@@ -6,7 +6,8 @@ description: "Decentralized access to Arweave data with built-in verification an
 import { Steps, Step } from "fumadocs-ui/components/steps";
 import { Tabs, Tab } from "fumadocs-ui/components/tabs";
 import { Card, Cards } from "fumadocs-ui/components/card";
-import { BookOpen, Network, Server, Globe } from "lucide-react";
+import { Callout } from "fumadocs-ui/components/callout";
+import { BookOpen, Network, Server, Globe, Terminal, Chrome } from "lucide-react";
 
 Wayfinder leverages the decentralized AR.IO Network to provide robust, censorship-resistant access to data stored on Arweave, removing reliance on centralized gateways. By routing requests through a distributed set of community-operated gateways, Wayfinder ensures high availability, redundancy, and improved performance for users and applications.
 
@@ -16,99 +17,70 @@ The `ar://` protocol enables decentralized resolution and access to Arweave data
 - `ar://NAME` — Resolution of ArNS names (with optional path support)
 - `ar:///info` — Direct access to gateway endpoints (e.g., `/info`)
 
-## Quick Start
+To learn more about the Wayfinder protocol and how it works, visit [/learn/wayfinder](/learn/wayfinder).
 
-<Tabs items={['Node.js (Core)', 'Web (React)']}>
-  <Tab value="Node.js (Core)">
-    <Steps>
-      <Step>
-        ### Install Wayfinder Core
+## Getting Started
 
-        ```bash
-        npm install @ar.io/wayfinder-core @ar.io/sdk
-        ```
-      </Step>
-      <Step>
-        ### Import and configure
+Choose your environment to get started with Wayfinder:
 
-        ```javascript
-        import { createWayfinderClient } from '@ar.io/wayfinder-core';
-        import { ARIO } from '@ar.io/sdk';
+<Cards>
+  <Card
+    icon={<Terminal />}
+    title="@ar.io/wayfinder-core"
+    description="Core SDK for Node.js applications and server environments"
+    href="/sdks/wayfinder/wayfinder-core"
+  />
+  <Card
+    icon={<Chrome />}
+    title="@ar.io/wayfinder-react"
+    description="React hooks and components for browser applications"
+    href="/sdks/wayfinder/wayfinder-react"
+  />
+</Cards>
 
-        // use the top-ranked gateways in the network
-        const wayfinder = createWayfinderClient({
-          ario: ARIO.mainnet(),
-        });
-        ```
-      </Step>
-      <Step>
-        ### Fetch Data
+## Quick Examples
 
-        ```javascript
-        // Use Wayfinder to fetch and verify data using ar:// protocol
-        const response = await wayfinder.request('ar://ardrive');
-        console.log(response);
-        ```
-      </Step>
-    </Steps>
+### Node.js
 
-  </Tab>
-  
-  <Tab value="Web (React)">
-    <Steps>
-      <Step>
-        ### Install Wayfinder React
+```javascript
+import { createWayfinderClient } from '@ar.io/wayfinder-core';
+import { ARIO } from '@ar.io/sdk';
 
-        ```bash
-        npm install @ar.io/wayfinder-react @ar.io/wayfinder-core @ar.io/sdk
-        ```
+// Create a Wayfinder client
+const wayfinder = createWayfinderClient({
+  ario: ARIO.mainnet(),
+});
 
-        <Callout type="warning" title="Browser Polyfills Required">
-        When using Wayfinder in browser environments, you need to configure crypto polyfills. For example, with Vite:
-        
-        ```bash
-        npm install --save-dev vite-plugin-node-polyfills
-        ```
-        
-        See the [installation notes](/sdks/wayfinder/wayfinder-core/installation-notes) for detailed configuration examples.
-        </Callout>
-      </Step>
-      <Step>
-        ### Setup the provider
+// Fetch data using the ar:// protocol
+const response = await wayfinder.request('ar://ardrive');
+console.log(response);
+```
 
-        ```jsx
-        import { WayfinderProvider } from '@ar.io/wayfinder-react';
-        import { ARIO } from '@ar.io/sdk';
+### React
 
-        function App() {
-          return (
-            <WayfinderProvider ario={ARIO.mainnet()}>
-              <YourApp />
-            </WayfinderProvider>
-          );
-        }
-        ```
-      </Step>
-      <Step>
-        ### Use the hook
+```jsx
+import { WayfinderProvider, useWayfinder } from '@ar.io/wayfinder-react';
+import { ARIO } from '@ar.io/sdk';
 
-        ```jsx
-        import { useWayfinder } from '@ar.io/wayfinder-react';
+// Wrap your app with the provider
+function App() {
+  return (
+    <WayfinderProvider ario={ARIO.mainnet()}>
+      <MyComponent />
+    </WayfinderProvider>
+  );
+}
 
-        function MyComponent() {
-          const { data, loading, error } = useWayfinder('ar://ardrive');
+// Use the hook in your components
+function MyComponent() {
+  const { data, loading, error } = useWayfinder('ar://ardrive');
 
-          if (loading) return <div>Loading...</div>;
-          if (error) return <div>Error: {error.message}</div>;
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
 
-          return <div>{data}</div>;
-        }
-        ```
-      </Step>
-    </Steps>
-
-  </Tab>
-</Tabs>
+  return <div>{data}</div>;
+}
+```
 
 ## Next Steps
 
