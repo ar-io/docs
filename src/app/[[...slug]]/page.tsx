@@ -17,21 +17,23 @@ export default async function Page(props: {
 
   // If no page found, trigger 404
   if (!page) {
-   return redirect("/learn")
+    return redirect("/learn");
   }
 
   const MDXContent = page.data.body;
 
   return (
     <DocsPage toc={page.data.toc} full={page.data.full}>
-        <DocsTitle>{page.data.title}</DocsTitle>
-        <DocsBody>      
-          <div className="flex flex-row gap-2 items-center border-b pt-2 pb-6">
-            <LLMCopyButton markdownUrl={`https://raw.githubusercontent.com/ar-io/docs-v2/refs/heads/fumadocs/content/${page.path}`} />
-            <ViewOptions
-              markdownUrl={`https://github.com/ar-io/docs-v2/blob/refs/heads/fumadocs/content/${page.path}`}
-              githubUrl={`https://github.com/ar-io/docs-v2/blob/refs/heads/fumadocs/content/${page.path}`}
-            />
+      <DocsTitle>{page.data.title}</DocsTitle>
+      <DocsBody>
+        <div className="flex flex-row gap-2 items-center border-b pt-2 pb-6">
+          <LLMCopyButton
+            markdownUrl={`https://raw.githubusercontent.com/ar-io/docs-v2/refs/heads/fumadocs/content/${page.path}`}
+          />
+          <ViewOptions
+            markdownUrl={`https://github.com/ar-io/docs-v2/blob/refs/heads/fumadocs/content/${page.path}`}
+            githubUrl={`https://github.com/ar-io/docs-v2/blob/refs/heads/fumadocs/content/${page.path}`}
+          />
         </div>
         <MDXContent
           components={getMDXComponents({
@@ -46,7 +48,13 @@ export default async function Page(props: {
 }
 
 export async function generateStaticParams() {
-  return source.generateParams();
+  const params = source.generateParams();
+  
+  // Add root path for static export
+  return [
+    { slug: [] }, // Root path
+    ...params
+  ];
 }
 
 export async function generateMetadata(props: {
@@ -110,7 +118,7 @@ export async function generateMetadata(props: {
   const pageTitle = frontmatter.title || page.data.title;
   const pageDescription = frontmatter.description || page.data.description;
   const pageImage =
-    frontmatter.image || frontmatter.icon || "https://ar.io/og-image.png";
+    frontmatter.image || frontmatter.icon || "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so";
   const pageKeywords = frontmatter.keywords || [
     "AR.IO",
     "Arweave",
@@ -146,12 +154,9 @@ export async function generateMetadata(props: {
       site: "@AR_IO_Network",
     },
     icons: {
-      icon: pageImage.startsWith("http")
-        ? pageImage
-        : "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
-      shortcut:
-        "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
-      apple: "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
+      icon: pageImage,
+      shortcut: pageImage,
+      apple: pageImage,
     },
     // Add additional metadata for better SEO
     keywords: pageKeywords,
