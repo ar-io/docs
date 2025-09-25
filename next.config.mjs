@@ -5,7 +5,9 @@ const withMDX = createMDX();
 /** @type {import('next').NextConfig} */
 const config = {
   // Enable static export only for production builds
-  output: process.env.NODE_ENV === 'production' ? "export" : "standalone",
+  output: process.env.NODE_ENV === "production" ? "export" : "standalone",
+  // Only use assetPrefix in production for static export
+  ...(process.env.NODE_ENV === "production" && { assetPrefix: "./" }),
   reactStrictMode: true,
   eslint: {
     // Warning: This allows production builds to successfully complete even if
