@@ -15,7 +15,7 @@ const config = {
     ignoreDuringBuilds: true,
   },
   images: { unoptimized: true }, // required for static export + <Image>
-  trailingSlash: true, // recommended for static export
+  trailingSlash: false, // remove trailing slashes from URLs
 };
 
 export default withMDX(config);
