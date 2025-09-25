@@ -1,13 +1,8 @@
 import "@/app/global.css";
 import "katex/dist/katex.css";
 import { RootProvider } from "fumadocs-ui/provider";
-import { Inter } from "next/font/google";
 import type { Metadata } from "next";
 import SearchDialog from "@/components/search";
-
-const inter = Inter({
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://docs.ar.io"),
@@ -26,7 +21,7 @@ export const metadata: Metadata = {
 
 export default function Layout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={inter.className} suppressHydrationWarning>
+    <html lang="en" className="font-inter" suppressHydrationWarning>
       <body className="flex flex-col min-h-screen">
         <RootProvider
           search={{

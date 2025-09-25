@@ -1,6 +1,114 @@
 ---
-title: 'Extensions'
-description: TODO
+title: "Extensions"
+description: "Modular tools that can be run alongside an AR.IO gateway to expand its capabilities or enhance the operator experience"
 ---
 
-TODO:
+# What are Extensions?
+
+Extensions are modular tools that can be run alongside an AR.IO gateway to expand its capabilities or enhance the operator experience. These tools provide additional functionality beyond the core gateway services, allowing operators to customize and optimize their infrastructure setup.
+
+Extensions may be produced by AR.IO or third parties, and the official list of supported extensions can be found at [https://gateways.ar.io/#/extensions](https://gateways.ar.io/#/extensions).
+
+Extensions that are designed to extend the capabilities of a gateway by adding additional services are known as **sidecars**. These run as separate containers alongside your gateway and provide specialized functionality:
+
+- **Monitoring & Analytics**: Tools like Grafana for visualizing gateway metrics
+- **Data Processing**: Services like ClickHouse with Parquet files for improved query performance
+- **Bundling Services**: Bundlers for accepting and processing data items
+- **Compute Units**: AO Compute Units for executing AO processes
+
+# Getting Started with Extensions
+
+Each extension will have its own documentation on specific steps and requirements for running. Before installing any extension:
+
+1. **Check Prerequisites**: Ensure your system meets the requirements
+2. **Review Documentation**: Read the specific setup guide for each extension
+3. **Plan Your Setup**: Consider resource requirements and configuration needs
+4. **Test in Development**: Try extensions in a test environment first
+
+# Available Extensions
+
+This is not an exhaustive list of available extensions. For the complete list of supported extensions, see the [official extensions list](https://gateways.ar.io/#/extensions).
+
+<Cards>
+  <Card href="/build/extensions/grafana" title="Grafana Monitoring Sidecar">
+    **Visualize gateway metrics** with comprehensive dashboards
+
+    Monitor performance, track operations, and analyze gateway health with pre-configured Grafana dashboards.
+
+    **Key features:**
+    - Real-time metrics visualization
+    - Performance monitoring
+    - Queue length tracking
+    - Bundle indexing metrics
+
+  </Card>
+
+  <Card href="/build/extensions/parquet" title="Parquet & ClickHouse">
+    **Improve performance** for large datasets
+
+    Use columnar storage and ClickHouse to dramatically improve query performance for analytical workloads.
+
+    **Key features:**
+    - Columnar data storage
+    - Advanced query optimization
+    - Better compression ratios
+    - Faster bootstrapping
+
+  </Card>
+
+  <Card href="/build/extensions/bundler" title="Bundler Sidecar">
+    **Accept data items** for submission to Arweave
+
+    Run an ANS-104 data item bundler alongside your gateway to accept and process data uploads.
+
+    **Key features:**
+    - Data item bundling
+    - Multiple payment methods
+    - Optimistic caching
+    - Access control
+
+  </Card>
+
+  <Card href="/build/extensions/compute-unit" title="AO Compute Unit Sidecar">
+    **Execute AO processes** locally
+
+    Deploy an AO Compute Unit (CU) to process AO messages and maintain process state.
+
+    **Key features:**
+    - Local AO process execution
+    - WASM module support
+    - State management
+    - Checkpoint creation
+
+  </Card>
+</Cards>
+
+# Extension Management
+
+### Installation
+
+Most extensions are deployed using Docker Compose with specific profiles or separate compose files. Follow the individual documentation for each extension to ensure proper setup.
+
+### Configuration
+
+Extensions typically require:
+
+- Environment variable configuration
+- Network access to the gateway
+- Resource allocation (CPU, memory, storage)
+- Optional nginx configuration for external access
+
+## Community Extensions
+
+The AR.IO ecosystem supports third-party extensions. Check the [official extensions list](https://gateways.ar.io/#/extensions) for community-developed tools and integrations.
+
+## Need Help?
+
+If you encounter issues with extensions:
+
+1. **Check Documentation**: Review the specific extension guide
+2. **Verify Configuration**: Ensure all environment variables are set correctly
+3. **Check Logs**: Review container logs for error messages
+4. **Community Support**: Join the [AR.IO Discord](https://discord.gg/7zUPfN4D6g) for help
+
+**Ready to extend your gateway?** Choose an extension above to get started!
