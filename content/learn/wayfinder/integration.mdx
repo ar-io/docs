@@ -1,56 +1,175 @@
 ---
-title: "Integration Methods"
-description: "Learn how to integrate Wayfinder Protocol in browsers and internal applications"
+title: "Integration"
+description: "Use the Wayfinder browser extension or integrate Wayfinder libraries into your applications"
 ---
 
-## Browser Integration
+## Getting Started
 
-The Wayfinder Protocol is currently facilitated via the WayFinder App or internal application integration. The intention is to lead popular web browsers like Chrome and Brave towards a direct integration of the Wayfinder Protocol, similar to recent integrations of the `ipfs://` protocol.
+<Callout type="tip">
+**Get the Extension**
 
-Such integration would remove the need for a client-side extension and boost developers' confidence in embedding Wayfinder Protocol URLs in their websites.
+The easiest way to use Wayfinder is the [Wayfinder Extension](https://chromewebstore.google.com/detail/ario-wayfinder/hnhmeknhajanolcoihhkkaaimapnmgil?hl=en-US), available in the Chrome Web Store.
+</Callout>
 
-## Internal Application Integration
+### Wayfinder Extension
 
-Certain websites or apps may want to resolve Arweave Transaction ID's (TxId) internally. In these scenarios, they can process the Wayfinder Protocol internally without depending on browser support or the WayFinder App.
+The wayfinder-extension is a simple Chrome extension that supports the ar:// routing protocol and allows you to:
 
-A prime example is [opensea.io](https://opensea.io). Opensea, an NFT marketplace, frequently imports NFT metadata from external sources. If metadata employs the Wayfinder Protocol, Opensea internally resolves these, presenting content without redirecting users through an `https://` link.
+- **Navigate ar:// URLs directly** in your browser
+- **Configure routing strategies** - Choose how requests are routed to gateways
+- **Set verification preferences** - Control content verification levels
+- **Monitor gateway performance** - See which gateways are serving your requests
 
-## Resolution Approaches
+No coding required - just install the extension and start browsing ar:// URLs!
 
-There are two main approaches to resolving Wayfinder Protocol URLs:
+## Developer Integration Options
 
-### 1. Predefined Gateway Approach
-
-Convert Wayfinder into a request directed at a predefined Arweave gateway. This approach is simple and reliable but ties your application to a specific gateway.
-
-### 2. Dynamic Gateway Selection
-
-Retrieve a list of active AR.IO Gateways from the [GAR](/learn/gateways/gateway-network#gateway-address-registry-gar) by reading the contract state, or other available resources, and then fetch content from a gateway on the list.
-
-This approach provides better decentralization and fault tolerance but requires more complex implementation.
-
-## SDK Integration Options
-
-For developers looking to integrate Wayfinder functionality into their applications, AR.IO provides dedicated SDKs:
+For developers who want to integrate Wayfinder into their applications:
 
 ### Wayfinder Core
 
-The [Wayfinder Core SDK](/sdks/wayfinder-core) provides the foundational functionality for resolving `ar://` URLs and interacting with AR.IO gateways. This SDK is ideal for custom implementations and server-side applications.
+The [wayfinder-core](/sdks/wayfinder-core) library is the core protocol implementation that accepts various configuration options for setting up Wayfinder. It provides:
+
+- **Gateway selection strategies** - Choose how to route requests
+- **Content verification** - Optionally verify content authenticity
+- **Telemetry collection** - Understand performance vs arweave.net
+- **Custom configurations** - Fine-tune behavior for your use case
 
 ### Wayfinder React
 
-The [Wayfinder React SDK](/sdks/wayfinder-react) offers React-specific components and hooks for building user interfaces that work seamlessly with the Wayfinder Protocol. Perfect for frontend applications and web interfaces.
+Web developers will likely be interested in [wayfinder-react](/sdks/wayfinder-react), which provides:
 
-Both SDKs handle the complexity of gateway selection, URL resolution, and error handling, making it easier to integrate Wayfinder functionality into your applications.
+- **React Context Provider** - Easy integration with React apps
+- **Custom hooks** - Simplified data fetching and state management
+- **Component library** - Pre-built UI components for common patterns
+- **TypeScript support** - Full type safety out of the box
 
-## Implementation Considerations
+## Common Integration Pattern: Preferred with Fallback
 
-Each strategy has its benefits and challenges, necessitating careful evaluation based on specific use cases:
+For most builds, teams use the "preferred with fallback" pattern. This routing strategy prioritizes your preferred gateway but automatically falls back to other gateways in the network if needed:
 
-- **Performance**: Predefined gateways may be faster but less resilient
-- **Decentralization**: Dynamic selection provides better decentralization
-- **Complexity**: Predefined gateways are simpler to implement
-- **Maintenance**: Dynamic selection requires ongoing gateway health monitoring
+```typescript
+import { WayfinderClient } from '@ar-io/wayfinder-core';
+
+const wayfinder = new createWayfinderClient({
+  ario: ARIO.mainnet(),
+  verification: 'hash',
+  routing: 'preferred',
+  preferredGateway: 'arweave.net',
+});
+```
+
+This pattern ensures:
+1. **Primary traffic** goes to your preferred gateway (one you run or are delegated to)
+2. **Automatic failover** if your gateway can't serve the data
+3. **Network resilience** by finding another gateway that can serve the content
+
+For detailed routing strategy options, see the [routing strategies documentation](/sdks/wayfinder/wayfinder-core/routing-strategies/#preferred-gateway--network-fallback-strategy).
+
+## Verification: Optional but Encouraged
+
+While verification is optional, it's strongly encouraged when fetching from gateways:
+
+```typescript
+const wayfinder = createWayfinderClient({
+  //...other settings,
+  verification: 'hash', // hash based verification
+});
+```
+
+Verification ensures you're receiving authentic content regardless of which gateway serves it.
+
+## Telemetry for Performance Insights
+
+Enable telemetry to understand how Wayfinder performs relative to arweave.net:
+
+```typescript
+const wayfinder = createWayfinderClient({
+  //...other settings,
+  telemetry: {
+      enabled: true,
+      sampleRate: 0.1, // sample 10% of requests
+      apiKey: 'your-api-key', // optional
+      clientName: 'my-app',
+      clientVersion: '1.0.0'
+  }
+});
+```
+
+This helps teams make data-driven decisions about gateway selection and optimization.
+
+## React Integration Example
+
+Here's a complete example using wayfinder-react:
+
+```tsx
+import { WayfinderProvider } from '@ar-io/wayfinder-react';
+
+// Configure Wayfinder
+const wayfinderConfig = {
+  gatewaysProvider: new NetworkGatewaysProvider({
+    ario: ARIO.mainnet(),
+  }),
+  routingSettings: {
+    // use the fastest pinging strategy to select the fastest gateway for requests
+    strategy: new FastestPingRoutingStrategy({
+      timeoutMs: 1000,
+    }),
+  }
+  verificationSettings: {
+    enabled: false
+  }
+};
+
+// Wrap your app
+function App() {
+  return (
+    <WayfinderProvider config={wayfinderConfig}>
+      <YourApp />
+    </WayfinderProvider>
+  );
+}
+
+// Use in components
+function WayfinderImage({ txId }: { txId: string }) {
+  const { resolvedUrl, isLoading, error } = useWayfinderUrl({ txId });
+
+  if (error) {
+    return <p>Error resolving URL: {error.message}</p>;
+  }
+
+  if (isLoading) {
+    return <p>Resolving URL...</p>;
+  }
+
+  return (
+    <img src={resolvedUrl} alt={txId} />
+  );
+}
+```
+
+## Extension Configuration
+
+Users of the wayfinder-extension can configure their routing and verification strategies through the extension's settings:
+
+1. **Routing Strategies**:
+   - Random gateway selection
+   - Fastest gateway (based on latency)
+   - Preferred gateway with fallback
+   - Custom gateway list
+
+2. **Verification Settings**:
+   - Disabled (fastest, trust-based)
+   - Basic (verify transaction IDs)
+   - Full (complete content verification)
+
+## Implementation Best Practices
+
+1. **Always configure a preferred gateway** - Reduces latency and improves reliability
+2. **Enable verification for sensitive content** - Ensures authenticity
+3. **Monitor telemetry in production** - Understand real-world performance
+4. **Handle errors gracefully** - Provide fallback UI when content can't be loaded
+5. **Cache aggressively** - Reduce repeated gateway requests
 
 ## Next Steps
 
