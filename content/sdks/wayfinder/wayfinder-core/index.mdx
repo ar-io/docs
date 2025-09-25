@@ -1,0 +1,99 @@
+---
+title: "Wayfinder Core"
+description: "JavaScript/TypeScript SDK for accessing Arweave data with built-in verification and gateway routing"
+---
+
+import { Steps, Step } from "fumadocs-ui/components/steps";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { BookOpen, Network, Server, Code } from "lucide-react";
+
+`@ar.io/wayfinder-core` is the core library for the Wayfinder project. It provides the core functionality for routing and verifying data through the AR.IO network, ideal for both Node.js and web environments.
+
+### ar:// Protocol
+
+Wayfinder leverages the decentralized AR.IO Network to provide robust, censorship-resistant access to data stored on Arweave, removing reliance on centralized gateways like arweave.net. By routing requests through a distributed set of community-operated gateways, Wayfinder ensures high availability, redundancy, and improved performance for users and applications.
+
+The `ar://` protocol enables decentralized resolution and access to Arweave data using several flexible URL formats:
+
+- `ar://TRANSACTION_ID` — Direct access to a specific Arweave transaction
+- `ar://NAME` — Resolution of ArNS names (with optional path support)
+- `ar:///info` — Direct access to gateway endpoints (e.g., `/info`)
+
+## Quick Start
+
+<Steps>
+  <Step>
+    ### Install
+
+    ```bash
+    npm install @ar.io/wayfinder-core @ar.io/sdk
+    ```
+
+  </Step>
+  <Step>
+    ### Import and configure
+
+    ```javascript
+    import { createWayfinderClient } from '@ar.io/wayfinder-core';
+    import { ARIO } from '@ar.io/sdk';
+
+    // Use the top-ranked gateways in the network
+    const wayfinder = createWayfinderClient({
+      ario: ARIO.mainnet(),
+    });
+    ```
+
+  </Step>
+  <Step>
+    ### Make your first request
+
+    ```javascript
+    // Use Wayfinder to fetch and verify data using ar:// protocol
+    const response = await wayfinder.request('ar://ardrive');
+    console.log(response);
+    ```
+
+  </Step>
+  <Step>
+    ### Use custom configuration (optional)
+
+    ```javascript
+    // Use custom static gateways with specific options
+    const customWayfinder = createWayfinderClient({
+      trustedGateways: ['https://permagate.io', 'https://arweave.net'],
+      routing: 'fastest',
+      verification: 'hash',
+    });
+    ```
+
+  </Step>
+</Steps>
+
+## Next Steps
+
+<Cards>
+  <Card
+    icon={<Code />}
+    title="Advanced Usage"
+    description="Explore advanced configuration options and patterns"
+    href="/sdks/wayfinder/wayfinder-core/advanced-usage"
+  />
+  <Card
+    icon={<Network />}
+    title="Gateway Providers"
+    description="Learn about different gateway provider strategies"
+    href="/sdks/wayfinder/wayfinder-core/gateway-providers"
+  />
+  <Card
+    icon={<BookOpen />}
+    title="Request Flow"
+    description="Understanding how Wayfinder routes and verifies requests"
+    href="/sdks/wayfinder/wayfinder-core/request-flow"
+  />
+  <Card
+    icon={<Server />}
+    title="Monitoring & Events"
+    description="Monitor performance and handle events"
+    href="/sdks/wayfinder/wayfinder-core/monitoring-and-events"
+  />
+</Cards>
