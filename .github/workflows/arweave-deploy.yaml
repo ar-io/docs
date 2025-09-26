@@ -1,0 +1,62 @@
+name: Deploy to Arweave
+
+on:
+  # Trigger on push to main branch
+  push:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "content/**"
+      - "scripts/**"
+      - "next.config.mjs"
+      - "package.json"
+      - "tailwind.config.js"
+      - "tsconfig.json"
+
+  # Allow manual dispatch with custom undername
+  workflow_dispatch:
+    inputs:
+      undername:
+        description: "ArNS undername for deployment (use @ for base name)"
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "yarn"
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build Next.js application
+        run: yarn build
+
+      - name: Deploy to Arweave
+        run: node scripts/deploy-to-arweave.js
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+          ARNS_NAME: ${{ secrets.ARNS_NAME }}
+          UNDERNAME: ${{ github.event.inputs.undername || secrets.MAIN_ARNS_UNDERNAME }}
+
+      - name: Deployment Summary
+        run: |
+          echo "🚀 Deployment completed successfully!"
+          echo "📁 ArNS Name: ${{ secrets.ARNS_NAME }}"
+          echo "🔗 Undername: ${{ github.event.inputs.undername || secrets.MAIN_ARNS_UNDERNAME }}"
+          UNDERNAME="${{ github.event.inputs.undername || secrets.MAIN_ARNS_UNDERNAME }}"
+          if [ "$UNDERNAME" = "@" ]; then
+            echo "🌐 URL: https://${{ secrets.ARNS_NAME }}.ar-io.dev"
+          else
+            echo "🌐 URL: https://${{ secrets.ARNS_NAME }}.ar-io.dev/$UNDERNAME"
+          fi
