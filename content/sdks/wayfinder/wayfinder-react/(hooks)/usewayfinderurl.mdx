@@ -1,0 +1,28 @@
+---
+title: "useWayfinderUrl"
+description: "React hooks and components for integrating Wayfinder into React applications"
+---
+
+Get a dynamic URL for an existing `ar://` URL or legacy `arweave.net`/`arweave.dev` URL.
+
+Example:
+
+```tsx
+import { useWayfinderUrl } from '@ar.io/wayfinder-react';
+
+function WayfinderImage({ txId }: { txId: string }) {
+  const { resolvedUrl, isLoading, error } = useWayfinderUrl({ txId });
+
+  if (error) {
+    return <p>Error resolving URL: {error.message}</p>;
+  }
+
+  if (isLoading) {
+    return <p>Resolving URL...</p>;
+  }
+
+  return (
+    <img src={resolvedUrl} alt={txId} />
+  );
+}
+```

@@ -14,7 +14,7 @@ const PACKAGES: {
     // AR.IO SDK
   {
     name: "ar-io-sdk",
-    readmeUrl: "https://raw.githubusercontent.com/ar-io/ar-io-sdk/main/README.md",
+    readmeUrl: "https://raw.githubusercontent.com/ar-io/ar-io-sdk/alpha/README.md",
     dest: path.resolve("content/sdks/ar-io-sdk"),
     title: "AR.IO SDK",
     description: "TypeScript/JavaScript SDK for interacting with the AR.IO ecosystem",
@@ -65,8 +65,10 @@ function escapeContent(content: string): string {
   return content
     // Remove h1 headers (# title)
     .replace(/^#\s+[^\n]+\n/gm, '')
-    // Convert <details> blocks to normal code blocks
-    .replace(/<details>\s*<summary>[^<]*<\/summary>\s*(```[\s\S]*?```)\s*<\/details>/g, '$1')
+    // Convert <details> blocks to normal output blocks with "Output:" prefix
+    .replace(/<details>\s*<summary>[^<]*<\/summary>\s*(```[\s\S]*?```)\s*<\/details>/g, (match, codeBlock) => {
+      return `**Output:**\n\n${codeBlock}`;
+    })
     // Escape emoji checkmarks and crosses that might be interpreted as JSX
     .replace(/^(\s*-)(\s*)(✅|❌)/gm, '$1$2{\'$3\'}')
     // Convert GitHub-style alerts to Fumadocs Callout components
@@ -156,70 +158,126 @@ async function processPackage(pkg: typeof PACKAGES[0]) {
     console.log(`Fetching README from: ${pkg.readmeUrl}`);
     const content = await fetchReadme(pkg.readmeUrl);
     
-    // Split content by ## headers
-    const sections = content.split(/(?=^## )/m).filter(section => section.trim());
-
-
-    // we skip the intro section as index.mdx is curated with mdx specific content
-
-    const pages: string[] = [];
-  
-    // Process each ## section as a separate page
-    for (const section of sections) {
-      if (!section.startsWith('## ')) continue;
+    // First split by H2 headers to create folder structure
+    const h2Sections = content.split(/(?=^## )/m).filter(section => section.trim());
+    
+    // Structure to hold our pages/folders
+    const rootPages: string[] = [];
+    const folders: Record<string, string[]> = {};
+    
+    for (const h2Section of h2Sections) {
+      if (!h2Section.startsWith('## ')) continue;
       
-      const lines = section.split('\n');
-      const headerLine = lines[0];
-      const sectionTitle = headerLine.replace(/^## /, '').trim();
+      const h2Lines = h2Section.split('\n');
+      const h2HeaderLine = h2Lines[0];
+      const h2Title = h2HeaderLine.replace(/^## /, '').trim();
       
-      // Skip table of contents, developers, cli, installation, usage, and quick start sections
-      if (sectionTitle.toLowerCase().includes('table of contents') || 
-          sectionTitle.toLowerCase().includes('toc') ||
-          sectionTitle.toLowerCase() === 'contents' ||
-          sectionTitle.toLowerCase() === 'developers' ||
-          sectionTitle.toLowerCase() === 'cli' ||
-          sectionTitle.toLowerCase() === 'installation' ||
-          sectionTitle.toLowerCase() === 'usage' ||
-          sectionTitle.toLowerCase().includes('quick start')) {
-        console.log(`Skipping section: ${sectionTitle}`);
+      // Skip certain H2 sections
+      if (h2Title.toLowerCase().includes('table of contents') || 
+          h2Title.toLowerCase().includes('toc') ||
+          h2Title.toLowerCase() === 'contents' ||
+          h2Title.toLowerCase() === 'developers' ||
+          h2Title.toLowerCase() === 'cli' ||
+          h2Title.toLowerCase() === 'installation' ||
+          h2Title.toLowerCase() === 'configuration' ||
+          h2Title.toLowerCase() === 'resources' ||
+          h2Title.toLowerCase() === 'usage' ||
+          h2Title.toLowerCase().includes('quick start')) {
+        console.log(`Skipping H2 section: ${h2Title}`);
         continue;
       }
       
-      // Remove backticks and simplify function signatures for cleaner page names
-      let cleanSectionTitle = sectionTitle.replace(/`/g, '');
+      // Clean up the H2 title
+      let cleanH2Title = h2Title.replace(/`/g, '');
+      cleanH2Title = cleanH2Title.replace(/(\w+)\([^)]*\)(\([^)]*\))*/g, '$1()');
+      const h2FolderName = sanitizeFilename(cleanH2Title);
+
+      // Split this H2 section by H3 headers
+      const h3Sections = h2Section.split(/(?=^### )/m).filter(section => section.trim());
       
-      // Simplify function signatures: remove parameters, keep just function name with ()
-      cleanSectionTitle = cleanSectionTitle.replace(/(\w+)\([^)]*\)(\([^)]*\))*/g, '$1()');
+      // Process the H2 content (before first H3)
+      const h2Content = h3Sections[0];
+      const h2ContentLines = h2Content.split('\n');
+      const h2ContentBody = h2ContentLines.slice(1).join('\n').trim();
       
-      const sectionContent = lines.slice(1).join('\n').trim();
-      
-      const filename = sanitizeFilename(cleanSectionTitle);
-      const escapedContent = escapeContent(sectionContent);
-      
-      const pageContent = `---
-title: "${cleanSectionTitle}"
+      if (h3Sections.length > 1) {
+        // Has H3 subsections - create a folder with parentheses
+        const folderName = `(${h2FolderName})`;
+        const folderPath = path.join(pkg.dest, folderName);
+        await fs.mkdir(folderPath, { recursive: true });
+        folders[folderName] = [];
+        
+        // Process each H3 section
+        for (let i = 1; i < h3Sections.length; i++) {
+          const h3Section = h3Sections[i];
+          if (!h3Section.startsWith('### ')) continue;
+          
+          const h3Lines = h3Section.split('\n');
+          const h3HeaderLine = h3Lines[0];
+          const h3Title = h3HeaderLine.replace(/^### /, '').trim();
+          
+          // Clean up the H3 title
+          let cleanH3Title = h3Title.replace(/`/g, '');
+          cleanH3Title = cleanH3Title.replace(/(\w+)\([^)]*\)(\([^)]*\))*/g, '$1()');
+          
+          const h3Content = h3Lines.slice(1).join('\n').trim();
+          const h3Filename = sanitizeFilename(cleanH3Title);
+          const escapedContent = escapeContent(h3Content);
+          
+          const pageContent = `---
+title: "${cleanH3Title}"
 description: "${pkg.description}"
 ---
 
 ${escapedContent}`;
-      
-      await fs.writeFile(path.join(pkg.dest, `${filename}.mdx`), pageContent);
-      pages.push(filename);
-      console.log(`Created page: ${filename}.mdx`);
+          
+          await fs.writeFile(path.join(folderPath, `${h3Filename}.mdx`), pageContent);
+          folders[folderName].push(h3Filename);
+          console.log(`Created page: ${folderName}/${h3Filename}.mdx`);
+        }
+        
+        // Create meta.json for the folder
+        const folderMetaPath = path.join(folderPath, 'meta.json');
+        await fs.writeFile(
+          folderMetaPath,
+          JSON.stringify({ 
+            title: cleanH2Title, 
+            pages: folders[folderName],
+            defaultOpen: false 
+          }, null, 2)
+        );
+        
+        rootPages.push(folderName);
+      } else {
+        // No H3 subsections - create a single page
+        const filename = h2FolderName;
+        const escapedContent = escapeContent(h2ContentBody);
+        
+        const pageContent = `---
+title: "${cleanH2Title}"
+description: "${pkg.description}"
+---
+
+${escapedContent}`;
+        
+        await fs.writeFile(path.join(pkg.dest, `${filename}.mdx`), pageContent);
+        rootPages.push(filename);
+        console.log(`Created page: ${filename}.mdx`);
+      }
     }
     
-    // Create sidebar meta with all pages
+    // Create top-level meta for the package
     const metaPath = path.join(pkg.dest, "meta.json");
     await fs.writeFile(
       metaPath,
       JSON.stringify(
-        { title: pkg.title, icon: pkg.icon, pages, defaultOpen: false },
+        { title: pkg.title, icon: pkg.icon, pages: rootPages, defaultOpen: false },
         null,
         2
       )
     );
     
-    console.log(`${pkg.name} README.md successfully split into ${pages.length} pages`);
+    console.log(`${pkg.name} README.md successfully processed`);
   } catch (error) {
     console.error(`Error converting ${pkg.name} README:`, error);
     // Create fallback if README doesn't exist
@@ -240,7 +298,7 @@ Please refer to the [source code](${pkg.sourceUrl}) for SDK details.`
     await fs.writeFile(
       metaPath,
       JSON.stringify(
-        { title: pkg.title, pages: ["..."], defaultOpen: true },
+        { title: pkg.title, pages: ["..."], defaultOpen: false },
         null,
         2
       )

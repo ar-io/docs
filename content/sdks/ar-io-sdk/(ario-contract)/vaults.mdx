@@ -1,0 +1,141 @@
+---
+title: "Vaults"
+description: "TypeScript/JavaScript SDK for interacting with the AR.IO ecosystem"
+---
+
+#### getVault()
+
+Retrieves the locked-balance user vault of the ARIO process by the specified wallet address and vault ID.
+
+```typescript
+const ario = ARIO.mainnet();
+const vault = await ario.getVault({
+  address: 'QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ',
+  vaultId: 'vaultIdOne',
+});
+```
+
+**Output:**
+
+```json
+{
+  "balance": 1000000,
+  "startTimestamp": 123,
+  "endTimestamp": 4567
+}
+```
+
+#### getVaults()
+
+Retrieves all locked-balance user vaults of the ARIO process, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last wallet address from the previous request.
+
+```typescript
+const ario = ARIO.mainnet();
+const vaults = await ario.getVaults({
+  cursor: '0',
+  limit: 100,
+  sortBy: 'balance',
+  sortOrder: 'desc',
+});
+```
+
+**Output:**
+
+```json
+{
+  "items": [
+    {
+      "address": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
+      "vaultId": "vaultIdOne",
+      "balance": 1000000,
+      "startTimestamp": 123,
+      "endTimestamp": 4567
+    },
+    {
+      "address": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
+      "vaultId": "vaultIdTwo",
+      "balance": 1000000,
+      "startTimestamp": 123,
+      "endTimestamp": 4567
+    }
+    // ...98 other addresses with vaults
+  ],
+  "hasMore": true,
+  "nextCursor": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
+  "totalItems": 1789,
+  "sortBy": "balance",
+  "sortOrder": "desc"
+}
+```
+
+#### vaultedTransfer()
+
+Transfers `mARIO` to the designated `recipient` address and locks the balance for the specified `lockLengthMs` milliseconds. The `revokable` flag determines if the vaulted transfer can be revoked by the sender.
+
+_Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
+
+```typescript
+const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const { id: txId } = await ario.vaultedTransfer(
+  {
+    recipient: '-5dV7nk7waR8v4STuwPnTck1zFVkQqJh5K9q9Zik4Y5',
+    quantity: new ARIOToken(1000).toMARIO(),
+    lockLengthMs: 1000 * 60 * 60 * 24 * 365, // 1 year
+    revokable: true,
+  },
+  // optional additional tags
+  { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+);
+```
+
+#### revokeVault()
+
+Revokes a vaulted transfer by the recipient address and vault ID. Only the sender of the vaulted transfer can revoke it.
+
+_Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
+
+```typescript
+const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const { id: txId } = await ario.revokeVault({
+  recipient: '-5dV7nk7waR8v4STuwPnTck1zFVkQqJh5K9q9Zik4Y5',
+  vaultId: 'IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs',
+});
+```
+
+#### createVault()
+
+Creates a vault for the specified `quantity` of mARIO from the signer's balance and locks it for the specified `lockLengthMs` milliseconds.
+
+```typescript
+const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+
+const { id: txId } = await ario.createVault({
+  lockLengthMs: 1000 * 60 * 60 * 24 * 365, // 1 year
+  quantity: new ARIOToken(1000).toMARIO(),
+});
+```
+
+#### extendVault()
+
+Extends the lock length of a signer's vault by the specified `extendLengthMs` milliseconds.
+
+```typescript
+const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+
+const { id: txId } = await ario.extendVault({
+  vaultId: 'vaultIdOne',
+  extendLengthMs: 1000 * 60 * 60 * 24 * 365, // 1 year
+});
+```
+
+#### increaseVault()
+
+Increases the balance of a signer's vault by the specified `quantity` of mARIO.
+
+```typescript
+const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const { id: txId } = await ario.increaseVault({
+  vaultId: 'vaultIdOne',
+  quantity: new ARIOToken(1000).toMARIO(),
+});
+```

@@ -1,0 +1,59 @@
+---
+title: "ARIO Integrations"
+description: "TypeScript/JavaScript SDK for interacting with the AR.IO ecosystem"
+---
+
+#### releaseName()
+
+Releases a name from the current owner and makes it available for purchase on the ARIO contract. The name must be permanently owned by the releasing wallet. If purchased within the recently returned name period (14 epochs), 50% of the purchase amount will be distributed to the ANT owner at the time of release. If no purchases in the recently returned name period, the name can be reregistered by anyone for the normal fee.
+
+_Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
+
+```typescript
+const { id: txId } = await ant.releaseName({
+  name: 'permalink',
+  arioProcessId: ARIO_MAINNET_PROCESS_ID, // releases the name owned by the ANT and sends it to recently returned names on the ARIO contract
+});
+```
+
+#### reassignName()
+
+Reassigns a name to a new ANT. This can only be done by the current owner of the ANT.
+
+_Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
+
+```typescript
+const { id: txId } = await ant.reassignName({
+  name: 'ardrive',
+  arioProcessId: ARIO_MAINNET_PROCESS_ID,
+  antProcessId: NEW_ANT_PROCESS_ID, // the new ANT process id that will take over ownership of the name
+});
+```
+
+#### approvePrimaryNameRequest()
+
+Approves a primary name request for a given name or address.
+
+_Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
+
+```typescript
+const { id: txId } = await ant.approvePrimaryNameRequest({
+  name: 'arns',
+  address: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3', // must match the request initiator address
+  arioProcessId: ARIO_MAINNET_PROCESS_ID, // the ARIO process id to use for the request
+});
+```
+
+#### removePrimaryNames()
+
+Removes primary names from the ANT process.
+
+_Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
+
+```typescript
+const { id: txId } = await ant.removePrimaryNames({
+  names: ['arns', 'test_arns'], // any primary names associated with a base name controlled by this ANT will be removed
+  arioProcessId: ARIO_MAINNET_PROCESS_ID,
+  notifyOwners: true, // if true, the owners of the removed names will be send AO messages to notify them of the removal
+});
+```

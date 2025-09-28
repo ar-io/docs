@@ -1,0 +1,25 @@
+---
+title: "Configuration"
+description: "TypeScript/JavaScript SDK for interacting with the AR.IO ecosystem"
+---
+
+The ARIO client class exposes APIs relevant to the ar.io process. It can be configured to use any AO Process ID that adheres to the [ARIO Network Spec]. By default, it will use the current [ARIO Testnet Process]. Refer to [AO Connect] for more information on how to configure an ARIO process to use specific AO infrastructure.
+
+```typescript
+import { ARIO , AOProcess } from '@ar.io/sdk';
+import { connect } from '@permaweb/aoconnect';
+
+// provide a custom ao infrastructure and process id
+const ario = ARIO.mainnet({
+  process: new AOProcess({
+    processId: 'ARIO_PROCESS_ID'
+    ao: connect({
+      MODE: 'legacy',
+      MU_URL: 'https://mu-testnet.xyz',
+      CU_URL: 'https://cu-testnet.xyz',
+      GRAPHQL_URL: 'https://arweave.net/graphql',
+      GATEWAY_URL: 'https://arweave.net',
+    })
+  })
+});
+```

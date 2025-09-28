@@ -1,0 +1,56 @@
+---
+title: "Spawn"
+description: "TypeScript/JavaScript SDK for interacting with the AR.IO ecosystem"
+---
+
+#### spawn()
+
+Spawns a new ANT (Arweave Name Token) process. This static function creates a new ANT process on the AO network and returns the process ID.
+
+_Note: Requires `signer` to be provided to sign the spawn transaction._
+
+```typescript
+import { ANT } from '@ar.io/sdk';
+import { ArweaveSigner } from '@ar.io/sdk/node';
+
+const processId = await ANT.spawn({
+  signer: new ArweaveSigner(jwk),
+  state: {
+    name: 'My ANT',
+    ticker: 'MYANT',
+    description: 'My custom ANT token',
+  },
+});
+
+// Using a custom module ID
+const processId = await ANT.spawn({
+  signer: new ArweaveSigner(jwk),
+  module: 'FKtQtOOtlcWCW2pXrwWFiCSlnuewMZOHCzhulVkyqBE', // Custom module ID
+  state: {
+    name: 'My Custom Module ANT',
+    ticker: 'CUSTOM',
+    description: 'ANT using a specific module version',
+  },
+});
+```
+
+**CLI Usage:**
+
+```bash
+ar.io spawn-ant --wallet-file wallet.json --name "My ANT" --ticker "MYANT"
+
+ar.io spawn-ant --wallet-file wallet.json --module FKtQtOOtlcWCW2pXrwWFiCSlnuewMZOHCzhulVkyqBE --name "My Custom ANT" --ticker "CUSTOM"
+```
+
+**Parameters:**
+
+- `signer: AoSigner` - The signer used to authenticate the spawn transaction
+- `module?: string` - Optional module ID to use; if not provided, gets latest from ANT registry
+- `ao?: AoClient` - Optional AO client instance (defaults to legacy mode connection)
+- `scheduler?: string` - Optional scheduler ID
+- `state?: SpawnANTState` - Optional initial state for the ANT including name, ticker, description, etc.
+- `antRegistryId?: string` - Optional ANT registry ID
+- `logger?: Logger` - Optional logger instance
+- `authority?: string` - Optional authority
+
+**Returns:** `Promise\<ProcessId\>` - The process ID of the newly spawned ANT

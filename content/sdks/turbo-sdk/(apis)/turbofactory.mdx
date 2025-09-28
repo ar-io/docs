@@ -1,0 +1,98 @@
+---
+title: "TurboFactory"
+description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
+---
+
+#### unauthenticated()
+
+Creates an instance of a client that accesses Turbo's unauthenticated services.
+
+```typescript
+const turbo = TurboFactory.unauthenticated();
+```
+
+#### authenticated()
+
+Creates an instance of a client that accesses Turbo's authenticated and unauthenticated services. Requires either a signer, or private key to be provided.
+
+##### Arweave JWK
+
+```typescript
+const jwk = await arweave.crypto.generateJWK();
+const turbo = TurboFactory.authenticated({ privateKey: jwk });
+```
+
+##### ArweaveSigner
+
+```typescript
+const signer = new ArweaveSigner(jwk);
+const turbo = TurboFactory.authenticated({ signer });
+```
+
+##### ArconnectSigner
+
+```typescript
+const signer = new ArconnectSigner(window.arweaveWallet);
+const turbo = TurboFactory.authenticated({ signer });
+```
+
+##### EthereumSigner
+
+```typescript
+const signer = new EthereumSigner(privateKey);
+const turbo = TurboFactory.authenticated({ signer });
+```
+
+##### Ethereum Private Key
+
+```typescript
+const turbo = TurboFactory.authenticated({
+  privateKey: ethHexadecimalPrivateKey,
+  token: 'ethereum',
+});
+```
+
+##### POL (MATIC) Private Key
+
+```typescript
+const turbo = TurboFactory.authenticated({
+  privateKey: ethHexadecimalPrivateKey,
+  token: 'pol',
+});
+```
+
+##### HexSolanaSigner
+
+```typescript
+const signer = new HexSolanaSigner(bs58.encode(secretKey));
+const turbo = TurboFactory.authenticated({ signer });
+```
+
+##### Solana Secret Key
+
+```typescript
+const turbo = TurboFactory.authenticated({
+  privateKey: bs58.encode(secretKey),
+  token: 'solana',
+});
+```
+
+##### KYVE Private Key
+
+```typescript
+const turbo = TurboFactory.authenticated({
+  privateKey: kyveHexadecimalPrivateKey,
+  token: 'kyve',
+});
+```
+
+##### KYVE Mnemonic
+
+```typescript
+import { privateKeyFromKyveMnemonic } from '@ardrive/turbo-sdk';
+
+const turbo = TurboFactory.authenticated({
+  privateKey: privateKeyFromKyveMnemonic(mnemonic),
+  token: 'kyve',
+});
+```

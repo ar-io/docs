@@ -1,0 +1,208 @@
+---
+title: "TurboUnauthenticatedClient"
+description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
+---
+
+#### getSupportedCurrencies()
+
+Returns the list of currencies supported by the Turbo Payment Service for topping up a user balance of AR Credits (measured in Winston Credits, or winc).
+
+```typescript
+const currencies = await turbo.getSupportedCurrencies();
+```
+
+#### getSupportedCountries()
+
+Returns the list of countries supported by the Turbo Payment Service's top up workflow.
+
+```typescript
+const countries = await turbo.getSupportedCountries();
+```
+
+#### getFiatToAR()
+
+Returns the current raw fiat to AR conversion rate for a specific currency as reported by third-party pricing oracles.
+
+```typescript
+const fiatToAR = await turbo.getFiatToAR({ currency: 'USD' });
+```
+
+#### getFiatRates()
+
+Returns the current fiat rates for 1 GiB of data for supported currencies, including all top-up adjustments and fees.
+
+```typescript
+const rates = await turbo.getFiatRates();
+```
+
+#### getWincForFiat()
+
+Returns the current amount of Winston Credits including all adjustments for the provided fiat currency.
+
+```typescript
+const { winc, actualPaymentAmount, quotedPaymentAmount, adjustments } =
+  await turbo.getWincForFiat({
+    amount: USD(100),
+  });
+```
+
+#### getWincForToken()
+
+Returns the current amount of Winston Credits including all adjustments for the provided token amount.
+
+```typescript
+const { winc, actualTokenAmount, equivalentWincTokenAmount } =
+  await turbo.getWincForToken({
+    tokenAmount: WinstonToTokenAmount(100_000_000),
+  });
+```
+
+#### getFiatEstimateForBytes()
+
+Get the current price from the Turbo Payment Service, denominated in the specified fiat currency, for uploading a specified number of bytes to Turbo.
+
+```typescript
+const turbo = TurboFactory.unauthenticated();
+const { amount } = await turbo.getFiatEstimateForBytes({
+  byteCount: 1024 * 1024 * 1024,
+  currency: 'usd', // specify the currency for the price
+});
+
+console.log(amount); // Estimated usd price for 1 GiB
+```
+
+**Output:**
+
+```json
+{
+  "byteCount": 1073741824,
+  "amount": 20.58,
+  "currency": "usd",
+  "winc": "2402378997310"
+}
+```
+
+#### getTokenPriceForBytes()
+
+Get the current price from the Turbo Payment Service, denominated in the specified token, for uploading a specified number of bytes to Turbo.
+
+```typescript
+const turbo = TurboFactory.unauthenticated({ token: 'solana' });
+const { tokenPrice } = await turbo.getTokenPriceForBytes({
+  byteCount: 1024 * 1024 * 100,
+});
+
+console.log(tokenPrice); // Estimated SOL Price for 100 MiB
+```
+
+#### getUploadCosts()
+
+Returns the estimated cost in Winston Credits for the provided file sizes, including all upload adjustments and fees.
+
+```typescript
+const [uploadCostForFile] = await turbo.getUploadCosts({ bytes: [1024] });
+const { winc, adjustments } = uploadCostForFile;
+```
+
+#### uploadSignedDataItem()
+
+Uploads a signed data item. The provided `dataItemStreamFactory` should produce a NEW signed data item stream each time is it invoked. The `dataItemSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. The `events` parameter is an optional object that can be used to listen to upload progress, errors, and success (refer to the [Events] section for more details).
+
+```typescript
+const filePath = path.join(__dirname, './my-signed-data-item');
+const dataItemSize = fs.statSync(filePath).size;
+const uploadResponse = await turbo.uploadSignedDataItem({
+  dataItemStreamFactory: () => fs.createReadStream(filePath),
+  dataItemSizeFactory: () => dataItemSize,
+  signal: AbortSignal.timeout(10_000), // cancel the upload after 10 seconds
+  events: {
+    // track upload events only
+    onUploadProgress: ({ totalBytes, processedBytes }) => {
+      console.log('Upload progress:', { totalBytes, processedBytes });
+    },
+    onUploadError: (error) => {
+      console.log('Upload error:', { error });
+    },
+    onUploadSuccess: () => {
+      console.log('Upload success!');
+    },
+  },
+});
+```
+
+#### createCheckoutSession()
+
+Creates a Stripe checkout session for a Turbo Top Up with the provided amount, currency, owner. The returned URL can be opened in the browser, all payments are processed by Stripe. To leverage promo codes, see [TurboAuthenticatedClient].
+
+##### Arweave (AR) Fiat Top Up
+
+```typescript
+const { url, winc, paymentAmount, quotedPaymentAmount, adjustments } =
+  await turbo.createCheckoutSession({
+    amount: USD(10.0), // $10.00 USD
+    owner: publicArweaveAddress,
+    // promo codes require an authenticated client
+  });
+
+// Open checkout session in a browser
+window.open(url, '_blank');
+```
+
+##### Ethereum (ETH) Fiat Top Up
+
+```typescript
+const turbo = TurboFactory.unauthenticated({ token: 'ethereum' });
+
+const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
+  amount: USD(10.0), // $10.00 USD
+  owner: publicEthereumAddress,
+});
+```
+
+##### Solana (SOL) Fiat Top Up
+
+```typescript
+const turbo = TurboFactory.unauthenticated({ token: 'solana' });
+
+const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
+  amount: USD(10.0), // $10.00 USD
+  owner: publicSolanaAddress,
+});
+```
+
+##### Polygon (POL / MATIC) Fiat Top Up
+
+```typescript
+const turbo = TurboFactory.unauthenticated({ token: 'pol' });
+
+const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
+  amount: USD(10.0), // $10.00 USD
+  owner: publicPolygonAddress,
+});
+```
+
+##### KYVE Fiat Top Up
+
+```typescript
+const turbo = TurboFactory.unauthenticated({ token: 'kyve' });
+
+const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
+  amount: USD(10.0), // $10.00 USD
+  owner: publicKyveAddress,
+});
+```
+
+#### submitFundTransaction()
+
+Submits the transaction ID of a funding transaction to Turbo Payment Service for top up processing. The `txId` is the transaction ID of the transaction to be submitted.
+
+<Callout type="info">
+Use this API if you've already executed your token transfer to the Turbo wallet. Otherwise, consider using `topUpWithTokens` to execute a new token transfer to the Turbo wallet and submit its resulting transaction ID for top up processing all in one go
+</Callout>
+
+```typescript
+const turbo = TurboFactory.unauthenticated(); // defaults to arweave token type
+const { status, id, ...fundResult } = await turbo.submitFundTransaction({
+  txId: 'my-valid-arweave-fund-transaction-id',
+});
+```

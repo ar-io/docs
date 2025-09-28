@@ -1,0 +1,32 @@
+---
+title: "RandomRoutingStrategy"
+description: "JavaScript/TypeScript SDK for accessing Arweave data with built-in verification and gateway routing"
+---
+
+Selects a random gateway from a list of gateways.
+
+```javascript
+import { RandomRoutingStrategy, NetworkGatewaysProvider } from '@ar.io/wayfinder-core';
+import { ARIO } from '@ar.io/sdk';
+
+// Option 1: Use with static gateways (override gatewaysProvider if provided)
+const routingStrategy = new RandomRoutingStrategy();
+const gateway = await routingStrategy.selectGateway({
+  gateways: [new URL('https://arweave.net'), new URL('https://permagate.io')],
+});
+
+// Option 2: Use with gatewaysProvider (fetches dynamically)
+const routingStrategy2 = new RandomRoutingStrategy({
+  gatewaysProvider: new NetworkGatewaysProvider({
+    ario: ARIO.mainnet(),
+    sortBy: 'operatorStake',
+    limit: 10,
+  }),
+});
+const gateway2 = await routingStrategy2.selectGateway(); // uses gatewaysProvider
+
+// Option 3: Override gatewaysProvider with static gateways
+const gateway3 = await routingStrategy2.selectGateway({
+  gateways: [new URL('https://custom-gateway.net')], // overrides gatewaysProvider
+});
+```

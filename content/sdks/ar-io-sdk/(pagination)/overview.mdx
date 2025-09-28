@@ -1,0 +1,29 @@
+---
+title: "Overview"
+description: "TypeScript/JavaScript SDK for interacting with the AR.IO ecosystem"
+---
+
+Certain APIs that could return a large amount of data are paginated using cursors. The SDK uses the `cursor` pattern (as opposed to pages) to better protect against changing data while paginating through a list of items. For more information on pagination strategies refer to [this article](https://www.getknit.dev/blog/api-pagination-best-practices#api-pagination-techniques-).
+
+Paginated results include the following properties:
+
+- `items`: the list of items on the current request, defaulted to 100 items.
+- `nextCursor`: the cursor to use for the next batch of items. This is `undefined` if there are no more items to fetch.
+- `hasMore`: a boolean indicating if there are more items to fetch. This is `false` if there are no more items to fetch.
+- `totalItems`: the total number of items available. This may change as new items are added to the list, only use this for informational purposes.
+- `sortBy`: the field used to sort the items, by default this is `startTimestamp`.
+- `sortOrder`: the order used to sort the items, by default this is `desc`.
+
+To request all the items in a list, you can iterate through the list using the `nextCursor` until `hasMore` is `false`.
+
+```typescript
+let hasMore = true;
+let cursor: string | undefined;
+const gateaways = [];
+while (hasMore) {
+  const page = await ario.getGateways({ limit: 100, cursor });
+  gateaways.push(...items);
+  cursor = page.nextCursor;
+  hasMore = page.hasMore;
+}
+```

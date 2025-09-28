@@ -1,0 +1,23 @@
+---
+title: "Initialize"
+description: "TypeScript/JavaScript SDK for interacting with the AR.IO ecosystem"
+---
+
+#### init()
+
+Factory function to that creates a read-only or writeable client. By providing a `signer` additional write APIs that require signing, like `setRecord` and `transfer` are available. By default, a read-only client is returned and no write APIs are available.
+
+```typescript
+// in a browser environment with ArConnect
+const ant = ANT.init({
+  signer: new ArConnectSigner(window.arweaveWallet, Arweave.init({})),
+  processId: 'bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM'
+});
+
+// in a node environment
+const ant = ANT.init({
+  signer: new ArweaveSigner(JWK),
+  processId: 'bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM'
+});
+
+```
