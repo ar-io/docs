@@ -9,7 +9,28 @@ const PACKAGES: {
   title: string;
   description: string;
   sourceUrl: string;
+  icon?: string;
 }[] = [
+    // AR.IO SDK
+  {
+    name: "ar-io-sdk",
+    readmeUrl: "https://raw.githubusercontent.com/ar-io/ar-io-sdk/main/README.md",
+    dest: path.resolve("content/sdks/ar-io-sdk"),
+    title: "AR.IO SDK",
+    description: "TypeScript/JavaScript SDK for interacting with the AR.IO ecosystem",
+    sourceUrl: "https://github.com/ar-io/ar-io-sdk",
+    icon: "/ario.svg"
+  },
+    // Turbo SDK
+  {
+    name: "turbo-sdk",
+    readmeUrl: "https://raw.githubusercontent.com/ardriveapp/turbo-sdk/main/README.md",
+    dest: path.resolve("content/sdks/turbo-sdk"),
+    title: "Turbo SDK",
+    description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave",
+    sourceUrl: "https://github.com/ardriveapp/turbo-sdk",
+    icon: "/turbo.svg"
+  },
   // Wayfinder SDK packages
   {
     name: "wayfinder-core",
@@ -17,7 +38,8 @@ const PACKAGES: {
     dest: path.resolve("content/sdks/wayfinder/wayfinder-core"),
     title: "Wayfinder Core",
     description: "JavaScript/TypeScript SDK for accessing Arweave data with built-in verification and gateway routing",
-    sourceUrl: "https://github.com/ar-io/wayfinder/tree/main/packages/wayfinder-core"
+    sourceUrl: "https://github.com/ar-io/wayfinder/tree/main/packages/wayfinder-core",
+    icon: "/wayfinder.svg"
   },
   {
     name: "wayfinder-react",
@@ -25,26 +47,9 @@ const PACKAGES: {
     dest: path.resolve("content/sdks/wayfinder/wayfinder-react"),
     title: "Wayfinder React",
     description: "React hooks and components for integrating Wayfinder into React applications",
-    sourceUrl: "https://github.com/ar-io/wayfinder/tree/main/packages/wayfinder-react"
+    sourceUrl: "https://github.com/ar-io/wayfinder/tree/main/packages/wayfinder-react",
+    icon: "/wayfinder.svg"
   },
-  // AR.IO SDK
-  {
-    name: "ar-io-sdk",
-    readmeUrl: "https://raw.githubusercontent.com/ar-io/ar-io-sdk/main/README.md",
-    dest: path.resolve("content/sdks/ar-io-sdk"),
-    title: "AR.IO SDK",
-    description: "TypeScript/JavaScript SDK for interacting with the AR.IO ecosystem",
-    sourceUrl: "https://github.com/ar-io/ar-io-sdk"
-  },
-  // Turbo SDK
-  {
-    name: "turbo-sdk",
-    readmeUrl: "https://raw.githubusercontent.com/ardriveapp/turbo-sdk/main/README.md",
-    dest: path.resolve("content/sdks/turbo-sdk"),
-    title: "Turbo SDK",
-    description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave",
-    sourceUrl: "https://github.com/ardriveapp/turbo-sdk"
-  }
 ];
 
 
@@ -58,6 +63,10 @@ function sanitizeFilename(title: string): string {
 function escapeContent(content: string): string {
   // Escape content that might be interpreted as JSX
   return content
+    // Remove h1 headers (# title)
+    .replace(/^#\s+[^\n]+\n/gm, '')
+    // Convert <details> blocks to normal code blocks
+    .replace(/<details>\s*<summary>[^<]*<\/summary>\s*(```[\s\S]*?```)\s*<\/details>/g, '$1')
     // Convert GitHub-style alerts to Fumadocs Callout components
     .replace(/>\s*\[!(WARNING|CAUTION|IMPORTANT)\]\s*\n((?:>.*\n?)*)/gm, (match, type, content) => {
       const cleanContent = content.replace(/^>\s?/gm, '').trim();
@@ -121,9 +130,24 @@ async function fetchReadme(url: string): Promise<string> {
 async function processPackage(pkg: typeof PACKAGES[0]) {
   console.log(`Processing ${pkg.name}...`);
   
+  // Check if index.mdx exists before cleaning
+  let indexContent: string | null = null;
+  const indexPath = path.join(pkg.dest, 'index.mdx');
+  try {
+    indexContent = await fs.readFile(indexPath, 'utf-8');
+  } catch (e) {
+    // index.mdx doesn't exist, that's fine
+  }
+  
   // Clean and create destination directory
   await fs.rm(pkg.dest, { recursive: true, force: true });
   await fs.mkdir(pkg.dest, { recursive: true });
+  
+  // Restore index.mdx if it existed
+  if (indexContent) {
+    await fs.writeFile(indexPath, indexContent);
+    console.log(`Preserved existing index.mdx for ${pkg.name}`);
+  }
   
   try {
     // Fetch the README.md from GitHub
@@ -175,8 +199,6 @@ title: "${cleanSectionTitle}"
 description: "${pkg.description}"
 ---
 
-# ${cleanSectionTitle}
-
 ${escapedContent}`;
       
       await fs.writeFile(path.join(pkg.dest, `${filename}.mdx`), pageContent);
@@ -189,7 +211,7 @@ ${escapedContent}`;
     await fs.writeFile(
       metaPath,
       JSON.stringify(
-        { title: pkg.title, pages, defaultOpen: true },
+        { title: pkg.title, icon: pkg.icon, pages, defaultOpen: false },
         null,
         2
       )
@@ -236,13 +258,15 @@ async function main() {
   const sdksMetaPath = path.resolve("content/sdks/meta.json");
   const sdksMeta = {
     title: "SDKs",
+    icon: "Package",
     pages: [
-      'wayfinder',
+      "...",
       "ar-io-sdk",
-      "turbo-sdk"
+      "turbo-sdk",
+      "wayfinder",
     ],
     root: true,
-    defaultOpen: true
+    defaultOpen: false
   };
   
   await fs.writeFile(sdksMetaPath, JSON.stringify(sdksMeta, null, 2));
