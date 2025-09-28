@@ -5,16 +5,6 @@ description: "Assign ArNS names to transaction IDs"
 
 [ArNS](https://cookbook.bobinstein.com/fundamentals/accessing-arweave-data/arns.html) provides **human-readable URLs** for your Arweave data, making it easy to share and remember permanent addresses.
 
-## Are You Just Accessing Data?
-
-<Callout type="info">
-  **For Data Access:** If you just need to access existing data and don't need
-  human-readable URLs, use [HTTP Requests](/build/access/fetch-data) for
-  simple access or [GraphQL Queries](/build/access/find-data) for data
-  discovery. ArNS is perfect when you want memorable, permanent URLs for your
-  content.
-</Callout>
-
 ## What is ArNS?
 
 ArNS is a naming system that allows you to register human-readable names that point to your Arweave transactions. Instead of sharing long transaction IDs, you can use memorable URLs.
@@ -24,111 +14,107 @@ ArNS is a naming system that allows you to register human-readable names that po
 - **Before:** `https://arweave.net/bVLEkL1SOPFCzIYi8T_QNnh17VlDp4RylU6YTwCMVRw`
 - **After:** `https://myapp.arweave.net`
 
-## How ArNS Works
+<Callout type="info">
+  **Learn More:** For detailed information about ArNS architecture and how it works, see our [ArNS Documentation](/learn/arns).
+</Callout>
 
-**ANTs (Arweave Name Tokens)** are the key to owning an ArNS name. When you register an ArNS name to an ANT, the ANT becomes the transfer method for that name.
+## Get an ArNS Name
 
-**Key Components:**
+The easiest way to get an ArNS name is via [arns.ar.io](https://arns.ar.io), which supports multiple payment methods:
 
-- **ArNS Names** - Human-readable identifiers (e.g., `myapp.arweave.net`)
-- **ANTs** - Smart contracts that manage name ownership
-- **Undernames** - Sub-domains managed by your ANT
+- **Fiat payments** - Credit cards and bank transfers
+- **Turbo Credits** - Use existing Turbo credits
+- **ARIO tokens** - Pay with ARIO cryptocurrency
 
-## Getting Started
+**Alternative registration methods:**
 
-<Steps>
-  <Step>
-    ### Register an ArNS Name
+- **[Wander Chrome Extension](https://chrome.google.com/webstore/detail/wander)** - Browser-based registration
+- **Wander Mobile App** - Register on iOS and Android
+- **AR.IO SDK** - Programmatic registration using the `buyRecord` API
 
-    - Visit the [ArNS App](https://arns.app)
-    - Connect a wallet
-    - Choose your desired name
-    - Pay the registration fee
+### Using the AR.IO SDK
 
-  </Step>
-
-  <Step>
-    ### Set Your Content
-
-    - Point your ArNS name to a transaction ID
-    - Use undernames for additional content
-    - Manage your records through the ANT
-
-  </Step>
-</Steps>
-
-## Using ArNS in Applications
+For developers, you can register ArNS names programmatically:
 
 ```js
-import axios from "axios";
+import { ARIO } from '@ar.io/sdk';
 
-// Fetch content from ArNS
-const response = await axios.get("https://myapp.arweave.net/api/data");
-console.log(response.data);
+const ario = ARIO.mainnet();
+
+// Buy a record with Turbo Credits or ARIO tokens
+const result = await ario.buyRecord({
+  name: 'my-domain',
+  years: 1,
+  // Payment method: 'turbo-credits' or 'ario-tokens'
+});
+
+console.log('Record purchased:', result);
 ```
 
-## Undernames
-
-Create sub-domains under your main ArNS name:
-
-**Examples:**
-
-- `https://api_myapp.arweave.net`
-- `https://docs_myapp.arweave.net`
-- `https://assets_myapp.arweave.net`
-
-**Benefits:**
-
-- Transferred with the ANT
-- Survive name changes
-
-## Why Choose ArNS?
-
-ArNS provides the most user-friendly way to create permanent, memorable URLs for your Arweave data.
-
-<Callout type="note">
-  **Perfect for:** Websites, applications, content sharing, and any use case
-  where you want memorable, permanent URLs that are easy to share and remember.
-</Callout>
-
-| Feature       | ArNS                  | HTTP Requests  | GraphQL Queries | Wayfinder      |
-| ------------- | --------------------- | -------------- | --------------- | -------------- |
-| **URL Type**  | Human-readable        | Transaction ID | Discovery only  | Transaction ID |
-| **Setup**     | Registration required | None           | None            | SDK required   |
-| **Permanent** | Yes                   | Yes            | N/A             | Yes            |
-| **Sharing**   | Excellent             | Poor           | N/A             | Good           |
-| **Cost**      | Registration fee      | Free           | Free            | Free           |
-
 <Callout type="info">
-  **Need help deciding?** Use ArNS when you want memorable URLs for sharing. Use
-  HTTP requests for simple access or GraphQL for data discovery.
+  **Learn More:** For a complete list of AR.IO SDK APIs, see the [ArNS SDK Documentation](/sdks/ar-io-sdk/ario#arweave-name-system-arns).
 </Callout>
 
-## Ready to Use ArNS?
+## Fetching Data via ArNS
+
+Once you've set up your ArNS name, fetch data using standard HTTP requests:
+
+```js
+// Fetch content from your ArNS name
+const response = await fetch("https://my-data.arweave.net");
+
+if (!response.ok) {
+  throw new Error(`HTTP error! status: ${response.status}`);
+}
+
+const data = await response.text();
+console.log(data);
+```
+
+## Why Use ArNS?
+
+ArNS provides significant advantages for accessing data on Arweave:
+
+**Decentralized Data Index**
+- ArNS creates a decentralized index of data accessible through any gateway in the AR.IO network
+- No single point of failure - names resolve across all participating gateways
+- Censorship-resistant access to your content
+
+**Flexible Data Management**
+- **Permanent references** - Keep stable URLs even when updating underlying data
+- **Replaceable data** - Point names to new transaction IDs as content evolves
+- **Undernames** - Organize related content under a single name using underscores (e.g., `v2_myapp.arweave.net`, `docs_myapp.arweave.net`)
+
+**Supporting Network Decentralization**
+- ArNS purchases contribute to the protocol balance
+- Fees reward AR.IO gateway operators for participating in the network
+- This economic model preserves decentralized access to data on Arweave
+- Your name registration helps maintain the infrastructure that serves your content
+
+## Next Steps
 
 <Cards>
   <Card 
     href="https://arns.app" 
-    title="Register ArNS Name"
+    title="Buy an ArNS Name"
     icon={<Link />}
-    arrow
   >
-    Get started with ArNS name registration.
+    Register your own human-readable name on ArNS.
   </Card>
 
-<Card
-  href="/build/access/fetch-data"
-  title="Need Simple Access?"
-  icon={<Globe />}
->
-  Use HTTP requests for direct data access.
-</Card>
+  <Card
+    href="/learn/ario-network"
+    title="Join the AR.IO Network"
+    icon={<Globe />}
+  >
+    Learn how to participate in the AR.IO ecosystem.
+  </Card>
 
   <Card 
-    href="/build/access/find-data" 
-    title="Need Data Discovery?"
+    href="/build/access/wayfinder" 
+    title="Use Wayfinder"
     icon={<Search />}
   >
-    Use GraphQL to find data by tags and metadata.
+    Advanced gateway routing for production applications.
   </Card>
 </Cards>

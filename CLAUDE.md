@@ -61,3 +61,18 @@ The repository supports OpenAPI documentation import (see recent commit 33af22f2
 - Always verify technical details match the actual AR.IO implementation
 - Maintain consistent terminology throughout documentation
 - Test all code examples before including them in documentation
+
+## Recent Updates
+- **Access Data Documentation**: Restructured `/content/build/access/` pages with consistent patterns:
+  - Updated index.mdx to show three access methods (Find Data, Fetch Data, ArNS) with enhanced cards
+  - Renamed and reorganized find-data.mdx (GraphQL) and fetch-data.mdx (REST API) for clarity
+  - Enhanced ArNS documentation with practical SDK examples
+  - Used native Fumadocs cards with icons for consistency
+  - Replaced axios with fetch API in all examples
+  - Added proper call-to-action sections directing users to next steps
+- **Upload Data Documentation**: Enhanced `/content/build/upload/index.mdx` with native cards and clear Turbo recommendation
+- **Code Standards**: 
+  - Use `fetch` instead of `axios` for HTTP requests
+  - Use `ARIO.mainnet()` from '@ar.io/sdk' for ArNS operations
+  - Call `setRecord` on ANT instances, not ARIO instances
+  - ArNS undernames use underscores (e.g., `api_myapp.arweave.net`) not periods

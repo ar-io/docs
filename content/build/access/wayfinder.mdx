@@ -1,20 +1,9 @@
 ---
-title: "Wayfinder (Advanced)"
+title: "Wayfinder"
 description: "Use AR.IO Wayfinder for decentralized content discovery and optimized data access"
 ---
 
 Wayfinder is a client-side routing and verification protocol that provides **decentralized, cryptographically verified access** to data stored on Arweave via the AR.IO Network.
-
-## Are You Building a Simple Application?
-
-<Callout type="info">
-  **For Simple Apps:** If you're building a basic application or just need to
-  access data occasionally, consider [HTTP
-  Requests](/build/access/fetch-data) for simple access or [GraphQL
-  Queries](/build/access/find-data) for data discovery. Wayfinder is
-  designed for production applications that need maximum reliability and
-  performance.
-</Callout>
 
 ## What is Wayfinder?
 
@@ -25,47 +14,28 @@ Wayfinder solves the challenge of reliable data access on the permaweb by:
 - **Decentralized Access** - Eliminates single points of failure
 - **Seamless Integration** - Works behind the scenes for fast, reliable access
 
-## Why Use Wayfinder?
+<Callout type="info">
+  **Learn More:** For detailed information about Wayfinder architecture and how it works, see our [Wayfinder Documentation](/learn/wayfinder).
+</Callout>
 
-**Perfect for:**
 
-- Production applications
-- Data integrity requirements
-- Performance optimization
-- Decentralized access
-
-**Pros:**
-
-- Automatic gateway selection
-- Built-in data verification
-- No single point of failure
-- Developer-friendly APIs
-
-**Cons:**
-
-- Requires SDK integration
-- More complex than direct HTTP
-- Additional dependencies
-
-## How to Get Started with Wayfinder
+## Get Started
 
 **Installation:**
 
-```bash
-npm install @ar.io/wayfinder-core
+```npm
+npm install @ar.io/wayfinder-core @ar.io/sdk
 ```
 
 **Basic Usage:**
 
 ```js
-import { Wayfinder } from "@ar.io/wayfinder-core";
+import { createWayfinderClient } from "@ar.io/wayfinder-core";
 import { ARIO } from "@ar.io/sdk";
 
 // Create wayfinder with default settings
-const wayfinder = new Wayfinder({
-  gatewaysProvider: new NetworkGatewaysProvider({
-    ario: ARIO.mainnet(),
-  }),
+const wayfinder = createWayfinderClient({
+  ario: ARIO.mainnet()
 });
 
 // Fetch data using ar:// protocol
@@ -78,12 +48,16 @@ try {
 }
 ```
 
+<Callout type="info">
+  **Full API Reference:** For complete documentation of all Wayfinder core APIs, see the [Wayfinder Core SDK Reference](/sdks/wayfinder/wayfinder-core).
+</Callout>
+
 ## React Integration
 
 For React applications, use the wayfinder-react package:
 
-```bash
-npm install @ar.io/wayfinder-react
+```npm
+npm install @ar.io/wayfinder-react @ar.io/sdk
 ```
 
 ```jsx
@@ -118,13 +92,17 @@ function YourComponent() {
 }
 ```
 
+<Callout type="info">
+  **Full API Reference:** For complete documentation of all Wayfinder React APIs, see the [Wayfinder React SDK Reference](/sdks/wayfinder/wayfinder-react).
+</Callout>
+
 ## Key Features
 
 **Routing Strategies:**
 
 - **FastestPingRoutingStrategy** - Selects gateway with lowest latency
 - **RoundRobinRoutingStrategy** - Distributes requests evenly
-- **PreferredWithFallbackRoutingStrategy** - Tries preferred gateway first
+- **PreferredWithFallbackRoutingStrategy** - Tries preferred gateway first, then falls back to a given fallback strategy
 
 **Verification Strategies:**
 
@@ -132,63 +110,54 @@ function YourComponent() {
 - **SignatureVerificationStrategy** - Validates Arweave transaction signatures
 - **DataRootVerificationStrategy** - Verifies against transaction data roots
 
-## Who is Wayfinder For?
+## Why Use Wayfinder?
 
-**Builders** - Build robust dApps with reliable data access and built-in verification
+Wayfinder eliminates centralized points of failure by distributing data access across the decentralized AR.IO Network, reducing dependency on arweave.net and providing advanced capabilities for production applications:
 
-**Browsers** - Get fast, reliable access to permaweb content with data integrity
+**Maximum Reliability**
+- Intelligent gateway selection eliminates single points of failure
+- Automatic failover ensures data is always accessible
+- Built-in retry mechanisms handle network issues gracefully
 
-**Operators** - Participate in the decentralized routing ecosystem with performance insights
+**Data Verification**
+- Cryptographic verification ensures data integrity
+- Multiple verification strategies protect against tampering
+- Trust but verify approach validates all responses
 
-## Why Choose Wayfinder?
+**Performance Optimization**
+- Fastest ping routing selects optimal gateways
+- Round-robin distribution balances load across the network
+- Caching strategies reduce latency for frequently accessed data
 
-Wayfinder provides the most advanced and reliable way to access Arweave data for production applications.
+**Production Ready**
+- Developer-friendly APIs with React integration
+- Comprehensive error handling and logging
+- Configurable routing and verification strategies
 
-<Callout type="note">
-  **Perfect for:** Production applications, data integrity requirements,
-  performance optimization, and any use case where you need maximum reliability
-  and verification.
-</Callout>
-
-| Feature          | Wayfinder       | HTTP Requests | GraphQL Queries | ArNS         |
-| ---------------- | --------------- | ------------- | --------------- | ------------ |
-| **Reliability**  | Excellent       | Good          | Good            | Good         |
-| **Verification** | Built-in        | None          | None            | None         |
-| **Performance**  | Optimized       | Good          | Good            | Good         |
-| **Setup**        | SDK required    | None          | None            | Registration |
-| **Use Case**     | Production apps | Simple access | Data discovery  | Human URLs   |
-
-<Callout type="info">
-  **Need help deciding?** Use Wayfinder for production applications requiring
-  maximum reliability. Use HTTP requests for simple access, GraphQL for data
-  discovery, or ArNS for human-readable URLs.
-</Callout>
-
-## Ready to Use Wayfinder?
+## Next Steps
 
 <Cards>
   <Card 
     href="https://github.com/ar-io/wayfinder" 
     title="Get Wayfinder SDK"
     icon={<Code />}
-    arrow
   >
     Start building with the Wayfinder SDK.
   </Card>
 
-<Card
-  href="/build/access/fetch-data"
-  title="Need Simple Access?"
-  icon={<Globe />}
->
-  Use HTTP requests for direct data access.
-</Card>
+  <Card
+    href="/build/access/fetch-data"
+    title="Simple Data Access"
+    icon={<Globe />}
+  >
+    Use REST API for basic data retrieval.
+  </Card>
 
   <Card 
     href="/build/access/find-data" 
-    title="Need Data Discovery?"
+    title="Data Discovery"
     icon={<Search />}
   >
-    Use GraphQL to find data by tags and metadata.
+    Use GraphQL to search for data.
   </Card>
 </Cards>
