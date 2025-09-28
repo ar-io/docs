@@ -67,6 +67,8 @@ function escapeContent(content: string): string {
     .replace(/^#\s+[^\n]+\n/gm, '')
     // Convert <details> blocks to normal code blocks
     .replace(/<details>\s*<summary>[^<]*<\/summary>\s*(```[\s\S]*?```)\s*<\/details>/g, '$1')
+    // Escape emoji checkmarks and crosses that might be interpreted as JSX
+    .replace(/^(\s*-)(\s*)(✅|❌)/gm, '$1$2{\'$3\'}')
     // Convert GitHub-style alerts to Fumadocs Callout components
     .replace(/>\s*\[!(WARNING|CAUTION|IMPORTANT)\]\s*\n((?:>.*\n?)*)/gm, (match, type, content) => {
       const cleanContent = content.replace(/^>\s?/gm, '').trim();
