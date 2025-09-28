@@ -1,27 +1,15 @@
 ---
 title: "Getting Started with Turbo"
-description: "Complete guide to using Turbo's bundling services for reliable Arweave uploads"
+description: "Upload data to Arweave in a matter of minutes"
 ---
 
-Upload data to Arweave using **Turbo's bundling services** - the recommended approach for developers and applications. Turbo provides enterprise-grade infrastructure with flexible payment options and optimized performance.
+Upload data to Arweave using **Turbo** - the most reliable way to upload data to Arweave. Turbo provides enterprise-grade infrastructure with flexible payment options and optimized performance.
 
-## Why Choose Turbo?
-
-[Turbo](https://turbo.ardrive.net) uses the **[ANS-104 specification](https://github.com/ArweaveTeam/arweave-standards/blob/master/ans/ANS-104.md)** to upload "data items" that are bundled compactly and seeded on the Arweave network. Pay with fiat currencies, tokens, or AR - making it accessible for any application.
-
-### Key Benefits
-
-- **Multiple Payment Options**: Credit cards, ARIO, USDC, SOL, MATIC, AR
-- **Enterprise Reliability**: Built-in redundancy and retry mechanisms
-- **Optimized Performance**: Fast uploads with intelligent bundling
-- **Developer Friendly**: Simple SDK with comprehensive documentation
-- **Open Source**: Run your own bundler or use our scaled service
-
-## Get Started with Turbo
+## Get Started
 
 <Steps>
 <Step>
-### Install the Turbo SDK
+### Install the SDK
 
 ```bash
 npm install @ardrive/turbo-sdk
@@ -89,17 +77,16 @@ console.log(`Balance: ${balance.winc} Winston Credits`);
 
 <CodeGroup>
 ```js tab="Upload File"
-// Upload a file
 const fileData = fs.readFileSync("./myfile.jpg");
 
 const result = await turbo.upload({
-data: fileData,
-dataItemOpts: {
-tags: [
-{ name: "Content-Type", value: "image/jpeg" },
-{ name: "Title", value: "My Image" },
-],
-},
+  data: fileData,
+  dataItemOpts: {
+    tags: [
+      { name: "Content-Type", value: "image/jpeg" },
+      { name: "Title", value: "My Image" },
+    ],
+  },
 });
 
 console.log("Upload ID:", result.id);
@@ -108,7 +95,6 @@ console.log("Owner:", result.owner);
 ````
 
 ```js tab="Upload Folder"
-// Upload an entire folder
 const folderResult = await turbo.uploadFolder({
   folderPath: "./my-folder",
   dataItemOpts: {
@@ -124,7 +110,6 @@ console.log("Manifest ID:", folderResult.manifestId);
 ````
 
 ```js tab="Upload Raw Data"
-// Upload raw data (string, JSON, etc.)
 const data = JSON.stringify({
   message: "Hello Arweave!",
   timestamp: Date.now(),

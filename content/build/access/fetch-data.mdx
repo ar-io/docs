@@ -1,0 +1,139 @@
+---
+title: "Fetch Data (via REST API)"
+description: "Retrieve data bytes from Arweave using the Gateway REST API"
+---
+
+The simplest way to access data on Arweave is through **HTTP requests** to gateways. This method works in any web browser and requires no additional setup.
+
+## Fetching Data from Gateways
+
+Gateways are the most performant way to fetch data from Arweave, providing significant advantages over accessing Arweave nodes directly.
+
+**Why Gateways Are Faster:**
+
+- **Content Caching** - Pre-cached data for instant retrieval
+- **Data Indexing** - Fast search and query capabilities
+- **Network Optimization** - Distributed infrastructure for better performance
+- **Content Delivery** - Optimized serving with compression and CDN features
+
+## REST APIs for Fetching Data
+
+Gateways support multiple API endpoints for accessing data:
+
+### Standard Endpoint
+Access any transaction using this URL structure:
+
+```
+https://<gateway>/<transaction-id>
+```
+
+**Examples:**
+- `https://arweave.net/bVLEkL1SOPFCzIYi8T_QNnh17VlDp4RylU6YTwCMVRw`
+- `https://permagate.io/FguFk5eSth0wO8SKfziYshkSxeIYe7oK9zoPN2PhSc0`
+
+### Raw Data Endpoint
+For raw data access that bypasses manifest path resolution:
+
+```
+https://<gateway>/raw/<transaction-id>
+```
+
+This endpoint returns the raw data bytes without resolving manifest paths, useful when you need the exact stored data.
+
+<Callout type="info">
+  **Learn More:** For complete API documentation and testing, see the [AR.IO Node Data APIs](/apis/ar-io-node/data).
+</Callout>
+
+## Sandboxing
+
+AR.IO gateways implement security measures by redirecting requests to sandbox subdomains for enhanced browser security.
+
+**Why Redirects Happen:**
+
+- **Security Isolation** - Content is served from isolated sandbox environments
+- **CSP Protection** - Prevents cross-site scripting attacks
+- **Resource Isolation** - Limits potential security vulnerabilities
+- **Browser Sandboxing** - Leverages same-origin policy for enhanced security
+
+**What to Expect:**
+
+- Initial request: `https://arweave.net/transaction-id`
+- Redirects to: `https://sandbox.arweave.net/transaction-id` (or similar)
+- Final content served from sandbox subdomain
+
+**Important:** Always follow redirects in your applications - the final sandbox URL contains the actual content.
+
+<Callout type="info">
+  **Learn More:** For detailed information about how browser sandboxing works
+  and why it's important for security, see our [Browser
+  Sandboxing](/build/advanced/sandboxing) documentation.
+</Callout>
+
+## Using in Applications
+
+**JavaScript Example with Fetch:**
+
+```js
+// Fetch data from Arweave (follows redirects automatically)
+const response = await fetch("https://arweave.net/your-transaction-id", {
+  redirect: "follow", // Follow redirects automatically
+});
+
+if (!response.ok) {
+  throw new Error(`HTTP error! status: ${response.status}`);
+}
+
+const data = await response.text();
+console.log(data);
+```
+
+**HTML Example:**
+
+```html
+<!-- Direct image access (browsers handle redirects automatically) -->
+<img src="https://arweave.net/your-image-id" alt="My Image" />
+```
+
+## Manifests
+
+For organized file collections, use manifests to create friendly path-based URLs:
+
+```
+https://arweave.net/<manifest-id>/path/to/file
+```
+
+**Example:**
+
+- `https://arweave.net/X8Qm…AOhA/index.html`
+- `https://arweave.net/X8Qm…AOhA/styles.css`
+- `https://arweave.net/X8Qm…AOhA/assets/logo.png`
+
+[Learn more about manifests](/build/upload/manifests)
+
+## Next Steps
+
+<Cards>
+  <Card 
+    href="/build/access/find-data" 
+    title="Find Data via GraphQL"
+    icon={<Search />}
+  >
+    Discover data by searching with tags, metadata, and filters.
+  </Card>
+
+  <Card
+    href="/build/run-a-gateway"
+    title="Run Your Own Gateway"
+    icon={<Globe />}
+  >
+    Set up a gateway to serve and cache your specific data.
+  </Card>
+
+  <Card 
+    href="/build/upload"
+    title="Upload Data with Turbo"
+    icon={<Link />}
+  >
+    Start uploading your data to Arweave's permanent storage.
+  </Card>
+</Cards>

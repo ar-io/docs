@@ -84,36 +84,6 @@ const licensedTags = [
 ];
 ```
 
-## Searching by Tags
-
-Tags enable powerful discovery through GraphQL queries.
-
-<Callout type="info">
-  **Learn More:** For comprehensive GraphQL querying, see our [GraphQL Queries
-  guide](/how-to-access-data/graphql-queries).
-</Callout>
-
-```graphql
-query {
-  transactions(
-    tags: [
-      { name: "App-Name", values: ["MyApp-v1.0"] }
-      { name: "Content-Type", values: ["image/jpeg"] }
-    ]
-  ) {
-    edges {
-      node {
-        id
-        tags {
-          name
-          value
-        }
-      }
-    }
-  }
-}
-```
-
 ## App-Name Best Practices
 
 ### Naming Convention
@@ -124,29 +94,6 @@ Use descriptive, versioned App-Name values for better organization:
 - **Be specific**: `EcommerceStore-v2.1` instead of just `Store`
 - **Use consistent format**: `ProjectName-vMajor.Minor`
 - **Include year for time-based apps**: `YearlyReport-2024`
-
-### Gateway Optimization
-
-Your App-Name tags enable gateway operators to filter and optimize their infrastructure for your specific data:
-
-```json
-{
-  "tags": [
-    {
-      "name": "App-Name",
-      "valueStartsWith": "MyApp"
-    }
-  ]
-}
-```
-
-This allows gateways to process only your application's data, improving performance and reducing resource usage.
-
-<Callout type="info">
-  **Gateway Optimization:** Learn how to [optimize your
-  gateway](/build/run-a-gateway/optimize-your-gateway-for-your-data) to process
-  specific App-Name data efficiently.
-</Callout>
 
 ## Tag Limitations
 
@@ -160,6 +107,18 @@ This allows gateways to process only your application's data, improving performa
   **Important:** Total tag size is limited to 4KB (bundled) or 2KB (L1). For
   larger metadata, store it in the data payload instead.
 </Callout>
+
+## Querying Data by Tags
+
+Once you've tagged your data, you can use GraphQL to search and filter based on those tags. This enables powerful discovery and retrieval of your stored content.
+
+<Cards>
+  <Card
+    title="Learn GraphQL Queries"
+    description="Discover how to query for data based on tags"
+    href="/build/access/find-data"
+  />
+</Cards>
 
 ## Next Steps
 

@@ -1,88 +1,147 @@
 ---
 title: "Upload Data"
-description: "Choose the best method to upload your data to Arweave's permanent storage network"
+description: "Start uploading to Arweave's permanent storage network with our recommended tools and best practices"
 ---
 
-Arweave offers **permanent data storage** - pay once, store forever. Choose the method that fits your needs.
+import Image from 'next/image';
+import { Check, CreditCard, Zap, Shield } from 'lucide-react';
 
-## Upload Options Comparison
+Arweave enables **permanent data storage** with a single payment. Unlike traditional cloud storage that requires ongoing fees, your data is preserved forever. 
 
-| Method                | Best For                    | Payment              | Setup    | Control | Reliability         |
-| --------------------- | --------------------------- | -------------------- | -------- | ------- | ------------------- |
-| **Turbo Bundling**    | Production apps, developers | Multiple options     | Easy SDK | High    | Enterprise-grade    |
-| **No-Code (ArDrive)** | Individuals, simple uploads | Credit cards, crypto | None     | Medium  | High                |
-| **Direct to Network** | Advanced users, research    | AR tokens only       | Complex  | Maximum | Manual verification |
+## Upload Methods
 
-## Choose Your Upload Method
+There are multiple ways to upload data to Arweave. Each has its own attributes and characteristics to help you decide which is best for your use case.
 
 <Cards>
-  <Card
-    title="Turbo Bundling Service"
-    description="Production apps, developers"
+  <Card 
+    title={<span className="flex items-center gap-2">Turbo <span className="text-xs bg-green-500/10 text-green-600 dark:text-green-400 px-2 py-1 rounded-full">Recommended</span></span>}
+    description={
+      <>
+        <p className="mb-3">Production-ready bundling service with enterprise features</p>
+        <div className="space-y-1 text-sm">
+          <div className="flex items-center gap-2"><CreditCard className="w-4 h-4" /> Credit cards, AR, ETH, SOL, MATIC</div>
+          <div className="flex items-center gap-2"><Zap className="w-4 h-4" /> Free uploads under 100 KiB</div>
+          <div className="flex items-center gap-2"><Shield className="w-4 h-4" /> Automatic retry & confirmation</div>
+        </div>
+      </>
+    }
     href="/build/upload/bundling-services"
-  >
-    **Best for:** Production applications and developers
-    
-    **Features:**
-    - Multiple payment options (AR, ETH, SOL, MATIC, credit cards)
-    - Easy SDK integration
-    - Enterprise-grade reliability
-    - Open source and scalable
-  </Card>
-
-<Card
-  title="ArDrive (No-Code)"
-  description="Individuals, simple uploads"
-  href="https://app.ardrive.io"
->
-  **Best for:** Individuals and simple file uploads **Features:** - Zero
-  technical knowledge required - Drag-and-drop interface - Multiple payment
-  options - Built on Turbo infrastructure
-</Card>
-
-  <Card
+    icon={<Image src="/turbo.svg" alt="Turbo" width={40} height={40} />}
+  />
+  <Card 
+    title="ArDrive"
+    description={
+      <>
+        <p className="mb-3">No-code solution for personal and business files</p>
+        <div className="space-y-1 text-sm">
+          <div className="flex items-center gap-2"><Check className="w-4 h-4" /> Drag-and-drop interface</div>
+          <div className="flex items-center gap-2"><Check className="w-4 h-4" /> End-to-end encryption</div>
+          <div className="flex items-center gap-2"><Check className="w-4 h-4" /> Powered by Turbo</div>
+        </div>
+      </>
+    }
+    href="https://app.ardrive.io"
+    icon={<Image src="/ardrive.svg" alt="ArDrive" width={40} height={40} />}
+  />
+  <Card 
     title="Direct to Arweave"
-    description="Advanced users, research"
+    description={
+      <>
+        <p className="mb-3">Raw protocol access for advanced use cases</p>
+        <div className="space-y-1 text-sm text-muted-foreground">
+          <div>• AR tokens required</div>
+          <div>• Manual transaction handling</div>
+          <div>• Complex setup needed</div>
+        </div>
+      </>
+    }
     href="https://arweave.org"
-  >
-    **Best for:** Advanced users requiring full control
-    
-    **Features:**
-    - Complete protocol control
-    - No third-party dependencies
-    - Maximum customization
-    - AR tokens only
-  </Card>
+    icon={<Image src="/arweave.png" alt="Arweave" width={40} height={40} />}
+  />
 </Cards>
 
-## Why Choose Turbo?
+## Why Developers Choose Turbo
 
-[Turbo](https://turbo.ardrive.net) is our recommended solution for most applications. It uses the ANS-104 bundling format to provide multiple payment options, optimized performance, and easy SDK integration.
+**Cost Effective**
+- Pay per byte, not empty chunks - only pay for actual data uploaded
+- Free uploads under 100 KiB - subsidized small file uploads
+- No failed upload charges - automatic retry without extra costs
 
-### Key Benefits Over Direct AR Uploads
+**Developer Experience**
+- TypeScript & CLI support - choose your preferred tools
+- Simple 3-line integration - get started in minutes
+- Comprehensive documentation - extensive guides and examples
 
-| Feature                      | Turbo Credits                     | Direct AR Uploads               |
-| ---------------------------- | --------------------------------- | ------------------------------- |
-| **Per-Byte Pricing**         | ✅ Pay only for data uploaded     | ❌ Pay for empty chunks         |
-| **Failed Upload Protection** | ✅ Automatic retry & confirmation | ❌ Manual verification required |
-| **Subsidized Uploads**       | ✅ Free uploads under 100 KiB     | ❌ No subsidies available       |
-| **Multiple Payment Methods** | ✅ Credit cards, crypto, fiat     | ❌ AR tokens only               |
-| **Easy Integration**         | ✅ Simple SDK & CLI               | ❌ Complex protocol knowledge   |
+**Enterprise Ready**
+- High Availability - reliable service for production apps
+- Handles millions of uploads daily - battle-tested infrastructure used by ArDrive
+- Open source infrastructure - fully auditable and transparent
 
-### Turbo Features
+## Get Started in Minutes
 
-- [**Getting Started**](/build/upload/bundling-services) - Complete setup guide
-- [**Turbo Credits**](/build/upload/turbo-credits) - Understanding payment system
-- [**Tagging**](/build/upload/tagging) - Metadata and organization
-- [**Manifests**](/build/upload/manifests) - Folder structures and bundles
-- [**Encryption**](/build/upload/encryption) - Secure data storage
+With Turbo, uploading to Arweave is as simple as using any cloud storage API:
 
-→ [Get Started with Turbo](https://turbo.ardrive.net)
+```typescript
+import { TurboFactory } from '@ardrive/turbo-sdk';
 
-## Not Sure Which to Choose?
+const turbo = TurboFactory.authenticated({ privateKey });
+const uploadResult = await turbo.uploadFile({
+  fileStreamFactory: () => fs.createReadStream('./my-file.pdf'),
+});
+// Your file is now permanently stored!
+```
 
-<Callout type="info">
-  **Most users should start with Turbo** for application development or
-  **ArDrive** for simple file uploads. Direct network access is only needed for
-  specialized use cases requiring maximum control.
-</Callout>
+<Cards>
+  <Card 
+    title="Quick Start Guide" 
+    description="Upload your first file in under 5 minutes"
+    href="/build/upload/bundling-services"
+  />
+  <Card 
+    title="Payment Methods" 
+    description="Credit cards, crypto, and Turbo Credits explained"
+    href="/build/upload/turbo-credits"
+  />
+</Cards>
+
+## Organize Your Data
+
+Before uploading, learn best practices for structuring and tagging your data for optimal retrieval and organization.
+
+<Cards>
+  <Card 
+    title="Tagging System" 
+    description="Add metadata and queryable attributes to uploads"
+    href="/build/upload/tagging"
+  />
+  <Card 
+    title="Manifests" 
+    description="Create folder structures and host websites"
+    href="/build/upload/manifests"
+  />
+  <Card 
+    title="Encryption" 
+    description="Secure your data with client-side encryption"
+    href="/build/upload/encryption"
+  />
+</Cards>
+
+## Additional Resources
+
+<Cards>
+  <Card 
+    title="API Reference" 
+    description="Complete SDK documentation and examples"
+    href="/api/upload"
+  />
+  <Card 
+    title="Pricing Calculator" 
+    description="Estimate costs for your uploads"
+    href="https://turbo.ardrive.net"
+  />
+  <Card 
+    title="Get Help" 
+    description="Join our Discord community"
+    href="https://discord.gg/cuCqBb5v"
+  />
+</Cards>

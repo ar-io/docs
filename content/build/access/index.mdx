@@ -1,82 +1,149 @@
 ---
 title: "Access Data"
-description: "Learn how to access and retrieve data from the Arweave network using various methods"
+description: "Learn how to retrieve and query data from Arweave's permanent storage network"
 ---
 
-Once data is stored on Arweave, you need to know how to access it. Choose the method that best fits your needs.
+import { Globe, Search, Link, Compass } from 'lucide-react';
 
-## Getting Started
+Once data is stored on Arweave, it's permanently available. Here's how to access it efficiently for your applications.
 
-- [**HTTP Requests**](/build/access/http-requests) - Perfect for simple data retrieval
-- [**GraphQL Queries**](/build/access/graphql-queries) - Recommended for developers
-- [**ArNS**](/build/access/arns) - For human-readable URLs
-- [**Wayfinder**](/build/access/wayfinder) - For advanced applications
+## Access Methods
 
-## Why Access Methods Matter
-
-Different access methods serve different purposes:
-
-- **HTTP Requests** - Direct, simple access to any transaction
-- **GraphQL Queries** - Powerful searching and filtering capabilities
-- **ArNS** - Human-readable, permanent addressing
-- **Wayfinder** - Decentralized, optimized content discovery
-
-## Choose Your Access Method
+Different methods serve different needs. Each provides unique capabilities for retrieving data from Arweave.
 
 <Cards>
-  <Card
-    title="HTTP Requests"
-    description="Simple data retrieval"
-    href="/build/access/http-requests"
-  >
-    **Best for:** Simple data access and web applications
-    
-    **Features:**
-    - Direct access using transaction IDs
-    - Simple URL format: `https://arweave.net/your-transaction-id`
-    - Perfect for web applications and direct file access
-    - No setup required
-  </Card>
-
-<Card
-  title="GraphQL Queries"
-  description="Powerful search and filtering"
-  href="/build/access/graphql-queries"
->
-  **Best for:** Developers and data discovery **Features:** - Query by tags and
-  metadata - Complex filtering capabilities - Flexible data retrieval - Perfect
-  for application development
-</Card>
-
-<Card
-  title="ArNS (Human-Readable URLs)"
-  description="Memorable, permanent addresses"
-  href="/build/access/arns"
->
-  **Best for:** Websites and shareable content **Features:** - Human-readable
-  URLs like `myapp.arweave.net` - Permanent addressing that never changes - Easy
-  sharing with memorable links - Perfect for websites and applications
-</Card>
-
-  <Card
-    title="Wayfinder"
-    description="Decentralized, verified access"
-    href="/build/access/wayfinder"
-  >
-    **Best for:** Production applications
-    
-    **Features:**
-    - Intelligent gateway routing
-    - Cryptographically verified data integrity
-    - Production-ready and scalable
-    - Built for advanced applications
-  </Card>
+  <Card 
+    title="Find Data"
+    description={
+      <>
+        <p className="mb-3">Search and discover data on Arweave</p>
+        <div className="space-y-1 text-sm">
+          <div className="flex items-center gap-2"><Search className="w-4 h-4" /> Query by tags and metadata</div>
+          <div className="flex items-center gap-2"><Search className="w-4 h-4" /> Filter by app, owner, timestamp</div>
+          <div className="flex items-center gap-2"><Search className="w-4 h-4" /> Get transaction IDs for fetching</div>
+        </div>
+      </>
+    }
+    href="/build/access/find-data"
+    icon={<Search className="w-8 h-8" />}
+  />
+  <Card 
+    title="Fetch Data"
+    description={
+      <>
+        <p className="mb-3">Retrieve data bytes from Arweave</p>
+        <div className="space-y-1 text-sm">
+          <div className="flex items-center gap-2"><Globe className="w-4 h-4" /> REST API endpoints</div>
+          <div className="flex items-center gap-2"><Globe className="w-4 h-4" /> GET arweave.net/[txId]</div>
+          <div className="flex items-center gap-2"><Globe className="w-4 h-4" /> Returns raw data/files</div>
+        </div>
+      </>
+    }
+    href="/build/access/fetch-data"
+    icon={<Globe className="w-8 h-8" />}
+  />
+  <Card 
+    title="ArNS Names"
+    description={
+      <>
+        <p className="mb-3">Assign names to data and apps</p>
+        <div className="space-y-1 text-sm">
+          <div className="flex items-center gap-2"><Link className="w-4 h-4" /> Create names like ardrive.ar.io</div>
+          <div className="flex items-center gap-2"><Link className="w-4 h-4" /> Point to any Arweave data</div>
+          <div className="flex items-center gap-2"><Link className="w-4 h-4" /> Update targets as needed</div>
+        </div>
+      </>
+    }
+    href="/build/access/arns"
+    icon={<Link className="w-8 h-8" />}
+  />
 </Cards>
 
-## Not Sure Which to Choose?
+## Common Access Patterns
 
-<Callout type="info">
-  **Most users should start with HTTP Requests** for simple access or **GraphQL
-  Queries** for application development. ArNS is perfect for permanent URLs, and
-  Wayfinder is ideal for production applications.
-</Callout>
+**Finding Data**
+- Search for data by tags, owner, or timestamp
+- Discover content from specific applications
+- Get transaction IDs for data retrieval
+
+**Fetching Data**
+- Retrieve the actual files/data using transaction IDs
+- Access data via REST API: `GET arweave.net/[txId]`
+- Stream large files efficiently
+
+**Naming with ArNS**
+- Register memorable names for your apps and data
+- Create permanent links like `ardrive.ar.io`
+- Update where names point without changing the URL
+
+## Quick Example: Find and Fetch
+
+<Steps>
+
+<Step>
+
+### Find Data
+Use GraphQL to search for data and get transaction IDs:
+
+```graphql
+query {
+  transactions(
+    tags: [{ name: "App-Name", values: ["ArDrive"] }]
+    first: 1
+  ) {
+    edges {
+      node {
+        id
+      }
+    }
+  }
+}
+```
+
+</Step>
+
+<Step>
+
+### Fetch Data
+Use the transaction ID to retrieve the actual data:
+
+```bash
+curl https://arweave.net/[transaction-id-from-above]
+```
+
+</Step>
+
+</Steps>
+
+<Cards>
+  <Card 
+    title="Access Tutorial" 
+    description="Complete guide to data retrieval"
+    href="/build/access/find-data"
+  />
+  <Card 
+    title="ArNS Documentation" 
+    description="Learn about the naming system"
+    href="/build/access/arns"
+  />
+</Cards>
+
+## Additional Access Options
+
+<Cards>
+  <Card 
+    title="Wayfinder SDK" 
+    description="Advanced gateway routing for production apps"
+    href="/build/access/wayfinder"
+  />
+  <Card 
+    title="Gateway Selection" 
+    description="Choose the right gateway for your needs"
+    href="/learn/gateway-selection"
+  />
+  <Card 
+    title="Data Verification" 
+    description="Ensure data integrity and authenticity"
+    href="/learn/data-verification"
+  />
+</Cards>
