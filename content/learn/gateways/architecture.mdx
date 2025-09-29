@@ -1,7 +1,9 @@
 ---
-title: "Gateway Architecture"
+title: "Architecture"
 description: "Learn about the technical architecture of AR.IO gateways, their core dependencies, and key design decisions"
 ---
+
+import { Database, Shield, Layers, Server } from 'lucide-react';
 
 AR.IO gateways are sophisticated data access layers built on top of the Arweave network. They transform the raw Arweave blockchain into a performant, reliable, and developer-friendly platform for storing and retrieving data. Gateways act as bridges between applications and the permanent storage capabilities of Arweave.
 
@@ -22,7 +24,6 @@ graph TB
         
         subgraph "Storage Layer"
             FS[File System Storage<br/>Local Cache]
-            CLOUD[Remote Cloud Storage<br/>S3 Compatible]
         end
     end
     
@@ -41,7 +42,6 @@ graph TB
     API <--> REDIS
     
     API <--> FS
-    API <--> CLOUD
 
     API <--> ARWEAVE
     API <--> MEMPOOLS
@@ -56,7 +56,7 @@ graph TB
     class API service
     class ENVOY proxy
     class ARWEAVE,MEMPOOLS external
-    class FS,CLOUD storage
+    class FS storage
 ```
 
 ## Core Technology Stack
@@ -75,7 +75,7 @@ AR.IO gateways are built using modern, scalable technologies designed for high-p
   - Data item management
   - Configuration and metadata
 - **Redis**: High-speed caching layer for frequently accessed data
-- **File system storage**: Local caching with configurable S3-compatible backends
+- **File system storage**: Local caching for frequently accessed data
 
 ### Processing Model
 - **Worker-based concurrency**: Specialized workers handle different background tasks
@@ -136,4 +136,32 @@ The modular design creates a resilient ecosystem where distributed infrastructur
 
 This architecture ensures that builders can create powerful applications on Arweave while maintaining independence from any centralized infrastructure or service provider.
 
+## Explore Gateway Capabilities
+
+<Cards>
+  <Card 
+    title="Data Retrieval" 
+    description="Learn how gateways fetch data from multiple sources with hierarchical fallback strategies"
+    href="/learn/gateways/data-retrieval"
+    icon={<Database className="w-8 h-8" />}
+  />
+  <Card 
+    title="Data Verification" 
+    description="Understand how gateways ensure data integrity through cryptographic verification"
+    href="/learn/gateways/data-verification"
+    icon={<Shield className="w-8 h-8" />}
+  />
+  <Card 
+    title="Run Your Own Gateway" 
+    description="Set up and operate your own AR.IO gateway to join the network"
+    href="/build/run-a-gateway/quick-start"
+    icon={<Server className="w-8 h-8" />}
+  />
+  <Card 
+    title="Build Extensions" 
+    description="Extend gateway functionality with custom plugins and integrations"
+    href="/build/extensions"
+    icon={<Layers className="w-8 h-8" />}
+  />
+</Cards>
 

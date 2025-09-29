@@ -3,6 +3,8 @@ title: "Data Retrieval"
 description: "How AR.IO gateways retrieve and share data from multiple sources including trusted peers and Arweave nodes"
 ---
 
+import { Shield, Cpu, Globe, Settings } from 'lucide-react';
+
 AR.IO gateways use a sophisticated multi-tier architecture to retrieve and serve Arweave data. This system ensures high availability, fast response times, and data integrity by leveraging multiple data sources with automatic fallback mechanisms.
 
 ## How Gateways Retrieve Data
@@ -15,18 +17,18 @@ graph TD
     CACHE -->|Hit| SERVE[Serve Data]
     CACHE -->|Miss| SOURCES[Try Data Sources]
     
-    SOURCES --> S3[S3 Cloud Storage]
-    SOURCES --> PEERS[Trusted AR.IO Peers]
+    SOURCES --> TRUSTED[Trusted Gateways]
+    SOURCES --> NETWORK[AR.IO Network]
     SOURCES --> CHUNKS[Chunk Assembly]
     SOURCES --> ARWEAVE[Arweave Nodes]
     
-    S3 -->|Success| VALIDATE
-    PEERS -->|Success| VALIDATE
+    TRUSTED -->|Success| VALIDATE
+    NETWORK -->|Success| VALIDATE
     CHUNKS -->|Success| VALIDATE
     ARWEAVE -->|Success| VALIDATE
     
-    S3 -->|Fail| PEERS
-    PEERS -->|Fail| CHUNKS
+    TRUSTED -->|Fail| NETWORK
+    NETWORK -->|Fail| CHUNKS
     CHUNKS -->|Fail| ARWEAVE
     
     VALIDATE{Valid?} -->|Yes| STORE[Cache & Serve]
@@ -35,7 +37,7 @@ graph TD
     classDef source fill:#2563eb,stroke:#1d4ed8,stroke-width:2px,color:#fff
     classDef process fill:#16a34a,stroke:#15803d,stroke-width:2px,color:#fff
     
-    class S3,PEERS,CHUNKS,ARWEAVE source
+    class TRUSTED,NETWORK,CHUNKS,TXDATA source
     class VALIDATE,SERVE,STORE process
 ```
 
@@ -43,30 +45,29 @@ graph TD
 
 AR.IO gateways can retrieve data from multiple sources, each with different characteristics:
 
-### 1. S3 Cloud Storage
-- **Purpose**: Fast, reliable cloud-based caching layer
-- **Benefits**: Low latency, high bandwidth, cost-effective for frequently accessed data
-- **Use Case**: Popular content and recent data
-
-### 2. Trusted Gateway Networks
-- **Purpose**: Peer-to-peer data sharing between AR.IO gateways
+### 1. Trusted Gateways
+- **Purpose**: Peer-to-peer data sharing between verified AR.IO gateways
 - **Benefits**: Distributed redundancy, load balancing, network resilience
 - **Trust Mechanism**: Performance-based trust scores and reciprocity monitoring
+- **Selection**: Prioritized based on established trust relationships
 
-### 3. Transaction Chunk Assembly
-- **Purpose**: Direct reconstruction from Arweave chunks
+### 2. AR.IO Network (Untrusted Peers)
+- **Purpose**: Broader network of AR.IO gateways without established trust
+- **Benefits**: Geographic distribution, expanded data availability
+- **Selection**: Weighted random selection based on performance metrics
+- **Validation**: Enhanced verification required due to untrusted nature
+
+### 3. Chunk Assembly
+- **Purpose**: Direct reconstruction from Arweave chunks via known offsets
 - **Benefits**: Data integrity guarantee, no intermediary trust required
-- **Process**: Fetches individual chunks and assembles them into complete data
+- **Process**: Fetches individual chunks efficiently and assembles them into complete data
+- **Optimization**: Uses offset awareness for faster chunk retrieval
 
-### 4. Arweave Nodes
-- **Purpose**: Direct access to the blockchain source of truth
+### 4. TX Data
+- **Purpose**: Direct access to transaction data from Arweave nodes
 - **Benefits**: Authoritative data source, complete historical access
 - **Trade-off**: Higher latency but guaranteed availability
-
-### 5. AR.IO Peer Network
-- **Purpose**: Decentralized network of AR.IO nodes
-- **Benefits**: Geographic distribution, community-operated infrastructure
-- **Selection**: Weighted random selection based on performance metrics
+- **Use Case**: Final fallback when other sources fail
 
 
 ## Retrieval Strategies
@@ -75,17 +76,18 @@ Gateways employ different strategies based on the use case:
 
 ### On-Demand Retrieval
 Optimized for user requests with emphasis on speed:
-1. **Priority order**: Fastest sources first (S3 → Peers → Chunks → Arweave)
+1. **Priority order**: Trusted Gateways → Untrusted Peers (AR.IO Network) → Chunks Assembly → Arweave
 2. **Aggressive timeouts**: Quick fallback to next source
 3. **Parallel attempts**: May query multiple sources simultaneously
 4. **Response streaming**: Begin serving data as soon as available
 
 ### Background Retrieval
-Optimized for data completeness and archival:
-1. **Integrity focus**: Prefers authoritative sources
-2. **Relaxed timeouts**: Allows for slower but reliable retrieval
-3. **Verification priority**: Extensive validation before caching
-4. **Bulk operations**: Efficient batch processing
+Used specifically for unbundling and verification processes:
+1. **Unbundling operations**: Extracting individual data items from ANS-104 bundles
+2. **Data verification**: Comprehensive validation of retrieved data integrity
+3. **Integrity focus**: Prefers authoritative sources for accurate processing
+4. **Relaxed timeouts**: Allows for slower but reliable retrieval during verification
+5. **Verification priority**: Extensive validation before caching verified data
 
 ## Trust and Validation
 
@@ -147,4 +149,31 @@ Every piece of retrieved data undergoes validation:
 
 The data retrieval system is fundamental to AR.IO's mission of providing reliable, performant access to the permaweb. This sophisticated architecture ensures that Arweave's permanent data remains accessible through a resilient, distributed gateway network.
 
-Learn more about related gateway capabilities: [Data Indexing](/learn/gateways/data-indexing) and [Data Verification](/learn/gateways/data-verification).
+## Related Gateway Concepts
+
+<Cards>
+  <Card 
+    title="Data Verification" 
+    description="Learn how gateways ensure data integrity through cryptographic verification"
+    href="/learn/gateways/data-verification"
+    icon={<Shield className="w-8 h-8" />}
+  />
+  <Card 
+    title="Gateway Architecture" 
+    description="Understand the technical architecture and design decisions of AR.IO gateways"
+    href="/learn/gateways/architecture"
+    icon={<Cpu className="w-8 h-8" />}
+  />
+  <Card 
+    title="Access Data" 
+    description="Practical guide to retrieving data from Arweave using various methods"
+    href="/build/access"
+    icon={<Globe className="w-8 h-8" />}
+  />
+  <Card 
+    title="Optimize Your Gateway" 
+    description="Configure indexing and filtering to optimize gateway performance"
+    href="/build/run-a-gateway/optimize-your-gateway-for-your-data"
+    icon={<Settings className="w-8 h-8" />}
+  />
+</Cards>
