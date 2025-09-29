@@ -7,6 +7,7 @@ import { openapi } from "@/lib/openapi";
 import { APIPage } from "fumadocs-openapi/ui";
 import { Step, Steps } from "fumadocs-ui/components/steps";
 import { Tabs, Tab } from "fumadocs-ui/components/tabs";
+import Image from "next/image";
 import {
   FolderOpen,
   Info,
@@ -21,7 +22,9 @@ import {
   CreditCard,
   Upload,
   Tag,
-  Book
+  Book,
+  Check,
+  Shield,
 } from "lucide-react";
 
 // use this function to get MDX components, you will need it for rendering MDX
@@ -49,6 +52,9 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     Upload,
     Tag,
     Book,
+    Check,
+    Image,
+    Shield,
     APIPage: (props) => <APIPage {...openapi.getAPIPageProps(props)} />,
     ...components,
   };
