@@ -25,6 +25,9 @@ import {
   Book,
   Check,
   Shield,
+  BarChart3,
+  Cpu,
+  Database,
 } from "lucide-react";
 
 // use this function to get MDX components, you will need it for rendering MDX
@@ -55,6 +58,9 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     Check,
     Image,
     Shield,
+    BarChart3,
+    Cpu,
+    Database,
     APIPage: (props) => <APIPage {...openapi.getAPIPageProps(props)} />,
     ...components,
   };
