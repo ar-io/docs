@@ -57,6 +57,9 @@ async function main() {
     dataItemOpts: {
       tags: [{ name: "App-Name", value: "ar.io docs deploy" }],
     },
+    manifestOptions: {
+      fallbackFile: "index.html",
+    }
   });
 
   console.log("Folder uploaded successfully");
