@@ -5,7 +5,7 @@ description: "Learn how to upgrade legacy private drives to ArFS v0.15"
 
 ## Overview
 
-[Private drives](/learn/arfs/privacy#private-drives) rely on a combination of user-set password and a wallet signature for encryption and decryption. [Wander](https://www.wander.app/), formerly ArConnect, is a popular Arweave wallet that is deprecating its `signature()` method in favor of `signDataItem()` or `signMessage()`. In order to preserve access to private drive contents that were secured via drive keys created via 'signature()', ArFS v0.15 introduces a new drive key derivation scheme that both utilizes the modern signing APIs and bridges historical drive keys for usage with it.
+Private drives rely on a combination of user-set password and a wallet signature for encryption and decryption. [Wander](https://www.wander.app/), formerly ArConnect, is a popular Arweave wallet that is deprecating its `signature()` method in favor of `signDataItem()` or `signMessage()`. In order to preserve access to private drive contents that were secured via drive keys created via 'signature()', ArFS v0.15 introduces a new drive key derivation scheme that both utilizes the modern signing APIs and bridges historical drive keys for usage with it.
 
 Because private drive entities exist on chain and their encryption cannot be altered, an upgrade is required to allow continued access to "V1" private drives. This upgrade essentially takes a signature from the drive owner wallet, encrypts it using the required signature structure for V2 private drives, and places it on Arweave as a new "Drive-Signature" entity. This allows the signature to be fetched and decrypted using the latest methods before using it to decrypt the private drive in the V1 format.
 
