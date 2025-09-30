@@ -5,9 +5,11 @@ description: "Learn about the Turbo ANS-104 data item bundler that can be run al
 
 ## Overview
 
-A [Turbo ANS-104](https://github.com/ardriveapp/turbo-upload-service/) data item bundler can be run alongside an AR.IO gateway. This allows gateways the ability to accept data items to be submit to the Arweave blockweave.
+A [Turbo ANS-104](https://github.com/ardriveapp/turbo-upload-service/) data item bundler can be run alongside an AR.IO gateway. This allows gateways the ability to accept data items to be submitted to the Arweave blockweave.
 
 The bundler service can be easily run inside Docker in the same way that the gateway is. It utilizes a separate docker compose file for configuration and deployment, which also allows for the use of a separate file for environmental variables specific to the bundler service. Additionally, the separation allows operators to spin their bundler service up or down at any time without affecting their core gateway service. Despite the use of separate docker compose files, the bundler service shares a docker network with the AR.IO gateway, and so is able to directly interact with the gateway service and data.
+
+For more information on ANS-104 Bundles, see the [ANS-104 Bundles](/learn/ans-104-bundles) page.
 
 ## Getting Started
 
@@ -68,8 +70,6 @@ The following permissioning configurations schemes are also possible:
 | **Allow All**              | n/a                                         | true                | n/a                          | n/a                      |
 | **Allow None**             | EMPTY                                       | false               | EMPTY                        | EMPTY                    |
 | **Allow Payers**           | EMPTY or supplied                           | false               | EMPTY or supplied            | Your payment service url |
-
-
 
 <Step>
 ### Set Up Indexing
@@ -135,3 +135,34 @@ docker compose --file docker-compose.bundler.yaml logs -f --tail=0
 
 - `-f` runs the command in "follow" mode, so the terminal will continue to watch and display new logs.
 - `--tail=` defines the number of logs to display that existed prior to running the command. `0` displays only new logs.
+
+## Next Steps
+
+Now that you have a bundler set up to accept data uploads, continue building your gateway infrastructure:
+
+<Cards>
+  <Card
+    icon={<BarChart3 className="w-8 h-8" />}
+    title="Set Up Monitoring"
+    description="Deploy Grafana to visualize your gateway's performance metrics"
+    href="/build/extensions/grafana"
+  />
+  <Card
+    icon={<Database className="w-8 h-8" />}
+    title="Add ClickHouse"
+    description="Improve query performance with ClickHouse and Parquet integration"
+    href="/build/extensions/clickhouse"
+  />
+  <Card
+    icon={<Cpu className="w-8 h-8" />}
+    title="Run Compute Unit"
+    description="Execute AO processes locally for maximum efficiency"
+    href="/build/extensions/compute-unit"
+  />
+  <Card
+    icon={<Package className="w-8 h-8" />}
+    title="Buy an ArNS Name"
+    description="Get a human-readable name for your gateway and start serving the permanent web"
+    href="/learn/arns/name-registration"
+  />
+</Cards>

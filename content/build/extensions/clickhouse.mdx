@@ -17,6 +17,8 @@ Apache Parquet is a columnar storage file format designed for efficient data sto
 - **Columnar access**: You can read only the columns you need, reducing I/O operations
 - **Predicate pushdown**: Filter operations can be pushed down to the storage layer, improving query performance
 
+For more information about Parquet, see the [Parquet documentation](https://parquet.apache.org/docs/).
+
 ## Current Integration with AR.IO Gateways
 
 In the current AR.IO gateway implementation, Parquet and ClickHouse run alongside SQLite rather than replacing it. This parallel architecture allows each database to handle what it does best:
@@ -29,6 +31,8 @@ The gateway continues to operate with SQLite just as it always has, maintaining 
 Note that despite Parquet's efficient compression, gateways may not see significant disk space reduction in all cases. While bundled transaction data is exported to Parquet, L1 data remains in SQLite. Without substantial unbundling and indexing filters, minimal data gets exported to Parquet, limiting potential storage savings.
 
 With ClickHouse integration enabled, GraphQL queries are primarily routed to ClickHouse, leveraging its superior performance for large datasets. This significantly improves response times while maintaining SQLite's reliability for transaction processing.
+
+For more information about gateway architecture and data processing, see our [Gateway Architecture](/learn/gateways/architecture) documentation.
 
 ## Parquet vs. SQLite in AR.IO Gateways
 
@@ -79,6 +83,8 @@ Unless otherwise specified, all commands should be run from the root directory o
 ## Installing ClickHouse
 
 ClickHouse is a powerful, open-source analytical database that excels at handling large datasets and complex queries. It is the tool used by the gateway to integrate with the Parquet format.
+
+For more information about ClickHouse, see the [ClickHouse documentation](https://clickhouse.com/docs/).
 
 <Steps>
 <Step>
@@ -344,3 +350,34 @@ docker compose --profile clickhouse down clickhouse
 
 </Step>
 </Steps>
+
+## Next Steps
+
+Now that you have ClickHouse set up for improved query performance, continue building your gateway infrastructure:
+
+<Cards>
+  <Card
+    icon={<BarChart3 className="w-8 h-8" />}
+    title="Set Up Monitoring"
+    description="Deploy Grafana to visualize your gateway's performance metrics"
+    href="/build/extensions/grafana"
+  />
+  <Card
+    icon={<Package className="w-8 h-8" />}
+    title="Deploy Bundler"
+    description="Accept data uploads directly through your gateway"
+    href="/build/extensions/bundler"
+  />
+  <Card
+    icon={<Cpu className="w-8 h-8" />}
+    title="Run Compute Unit"
+    description="Execute AO processes locally for maximum efficiency"
+    href="/build/extensions/compute-unit"
+  />
+  <Card
+    icon={<Database className="w-8 h-8" />}
+    title="Join the Network"
+    description="Register your gateway and start serving the permanent web"
+    href="/build/run-a-gateway/join-the-network"
+  />
+</Cards>

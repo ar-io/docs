@@ -28,6 +28,7 @@ import {
   BarChart3,
   Cpu,
   Database,
+  DollarSign,
 } from "lucide-react";
 
 // use this function to get MDX components, you will need it for rendering MDX
@@ -61,6 +62,7 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     BarChart3,
     Cpu,
     Database,
+    DollarSign,
     APIPage: (props) => <APIPage {...openapi.getAPIPageProps(props)} />,
     ...components,
   };

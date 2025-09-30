@@ -1,74 +1,147 @@
 ---
-title: "Grafana & Prometheus"
-description: "Steps for deploying Grafana and prometheus containers to monitor your AR.IO gateway."
+title: "Grafana"
+description: "Comprehensive guide to deploying and configuring Grafana for AR.IO Gateway monitoring and analytics"
 ---
+
+Deploy and configure Grafana to monitor your AR.IO Gateway's performance, health, and operational metrics. This comprehensive guide covers everything from initial deployment to advanced dashboard configuration.
 
 ## Overview
 
-AR.IO gateways track a significant number of performance and operation metrics using [Prometheus](https://prometheus.io/).
-A [Grafana](https://grafana.com/) sidecar can be deployed to visualize these metrics, and provide an easy way to monitor the health of the gateway.
-The Grafana sidecar is deployed as a separate docker container that uses the same network as the gateway, and is deployed in a similar manner.
+AR.IO gateways track extensive performance and operational metrics using [Prometheus](https://prometheus.io/). A [Grafana](https://grafana.com/) sidecar can be deployed to visualize these metrics, providing an easy way to monitor gateway health and performance.
 
-## Deploying Grafana
+The Grafana sidecar is deployed as a separate Docker container that uses the same network as the gateway, making it simple to integrate with your existing setup.
+
+## Quick Start
 
 <Steps>
 <Step>
-### Deploy the Grafana Container
+### Deploy Grafana
 
-The file that controls the deployment of the Grafana sidecar is `docker-compose.grafana.yaml`. So to deploy Grafana, run the following command:
+Deploy the Grafana sidecar using the provided Docker Compose file:
 
 ```bash
 docker compose -f docker-compose.grafana.yaml up -d
 ```
 
-The `-f` flag is used to specify the path to the docker-compose file, and the `up -d` flag is used to deploy the container in detached mode.
-
 <Callout type="info" title="Terminal Location">
-  This command assumes that you are running the command from the root directory
-  of the gateway. If you are running the command from a different directory, you
-  will need to adjust the path to the docker-compose file.
+  This command assumes you're running from the root directory of the gateway. If
+  running from a different directory, adjust the path to the docker-compose file
+  accordingly.
 </Callout>
+
 </Step>
 
 <Step>
-### Check the Logs
+### Verify Deployment
 
-To check the logs of the Grafana sidecar, run the following command:
+Check that Grafana is running properly:
 
 ```bash
 docker compose -f docker-compose.grafana.yaml logs -f --tail=25
 ```
 
-The `-f` flag is used to follow the logs, and the `--tail=25` flag is used to specify the number of lines to show from the end of the logs, in this case 25.
-
-Exit the logs by pressing `Ctrl+C`.
+Press `Ctrl+C` to exit the logs. Look for any error messages or permission issues.
 
 </Step>
 
 <Step>
-### Configure Nginx (Optional)
+### Access Grafana
 
-The Grafana sidecar is deployed on the same network as the gateway, and can be accessed in a browser by navigating to `http://localhost:1024` from the machine running the gateway.
-In order to be able to access Grafana from outside the network running the gateway, Nginx, which is already used to route gateway traffic, can be configured to route Grafana traffic to the correct port.
+Navigate to `http://localhost:1024` in your browser to access Grafana.
 
-In any editor, open the relevant Nginx configuration file. If the [setup guide configuration](/build/run-a-gateway/quick-start) was used, that file will be located at `/etc/nginx/sites-available/default`.
+**Default credentials:**
 
-Add the following block to the configuration file inside the server block for https (443) traffic:
+- Username: `admin`
+- Password: `admin`
 
-```nginx
-    location /grafana/ {
-        proxy_pass http://localhost:1024/grafana/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
+<Callout type="warning" title="Credential Reset">
+  Updated credentials may be lost if the Grafana sidecar is restarted. Be sure
+  to log into Grafana immediately after every startup to ensure Grafana cannot
+  be accessed with the default credentials.
+</Callout>
+
+</Step>
+</Steps>
+
+## Deployment Methods
+
+<Tabs items={['Local Access', 'External Access via Nginx']}>
+<Tab value="Local Access">
+
+### Local Development Setup
+
+For local development or testing, access Grafana directly:
+
+```bash
+# Deploy Grafana
+docker compose -f docker-compose.grafana.yaml up -d
+
+# Access at localhost:1024
+# Default credentials: admin/admin
 ```
 
-The full configuration file should look like this:
+**Use cases:**
+
+- Local development
+- Testing configurations
+- Internal monitoring
+
+</Tab>
+
+<Tab value="External Access via Nginx">
+
+### Production Setup with Nginx
+
+Configure Nginx to route Grafana traffic for external access:
+
+<Steps>
+<Step>
+### Add Nginx Configuration
+
+Edit your Nginx configuration file (typically `/etc/nginx/sites-available/default`):
 
 ```nginx
-# force redirects http to https
+# Add this block inside your HTTPS server block (port 443)
+location /grafana/ {
+    proxy_pass http://localhost:1024/grafana/;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
+</Step>
+
+<Step>
+### Test Configuration
+
+Validate your Nginx configuration:
+
+```bash
+sudo nginx -t
+```
+
+If valid, restart Nginx:
+
+```bash
+sudo systemctl restart nginx
+```
+
+</Step>
+
+<Step>
+### Access Grafana
+
+Navigate to `https://<your-domain>/grafana` in your browser.
+
+</Step>
+</Steps>
+
+**Complete Nginx Configuration Example:**
+
+```nginx
+# Force redirects http to https
 server {
     listen 80;
     listen [::]:80;
@@ -79,8 +152,7 @@ server {
     }
 }
 
-
-# forwards traffic into your node and provides ssl certificates
+# Forwards traffic into your node and provides SSL certificates
 server {
     listen 443 ssl;
     listen [::]:443 ssl;
@@ -89,19 +161,12 @@ server {
     ssl_certificate /etc/letsencrypt/live/<domain>/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/<domain>/privkey.pem;
 
-
-
     location / {
         proxy_pass http://localhost:3000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_http_version 1.1;
-
-        # Forward AR.IO headers if present in the request
-        proxy_set_header X-AR-IO-Origin $http_x_ar_io_origin;
-        proxy_set_header X-AR-IO-Origin-Node-Release $http_x_ar_io_origin_node_release;
-        proxy_set_header X-AR-IO-Hops $http_x_ar_io_hops;
     }
 
     location /grafana/ {
@@ -111,78 +176,40 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
-
 }
-
 ```
 
-Be sure to replace `<domain>` with the domain of the gateway.
+</Tab>
+</Tabs>
 
-Once the configuration is saved, test the configuration by running the following command:
+## Troubleshooting
 
-```bash
-sudo nginx -t
-```
+<Tabs items={['Permission Errors', 'Connection Issues', 'Configuration Problems']}>
+<Tab value="Permission Errors">
 
-This will print out a message indicating that the configuration is valid.
+### Fix Permission Issues
 
-Then, restart Nginx by running the following command:
-
-```bash
-sudo systemctl restart nginx
-```
-
-Once this is done, Grafana can be accessed by navigating to `https://<domain>/grafana` in a browser.
-
-</Step>
-
+<Steps>
 <Step>
-### Access Grafana
+### Method 1: Modify Directory Permissions
 
-To access Grafana, navigate to `https://<domain>/grafana` in a browser.
-
-The default credentials are:
-
-- Username: `admin`
-- Password: `admin`
-
-Once logged in for the first time, you will be prompted to change the password.
-
-<Callout type="warning" title="Credential Reset">
-  Updated credentials may be lost if the Grafana sidecar is restarted. Be sure
-  to log into Grafana immediately after every start up to ensure Grafana cannot
-  be accessed with the default credentials.
-</Callout>
-</Step>
-</Steps>
-
-## Troubleshooting Permission Errors
-
-In some cases, the Grafana sidecar may encounter permission errors. There are two primary solutions to this issue:
-
-### Modify Directory Permissions
-
-The simplest solution is to modify the permissions of the directory that contains the Grafana data.
+The simplest solution is to modify the permissions of the Grafana data directory:
 
 ```bash
 sudo chmod -R 777 ./data/grafana
 ```
 
-This will give the `grafana` user ownership of the directory and all its contents.
-
 <Callout type="info" title="Terminal Location">
-  This command assumes that you are running the command from the root directory
-  of the gateway. If you are running the command from a different directory, you
-  will need to adjust the path to the docker-compose file.
+  This command assumes you're running from the root directory of the gateway.
+  Adjust the path if running from a different directory.
 </Callout>
 
-Check the logs again to ensure that the issue is resolved.
+</Step>
 
-### Change the Grafana User
+<Step>
+### Method 2: Change Grafana User
 
-The second solution is to change the user that Grafana runs as. This can be done by modifying the `docker-compose.grafana.yaml` file to use a different user. It is suggested to use "root" or "0" to ensure that the container has the necessary permissions.
-
-In any editor, open the `docker-compose.grafana.yaml` file and add "user: root" to the `grafana` service.
+Alternatively, modify the `docker-compose.grafana.yaml` file to use root user:
 
 ```yaml
 grafana:
@@ -192,22 +219,309 @@ grafana:
     - "3000:3000"
 ```
 
-Once this is done, restart the Grafana sidecar by running the following command:
+</Step>
+
+<Step>
+### Verify Fix
+
+Restart Grafana and check logs:
 
 ```bash
 docker compose -f docker-compose.grafana.yaml restart
+docker compose -f docker-compose.grafana.yaml logs -f
 ```
 
-Check the logs again to ensure that the issue is resolved.
+</Step>
+</Steps>
 
-## Dashboards
+</Tab>
 
-The Grafana sidecar comes preloaded with three dashboards:
+<Tab value="Connection Issues">
 
-- **ar-io-node**: Contains general gateway metrics, like the last block indexed, ArNS resolution times, and CPU usage.
-- **ar-io-node bundle indexing**: Contains metrics related to bundle indexing, like the number of bundles and data items indexed.
-- **ar-io-node queue lengths**: Contains metrics related to the queue lengths of the gateway, like Arweave Client requests and transaction importer data.
+### Resolve Connection Problems
 
-Additional dashboards can be added in order to monitor different aspects of the gateway.
+<Steps>
+<Step>
+### Check Container Status
 
-The Grafana landing page contains tutorials for how to configure dashboards, as well as additional features such as alerting.
+Verify Grafana is running:
+
+```bash
+docker compose -f docker-compose.grafana.yaml ps
+```
+
+</Step>
+
+<Step>
+### Check Port Availability
+
+Ensure the port isn't already in use:
+
+```bash
+netstat -tulpn | grep :1024
+# or
+lsof -i :1024
+```
+
+</Step>
+
+<Step>
+### Review Logs
+
+Check for specific error messages:
+
+```bash
+docker compose -f docker-compose.grafana.yaml logs --tail=50
+```
+
+</Step>
+</Steps>
+
+</Tab>
+
+<Tab value="Configuration Problems">
+
+### Fix Configuration Issues
+
+<Steps>
+<Step>
+### Validate Nginx Configuration
+
+Test your Nginx configuration:
+
+```bash
+sudo nginx -t
+```
+
+</Step>
+
+<Step>
+### Check Proxy Settings
+
+Ensure proxy headers are correctly configured:
+
+```nginx
+location /grafana/ {
+    proxy_pass http://localhost:1024/grafana/;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
+</Step>
+
+<Step>
+### Restart Services
+
+Restart both Nginx and Grafana:
+
+```bash
+sudo systemctl restart nginx
+docker compose -f docker-compose.grafana.yaml restart
+```
+
+</Step>
+</Steps>
+
+</Tab>
+</Tabs>
+
+## Dashboard Overview
+
+Grafana comes preloaded with three comprehensive dashboards:
+
+<Tabs items={['General Metrics', 'Bundle Indexing', 'Queue Lengths']}>
+<Tab value="General Metrics">
+
+### AR.IO Node Dashboard
+
+**Key metrics include:**
+
+- Last block indexed
+- ArNS resolution times
+- CPU usage
+- Memory consumption
+- Network I/O
+- Disk usage
+
+**Use cases:**
+
+- Overall gateway health monitoring
+- Performance trend analysis
+- Resource utilization tracking
+
+</Tab>
+
+<Tab value="Bundle Indexing">
+
+### Bundle Indexing Dashboard
+
+**Key metrics include:**
+
+- Number of bundles processed
+- Data items indexed
+- Processing rates
+- Error rates
+- Queue depths
+
+**Use cases:**
+
+- Bundle processing performance
+- Indexing efficiency monitoring
+- Error detection and analysis
+
+</Tab>
+
+<Tab value="Queue Lengths">
+
+### Queue Lengths Dashboard
+
+**Key metrics include:**
+
+- Arweave Client request queues
+- Transaction importer data
+- Processing queue depths
+- Worker utilization
+
+**Use cases:**
+
+- Queue performance monitoring
+- Bottleneck identification
+- Capacity planning
+
+</Tab>
+</Tabs>
+
+## Advanced Configuration
+
+### Custom Dashboards
+
+<Steps>
+<Step>
+### Create New Dashboard
+
+1. Click the "+" icon in Grafana
+2. Select "Dashboard"
+3. Add panels for specific metrics
+4. Configure queries and visualizations
+
+</Step>
+
+<Step>
+### Import Existing Dashboards
+
+1. Go to "Dashboards" → "Import"
+2. Upload JSON dashboard files
+3. Configure data sources
+4. Customize as needed
+
+</Step>
+</Steps>
+
+## Security Considerations
+
+<Callout type="warning" title="Default Credentials">
+  Always change the default admin credentials immediately after first login.
+  Default credentials are publicly known and pose a security risk.
+</Callout>
+
+### Best Practices
+
+1. **Change Default Password** - Use a strong, unique password
+2. **Enable HTTPS** - Use SSL certificates for external access
+3. **Restrict Access** - Use firewall rules to limit access
+4. **Regular Updates** - Keep Grafana updated to latest version
+5. **Backup Configuration** - Export and backup dashboard configurations
+
+## Performance Optimization
+
+### Resource Management
+
+<Steps>
+<Step>
+### Monitor Resource Usage
+
+Keep an eye on:
+
+- CPU usage during dashboard rendering
+- Memory consumption with multiple dashboards
+- Network bandwidth for data queries
+
+</Step>
+
+<Step>
+### Optimize Queries
+
+- Use appropriate time ranges
+- Limit data points in queries
+- Cache frequently accessed data
+- Use data source query optimization
+
+</Step>
+</Steps>
+
+### Scaling Considerations
+
+For high-traffic gateways or multiple gateway monitoring:
+
+1. **Dedicated Resources** - Allocate sufficient CPU and memory
+2. **Database Optimization** - Use external databases for Grafana data
+3. **Load Balancing** - Distribute monitoring load across multiple instances
+4. **Caching** - Implement query result caching
+
+## Additional Resources
+
+<Callout type="info">
+  **Ready to get started?** Begin with the Quick Start section above, then
+  explore the advanced configuration options based on your specific monitoring
+  needs.
+</Callout>
+
+### Documentation & Support
+
+- **Grafana Documentation** - [Official Grafana docs](https://grafana.com/docs/)
+- **Prometheus Metrics** - Understanding gateway metrics
+- **Dashboard Sharing** - Share dashboards with your team
+- **Community Support** - Join the [AR.IO Discord](https://discord.gg/cuCqBb5v) for help
+
+### Getting Help
+
+If you encounter issues:
+
+1. Check the troubleshooting section above
+2. Review Grafana logs for error messages
+3. Verify network connectivity and port availability
+4. Consult the AR.IO community for assistance
+
+## Next Steps
+
+Now that you have monitoring set up, continue building your gateway infrastructure:
+
+<Cards>
+  <Card
+    icon={<BarChart3 className="w-8 h-8" />}
+    title="Optimize Performance"
+    description="Learn advanced gateway optimization techniques for better performance"
+    href="/build/run-a-gateway/manage/filters"
+  />
+  <Card
+    icon={<Database className="w-8 h-8" />}
+    title="Add ClickHouse"
+    description="Improve query performance with ClickHouse and Parquet integration"
+    href="/build/extensions/clickhouse"
+  />
+  <Card
+    icon={<Package className="w-8 h-8" />}
+    title="Deploy Bundler"
+    description="Accept data uploads directly through your gateway"
+    href="/build/extensions/bundler"
+  />
+  <Card
+    icon={<Cpu className="w-8 h-8" />}
+    title="Run Compute Unit"
+    description="Execute AO processes locally for maximum efficiency"
+    href="/build/extensions/compute-unit"
+  />
+</Cards>
