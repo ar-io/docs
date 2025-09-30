@@ -1,9 +1,15 @@
 ---
-title: "Optimized Gateway Indexing and Filtering"
+title: "Gateway Filters"
 description: "Comprehensive guide to configuring AR.IO Gateway filters for efficient data processing and indexing"
 ---
 
+import { BarChart3, Database, Package, Cpu } from "lucide-react";
+
 Configure your AR.IO Gateway to efficiently process and index only the data you need. This comprehensive guide covers advanced filtering techniques, performance optimization, and real-world use cases.
+
+## Overview
+
+The AR.IO Gateway uses a flexible JSON-based filtering system to control data processing and indexing. The system provides precise control over which bundles are processed and which data items are indexed for querying.
 
 ## Understanding the Filtering System
 
@@ -20,7 +26,6 @@ The AR.IO Gateway uses two primary filters to control data processing:
 ## Core Environment Variables
 
 <Steps>
-
 <Step>
 ### Configure Data Management
 
@@ -58,6 +63,165 @@ GRAPHQL_PORT=443
 
 </Step>
 </Steps>
+
+## Filter Construction
+
+<Callout type="info" title=".env formatting">
+  While the filters below are displayed on multiple lines for readability, they
+  must be stored in the `.env` file as a single line for proper processing.
+</Callout>
+
+### Basic Filters
+
+The simplest filters you can use are `"always"` and `"never"` filters. The `"never"` filter is the default behavior and will match nothing, while the `"always"` filter matches everything.
+
+<CodeGroup title="Basic Filters">
+```json {{title: "Never Match"}}
+{
+  "never": true //default behavior
+}
+```
+
+```json {{title: "Always Match"}}
+{
+  "always": true
+}
+```
+
+</CodeGroup>
+
+### Tag Filters
+
+Tag filters allow you to match items based on their tags in three different ways. You can match exact tag values, check for the presence of a tag regardless of its value, or match tags whose values start with specific text. All tag values are automatically base64url-decoded before matching.
+
+<CodeGroup title="Tag Filters">
+```json {{title: "Exact Match"}}
+{
+  "tags": [
+    {
+      "name": "Content-Type",
+      "value": "image/jpeg"
+    }
+  ]
+}
+```
+
+```json {{title: "Match Tag Name Only"}}
+{
+  "tags": [
+    {
+      "name": "App-Name"
+    }
+  ]
+}
+```
+
+```json {{title: "Starts With Match"}}
+{
+  "tags": [
+    {
+      "name": "Protocol",
+      "valueStartsWith": "AO"
+    }
+  ]
+}
+```
+
+</CodeGroup>
+
+### Attribute Filters
+
+Attribute filtering allows you to match items based on their metadata properties. The system automatically handles owner public key to address conversion, making it easy to filter by owner address. You can combine multiple attributes in a single filter:
+
+<CodeGroup title="Attribute Filters">
+```json {{title: "Basic Attributes"}}
+{
+  "attributes": {
+    "owner_address": "xyz123...",
+    "data_size": 1000
+  }
+}
+```
+
+</CodeGroup>
+
+### Nested Bundle Filter
+
+The `isNestedBundle` filter is a specialized filter that checks whether a data item is part of a nested bundle structure. It's particularly useful when you need to identify or process data items in bundles that are contained within other bundles.
+
+<CodeGroup title="Nested Bundle Filter">
+```json {{title: "Basic Nested Bundle"}}
+{
+  "isNestedBundle": true
+}
+```
+
+</CodeGroup>
+
+**Note**: When processing nested bundles, be sure to include filters that match the nested bundles in both `ANS104_UNBUNDLE_FILTER` and `ANS104_INDEX_FILTER`. The bundle data items (nested bundles) need to be indexed to be matched by the unbundle filter.
+
+### Complex Filters Using Logical Operators
+
+For more complex scenarios, the system provides logical operators (AND, OR, NOT) that can be combined to create sophisticated filtering patterns. These operators can be nested to any depth:
+
+<CodeGroup title="Logical Operators">
+```json {{title: "AND Operation"}}
+{
+  "and": [
+    {
+      "tags": [
+        {
+          "name": "App-Name",
+          "value": "ArDrive-App"
+        }
+      ]
+    },
+    {
+      "tags": [
+        {
+          "name": "Content-Type",
+          "valueStartsWith": "image/"
+        }
+      ]
+    }
+  ]
+}
+```
+
+```json {{title: "OR Operation"}}
+{
+  "or": [
+    {
+      "tags": [
+        {
+          "name": "App-Name",
+          "value": "ArDrive-App"
+        }
+      ]
+    },
+    {
+      "attributes": {
+        "data_size": 1000
+      }
+    }
+  ]
+}
+```
+
+```json {{title: "NOT Operation"}}
+{
+  "not": {
+    "tags": [
+      {
+        "name": "Content-Type",
+        "value": "application/json"
+      }
+    ]
+  }
+}
+```
+
+</CodeGroup>
 
 ## Filter Configuration Strategies
 
@@ -531,14 +695,25 @@ ENABLE_DATA_DB_WAL_CLEANUP=true
 </Step>
 </Steps>
 
-### Resource Monitoring
+## Webhook Filters
 
-Monitor these key metrics:
+There are also two filters available that are used to trigger webhooks. When a transaction is processed that matches one of the webhook filters, the gateway will send a webhook to the specified `WEBHOOK_TARGET_SERVERS` urls containing the transaction data.
 
-- **CPU Usage** - Should stay below 80% during processing
-- **Memory Usage** - Watch for memory leaks during long operations
-- **Disk I/O** - Monitor database write performance
-- **Network Bandwidth** - Ensure sufficient bandwidth for bundle downloads
+```bash
+WEBHOOK_INDEX_FILTER=""
+WEBHOOK_BLOCK_FILTER=""
+```
+
+The `WEBHOOK_INDEX_FILTER` is used to trigger a webhook when a transaction is indexed. The `WEBHOOK_BLOCK_FILTER` is used to trigger a webhook when a block is processed.
+
+## Important Notes
+
+- All tag names and values are base64url-decoded before matching
+- Owner addresses are automatically converted from owner public keys
+- Empty or undefined filters default to "never match"
+- Tag matching requires all specified tags to match
+- Attribute matching requires all specified attributes to match
+- The filter system supports nested logical operations to any depth, allowing for very precise control over what data gets processed
 
 ## Best Practices
 
@@ -564,73 +739,33 @@ Monitor these key metrics:
   been restarted after changes - System has sufficient resources
 </Callout>
 
-## Advanced Configuration
-
-### Custom Data Sources
-
-Configure multiple data sources for optimal performance:
-
-```bash
-# Primary data source order
-ON_DEMAND_RETRIEVAL_ORDER=s3,trusted-gateways,chunks,tx-data
-
-# Background processing order
-BACKGROUND_RETRIEVAL_ORDER=chunks,s3,trusted-gateways,chunks,tx-data
-```
-
-### Compression Settings
-
-Optimize storage with compression:
-
-```bash
-# Enable compression for different data types
-LMDB_BLOCK_STORE_COMPRESSION=gzip
-LMDB_BUNDLE_STORE_COMPRESSION=gzip
-LMDB_DATA_ITEM_STORE_COMPRESSION=gzip
-LMDB_TX_STORE_COMPRESSION=gzip
-LMDB_DATA_STORE_COMPRESSION=gzip
-```
-
-### Cache Management
-
-Configure cache cleanup thresholds:
-
-```bash
-# Header cache cleanup
-ENABLE_FS_HEADER_CACHE_CLEANUP=true
-HEADER_CACHE_CLEANUP_THRESHOLD=2000
-
-# Chunk cache cleanup
-CHUNK_DATA_CACHE_CLEANUP_THRESHOLD=250000
-
-# Manifest cache cleanup
-MANIFEST_CACHE_CLEANUP_THRESHOLD=250000
-
-# ANS-104 data index cache cleanup
-ANS104_DATA_INDEX_CACHE_CLEANUP_THRESHOLD=50000
-```
-
 ## Next Steps
 
-<Callout type="info">
-  **Ready to implement?** Start with the [Quick Start
-  Guide](/build/run-a-gateway/optimize-your-gateway-for-your-data) for basic
-  configuration, then return here for advanced optimization techniques.
-</Callout>
+Now that you understand gateway filtering, continue building your infrastructure:
 
-### Additional Resources
-
-- **Filter Syntax Reference** - Complete filter construction guide
-- **Performance Monitoring** - Set up monitoring with Grafana
-- **Troubleshooting Guide** - Common issues and solutions
-- **Community Support** - Join the AR.IO Discord for help
-
-### Getting Help
-
-If you encounter issues or need assistance:
-
-1. Check the gateway logs for error messages
-2. Verify your filter syntax is valid JSON
-3. Ensure all required environment variables are set
-4. Join the [AR.IO Discord](https://discord.gg/7zUPfN4D6g) for community support
-5. Review the troubleshooting documentation for common solutions
+<Cards>
+  <Card
+    icon={<BarChart3 className="w-8 h-8" />}
+    title="Set Up Monitoring"
+    description="Deploy Grafana to visualize your gateway's performance metrics"
+    href="/build/extensions/grafana"
+  />
+  <Card
+    icon={<Database className="w-8 h-8" />}
+    title="Add ClickHouse"
+    description="Improve query performance with ClickHouse and Parquet integration"
+    href="/build/extensions/clickhouse"
+  />
+  <Card
+    icon={<Package className="w-8 h-8" />}
+    title="Deploy Bundler"
+    description="Accept data uploads directly through your gateway"
+    href="/build/extensions/bundler"
+  />
+  <Card
+    icon={<Cpu className="w-8 h-8" />}
+    title="Run Compute Unit"
+    description="Execute AO processes locally for maximum efficiency"
+    href="/build/extensions/compute-unit"
+  />
+</Cards>
