@@ -77,7 +77,7 @@ export async function generateMetadata(props: {
         siteName: "AR.IO",
         images: [
           {
-            url: "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
+            url: "/meta.png",
             width: 1200,
             height: 630,
             alt: "AR.IO Documentation",
@@ -89,7 +89,7 @@ export async function generateMetadata(props: {
         title: "AR.IO Documentation",
         description: "Documentation for AR.IO",
         images: [
-          "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
+          "/meta.png",
         ],
         creator: "@AR_IO_Network",
         site: "@AR_IO_Network",
@@ -118,7 +118,7 @@ export async function generateMetadata(props: {
   const pageTitle = frontmatter.title || page.data.title;
   const pageDescription = frontmatter.description || page.data.description;
   const pageImage =
-    frontmatter.image || frontmatter.icon || "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so";
+    frontmatter.image || frontmatter.icon || "/meta.png";
   const pageKeywords = frontmatter.keywords || [
     "AR.IO",
     "Arweave",
