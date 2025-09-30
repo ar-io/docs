@@ -3,12 +3,14 @@ title: "Find Data (via GraphQL)"
 description: "Search and discover data on Arweave using GraphQL queries"
 ---
 
+import { Globe, Code, Link, Compass } from "lucide-react";
+
 Use **GraphQL** to **find and identify** Arweave data with powerful search and filtering capabilities. GraphQL is used for discovery - you query to get transaction IDs, then use those IDs to fetch the actual data.
 
 <Callout type="warning">
-  **GraphQL is for Discovery, Not Direct Access**
-  
-  GraphQL finds data, it doesn't access it directly. Use GraphQL to get transaction IDs, then use those IDs with the REST API to fetch the actual data.
+  **GraphQL is for Discovery, Not Direct Access** GraphQL finds data, it doesn't
+  access it directly. Use GraphQL to get transaction IDs, then use those IDs
+  with the REST API to fetch the actual data.
 </Callout>
 
 ## How GraphQL Works
@@ -26,7 +28,11 @@ This separation allows for powerful data discovery while keeping data retrieval 
 - **Goldsky** - `https://arweave-search.goldsky.com/graphql` - High-performance GraphQL service with full data coverage
 
 <Callout type="info">
-  **AR.IO Gateways:** AR.IO gateways support the `/graphql` endpoint, but they only return data they've indexed. If you're uploading data and want it unbundled and indexed, you can run a gateway and configure it to unbundle your data, or post data items/bundles via the gateway's APIs (recommended). [Learn more](/build/run-a-gateway/manage/filters).
+  **AR.IO Gateways:** AR.IO gateways support the `/graphql` endpoint, but they
+  only return data they've indexed. If you're uploading data and want it
+  unbundled and indexed, you can run a gateway and configure it to unbundle your
+  data, or post data items/bundles via the gateway's APIs (recommended). [Learn
+  more](/build/run-a-gateway/manage/filters).
 </Callout>
 
 ## Quick Start
@@ -268,6 +274,7 @@ query {
 As of September 2025, both arweave.net and Goldsky GraphQL endpoints support queries up to **1,000 items at once**. For larger datasets, use cursor-based pagination to navigate through results.
 
 **How Pagination Works:**
+
 - Use `first` parameter to specify page size (max 1,000)
 - Use `pageInfo.hasNextPage` to check if more results exist
 - Use `cursor` from the last item with `after` parameter for the next page
@@ -283,7 +290,7 @@ while (hasNextPage) {
       transactions(
         tags: [{ name: "App-Name", values: ["MyApp"] }]
         first: 100
-        ${cursor ? 'after: $cursor' : ''}
+        ${cursor ? "after: $cursor" : ""}
       ) {
         pageInfo {
           hasNextPage
@@ -315,12 +322,14 @@ while (hasNextPage) {
 
   const data = await response.json();
   const { edges, pageInfo } = data.data.transactions;
-  
+
   allTransactions.push(...edges);
   hasNextPage = pageInfo.hasNextPage;
   cursor = edges.length > 0 ? edges[edges.length - 1].cursor : null;
-  
-  console.log(`Loaded ${edges.length} transactions. Total: ${allTransactions.length}`);
+
+  console.log(
+    `Loaded ${edges.length} transactions. Total: ${allTransactions.length}`
+  );
 }
 
 console.log(`Found ${allTransactions.length} total transactions`);
@@ -401,19 +410,19 @@ const query = `
     Learn how to retrieve the actual data using transaction IDs.
   </Card>
 
-  <Card
-    href="/build/run-a-gateway"
-    title="Run Your Own Gateway"
-    icon={<Code />}
-  >
-    Set up a gateway to index and serve your specific data.
-  </Card>
+<Card href="/build/run-a-gateway" title="Run Your Own Gateway" icon={<Code />}>
+  Set up a gateway to index and serve your specific data.
+</Card>
+
+<Card href="/build/upload" title="Upload Data with Turbo" icon={<Link />}>
+  Start uploading your data to Arweave's permanent storage.
+</Card>
 
   <Card 
-    href="/build/upload"
-    title="Upload Data with Turbo"
-    icon={<Link />}
+    href="/build/access/wayfinder"
+    title="Use Wayfinder for Smart Routing"
+    icon={<Compass />}
   >
-    Start uploading your data to Arweave's permanent storage.
+    Automatically route requests to the best performing gateway.
   </Card>
 </Cards>
