@@ -17,7 +17,6 @@ The Grafana sidecar is deployed as a separate Docker container that uses the sam
 
 ![Grafana Dashboard](/grafana.png)
 
-
 ## Quick Start
 
 <Steps>
@@ -75,7 +74,9 @@ Navigate to `http://localhost:1024` in your browser to access Grafana.
 To expose your Grafana dashboard externally through your domain, you'll need to configure nginx as a reverse proxy. This requires DNS setup and SSL certificates as covered in the [gateway installation guide](/build/run-a-gateway/quick-start).
 
 <Callout type="info" title="Prerequisites">
-  This setup assumes you've already configured DNS, SSL certificates, and nginx as described in the [Installation & Setup guide](/build/run-a-gateway/quick-start).
+  This setup assumes you've already configured DNS, SSL certificates, and nginx
+  as described in the [Installation & Setup
+  guide](/build/run-a-gateway/quick-start).
 </Callout>
 
 <Steps>
@@ -180,6 +181,7 @@ sudo systemctl reload nginx
 Navigate to `https://<your-domain>.com/grafana/` in your browser to access your Grafana dashboard externally.
 
 **Default credentials:**
+
 - Username: `admin`
 - Password: `admin`
 
@@ -352,6 +354,42 @@ docker compose -f docker-compose.grafana.yaml restart
 - **Grafana Documentation** - [Official Grafana docs](https://grafana.com/docs/)
 - **Prometheus Metrics** - [Understanding gateway metrics](https://prometheus.io/docs/concepts/metric_types/)
 - **Community Support** - Join the [AR.IO Discord](https://discord.gg/cuCqBb5v) for help
+
+## Useful Docker Commands
+
+Monitor and manage your Grafana sidecar with these commands:
+
+```bash
+# View all running services
+docker ps
+
+# Start Grafana sidecar
+docker compose -f docker-compose.grafana.yaml up -d
+
+# Stop Grafana sidecar
+docker compose -f docker-compose.grafana.yaml down
+
+# Pull latest Grafana images
+docker compose -f docker-compose.grafana.yaml pull
+
+# Follow Grafana logs
+docker compose -f docker-compose.grafana.yaml logs -f --tail=25
+
+# Check Grafana container status
+docker compose -f docker-compose.grafana.yaml ps
+
+# Restart Grafana sidecar
+docker compose -f docker-compose.grafana.yaml restart
+
+# View Grafana logs without following
+docker compose -f docker-compose.grafana.yaml logs --tail=50
+
+# Start Grafana in foreground (for debugging)
+docker compose -f docker-compose.grafana.yaml up
+
+# Check port availability
+netstat -tulpn | grep :1024
+```
 
 ## Next Steps
 
