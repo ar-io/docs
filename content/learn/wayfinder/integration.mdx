@@ -49,7 +49,8 @@ Web developers will likely be interested in [wayfinder-react](/sdks/wayfinder/wa
 For most builds, teams use the "preferred with fallback" pattern. This routing strategy prioritizes your preferred gateway but automatically falls back to other gateways in the network if needed:
 
 ```typescript
-import { WayfinderClient } from '@ar-io/wayfinder-core';
+import { createWayfinderClient } from '@ar-io/wayfinder-core';
+import { ARIO } from '@ar.io/sdk';
 
 const wayfinder = new createWayfinderClient({
   ario: ARIO.mainnet(),
@@ -71,6 +72,8 @@ For detailed routing strategy options, see the [routing strategies documentation
 While verification is optional, it's strongly encouraged when fetching from gateways:
 
 ```typescript
+import { createWayfinderClient } from '@ar-io/wayfinder-core';
+
 const wayfinder = createWayfinderClient({
   //...other settings,
   verification: 'hash', // hash based verification
@@ -84,6 +87,8 @@ Verification ensures you're receiving authentic content regardless of which gate
 Enable telemetry to understand how Wayfinder performs relative to arweave.net:
 
 ```typescript
+import { createWayfinderClient } from '@ar-io/wayfinder-core';
+
 const wayfinder = createWayfinderClient({
   //...other settings,
   telemetry: {
@@ -103,7 +108,8 @@ This helps teams make data-driven decisions about gateway selection and optimiza
 Here's a complete example using wayfinder-react:
 
 ```tsx
-import { WayfinderProvider } from '@ar-io/wayfinder-react';
+import { WayfinderProvider, FastestPingRoutingStrategy } from '@ar-io/wayfinder-react';
+import { ARIO } from '@ar.io/sdk;
 
 // Configure Wayfinder
 const wayfinderConfig = {
@@ -147,30 +153,3 @@ function WayfinderImage({ txId }: { txId: string }) {
   );
 }
 ```
-
-## Extension Configuration
-
-Users of the wayfinder-extension can configure their routing and verification strategies through the extension's settings:
-
-1. **Routing Strategies**:
-   - Random gateway selection
-   - Fastest gateway (based on latency)
-   - Preferred gateway with fallback
-   - Custom gateway list
-
-2. **Verification Settings**:
-   - Disabled (fastest, trust-based)
-   - Basic (verify transaction IDs)
-   - Full (complete content verification)
-
-## Implementation Best Practices
-
-1. **Always configure a preferred gateway** - Reduces latency and improves reliability
-2. **Enable verification for sensitive content** - Ensures authenticity
-3. **Monitor telemetry in production** - Understand real-world performance
-4. **Handle errors gracefully** - Provide fallback UI when content can't be loaded
-5. **Cache aggressively** - Reduce repeated gateway requests
-
-## Next Steps
-
-Ready to see how Wayfinder is used in practice? Explore [Use Cases](/learn/wayfinder/use-cases) to see real-world applications.

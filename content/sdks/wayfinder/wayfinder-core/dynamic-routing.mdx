@@ -1,0 +1,50 @@
+---
+title: "Dynamic Routing"
+description: "JavaScript/TypeScript SDK for accessing Arweave data with built-in verification and gateway routing"
+---
+
+Wayfinder supports a `resolveUrl` method which generates dynamic redirect URLs to a target gateway based on the provided routing strategy. This function can be used to directly replace any hard-coded gateway URLs, and instead use Wayfinder's routing logic to select a gateway for the request.
+
+#### ArNS names
+
+Given an ArNS name, the redirect URL will be the same as the original URL, but with the gateway selected by Wayfinder's routing strategy.
+
+```javascript
+const redirectUrl = await wayfinder.resolveUrl({
+  arnsName: 'ardrive',
+});
+// results in https://ardrive.\<selected-gateway\>
+```
+
+#### Transaction Ids
+
+Given a txId, the redirect URL will be the same as the original URL, but with the gateway selected by Wayfinder's routing strategy.
+
+```javascript
+const redirectUrl = await wayfinder.resolveUrl({
+  txId: 'example-tx-id',
+});
+// results in https://\<selected-gateway\>/example-tx-id
+```
+
+#### Legacy arweave.net or arweave.dev URLs
+
+Given a legacy arweave.net or arweave.dev URL, the redirect URL will be the same as the original URL, but with the gateway selected by Wayfinder's routing strategy.
+
+```javascript
+const redirectUrl = await wayfinder.resolveUrl({
+  originalUrl: 'https://arweave.net/example-tx-id',
+});
+// results in https://\<selected-gateway\>/example-tx-id
+```
+
+#### ar:// URLs
+
+Given an ar:// URL, the redirect URL will be the same as the original URL, but with the gateway selected by Wayfinder's routing strategy.
+
+```javascript
+const redirectUrl = await wayfinder.resolveUrl({
+  originalUrl: 'ar://example-name/subpath?query=value',
+});
+// results in https://\<selected-gateway\>/example-name/subpath?query=value
+```
