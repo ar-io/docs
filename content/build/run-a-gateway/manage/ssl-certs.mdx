@@ -1,0 +1,315 @@
+---
+title: "Automating SSL Certificate Renewal"
+description: "Step-by-step guide to configure Certbot with automatic SSL certificate renewal using DNS API for AR.IO Gateway"
+---
+
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+
+Secure your AR.IO Gateway with automated SSL certificate renewal using Certbot and DNS challenge validation. This guide covers setup for different DNS providers to automatically renew certificates without manual intervention.
+
+## Overview
+
+Using DNS challenge validation with Certbot allows you to:
+- Automatically renew SSL certificates
+- Support wildcard certificates
+- Avoid manual certificate management
+- Ensure continuous gateway security
+
+## Prerequisites
+
+- A running AR.IO Gateway
+- Domain name configured with your DNS provider
+- Administrative access to your server
+- API access to your DNS provider
+
+## DNS Provider Setup
+
+<Tabs items={['Cloudflare', 'Namecheap']}>
+  <Tab value="Cloudflare">
+    
+### Cloudflare Configuration
+
+<Steps>
+
+<Step>
+### Create Cloudflare API Token
+
+Navigate to **Cloudflare → My Profile → API Tokens → Create Token**
+
+Configure the token with these permissions:
+- **Zone → Zone → Read**
+- **Zone → DNS → Edit**
+
+![Cloudflare API Token Configuration](https://arweave.net/GMzqNXNCQMSLqyt7SV7FrGOgCuGBeaO5qjRWibFkVBE)
+</Step>
+
+<Step>
+### Install Certbot and Cloudflare Plugin
+
+```bash
+apt update
+apt install certbot python3-certbot-dns-cloudflare -y
+```
+</Step>
+
+<Step>
+### Configure API Credentials
+
+Create the credentials file:
+
+```bash
+nano /etc/letsencrypt/cloudflare.ini
+```
+
+Add your API token:
+
+```ini
+dns_cloudflare_api_token = your_api_token_here
+```
+
+Secure the file:
+
+```bash
+chmod 600 /etc/letsencrypt/cloudflare.ini
+```
+</Step>
+
+<Step>
+### Generate SSL Certificate
+
+Request the certificate with wildcard support:
+
+```bash
+certbot certonly --dns-cloudflare \
+  --dns-cloudflare-credentials /etc/letsencrypt/cloudflare.ini \
+  -d example.com -d *.example.com
+```
+
+**Expected output:**
+```bash
+Successfully received certificate.
+Certificate is saved at: /etc/letsencrypt/live/example.com/fullchain.pem
+Key is saved at: /etc/letsencrypt/live/example.com/privkey.pem
+```
+</Step>
+
+<Step>
+### Test Automatic Renewal
+
+Perform a dry run to validate the renewal process:
+
+```bash
+certbot renew --dry-run
+```
+
+**Expected output:**
+```bash
+Saving debug log to /var/log/letsencrypt/letsencrypt.log
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Processing /etc/letsencrypt/renewal/example.com.conf
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Account registered.
+Simulating renewal of an existing certificate for example.com and *.example.com
+Waiting 10 seconds for DNS changes to propagate
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Congratulations, all simulated renewals succeeded:
+  /etc/letsencrypt/live/example.com/fullchain.pem (success)
+```
+</Step>
+
+<Step>
+### Verify Automatic Renewal Timer
+
+Check that the certbot timer is active:
+
+```bash
+systemctl list-timers | grep certbot
+```
+
+**Expected output:**
+```bash
+Tue 2024-11-05 02:22:10 UTC  3h 21min  Mon 2024-11-04 17:16:51 UTC  5h 43min ago  certbot.timer  certbot.service
+```
+</Step>
+
+</Steps>
+
+  </Tab>
+  
+  <Tab value="Namecheap">
+    
+### Namecheap Configuration
+
+<Callout type="warning">
+**API Requirements:** Namecheap requires specific conditions to create API keys:
+- At least 20 domains under your account
+- Minimum $50 account balance
+- At least $50 spent within the last 2 years
+
+If you don't meet these requirements, contact Namecheap support for a waiver.
+</Callout>
+
+<Steps>
+
+<Step>
+### Create Namecheap API Key
+
+Navigate to **Namecheap → Profile → Tools → Manage API Access Keys**
+
+Create your API credentials and note:
+- Your username
+- Your API key
+</Step>
+
+<Step>
+### Install Certbot and Dependencies
+
+```bash
+apt update
+apt install certbot python3-pip -y
+```
+
+Install the Namecheap DNS plugin:
+
+```bash
+pip install certbot-dns-namecheap
+```
+</Step>
+
+<Step>
+### Configure API Credentials
+
+Create the credentials file:
+
+```bash
+nano /etc/letsencrypt/namecheap.ini
+```
+
+Add your API credentials:
+
+```ini
+dns_namecheap_username = your_username
+dns_namecheap_api_key = your_api_key
+```
+
+Secure the file:
+
+```bash
+chmod 600 /etc/letsencrypt/namecheap.ini
+```
+</Step>
+
+<Step>
+### Generate SSL Certificate
+
+Request the certificate with wildcard support:
+
+```bash
+certbot certonly --dns-namecheap \
+  --dns-namecheap-credentials /etc/letsencrypt/namecheap.ini \
+  -d example.com -d *.example.com
+```
+
+**Expected output:**
+```bash
+Successfully received certificate.
+Certificate is saved at: /etc/letsencrypt/live/example.com/fullchain.pem
+Key is saved at: /etc/letsencrypt/live/example.com/privkey.pem
+```
+</Step>
+
+<Step>
+### Test Automatic Renewal
+
+Perform a dry run to validate the renewal process:
+
+```bash
+certbot renew --dry-run
+```
+
+**Expected output:**
+```bash
+Saving debug log to /var/log/letsencrypt/letsencrypt.log
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Processing /etc/letsencrypt/renewal/example.com.conf
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Account registered.
+Simulating renewal of an existing certificate for example.com and *.example.com
+Waiting 10 seconds for DNS changes to propagate
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Congratulations, all simulated renewals succeeded:
+  /etc/letsencrypt/live/example.com/fullchain.pem (success)
+```
+</Step>
+
+<Step>
+### Verify Automatic Renewal Timer
+
+Check that the certbot timer is active:
+
+```bash
+systemctl list-timers | grep certbot
+```
+
+**Expected output:**
+```bash
+Tue 2024-11-05 02:22:10 UTC  3h 21min  Mon 2024-11-04 17:16:51 UTC  5h 43min ago  certbot.timer  certbot.service
+```
+</Step>
+
+</Steps>
+
+  </Tab>
+</Tabs>
+
+## Post-Installation Steps
+
+After successfully setting up automatic SSL renewal:
+
+### Update Gateway Configuration
+
+Configure your AR.IO Gateway to use the new certificates. Update your gateway's SSL configuration to point to:
+- **Certificate:** `/etc/letsencrypt/live/your-domain.com/fullchain.pem`
+- **Private Key:** `/etc/letsencrypt/live/your-domain.com/privkey.pem`
+
+### Reload Web Server (Optional)
+
+If you're using nginx or another web server, reload it to apply the new certificates:
+
+```bash
+systemctl reload nginx
+```
+
+### Monitor Renewal Process
+
+Certbot automatically sets up a systemd timer for renewal. Certificates will be renewed when they have 30 days or less remaining.
+
+To manually check renewal status:
+
+```bash
+certbot certificates
+```
+
+## Troubleshooting
+
+### Common Issues
+
+- **DNS propagation delays:** Wait 5-10 minutes for DNS changes to propagate
+- **API rate limits:** Check your DNS provider's API rate limits
+- **Permission errors:** Ensure credential files have correct permissions (600)
+
+### Logs and Debugging
+
+Check certbot logs for detailed error information:
+
+```bash
+tail -f /var/log/letsencrypt/letsencrypt.log
+```
+
+## Next Steps
+
+With SSL certificates automated, consider:
+- [Setting up monitoring](/build/extensions/grafana) to track certificate expiration
+- [Configuring gateway filters](/build/run-a-gateway/manage/filters) for optimal performance
+- [Implementing content moderation](/build/run-a-gateway/manage/content-moderation) policies
