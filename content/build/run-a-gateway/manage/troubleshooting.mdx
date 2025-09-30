@@ -3,6 +3,8 @@ title: "Troubleshooting"
 description: "Comprehensive troubleshooting guide and FAQ for AR.IO Gateway operators, including common issues, failed epoch guidance, and frequently asked questions."
 ---
 
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+
 Welcome to the comprehensive troubleshooting and FAQ resource for AR.IO Gateway operators. Use the quick lookup table below for fast answers, or browse the detailed sections for in-depth guidance.
 
 ## Quick Lookup
@@ -28,8 +30,8 @@ Below is a quick summary of what you should check when troubleshooting your gate
 
 ### My Gateway Seems to be Running but...
 
-<details>
-<summary><strong>My release number doesn't match the latest version, or includes "-pre"</strong></summary>
+<Accordions>
+<Accordion title="My release number doesn't match the latest version, or includes &quot;-pre&quot;">
 
 If your release number when you go to `<your-gateway>/ar-io/info` is lower than the current release, you simply need to upgrade your gateway in order to reach the latest release.
 
@@ -57,31 +59,27 @@ sudo docker system prune -a
 sudo docker compose up -d
 ```
 
-</details>
+</Accordion>
 
-<details>
-<summary><strong>It appears offline on <a target="_blank" href="https://viewblock.io/arweave/gateways">Viewblock</a> or <a target="_blank" href="https://gateways.arweave.dev">https://gateways.ar.io</a></strong></summary>
+<Accordion title="It appears offline on https://gateways.ar.io">
 
 Viewblock and https://gateways.ar.io use a very simple ping method for determining if a gateway is "up". There are plenty of reasons why this ping may fail while the gateway is running perfectly, so showing as down is not cause for concern. Just verify that your gateway is still running, and wait. Your gateway will show as up again soon.
 
-</details>
+</Accordion>
 
-<details>
-<summary><strong>< gateway >/ar-io/observer/reports/current just says "report pending"</strong></summary>
+<Accordion title="&lt;gateway&gt;/ar-io/observer/reports/current just says &quot;report pending&quot;">
 
 This is normal. Your Observer is working to generate a report and that report will be displayed once it is complete.
 
-</details>
+</Accordion>
 
-<details>
-<summary><strong>My Observer is showing me the error "error: Error reading interaction: Cannot read properties of undefined"</strong></summary>
+<Accordion title="My Observer is showing me the error 'error: Error reading interaction: Cannot read properties of undefined'">
 
 This is not an issue with your observer. The short explanation is that your Observer is looking for tasks assigned to it by the AR.IO network contract, but there isnt anything there. You can safely ignore this error message.
 
-</details>
+</Accordion>
 
-<details>
-<summary><strong>Observing my gateway shows failures</strong></summary>
+<Accordion title="Observing my gateway shows failures">
 
 When observing a gateway, there are two main pass/fail tests. "Ownership" and "ArNS Assessment"
 
@@ -89,17 +87,15 @@ When observing a gateway, there are two main pass/fail tests. "Ownership" and "A
 
 - ArNS Assessment: This tests to see if a gateway is able to resolve ArNS names correctly. The first thing you should check is if you have the `ARNS_ROOT_HOST` value set in your .env file. If not, set the value and restart your gateway. If this value is set, check to make sure you have current DNS records and SSL certificates for wildcard subdomains on your gateway.
 
-</details>
+</Accordion>
 
-<details>
-<summary><strong>I updated my .env settings, but nothing changed on my gateway</strong></summary>
+<Accordion title="I updated my .env settings, but nothing changed on my gateway">
 
 Once you edit your .env file, you need to "rebuild" your gateway for the changes to take effect. As of release 3, every time you start your gateway with `docker-compose` it is automatically rebuilt. So all you need to do is shut your gateway down and restart it.
 
-</details>
+</Accordion>
 
-<details>
-<summary><strong>I am getting an out of disk space error, but I still have open storage space on my computer</strong></summary>
+<Accordion title="I am getting an out of disk space error, but I still have open storage space on my computer">
 
 The most likely cause of this is inode exhaustion. Test this by running the command:
 
@@ -111,10 +107,9 @@ If one of the lines in the output says 100%, you have run out of inodes and so y
 
 This was a common issue prior to release #3, when Redis caching was introduced to reduce the number of small files created. If you are using an older version of the gateway, consider upgrading to mitigate the risk of inode exhaustion.
 
-</details>
+</Accordion>
 
-<details>
-<summary><strong>I can't load ArNS names</strong></summary>
+<Accordion title="I can't load ArNS names">
 
 The first thing you should check if your gateway is not resolving ArNS names is that you have `ARNS_ROOT_HOST` set in your .env file. If not, set it to your domain name used for the gateway. For example, `ARNS_ROOT_HOST=arweave.dev`.
 
@@ -122,10 +117,9 @@ Once this value is set, restart your gateway for the changes to take effect.
 
 If that doesn't resolve the issue, check your dns records. You need to have a wildcard subdomain ( \*.< your-domain > ) set with your domain registrar so that ArNS names will actually point at your gateway. You can set this record, and generate an SSL certificate for it, in the same way you set the records for your primary domain.
 
-</details>
+</Accordion>
 
-<details>
-<summary><strong>When I try to access my gateway in a browser I get a "Your connection is not private" error</strong></summary>
+<Accordion title="When I try to access my gateway in a browser I get a 'Your connection is not private' error">
 
 This error message means that your SSL certificates have expired. You need to renew your certificates by running the same certbot command you used when you initially started your gateway:
 
@@ -135,10 +129,9 @@ sudo certbot certonly --manual --preferred-challenges dns --email <your-email-ad
 
 Certbot SSL certificates expire after 90 days, and you will need to rerun this command to renew every time. If you provide an email address, you will receive an email letting you know when it is time to renew.
 
-</details>
+</Accordion>
 
-<details>
-<summary><strong>I set my gateway up, but when I go to my domain I get a 404/Nginx error</strong></summary>
+<Accordion title="I set my gateway up, but when I go to my domain I get a 404/Nginx error">
 
 If you navigate to your domain and see a 404 error from Nginx (the reverse proxy server used in the setup guide) it means that your domain is correctly pointed at the machine running your gateway, but you have not properly configured your Nginx settings (or your gateway is not running).
 
@@ -148,17 +141,15 @@ The [Set up Networking](./linux-setup.md#set-up-networking) section of the setup
 sudo service nginx restart
 ```
 
-</details>
+</Accordion>
 
-<details>
-<summary>When I visit my domain I see a 502 error from Nginx</summary>
+<Accordion title="When I visit my domain I see a 502 error from Nginx">
 
 A 502 error from Nginx means that Nginx is working correctly, but it is receiving an error from your gateway when it tries to forward traffic.
 
-</details>
+</Accordion>
 
-<details>
-<summary><strong>I am having trouble generating my SSL certificates</strong></summary>
+<Accordion title="I am having trouble generating my SSL certificates">
 
 When using the manual certbot command provided in the setup guide:
 
@@ -170,76 +161,68 @@ You need to be sure that you are waiting after creating your TXT records for the
 
 If you continue to have issues, you can check the [official certbot instructions guide](https://certbot.eff.org/instructions).
 
-</details>
+</Accordion>
 
-<details>
-<summary><strong>My gateway was working, but it just stopped</strong></summary>
+<Accordion title="My gateway was working, but it just stopped">
 
 - Visit your gateway in a browser and see if your SSL certs are expired. This is the most common issue causing sudden stops in proper operation.
 
-</details>
+</Accordion>
 
-<details>
-<summary><strong>I updated my SSL certs, but it still shows as bad in a browser</strong></summary>
+<Accordion title="I updated my SSL certs, but it still shows as bad in a browser">
 
 - Try restarting nginx, it sometimes has trouble looking at the new certs without a restart.
 
-</details>
+</Accordion>
 
-<details>
-<summary><strong>My gateway won't resolve ArNS names</strong></summary>
+<Accordion title="My gateway won't resolve ArNS names">
 
 - Make sure `ARNS_ROOT_HOST` is properly set in your `.env` file. Updating this requires restarting your gateway.
 - Make sure you have a DNS record set for `*.<your-gateway-domain>`. Since ArNS names are served as subdomains, you need to make sure all subdomains are pointed at your gateway.
 - If your gateway is attempting to resolve the name, but times out, it's most likely a CU issue.
 
-</details>
+</Accordion>
 
-<details>
-<summary><strong>I see an error in my logs, but everything appears to be working</strong></summary>
+<Accordion title="I see an error in my logs, but everything appears to be working">
 
 - AR.IO gateways are very robust, they can handle temporary errors gracefully and not affect normal operation. You should only be concerned if the error is consistent or it is causing your gateway to not function properly.
 
-</details>
+</Accordion>
 
-<details>
-<summary><strong>I was selected as an observer, but my logs say a report was not saved</strong></summary>
+<Accordion title="I was selected as an observer, but my logs say a report was not saved">
 
 - Observers generate and submit their reports at specific times throughout the epoch. This is to ensure a healthy network throughout the entire epoch, not just at the start.
 - Your observer wallet must match the observer wallet associated with your gateway in the AR.IO contract. You can check this by navigating to your gateway in https://gateways.ar.io.
 
-</details>
+</Accordion>
 
-<details>
-<summary><strong>I see an error in my logs that says &lt;h"... is not valid JSON</strong></summary>
+<Accordion title="I see an error in my logs that says &lt;h&quot;... is not valid JSON">
 
 - This happens when a request to a CU fails, and your gateway receives an html failure message instead of the expected JSON response. This will normally clear up on its own after congestion on that CU dies down, but if it is persistent try switching to a different CU.
 
-</details>
+</Accordion>
 
-<details>
-<summary><strong>My gateway logs just changed, instead of importing blocks I see "polling for block"</strong></summary>
+<Accordion title="My gateway logs just changed, instead of importing blocks I see 'polling for block'">
 
 - This is normal. It means you have reached the current Arweave block and need to wait for more before you can index them.
 
-</details>
+</Accordion>
 
-<details>
-<summary><strong>Error resolving name with resolver Promise timed out</strong></summary>
+<Accordion title="Error resolving name with resolver Promise timed out">
 
 - This is normal. If a gateway fails to resolve an arns name within 3 seconds, it will fall back to a trusted gateway (arweave.net by default) to help resolve the name.
 
-</details>
+</Accordion>
 
-<details>
-<summary><strong>My gateway failed an epoch</strong></summary>
+<Accordion title="My gateway failed an epoch">
 
 - There are many reasons a gateway could fail an epoch. Following these steps is usually enough to identify and correct the issue:
   - Try to visit your gateway in a browser and see if your SSL certs are bad
   - Try to resolve an ArNS name on your gateway. If it fails to resolve, check the console and your gateway logs for errors
   - Look at the observation reports that failed your gateway, they will list the reason for failure
 
-</details>
+</Accordion>
+</Accordions>
 
 ## Troubleshooting Failed Epochs
 
@@ -314,9 +297,7 @@ Some gateway operators who run their gateways on their personal home networks ha
 
 Using [Grafana](/build/extensions/grafana) can also provide a visual representation of the gateway's ArNS resolution times. If this is consistently high (above 10 seconds), it is likely that the gateway is not properly configured to resolve ArNS names. Ensure that the gateway is operating on the latest Release.
 
-#### certificate has expired
-
-![Diagram](https://arweave.net/GoVR--0-kdh53mgLQ-w1bxuePt1m7-TEIqlNNSsg)
+#### Cert has expired
 
 This failure means that the gateway's SSL certificate has expired. Obtaining a new SSL certificate and updating the gateway's reverse proxy (nginx, etc) configuration to use the new certificate is the only solution to this issue.
 
@@ -378,21 +359,16 @@ This failure almost always means that the gateway operator did not properly obta
 
 ## FAQ
 
-### Why was my reward different this epoch?
-
-<details>
-  <summary>Show answer</summary>
+<Accordions>
+<Accordion title="Why was my reward different this epoch?">
 
 - Gateway protocol rewards are calculated as 0.1% of the protocol balance (0.05% after August 2025) split between all gateways in the network. A change in the protocol balance or the number of gateways in the network between epochs will result in the reward for an individual gateway changing.
 
 - The Observer rewards are separate from protocol rewards, and if your gateway is selected as an observer for an epoch, assuming it performs its duties well, it will receive additional rewards
 
-</details>
+</Accordion>
 
-### I have a high stake on my gateway, why am I not an observer?
-
-<details>
-  <summary>Show answer</summary>
+<Accordion title="I have a high stake on my gateway, why am I not an observer?">
 
 The observer selection process uses a weighted random selection method that considers multiple factors beyond just stake:
 
@@ -405,30 +381,21 @@ A composite weight (CW) is calculated as: CW = SW × TW × GPRW × OPRW
 
 Up to 50 gateways are chosen as observers per epoch. If there are more than 50 gateways, selection is randomized based on these normalized weights. Even with a high stake, other factors like performance and tenure affect your chances of being selected.
 
-</details>
+</Accordion>
 
-### I withdrew my stake, but now I have less
-
-<details>
-  <summary>Show answer</summary>
+<Accordion title="I withdrew my stake, but now I have less">
 
 - There is a 90 day locking period when withdrawing stake, either from delegated stake or operator stake on your gateway. This locking period can be skipped, for a fee. The fee starts at 50% of the withdrawal amount, and goes down over time. If you selected instant withdrawal, you paid the fee to skip the locking period.
 
-</details>
+</Accordion>
 
-### Why Can't I withdraw my stake?
-
-<details>
-  <summary>Show answer</summary>
+<Accordion title="Why Can't I withdraw my stake?">
 
 - The minimum operator stake for gateways (10,000 ARIO) cannot be instantly withdrawn, it is subject to the full 90 day locking period, and withdrawal can only be started by removing your gateway from the network.
 
-</details>
+</Accordion>
 
-### I would like to move my node to a new server - how?
-
-<details>
-  <summary>Show answer</summary>
+<Accordion title="I would like to move my node to a new server - how?">
 
 - If possible, leave your original server running while you prepare the new one
 - Set up the new server following the same steps you used to set up the original server
@@ -439,12 +406,9 @@ Up to 50 gateways are chosen as observers per epoch. If there are more than 50 g
 - After your DNS records are set and you have verified your gateway is operating correctly, shut down the original server
 - No changes need to be made in the network contract or on https://gateways.ar.io
 
-</details>
+</Accordion>
 
-### Can I change my nodes FQDN?
-
-<details>
-  <summary>Show answer</summary>
+<Accordion title="Can I change my nodes FQDN?">
 
 - Yes
 - Configure your new domain to point at your gateway, including setting up SSL certificates
@@ -453,7 +417,8 @@ Up to 50 gateways are chosen as observers per epoch. If there are more than 50 g
 - Using https://gateways.ar.io, update your gateway settings to change the FQDN in the contract
 - Your gateway is now using the new domain name for normal operation.
 
-</details>
+</Accordion>
+</Accordions>
 
 ## Getting Help
 
