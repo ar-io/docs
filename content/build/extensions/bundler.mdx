@@ -40,7 +40,7 @@ AWS_ENDPOINT='http://localstack:4566'
 ```
 
 - `BUNDLER_ARWEAVE_WALLET` must be the entire jwk of an Arweave wallet's keyfile, stringified. All uploads of bundled data items to Arweave will be signed and paid for by this wallet, so it must maintain a balance of AR tokens sufficient to handle the uploads.
-- `BUNDLER_ARWEAVE_ADDRESS` must be the [normalized public address](/glossary#normalized-address) for the provided Arweave wallet.
+- `BUNDLER_ARWEAVE_ADDRESS` must be the [normalized public address](/glossary) for the provided Arweave wallet.
 - `APP_NAME` is a GraphQL tag that will be added to uploaded bundles.
 
 The remaining lines in the `.env.bundler.example` file control settings that allow the bundler service to share data with the AR.IO gateway. Data sharing of contiguous data between a bundler and a gateway allows the gateway to serve optimistically cached data without waiting for it to fully settle on chain.
@@ -53,7 +53,7 @@ The remaining lines in the `.env.bundler.example` file control settings that all
 </Step>
 
 
-By default, the bundler will only accept data items uploaded by data item signers whose [normalized wallet addresses](/glossary#normalized-address) are in the `ALLOW_LISTED_ADDRESSES` list. This is an additional environmental variable that can be added to your `.env.bundler` file, and must be a comma separated list of normalized public wallet addresses for wallets that should be allowed to bundle and upload data through your gateway.
+By default, the bundler will only accept data items uploaded by data item signers whose [normalized wallet addresses](/glossary) are in the `ALLOW_LISTED_ADDRESSES` list. This is an additional environmental variable that can be added to your `.env.bundler` file, and must be a comma separated list of normalized public wallet addresses for wallets that should be allowed to bundle and upload data through your gateway.
 
 ```bash
 ALLOW_LISTED_ADDRESSES=<address1>,<address2>
@@ -81,7 +81,7 @@ ANS104_INDEX_FILTER={ "always": true }
 ANS104_UNBUNDLE_FILTER={ "attributes": { "owner_address": "$BUNDLER_ARWEAVE_ADDRESS" } }
 ```
 
-`$BUNDLER_ARWEAVE_ADDRESS` should be replaced with the [normalized public wallet address](/glossary#normalized-address) associated with the bundler.
+`$BUNDLER_ARWEAVE_ADDRESS` should be replaced with the [normalized public wallet address](/glossary) associated with the bundler.
 
 **NOTE**: The above filters must be placed in the `.env` file for the core gateway service, not the bundler.
 
@@ -92,7 +92,7 @@ Gateways handle data item indexing asynchronously. This means they establish a q
 <Step>
 ### Configure Optimistic Indexing
 
-Gateway operators control access to their [optimistic data item indexing](/glossary#optimistic-indexing) API via an admin key that must be supplied by all bundling clients in order for their requests to be accepted. This key should be made available in the environment configuration files for BOTH the core gateway, and the bundler, and should be provided as `AR_IO_ADMIN_KEY`:
+Gateway operators control access to their [optimistic data item indexing](/glossary) API via an admin key that must be supplied by all bundling clients in order for their requests to be accepted. This key should be made available in the environment configuration files for BOTH the core gateway, and the bundler, and should be provided as `AR_IO_ADMIN_KEY`:
 
 ```bash
 AR_IO_ADMIN_KEY="Admin password"

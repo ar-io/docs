@@ -12,7 +12,7 @@ Below is a quick summary of what you should check when troubleshooting your gate
 | Issue                                                        | What to Check                                                             |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------- |
 | My release number is wrong                                   | Pull the latest github updates and make sure you are on the `main` branch |
-| Gateway appears offline on Viewblock or ar://gateways        | Probably fine, but verify that your gateway is still running.             |
+| Gateway appears offline on Viewblock or https://gateways.ar.io        | Probably fine, but verify that your gateway is still running.             |
 | '/ar-io/observer/reports/current' just says "report pending" | Normal behavior, wait for the report to complete.                         |
 | Observer error "Cannot read properties of undefined"         | Normal behavior, Observer is checking for data not implemented yet.       |
 | Observing my gateway shows failures                          | Check `AR_IO_WALLET` and `ARNS_ROOT_HOST` settings.                       |
@@ -60,9 +60,9 @@ sudo docker compose up -d
 </details>
 
 <details>
-<summary><strong>It appears offline on <a target="_blank" href="https://viewblock.io/arweave/gateways">Viewblock</a> or <a target="_blank" href="https://gateways.arweave.dev">ar://gateways</a></strong></summary>
+<summary><strong>It appears offline on <a target="_blank" href="https://viewblock.io/arweave/gateways">Viewblock</a> or <a target="_blank" href="https://gateways.arweave.dev">https://gateways.ar.io</a></strong></summary>
 
-Viewblock and ar://gateways use a very simple ping method for determining if a gateway is "up". There are plenty of reasons why this ping may fail while the gateway is running perfectly, so showing as down is not cause for concern. Just verify that your gateway is still running, and wait. Your gateway will show as up again soon.
+Viewblock and https://gateways.ar.io use a very simple ping method for determining if a gateway is "up". There are plenty of reasons why this ping may fail while the gateway is running perfectly, so showing as down is not cause for concern. Just verify that your gateway is still running, and wait. Your gateway will show as up again soon.
 
 </details>
 
@@ -206,7 +206,7 @@ If you continue to have issues, you can check the [official certbot instructions
 <summary><strong>I was selected as an observer, but my logs say a report was not saved</strong></summary>
 
 - Observers generate and submit their reports at specific times throughout the epoch. This is to ensure a healthy network throughout the entire epoch, not just at the start.
-- Your observer wallet must match the observer wallet associated with your gateway in the AR.IO contract. You can check this by navigating to your gateway in ar://gateways.
+- Your observer wallet must match the observer wallet associated with your gateway in the AR.IO contract. You can check this by navigating to your gateway in https://gateways.ar.io.
 
 </details>
 
@@ -245,7 +245,7 @@ If you continue to have issues, you can check the [official certbot instructions
 
 ### Overview
 
-The ARIO Network provides several tools to help troubleshoot problems with a gateway. The most powerful among these is the [Observer](/gateways/observer).
+The ARIO Network provides several tools to help troubleshoot problems with a gateway. The most powerful among these is the [Observer](/learn/oip).
 
 The Observer, which is a component of every gateway joined to the ARIO Network, checks all gateways in the network to ensure that they are functioning properly, and returning the correct data. The Observer then creates a report of the results of these checks, including the reasons why a gateway might have failed the checks.
 
@@ -255,9 +255,9 @@ The first step in troubleshooting a failed gateway is always to attempt to resol
 
 ### Manual Observation
 
-Manual observations may be run on a gateway at any time buy using the [Network Portal](ar://gateways/#/gateways). This allows operators (or anyone with an interest in the gateway's performance) to check the gateway's performance at any time. To run a manual observation:
+Manual observations may be run on a gateway at any time buy using the [Network Portal](https://gateways.ar.io). This allows operators (or anyone with an interest in the gateway's performance) to check the gateway's performance at any time. To run a manual observation:
 
-1. Navigate to the [Network Portal](ar://gateways/#/gateways)
+1. Navigate to the [Network Portal](https://gateways.ar.io)
 2. Select the gateway you are interested in from the list of gateways
 3. Click on the "Observe" button in the top right corner of the page.
 
@@ -275,9 +275,9 @@ The Manual observation will run the same checks as the observer, and will displa
 
 ### Accessing the Observer Report
 
-The simplest way to access an observer report is via the [Network Portal](ar://gateways/#/gateways), following the steps below:
+The simplest way to access an observer report is via the [Network Portal](https://gateways.ar.io), following the steps below:
 
-1. Navigate to the [Network Portal](ar://gateways/#/gateways)
+1. Navigate to the [Network Portal](https://gateways.ar.io)
 2. Select the gateway you are interested in from the list of gateways
 3. In the Observation window, select the epoch you are interested in. This will display a list of the observers that failed the gateway for that epoch.
 4. Click on the "View Report" button to the right any observer on that list. This will display the entire report that observer generated.
@@ -301,7 +301,7 @@ This failure means that the observer was unable to connect to the gateway when i
 If this failure occurs persistently for a large number, or all ArNS names checked, it likely means that the observer is having trouble connecting to the gateway at all. You can verify this by:
 
 - Attempting to connect to the gateway in a browser
-- Running manual observations on the gateway using the [Network Portal](ar://gateways/#/gateways)
+- Running manual observations on the gateway using the [Network Portal](https://gateways.ar.io)
 - Using tools like `curl` or `ping` to check the gateway's connectivity
 
 If these methods consistently fail to connect to the gateway, it is likely that the gateway is not properly configured or powered on. If this is the case:
@@ -312,7 +312,7 @@ If these methods consistently fail to connect to the gateway, it is likely that 
 
 Some gateway operators who run their gateways on their personal home networks have also reported issues with their ISP blocking, throttling, or otherwise delaying traffic to a gateway. If none of the above steps resolve the issue, it may be worth checking with your ISP to see if they are blocking or throttling traffic to the gateway.
 
-Using [Grafana](/gateways/grafana) can also provide a visual representation of the gateway's ArNS resolution times. If this is consistently high (above 10 seconds), it is likely that the gateway is not properly configured to resolve ArNS names. Ensure that the gateway is operating on the latest Release.
+Using [Grafana](/build/run-a-gateway/manage/monitoring-with-grafana) can also provide a visual representation of the gateway's ArNS resolution times. If this is consistently high (above 10 seconds), it is likely that the gateway is not properly configured to resolve ArNS names. Ensure that the gateway is operating on the latest Release.
 
 #### certificate has expired
 
@@ -437,7 +437,7 @@ Up to 50 gateways are chosen as observers per epoch. If there are more than 50 g
 - The observer wallet may be changed at any point, but requires extra steps. It is recommended you use the original observer wallet as well
 - Once the new server is set up, change your DNS A records to point at the new server
 - After your DNS records are set and you have verified your gateway is operating correctly, shut down the original server
-- No changes need to be made in the network contract or on ar://gateways
+- No changes need to be made in the network contract or on https://gateways.ar.io
 
 </details>
 
@@ -450,7 +450,7 @@ Up to 50 gateways are chosen as observers per epoch. If there are more than 50 g
 - Configure your new domain to point at your gateway, including setting up SSL certificates
 - Update your NGINX (or other reverse proxy) server to recognize the new domain. This usually requires a restart of NGINX
 - Update the `ARNS_ROOT_HOST` variable in your `.env` and restart the gateway
-- Using ar://gateways, update your gateway settings to change the FQDN in the contract
+- Using https://gateways.ar.io, update your gateway settings to change the FQDN in the contract
 - Your gateway is now using the new domain name for normal operation.
 
 </details>
@@ -459,4 +459,4 @@ Up to 50 gateways are chosen as observers per epoch. If there are more than 50 g
 
 If you encounter any issues during the troubleshooting process, please seek assistance from the [AR.IO community](https://discord.gg/7zUPfN4D6g).
 
-**Ready to get back to building?** Once your gateway is running smoothly, check out [Manage your Gateway](/build/run-a-gateway/operators) for guides on optimization, monitoring, and more.
+**Ready to get back to building?** Once your gateway is running smoothly, check out [Manage your Gateway](/build/run-a-gateway/manage) for guides on optimization, monitoring, and more.
