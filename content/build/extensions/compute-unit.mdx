@@ -30,7 +30,12 @@ Before deploying a CU, ensure your system meets the following requirements:
 - At least 100GB disk space dedicated to CU operation
 - These requirements are separate from your gateway requirements
 
-> **Note:** Running a CU is resource-intensive. Make sure your system has sufficient resources to handle both the gateway and the CU. While you can run a CU with less than the recommended RAM, you'll need to adjust the memory limits accordingly.
+<Callout type="warning" title="Resource Requirements">
+  Running a CU is resource-intensive. Make sure your system has sufficient
+  resources to handle both the gateway and the CU. While you can run a CU with
+  less than the recommended RAM, you'll need to adjust the memory limits
+  accordingly.
+</Callout>
 
 ## Deploying an AO CU
 
@@ -78,7 +83,9 @@ Configure the following settings:
 
 1. **CU_WALLET**: Replace `'[wallet json here]'` with the JSON from an Arweave wallet.
 
-   > **Note:** The entire JSON must be placed on a single line for proper registration.
+   <Callout type="info" title="JSON Format">
+     The entire JSON must be placed on a single line for proper registration.
+   </Callout>
 
 2. **PROCESS_CHECKPOINT_TRUSTED_OWNERS**: This is a comma-separated list of trusted wallet addresses:
 
@@ -86,15 +93,15 @@ Configure the following settings:
    PROCESS_CHECKPOINT_TRUSTED_OWNERS=fcoN_xJeisVsPXA-trzVAuIiqO3ydLQxM-L4XbrQKzY
    ```
 
-   > **Note:** Adding Your Own Wallet
-   >
-   > If you are uploading your own checkpoints, you should add your own CU wallet address after the default value, separated by a comma:
-   >
-   > ```
-   > PROCESS_CHECKPOINT_TRUSTED_OWNERS=fcoN_xJeisVsPXA-trzVAuIiqO3ydLQxM-L4XbrQKzY,YOUR_WALLET_ADDRESS_HERE
-   > ```
-   >
-   > This allows your CU to trust checkpoints from both the official source and your own wallet.
+      <Callout type="info" title="Adding Your Own Wallet">
+   If you are uploading your own checkpoints, you should add your own CU wallet address after the default value, separated by a comma:
+
+   ```
+   PROCESS_CHECKPOINT_TRUSTED_OWNERS=fcoN_xJeisVsPXA-trzVAuIiqO3ydLQxM-L4XbrQKzY,YOUR_WALLET_ADDRESS_HERE
+   ```
+
+   This allows your CU to trust checkpoints from both the official source and your own wallet.
+      </Callout>
 
 3. **GATEWAY_URL**: By default, this is set to use your own gateway:
 
@@ -114,13 +121,17 @@ Configure the following settings:
    UPLOADER_URL=http://envoy:3000/bundler
    ```
 
-   > **Note:** Important: Checkpoint Uploads Require Payment
+   <Callout
+     type="warning"
+     title="Important: Checkpoint Uploads Require Payment"
    >
-   > Checkpoints are uploaded to Arweave, so the upload must be paid for. You must ensure your wallet has sufficient funds:
-   >
-   > - If using `https://up.arweave.net` (recommended), your CU_WALLET must contain Turbo Credits
-   > - If using your own bundler or another service, you'll need the appropriate token (AR or other)
-   > - Without proper funding, checkpoints will fail to upload and your CU may not function correctly
+     Checkpoints are uploaded to Arweave, so the upload must be paid for. You
+     must ensure your wallet has sufficient funds: - If using
+     `https://up.arweave.net` (recommended), your CU_WALLET must contain Turbo
+     Credits - If using your own bundler or another service, you'll need the
+     appropriate token (AR or other) - Without proper funding, checkpoints will
+     fail to upload and your CU may not function correctly
+   </Callout>
 
    The simplest option for most users is to use:
 
@@ -162,13 +173,14 @@ You can fine-tune the CU's resource usage by adding these optional environment v
    PROCESS_WASM_MEMORY_MAX_LIMIT=17179869184  # 16GB (16 * 1024^3)
    ```
 
-   > **Note:** Important Memory Requirement
-   >
-   > To work with the AR.IO process, `PROCESS_WASM_MEMORY_MAX_LIMIT` must be at least `17179869184` (16GB).
-   >
-   > Note: This doesn't mean your server needs 16GB of RAM. This is the maximum memory limit the CU will support for processes. Most processes don't use their maximum allocated memory.
-   >
-   > You can set this value to 16GB even if your server only has 4GB of RAM. However, if a process requires more memory than your server has available, the CU will fail when evaluating messages that need more memory.
+      <Callout type="warning" title="Important Memory Requirement">
+   To work with the AR.IO process, `PROCESS_WASM_MEMORY_MAX_LIMIT` must be at least `17179869184` (16GB).
+
+   Note: This doesn't mean your server needs 16GB of RAM. This is the maximum memory limit the CU will support for processes. Most processes don't use their maximum allocated memory.
+
+   You can set this value to 16GB even if your server only has 4GB of RAM. However, if a process requires more memory than your server has available, the CU will fail when evaluating messages that need more memory.
+
+      </Callout>
 
 2. **WASM_EVALUATION_MAX_WORKERS**: Sets the maximum number of worker threads for WASM evaluation.
 
@@ -176,9 +188,11 @@ You can fine-tune the CU's resource usage by adding these optional environment v
    WASM_EVALUATION_MAX_WORKERS=4  # Example: Use 4 worker threads
    ```
 
-   > **Note:** Worker Thread Configuration
-   >
-   > This will default to (available CPUs - 1) if not specified. If you're running a gateway and unbundling on the same server, consider setting this to 2 or less to avoid overloading your CPU.
+   <Callout type="info" title="Worker Thread Configuration">
+     This will default to (available CPUs - 1) if not specified. If you're
+     running a gateway and unbundling on the same server, consider setting this
+     to 2 or less to avoid overloading your CPU.
+   </Callout>
 
 3. **PROCESS_WASM_COMPUTE_MAX_LIMIT**: The maximum Compute-Limit, in bytes, supported for ao processes (defaults to 9 billion)
 
@@ -191,9 +205,10 @@ You can fine-tune the CU's resource usage by adding these optional environment v
    NODE_OPTIONS=--max-old-space-size=8192  # Example: 8GB for Node.js heap
    ```
 
-> **Note:** Resource Tuning
->
-> Start with conservative values and monitor performance. You can adjust these settings based on your system's capabilities and the CU's performance.
+<Callout type="info" title="Resource Tuning">
+  Start with conservative values and monitor performance. You can adjust these
+  settings based on your system's capabilities and the CU's performance.
+</Callout>
 
 </Step>
 
@@ -252,7 +267,10 @@ To make your gateway use your local CU:
    docker compose up -d
    ```
 
-> **Note:** A CU won't do anything until requests are being made of it. By connecting your gateway to the CU, you'll start generating these requests.
+<Callout type="info" title="CU Activation">
+  A CU won't do anything until requests are being made of it. By connecting your
+  gateway to the CU, you'll start generating these requests.
+</Callout>
 
 ### Accessing Your CU
 
