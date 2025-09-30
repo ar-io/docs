@@ -1,4 +1,5 @@
 import { createMDX } from "fumadocs-mdx/next";
+import redirects from './redirects.mjs';
 
 const withMDX = createMDX();
 
@@ -14,6 +15,7 @@ const config = {
   },
   images: { unoptimized: true }, // required for static export + <Image>
   trailingSlash: false, // remove trailing slashes from URLs
+  redirects: () => redirects,
 };
 
 export default withMDX(config);
