@@ -3,13 +3,20 @@ title: "Grafana"
 description: "Comprehensive guide to deploying and configuring Grafana for AR.IO Gateway monitoring and analytics"
 ---
 
-Deploy and configure Grafana to monitor your AR.IO Gateway's performance, health, and operational metrics. This comprehensive guide covers everything from initial deployment to advanced dashboard configuration.
+import { Steps, Step } from "fumadocs-ui/components/steps";
+import { Callout } from "fumadocs-ui/components/callout";
+import { Cards, Card } from "fumadocs-ui/components/card";
+import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
+import { BarChart3, Database, Package, Cpu } from "lucide-react";
 
 ## Overview
 
 AR.IO gateways track extensive performance and operational metrics using [Prometheus](https://prometheus.io/). A [Grafana](https://grafana.com/) sidecar can be deployed to visualize these metrics, providing an easy way to monitor gateway health and performance.
 
 The Grafana sidecar is deployed as a separate Docker container that uses the same network as the gateway, making it simple to integrate with your existing setup.
+
+![Grafana Dashboard](/grafana.png)
+
 
 ## Quick Start
 
@@ -63,45 +70,35 @@ Navigate to `http://localhost:1024` in your browser to access Grafana.
 </Step>
 </Steps>
 
-## Deployment Methods
+## Exposing Dashboard Publicly
 
-<Tabs items={['Local Access', 'External Access via Nginx']}>
-<Tab value="Local Access">
+To expose your Grafana dashboard externally through your domain, you'll need to configure nginx as a reverse proxy. This requires DNS setup and SSL certificates as covered in the [gateway installation guide](/build/run-a-gateway/quick-start).
 
-### Local Development Setup
-
-For local development or testing, access Grafana directly:
-
-```bash
-# Deploy Grafana
-docker compose -f docker-compose.grafana.yaml up -d
-
-# Access at localhost:1024
-# Default credentials: admin/admin
-```
-
-**Use cases:**
-
-- Local development
-- Testing configurations
-- Internal monitoring
-
-</Tab>
-
-<Tab value="External Access via Nginx">
-
-### Production Setup with Nginx
-
-Configure Nginx to route Grafana traffic for external access:
+<Callout type="info" title="Prerequisites">
+  This setup assumes you've already configured DNS, SSL certificates, and nginx as described in the [Installation & Setup guide](/build/run-a-gateway/quick-start).
+</Callout>
 
 <Steps>
 <Step>
-### Add Nginx Configuration
+### Deploy Grafana Sidecar
 
-Edit your Nginx configuration file (typically `/etc/nginx/sites-available/default`):
+First, ensure your Grafana container is running:
+
+```bash
+docker compose -f docker-compose.grafana.yaml up -d
+```
+
+Verify it's accessible locally at `http://localhost:1024`.
+
+</Step>
+
+<Step>
+### Update Nginx Configuration
+
+Edit your existing nginx configuration file (`/etc/nginx/sites-available/default`) to add the Grafana location block:
 
 ```nginx
-# Add this block inside your HTTPS server block (port 443)
+# Add this block inside your existing HTTPS server block (port 443)
 location /grafana/ {
     proxy_pass http://localhost:1024/grafana/;
     proxy_set_header Host $host;
@@ -111,55 +108,28 @@ location /grafana/ {
 }
 ```
 
-</Step>
-
-<Step>
-### Test Configuration
-
-Validate your Nginx configuration:
-
-```bash
-sudo nginx -t
-```
-
-If valid, restart Nginx:
-
-```bash
-sudo systemctl restart nginx
-```
-
-</Step>
-
-<Step>
-### Access Grafana
-
-Navigate to `https://<your-domain>/grafana` in your browser.
-
-</Step>
-</Steps>
-
-**Complete Nginx Configuration Example:**
+Your complete nginx configuration should look like this:
 
 ```nginx
-# Force redirects http to https
+# Force redirects from HTTP to HTTPS
 server {
     listen 80;
     listen [::]:80;
-    server_name <domain> *.<domain>;
+    server_name <your-domain>.com *.<your-domain>.com;
 
     location / {
         return 301 https://$host$request_uri;
     }
 }
 
-# Forwards traffic into your node and provides SSL certificates
+# Forward traffic to your node and provide SSL certificates
 server {
     listen 443 ssl;
     listen [::]:443 ssl;
-    server_name <domain> *.<domain>;
+    server_name <your-domain>.com *.<your-domain>.com;
 
-    ssl_certificate /etc/letsencrypt/live/<domain>/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/<domain>/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/<your-domain>.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/<your-domain>.com/privkey.pem;
 
     location / {
         proxy_pass http://localhost:3000;
@@ -167,8 +137,14 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_http_version 1.1;
+
+        # Forward AR.IO headers if present in the request
+        proxy_set_header X-AR-IO-Origin $http_x_ar_io_origin;
+        proxy_set_header X-AR-IO-Origin-Node-Release $http_x_ar_io_origin_node_release;
+        proxy_set_header X-AR-IO-Hops $http_x_ar_io_hops;
     }
 
+    # Grafana dashboard access
     location /grafana/ {
         proxy_pass http://localhost:1024/grafana/;
         proxy_set_header Host $host;
@@ -179,13 +155,41 @@ server {
 }
 ```
 
-</Tab>
-</Tabs>
+</Step>
+
+<Step>
+### Test and Reload Nginx
+
+Validate your nginx configuration:
+
+```bash
+sudo nginx -t
+```
+
+If the configuration is valid, reload nginx:
+
+```bash
+sudo systemctl reload nginx
+```
+
+</Step>
+
+<Step>
+### Access Your Dashboard
+
+Navigate to `https://<your-domain>.com/grafana/` in your browser to access your Grafana dashboard externally.
+
+**Default credentials:**
+- Username: `admin`
+- Password: `admin`
+
+</Step>
+</Steps>
 
 ## Troubleshooting
 
-<Tabs items={['Permission Errors', 'Connection Issues', 'Configuration Problems']}>
-<Tab value="Permission Errors">
+<Accordions>
+<Accordion title="Permission Errors">
 
 ### Fix Permission Issues
 
@@ -234,9 +238,9 @@ docker compose -f docker-compose.grafana.yaml logs -f
 </Step>
 </Steps>
 
-</Tab>
+</Accordion>
 
-<Tab value="Connection Issues">
+<Accordion title="Connection Issues">
 
 ### Resolve Connection Problems
 
@@ -277,9 +281,9 @@ docker compose -f docker-compose.grafana.yaml logs --tail=50
 </Step>
 </Steps>
 
-</Tab>
+</Accordion>
 
-<Tab value="Configuration Problems">
+<Accordion title="Configuration Problems">
 
 ### Fix Configuration Issues
 
@@ -325,100 +329,8 @@ docker compose -f docker-compose.grafana.yaml restart
 </Step>
 </Steps>
 
-</Tab>
-</Tabs>
-
-## Dashboard Overview
-
-Grafana comes preloaded with three comprehensive dashboards:
-
-<Tabs items={['General Metrics', 'Bundle Indexing', 'Queue Lengths']}>
-<Tab value="General Metrics">
-
-### AR.IO Node Dashboard
-
-**Key metrics include:**
-
-- Last block indexed
-- ArNS resolution times
-- CPU usage
-- Memory consumption
-- Network I/O
-- Disk usage
-
-**Use cases:**
-
-- Overall gateway health monitoring
-- Performance trend analysis
-- Resource utilization tracking
-
-</Tab>
-
-<Tab value="Bundle Indexing">
-
-### Bundle Indexing Dashboard
-
-**Key metrics include:**
-
-- Number of bundles processed
-- Data items indexed
-- Processing rates
-- Error rates
-- Queue depths
-
-**Use cases:**
-
-- Bundle processing performance
-- Indexing efficiency monitoring
-- Error detection and analysis
-
-</Tab>
-
-<Tab value="Queue Lengths">
-
-### Queue Lengths Dashboard
-
-**Key metrics include:**
-
-- Arweave Client request queues
-- Transaction importer data
-- Processing queue depths
-- Worker utilization
-
-**Use cases:**
-
-- Queue performance monitoring
-- Bottleneck identification
-- Capacity planning
-
-</Tab>
-</Tabs>
-
-## Advanced Configuration
-
-### Custom Dashboards
-
-<Steps>
-<Step>
-### Create New Dashboard
-
-1. Click the "+" icon in Grafana
-2. Select "Dashboard"
-3. Add panels for specific metrics
-4. Configure queries and visualizations
-
-</Step>
-
-<Step>
-### Import Existing Dashboards
-
-1. Go to "Dashboards" → "Import"
-2. Upload JSON dashboard files
-3. Configure data sources
-4. Customize as needed
-
-</Step>
-</Steps>
+</Accordion>
+</Accordions>
 
 ## Security Considerations
 
@@ -435,65 +347,11 @@ Grafana comes preloaded with three comprehensive dashboards:
 4. **Regular Updates** - Keep Grafana updated to latest version
 5. **Backup Configuration** - Export and backup dashboard configurations
 
-## Performance Optimization
-
-### Resource Management
-
-<Steps>
-<Step>
-### Monitor Resource Usage
-
-Keep an eye on:
-
-- CPU usage during dashboard rendering
-- Memory consumption with multiple dashboards
-- Network bandwidth for data queries
-
-</Step>
-
-<Step>
-### Optimize Queries
-
-- Use appropriate time ranges
-- Limit data points in queries
-- Cache frequently accessed data
-- Use data source query optimization
-
-</Step>
-</Steps>
-
-### Scaling Considerations
-
-For high-traffic gateways or multiple gateway monitoring:
-
-1. **Dedicated Resources** - Allocate sufficient CPU and memory
-2. **Database Optimization** - Use external databases for Grafana data
-3. **Load Balancing** - Distribute monitoring load across multiple instances
-4. **Caching** - Implement query result caching
-
-## Additional Resources
-
-<Callout type="info">
-  **Ready to get started?** Begin with the Quick Start section above, then
-  explore the advanced configuration options based on your specific monitoring
-  needs.
-</Callout>
-
-### Documentation & Support
+## Documentation & Support
 
 - **Grafana Documentation** - [Official Grafana docs](https://grafana.com/docs/)
-- **Prometheus Metrics** - Understanding gateway metrics
-- **Dashboard Sharing** - Share dashboards with your team
+- **Prometheus Metrics** - [Understanding gateway metrics](https://prometheus.io/docs/concepts/metric_types/)
 - **Community Support** - Join the [AR.IO Discord](https://discord.gg/cuCqBb5v) for help
-
-### Getting Help
-
-If you encounter issues:
-
-1. Check the troubleshooting section above
-2. Review Grafana logs for error messages
-3. Verify network connectivity and port availability
-4. Consult the AR.IO community for assistance
 
 ## Next Steps
 
