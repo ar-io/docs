@@ -3,8 +3,8 @@ title: "Arweave Name System (ArNS)"
 description: "ArNS is a censorship-resistant naming system stored on Arweave, powered by ARIO tokens, enabled through AR.IO gateway domains, and used to connect friendly domain names to permaweb apps, web pages, data, and identities."
 ---
 
-import { Card, Cards } from 'fumadocs-ui/components/card';
-import { Globe, Key, DollarSign, ShoppingCart } from 'lucide-react';
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Globe, Key, DollarSign, ShoppingCart } from "lucide-react";
 
 ## What is ArNS?
 
@@ -29,19 +29,19 @@ graph TB
         Registry --> Name3[gateways]
         Registry --> NameN[...]
     end
-    
-    subgraph "ANT Tokens"
+
+    subgraph "Arweave Name Token"
         Name1 -.->|owned by| ANT1[Owner: 0x242424...<br/>Record: @<br/>Target: TxID_123]
         Name2 -.->|owned by| ANT2[Owner: Zjgamagh...<br/>Record: @<br/>Target: TxID_456]
         Name3 -.->|owned by| ANT3[Owner: Hboaalf...<br/>Record: @<br/>Target: TxID_789]
     end
-    
+
     subgraph "Arweave"
         ANT1 -.->|points to| TX1[TxID_123<br/>ArDrive App]
         ANT2 -.->|points to| TX2[TxID_456<br/>Email App]
         ANT3 -.->|points to| TX3[TxID_789<br/>Pages App]
     end
-    
+
     style Registry fill:#f9f,stroke:#333,stroke-width:3px,color:#333
     style ANT1 fill:#b3d9ff,stroke:#333,stroke-width:2px,color:#333
     style ANT2 fill:#b3d9ff,stroke:#333,stroke-width:2px
@@ -68,9 +68,9 @@ sequenceDiagram
     participant User
     participant Gateway as AR.IO Gateway
     participant Registry as ArNS Registry
-    participant ANT as ANT Token
+    participant ANT as Arweave Name Token
     participant Arweave
-    
+
     User->>Gateway: Request ardrive.arweave.net
     Gateway->>Registry: Query "ardrive" record
     Registry-->>Gateway: Returns ANT address
@@ -93,30 +93,29 @@ sequenceDiagram
 - **Historical data access** - check any point in time
 - **Flexible ownership** - permanent or leased names
 
-
 ## Explore ArNS
 
 <Cards>
-  <Card 
-    title="Register ArNS Names" 
+  <Card
+    title="Register ArNS Names"
     description="Learn how to register permanent names and understand validation rules"
     href="/learn/arns/name-registration"
     icon={<Globe className="w-8 h-8" />}
   />
-  <Card 
-    title="ANT Tokens" 
+  <Card
+    title="Arweave Name Tokens (ANTs)"
     description="Understand ownership, control, and interaction permissions for names"
-    href="/learn/arns/ant-tokens"
+    href="/learn/arns/ants"
     icon={<Key className="w-8 h-8" />}
   />
-  <Card 
-    title="Pricing Model" 
+  <Card
+    title="Pricing Model"
     description="Explore dynamic pricing, demand factors, and gateway discounts"
     href="/learn/arns/pricing-model"
     icon={<DollarSign className="w-8 h-8" />}
   />
-  <Card 
-    title="Buy ArNS Names" 
+  <Card
+    title="Buy ArNS Names"
     description="Start registering names for your permanent applications"
     href="https://arns.app"
     icon={<ShoppingCart className="w-8 h-8" />}
