@@ -1,0 +1,44 @@
+---
+title: "Conflict Resolution"
+description: "JavaScript SDK for interacting with the Ardrive platform"
+---
+
+Available strategies when uploading files/folders that already exist:
+
+```typescript
+// Skip existing files
+await arDrive.uploadAllEntities({
+  entitiesToUpload: [...],
+  conflictResolution: 'skip'
+});
+
+// Replace all existing files
+await arDrive.uploadAllEntities({
+  entitiesToUpload: [...],
+  conflictResolution: 'replace'
+});
+
+// Update only if content differs (default)
+await arDrive.uploadAllEntities({
+  entitiesToUpload: [...],
+  conflictResolution: 'upsert'
+});
+
+// Rename conflicting files
+await arDrive.uploadAllEntities({
+  entitiesToUpload: [...],
+  conflictResolution: 'rename'
+});
+
+// Throw error on conflicts
+await arDrive.uploadAllEntities({
+  entitiesToUpload: [...],
+  conflictResolution: 'error'
+});
+
+// Interactive prompt (CLI only)
+await arDrive.uploadAllEntities({
+  entitiesToUpload: [...],
+  conflictResolution: 'ask'
+});
+```

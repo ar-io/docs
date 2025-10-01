@@ -1,0 +1,50 @@
+---
+title: "Uploading a Single File"
+description: "Command-line interface for managing files and drives on the Ardrive platform"
+---
+
+To upload a file, you'll need a parent folder id, the file to upload's file path, and the path to your wallet:
+
+```shell
+ardrive upload-file --local-path /path/to/file.txt  --parent-folder-id "9af694f6-4cfc-4eee-88a8-1b02704760c0" -w /path/to/wallet.json
+```
+
+Example output:
+
+```shell
+{
+    "created": [
+        {
+            "type": "file",
+            "entityName": "file.txt"
+            "entityId": "6613395a-cf19-4420-846a-f88b7b765c05"
+            "dataTxId": "l4iNWyBapfAIj7OU-nB8z9XrBhawyqzs5O9qhk-3EnI",
+            "metadataTxId": "YfdDXUyerPCpBbGTm_gv_x5hR3tu5fnz8bM-jPL__JE",
+            "bundledIn": "1zwdfZAIV8E26YjBs2ZQ4xjjP_1ewalvRgD_GyYw7f8",
+            "sourceUri": "file:///path/to/file.txt"
+        },
+        {
+            "type": "bundle",
+            "bundleTxId": "1zwdfZAIV8E26YjBs2ZQ4xjjP_1ewalvRgD_GyYw7f8"
+        }
+    ],
+    "tips": [
+        {
+            "txId": "1zwdfZAIV8E26YjBs2ZQ4xjjP_1ewalvRgD_GyYw7f8",
+            "recipient": {
+                "address": "3mxGJ4xLcQQNv6_TiKx0F0d5XVE0mNvONQI5GZXJXkt"
+            },
+            "winston": "10000000"
+        }
+    ],
+    "fees": {
+        "1zwdfZAIV8E26YjBs2ZQ4xjjP_1ewalvRgD_GyYw7f8": 42819829
+    }
+}
+```
+
+NOTE: To upload to the root of a drive, specify its root folder ID as the parent folder ID for the upload destination. You can retrieve it like so:
+
+```shell
+ardrive drive-info -d "c7f87712-b54e-4491-bc96-1c5fa7b1da50" | jq -r '.rootFolderId'
+```

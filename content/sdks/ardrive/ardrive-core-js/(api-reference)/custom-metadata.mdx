@@ -1,0 +1,32 @@
+---
+title: "Custom Metadata"
+description: "JavaScript SDK for interacting with the Ardrive platform"
+---
+
+Attach custom metadata to files:
+
+```typescript
+const fileWithMetadata = wrapFileOrFolder(
+  '/path/to/file.txt',
+  'text/plain',
+  {
+    metaDataJson: { 
+      'Custom-Field': 'Custom Value',
+      'Version': '1.0'
+    },
+    metaDataGqlTags: {
+      'App-Name': ['MyApp'],
+      'App-Version': ['1.0.0']
+    },
+    dataGqlTags: {
+      'Content-Type': ['text/plain']
+    }
+  }
+);
+
+// Upload with custom metadata
+await arDrive.uploadPublicFile({
+  parentFolderId,
+  wrappedFile: fileWithMetadata
+});
+```

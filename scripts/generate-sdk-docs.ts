@@ -50,6 +50,25 @@ const PACKAGES: {
     sourceUrl: "https://github.com/ar-io/wayfinder/tree/main/packages/wayfinder-react",
     icon: "/wayfinder.svg"
   },
+  // Ardrive SDK packages
+  {
+    name: "ardrive-core-js",
+    readmeUrl: "https://raw.githubusercontent.com/ardriveapp/ardrive-core-js/refs/heads/master/README.md",
+    dest: path.resolve("content/sdks/ardrive/ardrive-core-js"),
+    title: "ArDrive Core JS",
+    description: "JavaScript SDK for interacting with the Ardrive platform",
+    sourceUrl: "https://github.com/ardriveapp/ardrive-core-js",
+    icon: "/ardrive.svg"
+  },
+  {
+    name: "ardrive-cli",
+    readmeUrl: "https://raw.githubusercontent.com/ardriveapp/ardrive-cli/refs/heads/master/README.md",
+    dest: path.resolve("content/sdks/ardrive/ardrive-cli"),
+    title: "ArDrive CLI",
+    description: "Command-line interface for managing files and drives on the Ardrive platform",
+    sourceUrl: "https://github.com/ardriveapp/ardrive-cli",
+    icon: "/ardrive.svg"
+  }
 ];
 
 
@@ -82,8 +101,11 @@ function escapeContent(content: string): string {
     })
     // Remove backticks from any header and simplify function signatures
     .replace(/(#{1,6}\s*)`?([^`\n]+)`?/g, (match, headerPrefix, headerContent) => {
-      // Remove backticks and simplify function signatures (remove parameters, keep just function name with ())
+      // Remove backticks and HTML anchor tags, then simplify function signatures
       let cleanHeader = headerContent.replace(/`/g, '');
+      // Remove both complete anchor tags and unclosed anchor tags
+      cleanHeader = cleanHeader.replace(/<a[^>]*id="[^"]*"[^>]*><\/a>/g, '');
+      cleanHeader = cleanHeader.replace(/<a[^>]*id="[^"]*"[^>]*>/g, '');
       cleanHeader = cleanHeader.replace(/(\w+)\([^)]*\)(\([^)]*\))*/g, '$1()');
       return `${headerPrefix}${cleanHeader}`;
     })
@@ -112,6 +134,19 @@ function escapeContent(content: string): string {
     .replace(/(`[^`]*\{[^}]*\}[^`]*`)/g, (match) => {
       return match;
     })
+    // Fix common HTML issues
+    .replace(/<\/li>\s*<\/li>/g, '</li>') // Remove duplicate closing li tags
+    .replace(/<\/li>\s*$/gm, '</li>') // Ensure li tags are properly closed
+    .replace(/<ul>\s*<\/li>/g, '<ul>') // Remove orphaned closing li after ul
+    .replace(/<>\s*([^<]*?)\s*<\/>/g, '$1') // Remove empty fragment tags
+    .replace(/<>([^<]*?)(?=\s*<\/)/g, '$1') // Remove opening fragment tags
+    .replace(/(<[^>]*>)\s*<\/>/g, '$1') // Remove closing fragment tags after other tags
+    // Fix incomplete lists - if we have <ul> followed by </li> and then non-HTML content, close the list
+    .replace(/(<ul>\s*(?:<li>[^<]*<\/li>\s*)*<li>[^<]*)<\/li>\s*(?=```|\n\n|$)/g, '$1</li>\n</ul>\n\n')
+    // Fix incomplete lists - if we have <ul> with <li> but no closing </ul>
+    .replace(/(<ul>\s*(?:<li>[^<]*<\/li>\s*)*<li>[^<]*<\/li>)\s*(?=```|\n\n|$)/g, '$1\n</ul>\n\n')
+    // Fix self-closing br tags
+    .replace(/<br>/g, '<br />')
     // Escape standalone curly braces that aren't in code blocks
     .replace(/(?<!`[^`]*)\{([^}]*)\}(?![^`]*`)/g, (match, content) => {
       // Skip if this looks like JSX (contains JSX-like syntax)
@@ -120,7 +155,10 @@ function escapeContent(content: string): string {
       }
       // Escape the braces
       return `\\{${content}\\}`;
-    });
+    })
+    // Remove any remaining malformed fragments
+    .replace(/<>\s*/g, '') // Remove opening fragments
+    .replace(/\s*<\/>/g, ''); // Remove closing fragments
 }
 
 async function fetchReadme(url: string): Promise<string> {
@@ -182,6 +220,15 @@ async function processPackage(pkg: typeof PACKAGES[0]) {
           h2Title.toLowerCase() === 'configuration' ||
           h2Title.toLowerCase() === 'resources' ||
           h2Title.toLowerCase() === 'usage' ||
+          h2Title.toLowerCase() === 'license' ||
+          h2Title.toLowerCase() === 'support' ||
+          h2Title.toLowerCase().includes('linting') ||
+          h2Title.toLowerCase().includes('nvm') ||
+          h2Title.toLowerCase().includes('visual-studio') ||
+          h2Title.toLowerCase().includes('husky') ||
+          h2Title.toLowerCase().includes('help') ||
+          h2Title.toLowerCase().includes('yarn') ||
+          h2Title.toLowerCase().includes('setup') ||
           h2Title.toLowerCase().includes('quick start')) {
         console.log(`Skipping H2 section: ${h2Title}`);
         continue;
@@ -189,6 +236,9 @@ async function processPackage(pkg: typeof PACKAGES[0]) {
       
       // Clean up the H2 title
       let cleanH2Title = h2Title.replace(/`/g, '');
+      // Remove both complete anchor tags and unclosed anchor tags
+      cleanH2Title = cleanH2Title.replace(/<a[^>]*id="[^"]*"[^>]*><\/a>/g, '');
+      cleanH2Title = cleanH2Title.replace(/<a[^>]*id="[^"]*"[^>]*>/g, '');
       cleanH2Title = cleanH2Title.replace(/(\w+)\([^)]*\)(\([^)]*\))*/g, '$1()');
       const h2FolderName = sanitizeFilename(cleanH2Title);
 
@@ -209,8 +259,33 @@ async function processPackage(pkg: typeof PACKAGES[0]) {
         
         // Process each H3 section
         for (let i = 1; i < h3Sections.length; i++) {
+          
           const h3Section = h3Sections[i];
           if (!h3Section.startsWith('### ')) continue;
+
+          // Skip certain H2 sections
+          if (h3Section.toLowerCase().includes('table of contents') || 
+            h3Section.toLowerCase().includes('toc') ||
+            h3Section.toLowerCase() === 'contents' ||
+            h3Section.toLowerCase() === 'developers' ||
+            h3Section.toLowerCase() === 'cli' ||
+            h3Section.toLowerCase() === 'installation' ||
+            h3Section.toLowerCase() === 'configuration' ||
+            h3Section.toLowerCase() === 'resources' ||
+            h3Section.toLowerCase() === 'usage' ||
+            h3Section.toLowerCase() === 'license' ||
+            h3Section.toLowerCase() === 'support' ||
+            h3Section.toLowerCase().includes('linting') ||
+            h3Section.toLowerCase().includes('nvm') ||
+            h3Section.toLowerCase().includes('visual-studio') ||
+            h3Section.toLowerCase().includes('husky') ||
+            h3Section.toLowerCase().includes('help') ||
+            h3Section.toLowerCase().includes('yarn') ||
+            h3Section.toLowerCase().includes('setup') ||
+            h3Section.toLowerCase().includes('quick start')) {
+            console.log(`Skipping H3 section: ${h3Section}`);
+            continue;
+          }
           
           const h3Lines = h3Section.split('\n');
           const h3HeaderLine = h3Lines[0];
@@ -218,6 +293,9 @@ async function processPackage(pkg: typeof PACKAGES[0]) {
           
           // Clean up the H3 title
           let cleanH3Title = h3Title.replace(/`/g, '');
+          // Remove both complete anchor tags and unclosed anchor tags
+          cleanH3Title = cleanH3Title.replace(/<a[^>]*id="[^"]*"[^>]*><\/a>/g, '');
+          cleanH3Title = cleanH3Title.replace(/<a[^>]*id="[^"]*"[^>]*>/g, '');
           cleanH3Title = cleanH3Title.replace(/(\w+)\([^)]*\)(\([^)]*\))*/g, '$1()');
           
           const h3Content = h3Lines.slice(1).join('\n').trim();

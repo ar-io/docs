@@ -1,0 +1,32 @@
+---
+title: "Encryption & Security"
+description: "JavaScript SDK for interacting with the Ardrive platform"
+---
+
+#### Key Derivation
+
+```typescript
+import { deriveDriveKey, deriveFileKey } from 'ardrive-core-js';
+
+// Derive drive key from password
+const driveKey = await deriveDriveKey(
+  'myPassword',
+  driveId.toString(),
+  JSON.stringify(wallet.getPrivateKey())
+);
+
+// File keys are automatically derived from drive keys
+const fileKey = await deriveFileKey(driveKey, fileId);
+```
+
+#### Manual Encryption/Decryption
+
+```typescript
+import { driveEncrypt, driveDecrypt } from 'ardrive-core-js';
+
+// Encrypt data
+const { cipher, cipherIV } = await driveEncrypt(driveKey, data);
+
+// Decrypt data
+const decrypted = await driveDecrypt(cipherIV, driveKey, cipher);
+```
