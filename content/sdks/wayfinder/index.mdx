@@ -59,26 +59,32 @@ console.log(response);
 ### React
 
 ```jsx
-import { WayfinderProvider, useWayfinder } from '@ar.io/wayfinder-react';
-import { ARIO } from '@ar.io/sdk';
+import { WayfinderProvider, useWayfinderUrl } from '@ar.io/wayfinder-react';
 
 // Wrap your app with the provider
 function App() {
   return (
-    <WayfinderProvider ario={ARIO.mainnet()}>
+    <WayfinderProvider>
       <MyComponent />
     </WayfinderProvider>
   );
 }
 
 // Use the hook in your components
-function MyComponent() {
-  const { data, loading, error } = useWayfinder('ar://ardrive');
+function WayfinderImage({ txId }: { txId: string }) {
+  const { resolvedUrl, isLoading, error } = useWayfinderUrl({ txId });
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error.message}</div>;
+  if (error) {
+    return <p>Error resolving URL: {error.message}</p>;
+  }
 
-  return <div>{data}</div>;
+  if (isLoading) {
+    return <p>Resolving URL...</p>;
+  }
+
+  return (
+    <img src={resolvedUrl} alt={txId} />
+  );
 }
 ```
 

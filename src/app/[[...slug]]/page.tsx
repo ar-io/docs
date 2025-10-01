@@ -91,8 +91,8 @@ export async function generateMetadata(props: {
         images: [
           "/meta.png",
         ],
-        creator: "@AR_IO_Network",
-        site: "@AR_IO_Network",
+        creator: "@ar_io_network",
+        site: "@ar_io_network",
       },
       icons: {
         icon: "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
@@ -150,8 +150,8 @@ export async function generateMetadata(props: {
       title: pageTitle,
       description: pageDescription,
       images: [pageImage],
-      creator: "@AR_IO_Network",
-      site: "@AR_IO_Network",
+      creator: "@ar_io_network",
+      site: "@ar_io_network",
     },
     icons: {
       icon: pageImage,
