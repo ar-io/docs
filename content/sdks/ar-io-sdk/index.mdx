@@ -12,7 +12,7 @@ The AR.IO SDK provides comprehensive tools for interacting with the AR.IO Networ
 
 ## Quick Start
 
-<Tabs items={['Node.js', 'Web (Browser)']}>
+<Tabs items={['Node.js', 'Web (React)', 'Web (HTML)']}>
   <Tab value="Node.js">
     <Steps>
       <Step>
@@ -26,16 +26,16 @@ The AR.IO SDK provides comprehensive tools for interacting with the AR.IO Networ
         ### Use the SDK
 
         ```javascript
-        import { ARIO } from '@ar.io/sdk';
+        import { ARIO } from '@ar.io/sdk/node';
 
         // Connect to mainnet
         const ario = ARIO.mainnet();
 
-        // Get gateway information
-        const gateways = await ario.getGateways();
+        // Get paginated gateway registry
+        const { items: gateways } = await ario.getGateways();
 
-        // Get ArNS records
-        const records = await ario.getArNSRecords();
+        // Get paginated ArNS registry
+        const { items: records } = await ario.getArNSRecords();
 
         console.log('Network data:', { gateways, records });
         ```
@@ -55,7 +55,7 @@ The AR.IO SDK provides comprehensive tools for interacting with the AR.IO Networ
         ### Install polyfills (required for web environments)
 
         <Callout type="warn">
-        Crypto polyfills are required for web environments due to the use of `crypto`, `buffer` and `process` types in the SDK's dependencies.
+        Polyfills are required for React web environments due to the use of `crypto`, `buffer` and `process` types in the SDK's dependencies.
         </Callout>
 
         ```npm
@@ -86,21 +86,69 @@ The AR.IO SDK provides comprehensive tools for interacting with the AR.IO Networ
         ### Use the SDK
 
         ```javascript
-        import { ARIO } from '@ar.io/sdk';
+        import { ARIO } from '@ar.io/sdk/web';
 
         // Connect to mainnet
         const ario = ARIO.mainnet();
 
-        // Get gateway information
-        const gateways = await ario.getGateways();
+        // Get paginated gateway registry
+        const { items: gateways } = await ario.getGateways();
 
-        // Get ArNS records
-        const records = await ario.getArNSRecords();
+        // Get paginated ArNS registry
+        const { items: records } = await ario.getArNSRecords();
 
         console.log('Network data:', { gateways, records });
         ```
       </Step>
     </Steps>
+  </Tab>
+  <Tab value="Raw HTML">
+    ```html
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>AR.IO SDK Example</title>
+        <script type="module">
+            // Polyfills are included in the minimized web bundle, so not necessary to import directly
+            import { ARIO } from 'https://unpkg.com/@ar.io/sdk';
+            
+            // Connect to mainnet
+            const ario = ARIO.mainnet();
+            
+            // Function to load AR.IO data
+            async function loadArioData() {
+                try {
+                    // Get gateway information
+                    const { items: gateways } = await ario.getGateways();
+                    
+                    // Get ArNS records
+                    const { items: records } = await ario.getArNSRecords();
+                    
+                    // Display results
+                    document.getElementById('results').innerHTML = `
+                        <h3>Gateways: ${Object.keys(gateways).length}</h3>
+                        <h3>ArNS Records: ${Object.keys(records).length}</h3>
+                        <pre>${JSON.stringify({ gateways, records }, null, 2)}</pre>
+                    `;
+                } catch (error) {
+                    document.getElementById('results').innerHTML = `
+                        <p style="color: red;">Error: ${error.message}</p>
+                    `;
+                }
+            }
+            
+            // Load data when page loads
+            window.addEventListener('load', loadArioData);
+        </script>
+    </head>
+    <body>
+        <h1>AR.IO SDK Example</h1>
+        <div id="results">
+            <p>Loading AR.IO data...</p>
+        </div>
+    </body>
+    </html>
+    ```
   </Tab>
 </Tabs>
 

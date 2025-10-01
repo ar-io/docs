@@ -12,7 +12,7 @@ The Turbo SDK provides a high-level interface for uploading data to Arweave thro
 
 ## Quick Start
 
-<Tabs items={['Node.js', 'Web (Browser)']}>
+<Tabs items={['Node.js', 'Web (React)', 'Web (HTML)']}>
   <Tab value="Node.js">
     <Steps>
       <Step>
@@ -43,7 +43,7 @@ The Turbo SDK provides a high-level interface for uploading data to Arweave thro
       </Step>
     </Steps>
   </Tab>
-  <Tab value="Web (Browser)">
+  <Tab value="Web (React)">
     <Steps>
       <Step>
         ### Install the SDK
@@ -56,7 +56,7 @@ The Turbo SDK provides a high-level interface for uploading data to Arweave thro
         ### Install polyfills (required for web environments)
 
         <Callout type="warn">
-        Crypto polyfills are required for web environments due to the use of `crypto`, `buffer` and `process` types in the SDK's dependencies.
+        Polyfills are required for React web environments due to the use of `crypto`, `buffer` and `process` types in the SDK's dependencies.
         </Callout>
 
         ```npm
@@ -105,6 +105,90 @@ The Turbo SDK provides a high-level interface for uploading data to Arweave thro
         ```
       </Step>
     </Steps>
+  </Tab>
+  <Tab value="Web (HTML)">
+    ```html
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Turbo SDK Upload Example</title>
+        <script type="module">
+            // Polyfills are included in the minimized web bundle, so not necessary to import directly
+            import { TurboFactory } from 'https://unpkg.com/@ardrive/turbo-sdk@latest';
+            
+            // Function to handle file upload
+            async function uploadFile() {
+                const fileInput = document.getElementById('fileInput');
+                const file = fileInput.files[0];
+                const privateKeyInput = document.getElementById('privateKey');
+                
+                if (!file) {
+                    alert('Please select a file');
+                    return;
+                }
+                
+                if (!privateKeyInput.value) {
+                    alert('Please enter your private key');
+                    return;
+                }
+                
+                try {
+                    // Show loading state
+                    document.getElementById('status').textContent = 'Uploading...';
+                    
+                    // Create authenticated client
+                    const turbo = TurboFactory.authenticated({ 
+                        privateKey: privateKeyInput.value 
+                    });
+                    
+                    // Upload file
+                    const result = await turbo.uploadFile({
+                        fileStreamFactory: () => file.stream(),
+                        fileSizeFactory: () => file.size,
+                    });
+                    
+                    // Show success
+                    document.getElementById('status').innerHTML = `
+                        <p style="color: green;">Upload successful!</p>
+                        <p>Transaction ID: ${result.id}</p>
+                        <p>Data Item ID: ${result.dataItemId}</p>
+                    `;
+                } catch (error) {
+                    document.getElementById('status').innerHTML = `
+                        <p style="color: red;">Error: ${error.message}</p>
+                    `;
+                }
+            }
+            
+            // Add click handler
+            window.addEventListener('load', () => {
+                document.getElementById('uploadBtn').addEventListener('click', uploadFile);
+            });
+        </script>
+    </head>
+    <body>
+        <h1>Turbo SDK Upload Example</h1>
+        
+        <div>
+            <label>
+                Private Key (JWK):
+                <input type="password" id="privateKey" style="width: 300px;" />
+            </label>
+        </div>
+        
+        <div style="margin-top: 10px;">
+            <label>
+                Select File:
+                <input type="file" id="fileInput" />
+            </label>
+        </div>
+        
+        <button id="uploadBtn" style="margin-top: 10px;">Upload to Arweave</button>
+        
+        <div id="status" style="margin-top: 20px;"></div>
+    </body>
+    </html>
+    ```
   </Tab>
 </Tabs>
 
