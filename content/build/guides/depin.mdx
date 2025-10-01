@@ -19,7 +19,7 @@ Arweave via AR.IO Network provides **chain-agnostic, permanent and immutable sto
 
     ```json
     {
-      "sensor_id": "airmon-007",
+      "device_id": "airmon-007",
       "timestamp": "2025-09-22T14:31:05Z",
       "location": { "lat": 51.5098, "lon": -0.118 },
       "pm25": 16,
@@ -45,6 +45,10 @@ Arweave via AR.IO Network provides **chain-agnostic, permanent and immutable sto
     {
       "name": "App-Name",
       "value": "AirQuality-DePIN-v1.0"
+    },
+    {
+      "name": "Device-ID",
+      "value": "airmon-007"
     },
     {
       "name": "Device-Type",
@@ -102,6 +106,7 @@ Arweave via AR.IO Network provides **chain-agnostic, permanent and immutable sto
             tags: [
               { name: "Content-Type", value: "application/json" },
               { name: "App-Name", value: "AirQuality-DePIN-v1.0" },
+              { name: "Device-ID", value: "airmon-007" },
               { name: "Device-Type", value: "Environmental-Sensor" },
               { name: "Network-Name", value: "AirQuality-Network" },
               { name: "Data-Category", value: "Air-Quality" },
@@ -156,14 +161,15 @@ Arweave via AR.IO Network provides **chain-agnostic, permanent and immutable sto
     Use GraphQL to search for your DePIN data by tags and criteria:
 
     ```graphql
-    # Find all air quality data
+    # Find all data for a specific device, most recent results first
     query {
       transactions(
         tags: [
           { name: "App-Name", values: ["AirQuality-DePIN-v1.0"] }
-          { name: "Data-Category", values: ["Air-Quality"] }
+          { name: "Device-ID", values: ["airmon-007"] }
         ]
         first: 100
+        sort: HEIGHT_DESC
       ) {
         edges {
           node {
@@ -211,41 +217,107 @@ Arweave via AR.IO Network provides **chain-agnostic, permanent and immutable sto
   <Step>
     ### Access and Use Your Data
 
-    Once you have transaction IDs from your queries, fetch and process the data:
+    Once you have transaction IDs from your queries, choose how to fetch and process the data:
 
-    ```javascript
-    // Example: Process air quality data
-    async function processAirQualityData(transactionIds) {
-      const results = []
+    <Tabs items={['Simple Fetch', 'Verified Data with Wayfinder']}>
+      <Tab value="Simple Fetch">
+        **Direct data fetching:**
 
-      for (const txId of transactionIds) {
-        const response = await fetch(`https://gateway.ar.io/${txId}`)
-        const data = await response.json()
+        ```javascript
+        // Example: Process air quality data
+        async function processAirQualityData(transactionIds) {
+          const results = []
 
-        // Process the data
-        const processed = {
-          sensor_id: data.sensor_id,
-          timestamp: data.timestamp,
-          location: data.location,
-          air_quality_index: calculateAQI(data.pm25, data.co2_ppm),
-          noise_level: data.noise_dB
+          for (const txId of transactionIds) {
+            const response = await fetch(`https://arweave.net/${txId}`)
+            const data = await response.json()
+
+            // Process the data
+            const processed = {
+              Device_ID: data.device_id,
+              timestamp: data.timestamp,
+              location: data.location,
+              pm25: data.pm25,
+              co2_ppm: data.co2_ppm,
+              noise_dB: data.noise_dB
+            }
+
+            results.push(processed)
+          }
+
+          return results
         }
+        ```
 
-        results.push(processed)
-      }
+        For more information on fetching data, see our [Fetch Data](/build/access/fetch-data) documentation.
 
-      return results
-    }
-    ```
+      </Tab>
 
-    For more information on fetching data, see our [Fetch Data](/build/access/fetch-data) documentation, or learn how to verify your data with [Wayfinder](/build/access/wayfinder).
+      <Tab value="Verified Data with Wayfinder">
+        **Verified data with optimized routing:**
+
+        ```javascript
+        import {
+          createWayfinderClient,
+          PreferredWithFallbackRoutingStrategy,
+          FastestPingRoutingStrategy,
+          HashVerificationStrategy
+        } from "@ar.io/wayfinder-core";
+        import { ARIO } from '@ar.io/sdk';
+
+        const wayfinder = createWayfinderClient({
+          ario: ARIO.mainnet(),
+          routingStrategy: new PreferredWithFallbackRoutingStrategy({
+            preferredGateway: 'https://your-gateway.com',
+            fallbackStrategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
+          }),
+          verificationStrategy: new HashVerificationStrategy({
+            trustedGateways: ['https://arweave.net'],
+          }),
+          telemetrySettings: {
+            enabled: true,
+            clientName: 'AirQuality-DePIN-v1.0',
+          },
+        });
+
+        // Fetch and verify data using ar:// protocol
+        async function processVerifiedAirQualityData(transactionIds) {
+          const results = []
+
+          for (const txId of transactionIds) {
+            const response = await wayfinder.request(`ar://${txId}`)
+            const data = await response.json()
+
+            // Process the verified data
+            const processed = {
+              Device_ID: data.device_id,
+              timestamp: data.timestamp,
+              location: data.location,
+              pm25: data.pm25,
+              co2_ppm: data.co2_ppm,
+              noise_dB: data.noise_dB,
+              noise_level: data.noise_dB,
+              verified: true // Data is cryptographically verified
+            }
+
+            results.push(processed)
+          }
+
+          return results
+        }
+        ```
+
+        Learn more about data verification with [Wayfinder](/build/access/wayfinder).
+
+      </Tab>
+    </Tabs>
 
   </Step>
 </Steps>
 
 ## Next Steps
 
-This guide shows how DePIN networks can use AR.IO Network to solve storage needs permanently and permissionlessly.
+In production, teams have several options to take this further to provide significantly more value to the network and its users including:
 
 <Cards>
   <Card 
@@ -256,30 +328,36 @@ This guide shows how DePIN networks can use AR.IO Network to solve storage needs
     Learn advanced techniques for uploading data with the Turbo SDK.
   </Card>
 
-<Card href="/build/upload/tagging" title="Learn About Tagging" icon={<Tag />}>
-  Organize your data with metadata and tags.
+<Card
+  href="/build/upload/advanced-uploading-with-turbo"
+  title="Uploading data in batches"
+  icon={<Upload />}
+>
+  Upload data in batches for better efficiency.
 </Card>
 
-<Card href="/build/access/find-data" title="Query Your Data" icon={<Search />}>
-  Use GraphQL to search and filter your data.
-</Card>
-
-<Card href="/build/access/wayfinder" title="Use Wayfinder" icon={<Globe />}>
-  Access your data through optimized routing.
-</Card>
-
-<Card href="/build/run-a-gateway" title="Run a Gateway" icon={<Database />}>
+<Card
+  href="/build/run-a-gateway"
+  title="Operating and optimising a gateway to index and serve your data"
+  icon={<Database />}
+>
   Operate an AR.IO gateway optimized for your DePIN network.
 </Card>
 
-  <Card 
-    href="/learn/arns" 
-    title="Create ArNS Names"
-    icon={<Code />}
-  >
-    Build branded endpoints for your data.
-  </Card>
+<Card
+  href="/build/extensions/clickhouse"
+  title="Storing indexes of your data on Arweave for resilience"
+  icon={<Globe />}
+>
+  Store indexes on Arweave for data resilience.
+</Card>
+
+<Card href="/build/arns" title="Creating a decentralised API using Arweave Name System (ArNS)" icon={<Code />}>
+  Create branded endpoints for your data.
+</Card>
 </Cards>
+
+These approaches can make your DePIN data even more resilient and useful. See more detailed guides about this below and or join our discord to find out more.
 
 ## Need Help?
 
