@@ -154,9 +154,11 @@ export async function generateMetadata(props: {
       site: "@ar_io_network",
     },
     icons: {
-      icon: pageImage,
-      shortcut: pageImage,
-      apple: pageImage,
+        icon: "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
+        shortcut:
+          "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
+        apple:
+          "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
     },
     // Add additional metadata for better SEO
     keywords: pageKeywords,
