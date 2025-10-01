@@ -5,29 +5,103 @@ description: "JavaScript/TypeScript SDK for interacting with the AR.IO Network, 
 
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { BookOpen, Code, Settings, Network, Server, Coins } from "lucide-react";
+import { Steps, Step } from "fumadocs-ui/components/steps";
+import { Callout } from "fumadocs-ui/components/callout";
 
 The AR.IO SDK provides comprehensive tools for interacting with the AR.IO Network and Arweave ecosystem. Built with TypeScript, it offers type-safe interfaces for ArNS name management, gateway operations, and AO contract interactions.
 
 ## Quick Start
 
-```npm
-npm install @ar.io/sdk
-```
+### Node.js
 
-```javascript
-import { ARIO } from '@ar.io/sdk';
+<Steps>
+  <Step>
+    ### Install the SDK
 
-// Connect to mainnet
-const ario = ARIO.mainnet();
+    ```npm
+    npm install @ar.io/sdk
+    ```
+  </Step>
+  <Step>
+    ### Use the SDK
 
-// Get gateway information
-const gateways = await ario.getGateways();
+    ```javascript
+    import { ARIO } from '@ar.io/sdk';
 
-// Get ArNS records
-const records = await ario.getArNSRecords();
+    // Connect to mainnet
+    const ario = ARIO.mainnet();
 
-console.log('Network data:', { gateways, records });
-```
+    // Get gateway information
+    const gateways = await ario.getGateways();
+
+    // Get ArNS records
+    const records = await ario.getArNSRecords();
+
+    console.log('Network data:', { gateways, records });
+    ```
+  </Step>
+</Steps>
+
+### Web (Browser)
+
+<Steps>
+  <Step>
+    ### Install the SDK
+
+    ```npm
+    npm install @ar.io/sdk
+    ```
+  </Step>
+  <Step>
+    ### Install polyfills (required for web environments)
+
+    <Callout type="warn">
+    Crypto polyfills are required for web environments due to the use of `crypto`, `buffer` and `process` types in the SDK's dependencies.
+    </Callout>
+
+    ```npm
+    npm install --save-dev vite-plugin-node-polyfills
+    ```
+
+    ```js
+    // vite.config.js
+    import { defineConfig } from 'vite';
+    import { nodePolyfills } from 'vite-plugin-node-polyfills';
+
+    export default defineConfig({
+      plugins: [
+        nodePolyfills({
+          globals: {
+            Buffer: true,
+            global: true,
+            process: true,
+          },
+        }),
+      ],
+    });
+    ```
+
+    Configure your bundler (Webpack, Vite, Rollup, etc.) to provide polyfills for `crypto`, `process`, and `buffer`. Refer to your bundler's documentation for polyfill configuration.
+  </Step>
+  <Step>
+    ### Use the SDK
+
+    ```javascript
+    import { ARIO } from '@ar.io/sdk';
+
+    // Connect to mainnet
+    const ario = ARIO.mainnet();
+
+    // Get gateway information
+    const gateways = await ario.getGateways();
+
+    // Get ArNS records
+    const records = await ario.getArNSRecords();
+
+    console.log('Network data:', { gateways, records });
+    ```
+  </Step>
+</Steps>
 
 ## API Reference & Documentation
 
