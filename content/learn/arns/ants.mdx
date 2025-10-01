@@ -2,7 +2,6 @@
 title: "Arweave Name Tokens (ANTs)"
 description: "Learn about Arweave Name Tokens (ANTs) - the ownership and control system for ArNS names"
 ---
-
 To establish ownership of a record in the ArNS Registry, each record contains both a friendly name and a reference to an Arweave Name Token, ANT. Name Tokens are unique AO Computer based tokens/processes that give their owners the ability to update the Arweave Transaction IDs that their associated friendly names point to.
 
 ## What is an ANT?
@@ -17,24 +16,39 @@ The controller can only manage the ANT and set and update records, name, and the
 
 Owners of names should ensure their ANT supports evolve ability if future modifications are desired. Loss of a private key for a permanently purchased name can result in the name being "bricked".
 
+### Under_name Ownership
+
+Undernames can have an `owner` set on them. This owner is empowered to set that undername as their primary name, can remove that undername as their primary name, and has full control over that Undername's metadata, such as:
+
+- Transaction Id - the data the record resolves to.
+- TTL Seconds - the Time To Live in seconds the data is cached for by clients.
+- Owner - the owner of the record.
+- Description - the description of the record.
+- Display Name - the display name for the owner of the record.
+- Keywords - the keywords for the record.
+- Logo - the logo of the record.
+
+They do *NOT* have control over the `priority` of the undername, which is restricted to the ANT Controllers and Owner.
+
 ## ANT Interactions
 
 The table below indicates some of the possible interactions with the ArNS registry, corresponding ANTs, and who can perform them:
 
-| Type                             | ANT Owner | ANT Controller | Any ARIO Token Holder |
-| -------------------------------- | --------- | -------------- | --------------------- |
-| Transfer ownership               | ✔        |                |                       |
-| Add / remove controllers         | ✔        |                |                       |
-| Set or change primary name       | ✔        |                |                       |
-| Reassign name to new ANT process | ✔        |                |                       |
-| Return a permanent name          | ✔        |                |                       |
-| Set records (pointers)           | ✔        | ✔             |                       |
-| Update records, name, ticker     | ✔        | ✔             |                       |
-| Update descriptions and keywords | ✔        | ✔             |                       |
-| Create and assign undernames     | ✔        | ✔             |                       |
-| Extend / renew lease             | ✔        | ✔             | ✔                    |
-| Increase undernames              | ✔        | ✔             | ✔                    |
-| Convert lease to permanent       | ✔        | ✔             | ✔                    |
+
+| Type                                    | ANT Owner | ANT Controller | Undername Owner | Any ARIO Token Holder |
+| ----------------------------------------- | ----------- | ---------------- | ----------------- | ----------------------- |
+| Transfer ownership                      | ✔        |                |                 |                       |
+| Add / remove controllers                | ✔        |                |                 |                       |
+| Approve/Remove Primary name             | ✔        |                | ✔              |                       |
+| Reassign name to new ANT process        | ✔        |                |                 |                       |
+| Return a permanent name                 | ✔        |                |                 |                       |
+| Set records (pointers, record metadata) | ✔        | ✔             | ✔              |                       |
+| Update records, name, ticker            | ✔        | ✔             |                 |                       |
+| Update descriptions and keywords        | ✔        | ✔             |                 |                       |
+| Create and assign undernames            | ✔        | ✔             |                 |                       |
+| Extend / renew lease                    | ✔        | ✔             | ✔              | ✔                    |
+| Increase undernames                     | ✔        | ✔             | ✔              | ✔                    |
+| Convert lease to permanent              | ✔        | ✔             | ✔              | ✔                    |
 
 ## Under_names
 
