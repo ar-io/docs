@@ -28,7 +28,6 @@ export default function Layout({ children }: LayoutProps<"/">) {
           src="https://plausible.io/js/script.js"
           defer
           data-domain="docs.ar.io"
-          onError={() => console.warn('Plausible script failed to load')}
         />
         <RootProvider
           search={{
