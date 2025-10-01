@@ -2,6 +2,7 @@ import "@/app/global.css";
 import "katex/dist/katex.css";
 import { RootProvider } from "fumadocs-ui/provider";
 import type { Metadata } from "next";
+import Script from "next/script";
 import SearchDialog from "@/components/search";
 
 export const metadata: Metadata = {
@@ -23,6 +24,12 @@ export default function Layout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className="font-inter" suppressHydrationWarning>
       <body className="flex flex-col min-h-screen">
+        <Script
+          src="https://plausible.io/js/script.js"
+          defer
+          data-domain="docs.ar.io"
+          onError={() => console.warn('Plausible script failed to load')}
+        />
         <RootProvider
           search={{
             SearchDialog,
