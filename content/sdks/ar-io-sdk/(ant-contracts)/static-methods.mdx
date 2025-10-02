@@ -1,0 +1,49 @@
+---
+title: "Static Methods"
+description: "TypeScript/JavaScript SDK for interacting with the AR.IO ecosystem"
+---
+
+#### ANT.fork()
+
+Forks an existing ANT process to create a new one with the same state but potentially a different module. This is used for upgrading ANTs to new versions.
+
+```typescript
+const newProcessId = await ANT.fork({
+  signer: new ArweaveSigner(jwk),
+  antProcessId: 'existing-ant-process-id',
+  // Optional: specify a specific module ID, defaults to latest from registry
+  module: 'new-module-id',
+  onSigningProgress: (event, payload) => {
+    console.log(`Fork progress: ${event}`);
+  },
+});
+
+console.log(`Forked ANT to new process: ${newProcessId}`);
+```
+
+#### ANT.upgrade()
+
+Static method to upgrade an ANT by forking it to the latest version and reassigning names.
+
+```typescript
+// Upgrade and reassign all affiliated names
+const result = await ANT.upgrade({
+  signer: new ArweaveSigner(jwk),
+  antProcessId: 'existing-ant-process-id',
+  reassignAffiliatedNames: true,
+  arioProcessId: ARIO_MAINNET_PROCESS_ID
+});
+
+// Upgrade and reassign specific names
+const result = await ANT.upgrade({
+  signer: new ArweaveSigner(jwk),
+  antProcessId: 'existing-ant-process-id',
+  names: ['ardrive', 'example'],
+  reassignAffiliatedNames: false,
+  arioProcessId: ARIO_MAINNET_PROCESS_ID
+});
+
+console.log(`Upgraded to process: ${result.forkedProcessId}`);
+console.log(`Successfully reassigned names: ${Object.keys(result.reassignedNames)}`);
+console.log(`Failed reassignments: ${Object.keys(result.failedReassignedNames)}`);
+```
