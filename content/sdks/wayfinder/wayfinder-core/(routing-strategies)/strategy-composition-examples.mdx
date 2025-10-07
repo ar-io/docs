@@ -141,6 +141,42 @@ const cachedStrategy = new SimpleCacheRoutingStrategy({
 });
 ```
 
+#### Complex multi-strategy fallback with CompositeRoutingStrategy
+
+Chain multiple strategies together for maximum resilience - try fastest ping first, then fall back to random selection if ping fails.
+
+```ts
+import {
+  CompositeRoutingStrategy,
+  FastestPingRoutingStrategy,
+  RandomRoutingStrategy,
+  NetworkGatewaysProvider,
+} from "@ar.io/wayfinder-core";
+import { ARIO } from '@ar.io/sdk';
+
+// Define gateway provider for both strategies
+const gatewayProvider = new NetworkGatewaysProvider({
+  ario: ARIO.mainnet(),
+  sortBy: 'operatorStake',
+  limit: 15,
+});
+
+// Create a composite strategy that tries fastest ping first, then random
+const strategy = new CompositeRoutingStrategy({
+  strategies: [
+    // Try fastest ping first (high performance, but may fail if all gateways are slow)
+    new FastestPingRoutingStrategy({
+      timeoutMs: 500,
+      gatewaysProvider: gatewayProvider,
+    }),
+    // Fallback to random selection (guaranteed to work if gateways exist)
+    new RandomRoutingStrategy({
+      gatewaysProvider: gatewayProvider,
+    }),
+  ],
+});
+```
+
 In all cases, you can supply the composed strategy to `Wayfinder` (or whatever
 router factory you use) and pass in a gateways provider:
 
