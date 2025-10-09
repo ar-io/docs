@@ -1,0 +1,184 @@
+---
+title: "EthAReum Protocol"
+description: "Generate Arweave wallets deterministically from Ethereum or Solana wallets"
+---
+
+The **EthAReum protocol** enables the generation of private keys for an Arweave wallet using a signature from an Ethereum or Solana wallet. This allows users to create an Arweave wallet directly through popular wallet providers like MetaMask, providing seamless cross-chain wallet management.
+
+Generated private keys provide a fully functional Arweave wallet, equipped to perform all standard operations, including holding AR tokens and Turbo Credits, and uploading data to the Arweave network.
+
+## How It Works
+
+EthAReum uses a deterministic key derivation process that combines:
+
+- **Ethereum/Solana wallet signature** - Provides the cryptographic foundation
+- **User-generated password** - Adds additional entropy and security
+- **Standardized derivation algorithm** - Ensures reproducible results
+
+The protocol generates a unique Arweave wallet that is cryptographically linked to your Ethereum or Solana wallet but remains completely independent.
+
+## Browser Compatibility
+
+<Callout type="warning">
+  **Recommended Browser**: For optimal performance, use **Chrome** when working
+  with EthAReum and MetaMask. While EthAReum functions correctly in most
+  browsers, there are ongoing efforts to resolve some edge case compatibility
+  issues in other environments.
+</Callout>
+
+## Password Security
+
+The EthAReum protocol incorporates a user-generated password in the wallet derivation process. This password provides an extra layer of security by contributing additional entropy to the wallet's derivation and serves as a critical verification step for wallet access.
+
+<Callout type="warning">
+  **Permanent Password**: The password used during the derivation of private
+  keys is **permanent and cannot be changed or recovered** by any administrator.
+  ArDrive is a decentralized platform with no account administration. It is
+  crucial to keep this password secure.
+</Callout>
+
+### Password Requirements
+
+- Must be set during initial wallet creation
+- Used for all subsequent logins
+- Required for encrypting private uploads
+- Cannot be recovered if forgotten
+
+## Wallet Addresses
+
+The public address of the generated Arweave wallet is derived from its public key and will be **different** from the public address of the Ethereum or Solana wallet used to generate it.
+
+### Viewing Your Address
+
+The exact steps to obtain your generated wallet's public address depend on the dApp interface:
+
+- **ArDrive**: Click the user profile icon in the top right when logged in
+- **Other dApps**: Check the wallet settings or profile section
+
+## Key Management
+
+### Keyfiles vs Seed Phrases
+
+The Arweave ecosystem primarily uses **keyfiles** rather than seed phrases for wallet access:
+
+- **Keyfile**: JSON file containing a Json Web Key (JWK) that acts as private keys
+- **Seed Phrase**: Supported but not universally implemented across all dApps
+
+<Callout type="info">
+  **Keyfile Security**: Always treat your keyfile with the same care as you
+  would private keys for an Ethereum wallet. Learn more about keyfiles in the
+  [Arweave Cookbook](https://cookbook.arweave.dev/).
+</Callout>
+
+### Accessing Your Keys
+
+Both keyfile and seed phrase are available for download in most dApps:
+
+- **ArDrive**: Click the user profile icon in the top right when logged in
+- **Other dApps**: Check wallet settings or export options
+
+## Security Considerations
+
+### One-Way Control
+
+EthAReum generates Arweave wallet private keys using a signature from your Ethereum/Solana wallet, ensuring that control only extends in one direction:
+
+- ✅ **EthAReum can generate** Arweave wallets from Ethereum/Solana signatures
+- ❌ **EthAReum cannot access** your Ethereum/Solana wallet or assets
+- ✅ **Your Ethereum/Solana assets remain** completely secure and independent
+
+### Signature Security
+
+<Callout type="warning">
+  **Beware of Malicious dApps**: Some malicious dApps or websites may disguise
+  high-risk authorization transactions as simple signature requests. Always
+  ensure that you only provide signatures to reputable and trusted dApps like
+  ArDrive.
+</Callout>
+
+### Best Practices
+
+1. **Verify dApp authenticity** before providing signatures
+2. **Use strong, unique passwords** for wallet derivation
+3. **Backup your keyfile** in a secure location
+4. **Never share your password** or keyfile with anyone
+5. **Test with small amounts** before committing to large transactions
+
+## Implementation Examples
+
+### Basic Wallet Generation
+
+```javascript
+// Example: Generate Arweave wallet from Ethereum signature
+async function generateArweaveWallet(ethereumSignature, password) {
+  // This is a conceptual example - actual implementation
+  // would use the EthAReum protocol specification
+
+  const derivedKey = await deriveKeyFromSignature(
+    ethereumSignature,
+    password,
+    "arweave" // derivation context
+  );
+
+  return {
+    address: getAddressFromKey(derivedKey),
+    keyfile: createKeyfile(derivedKey),
+    seedPhrase: generateSeedPhrase(derivedKey),
+  };
+}
+```
+
+### Integration with MetaMask
+
+```javascript
+// Example: Request signature from MetaMask
+async function requestEthereumSignature() {
+  const accounts = await ethereum.request({
+    method: "eth_requestAccounts",
+  });
+
+  const message = "Sign this message to generate your Arweave wallet";
+  const signature = await ethereum.request({
+    method: "personal_sign",
+    params: [message, accounts[0]],
+  });
+
+  return signature;
+}
+```
+
+## Use Cases
+
+### Cross-Chain dApp Development
+
+- **Unified wallet experience** across Ethereum and Arweave
+- **Simplified onboarding** for users familiar with Ethereum
+- **Reduced friction** in multi-chain applications
+
+### Data Storage Solutions
+
+- **Decentralized file storage** using existing Ethereum wallets
+- **NFT metadata storage** on Arweave with Ethereum wallet access
+- **Cross-chain data management** for DeFi applications
+
+### Developer Benefits
+
+- **Familiar wallet interfaces** for users
+- **Reduced development complexity** for multi-chain apps
+- **Enhanced user experience** with single wallet management
+
+## Next Steps
+
+<Cards>
+<Card href="/build/advanced/arfs" title="ArFS Protocol">
+  Learn about structured data storage on Arweave using your generated wallet.
+</Card>
+
+<Card href="/build/upload/bundling-services" title="Turbo Upload">
+  Upload data efficiently using Turbo Credits with your EthAReum wallet.
+</Card>
+
+<Card href="/build/access/find-data" title="Data Retrieval">
+  Learn how to find and access data stored with your generated wallet.
+</Card>
+</Cards>
