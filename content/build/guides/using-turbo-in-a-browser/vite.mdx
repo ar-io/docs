@@ -1,0 +1,615 @@
+---
+title: "Using Turbo SDK with Vite"
+description: "Configure Turbo SDK in a Vite application with proper polyfills for client-side usage"
+---
+
+# Using Turbo SDK with Vite
+
+<Callout type="warning">
+  **Firefox Compatibility**: Some compatibility issues have been reported with
+  the Turbo SDK in Firefox browsers. At this time the below framework examples
+  may not behave as expected in Firefox.
+</Callout>
+
+## Overview
+
+This guide demonstrates how to configure the `@ardrive/turbo-sdk` in a Vite application with proper polyfills for client-side usage. Vite provides excellent support for modern JavaScript features and can be easily configured to work with the Turbo SDK through plugins.
+
+<Callout type="info">
+  **Polyfills**: Vite simplifies polyfill management compared to other bundlers.
+  The `vite-plugin-node-polyfills` plugin handles most of the complexity
+  automatically.
+</Callout>
+
+## Prerequisites
+
+- Vite 5+
+- Node.js 18+
+- React 18+ (or your preferred framework)
+- Basic familiarity with Vite configuration
+
+<Steps>
+  <Step title="Install Turbo SDK">
+    Install the main Turbo SDK package:
+
+    ```bash
+    npm install @ardrive/turbo-sdk
+    ```
+
+  </Step>
+
+  <Step title="Install Polyfill Plugin">
+    Add the Vite node polyfills plugin for browser compatibility:
+
+    ```bash
+    npm install --save-dev vite-plugin-node-polyfills
+    ```
+
+    <Callout type="warning">
+      **Wallet Integration Dependencies**: The Turbo SDK includes
+      `@dha-team/arbundles` as a peer dependency, which provides the necessary
+      signers for browser wallet integration (like `InjectedEthereumSigner` and
+      `ArconnectSigner`). You can import these directly without additional
+      installation.
+    </Callout>
+
+  </Step>
+
+  <Step title="Install React Dependencies">
+    Add React and TypeScript dependencies (if using React):
+
+    ```bash
+    npm install react react-dom
+    npm install --save-dev @vitejs/plugin-react @types/react @types/react-dom
+    ```
+
+  </Step>
+
+  <Step title="Configure Vite with Polyfills">
+    Create or update your `vite.config.js` file:
+
+    ```javascript
+    import react from "@vitejs/plugin-react";
+    import { defineConfig } from "vite";
+    import { nodePolyfills } from "vite-plugin-node-polyfills";
+
+    export default defineConfig({
+      base: "/",
+      plugins: [
+        react(),
+        nodePolyfills({
+          // Enable specific polyfills for Turbo SDK requirements
+          include: ["crypto", "stream", "buffer", "process"],
+          globals: {
+            Buffer: true,
+            global: true,
+            process: true,
+          },
+        }),
+      ],
+      define: {
+        // Define globals for browser compatibility
+        global: "globalThis",
+      },
+    });
+    ```
+
+  </Step>
+
+  <Step title="Configure TypeScript (Optional)">
+    If you're using TypeScript, update your `tsconfig.json`:
+
+    ```json
+    {
+      "compilerOptions": {
+        "target": "ESNext",
+        "lib": ["DOM", "DOM.Iterable", "ESNext"],
+        "allowJs": true,
+        "skipLibCheck": true,
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "strict": true,
+        "forceConsistentCasingInFileNames": true,
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "isolatedModules": true,
+        "jsx": "react-jsx",
+        "paths": {
+          "buffer/": ["./node_modules/vite-plugin-node-polyfills/shims/buffer"]
+        }
+      },
+      "include": ["src"]
+    }
+    ```
+
+    **TypeScript Wallet Types**
+
+    Create a `types/wallet.d.ts` file to properly type wallet objects:
+
+    ```typescript
+    // types/wallet.d.ts
+    interface Window {
+      ethereum?: {
+        request: (args: { method: string; params?: any[] }) => Promise<any>;
+        on?: (event: string, handler: (...args: any[]) => void) => void;
+        removeListener?: (event: string, handler: (...args: any[]) => void) => void;
+        isMetaMask?: boolean;
+      };
+      arweaveWallet?: {
+        connect: (permissions: string[]) => Promise<void>;
+        disconnect: () => Promise<void>;
+        getActiveAddress: () => Promise<string>;
+        getPermissions: () => Promise<string[]>;
+        sign: (transaction: any) => Promise<any>;
+        getPublicKey: () => Promise<string>;
+      };
+    }
+    ```
+
+  </Step>
+
+  <Step title="Choose Wallet Integration">
+    Select between MetaMask or Wander wallet integration:
+
+    <Callout type="warning">
+      **Never expose private keys in browser applications!** Always use browser
+      wallet integrations for security.
+    </Callout>
+
+  </Step>
+
+  <Step title="Implement MetaMask Integration">
+    Create a React component for MetaMask wallet integration:
+
+    ```tsx
+    import { TurboFactory } from "@ardrive/turbo-sdk/web";
+    import { InjectedEthereumSigner } from "@dha-team/arbundles";
+    import { useState, useCallback } from "react";
+
+    export default function MetaMaskUploader() {
+      const [connected, setConnected] = useState(false);
+      const [address, setAddress] = useState("");
+      const [uploading, setUploading] = useState(false);
+      const [uploadResult, setUploadResult] = useState(null);
+
+      const connectMetaMask = useCallback(async () => {
+        try {
+          if (!window.ethereum) {
+            alert("MetaMask is not installed!");
+            return;
+          }
+
+          // Request account access
+          await window.ethereum.request({
+            method: "eth_requestAccounts",
+          });
+
+          // Get the current account
+          const accounts = await window.ethereum.request({
+            method: "eth_accounts",
+          });
+
+          if (accounts.length > 0) {
+            setAddress(accounts[0]);
+            setConnected(true);
+
+            // Log current chain for debugging
+            const chainId = await window.ethereum.request({
+              method: "eth_chainId",
+            });
+            console.log("Connected to chain:", chainId);
+          }
+        } catch (error) {
+          console.error("Failed to connect to MetaMask:", error);
+        }
+      }, []);
+
+      const uploadWithMetaMask = async (event) => {
+        const file = event.target.files?.[0];
+        if (!file || !connected) return;
+
+        setUploading(true);
+
+        try {
+          // Create a provider wrapper for InjectedEthereumSigner
+          const providerWrapper = {
+            getSigner: () => ({
+              signMessage: async (message: string | Uint8Array) => {
+                const accounts = await window.ethereum!.request({
+                  method: "eth_accounts",
+                });
+                if (accounts.length === 0) {
+                  throw new Error("No accounts available");
+                }
+
+                // Convert message to hex if it's Uint8Array
+                const messageToSign =
+                  typeof message === "string"
+                    ? message
+                    : "0x" +
+                      Array.from(message)
+                        .map((b) => b.toString(16).padStart(2, "0"))
+                        .join("");
+
+                return await window.ethereum!.request({
+                  method: "personal_sign",
+                  params: [messageToSign, accounts[0]],
+                });
+              },
+            }),
+          };
+
+          // Create the signer using InjectedEthereumSigner
+          const signer = new InjectedEthereumSigner(providerWrapper);
+          const turbo = TurboFactory.authenticated({
+            signer,
+            token: "ethereum", // Important: specify token type for Ethereum
+          });
+
+          // Upload file with progress tracking
+          const result = await turbo.uploadFile({
+            fileStreamFactory: () => file.stream(),
+            fileSizeFactory: () => file.size,
+            dataItemOpts: {
+              tags: [
+                { name: "Content-Type", value: file.type },
+                { name: "App-Name", value: "My-Vite-App" },
+                { name: "Funded-By", value: "Ethereum" },
+              ],
+            },
+            events: {
+              onProgress: ({ totalBytes, processedBytes, step }) => {
+                console.log(
+                  `${step}: ${Math.round((processedBytes / totalBytes) * 100)}%`
+                );
+              },
+              onError: ({ error, step }) => {
+                console.error(`Error during ${step}:`, error);
+                console.error("Error details:", JSON.stringify(error, null, 2));
+              },
+            },
+          });
+
+          setUploadResult(result);
+        } catch (error) {
+          console.error("Upload failed:", error);
+          console.error("Error details:", JSON.stringify(error, null, 2));
+          alert(`Upload failed: ${error.message}`);
+        } finally {
+          setUploading(false);
+        }
+      };
+
+      return (
+        <div className="p-6 max-w-md mx-auto bg-white rounded-lg shadow-md">
+          <h2 className="text-2xl font-bold mb-4">MetaMask Upload</h2>
+
+          {!connected ? (
+            <button
+              onClick={connectMetaMask}
+              className="w-full bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
+            >
+              Connect MetaMask
+            </button>
+          ) : (
+            <div>
+              <p className="mb-4 text-green-600 font-medium">
+                ✅ Connected: {address.slice(0, 6)}...{address.slice(-4)}
+              </p>
+
+              <div className="mb-4">
+                <label
+                  htmlFor="metamask-file"
+                  className="block text-sm font-medium mb-2"
+                >
+                  Select File to Upload:
+                </label>
+                <input
+                  type="file"
+                  id="metamask-file"
+                  onChange={uploadWithMetaMask}
+                  disabled={uploading}
+                  className="block w-full text-sm border border-gray-300 rounded-lg p-2 cursor-pointer disabled:opacity-50"
+                />
+              </div>
+
+              {uploading && (
+                <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  🔄 Uploading... Please confirm transaction in MetaMask
+                </div>
+              )}
+
+              {uploadResult && (
+                <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <p>
+                    <strong>✅ Upload Successful!</strong>
+                  </p>
+                  <p className="text-sm break-all">
+                    <strong>Transaction ID:</strong> {uploadResult.id}
+                  </p>
+                  <p>
+                    <strong>Data Size:</strong> {uploadResult.totalBytes} bytes
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      );
+    }
+    ```
+
+  </Step>
+
+  <Step title="Implement Wander Wallet Integration">
+    Create a React component for Wander wallet integration:
+
+    ```tsx
+    import { TurboFactory, ArconnectSigner } from "@ardrive/turbo-sdk/web";
+    import { useState, useCallback } from "react";
+
+    export default function WanderWalletUploader() {
+      const [connected, setConnected] = useState(false);
+      const [address, setAddress] = useState("");
+      const [uploading, setUploading] = useState(false);
+      const [uploadResult, setUploadResult] = useState(null);
+
+      const connectWanderWallet = useCallback(async () => {
+        try {
+          if (!window.arweaveWallet) {
+            alert("Wander wallet is not installed!");
+            return;
+          }
+
+          // Required permissions for Turbo SDK
+          const permissions = [
+            "ACCESS_ADDRESS",
+            "ACCESS_PUBLIC_KEY",
+            "SIGN_TRANSACTION",
+            "SIGNATURE",
+          ];
+
+          // Connect to wallet
+          await window.arweaveWallet.connect(permissions);
+
+          // Get wallet address
+          const walletAddress = await window.arweaveWallet.getActiveAddress();
+          setAddress(walletAddress);
+          setConnected(true);
+        } catch (error) {
+          console.error("Failed to connect to Wander wallet:", error);
+        }
+      }, []);
+
+      const uploadWithWanderWallet = async (event) => {
+        const file = event.target.files?.[0];
+        if (!file || !connected) return;
+
+        setUploading(true);
+
+        try {
+          // Create ArConnect signer using Wander wallet
+          const signer = new ArconnectSigner(window.arweaveWallet);
+          const turbo = TurboFactory.authenticated({ signer });
+          // Note: No need to specify token for Arweave as it's the default
+
+          // Upload file with progress tracking
+          const result = await turbo.uploadFile({
+            fileStreamFactory: () => file.stream(),
+            fileSizeFactory: () => file.size,
+            dataItemOpts: {
+              tags: [
+                { name: "Content-Type", value: file.type },
+                { name: "App-Name", value: "My-Vite-App" },
+                { name: "Funded-By", value: "Arweave" },
+              ],
+            },
+            events: {
+              onProgress: ({ totalBytes, processedBytes, step }) => {
+                console.log(
+                  `${step}: ${Math.round((processedBytes / totalBytes) * 100)}%`
+                );
+              },
+              onError: ({ error, step }) => {
+                console.error(`Error during ${step}:`, error);
+              },
+            },
+          });
+
+          setUploadResult(result);
+        } catch (error) {
+          console.error("Upload failed:", error);
+          alert(`Upload failed: ${error.message}`);
+        } finally {
+          setUploading(false);
+        }
+      };
+
+      return (
+        <div className="p-6 max-w-md mx-auto bg-white rounded-lg shadow-md">
+          <h2 className="text-2xl font-bold mb-4">Wander Wallet Upload</h2>
+
+          {!connected ? (
+            <button
+              onClick={connectWanderWallet}
+              className="w-full bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors"
+            >
+              Connect Wander Wallet
+            </button>
+          ) : (
+            <div>
+              <p className="mb-4 text-green-600 font-medium">
+                ✅ Connected: {address.slice(0, 6)}...{address.slice(-4)}
+              </p>
+
+              <div className="mb-4">
+                <label
+                  htmlFor="wander-file"
+                  className="block text-sm font-medium mb-2"
+                >
+                  Select File to Upload:
+                </label>
+                <input
+                  type="file"
+                  id="wander-file"
+                  onChange={uploadWithWanderWallet}
+                  disabled={uploading}
+                  className="block w-full text-sm border border-gray-300 rounded-lg p-2 cursor-pointer disabled:opacity-50"
+                />
+              </div>
+
+              {uploading && (
+                <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  🔄 Uploading... Please confirm transaction in Wander wallet
+                </div>
+              )}
+
+              {uploadResult && (
+                <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <p>
+                    <strong>✅ Upload Successful!</strong>
+                  </p>
+                  <p className="text-sm break-all">
+                    <strong>Transaction ID:</strong> {uploadResult.id}
+                  </p>
+                  <p>
+                    <strong>Data Size:</strong> {uploadResult.totalBytes} bytes
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      );
+    }
+    ```
+
+  </Step>
+
+  <Step title="Create Package.json">
+    Here's a complete `package.json` example for a Vite + React + Turbo SDK project:
+
+    ```json
+    {
+      "name": "vite-turbo-app",
+      "version": "0.1.0",
+      "private": true,
+      "type": "module",
+      "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "preview": "vite preview",
+        "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
+      },
+      "dependencies": {
+        "@ardrive/turbo-sdk": "^1.20.0",
+        "react": "^18.3.1",
+        "react-dom": "^18.3.1"
+      },
+      "devDependencies": {
+        "@types/react": "^18.3.1",
+        "@types/react-dom": "^18.3.0",
+        "@vitejs/plugin-react": "^4.2.1",
+        "typescript": "^5.3.3",
+        "vite": "^5.2.14",
+        "vite-plugin-node-polyfills": "^0.17.0"
+      }
+    }
+    ```
+
+  </Step>
+</Steps>
+
+## Common Issues and Solutions
+
+### Build Errors
+
+1. **"global is not defined"**
+   - Ensure you have `global: 'globalThis'` in your Vite config's `define` section
+
+2. **Buffer polyfill issues**
+   - Make sure `vite-plugin-node-polyfills` is properly configured with Buffer globals
+   - Add the buffer path mapping in your `tsconfig.json`
+
+3. **Module resolution errors**
+   - Use `moduleResolution: "Bundler"` in TypeScript configuration
+   - Ensure you're importing from `@ardrive/turbo-sdk/web` for browser usage
+
+### Runtime Errors
+
+1. **"process is not defined"**
+   - Enable process globals in the node polyfills plugin configuration
+
+2. **Wallet integration errors**
+   - For MetaMask, use `InjectedEthereumSigner` from `@dha-team/arbundles`
+   - For Wander wallet, use `ArconnectSigner` from the Turbo SDK
+   - Always check wallet availability before attempting connection
+
+### Development Experience
+
+1. **Hot reload issues with wallet connections**
+   - Wallet state may not persist across hot reloads
+   - Consider using localStorage to persist connection state
+
+2. **Console warnings about dependencies**
+   - Some peer dependency warnings are normal for wallet libraries
+   - Focus on runtime functionality rather than dependency warnings
+
+## Best Practices
+
+1. **Development vs Production**
+   - Use debug logs during development: `TurboFactory.setLogLevel('debug')`
+   - Remove debug logs in production builds
+
+2. **Error Handling**
+   - Always wrap wallet operations in try-catch blocks
+   - Provide meaningful error messages to users
+   - Log detailed error information for debugging
+
+3. **Performance**
+   - Initialize Turbo clients once and reuse them
+   - Consider lazy loading wallet integration components
+   - Use loading states for better user experience
+
+4. **Security**
+   - Never expose private keys in browser applications
+   - Always validate wallet connections before operations
+   - Use secure wallet connection methods in production
+
+## Production Deployment Checklist
+
+For production builds:
+
+1. **Build optimization**
+   - Vite automatically optimizes builds with tree shaking
+   - Polyfills are only included when needed
+
+2. **Testing**
+   - Test wallet connections across different browsers
+   - Verify polyfills work in production builds
+   - Test with actual wallet extensions
+
+3. **Monitoring**
+   - Monitor bundle sizes to ensure polyfills don't bloat your app
+   - Set up error tracking for wallet connection failures
+
+## Implementation Verification
+
+To verify your Vite setup is working correctly:
+
+1. **Check Development Server**: Start your dev server and verify no polyfill errors
+2. **Test Wallet Connections**: Ensure both MetaMask and Wander wallet integrations work
+3. **Build Verification**: Run `npm run build` and check for any build errors
+4. **Bundle Analysis**: Use `vite-bundle-analyzer` to inspect your bundle size
+
+## Additional Resources
+
+- [Vite Documentation](https://vitejs.dev/)
+- [vite-plugin-node-polyfills](https://www.npmjs.com/package/vite-plugin-node-polyfills)
+- [Turbo SDK Documentation](https://docs.ardrive.io)
+- [Web Usage Examples](https://docs.ardrive.io)
+- [ArDrive Examples Repository](https://github.com/ardriveio/turbo-sdk)
+
+---
+
+For more examples and advanced usage patterns, refer to the [Turbo SDK examples directory](https://github.com/ardriveio/turbo-sdk) or the main [SDK documentation](https://docs.ardrive.io).
