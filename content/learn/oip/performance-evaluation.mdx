@@ -7,8 +7,8 @@ description: "Learn about how gateways are evaluated and how weights impact obse
 
 Consider the following classifications:
 
-- **Functional or Passed Gateways**: are gateways that meet or surpass the network's performance and quality standards.
-- **Deficient or Failed Gateways**: are gateways that fall short of the network's performance expectations.
+- **Functional or Passed Gateways**: are gateways that meet or surpass the network's performance and quality standards, including ArNS resolution and chunk/offset validation (if selected).
+- **Deficient or Failed Gateways**: are gateways that fall short of the network's performance expectations, including failures in ArNS resolution or chunk/offset validation.
 - **Functional or Submitted Observers**: are selected observers who diligently perform their duties and submit observation reports and contract interactions.
 - **Deficient or Failed Observers**: are selected observers who do not fulfill their duty of submitting observation reports and contract interactions.
 
@@ -21,22 +21,49 @@ At the end of an epoch, the AR.IO Smart Contract processes observer submissions 
 After observers submit their detailed reports (see [Reporting](/learn/oip/reporting) for submission details), the smart contract performs consensus calculation:
 
 **Vote Processing:**
+
 - **Data Collection**: All observer contract interactions for each gateway are collected
 - **Vote Counting**: Each observer submission contributes either a PASS or FAIL vote
 - **Majority Determination**: If ≥50% of submitted observer interactions indicate PASS, the gateway is considered Functional
 - **Binary Classification**: Gateways are classified as either Functional (eligible for rewards) or Deficient (ineligible for rewards)
 
 **Consensus Mechanism:**
+
 - Multiple observers evaluate each gateway independently, ensuring reliable assessment
 - The 50% threshold requires majority agreement for positive performance determination
 - Binary scoring provides clear, unambiguous performance classification
 - Vote tallying occurs after the 40-minute confirmation period to ensure all interactions are finalized
+
+## Chunk/Offset Validation Criteria
+
+For gateways selected for chunk/offset validation, additional performance criteria are evaluated:
+
+### Validation Requirements
+
+- **Chunk Retrieval**: Gateway must successfully respond to `GET /chunk/{offset}` requests
+- **Data Integrity**: Chunk data must be non-empty and within reasonable size limits (&lt;1MB)
+- **Merkle Proof Validation**: Cryptographic proof must decode correctly and validate against transaction data_root
+- **Performance Standards**: Response times must meet network expectations
+
+<Callout type="info">
+  **Initial Implementation**: During the initial rollout phase, only a very
+  small portion of gateways will be checked for chunk/offset validation, and the
+  current validation criteria are extremely lenient to ensure smooth network
+  operation.
+</Callout>
+
+### Assessment Process
+
+- **Binary Scoring**: Each offset test results in pass/fail determination
+- **Consensus Integration**: Chunk/offset results are integrated into overall gateway assessment
+- **Performance Tracking**: Individual offset assessments are tracked and reported
 
 ## Weight Impact on Gateway Performance
 
 Gateway performance directly affects multiple weighted factors that influence future observer selection and overall network participation:
 
 ### Gateway Performance Ratio Weight (GPRW)
+
 A gateway's evaluation results directly impact their Gateway Performance Ratio Weight, which affects their likelihood of being selected as an observer in future epochs:
 
 ```math
@@ -44,11 +71,13 @@ GPRW = \frac{1 + \text{Passed Epochs}}{1 + \text{Participated Epochs}}
 ```
 
 **Impact:**
+
 - **Functional Gateways**: Increase their passed epochs count, improving their GPRW
 - **Deficient Gateways**: Decrease their GPRW as participated epochs increase without corresponding passes
 - **Observer Selection**: Higher GPRW increases chances of being selected as an observer
 
 ### Observer Performance Ratio Weight (OPRW)
+
 For gateways selected as observers, their performance in submitting reports affects future selection:
 
 ```math
@@ -56,11 +85,13 @@ OPRW = \frac{1 + \text{Submitted Epochs}}{1 + \text{Selected Epochs}}
 ```
 
 **Impact:**
+
 - **Functional Observers**: Who submit reports increase their OPRW
 - **Deficient Observers**: Who fail to submit reports see their OPRW decrease
 - **Future Selection**: Higher OPRW improves chances of future observer selection
 
 ### Composite Weight Calculation
+
 All performance factors combine to determine overall network influence:
 
 ```math
@@ -68,12 +99,14 @@ CW = SW \times TW \times GPRW \times OPRW
 ```
 
 Where:
+
 - **SW** = Stake Weight (financial commitment)
 - **TW** = Tenure Weight (network longevity)
 - **GPRW** = Gateway Performance Ratio Weight
 - **OPRW** = Observer Performance Ratio Weight
 
 **Long-term Effects:**
+
 - Consistently functional gateways accumulate higher composite weights
 - Poor performers see diminishing influence and selection chances
 - Performance history creates compounding effects on network participation
@@ -108,7 +141,6 @@ Rewards are distributed **at the end of each epoch** by the AR.IO Smart Contract
 - Functional observers receive observer rewards
 - Deficient observers forfeit observer rewards
 - Deficient observers who are also functional gateways have their gateway reward reduced by 25%
-
 
 ---
 
