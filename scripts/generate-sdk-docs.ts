@@ -69,7 +69,7 @@ const PACKAGES: {
     description:
       "JavaScript/TypeScript SDK for interacting with ArDrive",
     sourceUrl: "https://github.com/ardriveapp/ardrive-core-js",
-    // icon: "/ardrive.svg",
+    icon: "/ardrive.svg",
   },
 ];
 
