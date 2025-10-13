@@ -11,44 +11,65 @@ const PACKAGES: {
   sourceUrl: string;
   icon?: string;
 }[] = [
-    // AR.IO SDK
+  // AR.IO SDK
   {
     name: "ar-io-sdk",
-    readmeUrl: "https://raw.githubusercontent.com/ar-io/ar-io-sdk/alpha/README.md",
+    readmeUrl:
+      "https://raw.githubusercontent.com/ar-io/ar-io-sdk/alpha/README.md",
     dest: path.resolve("content/sdks/ar-io-sdk"),
     title: "AR.IO SDK",
-    description: "TypeScript/JavaScript SDK for interacting with the AR.IO ecosystem",
+    description:
+      "TypeScript/JavaScript SDK for interacting with the AR.IO ecosystem",
     sourceUrl: "https://github.com/ar-io/ar-io-sdk",
-    icon: "/ario.svg"
+    icon: "/ario.svg",
   },
-    // Turbo SDK
+  // Turbo SDK
   {
     name: "turbo-sdk",
-    readmeUrl: "https://raw.githubusercontent.com/ardriveapp/turbo-sdk/main/README.md",
+    readmeUrl:
+      "https://raw.githubusercontent.com/ardriveapp/turbo-sdk/main/README.md",
     dest: path.resolve("content/sdks/turbo-sdk"),
     title: "Turbo SDK",
-    description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave",
+    description:
+      "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave",
     sourceUrl: "https://github.com/ardriveapp/turbo-sdk",
-    icon: "/turbo.svg"
+    icon: "/turbo.svg",
   },
   // Wayfinder SDK packages
   {
     name: "wayfinder-core",
-    readmeUrl: "https://raw.githubusercontent.com/ar-io/wayfinder/alpha/packages/wayfinder-core/README.md",
+    readmeUrl:
+      "https://raw.githubusercontent.com/ar-io/wayfinder/alpha/packages/wayfinder-core/README.md",
     dest: path.resolve("content/sdks/wayfinder/wayfinder-core"),
     title: "Wayfinder Core",
-    description: "JavaScript/TypeScript SDK for accessing Arweave data with built-in verification and gateway routing",
-    sourceUrl: "https://github.com/ar-io/wayfinder/tree/main/packages/wayfinder-core",
-    icon: "/wayfinder.svg"
+    description:
+      "JavaScript/TypeScript SDK for accessing Arweave data with built-in verification and gateway routing",
+    sourceUrl:
+      "https://github.com/ar-io/wayfinder/tree/main/packages/wayfinder-core",
+    icon: "/wayfinder.svg",
   },
   {
     name: "wayfinder-react",
-    readmeUrl: "https://raw.githubusercontent.com/ar-io/wayfinder/alpha/packages/wayfinder-react/README.md",
+    readmeUrl:
+      "https://raw.githubusercontent.com/ar-io/wayfinder/alpha/packages/wayfinder-react/README.md",
     dest: path.resolve("content/sdks/wayfinder/wayfinder-react"),
     title: "Wayfinder React",
-    description: "React hooks and components for integrating Wayfinder into React applications",
-    sourceUrl: "https://github.com/ar-io/wayfinder/tree/main/packages/wayfinder-react",
-    icon: "/wayfinder.svg"
+    description:
+      "React hooks and components for integrating Wayfinder into React applications",
+    sourceUrl:
+      "https://github.com/ar-io/wayfinder/tree/main/packages/wayfinder-react",
+    icon: "/wayfinder.svg",
+  },
+  // ArDrive-Core-Js SDK
+  {
+    name: "ardrive-core-js",
+    readmeUrl: "https://raw.githubusercontent.com/ardriveapp/ardrive-core-js/refs/heads/master/README.md",
+    dest: path.resolve("content/sdks/ardrive-core-js"),
+    title: "ArDrive Core JS",
+    description:
+      "JavaScript/TypeScript SDK for interacting with ArDrive",
+    sourceUrl: "https://github.com/ardriveapp/ardrive-core-js",
+    // icon: "/ardrive.svg",
   },
 ];
 

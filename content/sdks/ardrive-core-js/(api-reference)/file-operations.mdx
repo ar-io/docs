@@ -1,0 +1,56 @@
+---
+title: "File Operations"
+description: "JavaScript/TypeScript SDK for interacting with ArDrive"
+---
+
+#### Uploading Files
+
+```typescript
+import { wrapFileOrFolder } from 'ardrive-core-js';
+
+// Wrap file for upload
+const wrappedFile = wrapFileOrFolder('/path/to/file.pdf');
+
+// Upload public file
+const publicUpload = await arDrive.uploadPublicFile({
+  parentFolderId,
+  wrappedFile,
+  conflictResolution: 'upsert' // skip, replace, upsert, or error
+});
+
+// Upload private file
+const privateUpload = await arDrive.uploadPrivateFile({
+  parentFolderId,
+  driveKey,
+  wrappedFile
+});
+```
+
+#### Reading File Information
+
+```typescript
+// Get public file metadata
+const publicFile = await arDrive.getPublicFile({ fileId });
+
+// Get private file metadata
+const privateFile = await arDrive.getPrivateFile({ 
+  fileId, 
+  driveKey 
+});
+```
+
+#### Moving and Renaming Files
+
+```typescript
+// Move file
+await arDrive.movePublicFile({
+  fileId,
+  newParentFolderId
+});
+
+// Rename file
+await arDrive.renamePublicFile({
+  fileId,
+  newName: 'renamed-file.pdf'
+});
+```

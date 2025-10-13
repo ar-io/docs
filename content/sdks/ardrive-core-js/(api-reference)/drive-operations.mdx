@@ -1,0 +1,57 @@
+---
+title: "Drive Operations"
+description: "JavaScript/TypeScript SDK for interacting with ArDrive"
+---
+
+#### Creating Drives
+
+```typescript
+// Public drive
+const publicDrive = await arDrive.createPublicDrive({
+  driveName: 'My Public Drive'
+});
+
+// Private drive with password
+const privateDrive = await arDrive.createPrivateDrive({
+  driveName: 'My Private Drive',
+  drivePassword: 'mySecretPassword'
+});
+```
+
+#### Reading Drive Information
+
+```typescript
+// Get public drive
+const publicDriveInfo = await arDrive.getPublicDrive({ 
+  driveId 
+});
+
+// Get private drive (requires drive key)
+const privateDriveInfo = await arDrive.getPrivateDrive({ 
+  driveId, 
+  driveKey 
+});
+
+// Get all drives for an address
+const allDrives = await arDrive.getAllDrivesForAddress({ 
+  address: walletAddress,
+  privateKeyData: wallet.getPrivateKey() 
+});
+```
+
+#### Renaming Drives
+
+```typescript
+// Rename public drive
+await arDrive.renamePublicDrive({
+  driveId,
+  newName: 'Updated Drive Name'
+});
+
+// Rename private drive
+await arDrive.renamePrivateDrive({
+  driveId,
+  driveKey,
+  newName: 'Updated Private Name'
+});
+```
