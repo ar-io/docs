@@ -1,0 +1,117 @@
+---
+title: "Persistent Caching of ArFS Entity Metadata"
+description: "Command line interface for ArDrive"
+---
+
+To avoid redundant requests to the Arweave network for immutable ArFS entity metadata, a persistent file cache is created and maintained at:
+
+```
+Windows: <os.homedir()>/ardrive-caches/metadata
+Non-Windows: <os.homedir()>/.ardrive/caches/metadata
+```
+
+The `XDG_CACHE_HOME` environment variable is honored, where applicable, and will be used in place of `os.homedir()` in the scenarios described above.
+
+Metadata cache logging to stderr can be enabled by setting the `ARDRIVE_CACHE_LOG` environment variable to `1`.
+
+Cache performance is UNDEFINED for multi-process scenarios, but is presumed to be generally usable.
+
+The cache can be manually cleared safely at any time that any integrating app is not in operation.
+
+
+```shell
+  █████╗ ██████╗ ██████╗ ██████╗ ██╗██╗   ██╗███████╗
+ ██╔══██╗██╔══██╗██╔══██╗██╔══██╗██║██║   ██║██╔════╝
+ ███████║██████╔╝██║  ██║██████╔╝██║██║   ██║█████╗
+ ██╔══██║██╔══██╗██║  ██║██╔══██╗██║╚██╗ ██╔╝██╔══╝
+ ██║  ██║██║  ██║██████╔╝██║  ██║██║ ╚████╔╝ ███████╗
+ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝  ╚══════╝
+                  ██████╗██╗     ██╗
+                 ██╔════╝██║     ██║
+                 ██║     ██║     ██║
+                 ██║     ██║     ██║
+                 ╚██████╗███████╗██║
+                  ╚═════╝╚══════╝╚═╝
+
+
+Write ArFS
+===========
+create-drive
+create-folder
+upload-file
+create-manifest
+
+move-file
+move-folder
+
+retry-tx
+
+
+Read ArFS
+===========
+file-info
+folder-info
+drive-info
+
+list-folder
+list-drive
+list-all-drives
+
+download-file
+download-folder
+download-drive
+
+Wallet Ops
+===========
+generate-seedphrase
+generate-wallet
+
+get-address
+get-balance
+send-ar
+
+get-drive-key
+get-file-key
+
+last-tx
+
+
+Arweave Ops
+===========
+base-reward
+get-mempool
+create-tx
+send-tx
+tx-status
+
+ardrive \<command\> --help
+```
+
+
+[ArDrive Community Discord][ardrive-discord]
+
+[ardrive]: https://ardrive.io
+[arweave]: https://ardrive.io/what-is-arweave/
+[ardrive-github]: https://github.com/ardriveapp/
+[arfs]: https://ardrive.atlassian.net/l/c/m6P1vJDo
+[ardrive-web-app]: https://app.ardrive.io
+[ardrive-core]: https://github.com/ardriveapp/ardrive-core-js
+[yarn-install]: https://yarnpkg.com/getting-started/install
+[nvm-install]: https://github.com/nvm-sh/nvm#installing-and-updating
+[wsl-install]: https://code.visualstudio.com/docs/remote/wsl
+[editor-config-vscode]: https://marketplace.visualstudio.com/items?itemName=EditorConfig.EditorConfig
+[prettier-vscode]: https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode
+[zipfs-vscode]: https://marketplace.visualstudio.com/items?itemName=arcanis.vscode-zipfs
+[eslint-vscode]: https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint
+[viewblock blockchain explorer]: https://viewblock.io/arweave/
+[ardrive-discord]: https://discord.com/invite/ya4hf2H
+[arconnect]: https://arconnect.io/
+[kb-wallets]: https://ardrive.atlassian.net/l/c/FpK8FuoQ
+[arweave-manifests]: https://github.com/ArweaveTeam/arweave/wiki/Path-Manifests
+[example-manifest-webpage]: https://arweave.net/qozq9YIUPEHfZhoTp9DkBpJuA_KNULBnfLiMroj5pZI
+[arlocal]: https://github.com/textury/arlocal
+[mozilla-mime-types]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types
+[viewblock]: https://viewblock.io/arweave/
+[tx_anchors]: https://docs.arweave.org/developers/server/http-api#field-definitions
+[gql-guide]: https://gql-guide.vercel.app/#owners
+[ardrive-turbo]: https://ardrive.io/turbo/
