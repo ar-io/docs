@@ -37,6 +37,17 @@ const PACKAGES: {
   },
   // Wayfinder SDK packages
   {
+    name: "wayfinder",
+    readmeUrl:
+      "https://raw.githubusercontent.com/ar-io/wayfinder/alpha/README.md",
+    dest: path.resolve("content/sdks/wayfinder"),
+    title: "Wayfinder SDK's",
+    description:
+      "Decentralized access to Arweave data with built-in verification and gateway routing",
+    sourceUrl: "https://github.com/ar-io/wayfinder",
+    icon: "/wayfinder.svg",
+  },
+  {
     name: "wayfinder-core",
     readmeUrl:
       "https://raw.githubusercontent.com/ar-io/wayfinder/alpha/packages/wayfinder-core/README.md",
@@ -243,24 +254,31 @@ async function fetchReadme(url: string): Promise<string> {
 async function processPackage(pkg: (typeof PACKAGES)[0]) {
   console.log(`Processing ${pkg.name}...`);
 
-  // Check if index.mdx exists before cleaning
-  let indexContent: string | null = null;
-  const indexPath = path.join(pkg.dest, "index.mdx");
-  try {
-    indexContent = await fs.readFile(indexPath, "utf-8");
-  } catch (e) {
-    // index.mdx doesn't exist, that's fine
-  }
-
   // Clean and create destination directory
   await fs.rm(pkg.dest, { recursive: true, force: true });
   await fs.mkdir(pkg.dest, { recursive: true });
 
-  // Restore index.mdx if it existed
-  if (indexContent) {
-    await fs.writeFile(indexPath, indexContent);
-    console.log(`Preserved existing index.mdx for ${pkg.name}`);
-  }
+  // Create simple index.mdx with LLM callout
+  const indexPath = path.join(pkg.dest, "index.mdx");
+  const indexContent = `---
+title: "${pkg.title}"
+description: "${pkg.description}"
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+
+<Callout type="info">
+  **For AI and LLM users**: Access the complete ${pkg.title} documentation in plain text
+  format at [llm.txt](/sdks/${pkg.name === "ardrive-cli" ? "(clis)" : pkg.name}/llm.txt) for easy consumption by AI agents
+  and language models.
+</Callout>
+
+# ${pkg.title}
+
+Please refer to the [source code](${pkg.sourceUrl}) for SDK details.`;
+
+  await fs.writeFile(indexPath, indexContent);
+  console.log(`Created index.mdx with LLM callout for ${pkg.name}`);
 
   try {
     // Fetch the README.md from GitHub
@@ -394,20 +412,7 @@ ${escapedContent}`;
       }
     }
 
-    // Create LLM text page that redirects to the .txt file
-    const llmPageContent = `---
-title: "LLM Text"
-description: "Complete LLM-friendly text for ${pkg.title}"
----
-
-import { redirect } from 'next/navigation'
-
-export default function LLMPage() {
-  redirect('/sdks/${pkg.name}/llm.txt')
-}`;
-
-    await fs.writeFile(path.join(pkg.dest, "llm.mdx"), llmPageContent);
-    rootPages.push("llm");
+    // LLM pages are no longer needed - users can access llm.txt directly
 
     // Create top-level meta for the package
     const metaPath = path.join(pkg.dest, "meta.json");
@@ -428,18 +433,6 @@ export default function LLMPage() {
     console.log(`${pkg.name} README.md successfully processed`);
   } catch (error) {
     console.error(`Error converting ${pkg.name} README:`, error);
-    // Create fallback if README doesn't exist
-    await fs.writeFile(
-      path.join(pkg.dest, "index.mdx"),
-      `---
-title: "${pkg.title}"
-description: "${pkg.description}"
----
-
-# ${pkg.title}
-
-Please refer to the [source code](${pkg.sourceUrl}) for SDK details.`
-    );
 
     // Create basic meta
     const metaPath = path.join(pkg.dest, "meta.json");

@@ -1,97 +1,153 @@
+# Automated Releases (/(releases)/automated-releases)
+
+This repository is configured with GitHub Actions workflows that automate the release process:
+
+- **Main Branch**: When changes are merged to `main`, a standard release is created
+- **Alpha Branch**: When changes are merged to `alpha`, a prerelease (alpha tagged) is created
+
+The workflow automatically:
+1. Determines whether to create a prerelease or standard release based on the branch
+2. Versions packages using changesets
+3. Publishes to npm
+4. Creates GitHub releases
+5. Pushes tags back to the repository
+
+To use the automated process:
+1. Create changesets for your changes
+2. Push your changes to a feature branch
+3. Create a pull request to `alpha` (for prereleases) or `main` (for standard releases)
+4. When the PR is merged, the release will be automatically created
+
+# Creating a Changeset (/(releases)/creating-a-changeset)
+
+To create a changeset when making changes:
+
+```bash
+npx changeset
+```
+
+This will guide you through the process of documenting your changes and selecting which packages are affected. Changesets will be used during the release process to update package versions and generate changelogs.
+
+# Manual Release Process (/(releases)/manual-release-process)
+
+If you need to release manually, follow these steps:
+
+#### Alpha Releases
+
+To release a new alpha version:
+
+```bash
+npx changeset version
+```
+
+3. Review the version changes and changelogs
+4. Commit the changes:
+
+```bash
+git add .
+git commit -m "chore(release): version packages"
+```
+
+5. Publish the packages to npm:
+
+```bash
+npm run build
+npx changeset publish
+```
+
+6. Push the changes and tags:
+
+```bash
+git push origin main --follow-tags
+```
+
+#### Prerelease Mode
+
+For prerelease versions (e.g., beta, alpha):
+
+1. Enter prerelease mode specifying the tag:
+
+```bash
+npx changeset pre enter beta
+```
+
+2. Create changesets as normal:
+
+```bash
+npx changeset
+```
+
+3. Version and publish as normal:
+
+```bash
+npx changeset version
+git add .
+git commit -m "chore(release): prerelease version packages"
+npm run build
+npx changeset publish
+git push origin main --follow-tags
+```
+
+4. Exit prerelease mode when ready for a stable release:
+
+```bash
+npx changeset pre exit
+```
+
+5. Follow the normal release process for the stable version.
+
+# Architecture (/architecture)
+
+- Code to interfaces.
+- Prefer type safety over runtime safety.
+- Prefer composition over inheritance.
+- Prefer integration tests over unit tests.
+
+# Contributing (/contributing)
+
+1. Branch from `alpha`
+2. Create a new branch for your changes (e.g. `feat/my-feature`)
+3. Make your changes on your branch, push them to your branch
+4. As you make commits/changes or once you're ready to release, create a changeset describing your changes via `npx changeset`.
+5. Follow the prompts to select the packages that are affected by your changes.
+6. Add and commit the changeset to your branch
+7. Request review from a maintainer, and once approved, merge your changes into the `alpha` branch
+8. A release PR will be automatically created with all pending changesets to the `alpha` branch
+9. The maintainer will review the PR and merge it into `alpha`, which will trigger the automated release process using all pending changesets
+
 # Wayfinder SDK's (/index)
 
-Wayfinder leverages the decentralized AR.IO Network to provide robust, censorship-resistant access to data stored on Arweave, removing reliance on centralized gateways. By routing requests through a distributed set of community-operated gateways, Wayfinder ensures high availability, redundancy, and improved performance for users and applications.
+**For AI and LLM users**: Access the complete Wayfinder SDK's documentation in plain text
+  format at [llm.txt](/sdks/wayfinder/llm.txt) for easy consumption by AI agents
+  and language models.
 
-The `ar://` protocol enables decentralized resolution and access to Arweave data using several flexible URL formats:
+# Wayfinder SDK's
 
-- `ar://TRANSACTION_ID` — Direct access to a specific Arweave transaction
-- `ar://NAME` — Resolution of ArNS names (with optional path support)
-- `ar:///info` — Direct access to gateway endpoints (e.g., `/info`)
+Please refer to the [source code](https://github.com/ar-io/wayfinder) for SDK details.
 
-To learn more about the Wayfinder protocol and how it works, visit [/learn/wayfinder](/learn/wayfinder).
+# Linting & Formatting (/linting-formatting)
 
-## Getting Started
+- `yarn lint:check` - checks for linting errors
+- `yarn lint:fix` - fixes linting errors
+- `yarn format:check` - checks for formatting errors
+- `yarn format:fix` - fixes formatting errors
 
-Choose your environment to get started with Wayfinder:
+# Packages (/packages)
 
-  }
-    title="@ar.io/wayfinder-core"
-    description="Core SDK for Node.js applications and server environments"
-    href="/sdks/wayfinder/wayfinder-core"
-  />
-  }
-    title="@ar.io/wayfinder-react"
-    description="React hooks and components for browser applications"
-    href="/sdks/wayfinder/wayfinder-react"
-  />
+This monorepo contains the following packages:
 
-## Quick Examples
+- **[@ar.io/wayfinder-core](./packages/wayfinder-core)** ![npm](https://img.shields.io/npm/v/@ar.io/wayfinder-core.svg)
+: Core JavaScript library for the Wayfinder routing and verification protocol
+- **[@ar.io/wayfinder-react](./packages/wayfinder-react)** ![npm](https://img.shields.io/npm/v/@ar.io/wayfinder-react.svg)
+: React components for Wayfinder, including Hooks and Context provider
+- **[@ar.io/wayfinder-extension](./packages/wayfinder-extension)** ![chrome](https://img.shields.io/chrome-web-store/v/hnhmeknhajanolcoihhkkaaimapnmgil?label=chrome)
+: Chrome extension for Wayfinder
+- **[@ar.io/wayfinder-cli](./packages/cli)** (coming soon)
+: CLI for interacting with Wayfinder in the terminal
 
-### Node.js
+# Testing (/testing)
 
-```javascript
-
-// Create a Wayfinder client
-const wayfinder = createWayfinderClient({
-  ario: ARIO.mainnet(),
-});
-
-// Fetch data using the ar:// protocol
-const response = await wayfinder.request('ar://ardrive');
-console.log(response);
-```
-
-### React
-
-```jsx
-
-// Wrap your app with the provider
-function App() {
-  return (
-
-  );
-}
-
-// Use the hook in your components
-function WayfinderImage({ txId }: { txId: string }) {
-  const { resolvedUrl, isLoading, error } = useWayfinderUrl({ txId });
-
-  if (error) {
-    return Error resolving URL: {error.message};
-  }
-
-  if (isLoading) {
-    return Resolving URL...;
-  }
-
-  return (
-    
-  );
-}
-```
-
-## Next Steps
-
-  }
-    title="Learn about the AR.IO Network"
-    description="Understanding the AR.IO decentralized infrastructure"
-    href="/learn/what-is-ario"
-  />
-  }
-    title="Decentralized Access"
-    description="Learn how to access Arweave data in a decentralized way"
-    href="/build/access"
-  />
-  }
-    title="Run a Gateway"
-    description="Join the network by operating your own AR.IO gateway"
-    href="/build/run-a-gateway/quick-start"
-  />
-  }
-    title="Integrate Wayfinder into your App"
-    description="Advanced integration patterns and best practices"
-    href="/sdks/wayfinder/wayfinder-core"
-  />
+- `yarn test` - runs all tests in all packages (monorepo)
 
 # Custom Providers and Strategies (/wayfinder-core/(advanced-usage)/custom-providers-and-strategies)
 
@@ -821,72 +877,13 @@ const redirectUrl = await wayfinder.resolveUrl({
 
 # Wayfinder Core (/wayfinder-core)
 
-**Building for the web?** Consider using [@ar.io/wayfinder-react](/sdks/wayfinder/wayfinder-react) for React applications, which provides hooks and components optimized for browser environments.
+**For AI and LLM users**: Access the complete Wayfinder Core documentation in plain text
+  format at [llm.txt](/sdks/wayfinder-core/llm.txt) for easy consumption by AI agents
+  and language models.
 
-## Quick Start
+# Wayfinder Core
 
-    ### Install
-
-    ```npm
-    npm install @ar.io/wayfinder-core @ar.io/sdk
-    ```
-
-    ### Import and configure
-
-    ```javascript
-        
-    // Use the top-ranked gateways in the network
-    const wayfinder = createWayfinderClient({
-      ario: ARIO.mainnet(),
-    });
-    ```
-
-    ### Make your first request
-
-    ```javascript
-    // Use Wayfinder to fetch and verify data using ar:// protocol
-    const response = await wayfinder.request('ar://ardrive');
-    console.log(response);
-    ```
-
-    ### Use custom configuration (optional)
-
-    ```javascript
-    // Use custom static gateways with specific options
-    const customWayfinder = createWayfinderClient({
-      trustedGateways: ['https://permagate.io', 'https://arweave.net'],
-      routing: 'fastest',
-      verification: 'hash',
-    });
-    ```
-
-## Next Steps
-
-  }
-    title="Advanced Usage"
-    description="Explore advanced configuration options and patterns"
-    href="/sdks/wayfinder/wayfinder-core/direct-constructor-usage"
-  />
-  }
-    title="Gateway Providers"
-    description="Learn about different gateway provider strategies"
-    href="/sdks/wayfinder/wayfinder-core/networkgatewaysprovider"
-  />
-  }
-    title="Request Flow"
-    description="Understanding how Wayfinder routes and verifies requests"
-    href="/sdks/wayfinder/wayfinder-core/request-flow"
-  />
-  }
-    title="Monitoring & Events"
-    description="Monitor performance and handle events"
-    href="/sdks/wayfinder/wayfinder-core/global-request-events"
-  />
-
-# LLM Text (/wayfinder-core/llm)
-
-redirect('/sdks/wayfinder-core/llm.txt')
-}
+Please refer to the [source code](https://github.com/ar-io/wayfinder/tree/main/packages/wayfinder-core) for SDK details.
 
 # Request Flow (/wayfinder-core/request-flow)
 
@@ -1033,90 +1030,20 @@ function WayfinderImage({ txId }: { txId: string }) {
 
 # Wayfinder React (/wayfinder-react)
 
-A set of React hooks and components for integrating Wayfinder, the decentralized data access system for Arweave.
+**For AI and LLM users**: Access the complete Wayfinder React documentation in plain text
+  format at [llm.txt](/sdks/wayfinder-react/llm.txt) for easy consumption by AI agents
+  and language models.
 
-Wayfinder-react wraps the functionality of wayfinder-core in user-friendly React components and hooks, making it easy to integrate AR.IO network functionality into your React applications with built-in loading states, error handling, and caching.
+# Wayfinder React
 
-## Quick Start
+Please refer to the [source code](https://github.com/ar-io/wayfinder/tree/main/packages/wayfinder-react) for SDK details.
 
-    ### Install Wayfinder React
+# What is it? (/what-is-it)
 
-    ```npm
-    npm install @ar.io/wayfinder-react @ar.io/wayfinder-core @ar.io/sdk
-    ```
+Wayfinder is a simple, open-source client-side routing and verification protocol for the permaweb. It leverages the [AR.IO Network](https://ar.io) to route users to the most optimal gateway for a given request.
 
-    ### Install polyfills (required for web environments)
+# Who is it for? (/who-is-it-for)
 
-    Crypto polyfills are required for web environments due to the use of `crypto`, `buffer` and `process` types in wayfinder-react dependencies (i.e. `arbundles`).
-
-    ```npm
-    npm install --save-dev vite-plugin-node-polyfills
-    ```
-
-    ```js
-    // vite.config.js
-        
-          plugins: [
-        nodePolyfills({
-          globals: {
-            Buffer: true,
-            global: true,
-            process: true,
-          },
-        }),
-      ],
-    });
-    ```
-
-    Configure your bundler (Webpack, Vite, Rollup, etc.) to provide polyfills for `crypto`, `process`, and `buffer`. Refer to your bundler's documentation for polyfill configuration.
-
-    ### Setup the provider
-
-    ```jsx
-    // App.tsx
-    
-    function App() {
-      return (
-
-      );
-    }
-    ```
-
-    ### Use the available hooks
-    
-    ```typescript
-    
-    function WayfinderImage({ txId }: { txId: string }) {
-      const { resolvedUrl, isLoading, error } = useWayfinderUrl({ txId });
-
-      if (error) {
-        return Error resolving URL: {error.message};
-      }
-
-      if (isLoading) {
-        return Resolving URL...;
-      }
-
-      return (
-        
-      );
-    }
-```
-
-## Next Steps
-
-  }
-    title="Hooks Reference"
-    description="Comprehensive guide to all available React hooks"
-    href="/sdks/wayfinder/wayfinder-react/usewayfinderrequest"
-  />
-  }
-    title="Wayfinder Core"
-    description="Learn about the underlying core library"
-    href="/sdks/wayfinder/wayfinder-core"
-  />
-
-# LLM Text (/wayfinder-react/llm)
-
-redirect('/sdks/wayfinder-react/llm.txt')
-}
+- **Builders** who need reliable, decentralized access to Arweave data through the powerful [AR.IO Network](https://ar.io)
+- **Browsers** who demand complete control over their permaweb journey with customizable gateways and robust verification settings for enhanced security and reliability
+- **Operators** who power the [AR.IO Network](https://ar.io) and want to earn rewards* for serving wayfinder traffic to the growing permaweb ecosystem
