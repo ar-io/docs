@@ -5,696 +5,651 @@ description: "Store encrypted data on Arweave and control access through Nillion
 
 import { Shield, Key, Database, Lock, Eye, Code } from "lucide-react";
 
-Store **encrypted data permanently** on Arweave while controlling access through **Nillion's nilCC confidential compute platform**. This approach ensures your data remains encrypted on Arweave, decryption keys are securely stored in **nilDB** (Private Storage), and authorized users can access processed results through **confidential VMs** running Docker containers with AMD SEV-SNP hardware security.
+Store **encrypted data permanently** on Arweave while controlling access through **Nillion's nilDB private storage**. This approach ensures your data remains encrypted on Arweave, decryption keys are securely stored in **nilDB** (Private Storage), and only authorized users can access and decrypt the data.
 
-Arweave provides **permanent, immutable storage** for encrypted data, while Nillion's **nilDB** stores decryption keys encrypted and split across multiple nodes. Authorized users can then trigger **nilCC workloads** (Docker containers in confidential VMs) that fetch encrypted data from Arweave, decrypt it blindly within the TEE, and return only processed results—with cryptographic attestation proving the computation happened securely.
+Arweave provides **permanent, immutable storage** for encrypted data, while Nillion's **nilDB** stores decryption keys encrypted and split across multiple nodes. Users can encrypt files using their private keys stored in nilDB, upload the encrypted data to Arweave, and later retrieve and decrypt the data using the same private key—all while maintaining complete control over access permissions.
 
 ## Prerequisites
 
-Before starting, you'll need to complete Nillion's 3-step developer flow:
+Before starting, you'll need to complete Nillion's setup process:
 
 <Steps>
   <Step>
-    ### Create Wallet & Get Tokens
+    ### Create Builder and Get Tokens
 
-    **Create a Nillion Wallet:**
-    - Visit [Nillion Wallet Guide](https://docs.nillion.com/community/guides/nillion-wallet)
-    - Set up your wallet for the Nillion network
+    **Create a Test Builder:**
+    - Visit [Nillion Subscription Portal](https://subscription.nillion.com)
+    - Create a testnet public/private key pair for network access
+    - Use two distinct keys: one for network access, one for subscription payments
 
     **Get Testnet NIL Tokens:**
     - Visit [NIL Faucet](https://faucet.testnet.nillion.com/)
-    - Get testnet NIL tokens to start building
+    - Fund your account with testnet NIL tokens
 
   </Step>
 
   <Step>
-    ### Subscribe to Services
+    ### Subscribe to nilDB Service
 
-    **Subscribe to nilDB Service:**
-    - Visit [nilPay Subscription](https://nilpay.vercel.app/)
-    - Pay NIL tokens for nilDB service subscription
-    - Receive your Nillion API Key for Private Storage
-
-    **Note:** You need a valid API key to access Nillion's Private Storage services.
+    **Activate nilDB Subscription:**
+    - Use your subscription wallet to pay for nilDB service
+    - Save your private key in hex format for authentication
+    - You'll need this key to access Nillion's Private Storage services
 
   </Step>
 
   <Step>
     ### Set Up Development Environment
 
+    **Create a New Project:**
+    ```bash
+    mkdir nillion-arweave-demo
+    cd nillion-arweave-demo
+    npm init -y
+    ```
+
     **Install Required Dependencies:**
     ```bash
-    npm install @nillion/secretvaults @nillion/nuc
+    npm install @nillion/secretvaults @nillion/nuc @nillion/blindfold @ardrive/turbo-sdk arweave dotenv @noble/curves consola
+    npm install --save-dev typescript @types/node ts-node @tsconfig/node20
     ```
 
-    **Configure Network:**
-    - Use testnet endpoints for development
-    - Configure multiple nilDB node URLs (typically 3 nodes)
-    - Set up your API key from the subscription
+    **Set Up TypeScript:**
+    ```bash
+    npx tsc --init
+    ```
 
-  </Step>
-</Steps>
-
-## Setting Up Nillion Access Control
-
-<Steps>
-  <Step>
-    ### Initialize Builder and User Clients
-
-    Set up Nillion's native access control system using Builder and User clients:
-
-    ```javascript
-    import { SecretVaultBuilderClient, SecretVaultUserClient } from '@nillion/secretvaults'
-    import { generateKeyPair } from '@nillion/nuc'
-
-    // Initialize Builder Client (for creating collections and managing access)
-    const builderClient = new SecretVaultBuilderClient({
-      keypair: yourKeypair, // From your Nillion API Key
-      urls: {
-        chain: 'http://rpc.testnet.nilchain-rpc-proxy.nilogy.xyz',
-        auth: 'https://nilauth.sandbox.app-cluster.sandbox.nilogy.xyz',
-        dbs: [
-          'https://nildb-stg-n1.nillion.network',
-          'https://nildb-stg-n2.nillion.network',
-          'https://nildb-stg-n3.nillion.network'
-        ]
+    **Update tsconfig.json:**
+    ```json
+    {
+      "extends": "@tsconfig/node20/tsconfig.json",
+      "compilerOptions": {
+        "outDir": "dist/src",
+        "baseUrl": ".",
+        "module": "esnext",
+        "moduleResolution": "bundler",
+        "allowUnusedLabels": false,
+        "allowImportingTsExtensions": true,
+        "noEmit": true,
+        "allowUnreachableCode": false,
+        "noFallthroughCasesInSwitch": true,
+        "noUncheckedIndexedAccess": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "forceConsistentCasingInFileNames": true,
+        "declaration": true,
+        "sourceMap": true,
+        "resolveJsonModule": true
       },
-      blindfold: { operation: 'store' }
-    })
-
-    // Refresh authentication tokens
-    await builderClient.refreshRootToken()
-
-    // Register builder profile (one-time setup)
-    await builderClient.register({
-      did: builderClient.did,
-      name: 'Data Access Manager'
-    })
-
-    // Generate user keypair for access control
-    const userKeyPair = await generateKeyPair()
-    const userDid = userKeyPair.did
-
-    // Initialize User Client
-    const userClient = new SecretVaultUserClient({
-      keypair: userKeyPair,
-      urls: {
-        chain: 'http://rpc.testnet.nilchain-rpc-proxy.nilogy.xyz',
-        auth: 'https://nilauth.sandbox.app-cluster.sandbox.nilogy.xyz',
-        dbs: [
-          'https://nildb-stg-n1.nillion.network',
-          'https://nildb-stg-n2.nillion.network',
-          'https://nildb-stg-n3.nillion.network'
-        ]
-      },
-      blindfold: { operation: 'store' }
-    })
-
-    // Refresh authentication tokens
-    await userClient.refreshRootToken()
-
-    console.log('Nillion access control initialized:', {
-      builderDid: builderClient.did,
-      userDid: userDid
-    });
+      "include": ["src"],
+      "exclude": ["dist", "bundle", "node_modules"]
+    }
     ```
 
-  </Step>
-
-  <Step>
-    ### Create Delegation Tokens
-
-    Generate delegation tokens for secure, time-limited access:
-
-    ```javascript
-    // Create delegation token for user access
-    async function createDelegationToken(userDid, expirationHours = 24) {
-      const expiresAt = Math.floor(Date.now() / 1000) + (expirationHours * 60 * 60)
-
-      const delegationToken = await builderClient.createDelegationToken({
-        audience: userDid,
-        expiresAt: expiresAt
-      })
-
-      return delegationToken
-    }
-
-    // Create token for specific user
-    const delegationToken = await createDelegationToken(userDid, 24) // 24 hours
-    console.log('Delegation token created:', delegationToken);
+    **Configure Environment Variables:**
+    Create a `.env` file with your configuration:
     ```
-
-  </Step>
-
-  <Step>
-    ### Set Up Access Control and Validation
-
-    Configure granular permissions and implement access validation:
-
-    ```javascript
-    // Define access control permissions
-    const accessControlList = {
-      granteeDid: userDid,
-      read: true,    // User can read the data
-      write: false,  // User cannot modify the data
-      execute: true  // User can execute computations on the data
-    }
-
-    // Create owned collection with access control
-    const ownedCollection = await builderClient.createCollection({
-      name: 'Encrypted Data Keys',
-      collectionType: 'owned',
-      schema: {
-        type: 'object',
-        properties: {
-          arweave_tx_id: { type: 'string' },
-          encryption_key: { type: 'string', secret: true },
-          encryption_iv: { type: 'string', secret: true },
-          user_id: { type: 'string' },
-          created_at: { type: 'string' }
-        },
-        required: ['arweave_tx_id', 'encryption_key', 'encryption_iv', 'user_id']
-      }
-    })
-
-    // Access validation function
-    async function validateNillionAccess(userDid, arweaveTxId) {
-      try {
-        // Check if user has access to the decryption key
-        const ownedRecords = await userClient.listDataReferences();
-
-        const keyRecord = ownedRecords.find(record =>
-          record.collection === ownedCollection.id &&
-          record.document &&
-          record.document.arweave_tx_id === arweaveTxId
-        );
-
-        if (!keyRecord) {
-          throw new Error('Access denied: No decryption key found for this data');
-        }
-
-        // Read the specific record to verify access
-        const recordData = await userClient.readData({
-          collection: ownedCollection.id,
-          document: keyRecord.document._id
-        });
-
-        return {
-          authorized: true,
-          keyRecord: recordData,
-          permissions: {
-            read: true,
-            write: false,
-            execute: true
-          }
-        };
-
-      } catch (error) {
-        console.error('Nillion access validation failed:', error);
-        return { authorized: false, error: error.message };
-      }
-    }
-
-    // Grant access to additional users
-    async function grantUserAccess(granteeDid, arweaveTxId) {
-      const ownedRecords = await userClient.listDataReferences();
-      const keyRecord = ownedRecords.find(record =>
-        record.collection === ownedCollection.id &&
-        record.document &&
-        record.document.arweave_tx_id === arweaveTxId
-      );
-
-      if (keyRecord) {
-        await userClient.grantAccess({
-          collection: ownedCollection.id,
-          document: keyRecord.document._id,
-          grantee: granteeDid,
-          read: true,
-          write: false,
-          execute: true
-        });
-        console.log(`Access granted to ${granteeDid} for data ${arweaveTxId}`);
-      }
-    }
-
-    console.log('Access control system configured:', ownedCollection.id);
+    NIL_BUILDER_PRIVATE_KEY=your_hex_private_key_here
+    NIL_BUILDER_COLLECTION_ID=your_collection_id_here # If it exists, one will be created otherwise
+    NILCHAIN_URL=http://rpc.testnet.nilchain-rpc-proxy.nilogy.xyz
+    NILAUTH_URL=https://nilauth.sandbox.app-cluster.sandbox.nilogy.xyz
+    NILDB_NODES=https://nildb-stg-n1.nillion.network,https://nildb-stg-n2.nillion.network,https://nildb-stg-n3.nillion.network
     ```
 
   </Step>
 </Steps>
 
-## Getting Started with Encrypted Data Storage
+## Understanding the Implementation
+
+Let's build the application step by step, explaining what each part does:
 
 <Steps>
   <Step>
-    ### Prepare and Encrypt Your Data
+    ### Set Up Project Structure and Imports
 
-    Encrypt your sensitive data before uploading to Arweave. Here's an example for financial records:
+    First, create the main application file `src/index.ts` and understand the imports:
 
-    ```javascript
-    import CryptoJS from "crypto-js";
+    ```typescript
+    import { SecretVaultBuilderClient, SecretVaultUserClient, Uuid } from "@nillion/secretvaults";
+    import { createWallet, downloadFile, uploadFile } from "./arweave";
+    import { JWKInterface } from "arweave/node/lib/wallet";
+    import { logger } from "./logger";
+    import { Keypair, Command, NucTokenBuilder, Did, NucTokenEnvelope, DelegationBody, InvocationBody } from "@nillion/nuc";
+    import fs from "fs";
+    import { createCipheriv, createDecipheriv, createHash, randomBytes } from "crypto";
+    import { randomUUID } from "node:crypto";
+    import { SecretKey } from "@nillion/blindfold";
+    import { bytesToHex } from "@noble/curves/utils";
+    import "dotenv/config";
+    ```
 
-    // Prepare your sensitive data
-    const sensitiveData = {
-      "user_id": "user_12345",
-      "account_balance": 50000,
-      "transaction_history": [
-        { "date": "2025-01-15", "amount": 1000, "type": "deposit" },
-        { "date": "2025-01-14", "amount": -500, "type": "withdrawal" }
+    **What these imports do:**
+    - **Nillion SDKs**: `@nillion/secretvaults` and `@nillion/nuc` for private storage and access control
+    - **Arweave**: `arweave` and `@ardrive/turbo-sdk` for permanent data storage
+    - **Crypto**: Node.js built-in crypto functions for AES-256-GCM encryption
+    - **Utilities**: Helper functions for key conversion and UUID generation
+
+  </Step>
+
+  <Step>
+    ### Define Configuration and Types
+
+    Set up the application configuration with proper TypeScript types:
+
+    ```typescript
+    export type AppConfig = {
+      NILCHAIN_URL: string;
+      NILAUTH_URL: string;
+      NILDB_NODES: string[];
+      NIL_PAYER_PRIVATE_KEY: string;
+      NIL_BUILDER_PRIVATE_KEY: string;
+      NIL_BUILDER_COLLECTION_ID: string;
+    };
+
+    const config: AppConfig = {
+      NILCHAIN_URL: process.env.NILCHAIN_URL || "http://rpc.testnet.nilchain-rpc-proxy.nilogy.xyz",
+      NILAUTH_URL: process.env.NILAUTH_URL || "https://nilauth.sandbox.app-cluster.sandbox.nilogy.xyz",
+      NILDB_NODES: process.env.NILDB_NODES ? process.env.NILDB_NODES.split(",") : [
+        "https://nildb-stg-n1.nillion.network",
+        "https://nildb-stg-n2.nillion.network",
+        "https://nildb-stg-n3.nillion.network",
       ],
-      "credit_score": 750
-    };
-
-    // Generate encryption key and IV
-    const secretKey = CryptoJS.lib.WordArray.random(256/8);
-    const iv = CryptoJS.lib.WordArray.random(128/8);
-
-    // Encrypt the data using AES-256-GCM
-    const encryptedData = CryptoJS.AES.encrypt(
-      JSON.stringify(sensitiveData),
-      secretKey,
-      {
-        iv: iv,
-        mode: CryptoJS.mode.GCM,
-        padding: CryptoJS.pad.NoPadding
-      }
-    ).toString();
-
-    // Prepare encryption key for Nillion storage
-    const encryptionKey = {
-      key: secretKey.toString(CryptoJS.enc.Base64),
-      iv: iv.toString(CryptoJS.enc.Base64)
+      NIL_BUILDER_PRIVATE_KEY: process.env.NIL_BUILDER_PRIVATE_KEY,
+      NIL_BUILDER_COLLECTION_ID: process.env.NIL_BUILDER_COLLECTION_ID,
     };
     ```
 
-    **Best Practices:**
-    - Use strong, randomly generated keys (256-bit for AES-256)
-    - Include initialization vectors (IV) for each encryption
-    - Store keys separately from encrypted data
-    - Use authenticated encryption (AES-256-GCM) for integrity and confidentiality
-    - GCM mode provides built-in authentication preventing tampering
-
-    For detailed encryption methods, see our [Encryption documentation](/build/upload/encryption).
+    **What this does:**
+    - **Type safety**: Defines the structure of our configuration object
+    - **Environment variables**: Loads settings from `.env` file with fallback defaults
+    - **Network endpoints**: Points to Nillion testnet infrastructure
+    - **Multiple nodes**: Uses 3 nilDB nodes for redundancy and security
 
   </Step>
 
   <Step>
-    ### Upload Encrypted Data to Arweave
+    ### Create Encryption and Decryption Functions
 
-    Upload your encrypted data with proper tags for identification:
+    Implement AES-256-GCM encryption using the user's private key:
 
-    <Tabs items={['Turbo SDK', 'Turbo CLI']}>
-      <Tab value="Turbo SDK">
+    ```typescript
+    // Utility functions
+    const downloadFile = async (url, location) => {
+      try {
+        const response = await fetch(url);
+        const data = await response.text();
+        await fs.promises.writeFile(location, data);
+        console.log(`💾 Downloaded file saved to: ${location}`);
+      } catch (error) {
+        console.error("❌ Download file failed:", error);
+      }
+    };
 
-        ```typescript
-        import { TurboFactory } from '@ardrive/turbo-sdk'
+    const encryptContent = (content, encryptionKey) => {
+      // Convert hex private key to buffer
+      const privateKeyBuffer = Buffer.from(encryptionKey, "hex");
+      // Derive a 32-byte encryption key from your private key using SHA-256
+      const derivedKey = createHash("sha256").update(privateKeyBuffer).digest();
+      // Validate derived key length (should be 32 bytes for AES-256)
+      if (derivedKey.length !== 32) {
+        throw new Error("Derived encryption key must be exactly 32 bytes for AES-256");
+      }
+      // Generate secure encryption parameters
+      const iv = randomBytes(16);
+      // Encrypt using AES-256-GCM
+      const cipher = createCipheriv("aes-256-gcm", derivedKey, iv);
+      let encrypted = cipher.update(content);
+      encrypted = Buffer.concat([encrypted, cipher.final()]);
+      // Get the authentication tag (16 bytes for GCM)
+      const authTag = cipher.getAuthTag();
+      // Combine IV + authTag + encrypted data into a single buffer
+      return Buffer.concat([iv, authTag, encrypted]);
+    };
+    ```
 
-        // Initialize with your wallet
-        const turbo = await TurboFactory.authenticated({
-          privateKey: jwk, // Your Arweave wallet
-          token: 'arweave'
-        })
+    **What this does:**
+    - **Key derivation**: Uses SHA-256 to create a 32-byte encryption key from the user's private key
+    - **AES-256-GCM**: Provides both confidentiality and authenticity
+    - **Random IV**: Each encryption uses a unique initialization vector
+    - **Auth tag**: Prevents tampering with the encrypted data
+    - **Combined format**: Stores IV, auth tag, and encrypted data together
 
-        // Upload encrypted data
+  </Step>
+
+  <Step>
+    ### Create Decryption Function
+
+    Implement the corresponding decryption function:
+
+    ```typescript
+
+    const decryptContent = (encryptedData, encryptionKey, outputLocation) => {
+      // Convert hex private key to buffer
+      const privateKeyBuffer = Buffer.from(encryptionKey, "hex");
+      // Derive the same 32-byte encryption key using SHA-256
+      const derivedKey = createHash("sha256").update(privateKeyBuffer).digest();
+      // Validate derived key length
+      if (derivedKey.length !== 32) {
+        throw new Error("Derived encryption key must be exactly 32 bytes for AES-256");
+      }
+      // Extract IV, auth tag, and encrypted content
+      if (encryptedData.length < 32) {
+        throw new Error("Invalid encrypted data: too short");
+      }
+      const iv = encryptedData.subarray(0, 16);
+      const authTag = encryptedData.subarray(16, 32);
+      const encrypted = encryptedData.subarray(32);
+      // Create decipher
+      const decipher = createDecipheriv("aes-256-gcm", derivedKey, iv);
+      // Set the authentication tag
+      decipher.setAuthTag(authTag);
+      // Decrypt the data
+      let decrypted = decipher.update(encrypted);
+      decrypted = Buffer.concat([decrypted, decipher.final()]);
+      console.log("✅ Successfully decrypted!");
+      // Save decrypted file
+      fs.writeFileSync(outputLocation, decrypted);
+      console.log(`💾 Decrypted file saved to: ${outputLocation}`);
+      return decrypted;
+    };
+    ```
+
+    **What this does:**
+    - **Recreates the key**: Uses the same SHA-256 derivation process
+    - **Extracts components**: Separates IV, auth tag, and encrypted data
+    - **Validates integrity**: The auth tag ensures data hasn't been tampered with
+    - **Decrypts safely**: Only works with the correct private key
+    - **Saves result**: Writes the decrypted data to a file
+
+  </Step>
+
+  <Step>
+    ### Create Token Generation Function
+
+    Implement delegation token creation for secure access control:
+
+    ```typescript
+    const generateToken = async (parentToken, command, audience, tokenExpirySeconds, privateKey, body) => {
+      const token = NucTokenBuilder.extending(parentToken)
+        .command(command)
+        .audience(audience)
+        .expiresAt(Math.floor(Date.now() / 1000) + tokenExpirySeconds);
+      if (body) token.body(body);
+      return token.build(privateKey);
+    };
+    ```
+
+    **What this does:**
+    - **Delegation tokens**: Creates time-limited access tokens for users
+    - **Command-based**: Specifies exactly what operations the token allows
+    - **Audience-specific**: Only works for the intended user
+    - **Time-limited**: Automatically expires after the specified duration
+    - **Cryptographically signed**: Uses the builder's private key for authenticity
+
+  </Step>
+
+  <Step>
+    ### Create Utility Files
+
+    Create supporting utility files for Arweave operations and logging:
+
+    **Create `src/arweave.ts`:**
+    ```typescript
+    import Arweave from 'arweave';
+    import { JWKInterface } from 'arweave/node/lib/wallet';
+    import { logger } from './logger';
+    import { TurboFactory, ArweaveSigner } from "@ardrive/turbo-sdk";
+
+    const ARWEAVE_HOST = "arweave.net";
+
+    export async function createWallet() {
+      try {
+        const arweave = Arweave.init({
+          host: ARWEAVE_HOST,
+          port: 1984,
+          protocol: 'http',
+          timeout: 20000,
+          logging: true,
+        });
+
+        // Generate a new wallet
+        const wallet = await arweave.wallets.generate();
+        // Get the wallet address
+        const address = await arweave.wallets.jwkToAddress(wallet);
+        return { wallet, address };
+      } catch (error) {
+        logger.error('Error creating wallet:', error);
+      }
+    }
+
+    export const uploadFile = async (data: string, wallet: JWKInterface) => {
+      try {
+        const signer = new ArweaveSigner(wallet);
+        const turbo = TurboFactory.authenticated({ signer });
         const result = await turbo.upload({
-          data: encryptedData,
+          data,
           dataItemOpts: {
             tags: [
-              { name: "Content-Type", value: "application/octet-stream" },
-              { name: "App-Name", value: "SecureData-v1.0" },
-              { name: "Encrypted", value: "true" },
-              { name: "Cipher", value: "AES-256-GCM" },
-              { name: "Cipher-IV", value: iv.toString(CryptoJS.enc.Base64) },
-              { name: "Data-Type", value: "Financial-Records" },
-              { name: "User-ID", value: "user_12345" },
-              { name: "Access-Level", value: "Authorized-Users-Only" }
-            ]
-          }
-        })
-
-        console.log("Encrypted data uploaded to Arweave:", result.id);
-        ```
-
-      </Tab>
-
-      <Tab value="Turbo CLI">
-
-        ```bash
-        # Install Turbo CLI
-        npm install -g @ardrive/turbo-sdk
-
-        # Upload encrypted file
-        turbo upload-file --file-path encrypted-data.bin \
-          --tag "Content-Type:application/octet-stream" \
-          --tag "App-Name:SecureData-v1.0" \
-          --tag "Encrypted:true" \
-          --tag "Cipher:AES-256-GCM" \
-          --tag "Cipher-IV:base64-encoded-iv" \
-          --tag "Data-Type:Financial-Records" \
-          --tag "User-ID:user_12345" \
-          --tag "Access-Level:Authorized-Users-Only"
-        ```
-
-      </Tab>
-    </Tabs>
-
-    For advanced uploading options, see our [Advanced Uploading with Turbo](/build/upload/advanced-uploading-with-turbo) guide.
-
-  </Step>
-
-  <Step>
-    ### Store Decryption Key on Nillion
-
-    **Recommended: Use Collection Explorer**
-    - Visit [Collection Explorer](https://collection-explorer.nillion.com)
-    - Create a collection for decryption keys with proper schema
-    - Define field types and access permissions
-    - Export collection configuration for SDK use
-
-    **Alternative: Programmatic Creation with Access Control**
-    ```javascript
-    // Store decryption key using owned collection with access control
-    const keyRecord = await userClient.createData({
-      collection: ownedCollection.id,
-      owner: userDid,
-      data: [{
-        arweave_tx_id: result.id, // Reference to encrypted data on Arweave
-        encryption_key: encryptionKey.key,
-        encryption_iv: encryptionKey.iv,
-        user_id: userDid,
-        created_at: new Date().toISOString(),
-        data_type: 'financial_records',
-        description: 'Decryption key for financial data on Arweave'
-      }],
-      acl: [accessControlList], // Grant specific permissions
-      delegationToken: delegationToken
-    });
-
-    console.log("Decryption key stored on Nillion with access control:", keyRecord);
-    ```
-
-    **Key Management:**
-    - Decryption keys are encrypted and split across multiple nilDB nodes
-    - Only authorized users can access the keys
-    - Keys are never exposed to the network during computation
-    - Access permissions are cryptographically enforced
-
-  </Step>
-
-</Steps>
-
-## Setting Up Blind Computing with nilCC
-
-<Steps>
-  <Step>
-    ### Create Docker Container for nilCC Workload
-
-    Create a Docker container that will run in a confidential VM with AMD SEV-SNP security:
-
-    **Create `docker-compose.yaml`:**
-    ```yaml
-    version: '3.8'
-    services:
-      decrypt-service:
-        build: ./app
-        environment:
-          - ARWEAVE_GATEWAY=https://arweave.net
-          - NODE_ENV=production
-        ports:
-          - "8080:8080"
-    ```
-
-    **Create `app/Dockerfile`:**
-    ```dockerfile
-    FROM node:18-alpine
-
-    WORKDIR /app
-
-    # Copy package files
-    COPY package*.json ./
-
-    # Install dependencies
-    RUN npm ci --only=production
-
-    # Copy application code
-    COPY . .
-
-    # Build TypeScript
-    RUN npm run build
-
-    # Expose port
-    EXPOSE 8080
-
-    # Run the application
-    CMD ["node", "dist/server.js"]
-    ```
-
-    **Create `app/package.json`:**
-    ```json
-    {
-      "name": "nilcc-blind-decrypt",
-      "version": "1.0.0",
-      "scripts": {
-        "build": "tsc",
-        "start": "node dist/server.js"
-      },
-      "dependencies": {
-        "express": "^4.18.2",
-        "crypto-js": "^4.2.0"
-      },
-      "devDependencies": {
-        "@types/express": "^4.17.21",
-        "@types/crypto-js": "^4.2.1",
-        "@types/node": "^20.10.0",
-        "typescript": "^5.3.3"
-      }
-    }
-    ```
-
-    **Create `app/tsconfig.json`:**
-    ```json
-    {
-      "compilerOptions": {
-        "target": "ES2020",
-        "module": "commonjs",
-        "outDir": "./dist",
-        "rootDir": "./src",
-        "strict": true,
-        "esModuleInterop": true,
-        "skipLibCheck": true,
-        "forceConsistentCasingInFileNames": true
-      },
-      "include": ["src/**/*"],
-      "exclude": ["node_modules"]
-    }
-    ```
-
-    **Create `app/src/server.ts`:**
-    ```typescript
-    import express, { Request, Response } from 'express';
-    import CryptoJS from 'crypto-js';
-
-    const app = express();
-    const PORT = 8080;
-    const ARWEAVE_GATEWAY = process.env.ARWEAVE_GATEWAY || 'https://arweave.net';
-
-    app.use(express.json());
-
-    interface DecryptRequest {
-      arweave_tx_id: string;
-      encryption_key: string;
-      encryption_iv: string;
-    }
-
-    interface FinancialData {
-      user_id: string;
-      account_balance: number;
-      transaction_history: Array<{
-        date: string;
-        amount: number;
-        type: string;
-      }>;
-      credit_score: number;
-    }
-
-    app.post('/decrypt', async (req: Request, res: Response) => {
-      try {
-        const { arweave_tx_id, encryption_key, encryption_iv } = req.body as DecryptRequest;
-
-        // 1. Fetch encrypted data from Arweave
-        console.log(`Fetching encrypted data from Arweave: ${arweave_tx_id}`);
-        const arweaveUrl = `${ARWEAVE_GATEWAY}/${arweave_tx_id}`;
-        const arweaveResponse = await fetch(arweaveUrl);
-        const encryptedData = await arweaveResponse.text();
-
-        // 2. Decrypt within the confidential VM (TEE) using AES-256-GCM
-        const key = CryptoJS.enc.Base64.parse(encryption_key);
-        const iv = CryptoJS.enc.Base64.parse(encryption_iv);
-
-        const decrypted = CryptoJS.AES.decrypt(encryptedData, key, {
-          iv: iv,
-          mode: CryptoJS.mode.GCM,
-          padding: CryptoJS.pad.NoPadding
-        });
-        const decryptedText = decrypted.toString(CryptoJS.enc.Utf8);
-        const decryptedData: FinancialData = JSON.parse(decryptedText);
-
-        // 3. Process data without exposing raw content
-        const transactionHistory = decryptedData.transaction_history || [];
-        const totalTransactions = transactionHistory.reduce(
-          (sum, t) => sum + t.amount,
-          0
-        );
-
-        const processedResults = {
-          total_balance: decryptedData.account_balance || 0,
-          transaction_count: transactionHistory.length,
-          average_transaction: transactionHistory.length > 0
-            ? totalTransactions / transactionHistory.length
-            : 0,
-          credit_score: decryptedData.credit_score || 0,
-          user_id: decryptedData.user_id || 'unknown'
-        };
-
-        // 4. Return only processed results (raw data never leaves TEE)
-        res.json({
-          success: true,
-          results: processedResults
-        });
-
-      } catch (error) {
-        console.error('Decryption error:', error);
-        res.status(500).json({
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error'
-        });
-      }
-    });
-
-    app.listen(PORT, () => {
-      console.log(`Blind decryption service running in confidential VM on port ${PORT}`);
-    });
-    ```
-
-  </Step>
-
-  <Step>
-    ### Deploy Workload to nilCC
-
-    Deploy your Docker container as a confidential workload on Nillion's nilCC platform:
-
-    ```bash
-    # Deploy to nilCC (this creates a Confidential VM with AMD SEV-SNP)
-    # When you deploy, nilCC:
-    # 1. Creates a Confidential VM with AMD SEV-SNP hardware security
-    # 2. Packages your workload as an ISO with docker-compose.yaml
-    # 3. Boots securely with dm-verity filesystem verification and LUKS encryption
-    # 4. Deploys containers with automatic TLS certificates via Caddy
-    # 5. Generates attestation linking your TLS certificate to hardware measurements
-
-    nilcc deploy \
-      --compose docker-compose.yaml \
-      --name financial-decryptor \
-      --env ARWEAVE_GATEWAY=https://arweave.net
-    ```
-
-    **What Happens Behind the Scenes:**
-    - Creates a **Confidential VM** with **AMD SEV-SNP** hardware security
-    - Packages your workload as an **ISO** with `docker-compose.yaml`, metadata, and environment variables
-    - Boots securely with **dm-verity** filesystem verification and **LUKS** encryption
-    - Deploys containers with automatic **TLS certificates** via Caddy
-    - Generates **attestation** linking your TLS certificate to hardware measurements
-
-  </Step>
-
-  <Step>
-    ### Execute Blind Decryption Workflow
-
-    Set up a workflow that retrieves the decryption key from nilDB and calls your nilCC workload:
-
-    ```javascript
-    // Complete blind decryption workflow
-    async function executeBlindDecryption(userDid, arweaveTxId, workloadEndpoint) {
-      try {
-        // 1. Validate access using the access control system
-        const access = await validateNillionAccess(userDid, arweaveTxId);
-
-        if (!access.authorized) {
-          throw new Error('Access denied: ' + access.error);
-        }
-
-        // 2. Use the validated key data
-        const keyData = access.keyRecord;
-
-        // 3. Call the nilCC workload with decryption parameters
-        // The workload runs in a confidential VM with AMD SEV-SNP
-        const response = await fetch(workloadEndpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
+              { name: "Content-Type", value: "text/plain" },
+              { name: "Title", value: "My demo file" },
+            ],
           },
-          body: JSON.stringify({
-            arweave_tx_id: arweaveTxId,
-            encryption_key: keyData.encryption_key,
-            encryption_iv: keyData.encryption_iv
-          })
         });
-
-        const result = await response.json();
-
-        if (!result.success) {
-          throw new Error('Blind decryption failed: ' + result.error);
-        }
-
-        // 4. Return processed results with attestation
-        return {
-          success: true,
-          results: result.results,
-          arweaveTxId: arweaveTxId,
-          attestation: response.headers.get('X-Attestation'), // AMD SEV-SNP attestation
-          tlsCertHash: response.headers.get('X-TLS-Cert-Hash') // Proves secure connection
-        };
-
+        return result;
       } catch (error) {
-        console.error('Blind decryption workflow failed:', error);
-        return { success: false, error: error.message };
+        logger.error('Error uploading securely encrypted file:', error);
       }
     }
-
-    // Example usage
-    const workloadUrl = 'https://your-nilcc-workload.nillion.network';
-    const results = await executeBlindDecryption(userDid, result.id, workloadUrl);
-    console.log('Blind decryption results:', results);
     ```
 
-    **Security Guarantees:**
-    - Decryption happens **inside AMD SEV-SNP confidential VM**
-    - Keys are retrieved from nilDB only for authorized users
-    - Raw data never leaves the TEE
-    - Cryptographic **attestation** proves secure execution
-    - **TLS certificate** linked to hardware measurements
+    **Create `src/logger.ts`:**
+    ```typescript
+    import { createConsola } from 'consola'
+
+    export const logger = createConsola({})
+    ```
+
+    **What these do:**
+    - **Arweave utilities**: Handle wallet creation and file uploads using Turbo
+    - **Consola logging**: Provides a beautiful, consistent logging experience with colors and formatting
+    - **Error handling**: Gracefully handle and log errors
 
   </Step>
 
+  <Step>
+    ### Implement the Main Workflow
+
+    Now let's implement the main application logic that ties everything together:
+
+    ```typescript
+    async function main() {
+      try {
+        let collectionId;
+        const dataId = randomUUID();
+
+        // Builder Client
+        const builderKeypair = Keypair.from(config.NIL_BUILDER_PRIVATE_KEY);
+        const builder = await SecretVaultBuilderClient.from({
+          keypair: builderKeypair,
+          urls: {
+            chain: config.NILCHAIN_URL,
+            auth: config.NILAUTH_URL,
+            dbs: config.NILDB_NODES,
+          },
+          blindfold: { operation: "store" },
+        });
+        await builder.refreshRootToken();
+
+        // Check if builder is set up correctly
+        const existingProfile = await builder.readProfile();
+    ```
+
+    **What this does:**
+    - **Builder initialization**: Creates a builder client with your private key
+    - **Network connection**: Connects to Nillion testnet infrastructure
+    - **Token refresh**: Gets a fresh authentication token
+    - **Profile validation**: Ensures the builder is properly set up
+
+  </Step>
+
+  <Step>
+    ### Set Up Data Collection
+
+    Create or validate the collection for storing user private keys:
+
+    ```typescript
+
+        // Create the Owned Collection if it doesn't exist
+        if (!config.NIL_BUILDER_COLLECTION_ID) {
+          collectionId = randomUUID();
+          const schema = {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                _id: { "type": "string", "format": "uuid" },
+                private_key: {
+                  "type": "object",
+                  "properties": { "%share": { "type": "string" } },
+                  required: ["%share"]
+                }
+              },
+              required: ["_id", "private_key"]
+            }
+          };
+          const collection = {
+            _id: collectionId,
+            type: "owned",
+            name: "Nillion / Arweave Demo App User Profiles",
+            schema,
+          };
+          const collectionResult = await builder.createCollection(collection);
+          console.log(`✅ Created Owned Collection with ID: ${collectionId}`);
+          console.log(`Make sure to update your .env file with this NIL_BUILDER_COLLECTION_ID to proceed.`);
+          process.exit(0);
+        } else {
+          if (existingProfile.data.collections.indexOf(config.NIL_BUILDER_COLLECTION_ID) === -1) {
+            throw new Error(`Builder does not have collection ${config.NIL_BUILDER_COLLECTION_ID} registered. Please check your .env configuration.`);
+          } else {
+            console.log(`✅ Builder is set up correctly with DID: ${builder.did}`);
+          console.log(`✅ Using Owned Collection ID: ${config.NIL_BUILDER_COLLECTION_ID}`);
+          collectionId = config.NIL_BUILDER_COLLECTION_ID;
+        }
+      }
+    ```
+
+    **What this does:**
+    - **Collection creation**: Creates a new collection if none exists
+    - **Schema definition**: Defines the structure for storing user private keys
+    - **Validation**: Ensures the builder has access to the specified collection
+    - **Environment setup**: Prompts you to update your `.env` file with the collection ID
+
+  </Step>
+
+  <Step>
+    ### Create User and Store Private Key
+
+    Generate a new user and securely store their private key in nilDB:
+
+    ```typescript
+      // Create user and store its private key in nilDB
+        const secretKey = await SecretKey.generate(
+          { nodes: config.NILDB_NODES.map(url => ({ url })) },
+          { store: true }
+        );
+        const userKeypair = Keypair.from(bytesToHex(secretKey.material));
+        const userDid = userKeypair.toDid().toString();
+        const user = await SecretVaultUserClient.from({
+          baseUrls: config.NILDB_NODES,
+          keypair: userKeypair,
+          blindfold: { operation: "store" }
+        });
+
+        // Grant write access to the user
+        const delegationToken = await generateToken(
+          builder.rootToken,
+          new Command(["nil", "db", "data", "create"]),
+          userKeypair.toDid(),
+          3600, // 1 hour
+          builder.keypair.privateKey()
+        );
+        console.log(`🗝️ Delegation token created`);
+
+        // User creates profile with Private Key
+        await user.createData(delegationToken, {
+          owner: userDid,
+          acl: {
+            grantee: builder.did.toString(),
+            read: false,
+            write: false,
+            execute: true,
+          },
+          collection: collectionId,
+          data: [
+            {
+              _id: dataId,
+              private_key: { "%allot": userKeypair.privateKey() },
+            }
+          ],
+        });
+        console.log(`✅ User profile created: ${userDid}`);
+    ```
+
+    **What this does:**
+    - **Secret key generation**: Creates a cryptographically secure private key
+    - **Keypair creation**: Converts the secret key to a usable keypair
+    - **User client**: Initializes a user client for nilDB operations
+    - **Delegation token**: Grants the user permission to create data
+    - **ACL setup**: Defines access control - builder can execute queries but not read/write
+    - **Data storage**: Stores the user's private key in the nilDB collection
+
+  </Step>
+
+  <Step>
+    ### Encrypt and Upload File
+
+    Now let's encrypt a file and upload it to Arweave:
+
+    ```typescript
+        const wallet = await createWallet();
+        console.log(`💼 Arweave wallet created: ${wallet?.address}`);
+
+        // Retrieve the user private key from nilDB
+        const retrievedUserKey = await user.readData({
+          collection: collectionId,
+          document: dataId,
+        });
+
+        // Encrypt file contents
+        const fileData = fs.readFileSync("test/demo.txt");
+        const encrypted = encryptContent(fileData, retrievedUserKey.data.private_key);
+        const upload = await uploadFile(encrypted, wallet?.wallet);
+        console.log(`✅ File uploaded to Arweave with txId: ${upload.id}`);
+
+        // Download the file and decrypt it
+        const downloadFileName = `./test/encrypted_demo_${Date.now()}.txt`;
+        console.log(`🕒 Downloading file from Arweave`);
+        await downloadFile(`https://arweave.net/${upload.id}`, downloadFileName);
+        const decrypted = decryptContent(encrypted, retrievedUserKey.data.private_key, `./test/decrypted_demo_${Date.now()}.txt`);
+    ```
+
+    **What this does:**
+    - **Arweave wallet**: Creates a new wallet for uploading files
+    - **Key retrieval**: Gets the user's private key from nilDB
+    - **File encryption**: Encrypts the file using the user's private key
+    - **Arweave upload**: Uploads the encrypted file to permanent storage
+    - **File download**: Downloads the file from Arweave
+    - **Decryption**: Decrypts the file using the same private key
+
+  </Step>
+
+  <Step>
+    ### Complete the Application
+
+    Finish the main function with error handling:
+
+    ```typescript
+      } catch (error) {
+        console.log(error);
+        console.error("⚠️ Error setting up builder:", JSON.stringify(error, null, 2));
+      }
+    }
+
+    main().catch(console.error);
+    ```
+
+    **What this does:**
+    - **Error handling**: Catches and logs any errors that occur during execution
+    - **Application startup**: Runs the main function when the script is executed
+
+  </Step>
 </Steps>
+
+## Create Test File
+
+Before running the demo, create a test file to encrypt:
+
+```bash
+mkdir test
+echo "Hello, this is a test file for Nillion + Arweave encryption demo!" > test/demo.txt
+```
+
+## Understanding the Complete Workflow
+
+The main application performs the following steps:
+
+1. **Initialize Builder**: Sets up the Nillion Builder client with your private key
+2. **Create/Verify Collection**: Creates a new collection or uses an existing one for storing private keys
+3. **Generate User**: Creates a new user with a private key stored securely in nilDB
+4. **Create Wallet**: Generates an Arweave wallet for uploading data
+5. **Encrypt Data**: Encrypts the test file using the user's private key
+6. **Upload to Arweave**: Uploads the encrypted data to Arweave using Turbo
+7. **Download & Decrypt**: Downloads the encrypted file and decrypts it using the stored private key
+
+**Key Security Features:**
+
+- Private keys are stored securely in nilDB with proper access control
+- Data is encrypted using AES-256-GCM with the user's private key
+- Only authorized users can access the decryption keys
+- Encrypted data is permanently stored on Arweave
+
+## Running the Complete Demo
+
+Add a start script to your `package.json`:
+
+```json
+{
+  "scripts": {
+    "start": "ts-node src/index.ts",
+    "build": "tsc",
+    "dev": "ts-node --watch src/index.ts"
+  }
+}
+```
+
+Then run the complete workflow:
+
+```bash
+# Run the complete workflow
+npm start
+```
+
+This will execute the entire process:
+
+1. Initialize the Builder and create a collection
+2. Generate a user and store their private key in nilDB
+3. Encrypt a sample file using the private key
+4. Upload the encrypted file to Arweave
+5. Download the encrypted file from Arweave
+6. Decrypt the file using the stored private key
+
+## Additional Resources
+
+For reference and additional examples, you can also check out the official demo repository:
+
+**[Nillion Arweave Demo](https://github.com/elmurci/nillion-arweave-demo)**
+
+This repository contains the complete working implementation that this guide is based on.
 
 ## Next Steps
 
 <Cards>
 <Card
+  href="https://github.com/elmurci/nillion-arweave-demo"
+  title="Try the Demo"
+  icon={<Code />}
+>
+  Clone and run the complete working example from the official repository.
+</Card>
+
+<Card
   href="/build/upload/advanced-uploading-with-turbo"
   title="Advanced Uploading with Turbo"
   icon={<Database />}
 >
-  Learn advanced uploading techniques for large encrypted datasets and batch processing.
-</Card>
-
-<Card
-  href="/build/upload/encryption"
-  title="Encryption Best Practices"
-  icon={<Lock />}
->
-  Explore comprehensive encryption strategies and security considerations.
+  Learn advanced uploading techniques for large encrypted datasets and batch
+  processing.
 </Card>
 
 <Card
@@ -717,4 +672,4 @@ Before starting, you'll need to complete Nillion's 3-step developer flow:
 
 ## Need Help?
 
-If you're interested in implementing encrypted data storage with blind computing, join our [Discord community](https://discord.gg/cuCqBb5v) or explore the [Nillion developer resources](https://docs.nillion.com) for detailed implementation guides.
+If you're interested in implementing encrypted data storage with Nillion, join our [Discord community](https://discord.gg/cuCqBb5v) or explore the [Nillion developer resources](https://docs.nillion.com) for detailed implementation guides.
