@@ -269,7 +269,7 @@ import { Callout } from "fumadocs-ui/components/callout";
 
 <Callout type="info">
   **For AI and LLM users**: Access the complete ${pkg.title} documentation in plain text
-  format at [llm.txt](/sdks/${pkg.name === "ardrive-cli" ? "(clis)" : pkg.name}/llm.txt) for easy consumption by AI agents
+  format at <a href="/sdks/${pkg.name === "ardrive-cli" ? "(clis)" : pkg.name}/llm.txt" target="_blank" rel="noopener noreferrer">llm.txt</a> for easy consumption by AI agents
   and language models.
 </Callout>
 
