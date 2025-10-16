@@ -394,6 +394,21 @@ ${escapedContent}`;
       }
     }
 
+    // Create LLM text page that redirects to the .txt file
+    const llmPageContent = `---
+title: "LLM Text"
+description: "Complete LLM-friendly text for ${pkg.title}"
+---
+
+import { redirect } from 'next/navigation'
+
+export default function LLMPage() {
+  redirect('/sdks/${pkg.name}/llm.txt')
+}`;
+
+    await fs.writeFile(path.join(pkg.dest, "llm.mdx"), llmPageContent);
+    rootPages.push("llm");
+
     // Create top-level meta for the package
     const metaPath = path.join(pkg.dest, "meta.json");
     await fs.writeFile(
@@ -452,13 +467,31 @@ async function main() {
   const sdksMeta = {
     title: "SDKs and CLIs",
     icon: "Package",
-    pages: ["---SDKs---", "ardrive-core-js", "ar-io-sdk", "turbo-sdk", "wayfinder", "---CLIs---", "...(clis)"],
+    pages: [
+      "---SDKs---",
+      "ardrive-core-js",
+      "ar-io-sdk",
+      "turbo-sdk",
+      "wayfinder",
+      "---CLIs---",
+      "...(clis)",
+    ],
     root: true,
     defaultOpen: false,
   };
 
   await fs.writeFile(sdksMetaPath, JSON.stringify(sdksMeta, null, 2));
   console.log("Created top-level SDKs meta.json");
+
+  // Generate LLM text files for all SDKs
+  console.log("Generating LLM text files...");
+  const { execSync } = await import("child_process");
+  try {
+    execSync("npm run generate-sdk-llm-texts", { stdio: "inherit" });
+    console.log("LLM text files generated successfully!");
+  } catch (error) {
+    console.error("Error generating LLM text files:", error);
+  }
 
   console.log("SDK documentation generated successfully!");
 }
