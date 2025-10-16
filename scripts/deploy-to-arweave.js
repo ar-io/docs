@@ -150,7 +150,7 @@ async function updateArNSRecord(jwk, arnsName, manifestId, undername) {
     console.log("Debug - undername:", undername);
     console.log("Debug - jwk type:", typeof jwk);
 
-    const ario = ARIO.init();
+    const ario = ARIO.mainnet();
     const pid = await ario.getArNSRecord({ name: arnsName });
 
     if (!pid) {

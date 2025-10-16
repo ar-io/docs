@@ -1,0 +1,36 @@
+---
+title: "Understanding Drive Hierarchies"
+description: "Command line interface for ArDrive"
+---
+
+At the root of every data tree is a "Drive" entity. When a drive is created, a Root Folder is also created for it. The entity IDs for both are generated and returned when you create a new drive:
+
+```shell
+ardrive create-drive --wallet-file /path/to/my/wallet.json --drive-name "Teenage Love Poetry" |
+tee created_drive.json |
+jq '[.created[] | del(.metadataTxId, .entityName, .bundledIn)]'
+[
+    {
+        "type": "drive",
+        "entityId": "6939b9e0-cc98-42cb-bae0-5888eca78885"
+    }
+    {
+        "type": "folder",
+        "entityId": "d1535126-fded-4990-809f-83a06f2a1118"
+    }
+]
+```
+
+The relationship between the drive and its root folder is clearly visible when retrieving the drive's info:<a id='drive-info'></a>
+
+```shell
+ardrive drive-info -d "6939b9e0-cc98-42cb-bae0-5888eca78885"
+| jq '{driveId, rootFolderId}'
+{
+    "driveId": "6939b9e0-cc98-42cb-bae0-5888eca78885",
+    "rootFolderId": "d1535126-fded-4990-809f-83a06f2a1118"
+}
+
+```
+
+All file and folder entities in the drive will be anchored to it by a "Drive-ID" GQL Tag. And they'll each be anchored to a parent folder ID, tracked via the "Parent-Folder-ID" GQL tag, forming a tree structure whose base terminates at the Root Folder.
