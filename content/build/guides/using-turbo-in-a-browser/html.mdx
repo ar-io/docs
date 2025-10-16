@@ -1,0 +1,790 @@
+---
+title: "Using Turbo SDK with Vanilla HTML"
+description: "Integrate Turbo SDK directly into vanilla HTML pages using CDN imports"
+---
+
+# Using Turbo SDK with Vanilla HTML
+
+<Callout type="warning">
+  **Firefox Compatibility**: Some compatibility issues have been reported with
+  the Turbo SDK in Firefox browsers. At this time the below framework examples
+  may not behave as expected in Firefox.
+</Callout>
+
+## Overview
+
+This guide demonstrates how to integrate the `@ardrive/turbo-sdk` directly into vanilla HTML pages using CDN imports. No build tools, bundlers, or polyfills are required - just modern ES modules support in browsers.
+
+<Callout type="info">
+  **Note**: Vanilla HTML implementation is the simplest way to get started with
+  the Turbo SDK. It's perfect for prototyping, simple applications, or when you
+  want to avoid build complexity.
+</Callout>
+
+## Prerequisites
+
+- Modern browser with ES modules support (Chrome 61+, Firefox 60+, Safari 10.1+, Edge 16+)
+- Basic understanding of HTML, CSS, and JavaScript
+- HTTPS hosting for production (required for browser wallet integrations)
+
+<Steps>
+  <Step title="Create Basic HTML Structure">
+    Create a basic HTML file with Turbo SDK integration:
+
+    ```html
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Turbo SDK Example</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+          }
+          .section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+          }
+          .loading {
+            color: #666;
+            font-style: italic;
+          }
+          .error {
+            color: red;
+          }
+          .success {
+            color: green;
+          }
+          button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+          }
+          button:hover {
+            background: #005a87;
+          }
+          button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+          }
+        </style>
+      </head>
+      <body>
+        <h1>Turbo SDK - Vanilla HTML Demo</h1>
+
+        <div class="section">
+          <h2>Current Rates</h2>
+          <div id="rates" class="loading">Loading rates...</div>
+        </div>
+
+        <div class="section">
+          <h2>Upload File</h2>
+          <form id="uploadForm">
+            <input type="file" id="fileInput" accept="*/*" required />
+            <br /><br />
+            <button type="submit" id="uploadBtn">Upload File</button>
+          </form>
+          <div id="uploadStatus"></div>
+        </div>
+
+        <script type="module">
+          import { TurboFactory } from "https://esm.sh/@ardrive/turbo-sdk";
+
+          // Initialize Turbo client
+          const turbo = TurboFactory.unauthenticated();
+
+          // Fetch and display rates
+          async function loadRates() {
+            try {
+              const rates = await turbo.getFiatRates();
+              const ratesDiv = document.getElementById("rates");
+
+              const ratesText = Object.entries(rates.fiat)
+                .map(
+                  ([currency, rate]) =>
+                    `${currency.toUpperCase()}: $${rate} per GiB`
+                )
+                .join("<br>");
+
+              ratesDiv.innerHTML = ratesText;
+            } catch (error) {
+              document.getElementById(
+                "rates"
+              ).innerHTML = `<span class="error">Error loading rates: ${error.message}</span>`;
+            }
+          }
+
+          // Handle file upload
+          document
+            .getElementById("uploadForm")
+            .addEventListener("submit", async (e) => {
+              e.preventDefault();
+
+              const fileInput = document.getElementById("fileInput");
+              const uploadBtn = document.getElementById("uploadBtn");
+              const statusDiv = document.getElementById("uploadStatus");
+
+              if (!fileInput.files.length) {
+                statusDiv.innerHTML =
+                  '<span class="error">Please select a file</span>';
+                return;
+              }
+
+              const file = fileInput.files[0];
+              uploadBtn.disabled = true;
+              statusDiv.innerHTML =
+                '<span class="loading">Preparing upload...</span>';
+
+              try {
+                // Show upload cost first
+                const costs = await turbo.getUploadCosts({ bytes: [file.size] });
+                const cost = costs[0];
+
+                statusDiv.innerHTML = `
+                        <p>Upload cost: ${cost.winc} winc</p>
+                        <p>File size: ${file.size.toLocaleString()} bytes</p>
+                        <p class="error">Note: This example cannot complete uploads without wallet authentication.</p>
+                        <p>See wallet integration examples below for full upload functionality.</p>
+                    `;
+              } catch (error) {
+                statusDiv.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+              } finally {
+                uploadBtn.disabled = false;
+              }
+            });
+
+          // Load rates on page load
+          loadRates();
+        </script>
+      </body>
+    </html>
+    ```
+
+  </Step>
+
+  <Step title="Choose CDN Import Method">
+    Select the appropriate CDN import method for your needs:
+
+    <Callout type="warning">
+      **Use esm.sh for best compatibility**: The `unpkg.com` CDN has known issues
+      with ES module exports for complex packages like Turbo SDK.
+    </Callout>
+
+    **Latest Version (Recommended for Development)**
+    ```javascript
+    import { TurboFactory } from "https://esm.sh/@ardrive/turbo-sdk";
+    ```
+
+    **Specific Version (Recommended for Production)**
+    ```javascript
+    import { TurboFactory } from "https://esm.sh/@ardrive/turbo-sdk@1.20.0";
+    ```
+
+    **Alternative CDN Providers**
+    ```javascript
+    // jsDelivr
+    import { TurboFactory } from "https://cdn.jsdelivr.net/npm/@ardrive/turbo-sdk@1.20.0/+esm";
+
+    // SkyPack
+    import { TurboFactory } from "https://cdn.skypack.dev/@ardrive/turbo-sdk@1.20.0";
+
+    // unpkg.com (not recommended - has ES module issues)
+    import { TurboFactory } from "https://unpkg.com/@ardrive/turbo-sdk@1.20.0";
+    ```
+
+  </Step>
+
+  <Step title="Connect Wallet for Uploads">
+    Connect your browser wallet to enable file uploads:
+
+    <Callout type="warning">
+      **Never expose private keys in browser applications!** Always use browser
+      wallet integrations.
+    </Callout>
+
+    **Uploading with Wander**
+
+    <Callout type="warning">
+      **Deprecation Notice**: The signature API used by ArConnect wallets is
+      deprecated and will be removed. Visit [Wander wallet
+      documentation](https://docs.wander.app/api/signature) for alternatives.
+    </Callout>
+
+    Complete HTML page with Wander wallet integration:
+
+    ```html
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Turbo SDK - Wander Wallet</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+          }
+          .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+          }
+          .wallet-section {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+          }
+          .connected {
+            border-color: #4caf50;
+            background-color: #f9fff9;
+          }
+          button {
+            background: #000;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+          }
+          button:hover {
+            background: #333;
+          }
+          button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+          }
+          .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+          }
+          .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+          }
+          .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+          }
+          .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>⚡ Turbo SDK + Wander Wallet</h1>
+
+          <div id="walletSection" class="wallet-section">
+            <h2>Wander Wallet Connection</h2>
+            <p>
+              Connect your Wander wallet to upload files to Arweave using your AR
+              balance.
+            </p>
+            <button id="connectBtn" onclick="connectWanderWallet()">
+              Connect Wander Wallet
+            </button>
+            <div id="walletStatus"></div>
+          </div>
+
+          <div id="uploadSection" style="display: none; margin-top: 20px;">
+            <h3>📁 File Upload</h3>
+            <input
+              type="file"
+              id="fileInput"
+              accept="*/*"
+              style="margin: 10px 0;"
+            />
+            <br />
+            <button onclick="uploadFile()">Upload to Arweave</button>
+            <div id="uploadStatus"></div>
+          </div>
+        </div>
+
+        <script type="module">
+          import {
+            TurboFactory,
+            ArconnectSigner,
+          } from "https://esm.sh/@ardrive/turbo-sdk";
+
+          let connectedAddress = null;
+          let turboClient = null;
+
+          // Connect to Wander wallet
+          async function connectWanderWallet() {
+            const statusDiv = document.getElementById("walletStatus");
+            const connectBtn = document.getElementById("connectBtn");
+
+            try {
+              if (!window.arweaveWallet) {
+                statusDiv.innerHTML = `
+                            <div class="error">
+                                Wander wallet is not installed!<br>
+                                <a href="https://wander.arweave.dev/" target="_blank">Install Wander Wallet</a>
+                            </div>
+                        `;
+                return;
+              }
+
+              connectBtn.disabled = true;
+              statusDiv.innerHTML =
+                '<div class="info">Connecting to Wander wallet...</div>';
+
+              // Required permissions for Turbo SDK
+              const permissions = [
+                "ACCESS_ADDRESS",
+                "ACCESS_PUBLIC_KEY",
+                "SIGN_TRANSACTION",
+                "SIGNATURE",
+              ];
+
+              // Connect to wallet
+              await window.arweaveWallet.connect(permissions);
+
+              // Get wallet address
+              connectedAddress = await window.arweaveWallet.getActiveAddress();
+
+              // Create authenticated Turbo client
+              const signer = new ArconnectSigner(window.arweaveWallet);
+              turboClient = TurboFactory.authenticated({ signer });
+
+              // Update UI
+              document.getElementById("walletSection").classList.add("connected");
+              statusDiv.innerHTML = `
+                        <div class="success">
+                            ✅ Connected to Wander Wallet<br>
+                            <strong>Address:</strong> ${connectedAddress.slice(
+                              0,
+                              8
+                            )}...${connectedAddress.slice(-8)}
+                        </div>
+                    `;
+              connectBtn.style.display = "none";
+              document.getElementById("uploadSection").style.display = "block";
+            } catch (error) {
+              console.error("Wander wallet connection failed:", error);
+              statusDiv.innerHTML = `<div class="error">Connection failed: ${error.message}</div>`;
+            } finally {
+              connectBtn.disabled = false;
+            }
+          }
+
+          // Upload file function
+          async function uploadFile() {
+            const fileInput = document.getElementById("fileInput");
+            const statusDiv = document.getElementById("uploadStatus");
+
+            if (!fileInput.files.length) {
+              statusDiv.innerHTML =
+                '<div class="error">Please select a file first</div>';
+              return;
+            }
+
+            if (!turboClient) {
+              statusDiv.innerHTML =
+                '<div class="error">Please connect Wander wallet first</div>';
+              return;
+            }
+
+            const file = fileInput.files[0];
+            let uploadStartTime = Date.now();
+
+            statusDiv.innerHTML = '<div class="info">Preparing upload...</div>';
+
+            try {
+              // Get upload cost first
+              const costs = await turboClient.getUploadCosts({
+                bytes: [file.size],
+              });
+              const cost = costs[0];
+
+              statusDiv.innerHTML = `
+                        <div class="info">
+                            Upload cost: ${cost.winc} winc<br>
+                            Starting upload...
+                        </div>
+                    `;
+
+              // Upload with comprehensive progress tracking
+              const result = await turboClient.uploadFile({
+                fileStreamFactory: () => file.stream(),
+                fileSizeFactory: () => file.size,
+                dataItemOpts: {
+                  tags: [
+                    {
+                      name: "Content-Type",
+                      value: file.type || "application/octet-stream",
+                    },
+                    { name: "App-Name", value: "Turbo-HTML-Wander-Demo" },
+                    { name: "File-Name", value: file.name },
+                    { name: "Upload-Timestamp", value: new Date().toISOString() },
+                  ],
+                },
+                events: {
+                  onProgress: ({ totalBytes, processedBytes, step }) => {
+                    const percent = Math.round((processedBytes / totalBytes) * 100);
+                    const elapsed = Math.round(
+                      (Date.now() - uploadStartTime) / 1000
+                    );
+                    statusDiv.innerHTML = `
+                                    <div class="info">
+                                        <strong>${step}:</strong> ${percent}%<br>
+                                        Progress: ${processedBytes.toLocaleString()} / ${totalBytes.toLocaleString()} bytes<br>
+                                        Elapsed: ${elapsed}s
+                                    </div>
+                                `;
+                  },
+                  onError: ({ error, step }) => {
+                    console.error(`Error during ${step}:`, error);
+                    statusDiv.innerHTML = `<div class="error">Error during ${step}: ${error.message}</div>`;
+                  },
+                },
+              });
+
+              const totalTime = Math.round((Date.now() - uploadStartTime) / 1000);
+              // Use original file size for display (result object doesn't contain size info)
+              const displayBytes = file.size;
+              statusDiv.innerHTML = `
+                        <div class="success">
+                            <strong>🎉 Upload Successful!</strong><br>
+                            <strong>Transaction ID:</strong> <code>${
+                              result.id
+                            }</code><br>
+                            <strong>File Size:</strong> ${displayBytes.toLocaleString()} bytes<br>
+                            <strong>Upload Time:</strong> ${totalTime}s<br>
+                            <strong>Timestamp:</strong> ${new Date(
+                              result.timestamp
+                            ).toLocaleString()}<br>
+                            <strong>View File:</strong> <a href="https://arweave.net/${
+                              result.id
+                            }" target="_blank">arweave.net/${result.id}</a><br>
+                            <strong>Explorer:</strong> <a href="https://viewblock.io/arweave/tx/${
+                              result.id
+                            }" target="_blank">ViewBlock</a>
+                        </div>
+                    `;
+            } catch (error) {
+              console.error("Upload failed:", error);
+              statusDiv.innerHTML = `<div class="error">Upload failed: ${error.message}</div>`;
+            }
+          }
+
+          // Make functions available globally for onclick handlers
+          window.connectWanderWallet = connectWanderWallet;
+          window.uploadFile = uploadFile;
+        </script>
+      </body>
+    </html>
+    ```
+
+  </Step>
+
+  <Step title="Enable HTTPS for Production">
+    Browser wallet integrations require HTTPS in production:
+
+    ```html
+    <!-- Production deployment checklist -->
+    <!-- ✅ HTTPS enabled (required for wallet connections) -->
+    <!-- ✅ CSP headers configured for external CDN imports -->
+    <!-- ✅ Proper error handling for network failures -->
+    ```
+
+  </Step>
+
+  <Step title="Configure Content Security Policy">
+    Configure CSP headers to allow CDN imports:
+
+    ```html
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
+        default-src 'self';
+        script-src 'self' 'unsafe-inline' https://esm.sh https://unpkg.com https://cdn.jsdelivr.net;
+        connect-src 'self' https://upload.ardrive.io https://payment.ardrive.io https://arweave.net;
+        img-src 'self' data:;
+    "
+    />
+    ```
+
+  </Step>
+
+  <Step title="Implement Error Handling">
+    Implement comprehensive error handling:
+
+    ```javascript
+    // Network error handling
+    async function robustApiCall(apiFunction, retries = 3) {
+      for (let i = 0; i < retries; i++) {
+        try {
+          return await apiFunction();
+        } catch (error) {
+          console.error(`Attempt ${i + 1} failed:`, error);
+          if (i === retries - 1) throw error;
+          await new Promise((resolve) =>
+            setTimeout(resolve, 1000 * Math.pow(2, i))
+          );
+        }
+      }
+    }
+
+    // Usage example
+    const rates = await robustApiCall(() => turbo.getFiatRates());
+    ```
+
+  </Step>
+
+  <Step title="Optimize Performance">
+    Optimize for production environments:
+
+    ```html
+    <!-- Preload CDN resources -->
+    <link rel="modulepreload" href="https://esm.sh/@ardrive/turbo-sdk@1.20.0" />
+
+    <!-- Use specific versions in production -->
+    <script type="module">
+      import { TurboFactory } from "https://esm.sh/@ardrive/turbo-sdk@1.20.0";
+      // Production code here
+    </script>
+    ```
+
+  </Step>
+</Steps>
+
+## Best Practices
+
+### 1. User Experience
+
+- **Loading States**: Always show loading indicators during API calls
+- **Error Recovery**: Provide clear error messages with recovery options
+- **Progress Tracking**: Show upload progress for large files
+- **Wallet Detection**: Guide users to install wallets if missing
+
+### 2. Security
+
+- **Never expose private keys** in browser applications
+- **Validate user inputs** before API calls
+- **Use HTTPS** for all production deployments
+- **Implement CSP headers** to prevent XSS attacks
+
+### 3. Performance
+
+- **Cache API responses** where appropriate (rates, costs)
+- **Use specific CDN versions** in production
+- **Implement retry logic** for network failures
+- **Optimize file handling** for large uploads
+
+### 4. Development
+
+- **Use development endpoints** during testing
+- **Test wallet integrations** across different browsers
+- **Validate upload functionality** with small files first
+- **Monitor API rate limits** and implement backoff
+
+## Troubleshooting Common Issues
+
+### CDN Import Errors
+
+If you encounter errors like:
+
+- `The requested module does not provide an export named 'TurboFactory'`
+- Module resolution failures
+
+**Solution**: Use `esm.sh` instead of `unpkg.com`:
+
+```javascript
+// ❌ Problematic
+import { TurboFactory } from "https://unpkg.com/@ardrive/turbo-sdk";
+
+// ✅ Working
+import { TurboFactory } from "https://esm.sh/@ardrive/turbo-sdk";
+```
+
+### Function Scope Issues
+
+If onclick handlers throw `ReferenceError: function is not defined`:
+
+**Solution**: Use explicit global assignment:
+
+```javascript
+// ❌ Problematic
+window.myFunction = async function() { ... }
+
+// ✅ Working
+async function myFunction() { ... }
+window.myFunction = myFunction;
+```
+
+### Upload Result Properties
+
+If upload results have undefined properties:
+
+**Solution**: Use original file size for display:
+
+```javascript
+// ❌ Problematic - these properties don't exist in result object
+const totalBytes = result.totalBytes || result.dataSizeBytes;
+
+// ✅ Correct - use original file size
+const displayBytes = originalFile.size;
+
+// Available result properties: id, timestamp, winc, version,
+// deadlineHeight, dataCaches, fastFinalityIndexes, public, signature, owner
+```
+
+### Upload Cost Properties
+
+If cost calculations fail:
+
+**Solution**: Use correct cost object structure:
+
+```javascript
+// ❌ Problematic - adjustedBytes doesn't exist in cost objects
+const cost = costs[0];
+console.log(`Adjusted: ${cost.adjustedBytes.toLocaleString()}`);
+
+// ✅ Correct - use available properties
+const cost = costs[0];
+console.log(`Cost: ${cost.winc} winc`);
+console.log(`File size: ${originalFile.size.toLocaleString()} bytes`);
+// Available cost properties: winc (string), adjustments (array)
+```
+
+## Testing Your Implementation
+
+### 1. Basic Functionality Test
+
+```javascript
+// Test CDN import
+console.log("Testing Turbo SDK import...");
+import { TurboFactory } from "https://esm.sh/@ardrive/turbo-sdk";
+const turbo = TurboFactory.unauthenticated();
+console.log("✅ SDK imported successfully");
+
+// Test rate fetching
+const rates = await turbo.getFiatRates();
+console.log("✅ Rates fetched:", rates);
+```
+
+### 2. Wallet Integration Test
+
+- Connect to MetaMask/Wander wallet
+- Verify address display
+- Test small file upload (< 1MB)
+- Check transaction ID and Arweave confirmation
+
+### 3. Production Readiness
+
+- Test with HTTPS hosting
+- Verify CSP headers don't block resources
+- Test error scenarios (network offline, wallet disconnected)
+- Validate cross-browser compatibility
+
+## API Object Structures
+
+Understanding the actual structure of API responses helps prevent common errors:
+
+### Upload Cost Object
+
+```javascript
+const costs = await turbo.getUploadCosts({ bytes: [file.size] });
+const cost = costs[0];
+
+// Actual structure:
+{
+  winc: "15763844",        // string - cost in Winston credits
+  adjustments: []          // array - currently empty
+}
+// Note: adjustedBytes property does NOT exist
+```
+
+### Upload Result Object
+
+```javascript
+const result = await turboClient.uploadFile({...});
+
+// Actual structure:
+{
+  id: "K2wbyN85FlZMBYyfn4fnk5A-fp-pmnrQWpgfuKI4UCc",
+  timestamp: 1752094894060,
+  winc: "0",
+  version: "0.2.0",
+  deadlineHeight: 1708455,
+  dataCaches: ["arweave.net"],
+  fastFinalityIndexes: ["arweave.net"],
+  public: "wZgP9Rpfh0nXb5EdzBUg7y2LFMkBp2ADX3gdZhLXHYbz...",
+  signature: "k31SCZwxerhuEojUZ7rnLMr0T6CwgVp1_dKDZc7UdvV...",
+  owner: "cF0H0SKdnaDTqWKY9iJKBktTpdEWgb3GnlndE7ABv0Q"
+}
+// Note: totalBytes and dataSizeBytes properties do NOT exist
+```
+
+### Fiat Rates Object
+
+```javascript
+const rates = await turbo.getFiatRates();
+
+// Actual structure:
+{
+  winc: "2257047178957",              // string - current winc rate
+  fiat: {                            // object - fiat currency rates
+    aud: 25.13395879439,             // number - AUD per GiB
+    brl: 91.578363344626,            // number - BRL per GiB
+    cad: 22.482075685955,            // number - CAD per GiB
+    eur: 13.996049738963,            // number - EUR per GiB
+    gbp: 12.080800827315,            // number - GBP per GiB
+    hkd: 129.06624536489,            // number - HKD per GiB
+    inr: 1409.435250458,             // number - INR per GiB
+    jpy: 2406.336355749,             // number - JPY per GiB
+    sgd: 21.058978043112,            // number - SGD per GiB
+    usd: 16.428221816529             // number - USD per GiB
+  },
+  adjustments: []                    // array - currently empty
+}
+```
+
+### Progress Event Object
+
+```javascript
+events: {
+  onProgress: (progressEvent) => {
+    // Actual structure:
+    {
+      processedBytes: 4326,          // number - bytes processed so far
+      totalBytes: 8652,              // number - total bytes to process
+      step: "signing"                // string - current step: "signing" or "upload"
+    }
+  }
+}
+```
+
+## Additional Resources
+
+- [Turbo SDK Documentation](https://docs.ardrive.io)
+- [Browser Wallet Security Guide](https://docs.wander.app)
+- [Arweave Developer Documentation](https://docs.arweave.org)
+- [CDN Import Best Practices](https://esm.sh)
+
+---
+
+For more advanced implementations, see the [Next.js](./nextjs.mdx) and [Vite](./vite.mdx) framework guides, or explore the [Turbo SDK examples](https://github.com/ardriveio/turbo-sdk) repository.

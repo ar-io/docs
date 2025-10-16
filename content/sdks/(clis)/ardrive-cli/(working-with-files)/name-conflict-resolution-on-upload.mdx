@@ -1,0 +1,50 @@
+---
+title: "Name Conflict Resolution on Upload"
+description: "Command line interface for ArDrive"
+---
+
+By default, the `upload-file` command will use the upsert behavior if existing entities are encountered in the destination folder tree that would cause naming conflicts.
+
+Expect the behaviors from the following table for each of these resolution settings:
+
+| Source Type | Conflict at Dest | `skip` | `replace` | `upsert` (default) |
+| ----------- | ---------------- | ------ | --------- | ------------------ |
+| File        | None             | Insert | Insert    | Insert             |
+| File        | Matching File    | Skip   | Update    | Skip               |
+| File        | Different File   | Skip   | Update    | Update             |
+| File        | Folder           | Skip   | Fail      | Fail               |
+| Folder      | None             | Insert | Insert    | Insert             |
+| Folder      | File             | Skip   | Fail      | Fail               |
+| Folder      | Folder           | Re-use | Re-use    | Re-use             |
+
+The default upsert behavior will check the destination folder for a file with a conflicting name. If no conflicts are found, it will insert (upload) the file.
+
+In the case that there is a FILE to FILE name conflict found, it will only update it if necessary. To determine if an update is necessary, upsert will compare the last modified dates of conflicting file and the file being uploaded. When they are matching, the upload will be skipped. Otherwise the file will be updated as a new revision.
+
+To override the upsert behavior, use the `--replace` option to always make new revisions of a file or the `--skip` option to always skip the upload on name conflicts:
+
+```shell
+ardrive upload-file --replace --local-path /path/to/file.txt  --parent-folder-id "9af694f6-4cfc-4eee-88a8-1b02704760c0" -w /path/to/wallet.json
+```
+
+```shell
+ardrive upload-file --skip --local-path /path/to/file.txt  --parent-folder-id "9af694f6-4cfc-4eee-88a8-1b02704760c0" -w /path/to/wallet.json
+```
+
+Alternatively, the upload-file commands now also supports the `--ask` conflict resolution option. This setting will always provide an interactive prompt on name conflicts that allows users to decide how to resolve each conflict found:
+
+```shell
+ardrive upload-file --ask --local-file-path /path/to/file.txt  --parent-folder-id "9af694f6-4cfc-4eee-88a8-1b02704760c0" -w /path/to/wallet.json
+
+Destination folder has a file to file name conflict!
+
+File name: 2.png
+File ID: efbc0370-b69f-44d9-812c-0d272b019027
+This file has a DIFFERENT last modified date
+
+Please select how to proceed:
+ › - Use arrow-keys. Return to submit.
+❯   Replace as new file revision
+    Upload with a different file name
+    Skip this file upload
+```

@@ -10,14 +10,16 @@ The AR.IO network operates on **24-hour epochs**, during which the observer sele
 - **50 observers** are selected to monitor the network
 - **2 prescribed ArNS names** are chosen for all observers to test
 - **8 additional names** are selected by each observer individually
+- **Gateway subset** is selected for chunk/offset validation based on sampling rate
 
-This creates a consistent evaluation framework where all observers test the same baseline names while having flexibility to choose additional targets for comprehensive network monitoring.
+This creates a consistent evaluation framework where all observers test the same baseline names while having flexibility to choose additional targets for comprehensive network monitoring, plus advanced data integrity verification.
 
 ## Selection Process
 
 Up to **fifty (50)** gateways are selected as observers per epoch using a sophisticated weighted random selection system. The selection uses **hashchain entropy** from previous AR.IO contract state messages to ensure unpredictable and tamper-resistant selection.
 
 The hashchain-based entropy provides cryptographic randomness for selecting:
+
 - **Observer Gateways**: The 50 gateways chosen to perform observations
 - **Prescribed ArNS Names**: The 2 common names all observers must evaluate
 
@@ -25,8 +27,23 @@ This approach prevents manipulation while maintaining weighted probabilities bas
 
 ![Current epoch observers showing their observation chance (normalized composite weight) and report status](/observers.png)
 
-<p style={{textAlign: "center", fontStyle: "italic", width: "80%", margin: "0.5rem auto"}}>
-  <a href="https://gateways.ar.io/#/observers" target="_blank" rel="noopener noreferrer">gateways.ar.io/#/observers</a> shows the current epoch prescribed observers and arns names, as well as their submission status
+<p
+  style={{
+    textAlign: "center",
+    fontStyle: "italic",
+    width: "80%",
+    margin: "0.5rem auto",
+  }}
+>
+  <a
+    href="https://gateways.ar.io/#/observers"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    gateways.ar.io/#/observers
+  </a>{" "}
+  shows the current epoch prescribed observers and arns names, as well as their
+  submission status
 </p>
 
 ## Weighted Selection Criteria
@@ -36,7 +53,7 @@ Observer selection is based on **normalized composite weights** that combine mul
 The selection considers four key factors that are multiplied together to create a composite weight (CW):
 
 - **Stake Weight (SW)**: Financial commitment to the network
-- **Tenure Weight (TW)**: Length of network participation  
+- **Tenure Weight (TW)**: Length of network participation
 - **Gateway Performance Ratio Weight (GPRW)**: Historical gateway performance
 - **Observer Performance Ratio Weight (OPRW)**: Historical observer performance
 
@@ -47,6 +64,7 @@ These weights are then normalized across all eligible gateways to create selecti
 The selection process uses **hashchain entropy** from previous AR.IO contract state messages to achieve cryptographically secure randomness:
 
 ### How Hashchain Selection Works
+
 1. **Entropy Source**: Random numbers are generated from the hashchain of previous contract state messages
 2. **Weighted Mapping**: Each random number maps to normalized weight ranges of eligible gateways
 3. **Observer Selection**: The gateway whose weight range contains each random number is selected
@@ -54,16 +72,41 @@ The selection process uses **hashchain entropy** from previous AR.IO contract st
 
 This creates tamper-resistant selection where higher-weighted gateways have proportionally better chances of selection, while maintaining true randomness that cannot be predicted or manipulated.
 
+## Chunk/Offset Sampling
+
+In addition to observer selection, the protocol includes a separate sampling process for chunk/offset validation:
+
+### Gateway Selection for Chunk Validation
+
+- **Deterministic Selection**: Uses PRNG seeded with observation entropy to select gateway subset
+- **Sampling Rate**: Configurable percentage of gateways tested per observation (default: 1%)
+- **Minimum Guarantee**: At least 1 gateway is always selected for testing
+- **Offset Selection**: Random offsets within the stable weave range are chosen for each selected gateway
+
+<Callout type="info">
+  **Initial Implementation**: During the initial rollout phase, only a very
+  small portion of gateways will be checked for chunk/offset validation, and the
+  current validation criteria are extremely lenient to ensure smooth network
+  operation.
+</Callout>
+
+### Validation Process
+
+- **Chunk Retrieval**: Observers request chunk data using `GET /chunk/{offset}`
+- **Merkle Proof Verification**: Cryptographic validation ensures data integrity
+- **Early Stopping**: Tests stop immediately upon first successful validation
+- **Performance Optimization**: Uses LRU caching for efficient transaction lookup
+
 ## Fairness and Meritocracy
 
 This system ensures:
+
 - **Meritocratic Selection**: Higher-performing gateways have better selection odds
 - **Fair Opportunity**: All gateways maintain non-zero selection probability
 - **Tamper Resistance**: Hashchain entropy prevents manipulation
 - **Consistent Standards**: Prescribed names create common evaluation baseline
 
 The selection is saved in the contract state at epoch start to ensure that activities during the epoch do not affect selection or reward distribution.
-
 
 ---
 

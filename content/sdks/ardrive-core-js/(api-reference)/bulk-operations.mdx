@@ -1,0 +1,53 @@
+---
+title: "Bulk Operations"
+description: "JavaScript/TypeScript SDK for interacting with ArDrive"
+---
+
+#### Upload Multiple Files and Folders
+
+```typescript
+import { wrapFileOrFolder, EntityKey } from 'ardrive-core-js';
+
+// Prepare entities for upload
+const folder1 = wrapFileOrFolder('/path/to/folder1');
+const folder2 = wrapFileOrFolder('/path/to/folder2');
+const file1 = wrapFileOrFolder('/path/to/file1.txt');
+
+// Upload everything in one operation
+const bulkUpload = await arDrive.uploadAllEntities({
+  entitiesToUpload: [
+    // Public folder
+    {
+      wrappedEntity: folder1,
+      destFolderId: rootFolderId
+    },
+    // Private folder
+    {
+      wrappedEntity: folder2,
+      destFolderId: rootFolderId,
+      driveKey: privateDriveKey
+    },
+    // Public file
+    {
+      wrappedEntity: file1,
+      destFolderId: someFolderId
+    }
+  ],
+  conflictResolution: 'upsert'
+});
+
+// Results include all created entities
+console.log('Created folders:', bulkUpload.created.length);
+console.log('Total cost:', bulkUpload.totalCost.toString());
+```
+
+#### Create Folder and Upload Contents
+
+```typescript
+// Create folder and upload all children
+const folderWithContents = await arDrive.createPublicFolderAndUploadChildren({
+  parentFolderId,
+  wrappedFolder: wrapFileOrFolder('/path/to/folder'),
+  conflictResolution: 'skip'
+});
+```

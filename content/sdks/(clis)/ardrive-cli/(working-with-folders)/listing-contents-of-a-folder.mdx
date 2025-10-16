@@ -1,0 +1,103 @@
+---
+title: "Listing Contents of a Folder"
+description: "Command line interface for ArDrive"
+---
+
+Similar to drives, the `list-folder` command can be used to fetch the metadata of each entity within a folder. But by default, the command will fetch only the immediate children of that folder (`--max-depth 0`):
+
+```shell
+ardrive list-folder --parent-folder-id "29850ab7-56d4-4e1f-a5be-cb86d5513940"
+```
+
+Example output:
+
+```shell
+[
+    {
+        "appName": "ArDrive-CLI",
+        "appVersion": "2.0",
+        "arFS": "0.11",
+        "contentType": "application/json",
+        "driveId": "01ea6ba3-9e58-42e7-899d-622fd110211a",
+        "entityType": "folder",
+        "name": "mytestfolder",
+        "txId": "HYiKyfLwY7PT9NleTQoTiM_-qPVUwf4ClDhx1sjUAEU",
+        "unixTime": 1635102772,
+        "parentFolderId": "29850ab7-56d4-4e1f-a5be-cb86d5513940",
+        "entityId": "03df2929-1440-4ab4-bbf0-9dc776e1ed96",
+        "path": "/My Public Folder/mytestfolder",
+        "txIdPath": "/09_x0X2eZ3flXXLS72WdTDq6uaa5g2LjsT-QH1m0zhU/HYiKyfLwY7PT9NleTQoTiM_-qPVUwf4ClDhx1sjUAEU",
+        "entityIdPath": "/29850ab7-56d4-4e1f-a5be-cb86d5513940/03df2929-1440-4ab4-bbf0-9dc776e1ed96"
+    },
+    {
+        "appName": "ArDrive-CLI",
+        "appVersion": "2.0",
+        "arFS": "0.11",
+        "contentType": "application/json",
+        "driveId": "01ea6ba3-9e58-42e7-899d-622fd110211a",
+        "entityType": "folder",
+        "name": "Super sonic public folder",
+        "txId": "VUk1B_vo1va2-EHLtqjsotzy0Rdn6lU4hQo3RD2xoTI",
+        "unixTime": 1631283259,
+        "parentFolderId": "29850ab7-56d4-4e1f-a5be-cb86d5513940",
+        "entityId": "452c6aec-43dc-4015-9abd-20083068d432",
+        "path": "/My Public Folder/Super sonic sub folder",
+        "txIdPath": "/09_x0X2eZ3flXXLS72WdTDq6uaa5g2LjsT-QH1m0zhU/VUk1B_vo1va2-EHLtqjsotzy0Rdn6lU4hQo3RD2xoTI",
+        "entityIdPath": "/29850ab7-56d4-4e1f-a5be-cb86d5513940/452c6aec-43dc-4015-9abd-20083068d432"
+    },
+    {
+        "appName": "ArDrive-CLI",
+        "appVersion": "2.0",
+        "arFS": "0.11",
+        "contentType": "application/json",
+        "driveId": "01ea6ba3-9e58-42e7-899d-622fd110211a",
+        "entityType": "file",
+        "name": "test-number-twelve.txt",
+        "txId": "429zBqnd7ZBNzgukaix26RYz3g5SeXCCo_oIY6CPZLg",
+        "unixTime": 1631722234,
+        "size": 47,
+        "lastModifiedDate": 1631722217028,
+        "dataTxId": "vA-BxAS7I6n90cH4Fzsk4cWS3EOPb1KOhj8yeI88dj0",
+        "dataContentType": "text/plain",
+        "parentFolderId": "29850ab7-56d4-4e1f-a5be-cb86d5513940",
+        "entityId": "e5948327-d6de-4acf-a6fe-e091ecf78d71",
+        "path": "/My Public Folder/test-number-twelve.txt",
+        "txIdPath": "/09_x0X2eZ3flXXLS72WdTDq6uaa5g2LjsT-QH1m0zhU/429zBqnd7ZBNzgukaix26RYz3g5SeXCCo_oIY6CPZLg",
+        "entityIdPath": "/29850ab7-56d4-4e1f-a5be-cb86d5513940/e5948327-d6de-4acf-a6fe-e091ecf78d71"
+    },
+    {
+        "appName": "ArDrive-CLI",
+        "appVersion": "2.0",
+        "arFS": "0.11",
+        "contentType": "application/json",
+        "driveId": "01ea6ba3-9e58-42e7-899d-622fd110211a",
+        "entityType": "file",
+        "name": "wonderful-test-file.txt",
+        "txId": "6CokwlzB81Fx7dq-lB654VM0XQykdU6eYohDmEJ2gk4",
+        "unixTime": 1631671275,
+        "size": 23,
+        "lastModifiedDate": 1631283389232,
+        "dataTxId": "UP8THwA_1gvyRqNRqYmTpWvU4-UzNWBN7SiX_AIihg4",
+        "dataContentType": "text/plain",
+        "parentFolderId": "29850ab7-56d4-4e1f-a5be-cb86d5513940",
+        "entityId": "3274dae9-3487-41eb-94d5-8d5d3d8bc343",
+        "path": "/My Public Folder/wonderful-test-file.txt",
+        "txIdPath": "/09_x0X2eZ3flXXLS72WdTDq6uaa5g2LjsT-QH1m0zhU/6CokwlzB81Fx7dq-lB654VM0XQykdU6eYohDmEJ2gk4",
+        "entityIdPath": "/29850ab7-56d4-4e1f-a5be-cb86d5513940/3274dae9-3487-41eb-94d5-8d5d3d8bc343"
+    }
+]
+```
+
+To list further than the immediate children, you can make use of the flags: `--all` and `--max-depth`.
+
+```shell
+ardrive list-folder --parent-folder-id "9af694f6-4cfc-4eee-88a8-1b02704760c0" --all
+
+ardrive list-folder --parent-folder-id "9af694f6-4cfc-4eee-88a8-1b02704760c0" --max-depth 2
+```
+
+In the case of private entitites, the `--with-keys` flag will make the command to include the keys in the output.
+
+```shell
+ardrive list-folder --parent-folder-id "1b027047-4cfc-4eee-88a8-9af694f660c0" -w /my/wallet.json --with-keys
+```

@@ -1,0 +1,31 @@
+---
+title: "Monitoring Transactions"
+description: "Command line interface for ArDrive"
+---
+
+Block time on Arweave is typically between 2-3 minutes in duration, so transactions can be mined within that time frame when [network congestion](#dealing-with-network-congestion) is low. Transactions, in the general case, proceed through the following set of states:
+
+-   Pending: the transaction is waiting the "mempool" to be mined
+-   Confirming: the transaction was mined on an Arweave Node, but has not yet been confirmed by at least 15 total nodes on the network
+-   Confirmed: the transaction was mined on an Arweave Node and confirmed by at least 15 total nodes on the network
+-   Not Found: the transaction is not available for any of the following reasons:
+    -   Insufficient reward to join the mempool
+    -   Insufficient reward to be mined within 50 blocks during a period of network congestion
+    -   Transaction is transitioning between states
+    -   Transaction ID is invalid
+
+Monitor any Arweave transaction's status via its transaction ID by performing:
+
+```shell
+ardrive tx-status -t "ekSMckikdRJ8RGIkFa-X3xq3427tvM7J9adv8HP3Bzs"
+```
+
+Example output:
+
+```shell
+ekSMckikdRJ8RGIkFa-X3xq3427tvM7J9adv8HP3Bzs: Mined at block height 775810 with 22439 confirmations
+```
+
+```shell
+watch -n 10 ardrive tx-status -t "ekSMckikdRJ8RGIkFa-X3xq3427tvM7J9adv8HP3Bzs"
+```

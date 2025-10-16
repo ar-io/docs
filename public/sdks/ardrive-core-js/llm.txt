@@ -1,0 +1,598 @@
+# Anonymous Operations (/(advanced-features)/anonymous-operations)
+
+Use ArDrive without a wallet for read-only operations:
+
+```typescript
+
+const anonymousArDrive = arDriveAnonymousFactory({});
+
+// Read public data
+const publicFile = await anonymousArDrive.getPublicFile({ fileId });
+const folderContents = await anonymousArDrive.listPublicFolder({ folderId });
+```
+
+# Bundle Support (/(advanced-features)/bundle-support)
+
+Large uploads are automatically bundled for efficiency:
+
+```typescript
+// Bundling happens automatically for multiple files
+const bulkResult = await arDrive.uploadAllEntities({
+  entitiesToUpload: manyFiles,
+  // Bundling is handled internally
+});
+```
+
+# Caching (/(advanced-features)/caching)
+
+ArDrive Core maintains a metadata cache for improved performance:
+
+```shell
+Windows: /ardrive-caches/metadata
+Non-Windows: /.ardrive/caches/metadata
+```
+
+Enable cache logging:
+```bash
+```
+
+# Community Features (/(advanced-features)/community-features)
+
+Send tips to the ArDrive community:
+
+```typescript
+// Send community tip
+await arDrive.sendCommunityTip({
+  tokenAmount: new Winston(1000000000000), // 1 AR
+  walletAddress,
+  communityWalletAddress
+});
+```
+
+# Manifest Creation (/(advanced-features)/manifest-creation)
+
+Create Arweave manifests for web hosting:
+
+```typescript
+// Create a manifest for a folder
+const manifest = await arDrive.uploadPublicManifest({
+  folderId,
+  destManifestName: 'index.html',
+  conflictResolution: 'upsert'
+});
+
+// Access: https://arweave.net/{manifestId}
+```
+
+# Progress Tracking (/(advanced-features)/progress-tracking)
+
+Enable upload progress logging:
+
+```bash
+```
+
+Progress will be logged to stderr:
+```
+Uploading file transaction 1 of total 2 transactions...
+Transaction _GKQasQX194a364Hph8Oe-oku1AdfHwxWOw9_JC1yjc Upload Progress: 0%
+Transaction _GKQasQX194a364Hph8Oe-oku1AdfHwxWOw9_JC1yjc Upload Progress: 35%
+Transaction _GKQasQX194a364Hph8Oe-oku1AdfHwxWOw9_JC1yjc Upload Progress: 66%
+Transaction _GKQasQX194a364Hph8Oe-oku1AdfHwxWOw9_JC1yjc Upload Progress: 100%
+```
+
+# Turbo Integration (/(advanced-features)/turbo-integration)
+
+Enable Turbo for optimized uploads:
+
+```typescript
+// Enable Turbo
+const arDriveWithTurbo = arDriveFactory({ 
+  wallet: myWallet, 
+  turboSettings: {} 
+});
+
+// Uploads will automatically use Turbo
+const result = await arDriveWithTurbo.uploadAllEntities({
+  entitiesToUpload: [{ wrappedEntity, destFolderId }]
+});
+```
+
+# Bulk Operations (/(api-reference)/bulk-operations)
+
+#### Upload Multiple Files and Folders
+
+```typescript
+
+// Prepare entities for upload
+const folder1 = wrapFileOrFolder('/path/to/folder1');
+const folder2 = wrapFileOrFolder('/path/to/folder2');
+const file1 = wrapFileOrFolder('/path/to/file1.txt');
+
+// Upload everything in one operation
+const bulkUpload = await arDrive.uploadAllEntities({
+  entitiesToUpload: [
+    // Public folder
+    {
+      wrappedEntity: folder1,
+      destFolderId: rootFolderId
+    },
+    // Private folder
+    {
+      wrappedEntity: folder2,
+      destFolderId: rootFolderId,
+      driveKey: privateDriveKey
+    },
+    // Public file
+    {
+      wrappedEntity: file1,
+      destFolderId: someFolderId
+    }
+  ],
+  conflictResolution: 'upsert'
+});
+
+// Results include all created entities
+console.log('Created folders:', bulkUpload.created.length);
+console.log('Total cost:', bulkUpload.totalCost.toString());
+```
+
+#### Create Folder and Upload Contents
+
+```typescript
+// Create folder and upload all children
+const folderWithContents = await arDrive.createPublicFolderAndUploadChildren({
+  parentFolderId,
+  wrappedFolder: wrapFileOrFolder('/path/to/folder'),
+  conflictResolution: 'skip'
+});
+```
+
+# Conflict Resolution (/(api-reference)/conflict-resolution)
+
+Available strategies when uploading files/folders that already exist:
+
+```typescript
+// Skip existing files
+await arDrive.uploadAllEntities({
+  entitiesToUpload: [...],
+  conflictResolution: 'skip'
+});
+
+// Replace all existing files
+await arDrive.uploadAllEntities({
+  entitiesToUpload: [...],
+  conflictResolution: 'replace'
+});
+
+// Update only if content differs (default)
+await arDrive.uploadAllEntities({
+  entitiesToUpload: [...],
+  conflictResolution: 'upsert'
+});
+
+// Rename conflicting files
+await arDrive.uploadAllEntities({
+  entitiesToUpload: [...],
+  conflictResolution: 'rename'
+});
+
+// Throw error on conflicts
+await arDrive.uploadAllEntities({
+  entitiesToUpload: [...],
+  conflictResolution: 'error'
+});
+
+// Interactive prompt (CLI only)
+await arDrive.uploadAllEntities({
+  entitiesToUpload: [...],
+  conflictResolution: 'ask'
+});
+```
+
+# Custom Metadata (/(api-reference)/custom-metadata)
+
+Attach custom metadata to files:
+
+```typescript
+const fileWithMetadata = wrapFileOrFolder(
+  '/path/to/file.txt',
+  'text/plain',
+  {
+    metaDataJson: { 
+      'Custom-Field': 'Custom Value',
+      'Version': '1.0'
+    },
+    metaDataGqlTags: {
+      'App-Name': ['MyApp'],
+      'App-Version': ['1.0.0']
+    },
+    dataGqlTags: {
+      'Content-Type': ['text/plain']
+    }
+  }
+);
+
+// Upload with custom metadata
+await arDrive.uploadPublicFile({
+  parentFolderId,
+  wrappedFile: fileWithMetadata
+});
+```
+
+# Download Operations (/(api-reference)/download-operations)
+
+#### Download Files
+
+```typescript
+// Download public file
+const publicData = await arDrive.downloadPublicFile({ 
+  fileId 
+});
+// publicData is a Buffer/Uint8Array
+
+// Download private file (automatically decrypted)
+const privateData = await arDrive.downloadPrivateFile({ 
+  fileId, 
+  driveKey 
+});
+```
+
+#### Download Folders
+
+```typescript
+// Download entire folder
+const folderData = await arDrive.downloadPublicFolder({
+  folderId,
+  destFolderPath: '/local/download/path'
+});
+
+// Download private folder
+const privateFolderData = await arDrive.downloadPrivateFolder({
+  folderId,
+  driveKey,
+  destFolderPath: '/local/download/path'
+});
+```
+
+# Drive Operations (/(api-reference)/drive-operations)
+
+#### Creating Drives
+
+```typescript
+// Public drive
+const publicDrive = await arDrive.createPublicDrive({
+  driveName: 'My Public Drive'
+});
+
+// Private drive with password
+const privateDrive = await arDrive.createPrivateDrive({
+  driveName: 'My Private Drive',
+  drivePassword: 'mySecretPassword'
+});
+```
+
+#### Reading Drive Information
+
+```typescript
+// Get public drive
+const publicDriveInfo = await arDrive.getPublicDrive({ 
+  driveId 
+});
+
+// Get private drive (requires drive key)
+const privateDriveInfo = await arDrive.getPrivateDrive({ 
+  driveId, 
+  driveKey 
+});
+
+// Get all drives for an address
+const allDrives = await arDrive.getAllDrivesForAddress({ 
+  address: walletAddress,
+  privateKeyData: wallet.getPrivateKey() 
+});
+```
+
+#### Renaming Drives
+
+```typescript
+// Rename public drive
+await arDrive.renamePublicDrive({
+  driveId,
+  newName: 'Updated Drive Name'
+});
+
+// Rename private drive
+await arDrive.renamePrivateDrive({
+  driveId,
+  driveKey,
+  newName: 'Updated Private Name'
+});
+```
+
+# Encryption & Security (/(api-reference)/encryption-security)
+
+#### Key Derivation
+
+```typescript
+
+// Derive drive key from password
+const driveKey = await deriveDriveKey(
+  'myPassword',
+  driveId.toString(),
+  JSON.stringify(wallet.getPrivateKey())
+);
+
+// File keys are automatically derived from drive keys
+const fileKey = await deriveFileKey(driveKey, fileId);
+```
+
+#### Manual Encryption/Decryption
+
+```typescript
+
+// Encrypt data
+const { cipher, cipherIV } = await driveEncrypt(driveKey, data);
+
+// Decrypt data
+const decrypted = await driveDecrypt(cipherIV, driveKey, cipher);
+```
+
+# File Operations (/(api-reference)/file-operations)
+
+#### Uploading Files
+
+```typescript
+
+// Wrap file for upload
+const wrappedFile = wrapFileOrFolder('/path/to/file.pdf');
+
+// Upload public file
+const publicUpload = await arDrive.uploadPublicFile({
+  parentFolderId,
+  wrappedFile,
+  conflictResolution: 'upsert' // skip, replace, upsert, or error
+});
+
+// Upload private file
+const privateUpload = await arDrive.uploadPrivateFile({
+  parentFolderId,
+  driveKey,
+  wrappedFile
+});
+```
+
+#### Reading File Information
+
+```typescript
+// Get public file metadata
+const publicFile = await arDrive.getPublicFile({ fileId });
+
+// Get private file metadata
+const privateFile = await arDrive.getPrivateFile({ 
+  fileId, 
+  driveKey 
+});
+```
+
+#### Moving and Renaming Files
+
+```typescript
+// Move file
+await arDrive.movePublicFile({
+  fileId,
+  newParentFolderId
+});
+
+// Rename file
+await arDrive.renamePublicFile({
+  fileId,
+  newName: 'renamed-file.pdf'
+});
+```
+
+# Folder Operations (/(api-reference)/folder-operations)
+
+#### Creating Folders
+
+```typescript
+// Public folder
+const publicFolder = await arDrive.createPublicFolder({
+  folderName: 'Documents',
+  driveId,
+  parentFolderId
+});
+
+// Private folder
+const privateFolder = await arDrive.createPrivateFolder({
+  folderName: 'Secret Documents',
+  driveId,
+  driveKey,
+  parentFolderId
+});
+```
+
+#### Listing Folder Contents
+
+```typescript
+// List public folder
+const publicContents = await arDrive.listPublicFolder({
+  folderId,
+  maxDepth: 2, // Optional: limit recursion depth
+  includeRoot: true // Optional: include root folder in results
+});
+
+// List private folder
+const privateContents = await arDrive.listPrivateFolder({
+  folderId,
+  driveKey,
+  maxDepth: 1
+});
+```
+
+#### Moving and Renaming Folders
+
+```typescript
+// Move folder
+await arDrive.movePublicFolder({
+  folderId,
+  newParentFolderId
+});
+
+// Rename folder
+await arDrive.renamePublicFolder({
+  folderId,
+  newName: 'New Folder Name'
+});
+```
+
+# Pricing & Cost Estimation (/(api-reference)/pricing-cost-estimation)
+
+```typescript
+// Get price estimator
+const priceEstimator = arDrive.getArDataPriceEstimator();
+
+// Estimate cost for data size
+const cost = await priceEstimator.getARPriceForByteCount(
+  new ByteCount(1024 * 1024) // 1MB
+);
+
+// Get base Winston price (without tips)
+const basePrice = await priceEstimator.getBaseWinstonPriceForByteCount(
+  new ByteCount(5 * 1024 * 1024) // 5MB
+);
+```
+
+# Entity IDs (/(core-concepts)/entity-ids)
+
+Use the type-safe entity ID constructors:
+
+```typescript
+
+// Generic entity ID
+const entityId = EID('10108b54a-eb5e-4134-8ae2-a3946a428ec7');
+
+// Specific entity IDs
+const driveId = new DriveID('12345674a-eb5e-4134-8ae2-a3946a428ec7');
+const folderId = new FolderID('47162534a-eb5e-4134-8ae2-a3946a428ec7');
+const fileId = new FileID('98765432a-eb5e-4134-8ae2-a3946a428ec7');
+```
+
+# Entity Types (/(core-concepts)/entity-types)
+
+ArDrive uses a hierarchical structure:
+- **Drives**: Top-level containers (public or private)
+- **Folders**: Organize files within drives
+- **Files**: Individual files stored on Arweave
+
+Each entity has a unique ID (`DriveID`, `FolderID`, `FileID`) and can be either public (unencrypted) or private (encrypted).
+
+# Wallet Management (/(core-concepts)/wallet-management)
+
+```typescript
+
+// Create wallet from JWK
+const wallet = new JWKWallet(jwkKey);
+
+// Check wallet balance
+const balance = await wallet.getBalance();
+```
+
+# Building (/(development)/building)
+
+```shell
+yarn build
+
+yarn dev
+```
+
+# Environment Setup (/(development)/environment-setup)
+
+We use nvm and Yarn for development:
+
+1. Install nvm [using their instructions][nvm-install]
+2. Install correct Node version: `nvm install && nvm use`
+3. Install Yarn 3.x: Follow [Yarn installation][yarn-install]
+4. Enable git hooks: `yarn husky install`
+5. Install dependencies: `yarn install --check-cache`
+
+# Linting and Formatting (/(development)/linting-and-formatting)
+
+```shell
+yarn lint
+
+yarn lintfix
+
+yarn format
+
+yarn typecheck
+```
+
+# Recommended VS Code Extensions (/(development)/recommended-vs-code-extensions)
+
+- [ESLint][eslint-vscode]
+- [EditorConfig][editor-config-vscode]
+- [Prettier][prettier-vscode]
+- [ZipFS][zipfs-vscode]
+
+# ArLocal Testing (/(testing)/arlocal-testing)
+
+For integration testing with a local Arweave instance:
+
+```shell
+yarn arlocal-docker-test
+```
+
+# Running Tests (/(testing)/running-tests)
+
+```shell
+yarn test
+
+yarn test -g 'My specific test'
+
+yarn coverage
+
+yarn power-assert -g 'My test case'
+```
+
+# Test Organization (/(testing)/test-organization)
+
+- Unit tests: Located next to source files (`*.test.ts`)
+- Integration tests: Located in `/tests` directory
+
+# Contributing (/contributing)
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+# ArDrive Core JS (/index)
+
+**For AI and LLM users**: Access the complete ArDrive Core JS documentation in plain text
+  format at llm.txt for easy consumption by AI agents
+  and language models.
+
+# ArDrive Core JS
+
+Please refer to the [source code](https://github.com/ardriveapp/ardrive-core-js) for SDK details.
+
+# License (/license)
+
+AGPL-3.0-or-later
+
+# Support (/support)
+
+- [Discord Community](https://discord.gg/7RuTBckX)
+- [GitHub Issues](https://github.com/ardriveapp/ardrive-core-js/issues)
+- [ArDrive Website](https://ardrive.io)
+
+[yarn-install]: https://yarnpkg.com/getting-started/install
+[nvm-install]: https://github.com/nvm-sh/nvm#installing-and-updating
+[editor-config-vscode]: https://marketplace.visualstudio.com/items?itemName=EditorConfig.EditorConfig
+[prettier-vscode]: https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode
+[zipfs-vscode]: https://marketplace.visualstudio.com/items?itemName=arcanis.vscode-zipfs
+[eslint-vscode]: https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint
+[mocha]: https://github.com/mochajs/mocha
+[chai]: https://github.com/chaijs/chai
+[sinon]: https://github.com/sinonjs/sinon

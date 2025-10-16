@@ -11,288 +11,429 @@ const PACKAGES: {
   sourceUrl: string;
   icon?: string;
 }[] = [
-    // AR.IO SDK
+  // AR.IO SDK
   {
     name: "ar-io-sdk",
-    readmeUrl: "https://raw.githubusercontent.com/ar-io/ar-io-sdk/alpha/README.md",
+    readmeUrl:
+      "https://raw.githubusercontent.com/ar-io/ar-io-sdk/alpha/README.md",
     dest: path.resolve("content/sdks/ar-io-sdk"),
     title: "AR.IO SDK",
-    description: "TypeScript/JavaScript SDK for interacting with the AR.IO ecosystem",
+    description:
+      "TypeScript/JavaScript SDK for interacting with the AR.IO ecosystem",
     sourceUrl: "https://github.com/ar-io/ar-io-sdk",
-    icon: "/ario.svg"
+    icon: "/ario.svg",
   },
-    // Turbo SDK
+  // Turbo SDK
   {
     name: "turbo-sdk",
-    readmeUrl: "https://raw.githubusercontent.com/ardriveapp/turbo-sdk/main/README.md",
+    readmeUrl:
+      "https://raw.githubusercontent.com/ardriveapp/turbo-sdk/main/README.md",
     dest: path.resolve("content/sdks/turbo-sdk"),
     title: "Turbo SDK",
-    description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave",
+    description:
+      "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave",
     sourceUrl: "https://github.com/ardriveapp/turbo-sdk",
-    icon: "/turbo.svg"
+    icon: "/turbo.svg",
   },
   // Wayfinder SDK packages
   {
+    name: "wayfinder",
+    readmeUrl:
+      "https://raw.githubusercontent.com/ar-io/wayfinder/alpha/README.md",
+    dest: path.resolve("content/sdks/wayfinder"),
+    title: "Wayfinder SDK's",
+    description:
+      "Decentralized access to Arweave data with built-in verification and gateway routing",
+    sourceUrl: "https://github.com/ar-io/wayfinder",
+    icon: "/wayfinder.svg",
+  },
+  {
     name: "wayfinder-core",
-    readmeUrl: "https://raw.githubusercontent.com/ar-io/wayfinder/alpha/packages/wayfinder-core/README.md",
+    readmeUrl:
+      "https://raw.githubusercontent.com/ar-io/wayfinder/alpha/packages/wayfinder-core/README.md",
     dest: path.resolve("content/sdks/wayfinder/wayfinder-core"),
     title: "Wayfinder Core",
-    description: "JavaScript/TypeScript SDK for accessing Arweave data with built-in verification and gateway routing",
-    sourceUrl: "https://github.com/ar-io/wayfinder/tree/main/packages/wayfinder-core",
-    icon: "/wayfinder.svg"
+    description:
+      "JavaScript/TypeScript SDK for accessing Arweave data with built-in verification and gateway routing",
+    sourceUrl:
+      "https://github.com/ar-io/wayfinder/tree/main/packages/wayfinder-core",
+    icon: "/wayfinder.svg",
   },
   {
     name: "wayfinder-react",
-    readmeUrl: "https://raw.githubusercontent.com/ar-io/wayfinder/alpha/packages/wayfinder-react/README.md",
+    readmeUrl:
+      "https://raw.githubusercontent.com/ar-io/wayfinder/alpha/packages/wayfinder-react/README.md",
     dest: path.resolve("content/sdks/wayfinder/wayfinder-react"),
     title: "Wayfinder React",
-    description: "React hooks and components for integrating Wayfinder into React applications",
-    sourceUrl: "https://github.com/ar-io/wayfinder/tree/main/packages/wayfinder-react",
-    icon: "/wayfinder.svg"
+    description:
+      "React hooks and components for integrating Wayfinder into React applications",
+    sourceUrl:
+      "https://github.com/ar-io/wayfinder/tree/main/packages/wayfinder-react",
+    icon: "/wayfinder.svg",
+  },
+  // ArDrive-Core-Js SDK
+  {
+    name: "ardrive-core-js",
+    readmeUrl:
+      "https://raw.githubusercontent.com/ardriveapp/ardrive-core-js/refs/heads/master/README.md",
+    dest: path.resolve("content/sdks/ardrive-core-js"),
+    title: "ArDrive Core JS",
+    description: "JavaScript/TypeScript SDK for interacting with ArDrive",
+    sourceUrl: "https://github.com/ardriveapp/ardrive-core-js",
+    icon: "/ardrive.svg",
+  },
+
+  {
+    name: "ardrive-cli",
+    readmeUrl:
+      "https://raw.githubusercontent.com/ardriveapp/ardrive-cli/refs/heads/master/README.md",
+    dest: path.resolve("content/sdks/(clis)/ardrive-cli"),
+    title: "ArDrive CLI",
+    description: "Command line interface for ArDrive",
+    sourceUrl: "https://github.com/ardriveapp/ardrive-cli",
+    icon: "/ardrive.svg",
   },
 ];
-
 
 function sanitizeFilename(title: string): string {
   return title
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
 function escapeContent(content: string): string {
   // Escape content that might be interpreted as JSX
-  return content
-    // Remove h1 headers (# title)
-    .replace(/^#\s+[^\n]+\n/gm, '')
-    // Convert <details> blocks to normal output blocks with "Output:" prefix
-    .replace(/<details>\s*<summary>[^<]*<\/summary>\s*(```[\s\S]*?```)\s*<\/details>/g, (match, codeBlock) => {
-      return `**Output:**\n\n${codeBlock}`;
-    })
-    // Escape emoji checkmarks and crosses that might be interpreted as JSX
-    .replace(/^(\s*-)(\s*)(✅|❌)/gm, '$1$2{\'$3\'}')
-    // Convert GitHub-style alerts to Fumadocs Callout components
-    .replace(/>\s*\[!(WARNING|CAUTION|IMPORTANT)\]\s*\n((?:>.*\n?)*)/gm, (match, type, content) => {
-      const cleanContent = content.replace(/^>\s?/gm, '').trim();
-      return `<Callout type="warn">\n${cleanContent}\n</Callout>\n`;
-    })
-    .replace(/>\s*\[!(INFO|NOTE|TIP)\]\s*\n((?:>.*\n?)*)/gm, (match, type, content) => {
-      const cleanContent = content.replace(/^>\s?/gm, '').trim();
-      return `<Callout type="info">\n${cleanContent}\n</Callout>\n`;
-    })
-    // Remove backticks from any header and simplify function signatures
-    .replace(/(#{1,6}\s*)`?([^`\n]+)`?/g, (match, headerPrefix, headerContent) => {
-      // Remove backticks and simplify function signatures (remove parameters, keep just function name with ())
-      let cleanHeader = headerContent.replace(/`/g, '');
-      cleanHeader = cleanHeader.replace(/(\w+)\([^)]*\)(\([^)]*\))*/g, '$1()');
-      return `${headerPrefix}${cleanHeader}`;
-    })
-    // Handle angle brackets for placeholders like <tx-id>, <subdomain>
-    .replace(/<(\/?[\w-]+)(\s[^>]*)?>/g, (match, tagName, attributes) => {
-      // Clean the tag name (remove leading slash for closing tags)
-      const cleanTagName = tagName.replace(/^\//, '').toLowerCase();
-      
-      // List of valid HTML tags that should be preserved
-      const htmlTags = [
-        'br', 'hr', 'img', 'input', 'meta', 'link', 'area', 'base', 'col', 'embed', 'source', 'track', 'wbr',
-        'div', 'span', 'p', 'a', 'strong', 'em', 'code', 'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-        'ul', 'ol', 'li', 'table', 'tr', 'td', 'th', 'thead', 'tbody', 'tfoot',
-        'details', 'summary', 'blockquote', 'cite', 'abbr', 'time', 'mark', 'del', 'ins',
-        'sup', 'sub', 'small', 'big', 'b', 'i', 'u', 's', 'strike', 'script', 'callout'
-      ];
-      
-      if (htmlTags.includes(cleanTagName)) {
-        return match; // Keep HTML tags as-is
-      }
-      
-      // Escape placeholders like <tx-id>, <subdomain>, etc.
-      return `\\<${tagName}${attributes || ''}\\>`;
-    })
-    // Keep code blocks with curly braces as-is since they're in backticks (but not in headers)
-    .replace(/(`[^`]*\{[^}]*\}[^`]*`)/g, (match) => {
-      return match;
-    })
-    // Escape standalone curly braces that aren't in code blocks
-    .replace(/(?<!`[^`]*)\{([^}]*)\}(?![^`]*`)/g, (match, content) => {
-      // Skip if this looks like JSX (contains JSX-like syntax)
-      if (content.includes('<') || content.includes('>') || content.includes('React') || content.includes('jsx')) {
+  return (
+    content
+      // Remove h1 headers (# title)
+      .replace(/^#\s+[^\n]+\n/gm, "")
+      // Convert <details> blocks to normal output blocks with "Output:" prefix
+      .replace(
+        /<details>\s*<summary>[^<]*<\/summary>\s*(```[\s\S]*?```)\s*<\/details>/g,
+        (match, codeBlock) => {
+          return `**Output:**\n\n${codeBlock}`;
+        }
+      )
+      // Escape emoji checkmarks and crosses that might be interpreted as JSX
+      .replace(/^(\s*-)(\s*)(✅|❌)/gm, "$1$2{'$3'}")
+      // Convert GitHub-style alerts to Fumadocs Callout components
+      .replace(
+        />\s*\[!(WARNING|CAUTION|IMPORTANT)\]\s*\n((?:>.*\n?)*)/gm,
+        (match, type, content) => {
+          const cleanContent = content.replace(/^>\s?/gm, "").trim();
+          return `<Callout type="warn">\n${cleanContent}\n</Callout>\n`;
+        }
+      )
+      .replace(
+        />\s*\[!(INFO|NOTE|TIP)\]\s*\n((?:>.*\n?)*)/gm,
+        (match, type, content) => {
+          const cleanContent = content.replace(/^>\s?/gm, "").trim();
+          return `<Callout type="info">\n${cleanContent}\n</Callout>\n`;
+        }
+      )
+      // Remove backticks from any header and simplify function signatures
+      .replace(
+        /(#{1,6}\s*)`?([^`\n]+)`?/g,
+        (match, headerPrefix, headerContent) => {
+          // Remove backticks and simplify function signatures (remove parameters, keep just function name with ())
+          let cleanHeader = headerContent.replace(/`/g, "");
+          cleanHeader = cleanHeader.replace(
+            /(\w+)\([^)]*\)(\([^)]*\))*/g,
+            "$1()"
+          );
+          return `${headerPrefix}${cleanHeader}`;
+        }
+      )
+      // Handle angle brackets for placeholders like <tx-id>, <subdomain>
+      .replace(/<(\/?[\w-]+)(\s[^>]*)?>/g, (match, tagName, attributes) => {
+        // Clean the tag name (remove leading slash for closing tags)
+        const cleanTagName = tagName.replace(/^\//, "").toLowerCase();
+
+        // List of valid HTML tags that should be preserved
+        const htmlTags = [
+          "br",
+          "hr",
+          "img",
+          "input",
+          "meta",
+          "link",
+          "area",
+          "base",
+          "col",
+          "embed",
+          "source",
+          "track",
+          "wbr",
+          "div",
+          "span",
+          "p",
+          "a",
+          "strong",
+          "em",
+          "code",
+          "pre",
+          "h1",
+          "h2",
+          "h3",
+          "h4",
+          "h5",
+          "h6",
+          "ul",
+          "ol",
+          "li",
+          "table",
+          "tr",
+          "td",
+          "th",
+          "thead",
+          "tbody",
+          "tfoot",
+          "details",
+          "summary",
+          "blockquote",
+          "cite",
+          "abbr",
+          "time",
+          "mark",
+          "del",
+          "ins",
+          "sup",
+          "sub",
+          "small",
+          "big",
+          "b",
+          "i",
+          "u",
+          "s",
+          "strike",
+          "script",
+          "callout",
+        ];
+
+        if (htmlTags.includes(cleanTagName)) {
+          return match; // Keep HTML tags as-is
+        }
+
+        // Escape placeholders like <tx-id>, <subdomain>, etc.
+        return `\\<${tagName}${attributes || ""}\\>`;
+      })
+      // Keep code blocks with curly braces as-is since they're in backticks (but not in headers)
+      .replace(/(`[^`]*\{[^}]*\}[^`]*`)/g, (match) => {
         return match;
-      }
-      // Escape the braces
-      return `\\{${content}\\}`;
-    });
+      })
+      // Escape standalone curly braces that aren't in code blocks
+      .replace(/(?<!`[^`]*)\{([^}]*)\}(?![^`]*`)/g, (match, content) => {
+        // Skip if this looks like JSX (contains JSX-like syntax)
+        if (
+          content.includes("<") ||
+          content.includes(">") ||
+          content.includes("React") ||
+          content.includes("jsx")
+        ) {
+          return match;
+        }
+        // Escape the braces
+        return `\\{${content}\\}`;
+      })
+      // Fix literal <> patterns that should be < - >
+      .replace(/(?<!<)<>/g, "< - >")
+  );
 }
 
 async function fetchReadme(url: string): Promise<string> {
   const response = await fetch(url);
   if (!response.ok) {
-    throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
+    throw new Error(
+      `Failed to fetch ${url}: ${response.status} ${response.statusText}`
+    );
   }
   return response.text();
 }
 
-async function processPackage(pkg: typeof PACKAGES[0]) {
+async function processPackage(pkg: (typeof PACKAGES)[0]) {
   console.log(`Processing ${pkg.name}...`);
-  
-  // Check if index.mdx exists before cleaning
-  let indexContent: string | null = null;
-  const indexPath = path.join(pkg.dest, 'index.mdx');
-  try {
-    indexContent = await fs.readFile(indexPath, 'utf-8');
-  } catch (e) {
-    // index.mdx doesn't exist, that's fine
-  }
-  
+
   // Clean and create destination directory
   await fs.rm(pkg.dest, { recursive: true, force: true });
   await fs.mkdir(pkg.dest, { recursive: true });
-  
-  // Restore index.mdx if it existed
-  if (indexContent) {
-    await fs.writeFile(indexPath, indexContent);
-    console.log(`Preserved existing index.mdx for ${pkg.name}`);
-  }
-  
+
+  // Create simple index.mdx with LLM callout
+  const indexPath = path.join(pkg.dest, "index.mdx");
+  const indexContent = `---
+title: "${pkg.title}"
+description: "${pkg.description}"
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+
+<Callout type="info">
+  **For AI and LLM users**: Access the complete ${pkg.title} documentation in plain text
+  format at <a href="/sdks/${pkg.name === "ardrive-cli" ? "(clis)" : pkg.name}/llm.txt" target="_blank" rel="noopener noreferrer">llm.txt</a> for easy consumption by AI agents
+  and language models.
+</Callout>
+
+# ${pkg.title}
+
+Please refer to the [source code](${pkg.sourceUrl}) for SDK details.`;
+
+  await fs.writeFile(indexPath, indexContent);
+  console.log(`Created index.mdx with LLM callout for ${pkg.name}`);
+
   try {
     // Fetch the README.md from GitHub
     console.log(`Fetching README from: ${pkg.readmeUrl}`);
     const content = await fetchReadme(pkg.readmeUrl);
-    
+
     // First split by H2 headers to create folder structure
-    const h2Sections = content.split(/(?=^## )/m).filter(section => section.trim());
-    
+    const h2Sections = content
+      .split(/(?=^## )/m)
+      .filter((section) => section.trim());
+
     // Structure to hold our pages/folders
     const rootPages: string[] = [];
     const folders: Record<string, string[]> = {};
-    
+
     for (const h2Section of h2Sections) {
-      if (!h2Section.startsWith('## ')) continue;
-      
-      const h2Lines = h2Section.split('\n');
+      if (!h2Section.startsWith("## ")) continue;
+
+      const h2Lines = h2Section.split("\n");
       const h2HeaderLine = h2Lines[0];
-      const h2Title = h2HeaderLine.replace(/^## /, '').trim();
-      
+      const h2Title = h2HeaderLine.replace(/^## /, "").trim();
+
       // Skip certain H2 sections
-      if (h2Title.toLowerCase().includes('table of contents') || 
-          h2Title.toLowerCase().includes('toc') ||
-          h2Title.toLowerCase() === 'contents' ||
-          h2Title.toLowerCase() === 'developers' ||
-          h2Title.toLowerCase() === 'cli' ||
-          h2Title.toLowerCase() === 'installation' ||
-          h2Title.toLowerCase() === 'configuration' ||
-          h2Title.toLowerCase() === 'resources' ||
-          h2Title.toLowerCase() === 'usage' ||
-          h2Title.toLowerCase().includes('quick start')) {
+      if (
+        h2Title.toLowerCase().includes("table of contents") ||
+        h2Title.toLowerCase().includes("toc") ||
+        h2Title.toLowerCase() === "contents" ||
+        h2Title.toLowerCase() === "developers" ||
+        h2Title.toLowerCase() === "cli" ||
+        h2Title.toLowerCase() === "installation" ||
+        h2Title.toLowerCase() === "configuration" ||
+        h2Title.toLowerCase() === "resources" ||
+        h2Title.toLowerCase() === "usage" ||
+        h2Title.toLowerCase().includes("quick start")
+      ) {
         console.log(`Skipping H2 section: ${h2Title}`);
         continue;
       }
-      
+
       // Clean up the H2 title
-      let cleanH2Title = h2Title.replace(/`/g, '');
-      cleanH2Title = cleanH2Title.replace(/(\w+)\([^)]*\)(\([^)]*\))*/g, '$1()');
+      let cleanH2Title = h2Title.replace(/`/g, "");
+      cleanH2Title = cleanH2Title.replace(
+        /(\w+)\([^)]*\)(\([^)]*\))*/g,
+        "$1()"
+      );
       const h2FolderName = sanitizeFilename(cleanH2Title);
 
       // Split this H2 section by H3 headers
-      const h3Sections = h2Section.split(/(?=^### )/m).filter(section => section.trim());
-      
+      const h3Sections = h2Section
+        .split(/(?=^### )/m)
+        .filter((section) => section.trim());
+
       // Process the H2 content (before first H3)
       const h2Content = h3Sections[0];
-      const h2ContentLines = h2Content.split('\n');
-      const h2ContentBody = h2ContentLines.slice(1).join('\n').trim();
-      
+      const h2ContentLines = h2Content.split("\n");
+      const h2ContentBody = h2ContentLines.slice(1).join("\n").trim();
+
       if (h3Sections.length > 1) {
         // Has H3 subsections - create a folder with parentheses
         const folderName = `(${h2FolderName})`;
         const folderPath = path.join(pkg.dest, folderName);
         await fs.mkdir(folderPath, { recursive: true });
         folders[folderName] = [];
-        
+
         // Process each H3 section
         for (let i = 1; i < h3Sections.length; i++) {
           const h3Section = h3Sections[i];
-          if (!h3Section.startsWith('### ')) continue;
-          
-          const h3Lines = h3Section.split('\n');
+          if (!h3Section.startsWith("### ")) continue;
+
+          const h3Lines = h3Section.split("\n");
           const h3HeaderLine = h3Lines[0];
-          const h3Title = h3HeaderLine.replace(/^### /, '').trim();
-          
+          const h3Title = h3HeaderLine.replace(/^### /, "").trim();
+
           // Clean up the H3 title
-          let cleanH3Title = h3Title.replace(/`/g, '');
-          cleanH3Title = cleanH3Title.replace(/(\w+)\([^)]*\)(\([^)]*\))*/g, '$1()');
-          
-          const h3Content = h3Lines.slice(1).join('\n').trim();
+          let cleanH3Title = h3Title.replace(/`/g, "");
+          cleanH3Title = cleanH3Title.replace(
+            /(\w+)\([^)]*\)(\([^)]*\))*/g,
+            "$1()"
+          );
+
+          const h3Content = h3Lines.slice(1).join("\n").trim();
           const h3Filename = sanitizeFilename(cleanH3Title);
           const escapedContent = escapeContent(h3Content);
-          
+
           const pageContent = `---
 title: "${cleanH3Title}"
 description: "${pkg.description}"
 ---
 
 ${escapedContent}`;
-          
-          await fs.writeFile(path.join(folderPath, `${h3Filename}.mdx`), pageContent);
+
+          await fs.writeFile(
+            path.join(folderPath, `${h3Filename}.mdx`),
+            pageContent
+          );
           folders[folderName].push(h3Filename);
           console.log(`Created page: ${folderName}/${h3Filename}.mdx`);
         }
-        
+
         // Create meta.json for the folder
-        const folderMetaPath = path.join(folderPath, 'meta.json');
+        const folderMetaPath = path.join(folderPath, "meta.json");
         await fs.writeFile(
           folderMetaPath,
-          JSON.stringify({ 
-            title: cleanH2Title, 
-            pages: folders[folderName],
-            defaultOpen: false 
-          }, null, 2)
+          JSON.stringify(
+            {
+              title: cleanH2Title,
+              pages: folders[folderName],
+              defaultOpen: false,
+            },
+            null,
+            2
+          )
         );
-        
+
         rootPages.push(folderName);
       } else {
         // No H3 subsections - create a single page
         const filename = h2FolderName;
         const escapedContent = escapeContent(h2ContentBody);
-        
+
         const pageContent = `---
 title: "${cleanH2Title}"
 description: "${pkg.description}"
 ---
 
 ${escapedContent}`;
-        
+
         await fs.writeFile(path.join(pkg.dest, `${filename}.mdx`), pageContent);
         rootPages.push(filename);
         console.log(`Created page: ${filename}.mdx`);
       }
     }
-    
+
+    // LLM pages are no longer needed - users can access llm.txt directly
+
     // Create top-level meta for the package
     const metaPath = path.join(pkg.dest, "meta.json");
     await fs.writeFile(
       metaPath,
       JSON.stringify(
-        { title: pkg.title, icon: pkg.icon, pages: rootPages, defaultOpen: false },
+        {
+          title: pkg.title,
+          icon: pkg.icon,
+          pages: rootPages,
+          defaultOpen: false,
+        },
         null,
         2
       )
     );
-    
+
     console.log(`${pkg.name} README.md successfully processed`);
   } catch (error) {
     console.error(`Error converting ${pkg.name} README:`, error);
-    // Create fallback if README doesn't exist
-    await fs.writeFile(
-      path.join(pkg.dest, "index.mdx"),
-      `---
-title: "${pkg.title}"
-description: "${pkg.description}"
----
 
-# ${pkg.title}
-
-Please refer to the [source code](${pkg.sourceUrl}) for SDK details.`
-    );
-    
     // Create basic meta
     const metaPath = path.join(pkg.dest, "meta.json");
     await fs.writeFile(
@@ -313,25 +454,38 @@ async function main() {
   for (const pkg of PACKAGES) {
     await processPackage(pkg);
   }
-  
+
   // Create top-level SDKs meta.json
   const sdksMetaPath = path.resolve("content/sdks/meta.json");
   const sdksMeta = {
-    title: "SDKs",
+    title: "SDKs and CLIs",
     icon: "Package",
     pages: [
-      "...",
+      "---SDKs---",
+      "ardrive-core-js",
       "ar-io-sdk",
       "turbo-sdk",
       "wayfinder",
+      "---CLIs---",
+      "...(clis)",
     ],
     root: true,
-    defaultOpen: false
+    defaultOpen: false,
   };
-  
+
   await fs.writeFile(sdksMetaPath, JSON.stringify(sdksMeta, null, 2));
   console.log("Created top-level SDKs meta.json");
-  
+
+  // Generate LLM text files for all SDKs
+  console.log("Generating LLM text files...");
+  const { execSync } = await import("child_process");
+  try {
+    execSync("npm run generate-sdk-llm-texts", { stdio: "inherit" });
+    console.log("LLM text files generated successfully!");
+  } catch (error) {
+    console.error("Error generating LLM text files:", error);
+  }
+
   console.log("SDK documentation generated successfully!");
 }
 

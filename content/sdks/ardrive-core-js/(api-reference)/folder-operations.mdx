@@ -1,0 +1,57 @@
+---
+title: "Folder Operations"
+description: "JavaScript/TypeScript SDK for interacting with ArDrive"
+---
+
+#### Creating Folders
+
+```typescript
+// Public folder
+const publicFolder = await arDrive.createPublicFolder({
+  folderName: 'Documents',
+  driveId,
+  parentFolderId
+});
+
+// Private folder
+const privateFolder = await arDrive.createPrivateFolder({
+  folderName: 'Secret Documents',
+  driveId,
+  driveKey,
+  parentFolderId
+});
+```
+
+#### Listing Folder Contents
+
+```typescript
+// List public folder
+const publicContents = await arDrive.listPublicFolder({
+  folderId,
+  maxDepth: 2, // Optional: limit recursion depth
+  includeRoot: true // Optional: include root folder in results
+});
+
+// List private folder
+const privateContents = await arDrive.listPrivateFolder({
+  folderId,
+  driveKey,
+  maxDepth: 1
+});
+```
+
+#### Moving and Renaming Folders
+
+```typescript
+// Move folder
+await arDrive.movePublicFolder({
+  folderId,
+  newParentFolderId
+});
+
+// Rename folder
+await arDrive.renamePublicFolder({
+  folderId,
+  newName: 'New Folder Name'
+});
+```

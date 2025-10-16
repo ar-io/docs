@@ -1,0 +1,59 @@
+---
+title: "Dealing With Network Congestion"
+description: "Command line interface for ArDrive"
+---
+
+Currently, Arweave blocks hold up to 1000 transactions per block. The "mempool", where pending transactions reside until they've been included into a block, will only hold a transaction for 50 blocks (~100-150 minutes) before it's discarded by the network resulting in no fees or data being transacted. During periods of network congestion (i.e. those where the mempool contains 1000 or more pending transactions), it may make sense to either:
+
+a) wait for congestion to dissipate before attempting your transactions.
+
+b) apply the fee boost multiplier to your transactions rewards with the --boost parameter during write operations in order to front-run some of the congestion.
+
+#### Check for network congestion before uploading
+
+```shell
+ardrive get-mempool
+
+ardrive get-mempool | jq 'length'
+```
+
+#### Front-run Congestion By Boosting Miner Rewards
+
+```shell
+ardrive upload-file --wallet-file /path/to/my/wallet.json --parent-folder-id "f0c58c11-430c-4383-8e54-4d864cc7e927" --local-path ./helloworld.txt --boost 1.5
+```
+
+#### Send AR Transactions From a Cold Wallet
+
+The best cold wallet storage never exposes your seed phrase and/or private keys to the Internet or a compromised system interface. You can use the ArDrive CLI to facilitate cold storage and transfer of AR.
+
+If you need a new cold AR wallet, generate one from an air-gapped machine capable of running the ArDrive CLI by following the instructions in the [Wallet Operations](#wallet-operations) section. Fund your cold wallet from whatever external sources you'd like. NOTE: Your cold wallet won't appear on chain until it has received AR.
+
+The workflow to send the AR out from your cold wallet requires you to generate a signed transaction with your cold wallet on your air-gapped machine via the ArDrive CLI, and then to transfer the signed transaction (e.g. by a file on a clean thumb drive) to an Internet-connected machine and send the transaction to the network via the ArDrive CLI. You'll need two inputs from the Internet-connected machine:
+
+- the last transaction sent OUT from the cold wallet (or an empty string if none has ever been sent out)
+- the base fee for an Arweave transaction (i.e. a zero bye transaction). Note that this value could change if a sufficient amount of time passes between the time you fetch this value, create the transaction, and send the transaction.
+
+To get the last transaction sent from your cold wallet, use the `last-tx` command and specify your wallet address e.g.:
+
+```
+ardrive last-tx -a \<Arweave address of cold wallet\>
+```
+
+To get the base transaction reward required for an AR transaction, use the `base-reward` function, optionally applying a reward boost multiple if you're looking to front-run network congestion:
+
+```
+ardrive base-reward --boost 1.5
+```
+
+Write down or securely copy the values you derived from the Internet-connected machine and run the following commands on the airgapped machine, piping the outputted signed transaction data to a file in the process, e.g. `sendme.json` (if that's your signed transaction transfer medium preference):
+
+```
+ardrive create-tx -w /path/to/wallet/file.json -d \<dest Arweave address\> -a \<AR amount to send\> --last-tx \<from previous steps\> --reward "\<from previous steps\>" > sendme.json
+```
+
+Transport your signed transaction to the Internet-connected machine and run the following command to send your transaction to the Arweave network:
+
+```
+ardrive send-tx -x /path/to/sendme.json
+```

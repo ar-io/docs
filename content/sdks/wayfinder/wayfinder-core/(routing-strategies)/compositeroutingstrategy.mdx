@@ -1,0 +1,58 @@
+---
+title: "CompositeRoutingStrategy"
+description: "JavaScript/TypeScript SDK for accessing Arweave data with built-in verification and gateway routing"
+---
+
+Chains multiple routing strategies together, trying each sequentially until one succeeds. This strategy provides maximum resilience by allowing complex fallback scenarios where you can combine different routing approaches.
+
+```javascript
+import { 
+  CompositeRoutingStrategy, 
+  FastestPingRoutingStrategy, 
+  RandomRoutingStrategy,
+  StaticRoutingStrategy,
+  NetworkGatewaysProvider 
+} from '@ar.io/wayfinder-core';
+import { ARIO } from '@ar.io/sdk';
+
+// Example 1: Try fastest ping first, fallback to random selection
+const strategy = new CompositeRoutingStrategy({
+  strategies: [
+    new FastestPingRoutingStrategy({
+      timeoutMs: 500,
+      gatewaysProvider: new NetworkGatewaysProvider({
+        ario: ARIO.mainnet(),
+        sortBy: 'operatorStake',
+        limit: 10,
+      }),
+    }),
+    new RandomRoutingStrategy(), // fallback if ping strategy fails
+  ],
+});
+
+// Example 2: Try preferred gateway, then fastest ping, then any random gateway
+const complexStrategy = new CompositeRoutingStrategy({
+  strategies: [
+    new StaticRoutingStrategy({ gateway: 'https://my-preferred-gateway.com' }),
+    new FastestPingRoutingStrategy({ timeoutMs: 1000 }),
+    new RandomRoutingStrategy(), // final fallback
+  ],
+});
+
+const gateway = await strategy.selectGateway({
+  gateways: [new URL('https://gateway1.com'), new URL('https://gateway2.com')],
+});
+```
+
+**How it works:**
+1. The composite strategy tries each routing strategy in order
+2. If a strategy successfully returns a gateway, that gateway is used
+3. If a strategy throws an error, the next strategy is tried
+4. If all strategies fail, an error is thrown
+5. The first successful strategy short-circuits the process (remaining strategies are not tried)
+
+**Common Use Cases:**
+- **Performance + Resilience**: Try fastest ping first, fallback to random if ping fails
+- **Preferred + Network**: Use your own gateway first, fallback to AR.IO network selection
+- **Multi-tier Fallback**: Try premium gateways, then standard gateways, then any available gateway
+- **Development + Production**: Use local gateway in development, fallback to production gateways

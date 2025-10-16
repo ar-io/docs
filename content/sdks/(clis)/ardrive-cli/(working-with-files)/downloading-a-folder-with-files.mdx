@@ -1,0 +1,34 @@
+---
+title: "Downloading a Folder with Files"
+description: "Command line interface for ArDrive"
+---
+
+You can download a folder from ArDrive to your local machine with the `download-folder` command. In the following examples, assume that a folder with ID "47f5bde9-61ba-49c7-b409-1aa4a9e250f6" exists in your drive and is named "MyArDriveFolder".
+
+```shell
+ardrive download-folder -f "47f5bde9-61ba-49c7-b409-1aa4a9e250f6"
+```
+
+By specifying the `--local-path` option, you can choose the local parent folder into which the on-chain folder will be downloaded. When the parameter is omitted, its value defaults to the current working directory (i.e. `./`).
+
+```shell
+ardrive download-folder -f "47f5bde9-61ba-49c7-b409-1aa4a9e250f6" --local-path /my_ardrive_downloads/
+```
+
+The `--max-depth` parameter lets you to choose a custom folder depth to download. When omitted, the entire subtree of the folder will be downloaded. In the following example, only the immediate children of the folder will be downloaded:
+
+```shell
+ardrive download-folder -f "47f5bde9-61ba-49c7-b409-1aa4a9e250f6" --max-depth 0
+```
+
+The behaviors of `--local-path` are similar to those of `cp` and `mv` in Unix systems, e.g.:
+
+```shell
+ardrive download-folder -f "47f5bde9-61ba-49c7-b409-1aa4a9e250f6" --local-path "/existing_folder"
+
+ardrive download-folder -f "47f5bde9-61ba-49c7-b409-1aa4a9e250f6" --local-path "/existing_folder/MyArDriveFolder"
+
+ardrive download-folder -f "47f5bde9-61ba-49c7-b409-1aa4a9e250f6" --local-path "/existing_folder/non_existent_folder"
+
+ardrive download-folder -f "47f5bde9-61ba-49c7-b409-1aa4a9e250f6" --local-path "/non_existent_folder_1/non_existent_folder_2"
+```
