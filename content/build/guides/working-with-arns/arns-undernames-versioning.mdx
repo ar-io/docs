@@ -168,10 +168,92 @@ npx permaweb-deploy --arns-name myapp --undername v2 --deploy-folder ./v2-build
 - `v1_myapp.arweave.dev` - Version 1
 - `v2_myapp.arweave.dev` - Version 2
 
+## Direct Code Implementation
+
+For more control, you can manage undernames programmatically:
+
+```javascript
+const { ARIO, ANT } = require("@ar.io/sdk");
+const { ArweaveSigner } = require("@ardrive/turbo-sdk");
+const fs = require("fs");
+
+async function updateArNSRecord(arnsName, manifestId, undername) {
+  // Load your wallet JSON file
+  const jwk = JSON.parse(fs.readFileSync("./wallet.json", "utf8"));
+
+  const ario = ARIO.mainnet();
+  const pid = await ario.getArNSRecord({ name: arnsName });
+
+  const signer = new ArweaveSigner(jwk);
+  const ant = ANT.init({ processId: pid.processId, signer });
+
+  if (undername === "@") {
+    return await ant.setBaseNameRecord({
+      transactionId: manifestId,
+      ttlSeconds: 900,
+    });
+  } else {
+    return await ant.setUndernameRecord({
+      undername: undername,
+      transactionId: manifestId,
+      ttlSeconds: 900,
+    });
+  }
+}
+```
+
+**Complete deployment example:**
+
+```javascript
+const { TurboFactory } = require("@ardrive/turbo-sdk");
+const fs = require("fs");
+
+async function deployWithUndername(arnsName, undername, distFolderPath) {
+  // Load your wallet JSON file
+  const jwk = JSON.parse(fs.readFileSync("./wallet.json", "utf8"));
+
+  const turbo = TurboFactory.authenticated({ privateKey: jwk });
+
+  const { manifestResponse } = await turbo.uploadFolder({
+    folderPath: distFolderPath,
+    dataItemOpts: { tags: [{ name: "App-Name", value: "ar.io docs deploy" }] },
+    manifestOptions: { fallbackFile: "index.html" },
+  });
+
+  await updateArNSRecord(arnsName, manifestResponse.id, undername);
+  console.log(
+    `Deployed to: https://${arnsName}.ar-io.dev${undername === "@" ? "" : `/${undername}`}`
+  );
+}
+
+// Usage
+await deployWithUndername("myapp", "v1", "./build-v1");
+```
+
 ## Ready to Version Your Site?
 
-**Want to learn more?** Check out [ArNS Primary Names](/build/guides/arns-primary-names) for identity management.
+<Cards>
+  <Card 
+    href="/build/guides/working-with-arns/set-arns-records-programmatically" 
+    title="Set Records Programmatically"
+    icon={<Code />}
+  >
+    Use the ArIO SDK to programmatically manage ArNS records.
+  </Card>
 
-**Need deployment help?** See [Hosting Decentralized Websites](/build/guides/hosting-decentralized-websites) for setup guides.
+<Card
+  href="/build/guides/working-with-arns/arns-primary-names"
+  title="Primary Names"
+  icon={<Book />}
+>
+  Set up web3 identity with primary names.
+</Card>
 
-**Want to trade domains?** Explore [ArNS Marketplace](/build/guides/arns-marketplace) for buying and selling.
+  <Card 
+    href="/build/guides/hosting-decentralized-websites" 
+    title="Deploy Websites"
+    icon={<Globe />}
+  >
+    Learn how to deploy and host permanent websites on Arweave.
+  </Card>
+</Cards>

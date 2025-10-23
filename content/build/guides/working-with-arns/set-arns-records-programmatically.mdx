@@ -1,0 +1,369 @@
+---
+title: "Setting ArNS Records Programmatically"
+description: "Use the ArIO SDK to programmatically set and manage ArNS records"
+---
+
+import { Code, Globe, Book } from "lucide-react";
+
+Use the **ArIO SDK** to programmatically set and manage ArNS records. This approach gives you full control over your ArNS operations and allows for automation and integration into your applications.
+
+## Prerequisites
+
+**Install the required packages:**
+
+```bash
+npm install @ar.io/sdk @ardrive/turbo-sdk
+```
+
+**Required files:**
+
+```bash
+# Your Arweave wallet JSON file
+wallet.json
+```
+
+## Basic Setup
+
+**Initialize the SDK:**
+
+```javascript
+const { ARIO, ANT } = require("@ar.io/sdk");
+const { ArweaveSigner } = require("@ardrive/turbo-sdk");
+const fs = require("fs");
+
+// Initialize ARIO for mainnet
+const ario = ARIO.mainnet();
+
+// Load your wallet JSON file
+const jwk = JSON.parse(fs.readFileSync("./wallet.json", "utf8"));
+const signer = new ArweaveSigner(jwk);
+```
+
+## Setting Base Name Records
+
+**Set the main domain record:**
+
+```javascript
+async function setBaseNameRecord(arnsName, transactionId) {
+  try {
+    // Get the ArNS record for your domain
+    const pid = await ario.getArNSRecord({ name: arnsName });
+
+    if (!pid) {
+      throw new Error(`ArNS name '${arnsName}' not found`);
+    }
+
+    // Initialize ANT contract
+    const ant = ANT.init({
+      processId: pid.processId,
+      signer,
+    });
+
+    // Set the base name record
+    const response = await ant.setBaseNameRecord({
+      transactionId: transactionId,
+      ttlSeconds: 900, // 15 minutes TTL
+    });
+
+    console.log("Base name record updated:", response);
+    return response;
+  } catch (error) {
+    console.error("Error setting base name record:", error);
+    throw error;
+  }
+}
+
+// Usage
+await setBaseNameRecord("myapp", "abc123...def789");
+```
+
+## Setting Undername Records
+
+**Set subdomain records:**
+
+```javascript
+async function setUndernameRecord(arnsName, undername, transactionId) {
+  try {
+    // Get the ArNS record for your domain
+    const pid = await ario.getArNSRecord({ name: arnsName });
+
+    if (!pid) {
+      throw new Error(`ArNS name '${arnsName}' not found`);
+    }
+
+    // Initialize ANT contract
+    const ant = ANT.init({
+      processId: pid.processId,
+      signer,
+    });
+
+    // Set the undername record
+    const response = await ant.setUndernameRecord({
+      undername: undername,
+      transactionId: transactionId,
+      ttlSeconds: 900, // 15 minutes TTL
+    });
+
+    console.log(`Undername '${undername}' record updated:`, response);
+    return response;
+  } catch (error) {
+    console.error("Error setting undername record:", error);
+    throw error;
+  }
+}
+
+// Usage examples
+await setUndernameRecord("myapp", "v1", "abc123...def789");
+await setUndernameRecord("myapp", "api", "def456...ghi012");
+await setUndernameRecord("myapp", "docs", "ghi789...jkl345");
+```
+
+## Complete Deployment Example
+
+**Upload and set records in one function:**
+
+```javascript
+const { TurboFactory } = require("@ardrive/turbo-sdk");
+
+async function deployAndSetRecord(arnsName, undername, distFolderPath) {
+  try {
+    // Initialize Turbo for file uploads
+    const turbo = TurboFactory.authenticated({ privateKey: jwk });
+
+    // Upload your website folder
+    const { manifestResponse } = await turbo.uploadFolder({
+      folderPath: distFolderPath,
+      dataItemOpts: {
+        tags: [{ name: "App-Name", value: "ar.io docs deploy" }],
+      },
+      manifestOptions: {
+        fallbackFile: "index.html",
+      },
+    });
+
+    console.log(`Manifest uploaded: ${manifestResponse.id}`);
+
+    // Set the appropriate record
+    if (undername === "@") {
+      await setBaseNameRecord(arnsName, manifestResponse.id);
+    } else {
+      await setUndernameRecord(arnsName, undername, manifestResponse.id);
+    }
+
+    console.log(`Deployment complete!`);
+    console.log(
+      `Access at: https://${arnsName}.ar-io.dev${undername === "@" ? "" : `/${undername}`}`
+    );
+  } catch (error) {
+    console.error("Deployment failed:", error);
+    throw error;
+  }
+}
+
+// Usage
+await deployAndSetRecord("myapp", "@", "./build");
+await deployAndSetRecord("myapp", "v1", "./build-v1");
+await deployAndSetRecord("myapp", "api", "./api-docs");
+```
+
+## Managing Multiple Records
+
+**Set up a complete website structure:**
+
+```javascript
+async function setupWebsiteStructure(arnsName) {
+  const records = [
+    { undername: "@", folder: "./build", description: "Main site" },
+    { undername: "v1", folder: "./build-v1", description: "Version 1" },
+    { undername: "v2", folder: "./build-v2", description: "Version 2" },
+    {
+      undername: "api",
+      folder: "./api-docs",
+      description: "API documentation",
+    },
+    {
+      undername: "docs",
+      folder: "./user-docs",
+      description: "User documentation",
+    },
+  ];
+
+  for (const record of records) {
+    try {
+      console.log(`Deploying ${record.description}...`);
+      await deployAndSetRecord(arnsName, record.undername, record.folder);
+      console.log(`✅ ${record.undername} deployed successfully`);
+    } catch (error) {
+      console.error(`❌ Failed to deploy ${record.undername}:`, error.message);
+    }
+  }
+}
+
+// Usage
+await setupWebsiteStructure("myapp");
+```
+
+## Advanced Configuration
+
+**Custom TTL and error handling:**
+
+```javascript
+async function setRecordWithOptions(
+  arnsName,
+  undername,
+  transactionId,
+  options = {}
+) {
+  const { ttlSeconds = 900, retries = 3, retryDelay = 1000 } = options;
+
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const pid = await ario.getArNSRecord({ name: arnsName });
+      const ant = ANT.init({ processId: pid.processId, signer });
+
+      if (undername === "@") {
+        return await ant.setBaseNameRecord({
+          transactionId,
+          ttlSeconds,
+        });
+      } else {
+        return await ant.setUndernameRecord({
+          undername,
+          transactionId,
+          ttlSeconds,
+        });
+      }
+    } catch (error) {
+      console.error(`Attempt ${attempt} failed:`, error.message);
+
+      if (attempt === retries) {
+        throw error;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, retryDelay));
+    }
+  }
+}
+
+// Usage with custom options
+await setRecordWithOptions("myapp", "v1", "abc123...def789", {
+  ttlSeconds: 3600, // 1 hour
+  retries: 5,
+  retryDelay: 2000,
+});
+```
+
+## Reading Records
+
+**Get current record information:**
+
+```javascript
+async function getRecordInfo(arnsName, undername = "@") {
+  try {
+    const pid = await ario.getArNSRecord({ name: arnsName });
+
+    if (!pid) {
+      throw new Error(`ArNS name '${arnsName}' not found`);
+    }
+
+    const ant = ANT.init({ processId: pid.processId, signer });
+
+    if (undername === "@") {
+      return await ant.getBaseNameRecord();
+    } else {
+      return await ant.getUndernameRecord({ undername });
+    }
+  } catch (error) {
+    console.error("Error getting record info:", error);
+    throw error;
+  }
+}
+
+// Usage
+const mainRecord = await getRecordInfo("myapp", "@");
+const v1Record = await getRecordInfo("myapp", "v1");
+console.log("Main record:", mainRecord);
+console.log("V1 record:", v1Record);
+```
+
+## Error Handling Best Practices
+
+**Comprehensive error handling:**
+
+```javascript
+async function safeSetRecord(arnsName, undername, transactionId) {
+  try {
+    // Validate inputs
+    if (!arnsName || !undername || !transactionId) {
+      throw new Error("Missing required parameters");
+    }
+
+    // Check if ArNS name exists
+    const pid = await ario.getArNSRecord({ name: arnsName });
+    if (!pid) {
+      throw new Error(
+        `ArNS name '${arnsName}' not found or not owned by this wallet`
+      );
+    }
+
+    // Set the record
+    const ant = ANT.init({ processId: pid.processId, signer });
+
+    let response;
+    if (undername === "@") {
+      response = await ant.setBaseNameRecord({
+        transactionId,
+        ttlSeconds: 900,
+      });
+    } else {
+      response = await ant.setUndernameRecord({
+        undername,
+        transactionId,
+        ttlSeconds: 900,
+      });
+    }
+
+    console.log(`✅ Successfully set ${undername} record for ${arnsName}`);
+    return response;
+  } catch (error) {
+    if (error.message.includes("not found")) {
+      console.error(`❌ ArNS name '${arnsName}' not found`);
+    } else if (error.message.includes("insufficient funds")) {
+      console.error("❌ Insufficient funds for transaction");
+    } else if (error.message.includes("signature")) {
+      console.error("❌ Invalid wallet signature");
+    } else {
+      console.error(`❌ Unexpected error: ${error.message}`);
+    }
+    throw error;
+  }
+}
+```
+
+## Ready to Get Started?
+
+<Cards>
+  <Card 
+    href="/build/guides/working-with-arns/arns-undernames-versioning" 
+    title="Undername Versioning"
+    icon={<Globe />}
+  >
+    Learn about using undernames for website versioning.
+  </Card>
+
+<Card
+  href="/build/guides/working-with-arns/arns-primary-names"
+  title="Primary Names"
+  icon={<Book />}
+>
+  Set up web3 identity with primary names.
+</Card>
+
+  <Card 
+    href="/sdks/ar-io-sdk" 
+    title="ArIO SDK"
+    icon={<Code />}
+  >
+    Explore the full ArIO SDK documentation.
+  </Card>
+</Cards>
