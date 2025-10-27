@@ -296,6 +296,13 @@ Please refer to the [source code](${pkg.sourceUrl}) for SDK details.`;
         h2Title.toLowerCase().includes("toc") ||
         h2Title.toLowerCase() === "contents" ||
         h2Title.toLowerCase() === "developers" ||
+        h2Title.toLowerCase() === "development" ||
+        h2Title.toLowerCase() === "contributing" ||
+        h2Title.toLowerCase() === "support" ||
+        h2Title.toLowerCase() === "license" ||
+        h2Title.toLowerCase() === "credits" ||
+        h2Title.toLowerCase() === "core-concepts" ||
+        h2Title.toLowerCase() === "testing" ||
         h2Title.toLowerCase() === "cli" ||
         h2Title.toLowerCase() === "installation" ||
         h2Title.toLowerCase() === "configuration" ||
