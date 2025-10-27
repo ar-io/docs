@@ -3,29 +3,27 @@ title: "Custom Providers and Strategies"
 description: "JavaScript/TypeScript SDK for accessing Arweave data with built-in verification and gateway routing"
 ---
 
-For advanced use cases, you can provide custom providers and strategies to `createWayfinderClient`:
+For advanced use cases, provide strategy instances explicitly:
 
 ```javascript
-import { createWayfinderClient, NetworkGatewaysProvider } from '@ar.io/wayfinder-core';
-import { ARIO } from '@ar.io/sdk';
+import {
+  createWayfinderClient,
+  FastestPingRoutingStrategy,
+  HashVerificationStrategy,
+} from '@ar.io/wayfinder-core';
 
 const wayfinder = createWayfinderClient({
-  ario: ARIO.mainnet()
-  
-  // Gateway selection
-  gatewaySelection: 'top-ranked',
-  
   // Enable caching with custom TTL
   cache: { ttlSeconds: 3600 }, // 1 hour
 
-  // Override 'routing' with custom routing strategy
+  // Supply a bespoke routing strategy
   routingStrategy: new FastestPingRoutingStrategy({
     timeoutMs: 1000,
   }),
 
-  // Override 'verification' with custom verification strategy
+  // Configure verification explicitly
   verificationStrategy: new HashVerificationStrategy({
-    trustedGateways: ['https://permagate.io'],
+    trustedGateways: [new URL('https://permagate.io')],
   }),
 });
 ```

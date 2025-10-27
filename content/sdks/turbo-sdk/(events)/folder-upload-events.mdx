@@ -1,19 +1,17 @@
 ---
-title: "Events"
+title: "Folder Upload Events"
 description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
 ---
 
-The SDK provides events for tracking the state signing and uploading data to Turbo. You can listen to these events by providing a callback function to the `events` parameter of the `upload`, `uploadFile`, and `uploadSignedDataItem` methods.
+These events are available for the `uploadFolder` method:
 
-- `onProgress` - emitted when the overall progress changes (includes both upload and signing). Each event consists of the total bytes, processed bytes, and the step (upload or signing)
-- `onError` - emitted when the overall upload or signing fails (includes both upload and signing)
-- `onSuccess` - emitted when the overall upload or signing succeeds (includes both upload and signing) - this is the last event emitted for the upload or signing process
-- `onSigningProgress` - emitted when the signing progress changes.
-- `onSigningError` - emitted when the signing fails.
-- `onSigningSuccess` - emitted when the signing succeeds
-- `onUploadProgress` - emitted when the upload progress changes
-- `onUploadError` - emitted when the upload fails
-- `onUploadSuccess` - emitted when the upload succeeds
+- `onFileStart` - emitted when a file in the folder starts uploading. Includes the file name, file size, file index, and total number of files
+- `onFileProgress` - emitted when a file's upload or signing progress changes. Includes the file name, file index, total files, processed bytes for the file, total bytes for the file, and the current step (signing or upload)
+- `onFileComplete` - emitted when a file successfully completes uploading. Includes the file name, file index, total files, and the data item ID
+- `onFileError` - emitted when a file upload fails. Includes the file name, file index, total files, and the error
+- `onFolderProgress` - emitted when the overall folder upload progress changes. Includes the number of processed files, total files, processed bytes across all files, total bytes across all files, and the current phase (files or manifest)
+- `onFolderError` - emitted when the overall folder upload fails
+- `onFolderSuccess` - emitted when the folder upload successfully completes (including manifest generation) - this is the last event emitted for the folder upload process
 
 ```typescript
 const uploadResult = await turbo.upload({

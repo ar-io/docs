@@ -151,27 +151,27 @@ This monorepo contains the following packages:
 
 # Custom Providers and Strategies (/wayfinder-core/(advanced-usage)/custom-providers-and-strategies)
 
-For advanced use cases, you can provide custom providers and strategies to `createWayfinderClient`:
+For advanced use cases, provide strategy instances explicitly:
 
 ```javascript
+import {
+  createWayfinderClient,
+  FastestPingRoutingStrategy,
+  HashVerificationStrategy,
+} from '@ar.io/wayfinder-core';
 
 const wayfinder = createWayfinderClient({
-  ario: ARIO.mainnet()
-  
-  // Gateway selection
-  gatewaySelection: 'top-ranked',
-  
   // Enable caching with custom TTL
   cache: { ttlSeconds: 3600 }, // 1 hour
 
-  // Override 'routing' with custom routing strategy
+  // Supply a bespoke routing strategy
   routingStrategy: new FastestPingRoutingStrategy({
     timeoutMs: 1000,
   }),
 
-  // Override 'verification' with custom verification strategy
+  // Configure verification explicitly
   verificationStrategy: new HashVerificationStrategy({
-    trustedGateways: ['https://permagate.io'],
+    trustedGateways: [new URL('https://permagate.io')],
   }),
 });
 ```
@@ -220,7 +220,7 @@ const wayfinder = new Wayfinder({
     enabled: true,
     // verify the data using the hash of the data against a list of trusted gateways
     strategy: new HashVerificationStrategy({
-      trustedGateways: ['https://permagate.io'],
+      trustedGateways: [new URL('https://permagate.io')],
     }),
     // strict verification - if true, verification failures will cause requests to fail
     strict: true,
@@ -297,14 +297,14 @@ Wayfinder supports intelligent caching:
 
 # Optional Dependencies (/wayfinder-core/(installation-notes)/optional-dependencies)
 
-The `@ar.io/sdk` package is an optional peer dependency. To use AR.IO network gateways, you must explicitly provide an `ario` instance:
+The `@ar.io/sdk` package is an optional peer dependency. To use AR.IO network gateways, instantiate a `NetworkGatewaysProvider` with an `ario` instance and supply it to `Wayfinder` directly:
 
 **With AR.IO SDK (Recommended):**
 ```bash
 npm install @ar.io/wayfinder-core @ar.io/sdk
 yarn add @ar.io/wayfinder-core @ar.io/sdk
 ```
-- `createWayfinderClient({ ario: ARIO.mainnet() })` uses AR.IO network gateways
+- `new NetworkGatewaysProvider({ ario: ARIO.mainnet() })` exposes AR.IO network gateways
 - Supports intelligent gateway selection criteria
 - Dynamic gateway discovery and updates
 
@@ -772,7 +772,7 @@ const wayfinder = new Wayfinder({
   verificationSettings: {
     enabled: true,
     strategy: new DataRootVerificationStrategy({
-      trustedGateways: ['https://permagate.io'],
+      trustedGateways: [new URL('https://permagate.io')],
     }),
   },
 });
@@ -788,7 +788,7 @@ const wayfinder = new Wayfinder({
   verificationSettings: {
     enabled: true,
     strategy: new HashVerificationStrategy({
-      trustedGateways: ['https://permagate.io'],
+      trustedGateways: [new URL('https://permagate.io')],
     }),
   },
 });
@@ -821,7 +821,7 @@ const wayfinder = new Wayfinder({
   verificationSettings: {
     enabled: true,
     strategy: new SignatureVerificationStrategy({
-      trustedGateways: ['https://permagate.io'],
+      trustedGateways: [new URL('https://permagate.io')],
     }),
   },
 });
@@ -932,14 +932,13 @@ sequenceDiagram
 
 # Telemetry (/wayfinder-core/telemetry)
 
-Wayfinder can optionally emit OpenTelemetry spans for every request. **By default, telemetry is disabled**. You can control this behavior with the `telemetrySettings` option.
+Wayfinder can optionally emit OpenTelemetry spans for every request. **By default, telemetry is disabled**. You can control this behavior with the `telemetry` option.
 
 ```javascript
 
 const wayfinder = createWayfinderClient({
-  ario: ARIO.mainnet(),
   // other settings...
-  telemetrySettings: {
+  telemetry: {
     enabled: true, // disabled by default (must be explicitly enabled)
     sampleRate: 0.1, // 10% sample rate by default
     exporterUrl: 'https://your-custom-otel-exporter', // optional, defaults to https://api.honeycomb.io/v1/traces
