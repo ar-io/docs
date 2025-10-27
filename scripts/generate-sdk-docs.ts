@@ -37,17 +37,6 @@ const PACKAGES: {
   },
   // Wayfinder SDK packages
   {
-    name: "wayfinder",
-    readmeUrl:
-      "https://raw.githubusercontent.com/ar-io/wayfinder/alpha/README.md",
-    dest: path.resolve("content/sdks/wayfinder"),
-    title: "Wayfinder SDK's",
-    description:
-      "Decentralized access to Arweave data with built-in verification and gateway routing",
-    sourceUrl: "https://github.com/ar-io/wayfinder",
-    icon: "/wayfinder.svg",
-  },
-  {
     name: "wayfinder-core",
     readmeUrl:
       "https://raw.githubusercontent.com/ar-io/wayfinder/alpha/packages/wayfinder-core/README.md",
