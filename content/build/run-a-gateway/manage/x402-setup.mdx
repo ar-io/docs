@@ -215,12 +215,23 @@ X_402_RATE_LIMIT_CAPACITY_MULTIPLIER=10
 </Step>
 
 <Step>
-### Set Up CDP Integration
+### Set Up CDP Integration (Onramp)
 
-Configure Coinbase Developer Platform integration:
+Configure Coinbase Developer Platform for browser paywall with easy USDC purchases:
+
+<Callout type="info">
+  **What are CDP keys for?** These keys enable Coinbase Onramp integration in the browser paywall, allowing users to easily purchase USDC without leaving your gateway. They are **optional for testnet** but **required for mainnet** when using Coinbase facilitators.
+</Callout>
+
+<Callout type="warning">
+  **Security Note**:
+  - `X_402_CDP_CLIENT_KEY` is **PUBLIC** (safe for client-side use)
+  - `CDP_API_KEY_ID` and `CDP_API_KEY_SECRET_FILE` are **SENSITIVE SECRETS**
+  - CDP keys are for Onramp integration, NOT facilitator authentication
+</Callout>
 
 ```bash
-# CDP configuration for official facilitator
+# CDP configuration for Coinbase Onramp (browser paywall)
 CDP_API_KEY_ID=YOUR_API_KEY_ID
 CDP_API_KEY_SECRET_FILE=/app/secrets/cdp_secret_key
 X_402_CDP_CLIENT_KEY=YOUR_PUBLIC_CLIENT_KEY
@@ -234,6 +245,8 @@ chmod 700 ./secrets
 echo "YOUR_CDP_SECRET_KEY" > ./secrets/cdp_secret_key
 chmod 600 ./secrets/cdp_secret_key
 ```
+
+**Note**: If both `CDP_API_KEY_SECRET_FILE` and `CDP_API_KEY_SECRET` are set, the file version takes precedence.
 
 </Step>
 
@@ -290,11 +303,11 @@ CHUNK_GET_BASE64_SIZE_BYTES=368640
 Exempt specific IPs or ArNS names from rate limiting:
 
 ```bash
-# IP allowlist (comma-separated)
-RATE_LIMITER_ALLOWLIST_IPS=192.168.1.100,10.0.0.50
+# IP/CIDR allowlist (comma-separated)
+RATE_LIMITER_IPS_AND_CIDRS_ALLOWLIST=192.168.1.100,10.0.0.50
 
 # ArNS name allowlist (comma-separated)
-RATE_LIMITER_ALLOWLIST_ARNS_NAMES=trusted-app,premium-service
+RATE_LIMITER_ARNS_ALLOWLIST=trusted-app,premium-service
 ```
 
 </Step>
@@ -343,7 +356,7 @@ LOG_LEVEL=debug
 
 | Variable                                  | Description                         | Default   |
 | ----------------------------------------- | ----------------------------------- | --------- |
-| `RATE_LIMITER_TYPE`                       | Rate limiter type (memory or redis) | `memory`  |
+| `RATE_LIMITER_TYPE`                       | Rate limiter type (memory or redis) | `redis` (docker-compose), `memory` (standalone)  |
 | `RATE_LIMITER_IP_TOKENS_PER_BUCKET`       | IP bucket size                      | `100000`  |
 | `RATE_LIMITER_IP_REFILL_PER_SEC`          | IP refill rate                      | `20`      |
 | `RATE_LIMITER_RESOURCE_TOKENS_PER_BUCKET` | Resource bucket size                | `1000000` |

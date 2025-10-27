@@ -266,8 +266,8 @@ The main AR.IO Gateway service that handles data retrieval, indexing, and servin
 | `RATE_LIMITER_IP_REFILL_PER_SEC`          | number  | `20`      | IP bucket refill rate per second    |
 | `RATE_LIMITER_RESOURCE_TOKENS_PER_BUCKET` | number  | `1000000` | Resource bucket token capacity      |
 | `RATE_LIMITER_RESOURCE_REFILL_PER_SEC`    | number  | `100`     | Resource bucket refill rate         |
-| `RATE_LIMITER_ALLOWLIST_IPS`              | string  | -         | Comma-separated IP allowlist        |
-| `RATE_LIMITER_ALLOWLIST_ARNS_NAMES`       | string  | -         | Comma-separated ArNS allowlist      |
+| `RATE_LIMITER_IPS_AND_CIDRS_ALLOWLIST`    | string  | -         | Comma-separated IP/CIDR allowlist   |
+| `RATE_LIMITER_ARNS_ALLOWLIST`             | string  | -         | Comma-separated ArNS allowlist      |
 
 ### x402 Payment Protocol
 
@@ -283,9 +283,10 @@ The main AR.IO Gateway service that handles data retrieval, indexing, and servin
 | `X_402_RATE_LIMIT_CAPACITY_MULTIPLIER` | number  | `10`           | Paid token capacity multiplier             |
 | `X_402_APP_NAME`                       | string  | -              | Application name for paywall               |
 | `X_402_APP_LOGO`                       | string  | -              | Application logo URL for paywall           |
-| `X_402_CDP_CLIENT_KEY`                 | string  | -              | Coinbase Developer Platform client key     |
-| `CDP_API_KEY_ID`                       | string  | -              | CDP API key ID                             |
-| `CDP_API_KEY_SECRET_FILE`              | string  | -              | Path to CDP API secret key file            |
+| `X_402_CDP_CLIENT_KEY`                 | string  | -              | **PUBLIC**: CDP client key for Onramp (optional testnet, required mainnet) |
+| `CDP_API_KEY_ID`                       | string  | -              | **SECRET**: CDP API key ID for Onramp (optional testnet, required mainnet)      |
+| `CDP_API_KEY_SECRET`                   | string  | -              | **SECRET**: CDP API secret for Onramp (use CDP_API_KEY_SECRET_FILE instead)    |
+| `CDP_API_KEY_SECRET_FILE`              | string  | -              | **SECRET**: Path to CDP secret file for Onramp (takes precedence, recommended) |
 | `CHUNK_GET_BASE64_SIZE_BYTES`          | number  | `368640`       | Fixed size for chunk pricing               |
 
 ## Observer Service
