@@ -49,54 +49,6 @@ sequenceDiagram
 
 AR.IO gateways implement x402 using **USDC (USD Coin) on the Base blockchain** to monetize data egress with per-byte pricing. This integration works seamlessly with the gateway's rate limiting system to provide a complete traffic management and monetization solution.
 
-### Integration Architecture
-
-```mermaid
-graph TB
-    subgraph "Rate Limiting System"
-        RL[Rate Limiter]
-        TB[Token Buckets]
-        IP[IP Limits]
-        RES[Resource Limits]
-    end
-
-    subgraph "x402 Payment System"
-        X402[x402 Protocol]
-        USDC[USDC Payments]
-        BASE[Base Network]
-        FAC[Payment Facilitator]
-    end
-
-    subgraph "Gateway Services"
-        API[Gateway API]
-        CACHE[Data Cache]
-        VERIFY[Payment Verification]
-    end
-
-    REQUEST[Data Request] --> RL
-    RL -->|Rate Limited| X402
-    RL -->|Within Limits| API
-
-    X402 --> USDC
-    USDC --> BASE
-    BASE --> FAC
-    FAC --> VERIFY
-    VERIFY -->|Valid| TB
-    VERIFY -->|Invalid| DENY[Deny Request]
-
-    TB --> API
-    API --> CACHE
-    CACHE --> RESPONSE[Serve Data]
-
-    classDef payment fill:#10b981,stroke:#059669,stroke-width:2px,color:#fff
-    classDef rate fill:#3b82f6,stroke:#1d4ed8,stroke-width:2px,color:#fff
-    classDef service fill:#f59e0b,stroke:#d97706,stroke-width:2px,color:#fff
-
-    class X402,USDC,BASE,FAC payment
-    class RL,TB,IP,RES rate
-    class API,CACHE,VERIFY service
-```
-
 ### Payment Flow in AR.IO Gateways
 
 1. **Free Tier Access**: Users consume regular tokens from their rate limit buckets
