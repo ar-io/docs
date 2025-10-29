@@ -41,8 +41,8 @@ content/build/guides/hosting-unstoppable-apps/
 
 ### Phase 2: Content Creation (IN PROGRESS)
 - [x] **Index Page** - Overview and introduction ✅ COMPLETE
-- [ ] **Guide 1** - Hosting a Blog (NEXT)
-- [ ] **Guide 2** - Hosting Arweave/AO dApp
+- [x] **Guide 1** - Hosting a Blog ✅ COMPLETE
+- [ ] **Guide 2** - Hosting Arweave/AO dApp (NEXT)
 - [ ] **Guide 3** - Hosting EVM dApp
 - [ ] **Guide 4** - Using Undernames for Versioning
 - [ ] **Guide 5** - Deploying with Arlink
@@ -159,6 +159,67 @@ description: "Learn how to deploy permanent, censorship-resistant websites and a
 - Removed: Prerequisites, Tools Overview, Getting Started, Why Host on Arweave, Additional Resources
 - Added: Gateway redundancy section
 - Added: Full-stack dApp context in introduction
+
+---
+
+### Guide 1 Implementation (2025-10-29)
+
+**What Was Built:**
+- Created comprehensive blog deployment guide at `content/build/guides/hosting-unstoppable-apps/hosting-a-blog.mdx`
+- Total length: 956 lines
+- Covers both Next.js and Astro frameworks
+
+**Key Decisions & Changes:**
+
+1. **Removed Sections (per user request)**
+   - REMOVED: "Why Deploy a Blog to Arweave" section (duplicated intro page content)
+   - REMOVED: Best Practices section
+   - REMOVED: Troubleshooting section
+   - KEPT: Introduction with link to series intro, complete setup workflow, automation sections
+
+2. **Wallet Management Updates**
+   - Updated from arweave.app to [Wander](https://www.wander.app/) for wallet creation
+   - Changed from faucet to [turbo.ar.io](https://turbo.ar.io/topup) for storage credits
+   - Used `DEPLOY_KEY` instead of `ARWEAVE_WALLET` for GitHub Secrets (matches permaweb-deploy docs)
+   - Consistent wallet path: `~/wallets/arweave-wallet.json` throughout
+   - Added .gitignore as "safety precaution" with clear explanation it's not strictly needed
+
+3. **Deployment Parameters**
+   - Added `--ttl 60` flag to all deployment commands (fast updates within 1 minute)
+   - Changed from `--ant-process` to `--arns-name` parameter (user correction)
+   - Fixed interactive prompts to ask for "ArNS name" not "ANT process ID"
+
+4. **Framework Coverage**
+   - Complete dual-framework approach: Next.js and Astro
+   - Tabbed sections for all setup, configuration, and deployment steps
+   - Framework-specific examples: blog listing, post pages, RSS feeds
+
+5. **Automation Sections**
+   - Package.json scripts with environment variables
+   - Complete GitHub Actions workflows for both frameworks
+   - Proper secret management with DEPLOY_KEY
+
+6. **Design Patterns Used**
+   - Fumadocs: Callout, Tabs, Steps, Cards components
+   - Lucide-react icons: BookOpen, Code, GitBranch, Zap
+   - Interactive vs CLI deployment modes
+   - Blog-specific sections: images, SEO, RSS
+
+**Rationale:**
+The guide focuses purely on practical implementation after Best Practices and Troubleshooting removal. This makes it more action-oriented and less overwhelming. User links to the intro page for "why" context, keeping this guide focused on "how". The .gitignore section needed clarification since wallets are stored outside the project - resolved with explanatory callout that it's a safety precaution.
+
+**Files Modified:**
+- Created: `/content/build/guides/hosting-unstoppable-apps/hosting-a-blog.mdx`
+
+**Technical Standards Applied:**
+- ✅ Wander for wallet creation
+- ✅ Turbo for storage credits (not AR.IO faucet)
+- ✅ DEPLOY_KEY for GitHub Secrets
+- ✅ --ttl 60 for fast updates
+- ✅ --arns-name parameter (not --ant-process)
+- ✅ Fumadocs components throughout
+- ✅ Lucide-react icons
+- ✅ Complete, runnable code examples
 
 ---
 
@@ -604,12 +665,12 @@ Each guide should link to:
 - [x] Section meta.json created (2025-10-29)
 - [x] Parent meta.json updated (2025-10-29)
 - [x] Index page created and reviewed (2025-10-29)
+- [x] Guide 1: Hosting a Blog created and reviewed (2025-10-29)
 
 ### In Progress
-- [ ] Guide 1: Hosting a Blog (NEXT)
+- [ ] Guide 2: Hosting Arweave/AO dApp (NEXT)
 
 ### Upcoming
-- [ ] Guide 2: Hosting Arweave/AO dApp
 - [ ] Guide 3: Hosting EVM dApp
 - [ ] Guide 4: Using Undernames for Versioning
 - [ ] Guide 5: Deploying with Arlink
