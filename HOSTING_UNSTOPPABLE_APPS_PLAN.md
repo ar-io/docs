@@ -1,8 +1,8 @@
 # Hosting Unstoppable Apps - Guide Series Implementation Plan
 
-**Status:** In Progress - Index Page Complete
+**Status:** In Progress - Guide 2 Complete (with Wander + ARIO updates)
 **Created:** 2025-10-29
-**Last Updated:** 2025-10-29 (Phase 1 complete, Index page created)
+**Last Updated:** 2025-10-30 (Guide 2: Hosting Arweave/AO dApp completed, updated to Wander wallet and ARIO token)
 
 ---
 
@@ -42,8 +42,8 @@ content/build/guides/hosting-unstoppable-apps/
 ### Phase 2: Content Creation (IN PROGRESS)
 - [x] **Index Page** - Overview and introduction ✅ COMPLETE
 - [x] **Guide 1** - Hosting a Blog ✅ COMPLETE
-- [ ] **Guide 2** - Hosting Arweave/AO dApp (NEXT)
-- [ ] **Guide 3** - Hosting EVM dApp
+- [x] **Guide 2** - Hosting Arweave/AO dApp ✅ COMPLETE
+- [ ] **Guide 3** - Hosting EVM dApp (NEXT)
 - [ ] **Guide 4** - Using Undernames for Versioning
 - [ ] **Guide 5** - Deploying with Arlink
 
@@ -220,6 +220,134 @@ The guide focuses purely on practical implementation after Best Practices and Tr
 - ✅ Fumadocs components throughout
 - ✅ Lucide-react icons
 - ✅ Complete, runnable code examples
+
+---
+
+### Guide 2 Implementation (2025-10-30)
+
+**What Was Built:**
+- Created comprehensive AO dApp deployment guide at `content/build/guides/hosting-unstoppable-apps/hosting-arweave-ao-dapp.mdx`
+- Total length: 1,080 lines
+- Complete working example: AO Token Dashboard with wallet integration, AO process interaction, and GraphQL queries
+
+**Key Decisions & Changes:**
+
+1. **Maintained Guide 1 Structure**
+   - REMOVED: Best Practices and Troubleshooting sections (per Guide 1 learnings)
+   - KEPT: Introduction with link to series intro, complete implementation workflow, automation sections
+   - Added: "What You'll Build" section for clarity
+
+2. **Complete Project Structure**
+   - Organized code into logical directories: components/, lib/, types/
+   - Separated concerns: wallet utilities, AO interactions, Arweave queries
+   - TypeScript throughout with proper type definitions
+
+3. **Practical Example: ARIO Token Dashboard**
+   - Real-world use case showing common patterns with ARIO token
+   - Four main components:
+     - `WalletConnect` - Wander wallet integration
+     - `TokenBalance` - Display ARIO token balance
+     - `SendTokens` - Transfer ARIO tokens via AO messages
+     - `TransactionList` - Query and display Arweave transactions
+   - Complete, runnable code for each component
+
+4. **Technical Stack Covered**
+   - **Wallet**: Wander integration with proper permission handling
+   - **AO**: `@permaweb/aoconnect` for message passing and results
+   - **GraphQL**: `graphql-request` for querying Arweave data
+   - **Framework**: React + Vite + TypeScript (recommended for AO dApps)
+   - **UI**: Custom CSS with dark theme matching AR.IO aesthetic
+
+5. **Code Organization**
+   - `lib/wallet.ts` - Wallet connection, disconnection, address retrieval
+   - `lib/ao.ts` - AO message sending, token operations, process queries
+   - `lib/arweave.ts` - GraphQL queries for transactions and data
+   - `types/index.ts` - TypeScript definitions for all data structures
+
+6. **Deployment Integration**
+   - Vite configuration for SPA routing (`base: './'`)
+   - Interactive and CLI deployment commands
+   - Package.json scripts with environment variables
+   - Complete GitHub Actions workflow with multi-environment support
+   - Followed same patterns as Guide 1: DEPLOY_KEY, --arns-name, --ttl 60
+
+7. **Educational Approach**
+   - Step-by-step component building
+   - Inline code comments explaining key concepts
+   - Callouts for important information and prerequisites
+   - Links to external resources (AO docs, Wander wallet docs, etc.)
+   - Next Steps section with cards linking to related guides
+
+8. **Design Patterns Used**
+   - Fumadocs: Callout, Tabs, Steps, Cards components
+   - Lucide-react icons: Code, Wallet, Database, GitBranch, Zap, Terminal, FileCode, Globe
+   - Error handling and loading states throughout
+   - React hooks for state management
+   - Async/await patterns for blockchain operations
+
+**Rationale:**
+Guide 2 builds on Guide 1's foundations while introducing AO-specific concepts. The token dashboard provides a concrete example that developers can adapt for their own AO dApps. By showing wallet integration, AO process interaction, and GraphQL queries together, developers get a complete picture of building on the Arweave/AO stack. The guide avoids overwhelming users by focusing on practical implementation over theoretical best practices.
+
+**Files Modified:**
+- Created: `/content/build/guides/hosting-unstoppable-apps/hosting-arweave-ao-dapp.mdx`
+
+**Technical Standards Applied:**
+- ✅ `fetch` API for HTTP requests (GraphQL client uses fetch internally)
+- ✅ `@permaweb/aoconnect` for AO interactions
+- ✅ Wander for wallet integration (formerly ArConnect, standard for AO dApps)
+- ✅ DEPLOY_KEY for GitHub Secrets
+- ✅ --ttl 60 for fast updates
+- ✅ --arns-name parameter
+- ✅ Fumadocs components throughout
+- ✅ Lucide-react icons
+- ✅ Complete, runnable code examples
+- ✅ Proper error handling and loading states
+- ✅ TypeScript type safety
+- ✅ Modern React patterns (hooks, functional components)
+- ✅ Real ARIO token process ID for practical, testable example
+
+**Code Examples Included:**
+- ✅ Complete wallet integration with Wander (formerly ArConnect)
+- ✅ AO message sending and receiving
+- ✅ Token balance queries
+- ✅ Token transfer functionality
+- ✅ GraphQL queries for transaction data
+- ✅ React components with state management
+- ✅ Vite configuration for SPA
+- ✅ GitHub Actions multi-environment workflow
+- ✅ Package.json deployment scripts
+
+**Post-Implementation Updates (2025-10-30):**
+
+1. **ArConnect → Wander Rebrand Update**
+   - Updated all references from "ArConnect" to "Wander" throughout the guide
+   - Changed installation link from `arconnect.io` to `wander.app/download`
+   - Updated function names: `isArConnectInstalled()` → `isWanderInstalled()`
+   - Updated error messages and UI text to reference Wander
+   - Added clarifying comments about API compatibility and TypeScript types
+   - **Important**: No functional code changes required - API remains `window.arweaveWallet`
+   - **TypeScript**: Still uses `arconnect` npm package for backward compatibility (documented in guide)
+   - Total: 11 text replacements, 3 URL updates, 3 function renames, 2 clarifying comments
+
+2. **ARIO Token Specific Implementation**
+   - Changed from generic "AO Token Dashboard" to "ARIO Token Dashboard"
+   - Updated process ID: `ARIO_PROCESS_ID = 'qNvAoz0TgcH7DMg8BCVn8jF32QH5L6T29VjHxhHqqGE'`
+   - Replaced placeholder `YOUR_TOKEN_PROCESS_ID` with actual ARIO process ID
+   - Updated all token references to be ARIO-specific where appropriate:
+     - "Fetches ARIO token balances from the ARIO process"
+     - "Sends ARIO tokens to other addresses"
+     - "Connect your wallet to view your ARIO token balance"
+     - "Verify your ARIO balance loads correctly"
+   - Added informational callout explaining ARIO is used as a practical example
+   - Updated conclusion: "You've built and deployed an ARIO token dashboard on Arweave. You can adapt this pattern to work with any AO token by changing the process ID."
+   - **Rationale**: Using a real, working token (ARIO) provides developers with a testable example while clearly explaining the pattern works for any AO token
+
+**Final Guide Status:**
+- Total length: 1,519 lines (expanded from initial 1,080 due to updates)
+- Status: Complete and ready for user review
+- Uses Wander wallet (current brand)
+- Uses ARIO token as concrete, working example
+- All code is functional and testable with real ARIO process
 
 ---
 
@@ -440,10 +568,8 @@ The guide focuses purely on practical implementation after Best Practices and Tr
 ```json
 {
   "title": "Hosting Unstoppable Apps",
-  "icon": "Globe",
   "defaultOpen": false,
   "pages": [
-    "index",
     "hosting-a-blog",
     "hosting-arweave-ao-dapp",
     "hosting-evm-dapp",
@@ -666,12 +792,12 @@ Each guide should link to:
 - [x] Parent meta.json updated (2025-10-29)
 - [x] Index page created and reviewed (2025-10-29)
 - [x] Guide 1: Hosting a Blog created and reviewed (2025-10-29)
+- [x] Guide 2: Hosting Arweave/AO dApp created (2025-10-30)
 
 ### In Progress
-- [ ] Guide 2: Hosting Arweave/AO dApp (NEXT)
+- [ ] Guide 3: Hosting EVM dApp (NEXT)
 
 ### Upcoming
-- [ ] Guide 3: Hosting EVM dApp
 - [ ] Guide 4: Using Undernames for Versioning
 - [ ] Guide 5: Deploying with Arlink
 - [ ] Testing all guides
@@ -728,5 +854,5 @@ This plan is complete when:
 
 ---
 
-**Last Updated:** 2025-10-29
-**Status:** Document created, implementation pending
+**Last Updated:** 2025-10-30
+**Status:** Guide 2 (Hosting Arweave/AO dApp) completed with Wander + ARIO updates, Guide 3 (Hosting EVM dApp) next
