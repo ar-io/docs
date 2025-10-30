@@ -1,5 +1,5 @@
 ---
-title: Deploying with Arlink
+title: One Click Deployments with Arlink
 description: Learn how to deploy unstoppable applications to Arweave using Arlink's visual web interface with automated builds and ArNS integration.
 ---
 
@@ -8,9 +8,10 @@ import { Card, Cards } from 'fumadocs-ui/components/card';
 import { Steps, Step } from 'fumadocs-ui/components/steps';
 import { Zap, Github, Globe, Sparkles, FileCode, Rocket, GitBranch } from 'lucide-react';
 
+![Arlink login page showing GitHub, Wander, and MetaMask authentication options](/arlink-homepage.png)
 ## Introduction
 
-Arlink provides a visual, web-based platform for deploying applications to Arweave without using command-line tools. It offers automated builds, GitHub integration, and seamless ArNS management through an intuitive interface.
+[Arlink](https://arlink.ar.io) provides a visual, web-based platform for deploying applications to Arweave without using command-line tools. It offers automated builds, GitHub integration, and seamless ArNS management through an intuitive interface.
 
 <Callout title="New to unstoppable apps?" type="info">
 Check out the [series introduction](/build/guides/hosting-unstoppable-apps) to understand how AR.IO Network makes apps truly unstoppable with 100+ independent gateways.
@@ -35,6 +36,8 @@ Arlink is a web-based deployment platform that simplifies hosting applications o
 - **GitHub Integration** - Deploy directly from your repositories with continuous deployment
 - **Real-Time Monitoring** - Live build logs and progress tracking
 - **ArNS Management** - Connect existing ArNS names or use free Arlink undernames
+
+
 
 <Callout type="info" title="CLI vs Web Interface">
 All applications that can be deployed with `permaweb-deploy` CLI can also be deployed with Arlink. Choose the tool that fits your workflow:
@@ -74,9 +77,7 @@ The deployment process consists of four main phases. For detailed step-by-step i
 
 Navigate to the [Arlink Dashboard](https://arlink.arweave.net/) and connect your Arweave wallet (Wander). Then authorize GitHub access to enable repository connections.
 
-{/* Screenshot: Arlink dashboard with "Connect Wallet" button highlighted */}
-
-{/* Screenshot: GitHub authorization page showing permissions requested by Arlink */}
+![Arlink login page showing GitHub, Wander, and MetaMask authentication options](/arlink-login.png)
 
 <Callout type="info">
 Arlink only requests read access to your repositories and webhook permissions for continuous deployment.
@@ -91,7 +92,7 @@ Select your GitHub repository and branch. Arlink will automatically detect:
 - **Build Command** - Usually `npm run build`
 - **Output Directory** - `dist/`, `build/`, `out/`, etc.
 
-{/* Screenshot: Repository selection interface with detected build settings */}
+![Arlink repository selection interface showing GitHub repositories with import buttons](/arlink-repo-select.png)
 
 Review the auto-detected settings and adjust if needed. Ensure your output directory matches your framework:
 
@@ -101,6 +102,8 @@ Review the auto-detected settings and adjust if needed. Ensure your output direc
 | Next.js | `out/` | Requires `output: 'export'` in config |
 | Astro | `dist/` | Static by default |
 | Create React App | `build/` | Default configuration |
+
+![Arlink deploy configuration options](/arlink-deploy-config.png)
 
 ### 3. Choose Domain
 
@@ -122,7 +125,7 @@ Select how your application will be accessible:
 
 Click **Deploy** to start the build process. Arlink will clone your repository, install dependencies, build your application, and upload to Arweave.
 
-{/* Screenshot: Build progress view with live logs and status indicators */}
+![Arlink deployment build monitoring](/arlink-deployment-process.png)
 
 **Build Timeline:**
 - Small apps (~1MB): 2-3 minutes
@@ -132,6 +135,7 @@ Click **Deploy** to start the build process. Arlink will clone your repository, 
 <Callout type="warn" title="Build Limits">
 Arlink enforces a **10MB max build output** and **10-minute build timeout**. For larger applications, use `permaweb-deploy` CLI instead.
 </Callout>
+
 
 Once complete, your application is permanently deployed and accessible via:
 - Your chosen domain (e.g., `myapp_arlink.arweave.net`)
@@ -171,7 +175,7 @@ Undernames use underscore separators: `staging_myapp` not `staging.myapp`. See [
 
 The Arlink dashboard lets you view deployment history, manage undernames, and rollback to previous deployments by updating which transaction ID your ArNS name points to.
 
-{/* Screenshot: Arlink dashboard showing deployment history and rollback options */}
+![Arlink deployment build monitoring](/arlink-history.png)
 
 ## Limitations & Considerations
 
