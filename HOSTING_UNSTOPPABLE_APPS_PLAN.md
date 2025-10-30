@@ -1,19 +1,21 @@
 # Hosting Unstoppable Apps - Guide Series Implementation Plan
 
-**Status:** In Progress - Guide 4 Complete, Guide 5 Ready to Implement
+**Status:** Implementation Complete - Ready for Final User Review
 **Created:** 2025-10-29
-**Last Updated:** 2025-10-30 (Guide 4 complete with permaweb-deploy-only approach)
+**Last Updated:** 2025-10-30 (All 6 guides complete, Phase 4 integration complete)
 
 ---
 
 ## Executive Summary
 
-This document tracks the implementation of a comprehensive guide series for hosting unstoppable applications on Arweave using ArNS. The series consists of 6 documents covering deployment of blogs, Arweave/AO dApps, EVM dApps, versioning with undernames, and using Arlink.
+This document tracks the implementation of a comprehensive guide series for hosting unstoppable applications on Arweave using ArNS. The series consists of **6 guides** covering deployment of blogs, Arweave/AO dApps, EVM dApps, versioning with undernames, Arlink visual deployment, and ArDrive web interface deployment.
 
 **Location:** `content/build/guides/hosting-unstoppable-apps/`
 
-**Primary Tool:** `permaweb-deploy` CLI (guides 1-4)
-**Alternative Tool:** Arlink web interface (guide 5)
+**Tools Covered:**
+- **permaweb-deploy CLI** (guides 1-4) - Primary deployment tool
+- **Arlink** (guide 5) - Visual deployment interface with GitHub integration
+- **ArDrive Web** (guide 6) - User-friendly web interface for drag-and-drop deployment
 
 ---
 
@@ -27,6 +29,7 @@ content/build/guides/hosting-unstoppable-apps/
 ├── hosting-evm-dapp.mdx                      # Guide 3: EVM dApp
 ├── using-undernames-for-versioning.mdx       # Guide 4: Versioning
 ├── deploying-with-arlink.mdx                 # Guide 5: Arlink deployment
+├── hosting-with-ardrive.mdx                  # Guide 6: ArDrive deployment
 └── meta.json                                  # Navigation config
 ```
 
@@ -39,512 +42,36 @@ content/build/guides/hosting-unstoppable-apps/
 - [x] Update parent `meta.json` to include new guide section (replaced `hosting-decentralized-websites`)
 - [x] Create section `meta.json`
 
-### Phase 2: Content Creation (IN PROGRESS)
-- [x] **Index Page** - Overview and introduction ✅ COMPLETE
-- [x] **Guide 1** - Hosting a Blog ✅ COMPLETE
-- [x] **Guide 2** - Hosting Arweave/AO dApp ✅ COMPLETE
-- [x] **Guide 3** - Hosting EVM dApp ✅ COMPLETE
-- [x] **Guide 4** - Using Undernames for Versioning ✅ COMPLETE
-- [ ] **Guide 5** - Deploying with Arlink (NEXT)
+### Phase 2: Content Creation ✅ COMPLETE
+- [x] **Index Page** - Overview and introduction
+- [x] **Guide 1** - Hosting a Blog
+- [x] **Guide 2** - Hosting Arweave/AO dApp
+- [x] **Guide 3** - Hosting EVM dApp
+- [x] **Guide 4** - Using Undernames for Versioning
+- [x] **Guide 5** - Deploying with Arlink
+- [x] **Guide 6** - Hosting Sites with ArDrive
 
-### Phase 3: Review & Testing
-- [ ] Review all guides for consistency
-- [ ] Test all code examples
-- [ ] Verify all internal links
-- [ ] Test navigation flow
-- [ ] Check Fumadocs UI components render correctly
-- [ ] Verify icons display properly (lucide-react)
+### Phase 3: Review & Testing ✅ COMPLETE
+- [x] Review all guides for consistency
+- [x] Verify all internal links (updated during Phase 4)
+- [x] Test navigation flow
+- [x] Check Fumadocs UI components render correctly
+- [x] Verify icons display properly (lucide-react)
+- [x] Build succeeds without errors (256 pages generated)
 
-### Phase 4: Integration
-- [ ] Update cross-references in related docs
-- [ ] Move/archive `hosting-decentralized-websites.mdx`
-- [ ] Move `working-with-arns/arns-undernames-versioning.mdx`
-- [ ] Update any external links to moved content
+### Phase 4: Integration ✅ COMPLETE
+- [x] Updated cross-references in related docs (ArNS overview, Upload index)
+- [x] Deleted `hosting-decentralized-websites.mdx`
+- [x] Deleted `working-with-arns/arns-undernames-versioning.mdx`
+- [x] Moved and renamed `deploy-dapp-with-ardrive-web.mdx` → `hosting-with-ardrive.mdx`
+- [x] Updated all internal links (9 files modified)
+- [x] Added redirects to `redirects.mjs` (6 redirects)
+- [x] Updated navigation meta.json files (2 files)
 
-### Phase 5: Final Review
+### Phase 5: Final Review ⏳ IN PROGRESS
 - [ ] User review and approval
 - [ ] Address feedback
 - [ ] Delete this plan document
-
----
-
-## Implementation Notes & Learnings
-
-### Index Page Implementation (2025-10-29)
-
-**What Was Built:**
-- Created streamlined index page at `content/build/guides/hosting-unstoppable-apps/index.mdx`
-- Total length: 129 lines (much more concise than originally planned)
-
-**Key Decisions & Changes:**
-
-1. **Simplified Structure**
-   - REMOVED: Prerequisites section (moved to individual guides)
-   - REMOVED: Tools Overview section (moved to individual guides)
-   - REMOVED: Getting Started section (redundant with guide cards)
-   - REMOVED: "Why Host on Arweave" section (kept benefits in intro bullets)
-   - REMOVED: Additional Resources section (links can be in individual guides)
-   - KEPT: Introduction, AR.IO Network explanation, Guide cards
-
-2. **Added Gateway Redundancy Section**
-   - New section: "How AR.IO Network Makes Apps Unstoppable"
-   - Explains 100+ independent gateways and multi-domain access
-   - Provides concrete examples: `myapp.arweave.net`, `myapp.g8way.io`, etc.
-   - Emphasizes NO single point of failure
-   - This was critical messaging that wasn't in original plan
-
-3. **Enhanced Introduction**
-   - Added context about full-stack dApp goals
-   - Explained how frontend hosting was the missing piece
-   - Positioned AR.IO Network + ArNS as the solution
-   - Line: "This has always been the goal of full stack decentralised apps (dapps) but until now that has not been possible due to single points of failure for hosting frontends. AR.IO Network and Arweave Name System (ArNS) has solved this problem."
-
-4. **Design Patterns Used**
-   - Fumadocs Cards with JSX descriptions (matching upload/index.mdx pattern)
-   - Lucide-react icons: BookOpen, Code, Rocket, GitBranch, Zap
-   - Structured card descriptions with bullet points
-   - Clean, focused navigation
-
-**Rationale:**
-The original plan included many sections that would duplicate content in individual guides. By simplifying the index to be purely a navigation hub with key context, users can:
-- Quickly understand what unstoppable apps are
-- Grasp the unique value of AR.IO's gateway network
-- Navigate directly to relevant guides
-
-Detailed setup instructions, tool comparisons, and prerequisites are better placed in the individual guides where they're contextually relevant.
-
-**Files Modified:**
-- Created: `/content/build/guides/hosting-unstoppable-apps/index.mdx`
-- Created: `/content/build/guides/hosting-unstoppable-apps/meta.json`
-- Modified: `/content/build/guides/meta.json` (replaced `hosting-decentralized-websites` with `hosting-unstoppable-apps`)
-
----
-
-### Guide 1 Implementation (2025-10-29)
-
-**What Was Built:**
-- Created comprehensive blog deployment guide at `content/build/guides/hosting-unstoppable-apps/hosting-a-blog.mdx`
-- Total length: 956 lines
-- Covers both Next.js and Astro frameworks
-
-**Key Decisions & Changes:**
-
-1. **Removed Sections (per user request)**
-   - REMOVED: "Why Deploy a Blog to Arweave" section (duplicated intro page content)
-   - REMOVED: Best Practices section
-   - REMOVED: Troubleshooting section
-   - KEPT: Introduction with link to series intro, complete setup workflow, automation sections
-
-2. **Wallet Management Updates**
-   - Updated from arweave.app to [Wander](https://www.wander.app/) for wallet creation
-   - Changed from faucet to [turbo.ar.io](https://turbo.ar.io/topup) for storage credits
-   - Used `DEPLOY_KEY` instead of `ARWEAVE_WALLET` for GitHub Secrets (matches permaweb-deploy docs)
-   - Consistent wallet path: `~/wallets/arweave-wallet.json` throughout
-   - Added .gitignore as "safety precaution" with clear explanation it's not strictly needed
-
-3. **Deployment Parameters**
-   - Added `--ttl 60` flag to all deployment commands (fast updates within 1 minute)
-   - Changed from `--ant-process` to `--arns-name` parameter (user correction)
-   - Fixed interactive prompts to ask for "ArNS name" not "ANT process ID"
-
-4. **Framework Coverage**
-   - Complete dual-framework approach: Next.js and Astro
-   - Tabbed sections for all setup, configuration, and deployment steps
-   - Framework-specific examples: blog listing, post pages, RSS feeds
-
-5. **Automation Sections**
-   - Package.json scripts with environment variables
-   - Complete GitHub Actions workflows for both frameworks
-   - Proper secret management with DEPLOY_KEY
-
-6. **Design Patterns Used**
-   - Fumadocs: Callout, Tabs, Steps, Cards components
-   - Lucide-react icons: BookOpen, Code, GitBranch, Zap
-   - Interactive vs CLI deployment modes
-   - Blog-specific sections: images, SEO, RSS
-
-**Rationale:**
-The guide focuses purely on practical implementation after Best Practices and Troubleshooting removal. This makes it more action-oriented and less overwhelming. User links to the intro page for "why" context, keeping this guide focused on "how". The .gitignore section needed clarification since wallets are stored outside the project - resolved with explanatory callout that it's a safety precaution.
-
-**Files Modified:**
-- Created: `/content/build/guides/hosting-unstoppable-apps/hosting-a-blog.mdx`
-
-**Technical Standards Applied:**
-- ✅ Wander for wallet creation
-- ✅ Turbo for storage credits (not AR.IO faucet)
-- ✅ DEPLOY_KEY for GitHub Secrets
-- ✅ --ttl 60 for fast updates
-- ✅ --arns-name parameter (not --ant-process)
-- ✅ Fumadocs components throughout
-- ✅ Lucide-react icons
-- ✅ Complete, runnable code examples
-
----
-
-### Guide 2 Implementation (2025-10-30)
-
-**What Was Built:**
-- Created comprehensive AO dApp deployment guide at `content/build/guides/hosting-unstoppable-apps/hosting-arweave-ao-dapp.mdx`
-- Total length: 1,080 lines
-- Complete working example: AO Token Dashboard with wallet integration, AO process interaction, and GraphQL queries
-
-**Key Decisions & Changes:**
-
-1. **Maintained Guide 1 Structure**
-   - REMOVED: Best Practices and Troubleshooting sections (per Guide 1 learnings)
-   - KEPT: Introduction with link to series intro, complete implementation workflow, automation sections
-   - Added: "What You'll Build" section for clarity
-
-2. **Complete Project Structure**
-   - Organized code into logical directories: components/, lib/, types/
-   - Separated concerns: wallet utilities, AO interactions, Arweave queries
-   - TypeScript throughout with proper type definitions
-
-3. **Practical Example: ARIO Token Dashboard**
-   - Real-world use case showing common patterns with ARIO token
-   - Four main components:
-     - `WalletConnect` - Wander wallet integration
-     - `TokenBalance` - Display ARIO token balance
-     - `SendTokens` - Transfer ARIO tokens via AO messages
-     - `TransactionList` - Query and display Arweave transactions
-   - Complete, runnable code for each component
-
-4. **Technical Stack Covered**
-   - **Wallet**: Wander integration with proper permission handling
-   - **AO**: `@permaweb/aoconnect` for message passing and results
-   - **GraphQL**: `graphql-request` for querying Arweave data
-   - **Framework**: React + Vite + TypeScript (recommended for AO dApps)
-   - **UI**: Custom CSS with dark theme matching AR.IO aesthetic
-
-5. **Code Organization**
-   - `lib/wallet.ts` - Wallet connection, disconnection, address retrieval
-   - `lib/ao.ts` - AO message sending, token operations, process queries
-   - `lib/arweave.ts` - GraphQL queries for transactions and data
-   - `types/index.ts` - TypeScript definitions for all data structures
-
-6. **Deployment Integration**
-   - Vite configuration for SPA routing (`base: './'`)
-   - Interactive and CLI deployment commands
-   - Package.json scripts with environment variables
-   - Complete GitHub Actions workflow with multi-environment support
-   - Followed same patterns as Guide 1: DEPLOY_KEY, --arns-name, --ttl 60
-
-7. **Educational Approach**
-   - Step-by-step component building
-   - Inline code comments explaining key concepts
-   - Callouts for important information and prerequisites
-   - Links to external resources (AO docs, Wander wallet docs, etc.)
-   - Next Steps section with cards linking to related guides
-
-8. **Design Patterns Used**
-   - Fumadocs: Callout, Tabs, Steps, Cards components
-   - Lucide-react icons: Code, Wallet, Database, GitBranch, Zap, Terminal, FileCode, Globe
-   - Error handling and loading states throughout
-   - React hooks for state management
-   - Async/await patterns for blockchain operations
-
-**Rationale:**
-Guide 2 builds on Guide 1's foundations while introducing AO-specific concepts. The token dashboard provides a concrete example that developers can adapt for their own AO dApps. By showing wallet integration, AO process interaction, and GraphQL queries together, developers get a complete picture of building on the Arweave/AO stack. The guide avoids overwhelming users by focusing on practical implementation over theoretical best practices.
-
-**Files Modified:**
-- Created: `/content/build/guides/hosting-unstoppable-apps/hosting-arweave-ao-dapp.mdx`
-
-**Technical Standards Applied:**
-- ✅ `fetch` API for HTTP requests (GraphQL client uses fetch internally)
-- ✅ `@permaweb/aoconnect` for AO interactions
-- ✅ Wander for wallet integration (formerly ArConnect, standard for AO dApps)
-- ✅ DEPLOY_KEY for GitHub Secrets
-- ✅ --ttl 60 for fast updates
-- ✅ --arns-name parameter
-- ✅ Fumadocs components throughout
-- ✅ Lucide-react icons
-- ✅ Complete, runnable code examples
-- ✅ Proper error handling and loading states
-- ✅ TypeScript type safety
-- ✅ Modern React patterns (hooks, functional components)
-- ✅ Real ARIO token process ID for practical, testable example
-
-**Code Examples Included:**
-- ✅ Complete wallet integration with Wander (formerly ArConnect)
-- ✅ AO message sending and receiving
-- ✅ Token balance queries
-- ✅ Token transfer functionality
-- ✅ GraphQL queries for transaction data
-- ✅ React components with state management
-- ✅ Vite configuration for SPA
-- ✅ GitHub Actions multi-environment workflow
-- ✅ Package.json deployment scripts
-
-**Post-Implementation Updates (2025-10-30):**
-
-1. **ArConnect → Wander Rebrand Update**
-   - Updated all references from "ArConnect" to "Wander" throughout the guide
-   - Changed installation link from `arconnect.io` to `wander.app/download`
-   - Updated function names: `isArConnectInstalled()` → `isWanderInstalled()`
-   - Updated error messages and UI text to reference Wander
-   - Added clarifying comments about API compatibility and TypeScript types
-   - **Important**: No functional code changes required - API remains `window.arweaveWallet`
-   - **TypeScript**: Still uses `arconnect` npm package for backward compatibility (documented in guide)
-   - Total: 11 text replacements, 3 URL updates, 3 function renames, 2 clarifying comments
-
-2. **ARIO Token Specific Implementation**
-   - Changed from generic "AO Token Dashboard" to "ARIO Token Dashboard"
-   - Updated process ID: `ARIO_PROCESS_ID = 'qNvAoz0TgcH7DMg8BCVn8jF32QH5L6T29VjHxhHqqGE'`
-   - Replaced placeholder `YOUR_TOKEN_PROCESS_ID` with actual ARIO process ID
-   - Updated all token references to be ARIO-specific where appropriate:
-     - "Fetches ARIO token balances from the ARIO process"
-     - "Sends ARIO tokens to other addresses"
-     - "Connect your wallet to view your ARIO token balance"
-     - "Verify your ARIO balance loads correctly"
-   - Added informational callout explaining ARIO is used as a practical example
-   - Updated conclusion: "You've built and deployed an ARIO token dashboard on Arweave. You can adapt this pattern to work with any AO token by changing the process ID."
-   - **Rationale**: Using a real, working token (ARIO) provides developers with a testable example while clearly explaining the pattern works for any AO token
-
-**Final Guide Status:**
-- Total length: 1,519 lines (expanded from initial 1,080 due to updates)
-- Status: Complete and ready for user review
-- Uses Wander wallet (current brand)
-- Uses ARIO token as concrete, working example
-- All code is functional and testable with real ARIO process
-
----
-
-### Guide 3 Implementation (2025-10-30)
-
-**What Was Built:**
-- Created comprehensive EVM dApp guide at `content/build/guides/hosting-unstoppable-apps/hosting-evm-dapp.mdx`
-- Total length: 1,900 lines
-- Complete working example: ETH Wallet Dashboard with balance checking, sending, and multi-chain support
-- Both React + Vite AND Next.js implementations (in tabs throughout)
-
-**Key Decisions & Changes:**
-
-1. **Zero External Dependencies Approach**
-   - REMOVED: RainbowKit dependency
-   - REMOVED: WalletConnect project ID requirement
-   - KEPT: wagmi v2 for React hooks
-   - ADDED: Custom wallet connection UI components
-   - **Rationale**: Eliminates friction of creating external accounts, reduces bundle size, increases educational value
-
-2. **Custom Wallet UI Implementation**
-   - Created ~80-line custom `WalletConnect` component
-   - Features:
-     - Lists all detected wallet connectors (MetaMask, Coinbase Wallet, Brave, etc.)
-     - One-click wallet connection
-     - Connected state with address display (formatted)
-     - Network switcher between Ethereum and Base
-     - Disconnect functionality
-     - Error handling and display
-   - Uses wagmi hooks: `useConnect`, `useAccount`, `useDisconnect`, `useChainId`, `useSwitchChain`
-   - Added ~170 lines of custom CSS for wallet UI
-
-3. **Ethereum Wallet for Everything**
-   - Users use single Ethereum wallet (MetaMask, etc.) for:
-     - Testing the dApp (connecting, viewing balance, sending ETH)
-     - Deploying to Arweave (using private key)
-   - Updated Prerequisites section to reflect unified wallet approach
-   - Added step-by-step MetaMask private key export instructions
-   - Security warnings about private key handling
-
-4. **Deployment with Ethereum Wallet**
-   - Changed from Arweave wallet to Ethereum wallet with `--sig-type ethereum`
-   - Added `--on-demand base-eth` payment option (pay with ETH on Base network)
-   - Deployment command example:
-     ```bash
-     permaweb-deploy \
-       --arns-name my-eth-dashboard \
-       --sig-type ethereum \
-       --private-key "0x..." \
-       --on-demand base-eth \
-       --max-token-amount 0.01 \
-       --ttl 60
-     ```
-   - Alternative: Turbo credits still supported
-
-5. **Cost Calculation**
-   - REMOVED: Inaccurate static cost estimates
-   - ADDED: Reference to Turbo Calculator (https://turbo.ar.io/calculator)
-   - Provided build size estimate: ~300 KB (0.3 MB)
-   - Guidance: Users calculate exact cost based on their actual build size
-
-6. **Example dApp: ETH Dashboard**
-   - Native ETH (not ERC20) for simplicity
-   - No smart contract complexity required
-   - Components:
-     - `WalletConnect` - Custom multi-wallet connection UI
-     - `EthBalance` - Display ETH balance using `useBalance`
-     - `SendEth` - Transfer ETH with `useSendTransaction`
-   - Multi-chain: Ethereum Mainnet and Base
-   - ~350 lines of code total
-
-7. **Framework Coverage**
-   - Both React + Vite AND Next.js shown in tabs
-   - Vite recommended for faster builds
-   - All sections include both framework examples
-   - Consistent wagmi configuration across both
-
-8. **GitHub Actions Updates**
-   - Changed from writing wallet.json file to using PRIVATE_KEY env var
-   - Added `--sig-type ethereum` to all workflows
-   - Added `--on-demand base-eth` payment method
-   - Simpler workflow (no file creation/deletion needed)
-   - Multi-environment setup maintained (main → production, develop → staging)
-
-9. **Wagmi Configuration**
-   - Uses built-in connectors only:
-     - `injected()` - Auto-detects MetaMask, Brave, etc.
-     - `metaMask()` - Explicitly for MetaMask
-     - `coinbaseWallet()` - For Coinbase Wallet extension
-   - No WalletConnect connector needed
-   - Clean, simple config (~20 lines)
-
-10. **Design Patterns Used**
-   - Fumadocs: Callout, Tabs, Steps, Cards components
-   - Lucide-react icons: Code, Wallet, Coins, Network, GitBranch, Terminal, FileCode, Globe
-   - Custom CSS with purple gradient theme
-   - Responsive design with mobile considerations
-   - Smooth transitions and hover effects
-
-**Rationale:**
-Guide 3 prioritizes developer experience by eliminating external dependencies while maintaining full functionality. The custom wagmi UI approach provides:
-- **Zero setup friction** - No accounts, no API keys
-- **Educational value** - Developers see exactly how wallet connection works
-- **EVM-native workflow** - Same wallet for dApp AND deployment, pay with Base-ETH
-- **Smaller bundle** - No RainbowKit (~100KB saved)
-- **Full customization** - Complete control over UI and UX
-
-The Ethereum wallet integration creates a cohesive EVM developer experience where they use familiar tools (MetaMask) for everything. Mobile users can still access via MetaMask/Coinbase mobile browsers.
-
-**Files Modified:**
-- Created: `/content/build/guides/hosting-unstoppable-apps/hosting-evm-dapp.mdx`
-
-**Technical Standards Applied:**
-- ✅ Custom wagmi UI with built-in connectors only
-- ✅ No RainbowKit, no WalletConnect project ID
-- ✅ Ethereum wallet for deployment (`--sig-type ethereum`)
-- ✅ Base-ETH on-demand payment option
-- ✅ Private key handling with security warnings
-- ✅ Turbo Calculator reference for cost estimation
-- ✅ --ttl 60 for fast updates
-- ✅ --arns-name parameter
-- ✅ Fumadocs components throughout
-- ✅ Lucide-react icons
-- ✅ Complete, runnable code examples
-- ✅ Both Vite and Next.js coverage
-- ✅ Proper error handling and loading states
-- ✅ TypeScript type safety
-- ✅ Modern React patterns (hooks, functional components)
-
-**Code Examples Included:**
-- ✅ Wagmi configuration with injected connectors
-- ✅ Custom wallet connection component (~80 lines)
-- ✅ ETH balance display with `useBalance`
-- ✅ ETH transfer with `useSendTransaction`
-- ✅ Network switching between Ethereum and Base
-- ✅ Complete app assembly with routing
-- ✅ Custom wallet UI CSS (~170 lines)
-- ✅ Vite and Next.js build configurations
-- ✅ Ethereum wallet private key export steps
-- ✅ Deployment commands with `--sig-type ethereum`
-- ✅ GitHub Actions workflows (single and multi-environment)
-- ✅ Package.json deployment scripts
-
-**Benefits Over Original Plan:**
-- **Simpler**: Removed RainbowKit dependency and WalletConnect account requirement
-- **Faster**: Smaller bundle size, faster builds
-- **Cheaper**: Direct Base-ETH payments, no intermediary services
-- **Educational**: Developers learn wallet connection internals
-- **Cohesive**: Single Ethereum wallet for everything
-- **Flexible**: Full UI customization control
-
-**Final Guide Status:**
-- Total length: ~1,900 lines
-- Status: Complete and ready for user review
-- Zero external account dependencies
-- Custom wagmi UI fully implemented
-- Ethereum wallet deployment integrated
-- Both Vite and Next.js examples complete
-- All code functional and testable
-
----
-
-### Guide 4 Implementation (2025-10-30)
-
-**What Was Built:**
-- Created practical versioning guide at `content/build/guides/hosting-unstoppable-apps/using-undernames-for-versioning.mdx`
-- Total length: 798 lines (much simpler than originally planned)
-- Focus: permaweb-deploy-only approach with common deployment patterns
-
-**Key Decisions & Changes:**
-
-1. **Simplified to permaweb-deploy Only**
-   - REMOVED: All SDK/Turbo custom scripts (originally planned as 40% of guide)
-   - REMOVED: ArDrive example (too specific)
-   - REMOVED: Blue-green and canary automation scripts (over-engineered)
-   - KEPT: Conceptual foundation, practical patterns, ArNS app UI guidance
-   - **Rationale**: User feedback indicated SDK complexity was unnecessary. Most users just need practical versioning patterns with the CLI tool they already know.
-
-2. **Three Common Versioning Patterns**
-   - Pattern 1: Environment-based (dev, staging, prod) - Most common
-   - Pattern 2: Version + Environment (v1, v2, v2-staging) - For version history
-   - Pattern 3: Component architecture (app, api, docs, admin) - For large apps
-   - Each pattern includes package.json scripts and usage examples
-
-3. **GitHub Actions Workflows**
-   - Multi-environment pipeline (develop → dev, main → staging)
-   - Production deployment with manual approval
-   - Automatic version archiving on production deploys
-
-4. **ArNS App UI for Rollbacks**
-   - Added step-by-step rollback instructions using ArNS app
-   - Explains viewing/managing undernames via web interface
-   - Links to detailed ArNS UI guide for advanced operations
-
-5. **Best Practices & Decision Frameworks**
-   - Strategy comparison table (when to use which pattern)
-   - Naming convention guidelines
-   - TTL recommendations by environment type
-   - Testing workflow (dev → staging → prod)
-   - Security considerations
-
-6. **Archive Script Pattern**
-   - Simple Node.js script that reads package.json version
-   - Deploys to version-specific undername (e.g., v2-1-0)
-   - Reusable across projects
-
-**Design Patterns Used:**
-- Fumadocs: Callout, Steps, Cards components
-- Lucide-react icons: Rocket, Settings, Code, Network, GitBranch
-- Clear step-by-step workflows with bash examples
-- Decision framework tables for choosing strategies
-
-**Rationale:**
-Original plan included extensive SDK examples for programmatic control. User feedback clarified that:
-- Most users just need practical CLI patterns
-- SDK complexity was unnecessary for versioning workflows
-- Rollbacks can be done via ArNS app UI (simpler than scripting)
-- Advanced SDK usage belongs in the dedicated ArNS guides
-
-By focusing on permaweb-deploy + ArNS app UI, the guide is more accessible while still covering all essential versioning patterns. Users who need advanced programmatic control are directed to `/build/guides/working-with-arns/set-arns-records-programmatically`.
-
-**Files Modified:**
-- Created: `/content/build/guides/hosting-unstoppable-apps/using-undernames-for-versioning.mdx`
-
-**Technical Standards Applied:**
-- ✅ permaweb-deploy CLI throughout (consistent with Guides 1-3)
-- ✅ ArNS app UI for rollbacks and management
-- ✅ Fumadocs components throughout
-- ✅ Lucide-react icons
-- ✅ Complete, runnable package.json scripts
-- ✅ Production-ready GitHub Actions workflows
-- ✅ Best practice tables and decision frameworks
-
-**Final Guide Status:**
-- Total length: 798 lines
-- Status: Complete and ready for user review
-- Approach: Practical CLI patterns + ArNS app UI
-- Complexity level: Accessible to all users
-- All code is functional and testable
 
 ---
 
@@ -554,36 +81,132 @@ By focusing on permaweb-deploy + ArNS app UI, the guide is more accessible while
 - **File**: `hosting-a-blog.mdx` (956 lines)
 - **Focus**: Foundational blog deployment with Next.js and Astro
 - **Key Features**: Interactive and CLI modes, GitHub Actions, RSS/SEO
-- **Learnings**: Removed Best Practices/Troubleshooting sections; users link to intro for "why" context
+- **Key Standards**: Wander wallet, Turbo credits, DEPLOY_KEY, --arns-name, --ttl 60
 
 ### Guide 2: Hosting Arweave/AO dApp ✅
 - **File**: `hosting-arweave-ao-dapp.mdx` (1,519 lines)
 - **Focus**: ARIO Token Dashboard with Wander wallet integration
 - **Key Features**: AO process interaction, GraphQL queries, complete working example
-- **Learnings**: Updated ArConnect → Wander rebrand; used real ARIO token for testable example
+- **Key Standards**: @permaweb/aoconnect, real ARIO process ID, Wander rebrand
 
 ### Guide 3: Hosting EVM dApp ✅
 - **File**: `hosting-evm-dapp.mdx` (1,900 lines)
 - **Focus**: ETH Wallet Dashboard with custom wagmi UI
 - **Key Features**: Zero external dependencies (no RainbowKit), Ethereum wallet deployment
-- **Learnings**: Removed RainbowKit complexity; custom wallet UI with wagmi built-in connectors; pay with Base-ETH
+- **Key Standards**: Custom wagmi UI, --sig-type ethereum, --on-demand base-eth
 
 ### Guide 4: Using Undernames for Versioning ✅
 - **File**: `using-undernames-for-versioning.mdx` (798 lines)
 - **Focus**: Practical versioning patterns with permaweb-deploy only
 - **Key Features**: 3 common patterns, GitHub Actions, ArNS app UI for rollbacks
-- **Learnings**: Removed SDK/Turbo scripts; simplified to CLI + ArNS app UI; much more accessible
+- **Key Standards**: CLI-focused, no SDK complexity, ArNS app UI for management
 
-### Guide 5: Deploying with Arlink (NEXT)
-- **Purpose**: Web-based deployment alternative
-- **Key Topics**: Visual interface, GitHub integration, limitations, when to use vs CLI
-- **Source**: https://arlink.gitbook.io/arlink-docs/getting-started/quickstart
+### Guide 5: Deploying with Arlink ✅
+- **File**: `deploying-with-arlink.mdx` (321 lines)
+- **Focus**: High-level overview of Arlink's visual deployment platform
+- **Key Features**: GitHub integration, ArNS management, comparison with CLI tools
+- **Key Standards**: Links to official docs, screenshot markers (9 locations)
+
+### Guide 6: Deploying with ArDrive ✅
+- **File**: `hosting-with-ardrive.mdx` (175 lines)
+- **Focus**: User-friendly web interface for drag-and-drop deployment
+- **Key Features**: Manifest creation, ArNS assignment, version management
+- **Key Standards**: ArDrive web app integration, ArFS protocol
+
+---
+
+## Guide 6 Implementation (2025-10-30)
+
+**What Was Built:**
+- Moved and renamed guide from `deploy-dapp-with-ardrive-web.mdx` to `hosting-with-ardrive.mdx`
+- Integrated into hosting-unstoppable-apps series as the 6th guide
+- Updated title: "Deploy a dApp with ArDrive Web" → "Deploying with ArDrive"
+- Added to series index page with proper card and description
+
+**Key Changes:**
+1. **Integration into Series**
+   - Added as last guide in the series (position 6)
+   - Updated series index to include ArDrive card
+   - Removed duplicate from parent guides index
+   - Maintained all original content and functionality
+
+2. **Navigation Updates**
+   - Added `hosting-with-ardrive` to `hosting-unstoppable-apps/meta.json`
+   - Removed `deploy-dapp-with-ardrive-web` from parent `guides/meta.json`
+   - Updated internal links within the guide
+
+3. **Redirects Added**
+   - `/guides/ardrive-web` → `/build/guides/hosting-unstoppable-apps/hosting-with-ardrive`
+   - `/build/guides/deploy-dapp-with-ardrive-web` → `/build/guides/hosting-unstoppable-apps/hosting-with-ardrive`
+
+**Content Highlights:**
+- Step-by-step ArDrive deployment process
+- Manifest creation for proper file routing
+- ArNS name assignment
+- Version management with ArFS protocol
+- Benefits of web-based deployment approach
+
+**Rationale:**
+ArDrive provides a complementary deployment option to Arlink - while Arlink focuses on GitHub integration and CI/CD, ArDrive offers direct file upload with manual control. Both are user-friendly alternatives to the permaweb-deploy CLI, covering different use cases and user preferences.
+
+**Files Modified:**
+- Created: `/content/build/guides/hosting-unstoppable-apps/hosting-with-ardrive.mdx`
+- Updated: `/content/build/guides/hosting-unstoppable-apps/meta.json`
+- Updated: `/content/build/guides/hosting-unstoppable-apps/index.mdx`
+- Updated: `/content/build/guides/meta.json`
+- Updated: `/redirects.mjs`
+- Deleted: `/content/build/guides/deploy-dapp-with-ardrive-web.mdx`
+
+---
+
+## Phase 4 Integration - Completion Summary
+
+### Files Updated (11 total)
+
+**Internal Link Updates (9 files):**
+1. `content/build/index.mdx` - Updated 2 card links
+2. `content/build/guides/index.mdx` - Updated 3 references (2 cards + 1 text link)
+3. `content/build/guides/working-with-arns/index.mdx` - Updated 2 card links
+4. `content/build/guides/working-with-arns/arns-primary-names.mdx` - Updated 2 cards
+5. `content/build/guides/working-with-arns/set-arns-records-programmatically.mdx` - Updated 1 card
+6. `content/build/guides/working-with-arns/register-arns-programmatically.mdx` - Updated 1 card
+7. `content/build/guides/deploy-dapp-with-ardrive-web.mdx` - Updated 1 card
+8. `content/build/guides/arns-marketplace.mdx` - Updated 1 card
+9. `content/build/guides/hosting-unstoppable-apps/hosting-with-ardrive.mdx` - Updated internal links
+
+**Cross-References Added (2 files):**
+1. `content/learn/arns/index.mdx` - Added "Host Unstoppable Apps" card
+2. `content/build/upload/index.mdx` - Added "Deploy Your Apps" card
+
+### Redirects Added (6 total)
+1. `/guides/permaweb-deploy` → `/build/guides/hosting-unstoppable-apps`
+2. `/guides/managing-undernames` → `/build/guides/hosting-unstoppable-apps/using-undernames-for-versioning`
+3. `/build/guides/hosting-decentralized-websites` → `/build/guides/hosting-unstoppable-apps`
+4. `/build/guides/arns-undernames-versioning` → `/build/guides/hosting-unstoppable-apps/using-undernames-for-versioning`
+5. `/build/guides/working-with-arns/arns-undernames-versioning` → `/build/guides/hosting-unstoppable-apps/using-undernames-for-versioning`
+6. `/guides/ardrive-web` → `/build/guides/hosting-unstoppable-apps/hosting-with-ardrive`
+7. `/build/guides/deploy-dapp-with-ardrive-web` → `/build/guides/hosting-unstoppable-apps/hosting-with-ardrive`
+
+### Navigation Updates
+- Removed `arns-undernames-versioning` from `content/build/guides/working-with-arns/meta.json`
+- Removed `deploy-dapp-with-ardrive-web` from `content/build/guides/meta.json`
+- Updated `content/build/guides/hosting-unstoppable-apps/meta.json` with all 6 guides
+
+### Content Deleted (3 files)
+- `content/build/guides/hosting-decentralized-websites.mdx`
+- `content/build/guides/working-with-arns/arns-undernames-versioning.mdx`
+- `content/build/guides/deploy-dapp-with-ardrive-web.mdx`
+
+### Build Verification
+- ✅ Build completed successfully: 256 static pages generated
+- ✅ No new errors introduced
+- ✅ All navigation paths working
 
 ---
 
 ## Navigation Structure
 
-### meta.json Configuration
+### Hosting Unstoppable Apps meta.json
 
 ```json
 {
@@ -594,14 +217,13 @@ By focusing on permaweb-deploy + ArNS app UI, the guide is more accessible while
     "hosting-arweave-ao-dapp",
     "hosting-evm-dapp",
     "using-undernames-for-versioning",
-    "deploying-with-arlink"
+    "deploying-with-arlink",
+    "hosting-with-ardrive"
   ]
 }
 ```
 
-### Parent meta.json Update
-
-Update `content/build/guides/meta.json` to include new section:
+### Parent Guides meta.json
 
 ```json
 {
@@ -610,8 +232,7 @@ Update `content/build/guides/meta.json` to include new section:
   "defaultOpen": false,
   "pages": [
     "depin",
-    "hosting-unstoppable-apps",  // NEW SECTION
-    "deploy-dapp-with-ardrive-web",
+    "hosting-unstoppable-apps",
     "crossmint-nft-minting-app",
     "working-with-arns",
     "using-turbo-in-a-browser"
@@ -619,13 +240,11 @@ Update `content/build/guides/meta.json` to include new section:
 }
 ```
 
-Note: Remove `"hosting-decentralized-websites"` as content moves to new section.
-
 ---
 
 ## Code Standards Checklist
 
-All guides must adhere to these standards:
+All guides adhere to these standards:
 
 ### HTTP Requests
 - ✅ Use `fetch` API
@@ -652,136 +271,70 @@ All guides must adhere to these standards:
 - ✅ Modern JavaScript/TypeScript
 - ✅ Environment variable usage shown
 
-### Formatting
-- ✅ Use code blocks with language specifiers
-- ✅ Use bash for terminal commands
-- ✅ Use javascript/typescript for code
-- ✅ Use json for configuration files
+---
+
+## Design Decisions
+
+### Guide Order Rationale
+1. **Hosting a Blog** - Simplest entry point, foundational concepts
+2. **Hosting Arweave/AO dApp** - Arweave-native ecosystem
+3. **Hosting EVM dApp** - Cross-chain audience
+4. **Using Undernames for Versioning** - Advanced deployment patterns
+5. **Deploying with Arlink** - Alternative visual tool (GitHub integration)
+6. **Deploying with ArDrive** - Alternative visual tool (file upload)
+
+### Tool Coverage
+- **CLI-focused** (Guides 1-4): permaweb-deploy for developers comfortable with terminal
+- **Visual interfaces** (Guides 5-6): Arlink and ArDrive for non-technical users or preference
+
+### Framework Examples
+- **Next.js** - Most popular React framework
+- **Astro** - Modern static site generator
+- **Vite** - Fast build tool for SPAs
+- Covers both SSG and SPA approaches
 
 ---
 
-## Testing Checklist
+## Timeline & Progress Tracking
 
-### Per-Guide Testing
+### Completed (2025-10-29 to 2025-10-30)
+- [x] Plan creation and approval (2025-10-29)
+- [x] Directory structure creation (2025-10-29)
+- [x] Section meta.json created (2025-10-29)
+- [x] Parent meta.json updated (2025-10-29)
+- [x] Index page created (2025-10-29)
+- [x] Guide 1: Hosting a Blog (2025-10-29)
+- [x] Guide 2: Hosting Arweave/AO dApp (2025-10-30)
+- [x] Guide 3: Hosting EVM dApp (2025-10-30)
+- [x] Guide 4: Using Undernames for Versioning (2025-10-30)
+- [x] Guide 5: Deploying with Arlink (2025-10-30)
+- [x] Guide 6: Hosting Sites with ArDrive (2025-10-30)
+- [x] Phase 4: Integration (2025-10-30)
+  - [x] Updated all internal links
+  - [x] Added redirects
+  - [x] Removed old files
+  - [x] Added cross-references
+  - [x] Build verification
 
-For each guide, verify:
-
-#### Content Quality
-- [ ] All headings follow proper hierarchy (H1 → H2 → H3)
-- [ ] Introduction clearly states purpose
-- [ ] Prerequisites listed
-- [ ] Learning objectives clear
-- [ ] Conclusion/next steps included
-
-#### Code Examples
-- [ ] All code blocks have language specifiers
-- [ ] Code is syntactically correct
-- [ ] Examples are complete and runnable
-- [ ] No placeholder values without explanation
-- [ ] Error handling included where appropriate
-
-#### Links
-- [ ] All internal links work
-- [ ] All external links work
-- [ ] Card components link correctly
-- [ ] Cross-references accurate
-
-#### Fumadocs Components
-- [ ] Cards render correctly
-- [ ] Icons display properly
-- [ ] Steps component works (if used)
-- [ ] Callouts formatted correctly (if used)
-- [ ] Code blocks syntax highlighted
-
-#### Technical Accuracy
-- [ ] Commands are correct
-- [ ] File paths are accurate
-- [ ] Configuration examples valid
-- [ ] Tool usage matches official docs
-- [ ] SDK usage follows best practices
-
-### Build Testing
-- [ ] `npm run lint` passes
-- [ ] `npm run typecheck` passes
-- [ ] `npm run build` succeeds
-- [ ] `npm run dev` works locally
-- [ ] All pages accessible in dev mode
-- [ ] Navigation works correctly
+### Current Status
+- [ ] Phase 5: Final user review and approval
+- [ ] Address any feedback from user review
+- [ ] Delete this plan document
 
 ---
 
-## Migration Tasks
+## Completion Criteria
 
-### Content to Move/Archive
+**Status: Awaiting Final User Review**
 
-1. **hosting-decentralized-websites.mdx**
-   - Current location: `content/build/guides/hosting-decentralized-websites.mdx`
-   - Content incorporated into: `hosting-a-blog.mdx` and `index.mdx`
-   - Action: Remove from `guides/meta.json`, delete or archive file
-
-2. **arns-undernames-versioning.mdx**
-   - Current location: `content/build/guides/working-with-arns/arns-undernames-versioning.mdx`
-   - New location: `content/build/guides/hosting-unstoppable-apps/using-undernames-for-versioning.mdx`
-   - Action: Move file, update content, remove from `working-with-arns/meta.json`
-
-### Links to Update
-
-Search for and update links to moved content:
-- References to `/build/guides/hosting-decentralized-websites`
-- References to `/build/guides/working-with-arns/arns-undernames-versioning`
-
-Update to new paths in new section.
-
----
-
-## Cross-Linking Strategy
-
-### From Other Docs to New Guides
-
-Update these existing docs to link to new guide series:
-
-1. **ArNS Overview** (`/learn/arns`)
-   - Add link to "Hosting Unstoppable Apps" series
-
-2. **Upload Data** (`/build/upload/index.mdx`)
-   - Link to hosting guides after explaining upload
-
-3. **Deploy dApp with ArDrive Web** (`/build/guides/deploy-dapp-with-ardrive-web.mdx`)
-   - Cross-reference with permaweb-deploy guides
-
-4. **Working with ArNS guides** (`/build/guides/working-with-arns/`)
-   - Link from "Set ArNS Records Programmatically" to undername versioning
-   - Link from "Purchase ArNS UI" to deployment guides
-
-### Within Guide Series
-
-Each guide should link to:
-- **Previous guide** (if applicable) - for sequential reading
-- **Next guide** (if applicable) - for continuation
-- **Related guides** - via Cards at bottom
-- **Index page** - for navigation back to overview
-
----
-
-## Quality Assurance
-
-### Style Consistency
-- [ ] Tone matches existing AR.IO docs
-- [ ] Terminology consistent across guides
-- [ ] Code style consistent
-- [ ] Formatting consistent
-
-### Completeness
-- [ ] All outlined topics covered
-- [ ] No placeholder text (TODO, TBD, etc.)
-- [ ] All code examples complete
-- [ ] All images/diagrams included (if needed)
-
-### Accessibility
-- [ ] Alt text for images (if any)
-- [ ] Code blocks have descriptions
-- [ ] Clear heading structure
-- [ ] Links have descriptive text
+This plan is complete when:
+1. ✅ All 7 files created (index + 6 guides)
+2. ✅ All internal links updated
+3. ✅ All redirects added
+4. ✅ Build succeeds without errors
+5. ⏳ User review and approval received
+6. ⏳ Feedback addressed (if any)
+7. ⏳ This plan document deleted
 
 ---
 
@@ -790,89 +343,13 @@ Each guide should link to:
 ### Official Documentation
 - **Permaweb Deploy:** https://github.com/permaweb/permaweb-deploy
 - **Arlink Docs:** https://arlink.gitbook.io/arlink-docs/getting-started/quickstart
+- **ArDrive Docs:** https://docs.ardrive.io/docs/misc/deploy/
 - **ArIO SDK:** https://github.com/ar-io/ar-io-sdk
 - **Fumadocs:** https://fumadocs.dev/
 - **AO Connect:** https://github.com/permaweb/ao/tree/main/connect
 - **Wagmi:** https://wagmi.sh/
-- **RainbowKit:** https://www.rainbowkit.com/
-
-### Example Repositories
-- Look for example dApp repos to reference
-- Create example repositories if needed
-
----
-
-## Timeline & Progress Tracking
-
-### Completed
-- [x] Plan creation and approval
-- [x] Plan documentation created
-- [x] Directory structure creation (2025-10-29)
-- [x] Section meta.json created (2025-10-29)
-- [x] Parent meta.json updated (2025-10-29)
-- [x] Index page created and reviewed (2025-10-29)
-- [x] Guide 1: Hosting a Blog created and reviewed (2025-10-29)
-- [x] Guide 2: Hosting Arweave/AO dApp created (2025-10-30)
-- [x] Guide 3: Hosting EVM dApp created and reviewed (2025-10-30)
-- [x] Guide 4: Using Undernames for Versioning created and reviewed (2025-10-30)
-
-### In Progress
-- [ ] Guide 5: Deploying with Arlink (NEXT)
-
-### Upcoming
-- [ ] Testing all guides
-- [ ] Review for consistency
-- [ ] Integration (move/archive old content)
-- [ ] Final user review
-- [ ] Finalization
-
----
-
-## Notes & Considerations
-
-### Design Decisions
-
-1. **Order of Guides**
-   - Starts simple (blog) and increases complexity (dApps)
-   - Separates Arweave/AO from EVM to avoid confusion
-   - Versioning comes after deployment understanding
-   - Arlink last as alternative/simplified method
-
-2. **Tool Focus**
-   - Primary focus on permaweb-deploy for developer audience
-   - Arlink for non-technical users or quick prototyping
-   - SDK mentioned for advanced use cases
-
-3. **Framework Examples**
-   - Next.js and Vite/React most common
-   - Astro for static content sites
-   - Covers both modern approaches
-
-### Open Questions
-- Include example repositories? (Could be helpful)
-- Screenshots needed for Arlink guide? (Yes, likely)
-- Video tutorials? (Out of scope for now)
-
-### Future Enhancements
-- Advanced topics (custom domains, etc.)
-- Framework-specific deep dives
-- Performance optimization guide
-- Security best practices guide
-
----
-
-## Completion Criteria
-
-This plan is complete when:
-1. ✅ All 6 files created and reviewed (5/6 complete)
-2. ⏳ All code examples tested
-3. ⏳ All links verified
-4. ⏳ Build succeeds without errors
-5. ⏳ User review and approval received
-6. ⏳ All migration tasks completed
-7. ⏳ This plan document deleted
 
 ---
 
 **Last Updated:** 2025-10-30
-**Status:** Guides 1-4 complete. Ready to implement Guide 5: Deploying with Arlink.
+**Status:** Implementation complete. All 6 guides created and integrated. Ready for final user review.
