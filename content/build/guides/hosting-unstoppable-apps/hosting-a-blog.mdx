@@ -19,7 +19,21 @@ This guide will teach you how to:
 - Connect it to your ArNS name for human-readable URLs
 - Automate deployments with GitHub Actions
 
-If you want to learn about why apps on the AR.IO Network are unstoppable, read the [introduction page](/build/guides/hosting-unstoppable-apps).
+<Callout title="New to unstoppable apps?" type="info">
+Check out the [series introduction](/build/guides/hosting-unstoppable-apps) to understand how AR.IO Network makes apps truly unstoppable with 100+ independent gateways.
+</Callout>
+
+## What You'll Build
+
+A permanent blog with:
+- **Static site generator** (Next.js or Astro) optimized for content
+- **Markdown-based posts** with frontmatter metadata
+- **RSS feed** for content syndication
+- **SEO optimization** with proper metadata
+- **Permanent hosting** on Arweave accessible via your ArNS name
+- **Automated deployments** with GitHub Actions
+
+By the end, you'll have a production-ready blog that will be accessible forever through the AR.IO Network's 100+ independent gateways.
 
 ## Prerequisites
 
@@ -61,9 +75,7 @@ This guide covers two popular static site generators optimized for blogs. Choose
     ### Create a Next.js Blog
 
     <Steps>
-      <Step>
-        ### Initialize the project
-
+      <Step title="Initialize the project">
         ```bash
         npx create-next-app@latest my-blog
         ```
@@ -77,17 +89,13 @@ This guide covers two popular static site generators optimized for blogs. Choose
         - ❌ Customize default import alias
       </Step>
 
-      <Step>
-        ### Navigate to project
-
+      <Step title="Navigate to project">
         ```bash
         cd my-blog
         ```
       </Step>
 
-      <Step>
-        ### Install blog dependencies
-
+      <Step title="Install blog dependencies">
         ```bash
         npm install gray-matter remark remark-html
         ```
@@ -95,17 +103,13 @@ This guide covers two popular static site generators optimized for blogs. Choose
         These packages help parse Markdown blog posts.
       </Step>
 
-      <Step>
-        ### Create blog structure
-
+      <Step title="Create blog structure">
         ```bash
         mkdir -p src/app/blog src/posts
         ```
       </Step>
 
-      <Step>
-        ### Configure for static export
-
+      <Step title="Configure for static export">
         Update `next.config.js`:
 
         ```javascript title="next.config.js"
@@ -126,9 +130,7 @@ This guide covers two popular static site generators optimized for blogs. Choose
         </Callout>
       </Step>
 
-      <Step>
-        ### Create a blog post
-
+      <Step title="Create a blog post">
         Create `src/posts/first-post.md`:
 
         ```markdown title="src/posts/first-post.md"
@@ -154,9 +156,7 @@ This guide covers two popular static site generators optimized for blogs. Choose
         ```
       </Step>
 
-      <Step>
-        ### Create blog listing page
-
+      <Step title="Create blog listing page">
         Create `src/app/blog/page.tsx`:
 
         ```typescript title="src/app/blog/page.tsx"
@@ -204,9 +204,7 @@ This guide covers two popular static site generators optimized for blogs. Choose
         ```
       </Step>
 
-      <Step>
-        ### Create blog post page
-
+      <Step title="Create blog post page">
         Create `src/app/blog/[slug]/page.tsx`:
 
         ```typescript title="src/app/blog/[slug]/page.tsx"
@@ -263,9 +261,7 @@ This guide covers two popular static site generators optimized for blogs. Choose
         ```
       </Step>
 
-      <Step>
-        ### Test locally
-
+      <Step title="Test locally">
         ```bash
         npm run dev
         ```
@@ -273,9 +269,7 @@ This guide covers two popular static site generators optimized for blogs. Choose
         Visit `http://localhost:3000/blog` to see your blog.
       </Step>
 
-      <Step>
-        ### Build for production
-
+      <Step title="Build for production">
         ```bash
         npm run build
         ```
@@ -289,9 +283,7 @@ This guide covers two popular static site generators optimized for blogs. Choose
     ### Create an Astro Blog
 
     <Steps>
-      <Step>
-        ### Initialize with blog template
-
+      <Step title="Initialize with blog template">
         ```bash
         npm create astro@latest my-blog -- --template blog
         ```
@@ -302,26 +294,20 @@ This guide covers two popular static site generators optimized for blogs. Choose
         - ✅ Initialize git repository
       </Step>
 
-      <Step>
-        ### Navigate to project
-
+      <Step title="Navigate to project">
         ```bash
         cd my-blog
         ```
       </Step>
 
-      <Step>
-        ### Review project structure
-
+      <Step title="Review project structure">
         The blog template includes:
         - `src/content/blog/` - Markdown blog posts
         - `src/pages/blog/` - Blog listing and post pages
         - `src/components/` - Reusable components
       </Step>
 
-      <Step>
-        ### Create a blog post
-
+      <Step title="Create a blog post">
         Create `src/content/blog/first-post.md`:
 
         ```markdown title="src/content/blog/first-post.md"
@@ -348,9 +334,7 @@ This guide covers two popular static site generators optimized for blogs. Choose
         ```
       </Step>
 
-      <Step>
-        ### Configure for Arweave deployment
-
+      <Step title="Configure for Arweave deployment">
         Update `astro.config.mjs`:
 
         ```javascript title="astro.config.mjs"
@@ -372,9 +356,7 @@ This guide covers two popular static site generators optimized for blogs. Choose
         </Callout>
       </Step>
 
-      <Step>
-        ### Test locally
-
+      <Step title="Test locally">
         ```bash
         npm run dev
         ```
@@ -382,9 +364,7 @@ This guide covers two popular static site generators optimized for blogs. Choose
         Visit `http://localhost:4321` to see your blog.
       </Step>
 
-      <Step>
-        ### Build for production
-
+      <Step title="Build for production">
         ```bash
         npm run build
         ```
@@ -423,15 +403,11 @@ Now that your blog is built, let's deploy it to Arweave using the `permaweb-depl
 ### Prepare Your Wallet
 
 <Steps>
-  <Step>
-    ### Export your wallet keyfile
-
+  <Step title="Export your wallet keyfile">
     From [Wander](https://www.wander.app/), export your wallet keyfile (JSON file).
   </Step>
 
-  <Step>
-    ### Store securely
-
+  <Step title="Store securely">
     Save the keyfile **outside** your project directory:
 
     ```bash
@@ -444,9 +420,7 @@ Now that your blog is built, let's deploy it to Arweave using the `permaweb-depl
     </Callout>
   </Step>
 
-  <Step>
-    ### Add to .gitignore (safety precaution)
-
+  <Step title="Add to .gitignore (safety precaution)">
     As an extra safety measure, add wallet patterns to `.gitignore` to prevent accidentally committing wallet files if they're ever placed in your project:
 
     ```bash title=".gitignore"
@@ -469,9 +443,7 @@ You can deploy interactively (recommended for first time) or via CLI arguments.
 <Tabs items={['Interactive', 'CLI']}>
   <Tab value="Interactive">
     <Steps>
-      <Step>
-        ### Run interactive deployment
-
+      <Step title="Run interactive deployment">
         <Tabs items={['Next.js', 'Astro']}>
           <Tab value="Next.js">
             ```bash
@@ -486,9 +458,7 @@ You can deploy interactively (recommended for first time) or via CLI arguments.
         </Tabs>
       </Step>
 
-      <Step>
-        ### Follow the prompts
-
+      <Step title="Follow the prompts">
         The CLI will ask you:
 
         1. **Build folder path?**
@@ -507,9 +477,7 @@ You can deploy interactively (recommended for first time) or via CLI arguments.
            - This is the name you purchased from [ArNS Manager](https://arns.app)
       </Step>
 
-      <Step>
-        ### Wait for deployment
-
+      <Step title="Wait for deployment">
         The tool will:
         - ✅ Upload all files to Arweave
         - ✅ Create a manifest
@@ -526,9 +494,7 @@ You can deploy interactively (recommended for first time) or via CLI arguments.
         ```
       </Step>
 
-      <Step>
-        ### Verify deployment
-
+      <Step title="Verify deployment">
         Visit your ArNS URL (e.g., `https://myblog.arweave.net`) to see your live blog!
 
         <Callout type="info">
@@ -540,9 +506,7 @@ You can deploy interactively (recommended for first time) or via CLI arguments.
 
   <Tab value="CLI">
     <Steps>
-      <Step>
-        ### Deploy with CLI arguments
-
+      <Step title="Deploy with CLI arguments">
         <Tabs items={['Next.js', 'Astro']}>
           <Tab value="Next.js">
             ```bash
@@ -569,22 +533,20 @@ You can deploy interactively (recommended for first time) or via CLI arguments.
         </Callout>
       </Step>
 
-      <Step>
-        ### Wait for deployment
-
+      <Step title="Wait for deployment">
         The deployment will complete automatically and display the transaction IDs.
       </Step>
 
-      <Step>
-        ### Verify deployment
-
+      <Step title="Verify deployment">
         Visit your ArNS URL to see your live blog!
       </Step>
     </Steps>
   </Tab>
 </Tabs>
 
-## Automate with Package Scripts
+## Automating Deployments
+
+### Package Scripts
 
 Add deployment scripts to your `package.json` for quick redeployment:
 
@@ -629,13 +591,12 @@ Then deploy with:
 npm run deploy
 ```
 
-## Automate with GitHub Actions
+### GitHub Actions
 
 For continuous deployment on every push to your repository:
 
 <Steps>
-  <Step>
-    ### Add wallet to GitHub Secrets
+  <Step title="Add wallet to GitHub Secrets">
 
     1. Go to your repository on GitHub
     2. Navigate to **Settings** > **Secrets and variables** > **Actions**
@@ -645,9 +606,7 @@ For continuous deployment on every push to your repository:
     6. Add another secret for `ARNS_NAME` with your ArNS name
   </Step>
 
-  <Step>
-    ### Create workflow file
-
+  <Step title="Create workflow file">
     Create `.github/workflows/deploy.yml`:
 
     <Tabs items={['Next.js', 'Astro']}>
@@ -744,9 +703,7 @@ For continuous deployment on every push to your repository:
     </Tabs>
   </Step>
 
-  <Step>
-    ### Commit and push
-
+  <Step title="Commit and push">
     ```bash
     git add .github/workflows/deploy.yml
     git commit -m "Add automated deployment to Arweave"
@@ -754,9 +711,7 @@ For continuous deployment on every push to your repository:
     ```
   </Step>
 
-  <Step>
-    ### Monitor deployment
-
+  <Step title="Monitor deployment">
     - Go to your repository's **Actions** tab
     - Watch the deployment workflow run
     - See the deployment logs in real-time
@@ -916,41 +871,20 @@ Congratulations! You've deployed a permanent blog to Arweave. Here's what to exp
 <Cards>
   <Card
     title="Host an Arweave/AO dApp"
+    description="Build and deploy decentralized applications with AO blockchain integration, wallet connectivity, and smart contract interactions"
     href="/build/guides/hosting-unstoppable-apps/hosting-arweave-ao-dapp"
     icon={<Code />}
-  >
-    <div>
-      Build and deploy decentralized applications using:
-
-      - **AO** blockchain integration
-      - **Wallet** connectivity
-      - **Smart contract** interactions
-    </div>
-  </Card>
+  />
   <Card
     title="Version with Undernames"
+    description="Manage staging and production environments with ArNS undernames for version management and multi-environment workflows"
     href="/build/guides/hosting-unstoppable-apps/using-undernames-for-versioning"
     icon={<GitBranch />}
-  >
-    <div>
-      Manage multiple environments:
-
-      - **Staging** and **production** deployments
-      - **Version management** strategies
-      - **Multi-environment** workflows
-    </div>
-  </Card>
+  />
   <Card
     title="Deploy with Arlink"
+    description="Try one-click deployment with a visual interface that requires no CLI knowledge for quick prototyping and testing"
     href="/build/guides/hosting-unstoppable-apps/deploying-with-arlink"
     icon={<Zap />}
-  >
-    <div>
-      Try one-click deployment:
-
-      - **Visual interface** for deployment
-      - **No CLI** required
-      - **Quick prototyping**
-    </div>
-  </Card>
+  />
 </Cards>
