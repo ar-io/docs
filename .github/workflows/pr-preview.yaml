@@ -1,0 +1,153 @@
+name: PR Preview Deployment
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "src/**"
+      - "content/**"
+      - "scripts/**"
+      - "next.config.mjs"
+      - "package.json"
+      - "tailwind.config.js"
+      - "tsconfig.json"
+
+jobs:
+  deploy-preview:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository # Only run for same repo PRs
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "yarn"
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build Next.js application
+        run: yarn build
+
+      - name: Generate undername from branch
+        id: undername
+        run: |
+          # Convert branch name to valid ArNS undername
+          BRANCH_NAME="${{ github.head_ref }}"
+          # Remove common prefixes and convert to lowercase
+          UNDERNAME=$(echo "$BRANCH_NAME" | sed 's/^feature\///;s/^feat\///;s/^fix\///;s/^bugfix\///;s/^hotfix\///;s/^chore\///;s/^docs\///;s/^refactor\///;s/^perf\///;s/^test\///;s/^ci\///;s/^cd\///;s/^release\///' | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/_/g' | sed 's/_\+/_/g' | sed 's/^_\|_$//g')
+          # Ensure it starts with a letter
+          if [[ $UNDERNAME =~ ^[0-9] ]]; then
+            UNDERNAME="pr_$UNDERNAME"
+          fi
+          # Truncate if too long
+          UNDERNAME=${UNDERNAME:0:32}
+          UNDERNAME=${UNDERNAME%_}
+          # Ensure minimum length
+          if [ ${#UNDERNAME} -lt 3 ]; then
+            UNDERNAME="pr_$UNDERNAME"
+          fi
+          echo "undername=$UNDERNAME" >> $GITHUB_OUTPUT
+          echo "Generated undername: $UNDERNAME"
+
+      - name: Deploy to Arweave
+        run: node scripts/deploy-to-arweave.js
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+          ARNS_NAME: ${{ secrets.ARNS_NAME }}
+          UNDERNAME: ${{ steps.undername.outputs.undername }}
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const undername = '${{ steps.undername.outputs.undername }}';
+            const arnsName = '${{ secrets.ARNS_NAME }}';
+            const previewUrl = `https://${undername}_${arnsName}.ar.io`;
+            
+            const comment = `## 🚀 Preview Deployment
+            
+            Your changes have been deployed to a preview environment!
+            
+            **Preview URL:** ${previewUrl}
+            **Branch:** \`${{ github.head_ref }}\`
+            **Undername:** \`${undername}\`
+            **Commit:** \`${{ github.event.pull_request.head.sha }}\`
+            
+            > ⚡ This preview will be updated automatically when you push new commits to this PR.
+            
+            ---
+            <sub>🤖 Deployed with [AR.IO](https://ar.io) • [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})</sub>`;
+            
+            // Find existing preview comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const existingComment = comments.find(comment => 
+              comment.body.includes('## 🚀 Preview Deployment')
+            );
+            
+            if (existingComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: comment
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+            }
+
+  cleanup-preview:
+    runs-on: ubuntu-latest
+    if: github.event.action == 'closed'
+    
+    steps:
+      - name: Generate undername from branch
+        id: undername
+        run: |
+          BRANCH_NAME="${{ github.head_ref }}"
+          UNDERNAME=$(echo "$BRANCH_NAME" | sed 's/^feature\///;s/^feat\///;s/^fix\///;s/^bugfix\///;s/^hotfix\///;s/^chore\///;s/^docs\///;s/^refactor\///;s/^perf\///;s/^test\///;s/^ci\///;s/^cd\///;s/^release\///' | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/_/g' | sed 's/_\+/_/g' | sed 's/^_\|_$//g')
+          if [[ $UNDERNAME =~ ^[0-9] ]]; then
+            UNDERNAME="pr_$UNDERNAME"
+          fi
+          UNDERNAME=${UNDERNAME:0:32}
+          UNDERNAME=${UNDERNAME%_}
+          if [ ${#UNDERNAME} -lt 3 ]; then
+            UNDERNAME="pr_$UNDERNAME"
+          fi
+          echo "undername=$UNDERNAME" >> $GITHUB_OUTPUT
+
+      - name: Comment cleanup notice
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const undername = '${{ steps.undername.outputs.undername }}';
+            const arnsName = '${{ secrets.ARNS_NAME }}';
+            
+            const comment = `## 🧹 Preview Cleanup
+            
+            This PR has been closed. The preview deployment for \`${undername}_${arnsName}.ar.io\` will remain accessible but won't receive further updates.
+            
+            > 💡 **Note:** ArNS undernames persist on the network. The preview will continue to work until the TTL expires or the undername is updated.`;
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment
+            });
