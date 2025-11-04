@@ -1,0 +1,54 @@
+---
+title: "x402 Payments"
+description: "JavaScript/TypeScript SDK for accessing Arweave data with built-in verification and gateway routing"
+---
+
+Wayfinder can be configured to work with the [x402 payment protocol](https://docs.ar.io/learn/gateways/x402-payments#what-is-x402) for paid gateway services and higher rate limits. This allows you to seamlessly make requests that may require payment without having to manually handle payment flows.
+
+<Callout type="warn">
+To use x402 payments, you need to install the `@ar.io/wayfinder-x402-fetch` package.
+</Callout>
+
+```javascript
+import { createWayfinderClient } from '@ar.io/wayfinder-core';
+import { createX402Fetch } from '@ar.io/wayfinder-x402-fetch';
+import { privateKeyToAccount } from 'viem/accounts';
+
+// Set up your wallet for x402 payments
+const privateKey = process.env.X402_PRIVATE_KEY; // Your private key
+const account = privateKeyToAccount(privateKey);
+
+// Create x402-enabled fetch implementation
+const x402Fetch = createX402Fetch({
+  walletClient: account,
+});
+
+// Create Wayfinder client with x402 fetch
+const wayfinder = createWayfinderClient({
+  fetch: x402Fetch,
+  routingSettings: {
+    // Configure to use x402-enabled gateways
+    strategy: new StaticRoutingStrategy({
+      gateway: 'https://paid-gateway.example.com',
+    }),
+  },
+});
+
+// Requests will now automatically handle x402 payments
+const response = await wayfinder.request('ar://transaction-id');
+```
+
+**How it works:**
+
+1. When a gateway returns a `402 Payment Required` status
+2. The x402 fetch automatically handles the payment flow
+3. The request is retried with payment credentials
+4. You get access to premium gateway services
+
+**Use cases:**
+
+- Higher rate limits on data requests
+- Access to premium gateway features
+- Supporting gateway operators through payments
+
+To learn more about x402 payments, visit the [x402 documentation](https://docs.ar.io/learn/gateways/x402-payments).

@@ -1,0 +1,141 @@
+---
+title: "Routing Strategies"
+description: "JavaScript/TypeScript SDK for accessing Arweave data with built-in verification and gateway routing"
+---
+
+Wayfinder supports multiple routing strategies to select target gateways for your requests.
+
+| Strategy                     | Description                                    | Use Case                                |
+| ---------------------------- | ---------------------------------------------- | --------------------------------------- |
+| `RandomRoutingStrategy`      | Selects a random gateway from a list           | Good for load balancing and resilience  |
+| `StaticRoutingStrategy`      | Always uses a single gateway                   | When you need to use a specific gateway |
+| `RoundRobinRoutingStrategy`  | Selects gateways in round-robin order          | Good for load balancing and resilience  |
+| `FastestPingRoutingStrategy` | Selects the fastest gateway based on ping time | Good for performance and latency        |
+| `PreferredWithFallbackRoutingStrategy` | Uses a preferred gateway, with a fallback strategy if the preferred gateway is not available | Good for performance and resilience. Ideal for builders who run their own gateways. |
+| `CompositeRoutingStrategy` | Chains multiple routing strategies together, trying each sequentially until one succeeds | Good for complex fallback scenarios and maximum resilience |
+
+#### RandomRoutingStrategy
+
+Selects a random gateway from a list of gateways.
+
+```javascript
+import { RandomRoutingStrategy } from '@ar.io/wayfinder-core';
+
+const strategy = new RandomRoutingStrategy({
+  gatewaysProvider: myGatewaysProvider,
+});
+```
+
+#### FastestPingRoutingStrategy
+
+Selects the fastest gateway based on ping time. This strategy pings all available gateways and selects the one with the lowest latency.
+
+```javascript
+import { FastestPingRoutingStrategy } from '@ar.io/wayfinder-core';
+
+const strategy = new FastestPingRoutingStrategy({
+  timeoutMs: 1000,
+  gatewaysProvider: myGatewaysProvider,
+});
+```
+
+#### PreferredWithFallbackRoutingStrategy
+
+Uses a preferred gateway, with a fallback strategy if the preferred gateway is not available. This is useful for builders who run their own gateways and want to use their own gateway as the preferred gateway, but also want to have a fallback strategy in case their gateway is not available.
+
+<Callout type="info">
+This strategy is built using `CompositeRoutingStrategy` internally. It first attempts to ping the preferred gateway (using `PingRoutingStrategy` with `StaticRoutingStrategy`), and if that fails, it falls back to the specified fallback strategy.
+</Callout>
+
+```javascript
+import { PreferredWithFallbackRoutingStrategy, FastestPingRoutingStrategy } from '@ar.io/wayfinder-core';
+
+const strategy = new PreferredWithFallbackRoutingStrategy({
+  preferredGateway: 'https://my-gateway.com',
+  fallbackStrategy: new FastestPingRoutingStrategy({ timeoutMs: 500 }),
+});
+```
+
+#### CompositeRoutingStrategy
+
+The `CompositeRoutingStrategy` allows you to chain multiple routing strategies together, providing maximum resilience by trying each strategy in sequence until one succeeds. This is ideal for complex fallback scenarios where you want to combine different routing approaches.
+
+**How it works:**
+
+1. Tries each strategy in the order they're provided
+2. If a strategy successfully returns a gateway, that gateway is used (remaining strategies are skipped)
+3. If a strategy throws an error, moves to the next strategy
+4. If all strategies fail, throws an error
+
+**Common use cases:**
+
+- **Performance + Resilience**: Try fastest ping first, fallback to random if ping fails
+- **Preferred + Network**: Use your own gateway first, fallback to AR.IO network selection
+- **Multi-tier Fallback**: Try premium gateways, then standard gateways, then any available gateway
+
+```javascript
+import { 
+  CompositeRoutingStrategy, 
+  FastestPingRoutingStrategy, 
+  RandomRoutingStrategy,
+  StaticRoutingStrategy,
+  NetworkGatewaysProvider 
+} from '@ar.io/wayfinder-core';
+import { ARIO } from '@ar.io/sdk';
+
+// Example 1: Performance-first with resilience fallback
+const performanceStrategy = new CompositeRoutingStrategy({
+  strategies: [
+    // Try fastest ping first (high performance, but may fail if all gateways are slow)
+    new FastestPingRoutingStrategy({
+      timeoutMs: 500,
+      gatewaysProvider: new NetworkGatewaysProvider({
+        ario: ARIO.mainnet(),
+        sortBy: 'operatorStake',
+        limit: 10,
+      }),
+    }),
+    // Fallback to random selection (guaranteed to work if gateways exist)
+    new RandomRoutingStrategy({
+      gatewaysProvider: new NetworkGatewaysProvider({
+        ario: ARIO.mainnet(),
+        sortBy: 'operatorStake', 
+        limit: 20, // Use more gateways for fallback
+      }),
+    }),
+  ],
+});
+
+// Example 2: Preferred gateway with multi-tier fallback
+const preferredStrategy = new CompositeRoutingStrategy({
+  strategies: [
+    // First, try your preferred gateway
+    new StaticRoutingStrategy({ 
+      gateway: 'https://my-preferred-gateway.com' 
+    }),
+    // If that fails, try fastest ping from top-tier gateways
+    new FastestPingRoutingStrategy({
+      timeoutMs: 1000,
+      gatewaysProvider: new NetworkGatewaysProvider({
+        ario: ARIO.mainnet(),
+        sortBy: 'operatorStake',
+        limit: 5, // Only top 5 gateways
+      }),
+    }),
+    // Final fallback: any random gateway from a larger pool
+    new RandomRoutingStrategy({
+      gatewaysProvider: new NetworkGatewaysProvider({
+        ario: ARIO.mainnet(),
+        limit: 50, // Larger pool for maximum availability
+      }),
+    }),
+  ],
+});
+
+// Use with createWayfinderClient
+const wayfinder = createWayfinderClient({
+  routingSettings: {
+    strategy: performanceStrategy,
+  },
+});
+```

@@ -28,12 +28,8 @@ import { Code, Network, BookOpen, Server } from "lucide-react";
 
     ```javascript
     import { createWayfinderClient } from '@ar.io/wayfinder-core';
-    import { ARIO } from '@ar.io/sdk';
 
-    // Use the top-ranked gateways in the network
-    const wayfinder = createWayfinderClient({
-      ario: ARIO.mainnet(),
-    });
+    const wayfinder = createWayfinderClient();
     ```
 
   </Step>
@@ -48,17 +44,40 @@ import { Code, Network, BookOpen, Server } from "lucide-react";
 
   </Step>
   <Step>
-    ### Use custom configuration (optional)
+   ### Enable Telemetry
 
     ```javascript
-    // Use custom static gateways with specific options
+    import { createWayfinderClient } from '@ar.io/wayfinder-core';
+
     const customWayfinder = createWayfinderClient({
-      trustedGateways: ['https://permagate.io', 'https://arweave.net'],
-      routing: 'fastest',
-      verification: 'hash',
+      telemetrySettings: {
+        enabled: true,
+        sampleRate: 0.1, // 10% sampling
+        clientName: 'my-app',
+        clientVersion: '1.0.0',
+      }
     });
     ```
+  </Step>
+  <Step>
+   ### Use custom strategies
 
+    ```javascript
+    import { createRoutingStrategy, createVerificationStrategy } from '@ar.io/wayfinder-core';
+
+    const customWayfinder = createWayfinderClient({
+      routingSettings: {
+        strategy: createRoutingStrategy({ strategy: 'random' })
+      }
+      verificationSettings: {
+        enabled: true,
+        strategy: createVerificationStrategy({ 
+          strategy: 'hash', 
+          trustedGateways: ['https://permagate.io'] 
+        })
+      }
+    });
+    ```
   </Step>
 </Steps>
 
@@ -67,9 +86,9 @@ import { Code, Network, BookOpen, Server } from "lucide-react";
 <Cards>
   <Card
     icon={<Code />}
-    title="Advanced Usage"
-    description="Explore advanced configuration options and patterns"
-    href="/sdks/wayfinder/wayfinder-core/direct-constructor-usage"
+    title="Dynamic Routing"
+    description="Use Wayfinder for dynamic routing"
+    href="/sdks/wayfinder/wayfinder-core/dynamic-routing"
   />
   <Card
     icon={<Network />}
@@ -87,6 +106,6 @@ import { Code, Network, BookOpen, Server } from "lucide-react";
     icon={<Server />}
     title="Monitoring & Events"
     description="Monitor performance and handle events"
-    href="/sdks/wayfinder/wayfinder-core/global-request-events"
+    href="/sdks/wayfinder/wayfinder-core/global-events"
   />
 </Cards>

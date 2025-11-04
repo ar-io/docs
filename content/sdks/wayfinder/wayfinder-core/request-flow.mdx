@@ -3,8 +3,6 @@ title: "Request Flow"
 description: "JavaScript/TypeScript SDK for accessing Arweave data with built-in verification and gateway routing"
 ---
 
-The following sequence diagram illustrates how Wayfinder processes requests:
-
 ```mermaid
 sequenceDiagram
     participant Client
@@ -21,27 +19,19 @@ sequenceDiagram
     Wayfinder->>+Gateways Provider: getGateways()
     Gateways Provider-->>-Wayfinder: List of gateway URLs
 
-    Wayfinder->>+Routing Strategy: selectGateway() from list of gateways
-    Routing Strategy-->>-Wayfinder: Select gateway for request
+    Wayfinder->>+Routing Strategy: selectGateway()
+    Routing Strategy-->>-Wayfinder: Selected gateway
 
-    Wayfinder->>+Selected Gateway: Send HTTP request to target gateway
-    Selected Gateway-->>-Wayfinder: Response with data & txId
+    Wayfinder->>+Selected Gateway: HTTP request
+    Selected Gateway-->>-Wayfinder: Response data
 
-    activate Verification Strategy
-    Wayfinder->>+Verification Strategy: verifyData(responseData, txId)
-    Verification Strategy->>Wayfinder: Emit 'verification-progress' events
-    Verification Strategy->>Trusted Gateways: Request verification headers
-    Trusted Gateways-->>Verification Strategy: Return verification headers
-    Verification Strategy->>Verification Strategy: Compare computed vs trusted data
-    Verification Strategy-->>-Wayfinder: Return request data with verification result
-
-    alt Verification passed
-        Wayfinder->>Wayfinder: Emit 'verification-passed' event
-        Wayfinder-->>Client: Return verified response
-    else Verification failed
-        Wayfinder->>Wayfinder: Emit 'verification-failed' event
-        Wayfinder-->>Client: Throw verification error
+    opt Verification enabled
+        Wayfinder->>+Verification Strategy: verifyData()
+        Verification Strategy->>Trusted Gateways: Get verification data
+        Trusted Gateways-->>Verification Strategy: Verification headers
+        Verification Strategy-->>-Wayfinder: Verification result
     end
 
+    Wayfinder-->>Client: Response or error
     deactivate Wayfinder
 ```
