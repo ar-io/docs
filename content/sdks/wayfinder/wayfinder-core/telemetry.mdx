@@ -3,22 +3,19 @@ title: "Telemetry"
 description: "JavaScript/TypeScript SDK for accessing Arweave data with built-in verification and gateway routing"
 ---
 
-Wayfinder can optionally emit OpenTelemetry spans for every request. **By default, telemetry is disabled**. You can control this behavior with the `telemetrySettings` option.
+Wayfinder can optionally emit OpenTelemetry spans for every request. **By default, telemetry is disabled**. You can control this behavior with the `telemetry` option.
 
-```javascript
-
+```typescript
 import { createWayfinderClient } from '@ar.io/wayfinder-core';
-import { ARIO } from '@ar.io/sdk';
 
 const wayfinder = createWayfinderClient({
-  ario: ARIO.mainnet(),
   // other settings...
   telemetrySettings: {
-    enabled: true, // disabled by default (must be explicitly enabled)
-    sampleRate: 0.1, // 10% sample rate by default
-    exporterUrl: 'https://your-custom-otel-exporter', // optional, defaults to https://api.honeycomb.io/v1/traces
-    clientName: 'my-custom-client-name', // optional, defaults to wayfinder-core
-    clientVersion: '1.0.0', // optional, defaults to empty
+    enabled: true,
+    sampleRate: 0.1, // 10% sampling
+    exporterUrl: 'https://your-otel-exporter',
+    clientName: 'my-app',
+    clientVersion: '1.0.0',
   },
 });
 ```

@@ -1,0 +1,40 @@
+---
+title: "Events and Monitoring"
+description: "JavaScript/TypeScript SDK for accessing Arweave data with built-in verification and gateway routing"
+---
+
+#### Global Events
+
+```javascript
+const wayfinder = createWayfinderClient({
+  routingSettings: {
+    events: {
+      onRoutingStarted: (event) => console.log('Routing started:', event),
+      onRoutingSucceeded: (event) => console.log('Gateway selected:', event),
+    },
+  },
+  verificationSettings: {
+    events: {
+      onVerificationProgress: (event) => {
+        const percentage = (event.processedBytes / event.totalBytes) * 100;
+        console.log(`Verification: ${percentage.toFixed(2)}%`);
+      },
+      onVerificationSucceeded: (event) => console.log('Verified:', event.txId),
+    },
+  },
+});
+```
+
+#### Request-Specific Events
+
+```javascript
+const response = await wayfinder.request('ar://example', {
+  verificationSettings: {
+    events: {
+      onVerificationProgress: (event) => {
+        console.log(`This request: ${event.txId}`);
+      },
+    },
+  },
+});
+```

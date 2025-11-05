@@ -3,7 +3,7 @@ title: "Hosting Decentralized Websites"
 description: "Build permanent, censorship-resistant websites on Arweave using manifests and deployment tools"
 ---
 
-Create **permanent websites** that can't be censored, taken down, or modified after deployment. Host your content on Arweave and serve it through AR.IO gateways for a truly decentralized web experience.
+Create **permanent websites** that cannot be censored, taken down, or modified after deployment. Host your content on Arweave and serve it through AR.IO gateways for a truly decentralized web experience.
 
 ## What Makes It Different?
 
@@ -79,14 +79,22 @@ Create **permanent websites** that can't be censored, taken down, or modified af
 - File management
 - Website building
 - Deployment workflows
+- ArNS integration
+
+**Turbo App** - [Quick UI based workflows](https://turbo.ar.io) for:
+
+- Quick deployments
+- Single or multiple file support
+- Deployment workflows
+- ArNS integration
 
 ### 3. ArNS Integration
 
-**Primary Names** - [Decentralized domain names](/learn/arns) that:
+**Domain Names** - [Decentralized domain names](/learn/arns) that:
 
 - Point to your website's manifest
 - Provide human-readable URLs
-- Can be updated to point to new versions
+- Can be updated to point to new versions or to load dynamic data
 - Are owned and controlled by you
 
 ## Quick Start
@@ -100,11 +108,11 @@ Create **permanent websites** that can't be censored, taken down, or modified af
 npm install permaweb-deploy --save-dev
 npx permaweb-deploy --deploy-folder ./build --arns-name your-domain
 
-# Using arlink (web interface)
-# Visit the arlink website and upload through the browser
+# Using Turbo App (web interface)
+# Visit the [Turbo App](https://turbo.ar.io) and upload through the browser
 ```
 
-**3. Get an ArNS domain** - Register a primary name to point to your website
+**3. Get an ArNS domain** - Register a domain name to point to your website
 
 **4. Access your site** - Visit `https://your-domain.arweave.net` or any AR.IO gateway
 
@@ -114,4 +122,56 @@ npx permaweb-deploy --deploy-folder ./build --arns-name your-domain
 - **Censorship resistance** - Cannot be taken down by authorities
 - **Cost efficiency** - Pay once, host forever
 - **Global distribution** - Served from multiple AR.IO gateways
-- **Version control** - Update your ArNS domain to point to new versions
+- **Version control** - Update your ArNS domain to point to new versions, while always retaining access to the old ones
+
+## Loading dynamic content into your static site
+
+Need a static site that updates dynamically without re-deployment? Use an ArNS undername as a moving pointer to a tiny JSON index of your content.
+
+- **Home**: `ar://my-site` (your main site)
+- **Data undername**: `ar://data_my-site` → points to a JSON "index" (TXID)
+- **Publish flow**:
+  1) Upload the new post (HTML/MD/JSON)
+  2) Upload an updated `index.json` listing your posts
+  3) Update the `data` undername to the new `index.json` TXID
+
+This keeps page loads simple - your homepage fetches a single JSON file and renders associated content.
+
+**Example index.json**
+
+```json
+{
+  "updatedAt": "2025-10-30T12:00:00Z",
+  "posts": [
+    { "id": "POST_TXID_1", "title": "Hello World", "date": "2025-10-01" },
+    { "id": "POST_TXID_2", "title": "Second Post", "date": "2025-10-29" }
+  ]
+}
+```
+
+**Minimal client-side render (use fetch)**
+
+```html
+<ul id="posts"></ul>
+<script type="module">
+  async function loadPosts() {
+    // Follow the current domain/gateway dynamically
+    const dataUrl = `${window.location.protocol}//data_${window.location.hostname}`;
+    const res = await fetch(dataUrl, { cache: 'no-cache' });
+    const index = await res.json();
+    const list = document.getElementById('posts');
+    list.innerHTML = '';
+    for (const post of index.posts) {
+      const li = document.createElement('li');
+      const postUrl = `${window.location.origin}/${post.id}`; // open on current gateway/domain
+      li.innerHTML = `<a href="${postUrl}">${post.title}</a> — ${post.date}`;
+      list.appendChild(li);
+    }
+  }
+  loadPosts();
+}</script>
+```
+
+Notes:
+- ArNS undernames use underscores: `data_my-site`, not periods.
+- Update the `data` record each time you publish. You can do this with your preferred tool (e.g., Permaweb Deploy, Turbo, etc).

@@ -1,0 +1,414 @@
+---
+title: "Registering ArNS Names Programmatically"
+description: "Use the ArIO SDK to programmatically register and purchase ArNS names"
+---
+
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Code, Globe, Book, Settings } from "lucide-react";
+
+Use the **ArIO SDK** to programmatically register and purchase ArNS names. This approach allows you to automate the registration process, check availability, calculate costs, and complete purchases programmatically.
+
+## Prerequisites
+
+**Install the required packages:**
+
+```bash
+npm install @ar.io/sdk
+```
+
+**Required files:**
+
+```bash
+# Your Arweave wallet JSON file
+wallet.json
+```
+
+## Basic Setup
+
+**Initialize the SDK with your wallet:**
+
+```javascript
+const { ARIO } = require("@ar.io/sdk");
+const { ArweaveSigner } = require("@ardrive/turbo-sdk");
+const fs = require("fs");
+
+// Load your wallet JSON file
+const jwk = JSON.parse(fs.readFileSync("./wallet.json", "utf8"));
+
+// Initialize ARIO with signer for transactions
+const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+```
+
+## Complete Registration Process
+
+<Steps>
+  <Step>
+    **Check Name Availability**
+
+    First, verify that the ArNS name you want to register is available:
+
+    ```javascript
+    async function checkNameAvailability(name) {
+      try {
+        const record = await ario.getArNSRecord({ name });
+
+        if (record) {
+          console.log(`❌ Name '${name}' is already registered`);
+          console.log("Record details:", record);
+          return false;
+        }
+      } catch (error) {
+        if (error.message.includes("not found") || error.message.includes("404")) {
+          console.log(`✅ Name '${name}' is available`);
+          return true;
+        }
+        throw error;
+      }
+    }
+
+    // Usage
+    const isAvailable = await checkNameAvailability("myapp");
+    ```
+
+  </Step>
+
+  <Step>
+    **Calculate Registration Cost**
+
+    Get the cost for registering the name before proceeding:
+
+    ```javascript
+    async function getRegistrationCost(name, type = "lease", years = 1) {
+      try {
+        const cost = await ario.getTokenCost({
+          intent: "Buy-Name",
+          name: name,
+          type: type,
+          years: years,
+        });
+
+        // Convert to ARIO for readability
+        const arioCost = new mARIOToken(cost).toARIO();
+        console.log(`Cost to register '${name}': ${arioCost} ARIO`);
+
+        return {
+          cost: arioCost,
+          rawCost: cost,
+          type: type,
+          years: years,
+        };
+      } catch (error) {
+        console.error("Error calculating cost:", error);
+        throw error;
+      }
+    }
+
+    // Usage examples
+    const leaseCost = await getRegistrationCost("myapp", "lease", 1);
+    const permabuyCost = await getRegistrationCost("myapp", "permabuy");
+    ```
+
+  </Step>
+
+  <Step>
+    **Register the ArNS Name**
+
+    Complete the registration process with full error handling:
+
+    ```javascript
+    async function registerArNSName(name, options = {}) {
+      const {
+        type = "lease",
+        years = 1,
+        processId = null,
+        referrer = null,
+        tags = [],
+      } = options;
+
+      try {
+        console.log(`Starting registration process for '${name}'...`);
+
+        // Step 1: Check availability
+        console.log("1. Checking name availability...");
+        const isAvailable = await checkNameAvailability(name);
+        if (!isAvailable) {
+          throw new Error(`Name '${name}' is not available`);
+        }
+
+        // Step 2: Calculate cost
+        console.log("2. Calculating registration cost...");
+        const costInfo = await getRegistrationCost(name, type, years);
+        console.log(`Cost: ${costInfo.cost} ARIO`);
+
+        // Step 3: Register the name
+        console.log("3. Registering ArNS name...");
+        const record = await ario.buyRecord(
+          {
+            name: name,
+            type: type,
+            years: years,
+            processId: processId,
+            referrer: referrer,
+          },
+          {
+            tags: [{ name: "App-Name", value: "ArNS-Registration" }, ...tags],
+            onSigningProgress: (step, event) => {
+              console.log(`Signing progress: ${step}`);
+              if (step === "spawning-ant") {
+                console.log("Spawning ANT:", event);
+              }
+              if (step === "registering-ant") {
+                console.log("Registering ANT:", event);
+              }
+              if (step === "verifying-state") {
+                console.log("Verifying state:", event);
+              }
+              if (step === "buying-name") {
+                console.log("Buying name:", event);
+              }
+            },
+          }
+        );
+
+        console.log(`✅ Successfully registered '${name}'`);
+        console.log("Record details:", record);
+
+        return {
+          success: true,
+          record: record,
+          cost: costInfo.cost,
+          name: name,
+        };
+      } catch (error) {
+        console.error(`❌ Failed to register '${name}':`, error.message);
+        return {
+          success: false,
+          error: error.message,
+          name: name,
+        };
+      }
+    }
+
+    // Usage
+    const result = await registerArNSName("myapp", {
+      type: "lease",
+      years: 1,
+      referrer: "my-app.com",
+    });
+    ```
+
+  </Step>
+</Steps>
+
+## Advanced Registration Features
+
+### Cost Details and Funding
+
+**Get detailed cost breakdown:**
+
+```javascript
+async function getDetailedCost(name, type = "lease", years = 1) {
+  try {
+    const costDetails = await ario.getCostDetails({
+      intent: "Buy-Name",
+      fromAddress: "your-wallet-address",
+      fundFrom: "stakes", // or "balance" or "any"
+      name: name,
+      type: type,
+      years: years,
+    });
+
+    console.log("Cost details:", costDetails);
+    return costDetails;
+  } catch (error) {
+    console.error("Error getting cost details:", error);
+    throw error;
+  }
+}
+```
+
+### Batch Registration
+
+**Register multiple names:**
+
+```javascript
+async function registerMultipleNames(names, options = {}) {
+  const results = [];
+
+  for (const name of names) {
+    console.log(`\n--- Registering ${name} ---`);
+    const result = await registerArNSName(name, options);
+    results.push(result);
+
+    // Add delay between registrations to avoid rate limiting
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
+
+  const successful = results.filter((r) => r.success);
+  const failed = results.filter((r) => !r.success);
+
+  console.log(`\n📊 Registration Summary:`);
+  console.log(`✅ Successful: ${successful.length}`);
+  console.log(`❌ Failed: ${failed.length}`);
+
+  return results;
+}
+
+// Usage
+const names = ["myapp", "myapi", "mydocs"];
+const results = await registerMultipleNames(names, {
+  type: "lease",
+  years: 1,
+});
+```
+
+### Registration with Validation
+
+**Enhanced registration with pre-checks:**
+
+```javascript
+async function registerWithValidation(name, options = {}) {
+  const {
+    type = "lease",
+    years = 1,
+    maxCost = null, // Maximum cost in ARIO
+    validateName = true,
+  } = options;
+
+  try {
+    // Validate name format
+    if (validateName) {
+      if (!/^[a-z0-9-]+$/.test(name)) {
+        throw new Error(
+          "Name must contain only lowercase letters, numbers, and hyphens"
+        );
+      }
+      if (name.length < 3 || name.length > 63) {
+        throw new Error("Name must be between 3 and 63 characters");
+      }
+    }
+
+    // Check availability
+    const isAvailable = await checkNameAvailability(name);
+    if (!isAvailable) {
+      throw new Error(`Name '${name}' is not available`);
+    }
+
+    // Get cost
+    const costInfo = await getRegistrationCost(name, type, years);
+
+    // Check cost limit
+    if (maxCost && costInfo.cost > maxCost) {
+      throw new Error(
+        `Cost ${costInfo.cost} ARIO exceeds maximum ${maxCost} ARIO`
+      );
+    }
+
+    // Proceed with registration
+    return await registerArNSName(name, options);
+  } catch (error) {
+    console.error(`Validation failed for '${name}':`, error.message);
+    return {
+      success: false,
+      error: error.message,
+      name: name,
+    };
+  }
+}
+
+// Usage with validation
+const result = await registerWithValidation("myapp", {
+  type: "lease",
+  years: 1,
+  maxCost: 1000, // Maximum 1000 ARIO
+  validateName: true,
+});
+```
+
+## Registration Types
+
+### Lease Registration
+
+**Register with a time-limited lease:**
+
+```javascript
+// 1-year lease
+const leaseResult = await registerArNSName("myapp", {
+  type: "lease",
+  years: 1,
+});
+
+// 5-year lease
+const longLeaseResult = await registerArNSName("myapp", {
+  type: "lease",
+  years: 5,
+});
+```
+
+### Permanent Registration
+
+**Register with permanent ownership:**
+
+```javascript
+const permabuyResult = await registerArNSName("myapp", {
+  type: "permabuy",
+});
+```
+
+## Error Handling
+
+**Comprehensive error handling:**
+
+```javascript
+async function safeRegister(name, options = {}) {
+  try {
+    return await registerArNSName(name, options);
+  } catch (error) {
+    if (error.message.includes("insufficient funds")) {
+      console.error("❌ Insufficient funds for registration");
+    } else if (error.message.includes("already registered")) {
+      console.error("❌ Name is already registered");
+    } else if (error.message.includes("invalid name")) {
+      console.error("❌ Invalid name format");
+    } else if (error.message.includes("network")) {
+      console.error("❌ Network error, please try again");
+    } else {
+      console.error(`❌ Unexpected error: ${error.message}`);
+    }
+
+    return {
+      success: false,
+      error: error.message,
+      name: name,
+    };
+  }
+}
+```
+
+## Ready to Register?
+
+<Cards>
+  <Card 
+    href="/build/guides/working-with-arns/set-arns-records-programmatically" 
+    title="Set Records Programmatically"
+    icon={<Code />}
+  >
+    Learn how to set and manage ArNS records after registration.
+  </Card>
+
+<Card
+  href="/build/guides/working-with-arns/arns-primary-names"
+  title="Primary Names"
+  icon={<Book />}
+>
+  Set up web3 identity with your registered ArNS names.
+</Card>
+
+  <Card 
+    href="/build/guides/working-with-arns/arns-undernames-versioning" 
+    title="Undername Versioning"
+    icon={<Globe />}
+  >
+    Use undernames to organize different versions of your content.
+  </Card>
+</Cards>

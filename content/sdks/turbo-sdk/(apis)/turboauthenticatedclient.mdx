@@ -233,6 +233,74 @@ const { manifest, fileResponses, manifestResponse } = await turbo.uploadFolder({
 </script>
 ```
 
+##### Upload Folder with Progress Events
+
+The `uploadFolder` method supports folder-level and per-file events for tracking upload progress. This is useful for building progress bars or providing feedback to users during folder uploads.
+
+```typescript
+const folderPath = path.join(__dirname, './my-folder');
+const { manifest, fileResponses, manifestResponse } = await turbo.uploadFolder({
+  folderPath,
+  events: {
+    // Per-file events
+    onFileStart: ({ fileName, fileSize, fileIndex, totalFiles }) => {
+      console.log(
+        `Starting file ${
+          fileIndex + 1
+        }/${totalFiles}: ${fileName} (${fileSize} bytes)`,
+      );
+    },
+    onFileProgress: ({
+      fileName,
+      fileIndex,
+      totalFiles,
+      fileProcessedBytes,
+      fileTotalBytes,
+      step,
+    }) => {
+      const percentComplete = (fileProcessedBytes / fileTotalBytes) * 100;
+      console.log(
+        `File ${
+          fileIndex + 1
+        }/${totalFiles} (${fileName}) ${step}: ${percentComplete.toFixed(2)}%`,
+      );
+    },
+    onFileComplete: ({ fileName, fileIndex, totalFiles, id }) => {
+      console.log(
+        `Completed file ${fileIndex + 1}/${totalFiles}: ${fileName} (${id})`,
+      );
+    },
+    onFileError: ({ fileName, fileIndex, totalFiles, error }) => {
+      console.error(
+        `Error uploading file ${fileIndex + 1}/${totalFiles}: ${fileName}`,
+        error,
+      );
+    },
+    // Folder-level aggregate events
+    onFolderProgress: ({
+      processedFiles,
+      totalFiles,
+      processedBytes,
+      totalBytes,
+      currentPhase,
+    }) => {
+      const percentComplete = (processedBytes / totalBytes) * 100;
+      console.log(
+        `Folder progress (${currentPhase}): ${processedFiles}/${totalFiles} files, ${percentComplete.toFixed(
+          2,
+        )}%`,
+      );
+    },
+    onFolderError: (error) => {
+      console.error('Folder upload error:', error);
+    },
+    onFolderSuccess: () => {
+      console.log('Folder upload complete!');
+    },
+  },
+});
+```
+
 #### topUpWithTokens()
 
 Tops up the connected wallet with Credits by submitting a payment transaction for the token amount to the Turbo wallet and then submitting that transaction id to Turbo Payment Service for top up processing.

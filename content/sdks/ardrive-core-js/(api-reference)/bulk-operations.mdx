@@ -15,25 +15,25 @@ const file1 = wrapFileOrFolder('/path/to/file1.txt');
 
 // Upload everything in one operation
 const bulkUpload = await arDrive.uploadAllEntities({
-  entitiesToUpload: [
-    // Public folder
-    {
-      wrappedEntity: folder1,
-      destFolderId: rootFolderId
-    },
-    // Private folder
-    {
-      wrappedEntity: folder2,
-      destFolderId: rootFolderId,
-      driveKey: privateDriveKey
-    },
-    // Public file
-    {
-      wrappedEntity: file1,
-      destFolderId: someFolderId
-    }
-  ],
-  conflictResolution: 'upsert'
+    entitiesToUpload: [
+        // Public folder
+        {
+            wrappedEntity: folder1,
+            destFolderId: rootFolderId
+        },
+        // Private folder
+        {
+            wrappedEntity: folder2,
+            destFolderId: rootFolderId,
+            driveKey: privateDriveKey
+        },
+        // Public file
+        {
+            wrappedEntity: file1,
+            destFolderId: someFolderId
+        }
+    ],
+    conflictResolution: 'upsert'
 });
 
 // Results include all created entities
@@ -46,8 +46,8 @@ console.log('Total cost:', bulkUpload.totalCost.toString());
 ```typescript
 // Create folder and upload all children
 const folderWithContents = await arDrive.createPublicFolderAndUploadChildren({
-  parentFolderId,
-  wrappedFolder: wrapFileOrFolder('/path/to/folder'),
-  conflictResolution: 'skip'
+    parentFolderId,
+    wrappedFolder: wrapFileOrFolder('/path/to/folder'),
+    conflictResolution: 'skip'
 });
 ```

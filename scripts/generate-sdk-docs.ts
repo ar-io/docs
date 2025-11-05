@@ -37,17 +37,6 @@ const PACKAGES: {
   },
   // Wayfinder SDK packages
   {
-    name: "wayfinder",
-    readmeUrl:
-      "https://raw.githubusercontent.com/ar-io/wayfinder/alpha/README.md",
-    dest: path.resolve("content/sdks/wayfinder"),
-    title: "Wayfinder SDK's",
-    description:
-      "Decentralized access to Arweave data with built-in verification and gateway routing",
-    sourceUrl: "https://github.com/ar-io/wayfinder",
-    icon: "/wayfinder.svg",
-  },
-  {
     name: "wayfinder-core",
     readmeUrl:
       "https://raw.githubusercontent.com/ar-io/wayfinder/alpha/packages/wayfinder-core/README.md",
@@ -254,31 +243,23 @@ async function fetchReadme(url: string): Promise<string> {
 async function processPackage(pkg: (typeof PACKAGES)[0]) {
   console.log(`Processing ${pkg.name}...`);
 
-  // Clean and create destination directory
+  // Clean destination directory but preserve index.mdx
+  let indexContent = '';
+  const indexPath = path.join(pkg.dest, 'index.mdx');
+  
+  try {
+    indexContent = await fs.readFile(indexPath, 'utf-8');
+  } catch (error) {
+    // index.mdx doesn't exist, that's fine
+  }
+
   await fs.rm(pkg.dest, { recursive: true, force: true });
   await fs.mkdir(pkg.dest, { recursive: true });
 
-  // Create simple index.mdx with LLM callout
-  const indexPath = path.join(pkg.dest, "index.mdx");
-  const indexContent = `---
-title: "${pkg.title}"
-description: "${pkg.description}"
----
-
-import { Callout } from "fumadocs-ui/components/callout";
-
-<Callout type="info">
-  **For AI and LLM users**: Access the complete ${pkg.title} documentation in plain text
-  format at <a href="/sdks/${pkg.name === "ardrive-cli" ? "(clis)" : pkg.name}/llm.txt" target="_blank" rel="noopener noreferrer">llm.txt</a> for easy consumption by AI agents
-  and language models.
-</Callout>
-
-# ${pkg.title}
-
-Please refer to the [source code](${pkg.sourceUrl}) for SDK details.`;
-
-  await fs.writeFile(indexPath, indexContent);
-  console.log(`Created index.mdx with LLM callout for ${pkg.name}`);
+  // Restore index.mdx if it existed
+  if (indexContent) {
+    await fs.writeFile(indexPath, indexContent);
+  }
 
   try {
     // Fetch the README.md from GitHub
@@ -307,6 +288,13 @@ Please refer to the [source code](${pkg.sourceUrl}) for SDK details.`;
         h2Title.toLowerCase().includes("toc") ||
         h2Title.toLowerCase() === "contents" ||
         h2Title.toLowerCase() === "developers" ||
+        h2Title.toLowerCase() === "development" ||
+        h2Title.toLowerCase() === "contributing" ||
+        h2Title.toLowerCase() === "support" ||
+        h2Title.toLowerCase() === "license" ||
+        h2Title.toLowerCase() === "credits" ||
+        h2Title.toLowerCase() === "core-concepts" ||
+        h2Title.toLowerCase() === "testing" ||
         h2Title.toLowerCase() === "cli" ||
         h2Title.toLowerCase() === "installation" ||
         h2Title.toLowerCase() === "configuration" ||
@@ -450,9 +438,12 @@ ${escapedContent}`;
 async function main() {
   console.log("Generating SDK documentation from GitHub...");
 
-  // Process each package
-  for (const pkg of PACKAGES) {
-    await processPackage(pkg);
+  const pkg = process.argv[2];
+  const packageToProcess = PACKAGES.find((p) => p.name === pkg);
+  if (packageToProcess) {
+    await processPackage(packageToProcess);
+    console.log("SDK documentation generated successfully!");
+    return;
   }
 
   // Create top-level SDKs meta.json

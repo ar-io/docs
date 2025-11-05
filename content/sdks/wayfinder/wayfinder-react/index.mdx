@@ -3,14 +3,112 @@ title: "Wayfinder React"
 description: "React hooks and components for integrating Wayfinder into React applications"
 ---
 
-import { Callout } from "fumadocs-ui/components/callout";
+import { Steps, Step } from "fumadocs-ui/components/steps";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { BookOpen, Zap, Settings, Code } from "lucide-react";
 
-<Callout type="info">
-  **For AI and LLM users**: Access the complete Wayfinder React documentation in plain text
-  format at <a href="/sdks/wayfinder-react/llm.txt" target="_blank" rel="noopener noreferrer">llm.txt</a> for easy consumption by AI agents
-  and language models.
-</Callout>
+A set of React hooks and components for integrating Wayfinder, the decentralized data access system for Arweave.
 
-# Wayfinder React
+Wayfinder-react wraps the functionality of wayfinder-core in user-friendly React components and hooks, making it easy to integrate AR.IO network functionality into your React applications with built-in loading states, error handling, and caching.
 
-Please refer to the [source code](https://github.com/ar-io/wayfinder/tree/main/packages/wayfinder-react) for SDK details.
+## Quick Start
+
+<Steps>
+  <Step>
+    ### Install Wayfinder React
+
+    ```npm
+    npm install @ar.io/wayfinder-react @ar.io/wayfinder-core @ar.io/sdk
+    ```
+
+  </Step>
+  <Step>
+    ### Install polyfills (required for web environments)
+
+    <Callout type="warn">
+    Crypto polyfills are required for web environments due to the use of `crypto`, `buffer` and `process` types in wayfinder-react dependencies (i.e. `arbundles`).
+    </Callout>
+
+    ```npm
+    npm install --save-dev vite-plugin-node-polyfills
+    ```
+
+    ```js
+    // vite.config.js
+    import { defineConfig } from 'vite';
+    import { nodePolyfills } from 'vite-plugin-node-polyfills';
+
+    export default defineConfig({
+      plugins: [
+        nodePolyfills({
+          globals: {
+            Buffer: true,
+            global: true,
+            process: true,
+          },
+        }),
+      ],
+    });
+    ```
+
+    Configure your bundler (Webpack, Vite, Rollup, etc.) to provide polyfills for `crypto`, `process`, and `buffer`. Refer to your bundler's documentation for polyfill configuration.
+  </Step>
+  <Step>
+    ### Setup the provider
+
+    ```jsx
+    // App.tsx
+    import { WayfinderProvider } from '@ar.io/wayfinder-react';
+
+    function App() {
+      return (
+        <WayfinderProvider>
+          <YourApp />
+        </WayfinderProvider>
+      );
+    }
+    ```
+
+  </Step>
+  <Step>
+    ### Use the available hooks
+    
+    ```typescript
+    import { useWayfinderUrl } from '@ar.io/wayfinder-react';
+
+    function WayfinderImage({ txId }: { txId: string }) {
+      const { resolvedUrl, isLoading, error } = useWayfinderUrl({ txId });
+
+      if (error) {
+        return <p>Error resolving URL: {error.message}</p>;
+      }
+
+      if (isLoading) {
+        return <p>Resolving URL...</p>;
+      }
+
+      return (
+        <img src={resolvedUrl} alt={txId} />
+      );
+    }
+```
+
+  </Step>
+</Steps>
+
+## Next Steps
+
+<Cards>
+  <Card
+    icon={<Zap />}
+    title="Hooks Reference"
+    description="Comprehensive guide to all available React hooks"
+    href="/sdks/wayfinder/wayfinder-react/usewayfinderrequest"
+  />
+  <Card
+    icon={<BookOpen />}
+    title="Wayfinder Core"
+    description="Learn about the underlying core library"
+    href="/sdks/wayfinder/wayfinder-core"
+  />
+</Cards>

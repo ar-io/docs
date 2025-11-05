@@ -1,0 +1,512 @@
+---
+title: "x402 Payment Setup"
+description: "Complete guide to configuring x402 payment protocol on your AR.IO Gateway for data egress monetization"
+---
+
+import { Step, Steps } from "fumadocs-ui/components/steps";
+import { Callout } from "fumadocs-ui/components/callout";
+import { Tabs, Tab } from "fumadocs-ui/components/tabs";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { TrendingUp, Zap, Settings, Globe } from "lucide-react";
+
+Learn how to set up x402 payment protocol on your AR.IO Gateway to monetize data egress. For information about what x402 is and how gateways leverage it, see our [x402 Payments guide](/learn/gateways/x402-payments).
+
+<Callout type="info">
+  **Release Requirement**: x402 payments first became available with gateway
+  Release 56. Ensure your gateway is running Release 56 or later to use this
+  feature.
+</Callout>
+
+## Prerequisites
+
+- Running AR.IO Gateway
+- Administrative access to your server
+- USDC wallet for receiving payments
+- API access to x402 payment facilitator
+
+<Callout type="warning">
+  **Important**: x402 payments require the rate limiter to be enabled. There is
+  no "payments only" configuration - both systems must work together.
+</Callout>
+
+## Quick Start
+
+<Steps>
+<Step>
+### Enable Rate Limiter
+
+Configure basic rate limiting in your `.env` file:
+
+```bash
+# Enable rate limiter (required for x402)
+ENABLE_RATE_LIMITER=true
+RATE_LIMITER_TYPE=redis
+RATE_LIMITER_IP_TOKENS_PER_BUCKET=100000
+RATE_LIMITER_IP_REFILL_PER_SEC=20
+RATE_LIMITER_RESOURCE_TOKENS_PER_BUCKET=1000000
+RATE_LIMITER_RESOURCE_REFILL_PER_SEC=100
+```
+
+</Step>
+
+<Step>
+### Configure x402 Payments
+
+Add x402 configuration to your `.env` file:
+
+```bash
+# Enable x402 payments
+ENABLE_X_402_USDC_DATA_EGRESS=true
+X_402_USDC_NETWORK=base-sepolia # or base for production
+X_402_USDC_WALLET_ADDRESS=0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb
+X_402_USDC_FACILITATOR_URL=https://x402.org/facilitator
+X_402_USDC_PER_BYTE_PRICE=0.0000000001
+X_402_USDC_DATA_EGRESS_MIN_PRICE=0.001
+X_402_USDC_DATA_EGRESS_MAX_PRICE=1.00
+X_402_RATE_LIMIT_CAPACITY_MULTIPLIER=10
+```
+
+</Step>
+
+<Step>
+### Restart Gateway
+
+Apply the configuration changes:
+
+```bash
+docker compose down
+docker compose up -d
+```
+
+</Step>
+
+<Step>
+### Test Configuration
+
+Verify x402 is working by checking gateway logs:
+
+```bash
+docker compose logs -f core | grep -i "x402\|payment"
+```
+
+</Step>
+</Steps>
+
+## Detailed Configuration
+
+<Tabs items={['Development Setup', 'Production Setup', 'Advanced Configuration']}>
+<Tab value="Development Setup">
+
+### Testnet Configuration
+
+Perfect for development and testing with free testnet USDC:
+
+<Steps>
+<Step>
+### Configure Rate Limiter
+
+Set up memory-based rate limiting for single-node deployment:
+
+```bash
+# Rate limiter configuration
+ENABLE_RATE_LIMITER=true
+RATE_LIMITER_TYPE=memory
+RATE_LIMITER_IP_TOKENS_PER_BUCKET=100000
+RATE_LIMITER_IP_REFILL_PER_SEC=20
+RATE_LIMITER_RESOURCE_TOKENS_PER_BUCKET=1000000
+RATE_LIMITER_RESOURCE_REFILL_PER_SEC=100
+```
+
+</Step>
+
+<Step>
+### Configure x402 Testnet
+
+Set up x402 with Base Sepolia testnet:
+
+```bash
+# x402 testnet configuration
+ENABLE_X_402_USDC_DATA_EGRESS=true
+X_402_USDC_NETWORK=base-sepolia
+X_402_USDC_WALLET_ADDRESS=0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb
+X_402_USDC_FACILITATOR_URL=https://x402.org/facilitator
+X_402_USDC_PER_BYTE_PRICE=0.0000000001
+X_402_USDC_DATA_EGRESS_MIN_PRICE=0.001
+X_402_USDC_DATA_EGRESS_MAX_PRICE=1.00
+X_402_RATE_LIMIT_CAPACITY_MULTIPLIER=10
+```
+
+</Step>
+
+<Step>
+### Get Testnet USDC
+
+Obtain free testnet USDC from a faucet:
+
+1. Visit [Base Sepolia Faucet](https://www.coinbase.com/faucets/base-ethereum-sepolia-faucet)
+2. Connect your wallet
+3. Request testnet USDC
+4. Use the same wallet address in your configuration
+
+</Step>
+
+<Step>
+### Test Payment Flow
+
+Test the payment system:
+
+```bash
+# Make multiple requests to trigger rate limiting
+for i in {1..200}; do
+  curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/TX_ID
+done
+
+# Check for 402 Payment Required responses
+curl -v http://localhost:3000/TX_ID
+```
+
+</Step>
+</Steps>
+
+</Tab>
+
+<Tab value="Production Setup">
+
+### Mainnet Configuration
+
+Production setup with real USDC payments:
+
+<Steps>
+<Step>
+### Configure Redis Rate Limiter
+
+Set up distributed rate limiting for multi-node deployment:
+
+```bash
+# Redis-based rate limiter
+ENABLE_RATE_LIMITER=true
+RATE_LIMITER_TYPE=redis
+RATE_LIMITER_REDIS_ENDPOINT=redis://redis:6379
+RATE_LIMITER_IP_TOKENS_PER_BUCKET=100000
+RATE_LIMITER_IP_REFILL_PER_SEC=20
+RATE_LIMITER_RESOURCE_TOKENS_PER_BUCKET=1000000
+RATE_LIMITER_RESOURCE_REFILL_PER_SEC=100
+```
+
+</Step>
+
+<Step>
+### Configure x402 Mainnet
+
+Set up x402 with Base mainnet:
+
+```bash
+# x402 mainnet configuration
+ENABLE_X_402_USDC_DATA_EGRESS=true
+X_402_USDC_NETWORK=base
+X_402_USDC_WALLET_ADDRESS=0xYOUR_MAINNET_WALLET
+X_402_USDC_FACILITATOR_URL=https://facilitator.x402.rs
+X_402_USDC_PER_BYTE_PRICE=0.0000000001
+X_402_USDC_DATA_EGRESS_MIN_PRICE=0.001
+X_402_USDC_DATA_EGRESS_MAX_PRICE=1.00
+X_402_RATE_LIMIT_CAPACITY_MULTIPLIER=10
+```
+
+</Step>
+
+<Step>
+### Set Up CDP Integration (Onramp)
+
+Configure Coinbase Developer Platform for browser paywall with easy USDC purchases:
+
+<Callout type="info">
+  **What are CDP keys for?** These keys enable Coinbase Onramp integration in the browser paywall, allowing users to easily purchase USDC without leaving your gateway. They are **optional for testnet** but **required for mainnet** when using Coinbase facilitators.
+</Callout>
+
+<Callout type="warning">
+  **Security Note**:
+  - `X_402_CDP_CLIENT_KEY` is **PUBLIC** (safe for client-side use)
+  - `CDP_API_KEY_ID` and `CDP_API_KEY_SECRET_FILE` are **SENSITIVE SECRETS**
+  - CDP keys are for Onramp integration, NOT facilitator authentication
+</Callout>
+
+```bash
+# CDP configuration for Coinbase Onramp (browser paywall)
+CDP_API_KEY_ID=YOUR_API_KEY_ID
+CDP_API_KEY_SECRET_FILE=/app/secrets/cdp_secret_key
+X_402_CDP_CLIENT_KEY=YOUR_PUBLIC_CLIENT_KEY
+```
+
+Create the secret file:
+
+```bash
+mkdir -p ./secrets
+chmod 700 ./secrets
+echo "YOUR_CDP_SECRET_KEY" > ./secrets/cdp_secret_key
+chmod 600 ./secrets/cdp_secret_key
+```
+
+**Note**: If both `CDP_API_KEY_SECRET_FILE` and `CDP_API_KEY_SECRET` are set, the file version takes precedence.
+
+</Step>
+
+<Step>
+### Configure Redis Persistence
+
+Ensure paid tokens persist across restarts:
+
+```bash
+# Redis persistence for paid tokens
+EXTRA_REDIS_FLAGS=--save 300 10 --appendonly yes --appendfsync everysec
+```
+
+</Step>
+</Steps>
+
+</Tab>
+
+<Tab value="Advanced Configuration">
+
+### Advanced Setup Options
+
+Customize your x402 implementation:
+
+<Steps>
+<Step>
+### Configure Paywall Customization
+
+Customize the payment interface:
+
+```bash
+# Paywall customization
+X_402_APP_NAME=My AR.IO Gateway
+X_402_APP_LOGO=https://example.com/logo.png
+```
+
+</Step>
+
+<Step>
+### Set Up Chunk Pricing
+
+Configure fixed-size pricing for chunk requests:
+
+```bash
+# Chunk pricing configuration
+CHUNK_GET_BASE64_SIZE_BYTES=368640
+```
+
+</Step>
+
+<Step>
+### Configure Allowlists
+
+Exempt specific IPs or ArNS names from rate limiting:
+
+```bash
+# IP/CIDR allowlist (comma-separated)
+RATE_LIMITER_IPS_AND_CIDRS_ALLOWLIST=192.168.1.100,10.0.0.50
+
+# ArNS name allowlist (comma-separated)
+RATE_LIMITER_ARNS_ALLOWLIST=trusted-app,premium-service
+```
+
+</Step>
+
+<Step>
+### Set Up Monitoring
+
+Configure monitoring and metrics:
+
+```bash
+# Enable detailed logging
+LOG_LEVEL=debug
+
+# Monitor payment metrics
+# Access metrics at: http://localhost:3000/ar-io/__gateway_metrics
+```
+
+</Step>
+</Steps>
+
+</Tab>
+</Tabs>
+
+## Environment Variables Reference
+
+### Required Variables
+
+| Variable                        | Description                              | Example                        |
+| ------------------------------- | ---------------------------------------- | ------------------------------ |
+| `ENABLE_RATE_LIMITER`           | Enable rate limiting (required for x402) | `true`                         |
+| `ENABLE_X_402_USDC_DATA_EGRESS` | Enable x402 payments                     | `true`                         |
+| `X_402_USDC_NETWORK`            | Base network (base-sepolia or base)      | `base-sepolia`                 |
+| `X_402_USDC_WALLET_ADDRESS`     | Your USDC wallet address                 | `0x742d35Cc...`                |
+| `X_402_USDC_FACILITATOR_URL`    | Payment facilitator URL                  | `https://x402.org/facilitator` |
+
+### Pricing Configuration
+
+| Variable                               | Description            | Default        |
+| -------------------------------------- | ---------------------- | -------------- |
+| `X_402_USDC_PER_BYTE_PRICE`            | Price per byte in USDC | `0.0000000001` |
+| `X_402_USDC_DATA_EGRESS_MIN_PRICE`     | Minimum payment amount | `0.001`        |
+| `X_402_USDC_DATA_EGRESS_MAX_PRICE`     | Maximum payment amount | `1.00`         |
+| `X_402_RATE_LIMIT_CAPACITY_MULTIPLIER` | Paid token multiplier  | `10`           |
+
+### Rate Limiter Configuration
+
+| Variable                                  | Description                         | Default   |
+| ----------------------------------------- | ----------------------------------- | --------- |
+| `RATE_LIMITER_TYPE`                       | Rate limiter type (memory or redis) | `redis` (docker-compose), `memory` (standalone)  |
+| `RATE_LIMITER_IP_TOKENS_PER_BUCKET`       | IP bucket size                      | `100000`  |
+| `RATE_LIMITER_IP_REFILL_PER_SEC`          | IP refill rate                      | `20`      |
+| `RATE_LIMITER_RESOURCE_TOKENS_PER_BUCKET` | Resource bucket size                | `1000000` |
+| `RATE_LIMITER_RESOURCE_REFILL_PER_SEC`    | Resource refill rate                | `100`     |
+
+## Testing Your Configuration
+
+<Steps>
+<Step>
+### Verify Rate Limiting
+
+Test that rate limiting is working:
+
+```bash
+# Make requests to trigger rate limits
+for i in {1..150}; do
+  curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/TX_ID
+done
+
+# Should see 402 responses after rate limit is exceeded
+```
+
+</Step>
+
+<Step>
+### Test Payment Response
+
+Check the 402 payment response:
+
+```bash
+# Get detailed payment information
+curl -v http://localhost:3000/TX_ID
+
+# Look for X-Payment header in response
+```
+
+</Step>
+
+<Step>
+### Monitor Gateway Logs
+
+Watch for payment-related activity:
+
+```bash
+# Monitor x402 and payment logs
+docker compose logs -f core | grep -i "x402\|payment\|rate limit"
+```
+
+</Step>
+
+<Step>
+### Check Metrics
+
+View payment and rate limiting metrics:
+
+```bash
+# Access gateway metrics
+curl -s http://localhost:3000/ar-io/__gateway_metrics | grep rate_limit
+
+# Check token consumption
+curl -s http://localhost:3000/ar-io/__gateway_metrics | grep tokens_consumed
+```
+
+</Step>
+</Steps>
+
+## Troubleshooting
+
+### Common Issues
+
+<Callout type="warning">
+  **Rate Limiter Not Working**: Ensure `ENABLE_RATE_LIMITER=true` is set and
+  gateway has been restarted.
+</Callout>
+
+<Callout type="warning">
+  **No 402 Responses**: Check that rate limits are being exceeded and x402 is
+  properly configured.
+</Callout>
+
+<Callout type="warning">
+  **Payment Verification Fails**: Verify wallet address and facilitator URL are
+  correct.
+</Callout>
+
+### Debug Steps
+
+1. **Check Configuration**:
+
+   ```bash
+   # Verify environment variables
+   docker compose exec core env | grep -E "RATE_LIMITER|X_402"
+   ```
+
+2. **Monitor Logs**:
+
+   ```bash
+   # Watch for errors
+   docker compose logs -f core | grep -i error
+   ```
+
+3. **Test Rate Limits**:
+
+   ```bash
+   # Check if rate limiting is active
+   curl -s http://localhost:3000/ar-io/__gateway_metrics | grep rate_limit
+   ```
+
+4. **Verify Network Connectivity**:
+   ```bash
+   # Test facilitator connectivity
+   curl -I https://x402.org/facilitator
+   ```
+
+## Next Steps
+
+Once x402 payments are configured:
+
+<Cards>
+  <Card
+    title="Monitor Performance"
+    href="/build/extensions/grafana"
+    icon={<TrendingUp className="w-6 h-6" />}
+  >
+    Use Grafana to track payment metrics, rate limiting statistics, and gateway performance analytics.
+  </Card>
+
+<Card
+  title="Optimize Settings"
+  href="/build/run-a-gateway/manage/filters"
+  icon={<Zap className="w-6 h-6" />}
+>
+  Adjust rate limits and pricing based on usage patterns, and configure gateway
+  filters for optimal performance.
+</Card>
+
+<Card
+  title="Scale Infrastructure"
+  href="/build/run-a-gateway/manage/environment-variables"
+  icon={<Settings className="w-6 h-6" />}
+>
+  Consider Redis for distributed deployments and review environment variables
+  for advanced configuration options.
+</Card>
+
+  <Card
+    title="Customize Experience"
+    href="/build/run-a-gateway/manage/setting-apex-domain"
+    icon={<Globe className="w-6 h-6" />}
+  >
+    Configure paywall branding, messaging, and customize your gateway's apex domain for a professional appearance.
+  </Card>
+</Cards>

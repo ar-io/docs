@@ -6,14 +6,26 @@ description: "JavaScript/TypeScript SDK for interacting with ArDrive"
 Enable Turbo for optimized uploads:
 
 ```typescript
-// Enable Turbo
-const arDriveWithTurbo = arDriveFactory({ 
-  wallet: myWallet, 
-  turboSettings: {} 
+// Node.js
+const arDriveWithTurbo = arDriveFactory({
+    wallet: myWallet,
+    turboSettings: {
+        turboUploadUrl: new URL('https://upload.ardrive.io')
+    }
+});
+
+// Browser
+import { arDriveFactory } from 'ardrive-core-js/web';
+
+const arDrive = arDriveFactory({
+    signer: myBrowserSigner,
+    turboSettings: {
+        turboUploadUrl: new URL('https://upload.ardrive.io')
+    }
 });
 
 // Uploads will automatically use Turbo
 const result = await arDriveWithTurbo.uploadAllEntities({
-  entitiesToUpload: [{ wrappedEntity, destFolderId }]
+    entitiesToUpload: [{ wrappedEntity, destFolderId }]
 });
 ```

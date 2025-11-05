@@ -3,14 +3,109 @@ title: "Wayfinder Core"
 description: "JavaScript/TypeScript SDK for accessing Arweave data with built-in verification and gateway routing"
 ---
 
+import { Steps, Step } from "fumadocs-ui/components/steps";
+import { Card, Cards } from "fumadocs-ui/components/card";
 import { Callout } from "fumadocs-ui/components/callout";
+import { Code, Network, BookOpen, Server } from "lucide-react";
 
 <Callout type="info">
-  **For AI and LLM users**: Access the complete Wayfinder Core documentation in plain text
-  format at <a href="/sdks/wayfinder-core/llm.txt" target="_blank" rel="noopener noreferrer">llm.txt</a> for easy consumption by AI agents
-  and language models.
+  **Building for the web?** Consider using [@ar.io/wayfinder-react](/sdks/wayfinder/wayfinder-react) for React applications, which provides hooks and components optimized for browser environments.
 </Callout>
 
-# Wayfinder Core
+## Quick Start
 
-Please refer to the [source code](https://github.com/ar-io/wayfinder/tree/main/packages/wayfinder-core) for SDK details.
+<Steps>
+  <Step>
+    ### Install
+
+    ```npm
+    npm install @ar.io/wayfinder-core @ar.io/sdk
+    ```
+
+  </Step>
+  <Step>
+    ### Import and configure
+
+    ```javascript
+    import { createWayfinderClient } from '@ar.io/wayfinder-core';
+
+    const wayfinder = createWayfinderClient();
+    ```
+
+  </Step>
+  <Step>
+    ### Make your first request
+
+    ```javascript
+    // Use Wayfinder to fetch and verify data using ar:// protocol
+    const response = await wayfinder.request('ar://ardrive');
+    console.log(response);
+    ```
+
+  </Step>
+  <Step>
+   ### Enable Telemetry
+
+    ```javascript
+    import { createWayfinderClient } from '@ar.io/wayfinder-core';
+
+    const customWayfinder = createWayfinderClient({
+      telemetrySettings: {
+        enabled: true,
+        sampleRate: 0.1, // 10% sampling
+        clientName: 'my-app',
+        clientVersion: '1.0.0',
+      }
+    });
+    ```
+  </Step>
+  <Step>
+   ### Use custom strategies
+
+    ```javascript
+    import { createRoutingStrategy, createVerificationStrategy } from '@ar.io/wayfinder-core';
+
+    const customWayfinder = createWayfinderClient({
+      routingSettings: {
+        strategy: createRoutingStrategy({ strategy: 'random' })
+      }
+      verificationSettings: {
+        enabled: true,
+        strategy: createVerificationStrategy({ 
+          strategy: 'hash', 
+          trustedGateways: ['https://permagate.io'] 
+        })
+      }
+    });
+    ```
+  </Step>
+</Steps>
+
+## Next Steps
+
+<Cards>
+  <Card
+    icon={<Code />}
+    title="Dynamic Routing"
+    description="Use Wayfinder for dynamic routing"
+    href="/sdks/wayfinder/wayfinder-core/dynamic-routing"
+  />
+  <Card
+    icon={<Network />}
+    title="Gateway Providers"
+    description="Learn about different gateway provider strategies"
+    href="/sdks/wayfinder/wayfinder-core/networkgatewaysprovider"
+  />
+  <Card
+    icon={<BookOpen />}
+    title="Request Flow"
+    description="Understanding how Wayfinder routes and verifies requests"
+    href="/sdks/wayfinder/wayfinder-core/request-flow"
+  />
+  <Card
+    icon={<Server />}
+    title="Monitoring & Events"
+    description="Monitor performance and handle events"
+    href="/sdks/wayfinder/wayfinder-core/global-events"
+  />
+</Cards>
