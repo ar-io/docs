@@ -88,13 +88,13 @@ ${feedback.message}
     });
 
     return {
-      githubUrl: `https://github.com/ar-io/docs-v2/issues/new?${params.toString()}`,
+      githubUrl: `https://github.com/ar-io/docs/issues/new?${params.toString()}`,
     };
   } catch (error) {
     console.error("[Feedback] Failed to submit:", error);
     // Return generic issues page as fallback
     return {
-      githubUrl: "https://github.com/ar-io/docs-v2/issues",
+      githubUrl: "https://github.com/ar-io/docs/issues",
     };
   }
 }
