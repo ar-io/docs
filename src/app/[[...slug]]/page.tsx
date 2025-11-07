@@ -28,11 +28,11 @@ export default async function Page(props: {
       <DocsBody>
         <div className="flex flex-row gap-2 items-center border-b pt-2 pb-6">
           <LLMCopyButton
-            markdownUrl={`https://raw.githubusercontent.com/ar-io/docs-v2/refs/heads/fumadocs/content/${page.path}`}
+            markdownUrl={`https://raw.githubusercontent.com/ar-io/docs/refs/heads/main/content/${page.path}`}
           />
           <ViewOptions
-            markdownUrl={`https://github.com/ar-io/docs-v2/blob/refs/heads/fumadocs/content/${page.path}`}
-            githubUrl={`https://github.com/ar-io/docs-v2/blob/refs/heads/fumadocs/content/${page.path}`}
+            markdownUrl={`https://github.com/ar-io/docs/blob/refs/heads/main/content/${page.path}`}
+            githubUrl={`https://github.com/ar-io/docs/blob/refs/heads/main/content/${page.path}`}
           />
         </div>
         <MDXContent

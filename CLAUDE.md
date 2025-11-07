@@ -1,7 +1,7 @@
 # CLAUDE.md - Repository Assistant Guide
 
 ## Repository Overview
-This is the ar-io/docs-v2 repository, which manages the documentation for the AR.IO Developer Platform. It references various services, SDKs and tools for building on and with the AR.IO Network. It also includes documentation for interacting with ArDrive - a flagship consumer dApp that stores data on Arweave.
+This is the ar-io/docs repository, which manages the documentation for the AR.IO Developer Platform. It references various services, SDKs and tools for building on and with the AR.IO Network. It also includes documentation for interacting with ArDrive - a flagship consumer dApp that stores data on Arweave.
 
 ## Architecture
 This repository is built with [Fumadocs](https://fumadocs.dev/), a documentation framework. The general architecture is as follows:

@@ -1,16 +1,239 @@
 ---
 title: "Turbo SDK"
-description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
+description: "JavaScript/TypeScript SDK for uploading data to Arweave via Turbo services with built-in payment handling and optimized performance"
 ---
 
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { BookOpen, Code, Upload, Zap, CreditCard, Settings } from "lucide-react";
+import { Steps, Step } from "fumadocs-ui/components/steps";
 import { Callout } from "fumadocs-ui/components/callout";
 
-<Callout type="info">
-  **For AI and LLM users**: Access the complete Turbo SDK documentation in plain text
-  format at <a href="/sdks/turbo-sdk/llm.txt" target="_blank" rel="noopener noreferrer">llm.txt</a> for easy consumption by AI agents
-  and language models.
-</Callout>
+The Turbo SDK provides a high-level interface for uploading data to Arweave through Turbo's optimized infrastructure. Built with TypeScript, it offers seamless integration with built-in error handling, automatic retries, and transparent pricing.
 
-# Turbo SDK
+## Quick Start
 
-Please refer to the [source code](https://github.com/ardriveapp/turbo-sdk) for SDK details.
+<Tabs items={['Node.js', 'Web (React)', 'Web (HTML)']}>
+  <Tab value="Node.js">
+    <Steps>
+      <Step>
+        ### Install the SDK
+
+        ```npm
+        npm install @ardrive/turbo-sdk
+        ```
+      </Step>
+      <Step>
+        ### Use the SDK
+
+        ```javascript
+        import { TurboFactory, USD } from '@ardrive/turbo-sdk';
+        import fs from 'fs';
+
+        // Create an authenticated client
+        const turbo = TurboFactory.authenticated({ privateKey: yourPrivateKey });
+
+        // Upload data with automatic payment
+        const result = await turbo.uploadFile({
+          fileStreamFactory: () => fs.createReadStream('./my-file.pdf'),
+          fileSizeFactory: () => fs.statSync('./my-file.pdf').size,
+        });
+
+        console.log('Upload successful:', result);
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab value="Web (React)">
+    <Steps>
+      <Step>
+        ### Install the SDK
+
+        ```npm
+        npm install @ardrive/turbo-sdk
+        ```
+      </Step>
+      <Step>
+        ### Install polyfills (required for web environments)
+
+        <Callout type="warn">
+        Polyfills are required for React web environments due to the use of `crypto`, `buffer` and `process` types in the SDK's dependencies.
+        </Callout>
+
+        ```npm
+        npm install --save-dev vite-plugin-node-polyfills
+        ```
+
+        ```js
+        // vite.config.js
+        import { defineConfig } from 'vite';
+        import { nodePolyfills } from 'vite-plugin-node-polyfills';
+
+        export default defineConfig({
+          plugins: [
+            nodePolyfills({
+              globals: {
+                Buffer: true,
+                global: true,
+                process: true,
+              },
+            }),
+          ],
+        });
+        ```
+
+        Configure your bundler (Webpack, Vite, Rollup, etc.) to provide polyfills for `crypto`, `process`, and `buffer`. Refer to your bundler's documentation for polyfill configuration.
+      </Step>
+      <Step>
+        ### Use the SDK
+
+        ```javascript
+        import { TurboFactory, USD } from '@ardrive/turbo-sdk';
+
+        // Create an authenticated client
+        const turbo = TurboFactory.authenticated({ privateKey: yourPrivateKey });
+
+        // Upload data with automatic payment
+        const fileInput = document.querySelector('input[type="file"]');
+        const file = fileInput.files[0];
+        
+        const result = await turbo.uploadFile({
+          fileStreamFactory: () => file.stream(),
+          fileSizeFactory: () => file.size,
+        });
+
+        console.log('Upload successful:', result);
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab value="Web (HTML)">
+    ```html
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Turbo SDK Upload Example</title>
+        <script type="module">
+            // Polyfills are included in the minimized web bundle, so not necessary to import directly
+            import { TurboFactory } from 'https://unpkg.com/@ardrive/turbo-sdk@latest';
+            
+            // Function to handle file upload
+            async function uploadFile() {
+                const fileInput = document.getElementById('fileInput');
+                const file = fileInput.files[0];
+                const privateKeyInput = document.getElementById('privateKey');
+                
+                if (!file) {
+                    alert('Please select a file');
+                    return;
+                }
+                
+                if (!privateKeyInput.value) {
+                    alert('Please enter your private key');
+                    return;
+                }
+                
+                try {
+                    // Show loading state
+                    document.getElementById('status').textContent = 'Uploading...';
+                    
+                    // Create authenticated client
+                    const turbo = TurboFactory.authenticated({ 
+                        privateKey: privateKeyInput.value 
+                    });
+                    
+                    // Upload file
+                    const result = await turbo.uploadFile({
+                        fileStreamFactory: () => file.stream(),
+                        fileSizeFactory: () => file.size,
+                    });
+                    
+                    // Show success
+                    document.getElementById('status').innerHTML = `
+                        <p style="color: green;">Upload successful!</p>
+                        <p>Transaction ID: ${result.id}</p>
+                        <p>Data Item ID: ${result.dataItemId}</p>
+                    `;
+                } catch (error) {
+                    document.getElementById('status').innerHTML = `
+                        <p style="color: red;">Error: ${error.message}</p>
+                    `;
+                }
+            }
+            
+            // Add click handler
+            window.addEventListener('load', () => {
+                document.getElementById('uploadBtn').addEventListener('click', uploadFile);
+            });
+        </script>
+    </head>
+    <body>
+        <h1>Turbo SDK Upload Example</h1>
+        
+        <div>
+            <label>
+                Private Key (JWK):
+                <input type="password" id="privateKey" style="width: 300px;" />
+            </label>
+        </div>
+        
+        <div style="margin-top: 10px;">
+            <label>
+                Select File:
+                <input type="file" id="fileInput" />
+            </label>
+        </div>
+        
+        <button id="uploadBtn" style="margin-top: 10px;">Upload to Arweave</button>
+        
+        <div id="status" style="margin-top: 20px;"></div>
+    </body>
+    </html>
+    ```
+  </Tab>
+</Tabs>
+
+## API Reference & Documentation
+
+<Cards>
+  <Card
+    icon={<BookOpen />}
+    title="API Reference"
+    description="Complete API documentation for all Turbo client methods"
+    href="/apis/turbo"
+  />
+  <Card
+    icon={<Code />}
+    title="SDK Details"
+    description="Advanced features, events, logging, and credit sharing"
+    href="/sdks/turbo-sdk/events"
+  />
+</Cards>
+
+## Core Features
+
+<Cards>
+  <Card
+    icon={<Upload />}
+    title="Upload Management"
+    description="Authenticated and unauthenticated upload clients with retry logic"
+    href="/sdks/turbo-sdk/turboauthenticatedclient"
+  />
+  <Card
+    icon={<Zap />}
+    title="Events & Monitoring"
+    description="Monitor upload progress and handle events in real-time"
+    href="/sdks/turbo-sdk/events"
+  />
+  <Card
+    icon={<CreditCard />}
+    title="Credit Sharing"
+    description="Manage shared credit pools for streamlined billing"
+    href="/sdks/turbo-sdk/turbo-credit-sharing"
+  />
+  <Card
+    icon={<Settings />}
+    title="Logging & Configuration"
+    description="Configure logging for debugging and monitoring uploads"
+    href="/sdks/turbo-sdk/logging"
+  />
+</Cards>
