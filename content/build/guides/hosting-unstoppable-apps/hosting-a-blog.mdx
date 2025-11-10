@@ -11,29 +11,13 @@ import { BookOpen, Code, GitBranch, Zap } from 'lucide-react';
 
 ## Introduction
 
-Deploying a blog to Arweave creates a **permanent, censorship-resistant website** that will be accessible forever through the AR.IO Network's 100+ independent gateways. Unlike traditional hosting where your content can disappear if you stop paying or if the host shuts down, content on Arweave is stored permanently for a one-time fee.
+Deploying a blog to Arweave creates a **permanent, censorship-resistant website** accessible forever. Unlike traditional hosting where your content can disappear if you stop paying or if the host shuts down, content on Arweave is stored permanently for a one-time fee.
 
-This guide will teach you how to:
-- Set up a static blog with Next.js or Astro
-- Deploy it to Arweave using permaweb-deploy
-- Connect it to your ArNS name for human-readable URLs
-- Automate deployments with GitHub Actions
+Your blog will be accessible as a subdomain of any of AR.IO Network's 600+ independent gateways, creating true redundancy with no single point of failure.
 
 <Callout title="New to unstoppable apps?" type="info">
-Check out the [series introduction](/build/guides/hosting-unstoppable-apps) to understand how AR.IO Network makes apps truly unstoppable with 100+ independent gateways.
+Check out the [series introduction](/build/guides/hosting-unstoppable-apps) to understand how AR.IO Network makes apps truly unstoppable.
 </Callout>
-
-## What You'll Build
-
-A permanent blog with:
-- **Static site generator** (Next.js or Astro) optimized for content
-- **Markdown-based posts** with frontmatter metadata
-- **RSS feed** for content syndication
-- **SEO optimization** with proper metadata
-- **Permanent hosting** on Arweave accessible via your ArNS name
-- **Automated deployments** with GitHub Actions
-
-By the end, you'll have a production-ready blog that will be accessible forever through the AR.IO Network's 100+ independent gateways.
 
 ## Prerequisites
 
@@ -42,665 +26,270 @@ Before starting, ensure you have:
 - **Node.js** (v18 or higher) and **npm** installed
 - An **Arweave wallet** with storage credits
   - [Create a wallet](https://www.wander.app/) with Wander if you don't have one
-  - [Topup storage credits](https://turbo.ar.io/topup) for uploading site to Arweave
+  - [Top up storage credits](https://turbo.ar.io/topup) for uploading your site to Arweave
 - [Purchase an ArNS name](/build/guides/working-with-arns/purchase-arns-ui) for human-readable URLs
-- Basic knowledge of **React/JavaScript**
-- **Git** installed for version control
-
-<Callout type="warn" title="Wallet Security">
-Never commit your wallet keyfile to version control. Always use environment variables or secure secret management for your private keys.
-</Callout>
-
-## Choose Your Framework
-
-This guide covers two popular static site generators optimized for blogs. Choose the one that fits your needs:
-
-<Tabs items={['Next.js', 'Astro']}>
-  <Tab value="Next.js">
-    **Best for:** React developers, dynamic features, large ecosystems
-
-    Next.js is a powerful React framework with excellent blog support through static site generation (SSG).
-  </Tab>
-  <Tab value="Astro">
-    **Best for:** Content-focused sites, minimal JavaScript, blazing-fast performance
-
-    Astro is designed for content-heavy sites and ships zero JavaScript by default.
-  </Tab>
-</Tabs>
 
 ## Project Setup
 
-<Tabs items={['Next.js', 'Astro']}>
-  <Tab value="Next.js">
-    ### Create a Next.js Blog
+We'll use Vercel's official [Next.js blog-starter template](https://github.com/vercel/next.js/tree/canary/examples/blog-starter), which comes pre-configured with everything needed for a production-ready blog.
 
-    <Steps>
-      <Step title="Initialize the project">
-        ```bash
-        npx create-next-app@latest my-blog
-        ```
+<Steps>
+  <Step title="Create project from template">
+    ```bash
+    npx create-next-app@latest my-blog --example blog-starter
+    cd my-blog
+    ```
 
-        Choose these options:
-        - ✅ TypeScript
-        - ✅ ESLint
-        - ✅ Tailwind CSS
-        - ✅ `src/` directory
-        - ✅ App Router
-        - ❌ Customize default import alias
-      </Step>
+    This creates a new blog with:
+    - Next.js 15 with App Router
+    - TypeScript configuration
+    - Tailwind CSS with dark mode support
+    - Markdown processing (gray-matter + remark)
+    - Three sample blog posts
+    - Responsive design and SEO basics
+  </Step>
 
-      <Step title="Navigate to project">
-        ```bash
-        cd my-blog
-        ```
-      </Step>
+  <Step title="Explore the project structure">
+    ```
+    my-blog/
+    ├── _posts/              # Markdown blog posts
+    │   ├── dynamic-routing.md
+    │   ├── hello-world.md
+    │   └── preview-mode.md
+    ├── public/              # Static assets (images, favicons)
+    ├── src/
+    │   ├── app/             # Next.js pages and layouts
+    │   ├── interfaces/      # TypeScript types
+    │   └── lib/             # Utility functions
+    └── package.json
+    ```
 
-      <Step title="Install blog dependencies">
-        ```bash
-        npm install gray-matter remark remark-html
-        ```
+    To add new blog posts, simply create `.md` files in the `_posts/` directory with frontmatter:
 
-        These packages help parse Markdown blog posts.
-      </Step>
+    ```markdown title="_posts/my-post.md"
+    ---
+    title: "My Permanent Blog Post"
+    excerpt: "This post will live forever on Arweave"
+    coverImage: "/assets/blog/my-image.jpg"
+    date: "2024-01-15T00:00:00.000Z"
+    author:
+      name: "Your Name"
+      picture: "/assets/blog/authors/avatar.jpg"
+    ---
 
-      <Step title="Create blog structure">
-        ```bash
-        mkdir -p src/app/blog src/posts
-        ```
-      </Step>
+    Your markdown content here...
+    ```
+  </Step>
 
-      <Step title="Configure for static export">
-        Update `next.config.js`:
+  <Step title="Test locally">
+    ```bash
+    npm run dev
+    ```
 
-        ```javascript title="next.config.js"
-        /** @type {import('next').NextConfig} */
-        const nextConfig = {
-          output: 'export',
-          images: {
-            unoptimized: true,
-          },
-          trailingSlash: true,
-        }
+    Visit `http://localhost:3000` to see your blog with the sample posts.
+  </Step>
 
-        module.exports = nextConfig
-        ```
+  <Step title="Build for production">
+    ```bash
+    npm run build
+    ```
 
-        <Callout type="info">
-        The `output: 'export'` setting generates a static site that can be deployed to Arweave. The `images.unoptimized` setting is required since Next.js image optimization doesn't work with static exports.
-        </Callout>
-      </Step>
+    This creates a `.next/` directory. However, we need to configure static export for Arweave deployment (covered in the next section).
+  </Step>
+</Steps>
 
-      <Step title="Create a blog post">
-        Create `src/posts/first-post.md`:
+## Configure for Static Export
 
-        ```markdown title="src/posts/first-post.md"
-        ---
-        title: 'My First Permanent Blog Post'
-        date: '2024-01-15'
-        excerpt: 'This post will live forever on Arweave'
-        ---
+The blog-starter template uses Next.js's default build mode. To deploy to Arweave, we need to enable static export.
 
-        # Welcome to My Permanent Blog
+<Steps>
+  <Step title="Create next.config.js">
+    Create a `next.config.js` file in your project root:
 
-        This blog post is stored permanently on Arweave and accessible through the AR.IO Network.
+    ```javascript title="next.config.js"
+    /** @type {import('next').NextConfig} */
+    const nextConfig = {
+      output: 'export',
+      images: {
+        unoptimized: true,
+      },
+      trailingSlash: true,
+    }
 
-        ## Why This Matters
+    module.exports = nextConfig
+    ```
 
-        Traditional blogs can disappear when:
-        - Hosting companies shut down
-        - You stop paying hosting fees
-        - Platforms change their terms
-        - Content gets censored
+    **What this does:**
+    - `output: 'export'` - Generates static HTML files instead of a Node.js server
+    - `images.unoptimized: true` - Disables Next.js image optimization (not compatible with static hosting)
+    - `trailingSlash: true` - Adds trailing slashes to URLs for better compatibility with static hosting
+  </Step>
 
-        **This post will be accessible forever.**
-        ```
-      </Step>
+  <Step title="Build static site">
+    ```bash
+    npm run build
+    ```
 
-      <Step title="Create blog listing page">
-        Create `src/app/blog/page.tsx`:
+    This now creates an `out/` directory containing your static blog ready for Arweave deployment.
+  </Step>
 
-        ```typescript title="src/app/blog/page.tsx"
-        import fs from 'fs';
-        import path from 'path';
-        import matter from 'gray-matter';
-        import Link from 'next/link';
+  <Step title="Test static build locally">
+    You can test the static build using any static file server:
 
-        export default function BlogPage() {
-          const postsDirectory = path.join(process.cwd(), 'src/posts');
-          const filenames = fs.readdirSync(postsDirectory);
+    ```bash
+    npx serve out
+    ```
 
-          const posts = filenames.map((filename) => {
-            const filePath = path.join(postsDirectory, filename);
-            const fileContents = fs.readFileSync(filePath, 'utf8');
-            const { data } = matter(fileContents);
-
-            return {
-              slug: filename.replace('.md', ''),
-              title: data.title,
-              date: data.date,
-              excerpt: data.excerpt,
-            };
-          }).sort((a, b) => (a.date < b.date ? 1 : -1));
-
-          return (
-            <div className="max-w-4xl mx-auto px-4 py-12">
-              <h1 className="text-4xl font-bold mb-8">Blog Posts</h1>
-              <div className="space-y-8">
-                {posts.map((post) => (
-                  <article key={post.slug} className="border-b pb-8">
-                    <Link href={`/blog/${post.slug}`}>
-                      <h2 className="text-2xl font-semibold hover:text-blue-600 mb-2">
-                        {post.title}
-                      </h2>
-                    </Link>
-                    <p className="text-gray-600 mb-2">{post.date}</p>
-                    <p className="text-gray-700">{post.excerpt}</p>
-                  </article>
-                ))}
-              </div>
-            </div>
-          );
-        }
-        ```
-      </Step>
-
-      <Step title="Create blog post page">
-        Create `src/app/blog/[slug]/page.tsx`:
-
-        ```typescript title="src/app/blog/[slug]/page.tsx"
-        import fs from 'fs';
-        import path from 'path';
-        import matter from 'gray-matter';
-        import { remark } from 'remark';
-        import html from 'remark-html';
-
-        export async function generateStaticParams() {
-          const postsDirectory = path.join(process.cwd(), 'src/posts');
-          const filenames = fs.readdirSync(postsDirectory);
-
-          return filenames.map((filename) => ({
-            slug: filename.replace('.md', ''),
-          }));
-        }
-
-        async function getPost(slug: string) {
-          const postsDirectory = path.join(process.cwd(), 'src/posts');
-          const filePath = path.join(postsDirectory, `${slug}.md`);
-          const fileContents = fs.readFileSync(filePath, 'utf8');
-          const { data, content } = matter(fileContents);
-
-          const processedContent = await remark().use(html).process(content);
-          const contentHtml = processedContent.toString();
-
-          return {
-            slug,
-            contentHtml,
-            title: data.title,
-            date: data.date,
-          };
-        }
-
-        export default async function BlogPost({
-          params,
-        }: {
-          params: { slug: string };
-        }) {
-          const post = await getPost(params.slug);
-
-          return (
-            <article className="max-w-4xl mx-auto px-4 py-12">
-              <h1 className="text-4xl font-bold mb-4">{post.title}</h1>
-              <p className="text-gray-600 mb-8">{post.date}</p>
-              <div
-                className="prose prose-lg max-w-none"
-                dangerouslySetInnerHTML={{ __html: post.contentHtml }}
-              />
-            </article>
-          );
-        }
-        ```
-      </Step>
-
-      <Step title="Test locally">
-        ```bash
-        npm run dev
-        ```
-
-        Visit `http://localhost:3000/blog` to see your blog.
-      </Step>
-
-      <Step title="Build for production">
-        ```bash
-        npm run build
-        ```
-
-        This creates an `out/` directory with your static site ready for deployment.
-      </Step>
-    </Steps>
-  </Tab>
-
-  <Tab value="Astro">
-    ### Create an Astro Blog
-
-    <Steps>
-      <Step title="Initialize with blog template">
-        ```bash
-        npm create astro@latest my-blog -- --template blog
-        ```
-
-        Choose these options:
-        - ✅ TypeScript (Strict)
-        - ✅ Install dependencies
-        - ✅ Initialize git repository
-      </Step>
-
-      <Step title="Navigate to project">
-        ```bash
-        cd my-blog
-        ```
-      </Step>
-
-      <Step title="Review project structure">
-        The blog template includes:
-        - `src/content/blog/` - Markdown blog posts
-        - `src/pages/blog/` - Blog listing and post pages
-        - `src/components/` - Reusable components
-      </Step>
-
-      <Step title="Create a blog post">
-        Create `src/content/blog/first-post.md`:
-
-        ```markdown title="src/content/blog/first-post.md"
-        ---
-        title: 'My First Permanent Blog Post'
-        description: 'This post will live forever on Arweave'
-        pubDate: 'Jan 15 2024'
-        heroImage: '/blog-placeholder.jpg'
-        ---
-
-        # Welcome to My Permanent Blog
-
-        This blog post is stored permanently on Arweave and accessible through the AR.IO Network.
-
-        ## Why This Matters
-
-        Traditional blogs can disappear when:
-        - Hosting companies shut down
-        - You stop paying hosting fees
-        - Platforms change their terms
-        - Content gets censored
-
-        **This post will be accessible forever.**
-        ```
-      </Step>
-
-      <Step title="Configure for Arweave deployment">
-        Update `astro.config.mjs`:
-
-        ```javascript title="astro.config.mjs"
-        import { defineConfig } from 'astro/config';
-        import mdx from '@astrojs/mdx';
-        import sitemap from '@astrojs/sitemap';
-
-        export default defineConfig({
-          site: 'https://myblog.arweave.net',
-          integrations: [mdx(), sitemap()],
-          build: {
-            format: 'directory',
-          },
-        });
-        ```
-
-        <Callout type="info">
-        Set the `site` field to your intended ArNS URL. This ensures proper URL generation for sitemaps and RSS feeds.
-        </Callout>
-      </Step>
-
-      <Step title="Test locally">
-        ```bash
-        npm run dev
-        ```
-
-        Visit `http://localhost:4321` to see your blog.
-      </Step>
-
-      <Step title="Build for production">
-        ```bash
-        npm run build
-        ```
-
-        This creates a `dist/` directory with your static site ready for deployment.
-      </Step>
-    </Steps>
-  </Tab>
-</Tabs>
+    Visit the provided URL to verify everything works correctly.
+  </Step>
+</Steps>
 
 ## Deploy to Arweave with permaweb-deploy
 
 Now that your blog is built, let's deploy it to Arweave using the `permaweb-deploy` CLI tool.
 
-### Install permaweb-deploy
-
-<Tabs items={['Global', 'Project']}>
-  <Tab value="Global">
-    Install globally to use from any project:
-
-    ```bash
-    npm install -g permaweb-deploy
-    ```
-  </Tab>
-  <Tab value="Project">
-    Install in your project:
+<Steps>
+  <Step title="Install permaweb-deploy">
+    Install as a dev dependency in your project:
 
     ```bash
     npm install --save-dev permaweb-deploy
     ```
-
-    Then use via `npx permaweb-deploy` or add scripts to `package.json`.
-  </Tab>
-</Tabs>
-
-### Prepare Your Wallet
-
-<Steps>
-  <Step title="Export your wallet keyfile">
-    From [Wander](https://www.wander.app/), export your wallet keyfile (JSON file).
   </Step>
 
-  <Step title="Store securely">
-    Save the keyfile **outside** your project directory:
+  <Step title="Prepare your wallet">
+    From [Wander](https://www.wander.app/), export your wallet keyfile (JSON file).
+
+    Encode it to base64 and set as an environment variable:
 
     ```bash
-    # Example: Save to home directory
-    ~/wallets/arweave-wallet.json
+    # Encode wallet to base64 (macOS/Linux)
+    base64 -i wallet.json | pbcopy  # Copies to clipboard
+
+    # Add to .env file
+    DEPLOY_KEY=paste-key-here
     ```
 
+    <Callout type="warn" title="Production Deployments">
+    For production use, we strongly recommend using **GitHub Actions with encrypted secrets** instead of local environment variables. This approach is more secure and eliminates the risk of accidentally exposing your wallet. See the GitHub Actions section below.
+    </Callout>
+
     <Callout type="error" title="Security Warning">
-    Never commit your wallet keyfile to git! Always store wallets outside your project directory to prevent accidental commits.
+    Never commit your wallet keyfile or DEPLOY_KEY to git! Keep wallet files outside your project directory and add them to `.gitignore`.
     </Callout>
   </Step>
 
-  <Step title="Add to .gitignore (safety precaution)">
-    As an extra safety measure, add wallet patterns to `.gitignore` to prevent accidentally committing wallet files if they're ever placed in your project:
+  <Step title="Add deployment scripts to package.json">
+    Update your `package.json` to include deployment scripts:
 
-    ```bash title=".gitignore"
-    # Arweave wallet files (safety precaution)
-    wallet*.json
-    arweave-keyfile*.json
-    *-wallet.json
+    ```json title="package.json"
+    {
+      "scripts": {
+        "dev": "next dev --turbopack",
+        "build": "next build",
+        "deploy": "npm run build && permaweb-deploy --deploy-folder out --arns-name myblog --ttl 60",
+        "deploy:staging": "npm run build && permaweb-deploy --deploy-folder out --arns-name myblog --undername staging --ttl 60"
+      }
+    }
     ```
 
+    **What these scripts do:**
+    - `deploy` - Builds your blog and deploys to your root ArNS domain
+    - `deploy:staging` - Deploys to a staging undername for testing
+    - `--ttl 60` - Sets Time-To-Live to 60 seconds for fast gateway updates
+    - Uses `DEPLOY_KEY` environment variable automatically (no `--wallet` flag needed)
+
     <Callout type="info">
-    Since your wallet is stored outside the project directory (`~/wallets/`), this is purely a safety precaution to protect you in case you accidentally copy or move a wallet file into your project.
+    Replace `myblog` with your actual ArNS name in both scripts.
+    </Callout>
+  </Step>
+
+  <Step title="Deploy your blog">
+    Run the deployment:
+
+    ```bash
+    npm run deploy
+    ```
+
+    The tool will:
+    - Upload all static build files file to Arweave
+    - Create a an Arweave manifest for these files and upload it
+    - Update your ArNS record to resolve to the manifest's TxID
+
+    ```bash
+    Deployed TxId: abc123...
+
+    Manifest TxId: xyz789...
+    Updated ANT record for @ to xyz789...
+
+    View at: https://myblog.arweave.net
+    ```
+  </Step>
+
+  <Step title="Verify deployment">
+    Visit your ArNS URL (e.g., `https://myblog.arweave.net`) to see your live blog!
+
+    <Callout type="info">
+    It may take 5-30 minutes for the content to be fully accessible as it propagates across the AR.IO Network's gateways.
     </Callout>
   </Step>
 </Steps>
 
-### First Deployment
+## Automate Deployments with GitHub Actions
 
-You can deploy interactively (recommended for first time) or via CLI arguments.
-
-<Tabs items={['Interactive', 'CLI']}>
-  <Tab value="Interactive">
-    <Steps>
-      <Step title="Run interactive deployment">
-        <Tabs items={['Next.js', 'Astro']}>
-          <Tab value="Next.js">
-            ```bash
-            permaweb-deploy
-            ```
-          </Tab>
-          <Tab value="Astro">
-            ```bash
-            permaweb-deploy
-            ```
-          </Tab>
-        </Tabs>
-      </Step>
-
-      <Step title="Follow the prompts">
-        The CLI will ask you:
-
-        1. **Build folder path?**
-           - Next.js: Enter `out`
-           - Astro: Enter `dist`
-
-        2. **Wallet path?**
-           - Enter path to your wallet keyfile: `~/wallets/arweave-wallet.json`
-
-        3. **Deploy to undername?**
-           - Enter `@` to deploy to your ArNS root domain
-           - Or enter undername like `v1` for versioning (more in [Guide 4](/build/guides/hosting-unstoppable-apps/using-undernames-for-versioning))
-
-        4. **ArNS name?**
-           - Enter your ArNS name (e.g., `myblog`)
-           - This is the name you purchased from [ArNS Manager](https://arns.app)
-      </Step>
-
-      <Step title="Wait for deployment">
-        The tool will:
-        - ✅ Upload all files to Arweave
-        - ✅ Create a manifest
-        - ✅ Update your ArNS record
-        - ✅ Display the transaction IDs
-
-        ```bash
-        Deployed TxId: abc123...
-
-        Manifest TxId: xyz789...
-        Updated ANT record for @ to xyz789...
-
-        View at: https://myblog.arweave.net
-        ```
-      </Step>
-
-      <Step title="Verify deployment">
-        Visit your ArNS URL (e.g., `https://myblog.arweave.net`) to see your live blog!
-
-        <Callout type="info">
-        It may take 5-30 minutes for the content to be fully accessible as it propagates across the AR.IO Network's gateways.
-        </Callout>
-      </Step>
-    </Steps>
-  </Tab>
-
-  <Tab value="CLI">
-    <Steps>
-      <Step title="Deploy with CLI arguments">
-        <Tabs items={['Next.js', 'Astro']}>
-          <Tab value="Next.js">
-            ```bash
-            permaweb-deploy \
-              --deploy-folder out \
-              --arns-name my-app \
-              --ttl 60 \
-              --wallet ~/wallets/arweave-wallet.json
-            ```
-          </Tab>
-          <Tab value="Astro">
-            ```bash
-            permaweb-deploy \
-              --deploy-folder dist \
-              --arns-name my-app \
-              --ttl 60 \
-              --wallet ~/wallets/arweave-wallet.json
-            ```
-          </Tab>
-        </Tabs>
-
-        <Callout type="info">
-        The `--ttl 60` flag sets the Time-To-Live to 60 seconds, controlling how quickly gateways update to your new deployment. This ensures your site updates within a minute of deployment.
-        </Callout>
-      </Step>
-
-      <Step title="Wait for deployment">
-        The deployment will complete automatically and display the transaction IDs.
-      </Step>
-
-      <Step title="Verify deployment">
-        Visit your ArNS URL to see your live blog!
-      </Step>
-    </Steps>
-  </Tab>
-</Tabs>
-
-## Automating Deployments
-
-### Package Scripts
-
-Add deployment scripts to your `package.json` for quick redeployment:
-
-<Tabs items={['Next.js', 'Astro']}>
-  <Tab value="Next.js">
-    ```json title="package.json"
-    {
-      "scripts": {
-        "dev": "next dev",
-        "build": "next build",
-        "deploy": "npm run build && permaweb-deploy --deploy-folder out --arns-name my-app --ttl 60 --wallet $WALLET_PATH",
-        "deploy:staging": "npm run build && permaweb-deploy --deploy-folder out --arns-name my-app --undername staging --ttl 60 --wallet $WALLET_PATH"
-      }
-    }
-    ```
-  </Tab>
-  <Tab value="Astro">
-    ```json title="package.json"
-    {
-      "scripts": {
-        "dev": "astro dev",
-        "build": "astro build",
-        "deploy": "npm run build && permaweb-deploy --deploy-folder dist --arns-name $ARNS_NAME --ttl 60 --wallet $WALLET_PATH",
-        "deploy:staging": "npm run build && permaweb-deploy --deploy-folder dist --arns-name $ARNS_NAME --undername staging --ttl 60 --wallet $WALLET_PATH"
-      }
-    }
-    ```
-  </Tab>
-</Tabs>
-
-Set environment variables:
-
-```bash
-# Add to your shell profile (~/.bashrc, ~/.zshrc, etc.)
-export ARNS_NAME="your-arns-name"
-export WALLET_PATH="~/wallets/arweave-wallet.json"
-```
-
-Then deploy with:
-
-```bash
-npm run deploy
-```
-
-### GitHub Actions
-
-For continuous deployment on every push to your repository:
+For continuous deployment on every push to your repository. **This is the recommended approach for production deployments** as GitHub encrypts your secrets and never exposes them in logs.
 
 <Steps>
   <Step title="Add wallet to GitHub Secrets">
 
-    1. Go to your repository on GitHub
-    2. Navigate to **Settings** > **Secrets and variables** > **Actions**
-    3. Click **New repository secret**
-    4. Name: `DEPLOY_KEY`
-    5. Value: Paste your entire wallet keyfile JSON content
-    6. Add another secret for `ARNS_NAME` with your ArNS name
+    1. Encode your wallet to base64:
+       ```bash
+       base64 -i wallet.json | pbcopy  # Copies to clipboard
+       ```
+
+    2. Go to your repository on GitHub
+    3. Navigate to **Settings** > **Secrets and variables** > **Actions**
+    4. Click **New repository secret**
+    5. Name: `DEPLOY_KEY`
+    6. Value: Paste the base64-encoded wallet (from step 1)
+    7. Click **Add secret**
   </Step>
 
   <Step title="Create workflow file">
     Create `.github/workflows/deploy.yml`:
 
-    <Tabs items={['Next.js', 'Astro']}>
-      <Tab value="Next.js">
-        ```yaml title=".github/workflows/deploy.yml"
-        name: Deploy to Arweave
+    ```yaml title=".github/workflows/deploy.yml"
+    name: Deploy to Arweave
 
-        on:
-          push:
-            branches: [main]
-          workflow_dispatch:
+    on:
+      push:
+        branches: [main]
+      workflow_dispatch:
 
-        jobs:
-          deploy:
-            runs-on: ubuntu-latest
+    jobs:
+      deploy:
+        runs-on: ubuntu-latest
 
-            steps:
-              - name: Checkout code
-                uses: actions/checkout@v4
+        steps:
+          - name: Checkout code
+            uses: actions/checkout@v4
 
-              - name: Setup Node.js
-                uses: actions/setup-node@v4
-                with:
-                  node-version: '18'
-                  cache: 'npm'
+          - name: Setup Node.js
+            uses: actions/setup-node@v4
+            with:
+              node-version: '18'
+              cache: 'npm'
 
-              - name: Install dependencies
-                run: npm ci
+          - name: Install dependencies
+            run: npm ci
 
-              - name: Build site
-                run: npm run build
+          - name: Deploy to Arweave
+            env:
+              DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+            run: npm run deploy
+    ```
 
-              - name: Save wallet to file
-                run: echo '${{ secrets.DEPLOY_KEY }}' > wallet.json
-
-              - name: Deploy to Arweave
-                run: |
-                  npx permaweb-deploy \
-                    --deploy-folder out \
-                    --arns-name ${{ secrets.ARNS_NAME }} \
-                    --ttl 60 \
-                    --wallet wallet.json
-
-              - name: Cleanup wallet
-                if: always()
-                run: rm -f wallet.json
-        ```
-      </Tab>
-      <Tab value="Astro">
-        ```yaml title=".github/workflows/deploy.yml"
-        name: Deploy to Arweave
-
-        on:
-          push:
-            branches: [main]
-          workflow_dispatch:
-
-        jobs:
-          deploy:
-            runs-on: ubuntu-latest
-
-            steps:
-              - name: Checkout code
-                uses: actions/checkout@v4
-
-              - name: Setup Node.js
-                uses: actions/setup-node@v4
-                with:
-                  node-version: '18'
-                  cache: 'npm'
-
-              - name: Install dependencies
-                run: npm ci
-
-              - name: Build site
-                run: npm run build
-
-              - name: Save wallet to file
-                run: echo '${{ secrets.DEPLOY_KEY }}' > wallet.json
-
-              - name: Deploy to Arweave
-                run: |
-                  npx permaweb-deploy \
-                    --deploy-folder dist \
-                    --arns_name ${{ secrets.ARNS_NAME }} \
-                    --ttl 60 \
-                    --wallet wallet.json
-
-              - name: Cleanup wallet
-                if: always()
-                run: rm -f wallet.json
-        ```
-      </Tab>
-    </Tabs>
+    **Note:** Replace `myblog` in your package.json scripts with your actual ArNS name before committing.
   </Step>
 
   <Step title="Commit and push">
@@ -721,118 +310,6 @@ For continuous deployment on every push to your repository:
 <Callout type="info">
 The workflow runs on every push to `main`. You can also trigger it manually from the Actions tab using `workflow_dispatch`.
 </Callout>
-
-## Blog-Specific Considerations
-
-### Images and Assets
-
-For permanent blogs, store images directly in your repository:
-
-<Tabs items={['Next.js', 'Astro']}>
-  <Tab value="Next.js">
-    ```
-    public/
-    ├── images/
-    │   ├── blog/
-    │   │   ├── post1-hero.jpg
-    │   │   └── post1-diagram.png
-    ```
-
-    Reference in Markdown:
-
-    ```markdown
-    ![My Image](/images/blog/post1-hero.jpg)
-    ```
-
-    Or use Next.js Image component in MDX:
-
-    ```jsx
-    import Image from 'next/image';
-
-    <Image
-      src="/images/blog/post1-hero.jpg"
-      alt="Hero image"
-      width={800}
-      height={400}
-    />
-    ```
-  </Tab>
-  <Tab value="Astro">
-    ```
-    public/
-    ├── images/
-    │   ├── blog/
-    │   │   ├── post1-hero.jpg
-    │   │   └── post1-diagram.png
-    ```
-
-    Reference in Markdown:
-
-    ```markdown
-    ![My Image](/images/blog/post1-hero.jpg)
-    ```
-
-    Or use Astro's Image component:
-
-    ```astro
-    ---
-    import { Image } from 'astro:assets';
-    import heroImage from '../assets/hero.jpg';
-    ---
-
-    <Image src={heroImage} alt="Hero image" />
-    ```
-  </Tab>
-</Tabs>
-
-<Callout type="warn">
-Avoid external image links (like from CDNs) as they may not be permanent. Store all assets in your repository for true permanence.
-</Callout>
-
-### SEO and Metadata
-
-Add proper metadata to each blog post:
-
-<Tabs items={['Next.js', 'Astro']}>
-  <Tab value="Next.js">
-    Update `src/app/blog/[slug]/page.tsx`:
-
-    ```typescript
-    export async function generateMetadata({
-      params,
-    }: {
-      params: { slug: string };
-    }) {
-      const post = await getPost(params.slug);
-
-      return {
-        title: post.title,
-        description: post.excerpt,
-        openGraph: {
-          title: post.title,
-          description: post.excerpt,
-          type: 'article',
-          publishedTime: post.date,
-        },
-      };
-    }
-    ```
-  </Tab>
-  <Tab value="Astro">
-    Add to frontmatter in your posts:
-
-    ```markdown
-    ---
-    title: 'My Blog Post'
-    description: 'This is the meta description'
-    pubDate: 'Jan 15 2024'
-    author: 'Your Name'
-    image: '/images/blog/post1-hero.jpg'
-    tags: ['arweave', 'web3', 'blogging']
-    ---
-    ```
-  </Tab>
-</Tabs>
 
 ## Next Steps
 
