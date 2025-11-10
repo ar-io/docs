@@ -307,7 +307,12 @@ const redirects = [
   },
   {
     source: '/guides/ardrive-web',
-    destination: '/build/guides/deploy-dapp-with-ardrive-web',
+    destination: '/build/guides/hosting-unstoppable-apps/hosting-with-ardrive',
+    permanent: true,
+  },
+  {
+    source: '/build/guides/deploy-dapp-with-ardrive-web',
+    destination: '/build/guides/hosting-unstoppable-apps/hosting-with-ardrive',
     permanent: true,
   },
   {
@@ -322,12 +327,17 @@ const redirects = [
   },
   {
     source: '/guides/primary-names',
-    destination: '/build/guides/arns-primary-names',
+    destination: '/build/guides/working-with-arns/arns-primary-names',
     permanent: true,
   },
   {
     source: '/guides/managing-undernames',
-    destination: '/build/guides/arns-undernames-versioning',
+    destination: '/build/guides/hosting-unstoppable-apps/using-undernames-for-versioning',
+    permanent: true,
+  },
+  {
+    source: '/build/guides/arns-undernames-versioning',
+    destination: '/build/guides/hosting-unstoppable-apps/using-undernames-for-versioning',
     permanent: true,
   },
   {
