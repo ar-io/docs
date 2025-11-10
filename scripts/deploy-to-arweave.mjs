@@ -1,8 +1,17 @@
-// scripts/deploy-to-arweave.js
-const fs = require("fs");
-const path = require("path");
-const { Readable } = require("stream");
-require("dotenv").config();
+// scripts/deploy-to-arweave.mjs
+import fs from "fs";
+import path from "path";
+import { Readable } from "stream";
+import { TurboFactory, ArweaveSigner } from "@ardrive/turbo-sdk";
+import { ANT, ARIO } from "@ar.io/sdk";
+import dotenv from "dotenv";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+dotenv.config();
 
 async function main() {
   // Configuration - can be overridden by environment variables or command line args
@@ -41,11 +50,6 @@ async function main() {
       "Invalid DEPLOY_KEY format. Must be base64 encoded JSON wallet."
     );
   }
-
-  // Dynamically import the required modules
-  const { TurboFactory, ArweaveSigner } = require("@ardrive/turbo-sdk");
-  const { ANT, AOProcess, ARIO } = require("@ar.io/sdk");
-  const { connect } = require("@permaweb/aoconnect");
 
   // Initialize Turbo
   const turbo = TurboFactory.authenticated({ privateKey: jwk });
@@ -141,9 +145,6 @@ async function uploadManifest(turbo, manifest) {
 
 async function updateArNSRecord(jwk, arnsName, manifestId, undername) {
   try {
-    const { ARIO, ANT } = require("@ar.io/sdk");
-    const { ArweaveSigner } = require("@ardrive/turbo-sdk");
-
     console.log("Debug - Starting ArNS record update...");
     console.log("Debug - arnsName:", arnsName);
     console.log("Debug - manifestId:", manifestId);
