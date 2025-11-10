@@ -31,7 +31,9 @@ Before starting, ensure you have:
 
 ## Project Setup
 
-We'll use Vercel's official [Next.js blog-starter template](https://github.com/vercel/next.js/tree/canary/examples/blog-starter), which comes pre-configured with everything needed for a production-ready blog.
+We'll use Vercel's official Next.js blog-starter template, which comes pre-configured with everything needed for a production-ready blog.
+
+If you want to get moving quickly please [clone the example repo](https://github.com/kempsterrrr/next-blog-starter-arns).
 
 <Steps>
   <Step title="Create project from template">
@@ -157,28 +159,6 @@ Now that your blog is built, let's deploy it to Arweave using the `permaweb-depl
     ```
   </Step>
 
-  <Step title="Prepare your wallet">
-    From [Wander](https://www.wander.app/), export your wallet keyfile (JSON file).
-
-    Encode it to base64 and set as an environment variable:
-
-    ```bash
-    # Encode wallet to base64 (macOS/Linux)
-    base64 -i wallet.json | pbcopy  # Copies to clipboard
-
-    # Add to .env file
-    DEPLOY_KEY=paste-key-here
-    ```
-
-    <Callout type="warn" title="Production Deployments">
-    For production use, we strongly recommend using **GitHub Actions with encrypted secrets** instead of local environment variables. This approach is more secure and eliminates the risk of accidentally exposing your wallet. See the GitHub Actions section below.
-    </Callout>
-
-    <Callout type="error" title="Security Warning">
-    Never commit your wallet keyfile or DEPLOY_KEY to git! Keep wallet files outside your project directory and add them to `.gitignore`.
-    </Callout>
-  </Step>
-
   <Step title="Add deployment scripts to package.json">
     Update your `package.json` to include deployment scripts:
 
@@ -188,19 +168,31 @@ Now that your blog is built, let's deploy it to Arweave using the `permaweb-depl
         "dev": "next dev --turbopack",
         "build": "next build",
         "deploy": "npm run build && permaweb-deploy --deploy-folder out --arns-name myblog --ttl 60",
-        "deploy:staging": "npm run build && permaweb-deploy --deploy-folder out --arns-name myblog --undername staging --ttl 60"
       }
     }
     ```
 
     **What these scripts do:**
-    - `deploy` - Builds your blog and deploys to your root ArNS domain
-    - `deploy:staging` - Deploys to a staging undername for testing
+    - `--deploy-folder` - Sets the folder to deploy to `out`
+    - `--arns-name` - Sets the ArNS name to update
     - `--ttl 60` - Sets Time-To-Live to 60 seconds for fast gateway updates
-    - Uses `DEPLOY_KEY` environment variable automatically (no `--wallet` flag needed)
 
     <Callout type="info">
     Replace `myblog` with your actual ArNS name in both scripts.
+    </Callout>
+  </Step>
+
+  <Step title="Prepare your wallet">
+    From [Wander](https://www.wander.app/), export your wallet keyfile (JSON file).
+
+    Encode it to base64
+
+    ```bash
+    base64 -i wallet.json | pbcopy
+    ```
+
+    <Callout type="warn" title="Security Warning">
+    Never commit your wallet keyfile or DEPLOY_KEY to git! Keep wallet files outside your project directory and add them to `.gitignore`. For production use, we strongly recommend using **GitHub Actions with encrypted secrets** instead of local environment variables. This approach is more secure and eliminates the risk of accidentally exposing your wallet. **See the GitHub Actions section below**.
     </Callout>
   </Step>
 
@@ -208,12 +200,13 @@ Now that your blog is built, let's deploy it to Arweave using the `permaweb-depl
     Run the deployment:
 
     ```bash
-    npm run deploy
+    DEPLOY_KEY=$(base64 -i wallet.json) npm run deploy
     ```
 
-    The tool will:
+    The command will:
+    - Make your `DEPLOY_KEY` available in node
     - Upload all static build files file to Arweave
-    - Create a an Arweave manifest for these files and upload it
+    - Create an Arweave manifest for these files and upload it
     - Update your ArNS record to resolve to the manifest's TxID
 
     ```bash
@@ -244,7 +237,7 @@ For continuous deployment on every push to your repository. **This is the recomm
 
     1. Encode your wallet to base64:
        ```bash
-       base64 -i wallet.json | pbcopy  # Copies to clipboard
+       base64 -i wallet.json | pbcopy
        ```
 
     2. Go to your repository on GitHub
