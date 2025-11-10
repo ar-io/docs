@@ -2,7 +2,7 @@ name: PR Preview Deployment
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, closed]
     paths:
       - "content/**"
 
@@ -49,7 +49,7 @@ jobs:
           echo "Generated undername: $UNDERNAME"
 
       - name: Deploy to Arweave
-        run: node scripts/deploy-to-arweave.js
+        run: node scripts/deploy-to-arweave.mjs
         env:
           DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
           ARNS_NAME: ${{ secrets.ARNS_NAME }}
@@ -106,11 +106,23 @@ jobs:
               });
             }
 
-  cleanup-preview:
+  cleanup:
     runs-on: ubuntu-latest
     if: github.event.action == 'closed'
     
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "yarn"
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
       - name: Generate undername from branch
         id: undername
         run: |
@@ -126,18 +138,29 @@ jobs:
           fi
           echo "undername=$UNDERNAME" >> $GITHUB_OUTPUT
 
+      - name: Delete ArNS undername
+        run: node scripts/delete-arns-undername.mjs
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+          ARNS_NAME: ${{ secrets.ARNS_NAME }}
+          UNDERNAME: ${{ steps.undername.outputs.undername }}
+        continue-on-error: true
+
       - name: Comment cleanup notice
         uses: actions/github-script@v7
         with:
           script: |
             const undername = '${{ steps.undername.outputs.undername }}';
             const arnsName = '${{ secrets.ARNS_NAME }}';
+            const isMerged = '${{ github.event.pull_request.merged }}' === 'true';
             
             const comment = `## 🧹 Preview Cleanup
             
-            This PR has been closed. The preview deployment for \`${undername}_${arnsName}.ar.io\` will remain accessible but won't receive further updates.
+            This PR has been ${isMerged ? 'merged' : 'closed'}. The preview undername \`${undername}\` has been deleted.
             
-            > 💡 **Note:** ArNS undernames persist on the network. The preview will continue to work until the TTL expires or the undername is updated.`;
+            The preview deployment at \`${undername}_${arnsName}.ar.io\` will no longer be accessible once the TTL expires.
+            
+            > 💡 **Note:** The underlying Arweave data remains permanent, but the ArNS undername routing has been removed.`;
             
             await github.rest.issues.createComment({
               owner: context.repo.owner,

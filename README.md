@@ -43,7 +43,7 @@ Automated content is produced through the scripts in the `scripts/` directory:
 - `generate-api-docs.ts`: Generates OpenAPI-driven API documentation pages.
 - `generate-sdk-docs.ts`: Builds SDK reference docs from source annotations.
 - `generate-llm-text.js` and `generate-sdk-llm-texts.js`: Create AI-assisted text snippets for docs and SDK references.
-- `deploy-to-arweave.js`: Publishes the built site to Arweave storage.
+- `deploy-to-arweave.mjs`: Publishes the built site to Arweave storage.
 - `check-links.mjs`: Validates internal and external links within the generated site.
 
 Refer to `scripts/README-llm-generation.md` for additional details on generating LLM-assisted content.
