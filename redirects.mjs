@@ -322,7 +322,12 @@ const redirects = [
   },
   {
     source: '/guides/permaweb-deploy',
-    destination: '/build/guides/hosting-decentralized-websites',
+    destination: '/build/guides/hosting-unstoppable-apps',
+    permanent: true,
+  },
+  {
+    source: '/build/guides/hosting-decentralized-websites',
+    destination: '/build/guides/hosting-unstoppable-apps',
     permanent: true,
   },
   {
