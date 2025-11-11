@@ -1,0 +1,505 @@
+---
+title: "Deploying with Permaweb-Deploy"
+description: "Learn how to deploy permanent web applications to Arweave using the permaweb-deploy CLI tool with Next.js and React"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+import {
+  Terminal,
+  Rocket,
+  Wallet,
+  Zap,
+  GitBranch,
+  BookOpen,
+} from 'lucide-react';
+
+Permaweb-deploy is the recommended CLI tool for hosting decentralised applications on AR.IO Network.
+
+It streamlines the entire deployment process by uploading your build folder to Arweave, creating Arweave manifests, and automatically updating your ArNS records in a single command.
+
+Built on the Turbo SDK, permaweb-deploy offers flexible payment options including pre-funded Turbo Credits or on-demand topups using ARIO or Base-ETH tokens. It works seamlessly with both Arweave and EVM wallets, making it easy to integrate permanent hosting into your existing development workflow.
+
+<Callout type="info" title="New to decentralised apps?">
+  Check out the [series introduction](/build/guides/hosting-decentralised-apps) to learn about permanent hosting and ArNS domains.
+</Callout>
+
+## Prerequisites
+
+Before starting, ensure you have:
+
+- **Node.js 18+** - Download from [nodejs.org](https://nodejs.org/)
+- **Arweave or EVM Wallet** - You'll need the private key or JWK file
+- **ArNS Name** - Register one at [arns.app](https://arns.app)
+- **Command Line Familiarity** - Basic terminal/shell knowledge
+
+<Callout type="warn" title="Security Best Practice">
+  Always use a dedicated wallet for deployments to minimize security risks. Never commit your private keys to version control.
+</Callout>
+
+## Project Setup
+
+Let's create a new web application and configure it for deployment. Permaweb-deploy works with any framework that generates a static build folder.
+
+<Tabs items={['Next.js', 'React + Vite']}>
+  <Tab value="Next.js">
+    <Steps>
+      <Step title="Create a Next.js project">
+        Initialize a new Next.js application:
+
+        ```bash title="Terminal"
+        npx create-next-app@latest my-permaweb-app
+        cd my-permaweb-app
+        ```
+
+        When prompted, select your preferences. For permanent hosting, **enable static export** by updating `next.config.js`:
+
+        ```javascript title="next.config.js"
+        /** @type {import('next').NextConfig} */
+        const nextConfig = {
+          output: 'export',
+          images: {
+            unoptimized: true,
+          },
+          trailingSlash: true,
+        }
+
+        module.exports = nextConfig
+        ```
+
+        - `output: 'export'` generates a static site in the `out` folder
+        - `images.unoptimized: true` prevents server-side image optimization
+        - `trailingSlash: true` ensures URLs work correctly on static hosting
+      </Step>
+
+      <Step title="Install permaweb-deploy">
+        Add permaweb-deploy as a development dependency:
+
+        ```bash title="Terminal"
+        npm install --save-dev permaweb-deploy
+        ```
+      </Step>
+
+      <Step title="Configure build and deploy scripts">
+        Update your `package.json` to include deployment commands:
+
+        ```json title="package.json"
+        {
+          "scripts": {
+            "dev": "next dev",
+            "build": "next build",
+            "deploy": "next build && permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out"
+          }
+        }
+        ```
+
+        Replace `your-arns-name` with your actual ArNS domain name. Note the `--deploy-folder out` flag is required since Next.js exports to `./out` instead of the default `./dist`.
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab value="React + Vite">
+    <Steps>
+      <Step title="Create a Vite project">
+        Initialize a new Vite application with React:
+
+        ```bash title="Terminal"
+        npm create vite@latest my-permaweb-app -- --template react
+        cd my-permaweb-app
+        npm install
+        ```
+      </Step>
+
+      <Step title="Configure Vite for static hosting">
+        Update `vite.config.js` to use relative paths for Arweave:
+
+        ```javascript title="vite.config.js"
+        import { defineConfig } from 'vite'
+        import react from '@vitejs/plugin-react'
+
+        export default defineConfig({
+          plugins: [react()],
+          base: './', // Use relative paths for Arweave
+        })
+        ```
+
+        The `base: './'` setting ensures all asset paths are relative, which is required for proper loading on Arweave gateways.
+      </Step>
+
+      <Step title="Install permaweb-deploy">
+        Add permaweb-deploy as a development dependency:
+
+        ```bash title="Terminal"
+        npm install --save-dev permaweb-deploy
+        ```
+      </Step>
+
+      <Step title="Configure build and deploy scripts">
+        Update your `package.json` to include deployment commands:
+
+        ```json title="package.json"
+        {
+          "scripts": {
+            "dev": "vite",
+            "build": "vite build",
+            "deploy": "vite build && permaweb-deploy deploy --arns-name your-arns-name"
+          }
+        }
+        ```
+
+        Replace `your-arns-name` with your actual ArNS domain name.
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+
+## Deploying from the Command Line
+
+For this walkthrough, we'll deploy directly from the command line using inline credentials. For production apps, we recommend using GitHub Actions with secrets (covered later in this guide).
+
+<Callout type="warn" title="Dedicated Deployment Wallet">
+  Always use a dedicated wallet for deployments to minimize security risks. Never commit wallet files or keys to version control.
+</Callout>
+
+<Steps>
+  <Step title="Fund your wallet with Turbo Credits">
+    Permaweb-deploy uses [Turbo](https://turbo.ar.io) to upload files to Arweave. Before deploying, ensure your wallet has sufficient credits.
+
+    Visit the [Turbo app](https://turbo.ar.io/topup) and connect your deployment wallet to view your current balance.
+
+    <Callout type="info" title="Cost estimation">
+      A typical static site (5-10 MB) costs approximately 0.1-0.5 ARIO. Credits are applied instantly and remain in your wallet for future deployments.
+    </Callout>
+  </Step>
+
+  <Step title="Build and deploy to Arweave">
+    The `npm run deploy` command we configured earlier will build your app and deploy it to Arweave. Use the `DEPLOY_KEY` environment variable to pass your wallet credentials inline:
+
+    <Tabs items={['Arweave Wallet', 'EVM Wallet']}>
+      <Tab value="Arweave Wallet">
+        For Arweave wallets, base64 encode your JWK file and pass it inline:
+
+        ```bash title="Terminal"
+        DEPLOY_KEY=$(base64 -i wallet.json) npm run deploy
+        ```
+
+        This command will:
+        1. Build your application (`next build` or `vite build`)
+        2. Deploy to Arweave using your base64-encoded wallet
+
+        The `$(base64 -i wallet.json)` command encodes your wallet on-the-fly without saving it to disk.
+      </Tab>
+
+      <Tab value="EVM Wallet">
+        For EVM wallets (Ethereum, Polygon, Base, KYVE), use your raw private key:
+
+        ```bash title="Terminal"
+        DEPLOY_KEY="0x1234567890abcdef..." npm run deploy
+        ```
+
+        This command will:
+        1. Build your application (`next build` or `vite build`)
+        2. Deploy to Arweave using your EVM wallet
+
+        Replace `0x1234...` with your actual private key from MetaMask or your wallet provider.
+
+        <Callout type="info" title="EVM wallet configuration">
+          For EVM wallets, ensure your deploy script in `package.json` includes the `--sig-type` flag (e.g., `--sig-type ethereum`).
+        </Callout>
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Monitor the deployment">
+    Permaweb-deploy will:
+
+    1. **Upload files** to Arweave via Turbo
+    2. **Create a manifest** with SPA fallback detection
+    3. **Update ArNS records** to point to the new transaction
+    4. **Tag the deployment** with your current git commit hash
+
+    Expected output:
+
+    ```
+    -------------------- DEPLOY DETAILS --------------------
+Tx ID: abc123def456ghi789jkl012mno345pqr678stu901v
+ArNS Name: your-arns-name
+Undername: @
+ANT: xyz789abc012def345ghi678jkl901mno234pqr567s
+AR IO Process: bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM
+TTL Seconds: 60
+--------------------------------------------------------
+Deployed TxId [abc123def456ghi789jkl012mno345pqr678stu901v] to name [your-arns-name] for ANT [xyz789abc012def345ghi678jkl901mno234pqr567s] using undername [@]
+
+    ```
+  </Step>
+</Steps>
+
+<Callout type="info" title="Propagation time">
+  ArNS updates typically propagate across the gateway network within 60 seconds (the default TTL). You may need to hard refresh your browser to see changes immediately.
+</Callout>
+
+## On-Demand Payment
+
+Instead of pre-funding Turbo Credits, you can pay for deployments on-demand. Permaweb-deploy will automatically convert tokens to credits as needed.
+
+<Steps>
+  <Step title="Add on-demand script to package.json">
+    Update your `package.json` to include an on-demand deployment script:
+
+    <Tabs items={['Next.js', 'React + Vite']}>
+      <Tab value="Next.js">
+        <Tabs items={['ARIO Tokens', 'Base-ETH']}>
+          <Tab value="ARIO Tokens">
+            For Arweave wallets using ARIO tokens:
+
+            ```json title="package.json"
+            {
+              "scripts": {
+                "dev": "next dev",
+                "build": "next build",
+                "deploy": "next build && permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out",
+                "deploy:on-demand": "next build && permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out --on-demand ario --max-token-amount 2.0"
+              }
+            }
+            ```
+
+            - `--on-demand ario` enables ARIO payment mode
+            - `--max-token-amount 2.0` sets maximum ARIO to spend (prevents unexpected costs)
+          </Tab>
+
+          <Tab value="Base-ETH">
+            For EVM wallets using Base-ETH:
+
+            ```json title="package.json"
+            {
+              "scripts": {
+                "dev": "next dev",
+                "build": "next build",
+                "deploy": "next build && permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out --sig-type ethereum",
+                "deploy:on-demand": "next build && permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out --sig-type ethereum --on-demand base-eth --max-token-amount 0.01"
+              }
+            }
+            ```
+
+            - `--sig-type ethereum` required for EVM wallets
+            - `--on-demand base-eth` enables Base Network payment
+            - Wallet must be funded with ETH on Base Network
+
+            <Callout type="warn" title="Network requirement">
+              Base-ETH on-demand payment only works with Ethereum signer types. Your wallet must have ETH on the Base Network, not Ethereum mainnet.
+            </Callout>
+          </Tab>
+        </Tabs>
+      </Tab>
+
+      <Tab value="React + Vite">
+        <Tabs items={['ARIO Tokens', 'Base-ETH']}>
+          <Tab value="ARIO Tokens">
+            For Arweave wallets using ARIO tokens:
+
+            ```json title="package.json"
+            {
+              "scripts": {
+                "dev": "vite",
+                "build": "vite build",
+                "deploy": "vite build && permaweb-deploy deploy --arns-name your-arns-name",
+                "deploy:on-demand": "vite build && permaweb-deploy deploy --arns-name your-arns-name --on-demand ario --max-token-amount 2.0"
+              }
+            }
+            ```
+
+            - `--on-demand ario` enables ARIO payment mode
+            - `--max-token-amount 2.0` sets maximum ARIO to spend (prevents unexpected costs)
+          </Tab>
+
+          <Tab value="Base-ETH">
+            For EVM wallets using Base-ETH:
+
+            ```json title="package.json"
+            {
+              "scripts": {
+                "dev": "vite",
+                "build": "vite build",
+                "deploy": "vite build && permaweb-deploy deploy --arns-name your-arns-name --sig-type ethereum",
+                "deploy:on-demand": "vite build && permaweb-deploy deploy --arns-name your-arns-name --sig-type ethereum --on-demand base-eth --max-token-amount 0.01"
+              }
+            }
+            ```
+
+            - `--sig-type ethereum` required for EVM wallets
+            - `--on-demand base-eth` enables Base Network payment
+            - Wallet must be funded with ETH on Base Network
+
+            <Callout type="warn" title="Network requirement">
+              Base-ETH on-demand payment only works with Ethereum signer types. Your wallet must have ETH on the Base Network, not Ethereum mainnet. See [Base documentation](https://docs.base.org/) for getting testnet or mainnet ETH.
+            </Callout>
+          </Tab>
+        </Tabs>
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Deploy with on-demand payment">
+    Run the on-demand deployment command with your wallet credentials:
+
+    <Tabs items={['Arweave Wallet', 'EVM Wallet']}>
+      <Tab value="Arweave Wallet">
+        ```bash title="Terminal"
+        DEPLOY_KEY=$(base64 -i wallet.json) npm run deploy:on-demand
+        ```
+
+        The tool will automatically convert ARIO to Turbo Credits as needed for the deployment.
+      </Tab>
+
+      <Tab value="EVM Wallet">
+        ```bash title="Terminal"
+        DEPLOY_KEY="0x1234567890abcdef..." npm run deploy:on-demand
+        ```
+
+        The tool will automatically convert Base-ETH to Turbo Credits as needed for the deployment.
+      </Tab>
+    </Tabs>
+  </Step>
+</Steps>
+
+The on-demand approach is ideal for:
+- **Frequent deployments** where pre-funding isn't convenient
+- **CI/CD pipelines** that need reliable automated deployments
+- **Multi-team projects** where different wallets handle different apps
+
+## Automating with GitHub Actions
+
+Automate deployments on every push to your main branch using GitHub Actions.
+
+<Steps>
+  <Step title="Add deployment key to GitHub secrets">
+    In your GitHub repository:
+
+    1. Navigate to **Settings** → **Secrets and variables** → **Actions**
+    2. Click **New repository secret**
+    3. Name: `DEPLOY_KEY`
+    4. Value: Paste in your wallet key
+    5. Click **Add secret**
+
+    <Callout type="warn" title="Secret format">
+      For Arweave wallets, encode the entire JWK file to base64 before adding it as a secret. For EVM wallets, use the raw private key with the `0x` prefix.
+    </Callout>
+  </Step>
+
+  <Step title="Create GitHub Actions workflow">
+    Create `.github/workflows/deploy.yml`:
+
+    ```yaml title=".github/workflows/deploy.yml"
+    name: Deploy to Arweave
+
+    on:
+      push:
+        branches: [main]
+
+    jobs:
+      deploy:
+        runs-on: ubuntu-latest
+
+        steps:
+          - uses: actions/checkout@v4
+
+          - name: Setup Node.js
+            uses: actions/setup-node@v4
+            with:
+              node-version: '18'
+              cache: 'npm'
+
+          - name: Install dependencies
+            run: npm ci
+
+          - name: Deploy to Arweave
+            run: npm run deploy
+            env:
+              DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+    ```
+
+    This workflow:
+    - Triggers on pushes to the `main` branch
+    - Checks out your code
+    - Installs dependencies
+    - Runs your `deploy` script with the secret `DEPLOY_KEY`
+  </Step>
+
+  <Step title="Customize for your framework">
+    Adjust the workflow based on your needs:
+
+    <Tabs items={['Next.js', 'React + Vite', 'On-Demand Payment']}>
+      <Tab value="Next.js">
+        For Next.js, ensure your deploy script includes `--deploy-folder out`:
+
+        ```json title="package.json"
+        {
+          "scripts": {
+            "deploy": "next build && permaweb-deploy deploy --arns-name myapp --deploy-folder out"
+          }
+        }
+        ```
+      </Tab>
+
+      <Tab value="React + Vite">
+        For Vite, the default `./dist` folder works automatically:
+
+        ```json title="package.json"
+        {
+          "scripts": {
+            "deploy": "vite build && permaweb-deploy deploy --arns-name myapp"
+          }
+        }
+        ```
+      </Tab>
+
+      <Tab value="On-Demand Payment">
+        For on-demand deployments, add the appropriate flags:
+
+        ```json title="package.json"
+        {
+          "scripts": {
+            "deploy": "vite build && permaweb-deploy deploy --arns-name myapp --on-demand ario --max-token-amount 2.0"
+          }
+        }
+        ```
+
+        The workflow will automatically convert tokens as needed during CI runs.
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Test the automation">
+    Make a commit and push to your main branch:
+
+    ```bash title="Terminal"
+    git add .
+    git commit -m "Set up automated deployments"
+    git push origin main
+    ```
+
+    Check the **Actions** tab in your GitHub repository to monitor the deployment progress.
+  </Step>
+</Steps>
+
+<Callout type="info" title="Deployment frequency">
+  Each push triggers a new deployment. For high-traffic repositories, consider adding conditions to deploy only when specific files change, or use manual workflow triggers.
+</Callout>
+
+
+## Summary
+
+You now know how to deploy permanent web applications using permaweb-deploy:
+
+- **Static site setup** for Next.js and React + Vite with proper configuration
+- **Flexible wallet options** supporting both Arweave (JWK) and EVM wallets
+- **Payment methods** including pre-funded Turbo Credits and on-demand topups with ARIO or Base-ETH
+- **Command-line deployment** with inline wallet credentials for quick deployments
+- **GitHub Actions automation** for continuous deployment on every push
+
+In the next guide, you'll learn how to use undernames to manage multiple environments and versions of your application.
+
