@@ -8,21 +8,21 @@ import { Steps, Step } from "fumadocs-ui/components/steps";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { Shield, DollarSign, Globe, Image } from "lucide-react";
 
-Storing NFTs assets on AR.IO Network ensures they're permanent, immutable and accessible, forever.
+Storing NFT assets on AR.IO Network ensures they're permanent, immutable and accessible, forever.
 
-We achive this by providing:
+We achieve this by providing:
 
 - **Permanent Storage**: your assets are stored forever on Arweave.
 - **One-Time Payment**: Pay once upfront for permanent storage.
 - **Decentralised Gateways**: a network of 100s of incentivized gateways provide access. 
-- **Routing Protocol**: ar://wayfinder ensures an active gateways is selected for all requests.
+- **Routing Protocol**: ar://wayfinder ensures an active gateway is selected for all requests.
 
-Once your NFT assets are stored on AR.IO Network, no one can delete, edit or "rug" them. Creators can be confident their art will live on forever and collectors can be confident their investment wont dissapear.
+Once your NFT assets are stored on AR.IO Network, no one can delete, edit or "rug" them. Creators can be confident their art will live on forever and collectors can be confident their investment won't disappear.
 
 
 ## How to Store NFT assets on AR.IO Network
 
-First, it's important to understand AR.IO Network doesn't let you mint NFTs. What it does provide is permanent storage and access for the media files (images, video, animations) and metadata (artist, attributes, traits) JSON whoch is used in NFTs. 
+First, it's important to understand AR.IO Network doesn't let you mint NFTs. What it does provide is permanent storage and access for the media files (images, video, animations) and metadata (artist, attributes, traits) JSON which is used in NFTs. 
 
 To mint an NFT you'd typically store your assets and metadata on AR.IO Network and then use another service to "mint" the NFTs onchain. 
 
@@ -43,6 +43,10 @@ allowfullscreen>
 
 Let's walk through uploading a complete NFT with its metadata using Turbo, AR.IO's fast upload service.
 
+<Callout type="info">
+**Before you begin:** You'll need an Arweave wallet with funds to purchase [Turbo Credits](/build/upload/turbo-credits) for uploads. Learn more about [getting started with Turbo](/build/upload/advanced-uploading-with-turbo).
+</Callout>
+
 ### Prerequisites
 
 Install the Turbo SDK:
@@ -61,28 +65,33 @@ First, authenticate with your Arweave wallet and upload the NFT image:
 import { TurboFactory } from '@ardrive/turbo-sdk';
 import fs from 'fs';
 
-// Authenticate with your Arweave wallet
-const jwk = JSON.parse(fs.readFileSync('./wallet.json', 'utf-8'));
-const turbo = TurboFactory.authenticated({
-  privateKey: jwk,
-  token: 'arweave'
-});
+try {
+  // Authenticate with your Arweave wallet
+  const jwk = JSON.parse(fs.readFileSync('./wallet.json', 'utf-8'));
+  const turbo = TurboFactory.authenticated({
+    privateKey: jwk,
+    token: 'arweave'
+  });
 
-// Upload the NFT image
-const imageUpload = await turbo.uploadFile({
-  fileStreamFactory: () => fs.createReadStream('./my-nft.png'),
-  fileSizeFactory: () => fs.statSync('./my-nft.png').size,
-  dataItemOpts: {
-    tags: [
-      { name: 'Content-Type', value: 'image/png' }
-    ]
-  }
-});
+  // Upload the NFT image
+  const imageUpload = await turbo.uploadFile({
+    fileStreamFactory: () => fs.createReadStream('./my-nft.png'),
+    fileSizeFactory: () => fs.statSync('./my-nft.png').size,
+    dataItemOpts: {
+      tags: [
+        { name: 'Content-Type', value: 'image/png' }
+      ]
+    }
+  });
 
-// Get the ar:// URL
-const imageUrl = `ar://${imageUpload.id}`;
-console.log('Image uploaded:', imageUrl);
-// Output: ar://Xj9k2Lm8Pq3Rn5Tv7Wz...
+  // Get the ar:// URL
+  const imageUrl = `ar://${imageUpload.id}`;
+  console.log('Image uploaded:', imageUrl);
+  // Output: ar://Xj9k2Lm8Pq3Rn5Tv7Wz...
+} catch (error) {
+  console.error('Upload failed:', error.message);
+  // Check wallet balance, file exists, or network connection
+}
 ```
 </Step>
 
@@ -175,14 +184,20 @@ function tokenURI(uint256 tokenId) public view returns (string memory) {
     return "ar://your-metadata-transaction-id";
 }
 ```
+
+For a single NFT, all tokens can share the same metadata. For collections with unique metadata per token, see the manifest section below.
 </Step>
 </Steps>
 
+<Callout type="info">
+**Note:** Uploads are typically available within seconds, but may take a few minutes to propagate across all AR.IO gateways.
+</Callout>
+
 ### Summary
 
-This example has shown you how to storge your NFT assets and metadata on Arweave via AR.IO Network and then add this to the tokenURI field of your NFTs smart contract.
+This example has shown you how to store your NFT assets and metadata on Arweave via AR.IO Network and then add this to the tokenURI field of your NFT's smart contract.
 
-Next we'll explore who to store NFT images and metadata for entire collections.
+Next we'll explore how to store NFT images and metadata for entire collections.
 
 
 ## Organizing Collections with Manifests
@@ -191,30 +206,36 @@ For NFT collections, manifests provide an efficient way to organize multiple fil
 
 ### What Are Manifests?
 
-A manifest acts like a folder on Arweave, mapping paths to transaction IDs. This enables clean URLs for organizing entire collections:
+A manifest acts like a folder on Arweave, mapping paths to transaction IDs. For NFT collections, manifests organize metadata access:
 - `ar://manifest-id/0.json` → Token 0 metadata
-- `ar://manifest-id/images/0.png` → Token 0 image
 - `ar://manifest-id/1.json` → Token 1 metadata
-- `ar://manifest-id/images/1.png` → Token 1 image
+- `ar://manifest-id/42.json` → Token 42 metadata
 
-Instead of uploading each file individually and tracking hundreds of transaction IDs, you upload once and get a single manifest ID that organizes everything.
+Each metadata file contains fully qualified `ar://` URIs pointing to permanent image transaction IDs. This approach gives you:
+- **Organized metadata**: One manifest ID for all collection metadata
+- **Universal compatibility**: Images use standard `ar://txid` format that works everywhere
+- **Clean contract code**: Simple `baseURI + tokenId + .json` pattern
 
 ### When to Use Manifests
 
-- **Large collections** (100+ NFTs): Organize all images and metadata files in a single manifest
-- **Multi-asset NFTs**: Group images, animations, and metadata together under one transaction ID
-- **Organized structure**: Maintain clean folder organization (e.g., `/images/`, `/animations/`, `/metadata/`)
-- **Simplified management**: Track one manifest ID instead of hundreds of individual transaction IDs
+- **Large collections** (100+ NFTs): Organize metadata files under a single manifest ID
+- **Clean contract code**: Use simple `manifest-id/tokenId.json` pattern instead of mapping each token to individual metadata TxIDs
+- **Future flexibility**: Update by pointing to new manifest without changing image references
+- **Simplified management**: Track one manifest ID for metadata access
 
-For single NFTs or very small collections (under 10), uploading files individually may be simpler.
+<Callout type="info">
+**How this workflow balances cost and compatibility:** Images are uploaded once with individual TxIDs (universally compatible), while metadata is organized in a manifest (easy contract integration).
+</Callout>
+
+For single NFTs or very small collections (under 10), uploading metadata files individually may be simpler.
 
 ### Creating a Collection with Manifests
 
 <Steps>
 <Step>
-#### Organize Your Files
+### Organize Your Files
 
-Create a folder structure for your collection with images and metadata templates:
+Create a folder structure with images and metadata templates:
 
 ```
 my-collection/
@@ -223,13 +244,14 @@ my-collection/
 │   ├── 1.png
 │   ├── 2.png
 │   └── ...
-├── 0.json
-├── 1.json
-├── 2.json
-└── ...
+├── metadata/
+│   ├── 0.json
+│   ├── 1.json
+│   ├── 2.json
+│   └── ...
 ```
 
-Start with metadata templates (you'll add image references in step 3):
+Start with metadata templates (image field will be populated in Step 3):
 
 ```json
 {
@@ -247,9 +269,9 @@ Start with metadata templates (you'll add image references in step 3):
 </Step>
 
 <Step>
-#### Upload Images and Get Transaction IDs
+### Upload Images and Collect Transaction IDs
 
-First, upload all images to get their transaction IDs:
+Upload all images individually and collect their permanent transaction IDs:
 
 ```javascript
 import { TurboFactory } from '@ardrive/turbo-sdk';
@@ -263,13 +285,14 @@ const turbo = TurboFactory.authenticated({
   token: 'arweave'
 });
 
-// Upload all images
+// Upload all images from images folder
 const imagesDir = './my-collection/images';
-const imageFiles = fs.readdirSync(imagesDir);
+const imageFiles = fs.readdirSync(imagesDir).sort();
 const imageTxIds = {};
 
 for (const filename of imageFiles) {
   const filePath = path.join(imagesDir, filename);
+
   const upload = await turbo.uploadFile({
     fileStreamFactory: () => fs.createReadStream(filePath),
     fileSizeFactory: () => fs.statSync(filePath).size,
@@ -280,39 +303,40 @@ for (const filename of imageFiles) {
     }
   });
 
-  // Store mapping: "0.png" -> transaction ID
   imageTxIds[filename] = upload.id;
   console.log(`Uploaded ${filename}: ar://${upload.id}`);
 }
 
 console.log('All images uploaded:', imageTxIds);
-// { "0.png": "Xj9k...", "1.png": "Yk2m...", ... }
 ```
 </Step>
 
 <Step>
-#### Update Metadata Files with Image References
+### Update Metadata with Image Transaction IDs
 
-Now update each metadata file to include the image transaction IDs:
+Update each metadata file to reference its permanent image transaction ID:
 
 ```javascript
-// Update metadata files with image references
-const metadataDir = './my-collection';
-const metadataFiles = fs.readdirSync(metadataDir)
-  .filter(f => f.endsWith('.json'));
+// Update metadata files with fully qualified image URIs
+const metadataDir = './my-collection/metadata';
+const metadataFiles = fs.readdirSync(metadataDir).sort();
 
 for (const filename of metadataFiles) {
   const filePath = path.join(metadataDir, filename);
   const metadata = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
 
-  // Map metadata file to image: "0.json" -> "0.png"
+  // Map metadata to image: "0.json" -> "0.png"
   const imageFilename = filename.replace('.json', '.png');
   const imageTxId = imageTxIds[imageFilename];
 
-  // Add the ar:// reference
+  if (!imageTxId) {
+    console.warn(`No image found for ${filename}`);
+    continue;
+  }
+
+  // Set fully qualified ar:// URI
   metadata.image = `ar://${imageTxId}`;
 
-  // Write updated metadata back to file
   fs.writeFileSync(filePath, JSON.stringify(metadata, null, 2));
   console.log(`Updated ${filename} with image: ${metadata.image}`);
 }
@@ -320,34 +344,29 @@ for (const filename of metadataFiles) {
 </Step>
 
 <Step>
-#### Upload Complete Collection as Manifest
+### Upload Metadata Folder as Manifest
 
-With all metadata files updated, upload the entire folder to create a manifest:
+Upload only the metadata folder to create a manifest for organized access:
 
 ```javascript
-// Upload entire collection folder
+// Upload metadata folder to create manifest
 const result = await turbo.uploadFolder({
-  folderPath: './my-collection'
+  folderPath: './my-collection/metadata'
 });
 
 const manifestId = result.manifestId;
-const baseUrl = `ar://${manifestId}`;
-
-console.log('Collection uploaded with manifest!');
-console.log('Manifest ID:', manifestId);
-console.log('Base URL:', baseUrl);
-console.log('\nAccess your collection:');
-console.log('Token 0 metadata:', `${baseUrl}/0.json`);
-console.log('Token 1 metadata:', `${baseUrl}/1.json`);
+console.log('Metadata manifest ID:', manifestId);
+console.log('Token 0 metadata: ar://' + manifestId + '/0.json');
+console.log('Token 1 metadata: ar://' + manifestId + '/1.json');
 ```
 
-Your metadata files are now permanently stored and reference the permanent images.
+Each metadata file now contains fully qualified `ar://` image references that work with any NFT platform.
 </Step>
 
 <Step>
-#### Use in Your Minting Contract
+### Use in Your Minting Contract
 
-Use the manifest ID in your NFT contract's `tokenURI` function:
+Use the metadata manifest ID for clean, organized token URIs:
 
 ```solidity
 string private constant MANIFEST_ID = "your-manifest-transaction-id";
@@ -357,7 +376,10 @@ function tokenURI(uint256 tokenId) public view returns (string memory) {
 }
 ```
 
-Result: `ar://manifest-id/42.json` for token 42, which contains `"image": "ar://Xj9k2Lm8Pq3Rn5Tv7Wz..."`
+**How it resolves:**
+1. Contract returns: `ar://manifest-id/42.json`
+2. Platform fetches metadata containing: `"image": "ar://individual-image-txid"`
+3. Platform fetches image from its permanent transaction ID
 </Step>
 </Steps>
 
@@ -365,10 +387,9 @@ Result: `ar://manifest-id/42.json` for token 42, which contains `"image": "ar://
 
 By following this workflow, you've created a permanent, organized NFT collection where:
 
-1. **All images are permanently stored** with individual transaction IDs on Arweave
-2. **Metadata files reference the permanent images** using `ar://` protocol
-3. **Everything is organized under one manifest ID** for easy management and deployment
-4. **Your smart contract only needs one manifest ID** to access the entire collection
+1. **Images stored with permanent transaction IDs** that work universally
+2. **Metadata contains fully qualified ar:// image URIs** compatible with all NFT platforms
+3. **Metadata organized under one manifest ID** for clean contract integration
+4. **Your smart contract uses one manifest ID** to access all token metadata
 
 Your NFTs are now stored permanently with guaranteed access, following industry standards, and future-proofed against gateway dependencies.
-
