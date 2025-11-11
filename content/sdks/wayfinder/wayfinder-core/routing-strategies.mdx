@@ -75,67 +75,65 @@ The `CompositeRoutingStrategy` allows you to chain multiple routing strategies t
 
 ```javascript
 import { 
+  createWayfinderClient,
   CompositeRoutingStrategy, 
   FastestPingRoutingStrategy, 
   RandomRoutingStrategy,
   StaticRoutingStrategy,
-  NetworkGatewaysProvider 
+  NetworkGatewaysProvider,
 } from '@ar.io/wayfinder-core';
 import { ARIO } from '@ar.io/sdk';
 
 // Example 1: Performance-first with resilience fallback
-const performanceStrategy = new CompositeRoutingStrategy({
-  strategies: [
-    // Try fastest ping first (high performance, but may fail if all gateways are slow)
-    new FastestPingRoutingStrategy({
-      timeoutMs: 500,
-      gatewaysProvider: new NetworkGatewaysProvider({
-        ario: ARIO.mainnet(),
-        sortBy: 'operatorStake',
-        limit: 10,
+const performanceWayfinder = createWayfinderClient({
+  routingStrategy: new CompositeRoutingStrategy({
+    strategies: [
+      // Try fastest ping first (high performance, but may fail if all gateways are slow)
+      new FastestPingRoutingStrategy({
+        timeoutMs: 500,
+        gatewaysProvider: new NetworkGatewaysProvider({
+          ario: ARIO.mainnet(),
+          sortBy: 'operatorStake',
+          limit: 10,
+        }),
       }),
-    }),
-    // Fallback to random selection (guaranteed to work if gateways exist)
-    new RandomRoutingStrategy({
-      gatewaysProvider: new NetworkGatewaysProvider({
-        ario: ARIO.mainnet(),
-        sortBy: 'operatorStake', 
-        limit: 20, // Use more gateways for fallback
+      // Fallback to random selection (guaranteed to work if gateways exist)
+      new RandomRoutingStrategy({
+        gatewaysProvider: new NetworkGatewaysProvider({
+          ario: ARIO.mainnet(),
+          sortBy: 'operatorStake', 
+          limit: 20, // Use more gateways for fallback
+        }),
       }),
-    }),
-  ],
+    ],
+  }),
 });
 
 // Example 2: Preferred gateway with multi-tier fallback
-const preferredStrategy = new CompositeRoutingStrategy({
-  strategies: [
-    // First, try your preferred gateway
-    new StaticRoutingStrategy({ 
-      gateway: 'https://my-preferred-gateway.com' 
-    }),
-    // If that fails, try fastest ping from top-tier gateways
-    new FastestPingRoutingStrategy({
-      timeoutMs: 1000,
-      gatewaysProvider: new NetworkGatewaysProvider({
-        ario: ARIO.mainnet(),
-        sortBy: 'operatorStake',
-        limit: 5, // Only top 5 gateways
+const preferredWayfinder = createWayfinderClient({
+  routingStrategy: new CompositeRoutingStrategy({
+    strategies: [
+      // First, try your preferred gateway
+      new StaticRoutingStrategy({ 
+        gateway: 'https://my-preferred-gateway.com' 
       }),
-    }),
-    // Final fallback: any random gateway from a larger pool
-    new RandomRoutingStrategy({
-      gatewaysProvider: new NetworkGatewaysProvider({
-        ario: ARIO.mainnet(),
-        limit: 50, // Larger pool for maximum availability
+      // If that fails, try fastest ping from top-tier gateways
+      new FastestPingRoutingStrategy({
+        timeoutMs: 1000,
+        gatewaysProvider: new NetworkGatewaysProvider({
+          ario: ARIO.mainnet(),
+          sortBy: 'operatorStake',
+          limit: 5, // Only top 5 gateways
+        }),
       }),
-    }),
-  ],
-});
-
-// Use with createWayfinderClient
-const wayfinder = createWayfinderClient({
-  routingSettings: {
-    strategy: performanceStrategy,
-  },
+      // Final fallback: any random gateway from a larger pool
+      new RandomRoutingStrategy({
+        gatewaysProvider: new NetworkGatewaysProvider({
+          ario: ARIO.mainnet(),
+          limit: 50, // Larger pool for maximum availability
+        }),
+      }),
+    ],
+  }),
 });
 ```

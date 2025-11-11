@@ -5,10 +5,10 @@ description: "JavaScript/TypeScript SDK for accessing Arweave data with built-in
 
 Wayfinder supports multiple data retrieval strategies to fetch transaction data from AR.IO gateways. These strategies determine how data is requested and assembled from the underlying storage layer.
 
-| Strategy                          | Default | Performance | Use Case                                    | Requirements                           |
-| --------------------------------- | ------- | ----------- | ------------------------------------------- | -------------------------------------- |
-| `ContiguousDataRetrievalStrategy` | ✅      | High        | Standard data fetching via direct GET      | Gateway has the data available locally       |
-| `ChunkDataRetrievalStrategy`      | ❌      | Medium      | Chunk-based data assembly for large files  | Gateway supports `/chunk/\<offset\>/data` endpoint and has requested transaction indexed as offsets are needed |
+| Strategy                          | Use Case                                    | Requirements                           |
+| --------------------------------- | ------------------------------------------- | -------------------------------------- |
+| `ContiguousDataRetrievalStrategy`| Standard data fetching via direct GET      | Gateway has the data cached or able to fetch from trusted peers         |
+| `ChunkDataRetrievalStrategy`     | Chunk-based data assembly  | Gateway supports `/chunk/\<offset\>/data` endpoint (r58) and has requested transactions indexed |
 
 #### ContiguousDataRetrievalStrategy
 
@@ -29,7 +29,7 @@ An advanced strategy that provides the easiest way to load chunks stored on Arwe
 - **Direct chunk access**: Efficiently retrieves data directly from the underlying chunk storage layer
 - **Bundled data items**: Seamlessly fetches data items from within ANS-104 bundles using calculated offsets
 - **x402 payment compatibility**: Both strategies support custom fetch clients for payment-enabled requests
-- **Large file handling**: More reliable for large transactions that may timeout with direct requests
+- **Large file handling**: More reliable for large transactions that may time out with direct requests
 
 **Requirements:**
 
