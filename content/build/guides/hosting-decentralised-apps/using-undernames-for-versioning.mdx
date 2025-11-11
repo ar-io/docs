@@ -1,0 +1,405 @@
+---
+title: "Undernames for Environments and Versioning"
+description: "Learn practical versioning patterns using ArNS undernames for managing multiple versions and environments of your decentralised apps"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+import { GitBranch, Code, Rocket, Network, Settings, RefreshCw, CheckCircle, Zap, Upload } from 'lucide-react';
+
+In the [previous guide](/build/guides/hosting-decentralised-apps/deploying-with-permaweb-deploy), you deployed your application to your base ArNS name. Now you'll learn how to manage multiple versions and environments using **undernames** - subdomains under your ArNS name.`
+
+## What You'll Learn
+
+- **Strategic versioning patterns** for managing multiple environments
+- **Package.json workflows** for dev → staging → production
+- **GitHub Actions automation** for environment-based deployments
+- **Instant rollbacks** using the ArNS app interface
+- **Best practices** for TTL configuration and testing
+
+## Understanding Undernames
+
+Undernames let you create multiple versions under one ArNS name - like subdomains in traditional DNS, but permanent and decentralized.
+
+**Structure:**
+
+```
+your-arns-name (your ArNS name)
+├─ @ (base)       → your-arns-name.arweave.net
+├─ dev            → dev_your-arns-name.arweave.net
+├─ staging        → staging_your-arns-name.arweave.net
+└─ v2             → v2_your-arns-name.arweave.net
+```
+
+**Key benefits:**
+
+- **Unlimited undernames** with one ArNS registration
+- **Each undername** points to a different deployment (transaction ID)
+- **All versions** remain permanently accessible
+- **Instant rollbacks** by updating pointers in the ArNS app
+
+---
+
+## Common Versioning Patterns
+
+### Pattern 1: Environment-Based Versioning
+
+Best for: Most production applications
+
+This pattern creates separate environments for your development workflow:
+
+```
+@ (production)   → Current production release
+staging          → Pre-release testing environment
+dev              → Active development builds
+```
+
+**Add environment scripts to your project:**
+
+In your `my-permaweb-app` project from the previous guide, update `package.json` to add environment-specific deployment commands:
+
+<Tabs items={['Next.js', 'React + Vite']}>
+  <Tab value="Next.js">
+    ```json title="package.json"
+    {
+      "scripts": {
+        "dev": "next dev",
+        "build": "next build",
+        "deploy": "next build && permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out",
+        "deploy:dev": "next build && permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out --undername dev --ttl-seconds 60",
+        "deploy:staging": "next build && permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out --undername staging --ttl-seconds 60",
+        "deploy:prod": "next build && permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out --ttl-seconds 3600"
+      }
+    }
+    ```
+
+    Replace `your-arns-name` with your actual ArNS name.
+  </Tab>
+
+  <Tab value="React + Vite">
+    ```json title="package.json"
+    {
+      "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "deploy": "vite build && permaweb-deploy deploy --arns-name your-arns-name",
+        "deploy:dev": "vite build && permaweb-deploy deploy --arns-name your-arns-name --undername dev --ttl-seconds 60",
+        "deploy:staging": "vite build && permaweb-deploy deploy --arns-name your-arns-name --undername staging --ttl-seconds 60",
+        "deploy:prod": "vite build && permaweb-deploy deploy --arns-name your-arns-name --ttl-seconds 60"
+      }
+    }
+    ```
+
+    Replace `your-arns-name` with your actual ArNS name.
+  </Tab>
+</Tabs>
+
+
+---
+
+### Pattern 2: Version Archives
+
+Best for: Applications needing long-term version history
+
+This pattern extends Pattern 1 by archiving each production release to a version-specific undername for permanent access:
+
+```
+@ (production)   → v2.0 (current release)
+staging          → v2.1 (next release testing)
+dev              → Latest development
+v2-0-0           → Version 2.0.0 (archived)
+v2-1-0           → Version 2.1.0 (archived)
+```
+
+**Add archive script:**
+
+Create a script that automatically archives based on your `package.json` version:
+
+<Tabs items={['Next.js', 'React + Vite']}>
+  <Tab value="Next.js">
+    ```javascript title="scripts/deploy-archive.js"
+    const { execSync } = require('child_process');
+    const packageJson = require('../package.json');
+
+    // Get version from package.json (e.g., "2.1.0")
+    const version = packageJson.version.replace(/\./g, '-'); // "2-1-0"
+
+    console.log(`Archiving version ${version}...`);
+
+    // Deploy to version-specific undername (build already done by npm script)
+    execSync(
+      `permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out --undername v${version} --ttl-seconds 3600`,
+      { stdio: 'inherit' }
+    );
+
+    console.log(`✓ Archived at: https://v${version}_your-arns-name.arweave.net`);
+    ```
+
+    Then add to `package.json`:
+
+    ```json title="package.json"
+    {
+      "scripts": {
+        "deploy:dev": "next build && permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out --undername dev --ttl-seconds 60",
+        "deploy:staging": "next build && permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out --undername staging --ttl-seconds 60",
+        "deploy:prod": "next build && permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out --ttl-seconds 3600",
+        "deploy:archive": "next build && node scripts/deploy-archive.js"
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab value="React + Vite">
+    ```javascript title="scripts/deploy-archive.js"
+    const { execSync } = require('child_process');
+    const packageJson = require('../package.json');
+
+    // Get version from package.json (e.g., "2.1.0")
+    const version = packageJson.version.replace(/\./g, '-'); // "2-1-0"
+
+    console.log(`Archiving version ${version}...`);
+
+    // Deploy to version-specific undername (build already done by npm script)
+    execSync(
+      `permaweb-deploy deploy --arns-name your-arns-name --undername v${version} --ttl-seconds 3600`,
+      { stdio: 'inherit' }
+    );
+
+    console.log(`✓ Archived at: https://v${version}_your-arns-name.arweave.net`);
+    ```
+
+    Then add to `package.json`:
+
+    ```json title="package.json"
+    {
+      "scripts": {
+        "deploy:dev": "vite build && permaweb-deploy deploy --arns-name your-arns-name --undername dev --ttl-seconds 60",
+        "deploy:staging": "vite build && permaweb-deploy deploy --arns-name your-arns-name --undername staging --ttl-seconds 60",
+        "deploy:prod": "vite build && permaweb-deploy deploy --arns-name your-arns-name --ttl-seconds 3600",
+        "deploy:archive": "vite build && node scripts/deploy-archive.js"
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+Now whenever you run `deploy:archive` a version specific immutable deployment of your app we be create and hosted permanently.
+
+For example, version 2.1.0 would be accessible forever at `https://v2-1-0_your-arns-name.arweave.net`.
+
+---
+
+### Pattern 3: Component Architecture
+
+Best for: Monorepos with multiple deployable parts
+
+This pattern deploys different parts of your application to separate undernames:
+
+```
+@ (marketing)    → Marketing website
+app              → Main application
+docs             → Documentation site
+admin            → Admin panel
+```
+
+**Example package.json:**
+
+```json title="package.json"
+{
+  "scripts": {
+    "deploy:marketing": "permaweb-deploy deploy --arns-name your-arns-name --deploy-folder ./marketing/dist --ttl-seconds 3600",
+    "deploy:app": "permaweb-deploy deploy --arns-name your-arns-name --undername app --deploy-folder ./app/dist --ttl-seconds 60",
+    "deploy:docs": "permaweb-deploy deploy --arns-name your-arns-name --undername docs --deploy-folder ./docs/dist --ttl-seconds 1800",
+    "deploy:all": "npm run deploy:marketing && npm run deploy:app && npm run deploy:docs"
+  }
+}
+```
+
+Each component can be deployed independently or all at once with `npm run deploy:all`.
+
+---
+
+## Automating Environment Deployments
+
+Building on the [GitHub Actions workflow](/build/guides/hosting-decentralised-apps/deploying-with-permaweb-deploy#automating-with-github-actions) from the previous guide, let's create environment-specific workflows that deploy based on branch activity.
+
+<Tabs items={['Development', 'Staging', 'Production']}>
+  <Tab value="Development">
+    Deploy automatically when pushing to the `develop` branch:
+
+    ```yaml title=".github/workflows/deploy-dev.yml"
+    name: Deploy to Dev
+
+    on:
+      push:
+        branches: [develop]
+
+    jobs:
+      deploy:
+        runs-on: ubuntu-latest
+
+        steps:
+          - uses: actions/checkout@v4
+
+          - name: Setup Node.js
+            uses: actions/setup-node@v4
+            with:
+              node-version: '18'
+              cache: 'npm'
+
+          - name: Install dependencies
+            run: npm ci
+
+          - name: Deploy to Dev
+            run: npm run deploy:dev
+            env:
+              DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+    ```
+
+    **Usage:** Push to `develop` branch → Auto-deploys to `dev_your-arns-name.arweave.net`
+  </Tab>
+
+  <Tab value="Staging">
+    Deploy automatically when pushing to the `staging` branch:
+
+    ```yaml title=".github/workflows/deploy-staging.yml"
+    name: Deploy to Staging
+
+    on:
+      push:
+        branches: [staging]
+
+    jobs:
+      deploy:
+        runs-on: ubuntu-latest
+
+        steps:
+          - uses: actions/checkout@v4
+
+          - name: Setup Node.js
+            uses: actions/setup-node@v4
+            with:
+              node-version: '18'
+              cache: 'npm'
+
+          - name: Install dependencies
+            run: npm ci
+
+          - name: Deploy to Staging
+            run: npm run deploy:staging
+            env:
+              DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+    ```
+
+    **Usage:** Push to `staging` branch → Auto-deploys to `staging_your-arns-name.arweave.net`
+  </Tab>
+
+  <Tab value="Production">
+    Deploy to production and create version archive on push to `main`:
+
+    ```yaml title=".github/workflows/deploy-production.yml"
+    name: Deploy to Production
+
+    on:
+      push:
+        branches: [main]
+
+    jobs:
+      deploy:
+        runs-on: ubuntu-latest
+        environment: production  # Configure in GitHub Settings
+
+        steps:
+          - uses: actions/checkout@v4
+
+          - name: Setup Node.js
+            uses: actions/setup-node@v4
+            with:
+              node-version: '18'
+              cache: 'npm'
+
+          - name: Install dependencies
+            run: npm ci
+
+          - name: Deploy to Production
+            run: npm run deploy:prod
+            env:
+              DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+
+          - name: Archive Version
+            run: npm run deploy:archive
+            env:
+              DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+    ```
+
+    **Usage:** Push to `main` branch → Auto-deploys to `your-arns-name.arweave.net` and archives to `v{version}_your-arns-name.arweave.net`
+
+    <Callout type="info" title="Version archives">
+      Every production deployment automatically creates a permanent archive based on your `package.json` version. For example, version 2.1.0 is archived at `v2-1-0_your-arns-name.arweave.net`.
+    </Callout>
+  </Tab>
+</Tabs>
+
+**Typical git workflow:**
+
+```bash title="Terminal"
+# Feature development
+git checkout develop
+git add .
+git commit -m "Add new feature"
+git push origin develop  # Auto-deploys to dev
+
+# Promote to staging
+git checkout staging
+git merge develop
+git push origin staging  # Auto-deploys to staging
+
+# Promote to production
+git checkout main
+git merge staging
+git push origin main  # Auto-deploys to production
+```
+
+---
+
+## Instant Rollbacks with ArNS App
+
+One of the key benefits of undernames is instant rollbacks. Since all versions are permanently stored on Arweave, you can instantly switch between them using the [ArNS app](https://arns.app).
+
+**To rollback to a previous version:**
+
+<Steps>
+  <Step title="Open ArNS app">
+    Navigate to [arns.app](https://arns.app) and find your ArNS name. You'll see all undernames and their transaction IDs.
+  </Step>
+
+  <Step title="Copy transaction ID">
+    Find the undername with the version you want to rollback to (e.g., `v2-0-0` or `staging`) and copy its transaction ID.
+  </Step>
+
+  <Step title="Update production record">
+    Click on the `@` (base) record, paste the transaction ID, and save. Production now serves that version - instant rollback!
+  </Step>
+</Steps>
+
+<Callout type="success" title="Why rollbacks are instant">
+  You're just updating a pointer to existing data. The old version is already on Arweave, permanent and accessible. No re-upload needed!
+</Callout>
+
+For more details on managing undernames, see [Managing ArNS via UI](/build/guides/working-with-arns/manage-arns-ui).
+
+---
+
+## Summary
+
+You now know how to manage multiple environments using ArNS undernames:
+
+- **Environment patterns** for dev → staging → production workflows
+- **Version archives** for permanent access to all releases
+- **GitHub Actions automation** for branch-based deployments
+- **Instant rollbacks** through the ArNS app interface
+
+In our next guides we're explore other tools you can use to host websites on AR.IO Network without needing to configure `permaweb-deploy`.
+
