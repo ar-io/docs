@@ -44,7 +44,22 @@ import { Code, Network, BookOpen, Server } from "lucide-react";
 
   </Step>
   <Step>
-   ### Enable Telemetry
+   ### Use custom strategies
+
+    ```javascript
+    import { createWayfinderClient, createRoutingStrategy, createVerificationStrategy } from '@ar.io/wayfinder-core';
+
+    const customWayfinder = createWayfinderClient({
+      routingStrategy: createRoutingStrategy({ strategy: 'random' })
+      verificationStrategy: createVerificationStrategy({ 
+        strategy: 'hash', 
+        trustedGateways: ['https://permagate.io'] 
+      })
+    });
+    ```
+  </Step>
+  <Step>
+   ### Enable Telemetry (Optional)
 
     ```javascript
     import { createWayfinderClient } from '@ar.io/wayfinder-core';
@@ -55,26 +70,6 @@ import { Code, Network, BookOpen, Server } from "lucide-react";
         sampleRate: 0.1, // 10% sampling
         clientName: 'my-app',
         clientVersion: '1.0.0',
-      }
-    });
-    ```
-  </Step>
-  <Step>
-   ### Use custom strategies
-
-    ```javascript
-    import { createRoutingStrategy, createVerificationStrategy } from '@ar.io/wayfinder-core';
-
-    const customWayfinder = createWayfinderClient({
-      routingSettings: {
-        strategy: createRoutingStrategy({ strategy: 'random' })
-      }
-      verificationSettings: {
-        enabled: true,
-        strategy: createVerificationStrategy({ 
-          strategy: 'hash', 
-          trustedGateways: ['https://permagate.io'] 
-        })
       }
     });
     ```
