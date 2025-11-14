@@ -23,9 +23,10 @@ This guide demonstrates how to configure the `@ardrive/turbo-sdk` in a Next.js a
 
 ## Prerequisites
 
-- Next.js 13+ (with App Router or Pages Router)
+- Next.js 13+ (with App Router recommended)
+- Next.js 15 users: See updated configuration examples throughout this guide
 - Node.js 18+
-- Basic familiarity with Next.js configuration
+- Basic familiarity with Next.js configuration and webpack
 
 <Steps>
   <Step title="Install Turbo SDK">
@@ -55,12 +56,17 @@ This guide demonstrates how to configure the `@ardrive/turbo-sdk` in a Next.js a
   </Step>
 
   <Step title="Configure Webpack Polyfills">
-    Create or update your `next.config.js` file to include the necessary polyfills:
+    <Callout type="warning">
+      **Next.js 15+**: Use TypeScript config format (`next.config.ts`) with ESM exports. For earlier versions, use `next.config.js` with `module.exports`.
+    </Callout>
 
-    ```javascript
-    /** @type {import('next').NextConfig} */
-    const nextConfig = {
-      webpack: (config, { isServer }) => {
+    Create or update your `next.config.ts` file to include the necessary polyfills:
+
+    ```typescript
+    import type { NextConfig } from "next";
+
+    const nextConfig: NextConfig = {
+      webpack: (config, { isServer, webpack }) => {
         // Only configure polyfills for client-side bundles
         if (!isServer) {
           config.resolve.fallback = {
@@ -76,10 +82,28 @@ This guide demonstrates how to configure the `@ardrive/turbo-sdk` in a Next.js a
 
           // Provide global process and Buffer
           config.plugins.push(
-            new config.webpack.ProvidePlugin({
+            new webpack.ProvidePlugin({
               process: "process/browser",
               Buffer: ["buffer", "Buffer"],
             })
+          );
+
+          // CRITICAL: Handle node: protocol imports (e.g., node:stream, node:crypto)
+          // The Turbo SDK uses modern Node.js imports that webpack doesn't understand
+          config.plugins.push(
+            new webpack.NormalModuleReplacementPlugin(
+              /^node:/,
+              (resource: any) => {
+                const module = resource.request.replace(/^node:/, "");
+                const fallbackMap: Record<string, string> = {
+                  crypto: "crypto-browserify",
+                  stream: "stream-browserify",
+                  buffer: "buffer",
+                  process: "process/browser",
+                };
+                resource.request = fallbackMap[module] || module;
+              }
+            )
           );
         }
 
@@ -87,19 +111,33 @@ This guide demonstrates how to configure the `@ardrive/turbo-sdk` in a Next.js a
       },
     };
 
-    module.exports = nextConfig;
+    export default nextConfig;
     ```
+
+    <Callout type="info">
+      **Why `NormalModuleReplacementPlugin` is required**: The Turbo SDK uses `node:stream`, `node:crypto`, etc. imports. Without this plugin, you'll get `UnhandledSchemeError: Reading from "node:stream"` build errors.
+    </Callout>
 
   </Step>
 
-  <Step title="Configure TypeScript (Optional)">
-    If you're using TypeScript, update your `tsconfig.json` to include proper module resolution:
+  <Step title="Configure TypeScript">
+    <Callout type="warning">
+      **Required for SDK Compatibility**: The Turbo SDK requires ES2017 features. Set your TypeScript `target` to `ES2017` or higher.
+    </Callout>
+
+    Update your `tsconfig.json`:
 
     ```json
     {
       "compilerOptions": {
+        "target": "ES2017",
+        "lib": ["es2017", "dom", "dom.iterable", "esnext"],
+        "module": "esnext",
         "moduleResolution": "bundler",
-        "lib": ["es2015", "dom", "dom.iterable"]
+        "jsx": "preserve",
+        "paths": {
+          "@/*": ["./src/*"]
+        }
         // ... other options
       }
     }
@@ -131,17 +169,37 @@ This guide demonstrates how to configure the `@ardrive/turbo-sdk` in a Next.js a
 
   </Step>
 
-  <Step title="Choose Wallet Integration">
-    Select between MetaMask or Wander wallet integration:
+  <Step title="Choose Integration Pattern">
+    Select between **client-side wallet** or **server-side signing** integration based on your use case:
+
+    ### When to Use Client-Side Wallets (Steps 6-7)
+
+    Use MetaMask or Wander wallet integration when:
+    - Users control their own wallets and pay for their uploads
+    - Building a decentralized app (dApp) where users own their data
+    - Users need to sign transactions with their private keys
+    - You want users to manage their own Turbo credits
+
+    ### When to Use Server-Side Signing (Step 8)
+
+    Use server-side signing when:
+    - **Your application pays for uploads** (most common for Next.js apps)
+    - Background jobs or automated uploads
+    - API-driven uploads without user wallets
+    - You need centralized control over signing
+    - Building traditional web apps with server-side authentication
+
+    <Callout type="info">
+      **Most Next.js apps use server-side signing**. If you're building a typical web application where your backend handles uploads, skip to Step 8.
+    </Callout>
 
     <Callout type="warning">
-      **Never expose private keys in browser applications!** Always use browser
-      wallet integrations for security.
+      **Never expose private keys in browser applications!** Client-side patterns use browser wallets (no private keys in code). Server-side patterns keep private keys secure on the server.
     </Callout>
 
   </Step>
 
-  <Step title="Implement MetaMask Integration">
+  <Step title="Implement MetaMask Integration (Client-Side)">
     Create a React component for MetaMask wallet integration:
 
     <Callout type="warning">
@@ -332,7 +390,7 @@ This guide demonstrates how to configure the `@ardrive/turbo-sdk` in a Next.js a
 
   </Step>
 
-  <Step title="Implement Wander Wallet Integration">
+  <Step title="Implement Wander Wallet Integration (Client-Side)">
     Create a React component for Wander wallet integration:
 
     ```tsx
@@ -478,6 +536,351 @@ This guide demonstrates how to configure the `@ardrive/turbo-sdk` in a Next.js a
     ```
 
   </Step>
+
+  <Step title="Implement Server-Side Signing">
+    <Callout type="info">
+      **Recommended for most Next.js applications**. This pattern keeps your private keys secure on the server while allowing uploads from the client.
+    </Callout>
+
+    ### Architecture
+
+    - **Client**: Uses `walletAdapter` with Turbo SDK, delegates signing to API route
+    - **Server**: API route signs data with `ethers.js` Wallet, returns signature
+    - **Security**: Private keys stay server-side, never exposed to browser
+
+    ### Installation
+
+    Install ethers.js (if not already installed):
+
+    ```bash
+    npm install ethers
+    ```
+
+    ### Environment Setup
+
+    #### Getting a Private Key
+
+    You'll need an Ethereum-compatible private key for server-side signing:
+
+    **For Testing/Development:**
+    - Generate a new wallet with any Ethereum wallet (MetaMask, Rainbow, etc.)
+    - Export the private key (usually in wallet settings under "Show private keys")
+    - Copy the private key (starts with `0x`)
+
+    **For Production:**
+    - Use a dedicated wallet for your application
+    - Fund it with the appropriate token (USDC on Base, ETH, etc.)
+    - Never use a personal wallet with significant funds
+
+    **Quick Test Key Generation (Node.js):**
+    ```bash
+    node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+    # Add 0x prefix: 0x[generated_hex]
+    ```
+
+    Create a `.env.local` file in your project root:
+
+    ```bash
+    # .env.local (NEVER commit this file to git!)
+    ETHEREUM_PRIVATE_KEY=0xYourPrivateKeyHere
+    ```
+
+    <Callout type="warning">
+      **Security**: Add `.env.local` to your `.gitignore` file. Never commit private keys to version control.
+    </Callout>
+
+    <Callout type="info">
+      **Funding Your Wallet**: After setting up your private key, you'll need to fund the corresponding wallet address with Turbo credits. Visit [https://turbo.ardrive.io](https://turbo.ardrive.io) to add credits to your wallet.
+    </Callout>
+
+    ### Token Selection
+
+    Choose your token type based on the blockchain you're using:
+
+    - `"base-usdc"` - USDC on Base Network (recommended for low fees)
+    - `"ethereum"` - ETH on Ethereum Mainnet
+    - `"polygon-usdc"` - USDC on Polygon Network
+    - `"matic"` or `"pol"` - MATIC/POL on Polygon Network
+    - `"solana"` - SOL on Solana
+
+    Your private key must match the blockchain you select. For example, if using `"base-usdc"`, use an Ethereum-compatible private key.
+
+    ### Server API Route
+
+    Create `app/api/sign/route.ts`:
+
+    ```typescript
+    import { NextResponse } from "next/server";
+    import { Wallet } from "ethers";
+    import "server-only";
+
+    // Validate that private key exists in environment variables
+    if (!process.env.ETHEREUM_PRIVATE_KEY) {
+      throw new Error(
+        "ETHEREUM_PRIVATE_KEY is not set. Please add it to your .env.local file."
+      );
+    }
+
+    const wallet = new Wallet(process.env.ETHEREUM_PRIVATE_KEY);
+
+    async function signData(data: string | Uint8Array): Promise<string> {
+      // ethers.js handles both UTF-8 strings and binary data
+      return await wallet.signMessage(data);
+    }
+
+    function getPublicKey(): string {
+      // Return uncompressed public key (keep '04' prefix, remove only '0x')
+      return wallet.signingKey.publicKey.slice(2);
+    }
+
+    export async function GET() {
+      return NextResponse.json({ publicKey: getPublicKey() });
+    }
+
+    export async function POST(req: Request) {
+      const body = await req.json() as {
+        signatureData: string;
+        isHex?: boolean;
+      };
+
+      if (!body?.signatureData) {
+        return NextResponse.json(
+          { error: "Missing signatureData" },
+          { status: 400 }
+        );
+      }
+
+      // Handle both string messages (UTF-8) and binary data (hex-encoded)
+      const dataToSign = body.isHex
+        ? Buffer.from(body.signatureData, "hex")
+        : body.signatureData;
+
+      const signature = await signData(dataToSign);
+      return NextResponse.json({ signature });
+    }
+    ```
+
+    <Callout type="warning">
+      **Next.js 15 Requirement**: Route handlers can ONLY export HTTP method functions (GET, POST, etc.). Helper functions like `signData` and `getPublicKey` must NOT be exported.
+    </Callout>
+
+    ### Client Component
+
+    Create `app/upload/component.tsx`:
+
+    ```typescript
+    "use client";
+
+    import { TurboFactory, type EthereumWalletSigner } from "@ardrive/turbo-sdk/web";
+    import { useMemo, useState } from "react";
+
+    // Buffer is available globally from webpack polyfills configured in next.config.ts
+    // No import needed - it's provided by the ProvidePlugin
+
+    // API endpoint for server-side signing (corresponds to app/api/sign/route.ts)
+    const signEndpoint = "/api/sign";
+
+    export function UploadComponent() {
+      const [uploading, setUploading] = useState(false);
+
+      // Create turbo instance with useMemo to avoid recreating on every render
+      // This prevents SSR issues and unnecessary re-initialization
+      const turbo = useMemo(() => {
+        return TurboFactory.authenticated({
+          token: "base-usdc", // Match the token type from your environment
+          walletAdapter: {
+            getSigner: () => {
+              return {
+                signMessage: async (_message: string | Uint8Array) => {
+                  // Determine if message is binary (Uint8Array) or string
+                  const isHex = typeof _message !== "string";
+                  const message = isHex
+                    ? Buffer.from(_message).toString("hex")
+                    : _message;
+
+                  const res = await fetch(signEndpoint, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ signatureData: message, isHex }),
+                  });
+
+                  if (!res.ok) {
+                    throw new Error(`Signing failed: ${res.statusText}`);
+                  }
+
+                  const { signature } = await res.json();
+                  return signature;
+                },
+                sendTransaction: async () => {
+                  throw new Error("Not implemented");
+                },
+                provider: {
+                  // Fetch public key from server
+                  getPublicKey: async () => {
+                    const res = await fetch(signEndpoint);
+                    const { publicKey } = await res.json();
+                    return publicKey;
+                  },
+                  getSigner: () => ({
+                    // Return address (same as public key for this implementation)
+                    getAddress: async () => {
+                      const res = await fetch(signEndpoint);
+                      const { publicKey } = await res.json();
+                      return publicKey;
+                    },
+                    // Sign typed data (used for certain Turbo operations)
+                    _signTypedData: async (
+                      _domain: never,
+                      _types: never,
+                      message: {
+                        address: string;
+                        "Transaction hash": Uint8Array;
+                      }
+                    ) => {
+                      const convertedMsg = Buffer.from(
+                        message["Transaction hash"]
+                      ).toString("hex");
+
+                      const res = await fetch(signEndpoint, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          signatureData: convertedMsg,
+                          isHex: true
+                        }),
+                      });
+
+                      if (!res.ok) {
+                        throw new Error(`Signing failed: ${res.statusText}`);
+                      }
+
+                      const { signature } = await res.json();
+                      return signature;
+                    },
+                  }),
+                  _ready: () => {},
+                },
+              } as unknown as EthereumWalletSigner;
+            },
+          },
+        });
+      }, []);
+
+      // Upload string data
+      const handleUploadText = async () => {
+        setUploading(true);
+        try {
+          const result = await turbo.upload({
+            data: "Hello, ArDrive Turbo!",
+          });
+          console.log("Upload successful! ID:", result.id);
+          alert(`Upload successful! ID: ${result.id}`);
+        } catch (error) {
+          console.error("Upload failed:", error);
+          alert(`Upload failed: ${(error as Error).message}`);
+        } finally {
+          setUploading(false);
+        }
+      };
+
+      // Upload file
+      const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setUploading(true);
+        try {
+          const result = await turbo.uploadFile({
+            fileStreamFactory: () => file.stream(),
+            fileSizeFactory: () => file.size,
+            dataItemOpts: {
+              tags: [
+                { name: "Content-Type", value: file.type },
+                { name: "File-Name", value: file.name },
+              ],
+            },
+          });
+          console.log("File upload successful! ID:", result.id);
+          alert(`File uploaded! ID: ${result.id}`);
+        } catch (error) {
+          console.error("Upload failed:", error);
+          alert(`Upload failed: ${(error as Error).message}`);
+        } finally {
+          setUploading(false);
+        }
+      };
+
+      return (
+        <div>
+          <button onClick={handleUploadText} disabled={uploading}>
+            {uploading ? "Uploading..." : "Upload Text"}
+          </button>
+
+          <label htmlFor="file-upload">
+            <input
+              id="file-upload"
+              type="file"
+              onChange={handleFileUpload}
+              disabled={uploading}
+            />
+          </label>
+        </div>
+      );
+    }
+    ```
+
+    <Callout type="info">
+      **Styling**: This is a basic example. Add your own styles, labels, and accessibility features as needed for your application.
+    </Callout>
+
+    ### Key Implementation Details
+
+    1. **`useMemo` for Turbo Instance**: Creating the turbo instance inside `useMemo` prevents it from being recreated on every render and avoids SSR issues. The turbo client is initialized once when the component mounts.
+
+    2. **Provider Implementation**: The `provider` object is required for Ethereum wallets and includes:
+       - `getPublicKey()` - Fetches public key from `GET /api/sign`
+       - `getSigner().getAddress()` - Returns the wallet address (same as public key)
+       - `getSigner()._signTypedData()` - Signs EIP-712 typed data for certain Turbo operations
+       - `_ready()` - Lifecycle method (can be empty)
+
+    3. **Buffer Global**: `Buffer` is available globally from the webpack polyfills you configured in Step 3. No import needed - the `ProvidePlugin` makes it available everywhere.
+
+    4. **`isHex` Flag**: The SDK passes both UTF-8 strings (e.g., during key setup) and binary data (file content). Use this flag to differentiate handling on the server.
+
+    5. **File Uploads**: Use `uploadFile()` with `fileStreamFactory` and `fileSizeFactory` for files. Use `upload()` with `data` for strings or Blobs.
+
+    6. **Public Key Format**: Server returns uncompressed public key with `04` prefix byte. Use `.slice(2)` to remove only `0x`, keeping `04`.
+
+    7. **Signature Format**: `ethers.js` produces EIP-191 signatures compatible with the SDK's verification.
+
+    8. **Token Matching**: Ensure the `token` in your client matches your server's blockchain (e.g., both use `"base-usdc"`).
+
+    9. **Security**: Private keys stay in `.env.local` on the server, never exposed to the browser.
+
+    ### Complete Working Example
+
+    To use this component, add it to a page:
+
+    ```typescript
+    // app/page.tsx
+    import { UploadComponent } from "./upload/component";
+
+    export default function Home() {
+      return (
+        <main>
+          <h1>Upload to ArDrive Turbo</h1>
+          <UploadComponent />
+        </main>
+      );
+    }
+    ```
+
+    Now you can:
+    - Click "Upload Text" to upload a string
+    - Use the file input to upload any file
+    - Both use server-side signing for security
+
+  </Step>
 </Steps>
 
 ## Common Issues and Solutions
@@ -486,14 +889,39 @@ This guide demonstrates how to configure the `@ardrive/turbo-sdk` in a Next.js a
 
 If you encounter build errors related to missing modules:
 
-1. **"Module not found: Can't resolve 'fs'"**
+1. **"UnhandledSchemeError: Reading from 'node:stream'"** ⚠️ **CRITICAL**
+   - The Turbo SDK uses `node:` protocol imports that webpack doesn't understand
+   - **Solution**: Add `NormalModuleReplacementPlugin` to your webpack config (see Step 3)
+   - This is the most common build error in Next.js 15
+
+2. **"Module not found: Can't resolve 'fs'"**
    - Ensure `fs: false` is set in your webpack fallback configuration
 
-2. **"process is not defined"**
+3. **"process is not defined"**
    - Make sure you have the `ProvidePlugin` configuration for process
 
-3. **"Buffer is not defined"**
+4. **"Buffer is not defined"**
    - Verify the Buffer polyfill is properly configured in `ProvidePlugin`
+
+### Next.js 15 Specific Issues
+
+1. **"Type does not satisfy constraint" in route handlers**
+   - Next.js 15 requires route files to ONLY export HTTP method functions
+   - **Solution**: Remove `export` from helper functions
+
+   ```typescript
+   // ❌ INCORRECT
+   export async function helper() { ... }
+   export async function POST() { ... }
+
+   // ✅ CORRECT
+   async function helper() { ... }  // Not exported
+   export async function POST() { ... }
+   ```
+
+2. **TypeScript compilation errors**
+   - **Solution**: Set `"target": "ES2017"` in `tsconfig.json`
+   - The SDK requires ES2017 features
 
 ### Runtime Errors
 
@@ -524,6 +952,82 @@ const TurboUploader = dynamic(() => import("./TurboUploader"), {
   ssr: false,
 });
 ```
+
+### Server-Side Signing Issues
+
+1. **"Invalid Data Item" errors (400 Bad Request)**
+   - Usually caused by incorrect signature format or public key issues
+   - **Common causes**:
+     - Public key missing `04` prefix byte
+     - Incorrect handling of string vs binary data
+     - Wrong signature encoding
+     - Token mismatch between client and server
+
+2. **Turbo Instance SSR/Re-render Issues**
+   ```typescript
+   // ❌ INCORRECT - Creates instance at module level
+   const turbo = TurboFactory.authenticated({ ... });
+
+   export function Component() {
+     // Uses turbo - will cause SSR issues
+   }
+
+   // ✅ CORRECT - Create inside component with useMemo
+   export function Component() {
+     const turbo = useMemo(() =>
+       TurboFactory.authenticated({ ... })
+     , []);
+   }
+   ```
+   - Creating at module level runs on server during SSR
+   - Creates new instance on every render without memoization
+   - **Solution**: Always use `useMemo` hook inside component
+
+3. **Public Key Format Issues**
+   ```typescript
+   // ❌ INCORRECT - Removes both '0x' AND '04'
+   wallet.signingKey.publicKey.slice(4)
+
+   // ✅ CORRECT - Removes only '0x', keeps '04' prefix
+   wallet.signingKey.publicKey.slice(2)
+   ```
+   - The uncompressed Ethereum public key format is `04 + x_coord + y_coord`
+   - The SDK expects this full format
+
+4. **String vs Binary Data Handling**
+   - The SDK passes BOTH types to `signMessage`:
+     - **UTF-8 strings** (e.g., "sign this message to connect to Bundlr.Network") during setup
+     - **Binary data** (Uint8Array) for actual file content
+   - **Solution**: Use `isHex` flag to differentiate:
+
+   ```typescript
+   const isHex = typeof message !== "string";
+   const messageStr = isHex
+     ? Buffer.from(message).toString("hex")
+     : message;
+
+   // Send to server with isHex flag
+   fetch("/api/sign", {
+     body: JSON.stringify({ signatureData: messageStr, isHex })
+   });
+   ```
+
+5. **"Buffer is not defined"**
+   - `Buffer` should be available globally from webpack polyfills
+   - **Solution**: Verify `ProvidePlugin` is configured correctly in `next.config.ts` (Step 3)
+   - No import needed - it's provided globally
+
+6. **Using TypedEthereumSigner instead of ethers.js Wallet**
+   - `TypedEthereumSigner` from `@dha-team/arbundles` produces incompatible signature format
+   - **Solution**: Use `ethers.js` Wallet for server-side signing
+   - Ethers produces proper EIP-191 signatures with recovery parameter
+
+7. **Token Mismatch Errors**
+   - Client and server must use the same token type
+   - **Solution**: Ensure `token: "base-usdc"` matches between:
+     - Client `TurboFactory.authenticated()`
+     - Server environment (private key's blockchain)
+     - Your Turbo account funding
 
 ### Wallet Integration Issues
 
