@@ -6,32 +6,276 @@ description: "Create tamper-proof datasets with cryptographic proofs, ensuring d
 import { Callout } from "fumadocs-ui/components/callout";
 import { Steps, Step } from "fumadocs-ui/components/steps";
 
-## Input Verification for AI Systems
+Training data is the foundation of any AI model. To ensure provenance, you must be able to prove exactly what data was used to train a specific model version.
 
-Learn how to create verifiable datasets that prove the integrity of training data, whether stored on S3 or directly on Arweave.
+We provide two patterns depending on your data size and requirements:
+
+- **The Holographic Anchor**: Best for massive data (TB/PB) stored on S3.
+- **The Native Data Lake**: Best for high-value data (under 1TB) stored directly on Arweave with a Parquet index.
 
 ## Prerequisites
 
 Before starting, ensure you have:
 
 - **Node.js** (v18 or higher)
-- **TypeScript** knowledge
 - **Arweave Wallet (JWK file)** - We recommend [Wander](https://www.wander.app/)
 - **Turbo Credits** - Purchase credits to pay for uploads. See [Turbo Credits guide](/build/upload/turbo-credits)
+- **TypeScript** knowledge
 
-## Overview
+### Install Dependencies
 
-This guide covers:
+```bash
+npm install @ardrive/turbo-sdk parquets arweave dotenv
+npm install --save-dev @types/node
+```
 
-- Creating cryptographic proofs for datasets
-- Uploading dataset manifests to Arweave
-- Verifying dataset integrity
-- Integrating with existing S3 workflows
+## Pattern A: The Holographic Anchor (Off-Chain)
+
+Use this when your dataset is petabyte-scale or must reside in a specific jurisdiction (GDPR).
+
+With this pattern, we do not upload the actual file. We upload a **cryptographic fingerprint**.
+
+<Steps>
+<Step>
+### Generate Cryptographic Proof
+
+Create a file `anchor-dataset.ts` to generate a SHA-256 hash of your dataset:
+
+```typescript
+import { TurboFactory } from '@ardrive/turbo-sdk';
+import * as fs from 'fs';
+import * as crypto from 'crypto';
+import { pipeline } from 'stream/promises';
+
+const jwk = JSON.parse(fs.readFileSync('wallet.json', 'utf-8'));
+const turbo = TurboFactory.authenticated({
+  privateKey: jwk,
+  token: 'arweave'
+});
+
+export async function createHolographicAnchor(filePath: string, s3Url: string) {
+  console.log("1. Generating Cryptographic Proof...");
+
+  // Hash stream (Efficient for large files, low RAM usage)
+  const hash = crypto.createHash('sha256');
+  const fileStream = fs.createReadStream(filePath);
+  await pipeline(fileStream, hash);
+  const fingerprint = hash.digest('hex');
+
+  // 2. Prepare the Anchor Payload
+  const anchor = {
+    type: 'dataset_anchor',
+    storage: 's3',
+    url: s3Url,
+    sha256: fingerprint, // The mathematical truth
+    size: fs.statSync(filePath).size,
+    timestamp: Date.now()
+  };
+
+  // 3. Upload Metadata Only
+  const upload = await turbo.uploadFile({
+    fileStreamFactory: () => Buffer.from(JSON.stringify(anchor)),
+    fileSizeFactory: () => Buffer.byteLength(JSON.stringify(anchor)),
+    dataItemOpts: {
+      tags: [
+        { name: 'Content-Type', value: 'application/json' },
+        { name: 'Type', value: 'Dataset-Anchor' }
+      ]
+    }
+  });
+
+  console.log(`⚓ Holographic Anchor Minted: ar://${upload.id}`);
+  return upload.id;
+}
+```
 
 <Callout type="info">
-Content for this guide is coming soon. Check back later for the complete walkthrough.
+This approach is memory-efficient for large files. The stream hashing means you can verify petabyte-scale datasets without loading them entirely into RAM.
 </Callout>
+</Step>
+
+<Step>
+### Use the Anchor
+
+The anchor transaction ID serves as an immutable proof that:
+1. A specific dataset existed at a specific time
+2. The dataset had a specific SHA-256 hash
+3. The dataset was stored at a specific S3 URL
+
+Anyone can verify the dataset hasn't changed by re-hashing the S3 file and comparing it to the on-chain fingerprint.
+
+```typescript
+// Verify a dataset matches its anchor
+async function verifyDataset(anchorId: string, localFilePath: string) {
+  // 1. Fetch the anchor from Arweave
+  const anchorData = await fetch(`https://ar-io.net/${anchorId}`);
+  const anchor = await anchorData.json();
+
+  // 2. Hash the local file
+  const hash = crypto.createHash('sha256');
+  const fileStream = fs.createReadStream(localFilePath);
+  await pipeline(fileStream, hash);
+  const localFingerprint = hash.digest('hex');
+
+  // 3. Compare
+  if (localFingerprint === anchor.sha256) {
+    console.log('✅ Dataset verified! Matches on-chain anchor.');
+    return true;
+  } else {
+    console.log('❌ Dataset verification failed! File has been modified.');
+    return false;
+  }
+}
+```
+</Step>
+</Steps>
+
+<Callout type="warning">
+**Important**: The Holographic Anchor proves a dataset existed with a specific hash, but doesn't make the data itself permanent. For true permanence, use Pattern B.
+</Callout>
+
+## Pattern B: The Native Data Lake (On-Chain)
+
+Use this for fine-tuning sets, RAG Knowledge Bases, or benchmarks where you want both the data and its index permanently stored.
+
+We upload the raw files to Arweave and generate a Parquet Index. This allows training scripts to filter data (e.g., "Give me only train split images") without downloading the entire dataset manifest.
+
+<Steps>
+<Step>
+### Upload Files and Build Index
+
+Create a file `upload-native-lake.ts`:
+
+```typescript
+import { TurboFactory } from '@ardrive/turbo-sdk';
+import parquets from 'parquets';
+import * as fs from 'fs';
+import * as path from 'path';
+
+// Schema: We verify NOT just the ID, but the content metadata too
+const schema = new parquets.ParquetSchema({
+  filename: { type: 'UTF8' },
+  tx_id: { type: 'UTF8' },         // The Arweave Pointer
+  byte_size: { type: 'INT64' },
+  dataset_split: { type: 'UTF8' }, // 'train' vs 'test'
+  label: { type: 'UTF8' }          // e.g. 'pneumonia'
+});
+
+export async function uploadDatasetWithIndex(baseDir: string) {
+  const jwk = JSON.parse(fs.readFileSync('wallet.json', 'utf-8'));
+  const turbo = TurboFactory.authenticated({
+    privateKey: jwk,
+    token: 'arweave'
+  });
+
+  const indexRows = [];
+  const files = fs.readdirSync(baseDir);
+
+  console.log(`🚀 Processing ${files.length} files...`);
+
+  // 1. Upload Files
+  for (const file of files) {
+    const filePath = path.join(baseDir, file);
+    const size = fs.statSync(filePath).size;
+
+    // Logic to determine label/split from filename
+    const isTrain = file.startsWith('train');
+    const label = file.includes('cat') ? 'cat' : 'dog';
+
+    const upload = await turbo.uploadFile({
+      fileStreamFactory: () => fs.createReadStream(filePath),
+      fileSizeFactory: () => size,
+      dataItemOpts: { tags: [{ name: 'Content-Type', value: 'image/jpeg' }] }
+    });
+
+    // Add to Index (Don't just list it, describe it)
+    indexRows.push({
+      filename: file,
+      tx_id: upload.id,
+      byte_size: size,
+      dataset_split: isTrain ? 'train' : 'test',
+      label: label
+    });
+
+    console.log(`   ✓ Uploaded: ${file}`);
+  }
+
+  // 2. Write Parquet Index
+  const indexFile = 'dataset_manifest.parquet';
+  const writer = await parquets.ParquetWriter.openFile(schema, indexFile);
+  for (const row of indexRows) await writer.appendRow(row);
+  await writer.close();
+
+  // 3. Upload the Index
+  const manifestUpload = await turbo.uploadFile({
+    fileStreamFactory: () => fs.createReadStream(indexFile),
+    fileSizeFactory: () => fs.statSync(indexFile).size,
+    dataItemOpts: {
+      tags: [
+        { name: 'Type', value: 'Dataset-Parquet-Manifest' },
+        { name: 'Content-Type', value: 'application/octet-stream' }
+      ]
+    }
+  });
+
+  console.log(`\n🎉 Data Lake Created!`);
+  console.log(`👉 Index ID: ar://${manifestUpload.id}`);
+
+  return manifestUpload.id;
+}
+```
+</Step>
+
+<Step>
+### Query the Index
+
+Training scripts can now query the Parquet index to fetch specific subsets:
+
+```typescript
+import parquets from 'parquets';
+
+async function getTrainingImages(manifestId: string) {
+  // 1. Download the Parquet index
+  const indexData = await fetch(`https://ar-io.net/${manifestId}`);
+  const buffer = await indexData.arrayBuffer();
+
+  // 2. Query for training split
+  const reader = await parquets.ParquetReader.openBuffer(Buffer.from(buffer));
+  const cursor = reader.getCursor();
+
+  const trainingImages = [];
+  let record = null;
+
+  while (record = await cursor.next()) {
+    if (record.dataset_split === 'train') {
+      trainingImages.push({
+        url: `ar://${record.tx_id}`,
+        label: record.label,
+        size: record.byte_size
+      });
+    }
+  }
+
+  await reader.close();
+  return trainingImages;
+}
+```
+
+<Callout type="info">
+**Performance Tip**: The Parquet format allows efficient columnar queries, meaning you can filter millions of records without loading the entire dataset into memory.
+</Callout>
+</Step>
+</Steps>
+
+## Summary
+
+You now have two patterns for creating verifiable datasets:
+
+1. **Holographic Anchor**: For massive datasets that must stay on S3, create an immutable cryptographic fingerprint on Arweave.
+2. **Native Data Lake**: For smaller, high-value datasets, store both the data and a queryable Parquet index permanently on Arweave.
+
+Both patterns provide cryptographic proof of exactly what data was used to train your AI models, solving the provenance problem for Enterprise AI.
 
 ## Next Steps
 
-After completing this guide, proceed to [The Signed Model Registry](/build/guides/verifiable-ai/signed-model-registry) to learn how to prevent model drift.
+Now that you have verifiable datasets, proceed to [The Signed Model Registry](/build/guides/verifiable-ai/signed-model-registry) to learn how to prevent model drift by verifying weights against on-chain proofs.
