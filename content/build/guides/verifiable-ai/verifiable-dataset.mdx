@@ -101,7 +101,54 @@ This approach is memory-efficient for large files. The stream hashing means you 
 </Step>
 
 <Step>
-### Use the Anchor
+### Addressing data with ArNS
+
+Instead of hardcoding anchor IDs, use ArNS to create a stable reference that always points to the latest anchor version and maintains a permanent version history.
+
+```typescript
+import { ARIO, ANT } from '@ar.io/sdk';
+
+async function associateAnchorWithArNS(anchorId: string, arnsName: string, version: string) {
+  // 1. Get the ANT contract for your ArNS name
+  // (Assumes you've already purchased/leased the ArNS name via https://arns.app)
+  const ario = ARIO.mainnet();
+  const records = await ario.getArNSRecord({ name: arnsName });
+
+  if (!records) {
+    throw new Error(`ArNS name "${arnsName}" not found. Purchase it at https://arns.app first.`);
+  }
+
+  // 2. Connect to the ANT contract
+  const ant = ANT.init({
+    processId: records.processId,
+    signer: jwk, // Your Arweave wallet
+  });
+
+  // 3. Set the @ record to point to latest version
+  await ant.setRecord({
+    undername: '@',
+    transactionId: anchorId,
+    ttlSeconds: 3600, // 1 hour cache
+  });
+
+  // 4. Set a versioned undername to permanently reference this version
+  await ant.setRecord({
+    undername: version, // e.g., 'v1', 'v2', '2024-12'
+    transactionId: anchorId,
+    ttlSeconds: 3600,
+  });
+
+  console.log(`   Latest: ar://${arnsName} → ${anchorId}`);
+  console.log(`   Version: ar://${version}_${arnsName} → ${anchorId}`);
+
+  return anchorId;
+}
+```
+
+</Step>
+
+<Step>
+### Verify the Dataset
 
 The anchor transaction ID serves as an immutable proof that:
 1. A specific dataset existed at a specific time
@@ -118,9 +165,12 @@ import * as crypto from 'crypto';
 import * as fs from 'fs';
 
 // Simple approach - faster to implement but single point of failure
-async function verifyDataset(anchorId: string, localFilePath: string) {
+// Query the latest version or a specific version with ArNS
+async function verifyDataset(identifier: string, localFilePath: string) {
   // 1. Fetch the anchor from Arweave
-  const anchorData = await fetch(`https://arweave.net/${anchorId}`);
+  // Use ArNS name for latest version: ar://dataset-anchor
+  // Use versioned undername for specific version: ar://v1_dataset-anchor
+  const anchorData = await fetch(`https://arweave.net/${identifier}`);
   const anchor = await anchorData.json();
 
   // 2. Hash the local file
@@ -155,8 +205,8 @@ import * as crypto from 'crypto';
 import * as fs from 'fs';
 
 // Production approach - preferred gateway with network fallback for resilience
-// Replace 'https://arweave.net' with your own gateway if you run one optimized for your data
-async function verifyDataset(anchorId: string, localFilePath: string) {
+// Query the latest version or a specific version with ArNS
+async function verifyDataset(identifier: string, localFilePath: string) {
   // 1. Setup Wayfinder: tries arweave.net first, falls back to top 10 staked gateways
   const wayfinder = createWayfinderClient({
     ario: ARIO.mainnet(),
@@ -174,7 +224,9 @@ async function verifyDataset(anchorId: string, localFilePath: string) {
   });
 
   // 2. Fetch the anchor from Arweave via Wayfinder
-  const anchorData = await wayfinder.request(`ar://${anchorId}`);
+  // Use ArNS name for latest version: ar://dataset-anchor
+  // Use versioned undername for specific version: ar://v1_dataset-anchor
+  const anchorData = await wayfinder.request(`ar://${identifier}`);
   const anchor = await anchorData.json();
 
   // 3. Hash the local file
@@ -300,6 +352,53 @@ export async function uploadDatasetWithIndex(baseDir: string) {
 </Step>
 
 <Step>
+### Addressing data with ArNS
+
+Instead of hardcoding manifest IDs, use ArNS to create a stable reference that always points to the latest dataset version and maintains a permanent version history.
+
+```typescript
+import { ARIO, ANT } from '@ar.io/sdk';
+
+async function associateDatasetWithArNS(manifestId: string, arnsName: string, version: string) {
+  // 1. Get the ANT contract for your ArNS name
+  // (Assumes you've already purchased/leased the ArNS name via https://arns.app)
+  const ario = ARIO.mainnet();
+  const records = await ario.getArNSRecord({ name: arnsName });
+
+  if (!records) {
+    throw new Error(`ArNS name "${arnsName}" not found. Purchase it at https://arns.app first.`);
+  }
+
+  // 2. Connect to the ANT contract
+  const ant = ANT.init({
+    processId: records.processId,
+    signer: jwk, // Your Arweave wallet
+  });
+
+  // 3. Set the @ record to point to latest version
+  await ant.setRecord({
+    undername: '@',
+    transactionId: manifestId,
+    ttlSeconds: 3600, // 1 hour cache
+  });
+
+  // 4. Set a versioned undername to permanently reference this version
+  await ant.setRecord({
+    undername: version, // e.g., 'v1', 'v2', '2024-12'
+    transactionId: manifestId,
+    ttlSeconds: 3600,
+  });
+
+  console.log(`   Latest: ar://${arnsName} → ${manifestId}`);
+  console.log(`   Version: ar://${version}_${arnsName} → ${manifestId}`);
+
+  return manifestId;
+}
+```
+
+</Step>
+
+<Step>
 ### Query the Index
 
 Training scripts can now query the Parquet index to fetch specific subsets:
@@ -311,9 +410,12 @@ Training scripts can now query the Parquet index to fetch specific subsets:
 import * as parquet from 'parquetjs';
 
 // Simple approach - faster to implement but single point of failure
-async function getTrainingImages(manifestId: string) {
+// Query the latest version or a specific version with ArNS
+async function getTrainingImages(identifier: string) {
   // 1. Download the Parquet index
-  const indexData = await fetch(`https://arweave.net/${manifestId}`);
+  // Use ArNS name for latest version: ar://medical-imaging
+  // Use versioned undername for specific version: ar://v1_medical-imaging
+  const indexData = await fetch(`https://arweave.net/${identifier}`);
   const buffer = await indexData.arrayBuffer();
 
   // 2. Query for training split
@@ -348,8 +450,8 @@ import { createWayfinderClient, PreferredWithFallbackRoutingStrategy, FastestPin
 import { ARIO } from '@ar.io/sdk';
 
 // Production approach - keeps your training pipeline operational even during gateway outages
-// Replace 'https://arweave.net' with your own gateway if you run one optimized for your data
-async function getTrainingImages(manifestId: string) {
+// Query the latest version or a specific version with ArNS
+async function getTrainingImages(identifier: string) {
   // 1. Setup Wayfinder: tries arweave.net first, falls back to top 10 staked gateways
   const wayfinder = createWayfinderClient({
     ario: ARIO.mainnet(),
@@ -366,8 +468,10 @@ async function getTrainingImages(manifestId: string) {
     }),
   });
 
-  // 2. Download the Parquet index via Wayfinder
-  const indexData = await wayfinder.request(`ar://${manifestId}`);
+  // 2. Download the Parquet index
+  // Use ArNS name for latest version: ar://medical-imaging
+  // Use versioned undername for specific version: ar://v1_medical-imaging
+  const indexData = await wayfinder.request(`ar://${identifier}`);
   const buffer = await indexData.arrayBuffer();
 
   // 3. Query for training split
