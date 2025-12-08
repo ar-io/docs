@@ -42,22 +42,11 @@ jobs:
       - name: Build Next.js application
         run: yarn build
 
-      - name: Deploy to Arweave
-        run: node scripts/deploy-to-arweave.mjs
-        env:
-          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
-          ARNS_NAME: ${{ secrets.ARNS_NAME }}
-          UNDERNAME: ${{ github.event.inputs.undername || secrets.MAIN_ARNS_UNDERNAME }}
-
-      - name: Deployment Summary
-        run: |
-          echo "🚀 Deployment completed successfully!"
-          echo "📁 ArNS Name: ${{ secrets.ARNS_NAME }}"
-          echo "🔗 Undername: ${{ github.event.inputs.undername || secrets.MAIN_ARNS_UNDERNAME }}"
-          UNDERNAME="${{ github.event.inputs.undername || secrets.MAIN_ARNS_UNDERNAME }}"
-          if [ "$UNDERNAME" = "@" ]; then
-            echo "🌐 URL: https://${{ secrets.ARNS_NAME }}.ar.io"
-          else
-            echo "🌐 URL: https://${UNDERNAME}_${{ secrets.ARNS_NAME }}.ar.io"
-          fi
+      - uses: permaweb/permaweb-deploy@feat/github-action
+        with:
+          deploy-key: ${{ secrets.DEPLOY_KEY }}
+          arns-name: ${{ secrets.ARNS_NAME }}
+          preview: 'true'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-folder: ./dist
           
