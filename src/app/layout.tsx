@@ -20,6 +20,8 @@ export const metadata: Metadata = {
   },
 };
 
+// some change to trigger redeploy
+
 export default function Layout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className="font-inter" suppressHydrationWarning>
