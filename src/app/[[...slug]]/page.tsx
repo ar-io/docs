@@ -21,6 +21,7 @@ export default async function Page(props: {
   }
 
   const MDXContent = page.data.body;
+  const RelativeLink = createRelativeLink(source, page);
 
   return (
     <DocsPage toc={page.data.toc} full={page.data.full}>
@@ -38,7 +39,19 @@ export default async function Page(props: {
         <MDXContent
           components={getMDXComponents({
             // this allows you to link to other pages with relative file paths
-            a: createRelativeLink(source, page),
+            a: (props) => {
+              const href = typeof props.href === "string" ? props.href : "";
+
+              // For public assets like /llms-full.txt, use a plain anchor so the browser
+              // requests the static file instead of the docs catch-all route.
+              const isPublicAsset =
+                href.startsWith("/") &&
+                /\.(?:txt|json|xml|pdf)($|[?#])/i.test(href);
+
+              if (isPublicAsset) return <a {...props} />;
+
+              return <RelativeLink {...props} />;
+            },
           })}
         />
         <PageFeedback pageUrl={page.url} />
