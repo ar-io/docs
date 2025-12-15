@@ -75,7 +75,7 @@ async function deleteArNSUndername(jwk, arnsName, undername) {
       undername: undername,
     });
 
-    const response = await ant.removeUndername({
+    const response = await ant.removeUndernameRecord({
       undername: undername,
     });
 
