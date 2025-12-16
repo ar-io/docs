@@ -7,12 +7,9 @@ import { LLMCopyButton, ViewOptions } from "@/components/page-actions";
 import { PageFeedback } from "@/components/page-feedback";
 import { redirect } from "next/navigation";
 
-export default async function Page(props: {
-  params: Promise<{ slug?: string[] }>;
-}) {
+export default async function Page(props: { params: Promise<{ slug: string[] }> }) {
   const params = await props.params;
 
-  // Try to get the page content first (this will work for both root and other pages)
   const page = source.getPage(params.slug);
 
   // If no page found, trigger 404
@@ -45,8 +42,7 @@ export default async function Page(props: {
               // For public assets like /llms-full.txt, use a plain anchor so the browser
               // requests the static file instead of the docs catch-all route.
               const isPublicAsset =
-                href.startsWith("/") &&
-                /\.(?:txt|json|xml|pdf)($|[?#])/i.test(href);
+                href.startsWith("/") && /\.(?:txt|json|xml|pdf)($|[?#])/i.test(href);
 
               if (isPublicAsset) return <a {...props} />;
 
@@ -62,16 +58,13 @@ export default async function Page(props: {
 
 export async function generateStaticParams() {
   const params = source.generateParams();
-  
-  // Add root path for static export
-  return [
-    { slug: [] }, // Root path
-    ...params
-  ];
+
+  // `app/page.tsx` owns `/`; docs pages require at least one segment.
+  return params.filter((p) => Array.isArray(p.slug) && p.slug.length > 0);
 }
 
 export async function generateMetadata(props: {
-  params: Promise<{ slug?: string[] }>;
+  params: Promise<{ slug: string[] }>;
 }): Promise<Metadata> {
   const params = await props.params;
 
@@ -101,9 +94,7 @@ export async function generateMetadata(props: {
         card: "summary_large_image",
         title: "AR.IO Documentation",
         description: "Documentation for AR.IO",
-        images: [
-          "/meta.png",
-        ],
+        images: ["/meta.png"],
         creator: "@ar_io_network",
         site: "@ar_io_network",
       },
@@ -111,8 +102,7 @@ export async function generateMetadata(props: {
         icon: "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
         shortcut:
           "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
-        apple:
-          "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
+        apple: "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
       },
     };
   }
@@ -130,13 +120,8 @@ export async function generateMetadata(props: {
   // Use existing frontmatter fields, with fallbacks
   const pageTitle = frontmatter.title || page.data.title;
   const pageDescription = frontmatter.description || page.data.description;
-  const pageImage =
-    frontmatter.image || frontmatter.icon || "/meta.png";
-  const pageKeywords = frontmatter.keywords || [
-    "AR.IO",
-    "Arweave",
-    "documentation",
-  ];
+  const pageImage = frontmatter.image || frontmatter.icon || "/meta.png";
+  const pageKeywords = frontmatter.keywords || ["AR.IO", "Arweave", "documentation"];
   const pageAuthor = frontmatter.author || "AR.IO Team";
 
   return {
@@ -156,7 +141,7 @@ export async function generateMetadata(props: {
         },
       ],
       // Add canonical URL for better SEO
-      url: `https://docs.ar.io/${params.slug?.join("/") || ""}`,
+      url: `https://docs.ar.io/${params.slug.join("/")}`,
     },
     twitter: {
       card: "summary_large_image",
@@ -167,11 +152,9 @@ export async function generateMetadata(props: {
       site: "@ar_io_network",
     },
     icons: {
-        icon: "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
-        shortcut:
-          "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
-        apple:
-          "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
+      icon: "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
+      shortcut: "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
+      apple: "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
     },
     // Add additional metadata for better SEO
     keywords: pageKeywords,
@@ -189,3 +172,5 @@ export async function generateMetadata(props: {
     },
   };
 }
+
+

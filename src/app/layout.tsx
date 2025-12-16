@@ -32,6 +32,11 @@ export default function Layout({ children }: LayoutProps<"/">) {
           data-domain="docs.ar.io"
         />
         <RootProvider
+          theme={{
+            attribute: "class",
+            defaultTheme: "light",
+            enableSystem: false,
+          }}
           search={{
             SearchDialog,
           }}
