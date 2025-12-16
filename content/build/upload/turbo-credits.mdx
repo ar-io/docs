@@ -4,19 +4,23 @@ description: "Understanding Turbo's credit system for flexible payment options a
 ---
 
 import {
-  CreditCard,
-  Upload,
+  Bot,
   Code,
+  CreditCard,
   FileText,
-  Tag,
   FolderOpen,
+  Tag,
+  Upload,
+  Zap,
 } from "lucide-react";
 
-Turbo Credits are the payment medium used by Turbo's upload service, providing a 1:1 conversion from Arweave's native AR token with additional benefits and flexible payment options.
+Data storage on Arweave is paid for in Arweave's native [AR](https://www.coingecko.com/en/coins/arweave) token — divisible to the "Winston" (10¹² per AR). Turbo makes paying for data storage on Arweave faster and even simpler via Turbo Credits.
 
 ## What are Turbo Credits?
 
-Turbo Credits represent upload power on the Arweave network, divisible down to 1 trillionth of a credit (Winston Credit). Unlike traditional crypto tokens, Turbo Credits cannot be traded, transferred, or exchanged - they exist solely for uploading data to Arweave.
+Turbo Credits are the payment medium used by Turbo's upload service, providing a 1:1 representation of upload power on the Arweave network, and enabling precise pricing for uploads of any size.
+
+Unlike traditional crypto tokens, Turbo Credits cannot be traded or exchanged on secondary markets - they exist solely for uploading data to Arweave. However, credit holders can [share their credits](#credit-sharing) with other wallets, enabling organizational and collaborative use cases.
 
 <Callout type="warning">
   **Important:** Turbo Credits are non-refundable and cannot be withdrawn or
@@ -25,70 +29,148 @@ Turbo Credits represent upload power on the Arweave network, divisible down to 1
 
 ## How to Purchase Credits
 
+There are two important choices to make when purchasing credits:
+
+1. Pay in either fiat via Stripe or via crypto tokens on a supported network
+2. The address of a [supported crypto wallet](#supported-payment-wallets) type to make the primary holder of the credits
+
+When paying in fiat or crypto, the destination wallet address can be one from any [supported crypto wallet](#supported-payment-wallets). It is optional, however, when paying in crypto; the payer wallet is simply used as the default choice in its absence.
+
 ### Payment Methods
 
-- **Fiat Currency**: Credit/debit cards or USDC via Stripe
-- **Crypto Tokens**: AR, ETH, SOL, POLYGON, ARIO, USDC, KYVE via transfer transactions
-- **Spending Wallets**: Ethereum, Solana, Arweave, and Kyve wallets supported
+Add credits to your wallet and they will be deducted automatically on each upload. For faster payment networks, it's possible to pay [just-in-time](#just-in-time-payments) with each upload.
 
-### Supported Tokens & Purchase Methods
+#### Fiat Payments
 
-| Payment Method               | Turbo SDK | Turbo CLI | Turbo API | Turbo App | ArDrive App |
-| ---------------------------- | --------- | --------- | --------- | --------- | ----------- |
-| **Fiat (credit/debit card)** | ✅        | ✅        | ✅        | ✅        | ✅          |
-| **AR**                       | ✅        | ✅        | ✅        | ✅        | ❌          |
-| **ETH**                      | ✅        | ✅        | ✅        | ✅        | ❌          |
-| **ETH (BASE)**               | ✅        | ✅        | ✅        | ✅        | ❌          |
-| **SOL**                      | ✅        | ✅        | ✅        | ✅        | ❌          |
-| **POLYGON**                  | ✅        | ✅        | ✅        | ✅        | ❌          |
-| **ARIO**                     | ✅        | ✅        | ✅        | ✅        | ❌          |
-| **USDC (ETH)**               | ✅        | ✅        | ✅        | ✅        | ❌          |
-| **USDC (BASE)**              | ✅        | ✅        | ✅        | ✅        | ❌          |
-| **USDC (POLYGON)**           | ✅        | ✅        | ✅        | ✅        | ❌          |
-| **KYVE**                     | ✅        | ✅        | ✅        | ❌        | ❌          |
+Top up any address of a [supported wallet type](#supported-wallet-types) by paying with a credit or debit card via Stripe.
 
-<Callout type="info">
-  **Wallet Compatibility:** When purchasing with cryptocurrencies, credits are
-  deposited into the wallet described by optional parameter
-  `turboCreditDestinationAddress`. When not provided, credits will be added to
-  the signing wallet of the transfer.
-</Callout>
+#### Crypto Tokens
 
-### Purchase Options
+Top up any address of a [supported wallet type](#supported-wallet-types) by paying in any of these supported crypto tokens:
 
-**Option 1: Turbo App**
+| Network     | Tokens         |
+| ----------- | -------------- |
+| Arweave     | [AR](https://www.coingecko.com/en/coins/arweave)             |
+| AO          | [ARIO](https://www.coingecko.com/en/coins/ar-io-network)           |
+| Ethereum    | [ETH](https://www.coingecko.com/en/coins/ethereum), [USDC](https://etherscan.io/token/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48)      |
+| Base        | [ETH](https://www.coingecko.com/en/coins/ethereum), [USDC](https://basescan.org/token/0x833589fcd6edb6e08f4c7c32d4f71b54bda02913), [ARIO](https://basescan.org/token/0x138746adfA52909E5920def027f5a8dc1C7EfFb6)|
+| Polygon     | [POL](https://www.coingecko.com/en/coins/polygon), [USDC](https://polygonscan.com/address/0x3c499c542cef5e3811e1192ce70d8cc03d5c3359)      |
+| Solana      | [SOL](https://www.coingecko.com/en/coins/solana)            |
+| Cosmos      | [KYVE](https://www.coingecko.com/en/coins/kyve-network)           |
 
-- Visit [turbo.ar.io](https://turbo.ar.io)
-- Purchase with USD, ARIO, USDC, SOL, ETH, POL, KYVE tokens
-- Credits can be purchased for Arweave, Ethereum, Solana, or Kyve native wallet addresses
+### Supported Payment Wallets
 
-**Option 2: ArDrive App**
+| Network Type | Signature Types | Supported Wallets                                      |
+| ------------ | -------------- | ------------------------------------------------------ |
+| Arweave      | RSA            | JWK Keyfile, [Wander](https://www.wander.app/), [Beacon](https://getbeaconapp.com/) |
+| AO           | RSA | JWK Keyfile, [Wander](https://www.wander.app/), [Beacon](https://getbeaconapp.com/)  |
+| AO           | ECDSA (secp256k1) | JSON Keystore File, [MetaMask](https://metamask.io/), [Rainbow](https://rainbow.me/), [Brave](https://brave.com/wallet/), [WalletConnect](https://walletconnect.com/), [Privy](https://www.privy.io/) |
+| EVM          | ECDSA (secp256k1) | JSON Keystore File, [MetaMask](https://metamask.io/), [Rainbow](https://rainbow.me/), [Brave](https://brave.com/wallet/), [WalletConnect](https://walletconnect.com/), [Privy](https://www.privy.io/) |
+| Solana       | ED25519        | JSON Keypair File, [Phantom](https://phantom.com/), [Solflare](https://www.solflare.com/) |
+| Cosmos       | secp256k1      | Keyfile |
 
-- Use [ArDrive](https://app.ardrive.io) for simple purchases
-- Buy credits with USD directly in the app
-- Perfect for occasional users
+### Purchasing Interfaces
 
-**Option 3: Turbo SDK/CLI**
+#### Turbo App
+
+Visit [turbo.ar.io](https://turbo.ar.io) to purchase credits with fiat or crypto using a connected wallet.
+
+#### ArDrive App
+
+Visit [app.ardrive.io](https://app.ardrive.io) to purchase credits with fiat for Arweave wallets.
+
+#### Turbo Typescript SDK
 
 ```js
-// Purchase credits programmatically
-const { winc, status, id, ...fundResult } = await TurboFactory.authenticated({
-  signer,
-  token: "base-usdc",
-}).topUpWithTokens({
-  tokenAmount: USDCToTokenAmount(1), // 1 USDC on base network
-  turboCreditDestinationAddress:
-    "any-valid-evm-arweave-solana-kyve-native-wallet-address",
+import { TurboFactory, USDCToTokenAmount } from "@ardrive/turbo-sdk";
+
+const turbo = TurboFactory.authenticated({ signer, token: "base-usdc" });
+
+// Top up with crypto
+const result = await turbo.topUpWithTokens({
+  tokenAmount: USDCToTokenAmount(1),
+  destinationAddress: "optional-different-wallet-address",
 });
 
-// Check your balance
-const balance = await turbo.getBalance();
-console.log(`Balance: ${balance.winc} Winston Credits`);
+// Check balance
+const { winc } = await turbo.getBalance();
 ```
+
+See the [Turbo SDK documentation](/sdks/turbo-sdk) and [GitHub repository](https://github.com/ardriveapp/turbo-sdk) for complete examples.
+
+#### Turbo CLI
+
+```bash
+# Top up with crypto
+turbo top-up --token base-usdc --amount 1
+
+# Check balance
+turbo balance
+```
+
+See the [Turbo Node.js CLI documentation](/sdks/turbo-cli) for installation and usage.
+
+#### HTTP API
+
+Direct API integration is available at [payment.ardrive.io/api-docs](https://payment.ardrive.io/api-docs) for custom implementations.
+
+#### Payment Interfaces By Token
+
+| Payment Method               | Turbo SDK | Turbo CLI | Turbo API | Turbo App | ArDrive App | x402 |
+| ---------------------------- | --------- | --------- | --------- | --------- | ----------- | ---- |
+| **Fiat (credit/debit card)** | ✅        | ✅        | ✅        | ✅        | ✅          | ❌   |
+| **AR**                       | ✅        | ✅        | ✅        | ✅        | ❌          | ❌   |
+| **ETH (L1)**                 | ✅        | ✅        | ✅        | ✅        | ❌          | ❌   |
+| **ETH (Base)**               | ✅        | ✅        | ✅        | ✅        | ❌          | ❌   |
+| **SOL**                      | ✅        | ✅        | ✅        | ✅        | ❌          | ❌   |
+| **POL**                      | ✅        | ✅        | ✅        | ✅        | ❌          | ❌   |
+| **ARIO (AO)**                | ✅        | ✅        | ✅        | ✅        | ❌          | ❌   |
+| **ARIO (Base)**              | ✅        | ✅        | ✅        | ✅        | ❌          | ❌   |
+| **USDC (L1)**                | ✅        | ✅        | ✅        | ✅        | ❌          | ❌   |
+| **USDC (Base)**              | ✅        | ✅        | ✅        | ✅        | ❌          | ✅   |
+| **USDC (Polygon)**           | ✅        | ✅        | ✅        | ✅        | ❌          | ❌   |
+| **KYVE**                     | ✅        | ✅        | ✅        | ❌        | ❌          | ❌   |
+
+## Just-in-Time Payments
+
+Just-in-time (JIT) payments allow you to pay for uploads at the moment of upload rather than pre-funding a credit balance. This is ideal for agentic workflows, automated pipelines, and systems that prefer pay-per-upload over balance management.
+
+JIT payments are available via the Turbo SDK, CLI, or direct HTTP API integration for tokens with sufficiently fast confirmation times:
+
+| Token        | Network  | JIT Supported |
+| ------------ | -------- | ------------- |
+| ARIO         | AO       | ✅            |
+| ARIO         | Base     | ✅            |
+| SOL          | Solana   | ✅            |
+| ETH          | Base     | ✅            |
+| USDC         | Base     | ✅            |
+| POL          | Polygon  | ✅            |
+| USDC         | Polygon  | ✅            |
+| AR           | Arweave  | ❌            |
+| ETH          | L1       | ❌            |
+| KYVE         | Cosmos   | ❌            |
+
+### x402 Protocol
+
+[x402](https://www.x402.org/) is a protocolized approach to JIT payments that leverages the HTTP 402 "Payment Required" status code. Currently supported for **USDC on Base**.
+
+```js
+import { TurboFactory, X402Funding } from "@ardrive/turbo-sdk";
+
+const turbo = TurboFactory.authenticated({ signer, token: "base-usdc" });
+
+const result = await turbo.uploadFile({
+  fileStreamFactory: () => fs.createReadStream("./myfile.jpg"),
+  fileSizeFactory: () => fs.statSync("./myfile.jpg").size,
+  fundingMode: new X402Funding({ maxMUSDCAmount: 1_000_000 }), // Max 1 USDC
+});
+```
+
+See the [Turbo SDK documentation](/sdks/turbo-sdk) and [HTTP API docs](https://payment.ardrive.io/api-docs) for complete integration details.
 
 ## Credit Sharing
 
-Turbo Credits can be shared with other users without transferring ownership, perfect for organizations and teams.
+Turbo Credits can be shared with other users without transferring ownership, perfect for organizations, collaborations, and teams.
 
 ### How Credit Sharing Works
 
@@ -138,12 +220,17 @@ Ready to start using Turbo Credits? Choose your path:
   Learn how to upload data with your new credits
 </Card>
 
-  <Card 
-    href="/sdks/turbo-sdk" 
-    title="Turbo SDK"
-    icon={<Code />}
+{" "}
+<Card href="/sdks/turbo-sdk" title="Turbo SDK" icon={<Code />}>
+  Integrate credit sharing and advanced features
+</Card>
+
+  <Card
+    href="#just-in-time-payments"
+    title="Just-in-Time Payments"
+    icon={<Zap />}
   >
-    Integrate credit sharing and advanced features
+    Pay-per-upload for automated workflows
   </Card>
 </Cards>
 
