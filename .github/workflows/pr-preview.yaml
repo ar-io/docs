@@ -8,8 +8,29 @@ on:
       - "src/**"
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    if: github.event.action != 'closed'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "yarn"
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Run linter
+        run: yarn lint
+
   deploy-preview:
     runs-on: ubuntu-latest
+    needs: lint
     if: github.event.pull_request.head.repo.full_name == github.repository && github.event.action != 'closed'
 
     steps:
@@ -32,14 +53,14 @@ jobs:
         with:
           deploy-key: ${{ secrets.DEPLOY_KEY }}
           arns-name: ${{ secrets.ARNS_NAME }}
-          preview: 'true'
+          preview: "true"
           github-token: ${{ secrets.GITHUB_TOKEN }}
           deploy-folder: ./out
 
   cleanup:
     runs-on: ubuntu-latest
     if: github.event.action == 'closed'
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
