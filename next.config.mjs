@@ -7,6 +7,7 @@ const withMDX = createMDX();
 const config = {
   // Enable static export only for production builds
   output: process.env.NODE_ENV === "production" ? "export" : "standalone",
+  trailingSlash: process.env.NODE_ENV === "production" ? true : false,
   reactStrictMode: true,
   eslint: {
     // Warning: This allows production builds to successfully complete even if
@@ -14,7 +15,6 @@ const config = {
     ignoreDuringBuilds: true,
   },
   images: { unoptimized: true }, // required for static export + <Image>
-  trailingSlash: false, // remove trailing slashes from URLs
   redirects: () => redirects,
 };
 
