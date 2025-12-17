@@ -54,7 +54,7 @@ The repository supports OpenAPI documentation import (see recent commit 33af22f2
 - Run linting and type checking before committing
 
 ## Community Resources
-- **Discord**: https://discord.gg/cuCqBb5v - Join the AR.IO community for updates and discussions
+- **Discord**: https://discord.com/invite/HGG52EtTc2 - Join the AR.IO community for updates and discussions
 
 ## Important Notes
 - This is a documentation repository - focus on content clarity and accuracy
