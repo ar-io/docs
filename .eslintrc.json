@@ -1,3 +1,23 @@
 {
-  "extends": ["next/core-web-vitals", "next/typescript"]
+  "extends": ["next/core-web-vitals", "next/typescript", "plugin:mdx/recommended"],
+  "plugins": ["validate-jsx-nesting"],
+  "rules": {
+    "validate-jsx-nesting/no-invalid-jsx-nesting": "error"
+  },
+  "overrides": [
+    {
+      "files": ["*.mdx"],
+      "parserOptions": {
+        "sourceType": "module"
+      },
+      "rules": {
+        "react/jsx-no-undef": "off",
+        "react/no-unescaped-entities": "off",
+        "@typescript-eslint/no-unused-vars": "off",
+        "@typescript-eslint/no-unused-expressions": "off",
+        "no-unused-expressions": "off",
+        "@next/next/no-img-element": "off"
+      }
+    }
+  ]
 }

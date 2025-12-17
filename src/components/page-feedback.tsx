@@ -6,7 +6,12 @@ interface PageFeedbackProps {
   pageUrl: string;
 }
 
-async function handleFeedback(pageUrl: string, feedback: any) {
+interface FeedbackData {
+  opinion: "good" | "bad";
+  message?: string;
+}
+
+async function handleFeedback(pageUrl: string, feedback: FeedbackData) {
   try {
     // Web3Forms configuration - Public access key for AR.IO documentation feedback
     const WEB3FORMS_ACCESS_KEY = "88dab14e-e2f1-47cc-b284-84496d1ddc59";
