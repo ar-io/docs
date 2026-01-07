@@ -27,7 +27,7 @@ const PACKAGES: {
   {
     name: "turbo-sdk",
     readmeUrl:
-      "https://raw.githubusercontent.com/ardriveapp/turbo-sdk/main/README.md",
+      "https://raw.githubusercontent.com/ardriveapp/turbo-sdk/alpha/README.md",
     dest: path.resolve("content/sdks/turbo-sdk"),
     title: "Turbo SDK",
     description:
@@ -466,17 +466,6 @@ async function main() {
 
   await fs.writeFile(sdksMetaPath, JSON.stringify(sdksMeta, null, 2));
   console.log("Created top-level SDKs meta.json");
-
-  // Generate LLM text files for all SDKs
-  console.log("Generating LLM text files...");
-  const { execSync } = await import("child_process");
-  try {
-    execSync("npm run generate-sdk-llm-texts", { stdio: "inherit" });
-    console.log("LLM text files generated successfully!");
-  } catch (error) {
-    console.error("Error generating LLM text files:", error);
-  }
-
   console.log("SDK documentation generated successfully!");
 }
 

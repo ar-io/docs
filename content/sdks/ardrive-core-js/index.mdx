@@ -1,8 +1,11 @@
 ---
 title: "ArDrive Core JS"
-description: "JavaScript/TypeScript SDK for interacting with ArDrive"
+description: "JavaScript/TypeScript SDK for building ArDrive applications with drive management, file uploads, and encryption support"
 ---
 
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { BookOpen, Code, HardDrive, FolderOpen, FileUp, Shield, DollarSign, Settings } from "lucide-react";
+import { Steps, Step } from "fumadocs-ui/components/steps";
 import { Callout } from "fumadocs-ui/components/callout";
 
 <Callout type="info">
@@ -11,6 +14,174 @@ import { Callout } from "fumadocs-ui/components/callout";
   and language models.
 </Callout>
 
-# ArDrive Core JS
+The ArDrive Core JS SDK provides a comprehensive TypeScript library for building applications on ArDrive. It offers type-safe interfaces for drive management, file operations, encryption, and seamless integration with Arweave.
 
-Please refer to the [source code](https://github.com/ardriveapp/ardrive-core-js) for SDK details.
+## Quick Start
+
+<Tabs items={['Node.js', 'Web (Browser)']}>
+  <Tab value="Node.js">
+    <Steps>
+      <Step>
+        ### Install the SDK
+
+        ```npm
+        npm install ardrive-core-js
+        ```
+      </Step>
+      <Step>
+        ### Initialize with a Wallet
+
+        ```typescript
+        import { readJWKFile, arDriveFactory } from 'ardrive-core-js';
+
+        // Load your Arweave wallet
+        const wallet = readJWKFile('./wallet.json');
+
+        // Create an ArDrive instance
+        const arDrive = arDriveFactory({ wallet });
+        ```
+      </Step>
+      <Step>
+        ### Create a Drive and Upload Files
+
+        ```typescript
+        import { wrapFileOrFolder } from 'ardrive-core-js';
+
+        // Create a new public drive
+        const { driveId, rootFolderId } = await arDrive.createPublicDrive({
+          driveName: 'My-Drive'
+        });
+
+        console.log('Drive created:', driveId.toString());
+        console.log('Root folder:', rootFolderId.toString());
+
+        // Upload a file to the drive
+        const wrappedFile = wrapFileOrFolder('./my-file.pdf');
+        const uploadResult = await arDrive.uploadPublicFile({
+          parentFolderId: rootFolderId,
+          wrappedFile
+        });
+
+        console.log('File uploaded:', uploadResult.fileId.toString());
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab value="Web (Browser)">
+    <Steps>
+      <Step>
+        ### Install the SDK
+
+        ```npm
+        npm install ardrive-core-js
+        ```
+      </Step>
+      <Step>
+        ### Configure Polyfills
+
+        <Callout type="warn">
+        Polyfills are required for web environments due to Node.js dependencies used by the SDK.
+        </Callout>
+
+        ```npm
+        npm install --save-dev vite-plugin-node-polyfills
+        ```
+
+        ```js
+        // vite.config.js
+        import { defineConfig } from 'vite';
+        import { nodePolyfills } from 'vite-plugin-node-polyfills';
+
+        export default defineConfig({
+          plugins: [
+            nodePolyfills({
+              globals: {
+                Buffer: true,
+                global: true,
+                process: true,
+              },
+            }),
+          ],
+        });
+        ```
+
+        Configure your bundler (Webpack, Vite, Rollup, etc.) to provide polyfills for `crypto`, `process`, and `buffer`. Refer to your bundler's documentation for polyfill configuration.
+      </Step>
+      <Step>
+        ### Use the SDK
+
+        ```typescript
+        import { arDriveFactory } from 'ardrive-core-js/web';
+
+        // Initialize with a JWK wallet object
+        const arDrive = arDriveFactory({ wallet: jwkWallet });
+
+        // Create a public drive
+        const { driveId, rootFolderId } = await arDrive.createPublicDrive({
+          driveName: 'My-Drive'
+        });
+
+        console.log('Drive created:', driveId.toString());
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+## Documentation
+
+<Cards>
+  <Card
+    icon={<BookOpen />}
+    title="Source Code"
+    description="View the complete source code and contribute on GitHub"
+    href="https://github.com/ardriveapp/ardrive-core-js"
+  />
+  <Card
+    icon={<Code />}
+    title="API Reference"
+    description="Detailed documentation for all SDK methods and classes"
+    href="/sdks/ardrive-core-js/drive-operations"
+  />
+</Cards>
+
+## Core Features
+
+<Cards>
+  <Card
+    icon={<HardDrive />}
+    title="Drive Operations"
+    description="Create and manage public and private drives"
+    href="/sdks/ardrive-core-js/drive-operations"
+  />
+  <Card
+    icon={<FolderOpen />}
+    title="Folder Operations"
+    description="Create folders, list contents, and organize your data"
+    href="/sdks/ardrive-core-js/folder-operations"
+  />
+  <Card
+    icon={<FileUp />}
+    title="File Operations"
+    description="Upload, download, and manage files on Arweave"
+    href="/sdks/ardrive-core-js/file-operations"
+  />
+  <Card
+    icon={<Shield />}
+    title="Encryption & Security"
+    description="End-to-end encryption for private drives and files"
+    href="/sdks/ardrive-core-js/encryption-security"
+  />
+  <Card
+    icon={<DollarSign />}
+    title="Pricing & Cost Estimation"
+    description="Estimate upload costs before committing transactions"
+    href="/sdks/ardrive-core-js/pricing-cost-estimation"
+  />
+  <Card
+    icon={<Settings />}
+    title="Advanced Features"
+    description="Turbo integration, bundling, manifests, and more"
+    href="/sdks/ardrive-core-js/turbo-integration"
+  />
+</Cards>
