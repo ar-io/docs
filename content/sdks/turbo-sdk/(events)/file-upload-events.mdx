@@ -14,3 +14,42 @@ These events are available for `upload`, `uploadFile`, and `uploadSignedDataItem
 - `onUploadProgress` - emitted when the upload progress changes
 - `onUploadError` - emitted when the upload fails
 - `onUploadSuccess` - emitted when the upload succeeds
+
+```typescript
+const uploadResult = await turbo.uploadFile({
+  fileStreamFactory: () => fs.createReadStream(filePath),
+  fileSizeFactory: () => fileSize,
+  events: {
+    // overall events (includes signing and upload events)
+    onProgress: ({ totalBytes, processedBytes, step }) => {
+      console.log('Overall progress:', { totalBytes, processedBytes, step });
+    },
+    onError: ({ error, step }) => {
+      console.log('Overall error:', { error, step });
+    },
+    onSuccess: () => {
+      console.log('Overall success!');
+    },
+    // signing events
+    onSigningProgress: ({ totalBytes, processedBytes }) => {
+      console.log('Signing progress:', { totalBytes, processedBytes });
+    },
+    onSigningError: (error) => {
+      console.log('Signing error:', { error });
+    },
+    onSigningSuccess: () => {
+      console.log('Signing success!');
+    },
+    // upload events
+    onUploadProgress: ({ totalBytes, processedBytes }) => {
+      console.log('Upload progress:', { totalBytes, processedBytes });
+    },
+    onUploadError: (error) => {
+      console.log('Upload error:', { error });
+    },
+    onUploadSuccess: () => {
+      console.log('Upload success!');
+    },
+  },
+});
+```
