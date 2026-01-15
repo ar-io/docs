@@ -1,0 +1,142 @@
+---
+title: "x402 Uploading To Turbo"
+description: "Utilize the x402 Protocol to upload data to Turbo on Arweave"
+---
+
+## x402 Uploads To Turbo
+
+Turbo provides multiple ways to upload data using the x402 Protocol. Users can upload data using signed data items or by leveraging the unsigned raw data API. Tooling is provided within the Turbo SDK and CLI to facilitate uploads using both methods. Integrators can also leverage existing x402 ecosystem tooling to upload data to Turbo with minimal code.
+
+### Signed Data vs Unsigned Raw Data
+
+Users can choose to send data via signed data items or by using the unsigned raw data API and allow Turbo to handle signing the data items on their behalf.
+
+- `upload.ardrive.io/v1/x402/data-item/signed` - This endpoint accepts signed data items. Users are responsible for signing the ANS-104 data items before sending them to Turbo. This method provides users with full ownership and control over the data being uploaded.
+
+- `upload.ardrive.io/v1/x402/data-item/unsigned` - This endpoint accepts raw data payloads. Users send the raw data to Turbo, which then creates and signs the ANS-104 data items on behalf of the user. This method simplifies the upload process by offloading the signing responsibility to Turbo.
+
+### Turbo CLI
+
+```sh
+turbo x402-unsigned-upload -f ../path/to/file --wallet-file ../path/to/evm/wallet.json --token base-usdc --tags 'App-Name' 'My-Cool-App' 'My-Custom-Tag' 'My-Custom-Value'
+```
+
+### Turbo SDK
+
+```typescript
+import { TurboFactory } from "@ardrive/turbo-sdk";
+
+const turbo = TurboFactory.authenticated({
+  privateKey,
+  token: "base-usdc",
+});
+await turbo.uploadRawX402Data({
+  data: myRawData,
+  maxMUSDCAmount: 1_000_000, // Max 1 USDC. Opt out if too expensive
+});
+```
+
+NOTE: For free uploads under 100 KiB, this method of upload currently does not require a signature and can be used with an unauthenticated client.
+
+```ts
+// Unsigned free upload of raw data under 100 KiB
+const turbo = TurboFactory.unauthenticated({ token: "base-usdc" });
+await turbo.uploadRawX402Data({
+  data: myRawData,
+});
+```
+
+### x402 Ecosystem Tooling
+
+Using the raw data API, developers can upload data to Turbo with minimal code using existing x402 ecosystem tooling.
+
+- x402 Fetch:
+
+```ts
+import { x402Client, wrapFetchWithPayment } from "@x402/fetch";
+import { registerExactEvmScheme } from "@x402/evm/exact/client";
+import { privateKeyToAccount } from "viem/accounts";
+import { readFileSync } from "fs";
+
+// Create x402 signer
+const signer = privateKeyToAccount(
+  process.env.EVM_PRIVATE_KEY as `0x${string}`,
+);
+
+// Create x402 client and register schemes
+const client = new x402Client();
+registerExactEvmScheme(client, { signer });
+
+// Wrap fetch with payment handling
+const fetchWithPayment = wrapFetchWithPayment(fetch, client);
+
+const customTags = [
+  { name: "App-Name", value: "My-Cool-App" },
+  { name: "My-Custom-Tag", value: "My-Custom-Value" },
+];
+
+// Make request - payment is handled automatically
+const response = await fetchWithPayment(
+  "https://upload.ardrive.io/v1/x402/data-item/unsigned",
+  {
+    method: "POST",
+    body: readFileSync("../path/to/file"),
+    headers: {
+      "Content-Type": "application/octet-stream", // Set appropriate content type
+      "x-data-item-tags": JSON.stringify(customTags), // Include custom tags as a header
+  },
+);
+```
+
+- x402 Axios:
+
+```ts
+import {
+  x402Client,
+  withPaymentInterceptor,
+  x402HTTPClient,
+} from "@x402/axios";
+import { registerExactEvmScheme } from "@x402/evm/exact/client";
+import { privateKeyToAccount } from "viem/accounts";
+import axios from "axios";
+
+// Create signer
+const signer = privateKeyToAccount(
+  process.env.EVM_PRIVATE_KEY as `0x${string}`,
+);
+
+// Create x402 client and register schemes
+const client = new x402Client();
+registerExactEvmScheme(client, { signer });
+
+// Create an Axios instance with payment handling
+const api = withPaymentInterceptor(
+  axios.create({ baseURL: "https://upload.ardrive.io" }),
+  client,
+);
+
+const customTags = [
+  { name: "App-Name", value: "My-Cool-App" },
+  { name: "My-Custom-Tag", value: "My-Custom-Value" },
+];
+
+// Make request - payment is handled automatically
+const response = await api.post(
+  "/x402/data-item/unsigned",
+  readFileSync("../path/to/file"),
+  {
+    headers: {
+      "Content-Type": "application/octet-stream", // Set appropriate content type
+      "x-data-item-tags": JSON.stringify(customTags), // Include custom tags as a header
+    },
+  },
+);
+console.log("Response:", response.data);
+
+// Get payment receipt
+const httpClient = new x402HTTPClient(client);
+const paymentResponse = httpClient.getPaymentSettleResponse(
+  (name) => response.headers[name.toLowerCase()],
+);
+console.log("Payment settled:", paymentResponse);
+```
