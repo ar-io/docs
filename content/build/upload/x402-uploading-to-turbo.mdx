@@ -17,11 +17,35 @@ Users can choose to send data via signed data items or by using the unsigned raw
 
 ### Turbo CLI
 
+Signed Data Item Upload:
+
+```sh
+turbo upload-file -f ../path/to/file --wallet-file ../path/to/evm/wallet.json --x402 --token base-usdc
+```
+
+Unsigned Raw Data Upload:
+
 ```sh
 turbo x402-unsigned-upload -f ../path/to/file --wallet-file ../path/to/evm/wallet.json --token base-usdc --tags 'App-Name' 'My-Cool-App' 'My-Custom-Tag' 'My-Custom-Value'
 ```
 
 ### Turbo SDK
+
+Signed Data Item Upload:
+
+```typescript
+import { TurboFactory, X402Funding } from "@ardrive/turbo-sdk";
+const turbo = TurboFactory.authenticated({
+  privateKey,
+  token: "base-usdc",
+});
+await turbo.upload({
+  data: "The contents of my file!",
+  fundingMode: new X402Funding({ maxMUSDCAmount: 1_000_000 }), // Max 1 USDC
+});
+```
+
+Unsigned Raw Data Upload:
 
 ```typescript
 import { TurboFactory } from "@ardrive/turbo-sdk";
