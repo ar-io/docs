@@ -8,15 +8,15 @@ import SearchDialog from "@/components/search";
 export const metadata: Metadata = {
   metadataBase: new URL("https://docs.ar.io"),
   title: {
-    default: "AR.IO Documentation",
-    template: "%s | AR.IO Documentation",
+    default: "Ar.io Documentation",
+    template: "%s | Ar.io Documentation",
   },
   description:
-    "Comprehensive documentation for AR.IO and the Arweave ecosystem",
+    "Comprehensive documentation for ar.io and the Arweave ecosystem",
   icons: {
-    icon: "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
-    shortcut: "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
-    apple: "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
+    icon: "http://arweave.net/XKbNclfTP-pmIhFF6C3HC_rweVthbrVPv2CBuepxQ2g",
+    shortcut: "http://arweave.net/XKbNclfTP-pmIhFF6C3HC_rweVthbrVPv2CBuepxQ2g",
+    apple: "http://arweave.net/XKbNclfTP-pmIhFF6C3HC_rweVthbrVPv2CBuepxQ2g",
   },
 };
 
