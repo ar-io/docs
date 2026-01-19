@@ -82,12 +82,12 @@ export async function generateMetadata(props: {
   if (!page) {
     return {
       title: "Ar.io Documentation",
-      description: "Documentation for AR.IO",
+      description: "Documentation for ar.io",
       openGraph: {
         title: "Ar.io Documentation",
-        description: "Documentation for AR.IO",
+        description: "Documentation for ar.io",
         type: "website",
-        siteName: "AR.IO",
+        siteName: "ar.io",
         images: [
           {
             url: "/meta.png",
@@ -100,7 +100,7 @@ export async function generateMetadata(props: {
       twitter: {
         card: "summary_large_image",
         title: "Ar.io Documentation",
-        description: "Documentation for AR.IO",
+        description: "Documentation for ar.io",
         images: [
           "/meta.png",
         ],
@@ -131,11 +131,11 @@ export async function generateMetadata(props: {
   const pageImage =
     frontmatter.image || frontmatter.icon || "/meta.png";
   const pageKeywords = frontmatter.keywords || [
-    "AR.IO",
+    "ar.io",
     "Arweave",
     "documentation",
   ];
-  const pageAuthor = frontmatter.author || "AR.IO Team";
+  const pageAuthor = frontmatter.author || "Ar.io Team";
 
   return {
     title: pageTitle,

@@ -11,15 +11,15 @@ const PACKAGES: {
   sourceUrl: string;
   icon?: string;
 }[] = [
-  // AR.IO SDK
+  // Ar.io SDK
   {
     name: "ar-io-sdk",
     readmeUrl:
       "https://raw.githubusercontent.com/ar-io/ar-io-sdk/alpha/README.md",
     dest: path.resolve("content/sdks/ar-io-sdk"),
-    title: "AR.IO SDK",
+    title: "Ar.ioSDK",
     description:
-      "TypeScript/JavaScript SDK for interacting with the AR.IO ecosystem",
+      "TypeScript/JavaScript SDK for interacting with the ar.io ecosystem",
     sourceUrl: "https://github.com/ar-io/ar-io-sdk",
     icon: "/public/brand/ario-white.svg",
   },
