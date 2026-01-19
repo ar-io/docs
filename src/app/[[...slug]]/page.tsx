@@ -165,11 +165,11 @@ export async function generateMetadata(props: {
       site: "@ar_io_network",
     },
     icons: {
-        icon: "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
+        icon: "https://arweave.net/uA4zrhP_ShZ8-QbbKM0XhBQWpXgBpYDhgr6X5f6Ou88g",
         shortcut:
-          "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
+          "https://arweave.net/uA4zrhP_ShZ8-QbbKM0XhBQWpXgBpYDhgr6X5f6Ou88g",
         apple:
-          "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
+          "https://arweave.net/uA4zrhP_ShZ8-QbbKM0XhBQWpXgBpYDhgr6X5f6Ou88g",
     },
     // Add additional metadata for better SEO
     keywords: pageKeywords,
