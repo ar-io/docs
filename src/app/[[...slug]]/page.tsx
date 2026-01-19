@@ -81,10 +81,10 @@ export async function generateMetadata(props: {
   // If no page found, return default metadata
   if (!page) {
     return {
-      title: "AR.IO Documentation",
+      title: "Ar.io Documentation",
       description: "Documentation for AR.IO",
       openGraph: {
-        title: "AR.IO Documentation",
+        title: "Ar.io Documentation",
         description: "Documentation for AR.IO",
         type: "website",
         siteName: "AR.IO",
@@ -93,13 +93,13 @@ export async function generateMetadata(props: {
             url: "/meta.png",
             width: 1200,
             height: 630,
-            alt: "AR.IO Documentation",
+            alt: "Ar.io Documentation",
           },
         ],
       },
       twitter: {
         card: "summary_large_image",
-        title: "AR.IO Documentation",
+        title: "Ar.io Documentation",
         description: "Documentation for AR.IO",
         images: [
           "/meta.png",
@@ -108,11 +108,9 @@ export async function generateMetadata(props: {
         site: "@ar_io_network",
       },
       icons: {
-        icon: "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
-        shortcut:
-          "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
-        apple:
-          "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
+        icon: "https://arweave.net/uA4zrhP_ShZ8-QbbKM0XhBQWpXgBpYDhgr6X5f6Ou88g",
+        shortcut: "https://arweave.net/uA4zrhP_ShZ8-QbbKM0XhBQWpXgBpYDhgr6X5f6Ou88",
+        apple: "https://arweave.net/uA4zrhP_ShZ8-QbbKM0XhBQWpXgBpYDhgr6X5f6Ou88",
       },
     };
   }

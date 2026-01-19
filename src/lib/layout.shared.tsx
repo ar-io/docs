@@ -1,5 +1,5 @@
 import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
-import Image from "next/image";
+import { Logo } from "@/components/logo";
 
 /**
  * Shared layout configurations
@@ -13,16 +13,13 @@ export function baseOptions(): BaseLayoutProps {
     nav: {
       title: (
         <>
-          <Image
-            src="https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so"
-            alt="AR.IO Logo"
-            width={24}
-            height={24}
-            className="inline-block"
-          />
-          AR.IO Documentation
+          <Logo />
+          Ar.io Documentation
         </>
       ),
+    },
+    themeSwitch: {
+      mode: 'light-dark-system',
     },
     // see https://fumadocs.dev/docs/ui/navigation/links
     links: [],
