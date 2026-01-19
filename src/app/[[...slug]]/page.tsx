@@ -144,7 +144,7 @@ export async function generateMetadata(props: {
       title: pageTitle,
       description: pageDescription,
       type: "article",
-      siteName: "AR.IO",
+      siteName: "ar.io",
       images: [
         {
           url: pageImage,

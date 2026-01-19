@@ -16,7 +16,7 @@ export function Logo() {
   return (
     <Image
       src={logoSrc}
-      alt="AR.IO Logo"
+      alt="ar.io Logo"
       width={24}
       height={24}
       className="inline-block"

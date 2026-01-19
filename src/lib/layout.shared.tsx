@@ -22,6 +22,12 @@ export function baseOptions(): BaseLayoutProps {
       mode: 'light-dark-system',
     },
     // see https://fumadocs.dev/docs/ui/navigation/links
-    links: [],
+    links: [
+      {
+        text: "White paper",
+        url: "https://whitepaper.ar.io",
+        external: true,
+      },
+    ],
   };
 }
