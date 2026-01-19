@@ -29,7 +29,7 @@ const { createOpenAPI } = await import('fumadocs-openapi/server');
     });
     await generateFiles({
       input: openApi,
-      output: `./content/api/${key}/`,
+      output: `./content/apis/${key}/`,
       includeDescription: true,
       per: 'tag',
       frontmatter: (title: string) => {
