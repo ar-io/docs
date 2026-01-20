@@ -2,11 +2,21 @@ import { DocsLayout } from "fumadocs-ui/layouts/docs";
 import { baseOptions } from "@/lib/layout.shared";
 import { source } from "@/lib/source";
 
-export default function Layout({ children }: { children: React.ReactNode }) {
+export default async function Layout({ 
+  children,
+  params 
+}: { 
+  children: React.ReactNode;
+  params: Promise<{ slug?: string[] }>;
+}) {
+  const resolvedParams = await params;
+  // Construct pathname from slug params
+  const pathname = resolvedParams.slug ? `/${resolvedParams.slug.join('/')}` : '/';
+  
   return (
     <DocsLayout
       tree={source.pageTree}
-      {...baseOptions()}
+      {...baseOptions(pathname)}
       sidebar={{
         defaultOpenLevel: 1,
       }}

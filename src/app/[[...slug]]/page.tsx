@@ -81,26 +81,26 @@ export async function generateMetadata(props: {
   // If no page found, return default metadata
   if (!page) {
     return {
-      title: "AR.IO Documentation",
-      description: "Documentation for AR.IO",
+      title: "Ar.io Documentation",
+      description: "Documentation for ar.io",
       openGraph: {
-        title: "AR.IO Documentation",
-        description: "Documentation for AR.IO",
+        title: "Ar.io Documentation",
+        description: "Documentation for ar.io",
         type: "website",
-        siteName: "AR.IO",
+        siteName: "ar.io",
         images: [
           {
             url: "/meta.png",
             width: 1200,
             height: 630,
-            alt: "AR.IO Documentation",
+            alt: "Ar.io Documentation",
           },
         ],
       },
       twitter: {
         card: "summary_large_image",
-        title: "AR.IO Documentation",
-        description: "Documentation for AR.IO",
+        title: "Ar.io Documentation",
+        description: "Documentation for ar.io",
         images: [
           "/meta.png",
         ],
@@ -108,11 +108,9 @@ export async function generateMetadata(props: {
         site: "@ar_io_network",
       },
       icons: {
-        icon: "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
-        shortcut:
-          "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
-        apple:
-          "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
+        icon: "https://arweave.net/uA4zrhP_ShZ8-QbbKM0XhBQWpXgBpYDhgr6X5f6Ou88g",
+        shortcut: "https://arweave.net/uA4zrhP_ShZ8-QbbKM0XhBQWpXgBpYDhgr6X5f6Ou88",
+        apple: "https://arweave.net/uA4zrhP_ShZ8-QbbKM0XhBQWpXgBpYDhgr6X5f6Ou88",
       },
     };
   }
@@ -133,11 +131,11 @@ export async function generateMetadata(props: {
   const pageImage =
     frontmatter.image || frontmatter.icon || "/meta.png";
   const pageKeywords = frontmatter.keywords || [
-    "AR.IO",
+    "ar.io",
     "Arweave",
     "documentation",
   ];
-  const pageAuthor = frontmatter.author || "AR.IO Team";
+  const pageAuthor = frontmatter.author || "Ar.io Team";
 
   return {
     title: pageTitle,
@@ -146,7 +144,7 @@ export async function generateMetadata(props: {
       title: pageTitle,
       description: pageDescription,
       type: "article",
-      siteName: "AR.IO",
+      siteName: "ar.io",
       images: [
         {
           url: pageImage,
@@ -167,11 +165,11 @@ export async function generateMetadata(props: {
       site: "@ar_io_network",
     },
     icons: {
-        icon: "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
+        icon: "https://arweave.net/uA4zrhP_ShZ8-QbbKM0XhBQWpXgBpYDhgr6X5f6Ou88g",
         shortcut:
-          "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
+          "https://arweave.net/uA4zrhP_ShZ8-QbbKM0XhBQWpXgBpYDhgr6X5f6Ou88g",
         apple:
-          "https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so",
+          "https://arweave.net/uA4zrhP_ShZ8-QbbKM0XhBQWpXgBpYDhgr6X5f6Ou88g",
     },
     // Add additional metadata for better SEO
     keywords: pageKeywords,

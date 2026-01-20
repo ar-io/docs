@@ -1,5 +1,5 @@
 import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
-import Image from "next/image";
+import { Logo } from "@/components/logo";
 
 /**
  * Shared layout configurations
@@ -8,23 +8,34 @@ import Image from "next/image";
  * Home Layout: app/(home)/layout.tsx
  * Docs Layout: app/docs/layout.tsx
  */
-export function baseOptions(): BaseLayoutProps {
+export function baseOptions(pathname?: string): BaseLayoutProps {
+  // Only show white paper link in Learn sections
+  const isLearnSection = pathname?.startsWith('/learn') ?? false;
+  
+  const links: BaseLayoutProps['links'] = [];
+  
+  // Add white paper link as the last item only in Learn sections
+  if (isLearnSection) {
+    links.push({
+      text: "White Paper",
+      url: "https://whitepaper.ar.io",
+      external: true,
+    });
+  }
+
   return {
     nav: {
       title: (
         <>
-          <Image
-            src="https://arweave.net/XAv8yHVUdsjaiM_WJhHAAyBmjpk4RRDvzB9hfzsD-so"
-            alt="AR.IO Logo"
-            width={24}
-            height={24}
-            className="inline-block"
-          />
-          AR.IO Documentation
+          <Logo />
+          Ar.io Documentation
         </>
       ),
     },
+    themeSwitch: {
+      mode: 'light-dark-system',
+    },
     // see https://fumadocs.dev/docs/ui/navigation/links
-    links: [],
+    links,
   };
 }

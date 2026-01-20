@@ -13,7 +13,7 @@ interface FeedbackData {
 
 async function handleFeedback(pageUrl: string, feedback: FeedbackData) {
   try {
-    // Web3Forms configuration - Public access key for AR.IO documentation feedback
+    // Web3Forms configuration - Public access key for Ar.io Documentation feedback
     const WEB3FORMS_ACCESS_KEY = "88dab14e-e2f1-47cc-b284-84496d1ddc59";
     const WEB3FORMS_ENDPOINT = "https://api.web3forms.com/submit";
 
@@ -23,9 +23,9 @@ async function handleFeedback(pageUrl: string, feedback: FeedbackData) {
     // Format the subject for easy email filtering
     const feedbackType =
       feedback.opinion === "good" ? "✅ POSITIVE" : "❌ NEGATIVE";
-    const subject = `[AR.IO Docs] ${feedbackType} Feedback - ${pageUrl}`;
+    const subject = `[Ar.io Docs] ${feedbackType} Feedback - ${pageUrl}`;
     formData.append("subject", subject);
-    formData.append("from_name", "AR.IO Documentation Feedback");
+    formData.append("from_name", "Ar.io Documentation Feedback");
 
     // Create a well-formatted email body
     const timestamp = new Date().toLocaleString("en-US", {
@@ -50,7 +50,7 @@ User Feedback:
 ${feedback.message || "No additional comments provided."}
 
 ---
-This feedback was submitted through the AR.IO documentation site.
+This feedback was submitted through the Ar.io Documentation site.
 To improve our docs, please consider opening an issue on GitHub.
     `.trim();
 
