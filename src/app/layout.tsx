@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import SearchDialog from "@/components/search";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import { FrameworkProvider } from "@/contexts/framework-context";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -38,17 +39,19 @@ export default function Layout({ children }: LayoutProps<"/">) {
           defer
           data-domain="docs.ar.io"
         />
-        <RootProvider
-          search={{
-            SearchDialog,
-          }}
-          theme={{
-            defaultTheme: 'light',
-            enableSystem: true,
-          }}
-        >
-          {children}
-        </RootProvider>
+        <FrameworkProvider>
+          <RootProvider
+            search={{
+              SearchDialog,
+            }}
+            theme={{
+              defaultTheme: 'light',
+              enableSystem: true,
+            }}
+          >
+            {children}
+          </RootProvider>
+        </FrameworkProvider>
       </body>
     </html>
   );

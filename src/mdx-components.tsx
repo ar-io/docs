@@ -7,6 +7,7 @@ import { openapi } from "@/lib/openapi";
 import { APIPage } from "fumadocs-openapi/ui";
 import { Step, Steps } from "fumadocs-ui/components/steps";
 import { Tabs, Tab } from "fumadocs-ui/components/tabs";
+import { FrameworkTabs } from "@/components/framework-tabs";
 import Image from "next/image";
 import {
   FolderOpen,
@@ -42,6 +43,7 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     Steps,
     Tabs,
     Tab,
+    FrameworkTabs,
     FolderOpen,
     Info,
     Zap,

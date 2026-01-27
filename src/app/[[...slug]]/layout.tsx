@@ -1,6 +1,7 @@
 import { DocsLayout } from "fumadocs-ui/layouts/docs";
 import { baseOptions } from "@/lib/layout.shared";
 import { source } from "@/lib/source";
+import { FrameworkSelector } from "@/components/framework-selector";
 
 export default async function Layout({ 
   children,
@@ -19,6 +20,7 @@ export default async function Layout({
       {...baseOptions(pathname)}
       sidebar={{
         defaultOpenLevel: 1,
+        banner: <FrameworkSelector />,
       }}
     >
       {children}
