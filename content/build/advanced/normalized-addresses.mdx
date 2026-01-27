@@ -86,3 +86,44 @@ The normalized public key for Solana wallets are derived similarly. The 32 byte 
 Again, this value is used for the GraphQl tag `owner` when uploading data. It can then be sha256 hashed, and base64url encoded again to derive the normalized address:
 
 `K8kpPM1RID8ZM2sjF5mYy0rP4gXSRDbrwPUd9Qths64`
+
+## Discovering Public Keys from On-Chain Transactions
+
+In many cases, you may only have a wallet's native address and need to derive its normalized address. Since normalized addresses are derived from public keys, and public keys are not always readily available, you can recover them from on-chain transaction signatures.
+
+The [ar://normalize-my-key](https://normalize-my-key.arweave.net/) tool implements this discovery process, allowing you to look up an address or transaction hash/signature to automatically recover the public key and derive the normalized address.
+
+### EVM Chains (Ethereum, Polygon, Base)
+
+EVM chains use the Elliptic Curve Digital Signature Algorithm (ECDSA) for transaction signing. A unique property of ECDSA is that the public key can be mathematically recovered from a valid signature and the signed message hash.
+
+The recovery process works as follows:
+
+1. **Fetch a transaction** where the target address is the sender (the `from` field)
+2. **Reconstruct the unsigned transaction** by extracting the transaction fields (nonce, to, value, gas, data, chainId, etc.) and determining the transaction type (legacy, EIP-2930, or EIP-1559)
+3. **Serialize the transaction** according to its type and compute the Keccak-256 hash of the serialized data
+4. **Extract the signature components** (r, s, v) from the transaction
+5. **Recover the public key** using ECDSA recovery with the message hash and signature
+
+The `v` value encodes the recovery bit needed to identify which of the two possible public keys is correct:
+- For EIP-1559/EIP-2930 transactions: `v` is already 0 or 1
+- For pre-EIP-155 legacy transactions: `v` is 27 or 28, subtract 27 to get the recovery bit
+- For EIP-155 transactions: `v = chainId * 2 + 35 + recoveryBit`
+
+Once the 65-byte uncompressed public key is recovered, the normalized address is derived by removing the `0x` prefix and uncompressed flag (`04`), base64url encoding the remaining 64 bytes, then sha256 hashing and base64url encoding the result.
+
+<Callout type="info" title="Outgoing Transactions Required">
+  Public key recovery only works with transactions where the target address is the **sender**. If an address has only received funds but never sent any, there will be no signature from which to recover the public key.
+</Callout>
+
+### Solana
+
+Solana transactions include the signer's public key directly in the transaction's account keys array. The first account key in any transaction is always the fee payer/signer.
+
+The discovery process is simpler:
+
+1. **Fetch a transaction** by its signature using the Solana RPC
+2. **Extract the first account key** from the transaction's account keys (this is the signer's public key)
+3. **Convert to normalized format** by base64url encoding the 32-byte public key, then sha256 hashing and base64url encoding the result
+
+Unlike EVM chains, Solana does not require cryptographic recovery since the public key is explicitly included in the transaction data.
