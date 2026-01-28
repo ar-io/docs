@@ -21,7 +21,7 @@ const PACKAGES: {
     description:
       "TypeScript/JavaScript SDK for interacting with the ar.io ecosystem",
     sourceUrl: "https://github.com/ar-io/ar-io-sdk",
-    icon: "/public/brand/ario-white.svg",
+    icon: "/brand/ario-white.svg",
   },
   // Turbo SDK
   {

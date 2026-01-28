@@ -108,9 +108,9 @@ export async function generateMetadata(props: {
         site: "@ar_io_network",
       },
       icons: {
-        icon: "https://arweave.net/uA4zrhP_ShZ8-QbbKM0XhBQWpXgBpYDhgr6X5f6Ou88g",
-        shortcut: "https://arweave.net/uA4zrhP_ShZ8-QbbKM0XhBQWpXgBpYDhgr6X5f6Ou88",
-        apple: "https://arweave.net/uA4zrhP_ShZ8-QbbKM0XhBQWpXgBpYDhgr6X5f6Ou88",
+        icon: "/brand/favicon.png",
+        shortcut: "/brand/favicon.png",
+        apple: "/brand/favicon.png",
       },
     };
   }
@@ -165,11 +165,9 @@ export async function generateMetadata(props: {
       site: "@ar_io_network",
     },
     icons: {
-        icon: "https://arweave.net/uA4zrhP_ShZ8-QbbKM0XhBQWpXgBpYDhgr6X5f6Ou88g",
-        shortcut:
-          "https://arweave.net/uA4zrhP_ShZ8-QbbKM0XhBQWpXgBpYDhgr6X5f6Ou88g",
-        apple:
-          "https://arweave.net/uA4zrhP_ShZ8-QbbKM0XhBQWpXgBpYDhgr6X5f6Ou88g",
+        icon: "/brand/favicon.png",
+        shortcut: "/brand/favicon.png",
+        apple: "/brand/favicon.png",
     },
     // Add additional metadata for better SEO
     keywords: pageKeywords,
