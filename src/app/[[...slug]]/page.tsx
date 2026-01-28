@@ -135,7 +135,7 @@ export async function generateMetadata(props: {
     "Arweave",
     "documentation",
   ];
-  const pageAuthor = frontmatter.author || "Ar.io Team";
+  const pageAuthor = frontmatter.author || "ar.io Team";
 
   return {
     title: pageTitle,
