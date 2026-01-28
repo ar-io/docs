@@ -17,7 +17,7 @@ const PACKAGES: {
     readmeUrl:
       "https://raw.githubusercontent.com/ar-io/ar-io-sdk/alpha/README.md",
     dest: path.resolve("content/sdks/ar-io-sdk"),
-    title: "Ar.ioSDK",
+    title: "ar.io SDK",
     description:
       "TypeScript/JavaScript SDK for interacting with the ar.io ecosystem",
     sourceUrl: "https://github.com/ar-io/ar-io-sdk",
