@@ -90,7 +90,7 @@ export async function generateMetadata(props: {
         siteName: "ar.io",
         images: [
           {
-            url: "/meta.png",
+            url: "/content/meta.png",
             width: 1200,
             height: 630,
             alt: "ar.io Documentation",
@@ -102,7 +102,7 @@ export async function generateMetadata(props: {
         title: "ar.io Documentation",
         description: "Documentation for ar.io",
         images: [
-          "/meta.png",
+          "/content/meta.png",
         ],
         creator: "@ar_io_network",
         site: "@ar_io_network",
@@ -129,7 +129,7 @@ export async function generateMetadata(props: {
   const pageTitle = frontmatter.title || page.data.title;
   const pageDescription = frontmatter.description || page.data.description;
   const pageImage =
-    frontmatter.image || frontmatter.icon || "/meta.png";
+    frontmatter.image || frontmatter.icon || "/content/meta.png";
   const pageKeywords = frontmatter.keywords || [
     "ar.io",
     "Arweave",
