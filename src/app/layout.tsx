@@ -15,8 +15,8 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   metadataBase: new URL("https://docs.ar.io"),
   title: {
-    default: "Ar.io Documentation",
-    template: "%s | Ar.io Documentation",
+    default: "ar.io Documentation",
+    template: "%s | ar.io Documentation",
   },
   description:
     "Comprehensive documentation for ar.io and the Arweave ecosystem",

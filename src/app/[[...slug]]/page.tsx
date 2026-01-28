@@ -81,10 +81,10 @@ export async function generateMetadata(props: {
   // If no page found, return default metadata
   if (!page) {
     return {
-      title: "Ar.io Documentation",
+      title: "ar.io Documentation",
       description: "Documentation for ar.io",
       openGraph: {
-        title: "Ar.io Documentation",
+        title: "ar.io Documentation",
         description: "Documentation for ar.io",
         type: "website",
         siteName: "ar.io",
@@ -93,13 +93,13 @@ export async function generateMetadata(props: {
             url: "/meta.png",
             width: 1200,
             height: 630,
-            alt: "Ar.io Documentation",
+            alt: "ar.io Documentation",
           },
         ],
       },
       twitter: {
         card: "summary_large_image",
-        title: "Ar.io Documentation",
+        title: "ar.io Documentation",
         description: "Documentation for ar.io",
         images: [
           "/meta.png",
