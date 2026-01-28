@@ -15,15 +15,15 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   metadataBase: new URL("https://docs.ar.io"),
   title: {
-    default: "Ar.io Documentation",
-    template: "%s | Ar.io Documentation",
+    default: "ar.io Documentation",
+    template: "%s | ar.io Documentation",
   },
   description:
     "Comprehensive documentation for ar.io and the Arweave ecosystem",
   icons: {
-    icon: "https://arweave.net/uA4zrhP_ShZ8-QbbKM0XhBQWpXgBpYDhgr6X5f6Ou88",
-    shortcut: "https://arweave.net/uA4zrhP_ShZ8-QbbKM0XhBQWpXgBpYDhgr6X5f6Ou88",
-    apple: "https://arweave.net/uA4zrhP_ShZ8-QbbKM0XhBQWpXgBpYDhgr6X5f6Ou88",
+    icon: "/brand/favicon.png",
+    shortcut: "/brand/favicon.png",
+    apple: "/brand/favicon.png",
   },
 };
 

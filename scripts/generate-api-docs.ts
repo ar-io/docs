@@ -4,7 +4,7 @@ const openApiMap: Record<string, {
   name: string;
 }> = {
   'ar-io-node': {
-    name: 'Ar.io Node',
+    name: 'ar.io Node',
     openapi: 'https://raw.githubusercontent.com/ar-io/ar-io-node/refs/heads/openapi-update/docs/openapi.yaml',
   },
   'turbo/upload-service': {
@@ -36,7 +36,7 @@ const { createOpenAPI } = await import('fumadocs-openapi/server');
         // Fix title capitalization
         if (title.toLowerCase() === 'ar n s') return { title: 'ArNS' };
         if (title.toLowerCase() === 'ar io') return { title: 'ar.io' };
-        if (title.toLowerCase() === 'ar io node') return { title: 'Ar.io Node' };
+        if (title.toLowerCase() === 'ar io node') return { title: 'ar.io Node' };
         return { title };
       },
     });

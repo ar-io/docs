@@ -1,7 +1,7 @@
 # CLAUDE.md - Repository Assistant Guide
 
 ## Repository Overview
-This is the ar-io/docs repository, which manages the documentation for the AR.IO Developer Platform. It references various services, SDKs and tools for building on and with the AR.IO Network. It also includes documentation for interacting with ArDrive - a flagship consumer dApp that stores data on Arweave.
+This is the ar-io/docs repository, which manages the documentation for the ar.io Developer Platform. It references various services, SDKs and tools for building on and with ar.io. It also includes documentation for interacting with ArDrive - a flagship consumer dApp that stores data on Arweave.
 
 ## Architecture
 This repository is built with [Fumadocs](https://fumadocs.dev/), a documentation framework. The general architecture is as follows:
@@ -54,11 +54,11 @@ The repository supports OpenAPI documentation import (see recent commit 33af22f2
 - Run linting and type checking before committing
 
 ## Community Resources
-- **Discord**: https://discord.com/invite/HGG52EtTc2 - Join the AR.IO community for updates and discussions
+- **Discord**: https://discord.com/invite/HGG52EtTc2 - Join the ar.io community for updates and discussions
 
 ## Important Notes
 - This is a documentation repository - focus on content clarity and accuracy
-- Always verify technical details match the actual AR.IO implementation
+- Always verify technical details match the actual ar.io implementation
 - Maintain consistent terminology throughout documentation
 - Test all code examples before including them in documentation
 
