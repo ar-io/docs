@@ -23,7 +23,7 @@ async function handleFeedback(pageUrl: string, feedback: FeedbackData) {
     // Format the subject for easy email filtering
     const feedbackType =
       feedback.opinion === "good" ? "✅ POSITIVE" : "❌ NEGATIVE";
-    const subject = `[Ar.io Docs] ${feedbackType} Feedback - ${pageUrl}`;
+    const subject = `[ar.io Docs] ${feedbackType} Feedback - ${pageUrl}`;
     formData.append("subject", subject);
     formData.append("from_name", "ar.io Documentation Feedback");
 
