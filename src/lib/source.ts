@@ -23,14 +23,18 @@ export const source = loader({
     if (typeof icon === 'string' && (icon.endsWith('.svg') || icon.endsWith('.png'))) {
       // Special handling for ar.io SDK icon - use theme-aware component
       if (icon === '/brand/ario-white.svg') {
-        return createElement(ThemeIcon, {
+        // Wrap in a span to provide a stable container that can help with key warnings
+        return createElement('span', { 
+          key: icon,
+          style: { display: 'inline-flex', alignItems: 'center' }
+        }, createElement(ThemeIcon, {
           lightSrc: '/brand/ario-black.svg',
           darkSrc: '/brand/ario-white.svg',
           alt: '',
           width: 16,
           height: 16,
           className: 'size-4'
-        });
+        }));
       }
       
       // For other icons, use Image component directly
