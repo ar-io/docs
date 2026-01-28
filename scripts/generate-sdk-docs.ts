@@ -11,7 +11,7 @@ const PACKAGES: {
   sourceUrl: string;
   icon?: string;
 }[] = [
-  // Ar.io SDK
+  // ar.io SDK
   {
     name: "ar-io-sdk",
     readmeUrl:
