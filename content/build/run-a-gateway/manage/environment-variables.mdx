@@ -63,6 +63,24 @@ The main ar.io Gateway service that handles data retrieval, indexing, and servin
 | `CHUNK_DATA_SOURCE_TYPE`     | string | `fs`                                 | Chunk data source type (fs, legacy-s3)       |
 | `CHUNK_METADATA_SOURCE_TYPE` | string | `fs`                                 | Chunk metadata source type (fs, legacy-psql) |
 
+### CDB64 Root Transaction Index
+
+The CDB64 index provides O(1) constant-time lookups for resolving data item IDs to their root Arweave transactions. As of Release 67, a pre-built index is enabled by default covering ~964 million records.
+
+| Variable                              | Type    | Default                   | Description                                                                                                      |
+| ------------------------------------- | ------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `ROOT_TX_LOOKUP_ORDER`                | string  | `db,gateways,cdb,graphql` | Comma-separated list of root TX lookup sources. Options: db, cdb, gateways, turbo, graphql                       |
+| `CDB64_ROOT_TX_INDEX_SOURCES`         | string  | shipped manifest          | Comma-separated list of CDB64 sources: local paths, directories, HTTP URLs, Arweave TX IDs, or bundle data items |
+| `CDB64_ROOT_TX_INDEX_WATCH`           | boolean | `true`                    | Enable file watching for local CDB64 directories. New files auto-load without restart                            |
+| `CDB64_REMOTE_RETRIEVAL_ORDER`        | string  | `gateways,chunks`         | Data sources for fetching remote CDB64 files. Options: gateways, chunks, tx-data                                 |
+| `CDB64_REMOTE_CACHE_MAX_REGIONS`      | number  | `100`                     | Maximum byte-range regions to cache per remote source                                                            |
+| `CDB64_REMOTE_CACHE_TTL_MS`           | number  | `300000`                  | TTL for cached byte-range regions (5 minutes)                                                                    |
+| `CDB64_REMOTE_REQUEST_TIMEOUT_MS`     | number  | `30000`                   | Request timeout for remote CDB64 sources                                                                         |
+| `CDB64_REMOTE_MAX_CONCURRENT_REQUESTS`| number  | `4`                       | Maximum concurrent HTTP requests across all remote CDB64 sources                                                 |
+| `CDB64_REMOTE_SEMAPHORE_TIMEOUT_MS`   | number  | `5000`                    | Maximum wait time for a request slot before failing                                                              |
+
+For detailed configuration and usage, see [CDB64 Root TX Index](/build/run-a-gateway/manage/cdb64).
+
 ### Indexing & Synchronization
 
 | Variable                         | Type    | Default    | Description                        |
