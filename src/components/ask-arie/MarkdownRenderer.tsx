@@ -12,7 +12,7 @@ export function MarkdownRenderer({ text, messageId }: MarkdownRendererProps) {
 
   const renderInline = (value: string, keyPrefix: string) => {
     const tokenRegex =
-      /(`[^`]+`|\[[^\]]+\]\([^)]+\)|\*\*[^*]+\*\*|\[(?:Source|Sources)\s+\d+\]|\[[A-Z0-9_]{3,}\]|\*[^*]+\*)/g;
+      /(`[^`]+`|\[[^\]]+\]\((?:<[^>]+>|[^)\s]+)\)|\*\*[^*]+\*\*|\[(?:Source|Sources)\s+\d+\]|\[[A-Z0-9_]{3,}\]|\*[^*]+\*)/g;
 
     const parts = value.split(tokenRegex).filter((p) => p !== "");
 
@@ -31,21 +31,26 @@ export function MarkdownRenderer({ text, messageId }: MarkdownRendererProps) {
       }
 
       if (part.startsWith("[") && part.includes("](") && part.endsWith(")")) {
-        const match = part.match(/^\[([^\]]+)\]\(([^)\s]+)(?:\s+"([^"]+)")?\)$/);
+        const angleMatch = part.match(/^\[([^\]]+)\]\(<([^>]+)>\)$/);
+        const normalMatch = part.match(/^\[([^\]]+)\]\(([^)\s]+)(?:\s+"([^"]+)")?\)$/);
+        const match = angleMatch ?? normalMatch;
         if (match) {
-          const [, label, href] = match;
-          const isExternal = /^https?:\/\//i.test(href);
-          return (
-            <a
-              key={k}
-              href={href}
-              target={isExternal ? "_blank" : undefined}
-              rel={isExternal ? "noreferrer" : undefined}
-              className="text-fd-primary underline underline-offset-2 hover:opacity-80"
-            >
-              {label}
-            </a>
-          );
+          const label = match[1];
+          const href = angleMatch ? angleMatch[2] : (match[2] ?? "").trim();
+          if (href) {
+            const isExternal = /^https?:\/\//i.test(href);
+            return (
+              <a
+                key={k}
+                href={href}
+                target={isExternal ? "_blank" : undefined}
+                rel={isExternal ? "noreferrer" : undefined}
+                className="cursor-pointer text-fd-primary underline underline-offset-2 hover:opacity-80"
+              >
+                {label}
+              </a>
+            );
+          }
         }
       }
 
@@ -76,7 +81,7 @@ export function MarkdownRenderer({ text, messageId }: MarkdownRendererProps) {
             <a
               key={k}
               href={href}
-              className="no-underline hover:opacity-80"
+              className="cursor-pointer no-underline hover:opacity-80"
               aria-label={`Jump to source ${n}`}
             >
               {sup}
@@ -201,18 +206,37 @@ export function MarkdownRenderer({ text, messageId }: MarkdownRendererProps) {
     } else if (line.startsWith("```")) {
       const codeLines: string[] = [];
       i++;
-      while (i < lines.length && !lines[i].startsWith("```")) {
-        codeLines.push(lines[i]);
+      const closingFence = /^```\s*$/;
+      while (i < lines.length && !closingFence.test(lines[i] ?? "")) {
+        codeLines.push(lines[i] ?? "");
         i++;
       }
       elements.push(
         <pre
           key={key++}
-          className="mb-2 overflow-x-auto rounded-md bg-fd-muted p-3 text-[11px] text-fd-foreground"
+          className="mb-2 overflow-x-auto rounded-md border border-fd-border bg-fd-muted p-3 text-[11px] leading-relaxed text-fd-foreground"
         >
-          <code>{codeLines.join("\n")}</code>
+          <code className="font-mono whitespace-pre">{codeLines.join("\n")}</code>
         </pre>
       );
+    } else if (line.match(/^(?:    |\t)/)) {
+      const indentedLines: string[] = [];
+      let j = i;
+      while (j < lines.length) {
+        const current = lines[j] ?? "";
+        if (current.trim() !== "" && !current.match(/^(?:    |\t)/)) break;
+        indentedLines.push(current);
+        j++;
+      }
+      elements.push(
+        <pre
+          key={key++}
+          className="mb-2 overflow-x-auto rounded-md border border-fd-border bg-fd-muted p-3 text-[11px] leading-relaxed text-fd-foreground"
+        >
+          <code className="font-mono whitespace-pre">{indentedLines.join("\n")}</code>
+        </pre>
+      );
+      i = j - 1;
     } else if (line.trim() === "") {
       elements.push(<div key={key++} className="h-2" />);
     } else {

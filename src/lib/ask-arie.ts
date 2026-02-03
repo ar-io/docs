@@ -141,12 +141,15 @@ export async function askArie(
 }
 
 export function parseCitationMarkdownLink(rawCitation: string): Citation | null {
-  const markdownLinkRegex = /^\[([^\]]+)\]\(([^)\s]+)(?:\s+"([^"]+)")?\)$/;
-  const match = rawCitation.match(markdownLinkRegex);
+  const trimmed = rawCitation.trim();
+  const angleMatch = trimmed.match(/^\[([^\]]+)\]\(<([^>]+)>\)$/);
+  const normalMatch = trimmed.match(/^\[([^\]]+)\]\(([^)\s]+)(?:\s+"([^"]+)")?\)$/);
+  const match = angleMatch ?? normalMatch;
   if (!match) return null;
 
-  const [, title, url] = match;
-  return { index: 0, title: title.trim(), url: url.trim(), raw: rawCitation };
+  const title = match[1].trim();
+  const url = (angleMatch ? angleMatch[2] : match[2])?.trim() ?? "";
+  return { index: 0, title, url, raw: rawCitation };
 }
 
 export function createAssistantMessageFromApiResponse(

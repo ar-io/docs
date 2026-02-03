@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useTheme } from "next-themes";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, Copy, MessageCircle, RotateCcw, Send, X } from "lucide-react";
@@ -18,9 +19,9 @@ interface AskArieWidgetProps {
 }
 
 const STARTER_QUESTIONS = [
-  "What is ar.io?",
-  "How do I get started?",
-  "What's the difference between permanent storage and regular cloud storage?",
+  "How do I get started building on ar.io?",
+  "What's the easiest way to upload or fetch data?",
+  "How do I register a domain for my app with ArNS?",
 ];
 
 const ASK_ARIE_THREAD_ID_KEY = "ask-arie-thread-id";
@@ -37,6 +38,8 @@ export function AskArieWidget({ initialMessages = [] }: AskArieWidgetProps) {
   const [mounted, setMounted] = useState(false);
   const [isHealthy, setIsHealthy] = useState<boolean | null>(null);
   const [threadId, setThreadId] = useState<string | null>(null);
+  const { resolvedTheme } = useTheme();
+  const [avatarSrc, setAvatarSrc] = useState("/brand/ask-arie.png");
 
   const inputRef = useRef<HTMLInputElement>(null);
   const messagesScrollRef = useRef<HTMLDivElement>(null);
@@ -45,6 +48,10 @@ export function AskArieWidget({ initialMessages = [] }: AskArieWidgetProps) {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    setAvatarSrc(resolvedTheme === "dark" ? "/brand/ask-arie-dark.png" : "/brand/ask-arie.png");
+  }, [resolvedTheme]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -239,7 +246,7 @@ export function AskArieWidget({ initialMessages = [] }: AskArieWidgetProps) {
       <button
         type="button"
         onClick={openChat}
-        className="fixed bottom-4 right-4 z-50 inline-flex h-12 w-12 items-center justify-center rounded-full bg-fd-primary text-fd-background shadow-lg hover:bg-fd-primary/90 hover:scale-110 active:scale-95 transition-transform duration-150 ease-out"
+        className="fixed bottom-4 right-4 z-50 inline-flex h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-fd-primary text-fd-background shadow-lg hover:bg-fd-primary/90 hover:scale-110 active:scale-95 transition-transform duration-150 ease-out"
         aria-label="Open chat"
       >
         <MessageCircle className="size-6" />
@@ -256,55 +263,58 @@ export function AskArieWidget({ initialMessages = [] }: AskArieWidgetProps) {
           if (e.target === e.currentTarget) closeChat();
         }}
       >
-        <div
-          className="absolute inset-0 bg-black/40 backdrop-blur-[1px]"
+        <button
+          type="button"
+          onClick={closeChat}
+          className="absolute inset-0 cursor-pointer border-0 p-0 bg-black/40 backdrop-blur-[1px]"
           style={{
             opacity: isVisible ? 1 : 0,
             transition: "opacity 200ms ease-out",
           }}
+          aria-label="Close chat"
         />
 
         <div
-          className="relative w-full max-w-md overflow-hidden rounded-2xl border border-fd-border bg-fd-background shadow-2xl"
+          className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-fd-border bg-fd-background shadow-2xl"
           style={{
             transform: isVisible ? "translateY(0)" : "translateY(10px)",
             opacity: isVisible ? 1 : 0,
             transition: "all 200ms ease-out",
           }}
         >
-          <div className="flex items-center justify-between border-b border-fd-border p-4">
-            <div className="flex items-center gap-3">
-              <div className="size-8 overflow-hidden rounded-full border border-fd-border bg-fd-muted">
+          <div className="flex items-center justify-between border-b border-fd-border px-4 py-2">
+            <div className="flex items-center gap-4">
+              <div className="size-14 overflow-hidden rounded-full shrink-0">
                 <Image
-                  src="/brand/ask-arie.png"
+                  src={avatarSrc}
                   alt="Ask Arie"
-                  width={32}
-                  height={32}
+                  width={56}
+                  height={56}
                   className="h-full w-full object-cover"
                 />
               </div>
               <div>
-                <div className="text-sm font-semibold text-fd-foreground">Ask Arie</div>
-                <div className="text-xs text-fd-muted-foreground">Ask anything about ar.io</div>
+                <div className="text-lg font-semibold text-fd-foreground leading-tight">Ask Arie (beta)</div>
+                <div className="text-base text-fd-muted-foreground leading-tight">I'm here to help you build!</div>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
                 onClick={handleNewChat}
-                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-fd-muted-foreground hover:bg-fd-accent hover:text-fd-foreground transition-colors"
+                className="inline-flex size-10 cursor-pointer items-center justify-center rounded-md text-fd-muted-foreground hover:bg-fd-accent hover:text-fd-foreground transition-colors"
+                aria-label="New chat"
               >
-                <RotateCcw className="size-3" />
-                New chat
+                <RotateCcw className="size-5" />
               </button>
               <button
                 type="button"
                 onClick={closeChat}
-                className="inline-flex size-8 items-center justify-center rounded-md text-fd-muted-foreground hover:bg-fd-accent hover:text-fd-foreground transition-colors"
+                className="inline-flex size-10 cursor-pointer items-center justify-center rounded-md text-fd-muted-foreground hover:bg-fd-accent hover:text-fd-foreground transition-colors"
                 aria-label="Close chat"
               >
-                <X className="size-4" />
+                <X className="size-5" />
               </button>
             </div>
           </div>
@@ -319,7 +329,7 @@ export function AskArieWidget({ initialMessages = [] }: AskArieWidgetProps) {
                       key={q}
                       type="button"
                       onClick={() => sendMessage(q)}
-                      className="rounded-lg border border-fd-border bg-fd-background px-3 py-2 text-left text-sm text-fd-foreground hover:bg-fd-accent transition-colors"
+                      className="cursor-pointer rounded-lg border border-fd-border bg-fd-background px-3 py-2 text-left text-sm text-fd-foreground hover:bg-fd-accent transition-colors"
                     >
                       {q}
                     </button>
@@ -368,7 +378,7 @@ export function AskArieWidget({ initialMessages = [] }: AskArieWidgetProps) {
                                         href={citation.url}
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="text-fd-primary hover:underline"
+                                        className="cursor-pointer text-fd-primary underline underline-offset-2 hover:opacity-80"
                                       >
                                         {citation.title}
                                       </a>
@@ -430,7 +440,7 @@ export function AskArieWidget({ initialMessages = [] }: AskArieWidgetProps) {
                   <button
                     type="button"
                     onClick={() => setError(null)}
-                    className="text-xs underline hover:no-underline"
+                    className="cursor-pointer text-xs underline hover:no-underline"
                   >
                     Try again
                   </button>
