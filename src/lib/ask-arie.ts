@@ -60,10 +60,10 @@ export interface AccessCheckResponse {
   reason?: string;
 }
 
-const TECHNICAL_ASK_ENDPOINT = "http://127.0.0.1:8000/technical/ask";
-const HEALTH_ENDPOINT = "http://127.0.0.1:8000/health";
+const TECHNICAL_ASK_ENDPOINT = "https://sparklechat-3bzk.onrender.com/technical/ask";
+const HEALTH_ENDPOINT = "https://sparklechat-3bzk.onrender.com/health";
 const ACCESS_CHECK_ENDPOINT =
-  "http://127.0.0.1:8000/access-check?resource=technical_ask";
+  "https://sparklechat-3bzk.onrender.com/access-check?resource=technical_ask";
 
 export async function askArie(
   question: string,
