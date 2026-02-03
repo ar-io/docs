@@ -295,7 +295,7 @@ export function AskArieWidget({ initialMessages = [] }: AskArieWidgetProps) {
               </div>
               <div>
                 <div className="text-lg font-semibold text-fd-foreground leading-tight">Ask Arie (beta)</div>
-                <div className="text-base text-fd-muted-foreground leading-tight">I'm here to help you build!</div>
+                <div className="text-base text-fd-muted-foreground leading-tight">I&apos;m here to help you build!</div>
               </div>
             </div>
 
