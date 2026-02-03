@@ -4,6 +4,7 @@ import { RootProvider } from "fumadocs-ui/provider";
 import type { Metadata } from "next";
 import Script from "next/script";
 import SearchDialog from "@/components/search";
+import { AskArieWidget } from "@/components/ask-arie/AskArieWidget";
 import { Plus_Jakarta_Sans } from "next/font/google";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -48,6 +49,7 @@ export default function Layout({ children }: LayoutProps<"/">) {
           }}
         >
           {children}
+          <AskArieWidget />
         </RootProvider>
       </body>
     </html>
