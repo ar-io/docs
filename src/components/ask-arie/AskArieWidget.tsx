@@ -246,17 +246,17 @@ export function AskArieWidget({ initialMessages = [] }: AskArieWidgetProps) {
       <button
         type="button"
         onClick={openChat}
-        className="fixed bottom-4 right-4 z-50 inline-flex h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-fd-primary text-fd-background shadow-lg hover:bg-fd-primary/90 hover:scale-110 active:scale-95 transition-transform duration-150 ease-out"
+        className="group fixed bottom-4 right-4 z-50 inline-flex h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-fd-primary text-fd-background shadow-lg hover:bg-fd-primary/90 hover:scale-110 active:scale-95 transition-transform duration-150 ease-out"
         aria-label="Open chat"
       >
-        <MessageCircle className="size-6" />
+        <MessageCircle className="size-6 transition-transform duration-150 ease-out group-hover:rotate-[15deg]" />
       </button>
     ) : null;
 
   const chatModal =
     mounted && isOpen ? (
       <div
-        className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4"
+        className="fixed inset-0 z-[60] flex items-stretch justify-center p-0 sm:items-center sm:p-4"
         role="dialog"
         aria-modal="true"
         onMouseDown={(e) => {
@@ -275,7 +275,7 @@ export function AskArieWidget({ initialMessages = [] }: AskArieWidgetProps) {
         />
 
         <div
-          className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-fd-border bg-fd-background shadow-2xl"
+          className="relative flex h-full w-full flex-col overflow-hidden rounded-none border-0 border-fd-border bg-fd-background shadow-2xl sm:h-auto sm:min-h-[420px] sm:max-w-2xl sm:rounded-2xl sm:border"
           style={{
             transform: isVisible ? "translateY(0)" : "translateY(10px)",
             opacity: isVisible ? 1 : 0,
@@ -319,7 +319,7 @@ export function AskArieWidget({ initialMessages = [] }: AskArieWidgetProps) {
             </div>
           </div>
 
-          <div ref={messagesScrollRef} className="max-h-[60vh] overflow-y-auto p-4 space-y-3">
+          <div ref={messagesScrollRef} className="min-h-[280px] max-h-full flex-1 overflow-y-auto p-4 space-y-3 sm:max-h-[60vh]">
             {messages.length === 0 && !isLoading && !error && (
               <div className="space-y-3">
                 <p className="text-sm text-fd-muted-foreground">Try one of these to get started:</p>
