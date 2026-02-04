@@ -1,6 +1,6 @@
 import { docs } from "@/.source";
 import { loader } from "fumadocs-core/source";
-import type { Folder, Item } from "fumadocs-core/page-tree";
+import type { PageTree } from "fumadocs-core/server";
 import { transformerOpenAPI } from 'fumadocs-openapi/server';
 import { icons } from 'lucide-react';
 import { createElement, type ReactElement } from 'react';
@@ -15,8 +15,9 @@ function getNodeText(node: React.ReactNode): string {
   if (typeof node === 'number') return String(node);
   if (node === null || node === undefined) return '';
   if (Array.isArray(node)) return node.map(getNodeText).join('');
-  if (typeof node === 'object' && 'props' in node) {
-    return getNodeText((node as React.ReactElement).props.children);
+  if (typeof node === 'object' && node !== null && 'props' in node) {
+    const element = node as React.ReactElement<{ children?: React.ReactNode }>;
+    return getNodeText(element.props.children);
   }
   return '';
 }
@@ -24,7 +25,7 @@ function getNodeText(node: React.ReactNode): string {
 /**
  * Sort page tree children alphabetically by name
  */
-function sortChildrenAlphabetically(children: Item[]): Item[] {
+function sortChildrenAlphabetically(children: PageTree.Node[]): PageTree.Node[] {
   return [...children].sort((a, b) => {
     const nameA = getNodeText(a.name).toLowerCase();
     const nameB = getNodeText(b.name).toLowerCase();
@@ -48,7 +49,7 @@ export const source = loader({
       transformerOpenAPI(),
       {
         // Sort children alphabetically for specific folders
-        folder(node: Folder, folderPath: string): Folder {
+        folder(node: PageTree.Folder, folderPath: string): PageTree.Folder {
           if (ALPHABETICALLY_SORTED_FOLDERS.includes(folderPath)) {
             return {
               ...node,
