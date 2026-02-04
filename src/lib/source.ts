@@ -1,17 +1,64 @@
 import { docs } from "@/.source";
 import { loader } from "fumadocs-core/source";
+import type { Folder, Item } from "fumadocs-core/page-tree";
 import { transformerOpenAPI } from 'fumadocs-openapi/server';
 import { icons } from 'lucide-react';
 import { createElement, type ReactElement } from 'react';
 import Image from 'next/image';
 import { ThemeIcon } from '@/components/theme-icon';
 
+/**
+ * Extract text content from a React node for sorting purposes
+ */
+function getNodeText(node: React.ReactNode): string {
+  if (typeof node === 'string') return node;
+  if (typeof node === 'number') return String(node);
+  if (node === null || node === undefined) return '';
+  if (Array.isArray(node)) return node.map(getNodeText).join('');
+  if (typeof node === 'object' && 'props' in node) {
+    return getNodeText((node as React.ReactElement).props.children);
+  }
+  return '';
+}
+
+/**
+ * Sort page tree children alphabetically by name
+ */
+function sortChildrenAlphabetically(children: Item[]): Item[] {
+  return [...children].sort((a, b) => {
+    const nameA = getNodeText(a.name).toLowerCase();
+    const nameB = getNodeText(b.name).toLowerCase();
+    return nameA.localeCompare(nameB);
+  });
+}
+
+/**
+ * Folders that should have their children sorted alphabetically
+ */
+const ALPHABETICALLY_SORTED_FOLDERS = [
+  'build/guides',
+];
+
 // See https://fumadocs.vercel.app/docs/headless/source-api for more info
 export const source = loader({
   baseUrl: "/",
   source: docs.toFumadocsSource(),
   pageTree: {
-    transformers: [transformerOpenAPI()],
+    transformers: [
+      transformerOpenAPI(),
+      {
+        // Sort children alphabetically for specific folders
+        folder(node: Folder, folderPath: string): Folder {
+          if (ALPHABETICALLY_SORTED_FOLDERS.includes(folderPath)) {
+            return {
+              ...node,
+              children: sortChildrenAlphabetically(node.children),
+            };
+          }
+          return node;
+        },
+      },
+    ],
   },
   icon(icon) {
     if (!icon) {
