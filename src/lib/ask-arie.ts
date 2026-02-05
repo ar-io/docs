@@ -13,11 +13,10 @@ export interface HealthEndpoint {
 
 export interface HealthCheckResponse {
   status: "ok" | "error";
-  db_exists: boolean;
-  openai_api_key_configured: boolean;
-  duckdb_available: boolean;
-  openai_available: boolean;
-  live_pricing_available: boolean;
+  chat_available?: boolean;
+  duckdb_available?: boolean;
+  openai_available?: boolean;
+  live_pricing_available?: boolean;
   endpoints: HealthEndpoint[];
 }
 
@@ -205,15 +204,14 @@ export async function checkAskArieHealth(): Promise<boolean> {
 
     const data: HealthCheckResponse = await response.json();
     const serviceOk = data.status === "ok";
-    const hasDatabase = data.db_exists === true;
-    const hasOpenAI = data.openai_api_key_configured === true;
+    const chatAvailable = data.chat_available === true;
 
     const technicalEndpoint = data.endpoints?.find(
       (ep) => ep.path === "/technical/ask" && ep.method === "POST"
     );
     const endpointReady = technicalEndpoint?.status === "registered";
 
-    if (!(serviceOk && hasDatabase && hasOpenAI && endpointReady)) return false;
+    if (!(serviceOk && chatAvailable && endpointReady)) return false;
     return (await checkTechnicalAccess()) === true;
   } catch {
     return false;
