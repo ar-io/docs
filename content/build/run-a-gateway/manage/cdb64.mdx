@@ -18,9 +18,9 @@ When your gateway receives a request for a data item (content inside an ANS-104 
 
 The gateway checks multiple sources when resolving a data item ID to its root transaction. The order is controlled by `ROOT_TX_LOOKUP_ORDER`:
 
-1. **db** - Your local SQLite database (fastest, but requires local indexing)
+1. **db** - Your local SQLite database (fastest, but requires locally parsing ANS-104 bundles to index discovered items)
 2. **gateways** - HEAD requests to other AR.IO gateways
-3. **cdb** - CDB64 file-based index (O(1) lookup, no network required)
+3. **cdb** - CDB64 file-based index (O(1) lookup from local files or cached remote data)
 4. **graphql** - GraphQL queries to trusted gateways
 
 The default configuration tries each source in order until a match is found:
@@ -38,7 +38,7 @@ The shipped CDB64 index covers:
 - Data items with content types
 - Block heights 0 through 1,820,000
 
-This means most historical ArDrive, Akord, and similar application data will resolve instantly without network requests.
+This means most historical ArDrive, Akord, and similar application data can be resolved via the CDB64 index. The default shipped index stores partition data on Arweave, so network requests are made to fetch CDB data (with intelligent byte-range caching). For zero network latency, you can download the CDB files locally.
 
 ## Configuration Options
 
@@ -115,7 +115,7 @@ When enabled, you can add new index files to the directory without restarting yo
 
 ## Partitioned Indexes
 
-Large CDB64 indexes can be split across up to 256 partition files for better manageability. A partitioned index consists of:
+Large CDB64 indexes can be split across up to 256 partition files for better manageability. Records are partitioned by the first byte of the binary data item ID, represented as a hex prefix (00-ff). A partitioned index consists of:
 
 - `manifest.json` - Describes all partitions and their locations
 - `00.cdb` through `ff.cdb` - Partition files (only populated prefixes exist)
@@ -151,7 +151,7 @@ If you need to create CDB64 indexes for specific data sets, the gateway includes
 # Generate from CSV file
 ./tools/generate-cdb64-root-tx-index --input data.csv --output index.cdb
 
-# Generate partitioned index
+# Generate partitioned index (creates manifest.json automatically)
 ./tools/generate-cdb64-root-tx-index --input data.csv --partitioned --output-dir ./index/
 
 # Export from local SQLite database
@@ -160,6 +160,8 @@ If you need to create CDB64 indexes for specific data sets, the gateway includes
 # Verify index completeness
 ./tools/verify-cdb64 --index index.cdb --gateway https://arweave.net
 ```
+
+The `--partitioned` flag automatically shards records by ID prefix and generates the `manifest.json` with local file locations.
 
 For high-throughput generation, a Rust-backed tool is also available:
 
@@ -178,7 +180,12 @@ You can upload partitioned CDB64 indexes to Arweave for permanent, decentralized
   --concurrency 5
 ```
 
-This enables sharing indexes with other gateway operators or creating redundant storage.
+This tool:
+1. Uploads each partition file to Arweave via Turbo
+2. Resolves the bundle IDs and byte offsets for each partition
+3. Updates the manifest with `arweave-bundle-item` locations
+
+The resulting manifest can be shared with other gateway operators or uploaded to Arweave for decentralized index distribution.
 
 ## Performance Considerations
 
