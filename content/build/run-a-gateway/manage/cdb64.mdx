@@ -1,0 +1,217 @@
+---
+title: "CDB64 Root Transaction Index"
+description: "Configure fast O(1) lookups for data item resolution using CDB64 indexes"
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+
+## Overview
+
+When your gateway receives a request for a data item (content inside an ANS-104 bundle), it needs to find the root Arweave transaction containing that data. The CDB64 index provides O(1) lookups for this mapping, enabling instant resolution of historical data items.
+
+<Callout type="info">
+  **Default Behavior**: As of Release 67, CDB64 is enabled by default with no configuration required. The gateway ships with a pre-built index covering approximately 964 million data items.
+</Callout>
+
+## How It Works
+
+The gateway checks multiple sources when resolving a data item ID to its root transaction. The order is controlled by `ROOT_TX_LOOKUP_ORDER`:
+
+1. **db** - Your local SQLite database (fastest, but requires locally parsing ANS-104 bundles to index discovered items)
+2. **gateways** - HEAD requests to other AR.IO gateways
+3. **cdb** - CDB64 file-based index (O(1) lookup from local files or cached remote data)
+4. **graphql** - GraphQL queries to trusted gateways
+
+The default configuration tries each source in order until a match is found:
+
+```bash
+ROOT_TX_LOOKUP_ORDER=db,gateways,cdb,graphql
+```
+
+## Default Coverage
+
+The shipped CDB64 index covers:
+
+- Non-AO data items (excludes `Bundler-App-Name: AO`)
+- Non-Redstone data items
+- Data items with content types
+- Block heights 0 through 1,820,000
+
+This means most historical ArDrive, Akord, and similar application data can be resolved via the CDB64 index. The default shipped index stores partition data on Arweave, so network requests are made to fetch CDB data (with intelligent byte-range caching). For zero network latency, you can download the CDB files locally.
+
+## Configuration Options
+
+### Disabling CDB64
+
+If you want to disable CDB64 lookups (not recommended), remove `cdb` from the lookup order:
+
+```bash
+ROOT_TX_LOOKUP_ORDER=db,gateways,graphql
+```
+
+### Using Custom Index Sources
+
+You can configure custom CDB64 index sources to supplement or replace the default index:
+
+<Tabs items={["Local File", "Local Directory", "HTTP URL", "Arweave TX", "Multiple Sources"]}>
+  <Tab value="Local File">
+    ```bash
+    CDB64_ROOT_TX_INDEX_SOURCES=/path/to/custom-index.cdb
+    ```
+  </Tab>
+  <Tab value="Local Directory">
+    ```bash
+    # Directory containing multiple .cdb files or a partitioned index
+    CDB64_ROOT_TX_INDEX_SOURCES=/path/to/index-directory/
+    ```
+  </Tab>
+  <Tab value="HTTP URL">
+    ```bash
+    CDB64_ROOT_TX_INDEX_SOURCES=https://cdn.example.com/index.cdb
+    ```
+  </Tab>
+  <Tab value="Arweave TX">
+    ```bash
+    # 43-character base64url transaction ID
+    CDB64_ROOT_TX_INDEX_SOURCES=ABC123def456xyz789ABC123def456xyz789ABC12
+    ```
+  </Tab>
+  <Tab value="Multiple Sources">
+    ```bash
+    # Sources are tried in order until a match is found
+    CDB64_ROOT_TX_INDEX_SOURCES=/local/index.cdb,https://cdn.example.com/index/,TxId123...
+    ```
+  </Tab>
+</Tabs>
+
+### Remote Index Configuration
+
+When using HTTP or Arweave-stored indexes, you can tune the caching and request behavior:
+
+```bash
+# Caching settings
+CDB64_REMOTE_CACHE_MAX_REGIONS=100      # Max cached byte-range regions per source
+CDB64_REMOTE_CACHE_TTL_MS=300000        # Cache TTL (5 minutes)
+
+# Request settings
+CDB64_REMOTE_REQUEST_TIMEOUT_MS=30000   # Request timeout
+CDB64_REMOTE_MAX_CONCURRENT_REQUESTS=4  # Max concurrent HTTP requests
+
+# Retrieval order for fetching CDB files from Arweave
+CDB64_REMOTE_RETRIEVAL_ORDER=gateways,chunks
+```
+
+### File Watching
+
+For local CDB64 directories, the gateway automatically watches for new or removed `.cdb` files:
+
+```bash
+# Enable/disable automatic reloading (default: true)
+CDB64_ROOT_TX_INDEX_WATCH=true
+```
+
+When enabled, you can add new index files to the directory without restarting your gateway.
+
+## Partitioned Indexes
+
+Large CDB64 indexes can be split across up to 256 partition files for better manageability. Records are partitioned by the first byte of the binary data item ID, represented as a hex prefix (00-ff). A partitioned index consists of:
+
+- `manifest.json` - Describes all partitions and their locations
+- `00.cdb` through `ff.cdb` - Partition files (only populated prefixes exist)
+
+Partitions can be stored in different locations (local files, HTTP, Arweave), allowing flexible deployment strategies.
+
+<Tabs items={["Local Directory", "Remote Manifest", "Arweave Manifest"]}>
+  <Tab value="Local Directory">
+    ```bash
+    # Point to directory containing manifest.json
+    CDB64_ROOT_TX_INDEX_SOURCES=/path/to/partitioned-index/
+    ```
+  </Tab>
+  <Tab value="Remote Manifest">
+    ```bash
+    # HTTP URL to manifest
+    CDB64_ROOT_TX_INDEX_SOURCES=https://cdn.example.com/index/manifest.json
+    ```
+  </Tab>
+  <Tab value="Arweave Manifest">
+    ```bash
+    # Append :manifest to transaction ID
+    CDB64_ROOT_TX_INDEX_SOURCES=ABC123def456xyz789ABC123def456xyz789ABC12:manifest
+    ```
+  </Tab>
+</Tabs>
+
+## Generating Custom Indexes
+
+If you need to create CDB64 indexes for specific data sets, the gateway includes CLI tools:
+
+```bash
+# Generate from CSV file
+./tools/generate-cdb64-root-tx-index --input data.csv --output index.cdb
+
+# Generate partitioned index (creates manifest.json automatically)
+./tools/generate-cdb64-root-tx-index --input data.csv --partitioned --output-dir ./index/
+
+# Export from local SQLite database
+./tools/export-sqlite-to-cdb64 --output index.cdb
+
+# Verify index completeness
+./tools/verify-cdb64 --index index.cdb --gateway https://arweave.net
+```
+
+The `--partitioned` flag automatically shards records by ID prefix and generates the `manifest.json` with local file locations.
+
+For high-throughput generation, a Rust-backed tool is also available:
+
+```bash
+./tools/generate-cdb64-root-tx-index-rs --input data.csv --output index.cdb
+```
+
+## Uploading Indexes to Arweave
+
+You can upload partitioned CDB64 indexes to Arweave for permanent, decentralized storage:
+
+```bash
+./tools/upload-cdb64-to-arweave \
+  --input-dir ./partitioned-index/ \
+  --wallet ./wallet.json \
+  --concurrency 5
+```
+
+This tool:
+1. Uploads each partition file to Arweave via Turbo
+2. Resolves the bundle IDs and byte offsets for each partition
+3. Updates the manifest with `arweave-bundle-item` locations
+
+The resulting manifest can be shared with other gateway operators or uploaded to Arweave for decentralized index distribution.
+
+## Performance Considerations
+
+- **O(1) lookups** - Each lookup requires only 2-3 file reads regardless of index size
+- **Byte-range caching** - The 4KB header is cached permanently; other regions use LRU caching
+- **Lazy loading** - Partitioned indexes only open accessed partitions, reducing memory usage
+- **Circuit breakers** - If CDB64 lookups fail repeatedly, the gateway automatically falls back to other sources
+
+## Troubleshooting
+
+### CDB64 lookups not working
+
+1. Verify `cdb` is in your `ROOT_TX_LOOKUP_ORDER`
+2. Check that index files exist and are readable
+3. Review gateway logs for CDB64-related errors
+
+### Slow remote index performance
+
+1. Increase `CDB64_REMOTE_CACHE_MAX_REGIONS` for frequently accessed indexes
+2. Consider downloading the index locally for best performance
+3. Check network connectivity to remote sources
+
+### Missing data items in index
+
+The default shipped index excludes AO and Redstone data. For these, you'll need to:
+- Generate a custom index covering the desired data
+- Rely on other lookup sources (db, gateways, graphql)
+
+For the complete list of CDB64 environment variables, see [Environment Variables Reference](/build/run-a-gateway/manage/environment-variables#cdb64-root-transaction-index).
