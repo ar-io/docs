@@ -1,0 +1,214 @@
+---
+title: "Integrate C2PA Provenance into Your Stack"
+description: "Add cryptographically verifiable content provenance to assets you publish on Arweave and access through ar.io"
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Steps, Step } from "fumadocs-ui/components/steps";
+
+C2PA (Coalition for Content Provenance and Authenticity) lets you attach signed provenance to media so downstream users can verify who produced it and what edits were made.
+
+When combined with Arweave and ar.io, you get both:
+
+- **Integrity + attribution** from C2PA signed claims.
+- **Persistence + accessibility** from permanent storage and decentralized gateways.
+
+This guide shows a practical, stack-agnostic workflow and implementation patterns you can adapt to your application pipeline.
+
+## What You Will Build
+
+By the end of this guide, you will have a repeatable flow to:
+
+1. Create a provenance claim for an asset.
+2. Sign/embed the claim into the asset (or publish sidecar metadata).
+3. Upload the result to Arweave.
+4. Add indexing tags for discovery.
+5. Verify provenance during retrieval.
+
+## Recommended Architecture
+
+Use provenance at the point where your system has the most trustworthy context (for example: camera ingest, editor export, AI generation completion, or final publishing job).
+
+A common production pattern:
+
+1. **Ingest**: raw media enters your system.
+2. **Transform**: optional processing (resize, transcode, watermark, etc.).
+3. **Sign**: generate C2PA claim + signature using a managed key/certificate.
+4. **Persist**: upload signed media (and optional sidecar) to Arweave.
+5. **Serve**: resolve via `ar://` or your preferred ar.io gateway.
+6. **Verify**: validate C2PA claim before rendering "verified" UI states.
+
+<Callout type="info">
+If you operate multiple processing stages, sign at the final stage users consume, and preserve a deterministic record of upstream steps in the claim assertions.
+</Callout>
+
+## Prerequisites
+
+- A C2PA-capable signing toolchain (CLI, SDK, or service) in your stack.
+- A signing identity (certificate + private key), ideally managed outside app code (KMS/HSM or secure secret manager).
+- An upload path to Arweave (for example via Turbo SDK).
+- A retrieval path that can validate provenance before display.
+
+## Step-by-Step Integration
+
+<Steps>
+  <Step>
+    ### Define your provenance schema
+
+    Before coding, decide what your claim should include:
+
+    - **Producer identity**: org, product, or pipeline ID.
+    - **Source assertions**: capture source, model ID, or upstream transaction IDs.
+    - **Transform assertions**: key operations applied to the asset.
+    - **Timestamping policy**: build/processing/signing times.
+
+    Keep your schema stable and versioned so consumers can interpret it over time.
+  </Step>
+
+  <Step>
+    ### Sign the asset with C2PA
+
+    Use your C2PA toolchain to generate and embed a signed manifest in the output file.
+
+    ```bash
+    # Example pattern (tool syntax varies by implementation)
+    c2pa-tool sign \
+      --input ./asset.png \
+      --output ./asset.signed.png \
+      --manifest ./provenance-manifest.json \
+      --cert ./signing-cert.pem \
+      --key ./signing-key.pem
+    ```
+
+    <Callout type="warning">
+    Never hardcode keys in source control. Load signing material from a secure runtime mechanism.
+    </Callout>
+  </Step>
+
+  <Step>
+    ### Upload the signed asset to Arweave
+
+    Upload the signed file (not the unsigned original) and keep the resulting transaction ID.
+
+    ```javascript
+    import { TurboFactory } from '@ardrive/turbo-sdk';
+    import fs from 'fs';
+
+    const jwk = JSON.parse(fs.readFileSync('./wallet.json', 'utf-8'));
+
+    const turbo = TurboFactory.authenticated({
+      privateKey: jwk,
+      token: 'arweave',
+    });
+
+    const signedPath = './asset.signed.png';
+
+    const upload = await turbo.uploadFile({
+      fileStreamFactory: () => fs.createReadStream(signedPath),
+      fileSizeFactory: () => fs.statSync(signedPath).size,
+      dataItemOpts: {
+        tags: [
+          { name: 'Content-Type', value: 'image/png' },
+          { name: 'App-Name', value: 'my-provenance-pipeline' },
+          { name: 'Provenance-Standard', value: 'C2PA' },
+          { name: 'Provenance-Embedded', value: 'true' },
+          { name: 'Provenance-Schema-Version', value: '1.0.0' },
+        ],
+      },
+    });
+
+    console.log(`Published asset: ar://${upload.id}`);
+    ```
+
+    These tags help downstream indexers and your own services discover provenance-enabled content.
+  </Step>
+
+  <Step>
+    ### (Optional) publish sidecar provenance
+
+    If your format/tooling requires detached manifests, upload a sidecar JSON/manifest object and link it:
+
+    - Store sidecar as its own transaction.
+    - Add a reference tag on the main asset (for example `Provenance-Sidecar-Tx`).
+    - Optionally publish an app-level index document mapping `assetTx -> sidecarTx`.
+  </Step>
+
+  <Step>
+    ### Verify before rendering trust signals
+
+    On read, fetch the asset and run C2PA verification before displaying badges like "authentic", "signed", or "source verified".
+
+    ```ts
+    // Pseudocode (implementation depends on your validator)
+    const assetUrl = `https://ar.io/${txId}`;
+    const result = await verifyC2pa(assetUrl);
+
+    if (result.valid) {
+      showBadge('Verified provenance');
+      showIssuer(result.signer);
+      showAssertions(result.assertions);
+    } else {
+      showBadge('Provenance unavailable or invalid');
+    }
+    ```
+
+    Treat verification outcome as runtime state, not a static assumption.
+  </Step>
+</Steps>
+
+## CI/CD Integration Pattern
+
+A robust deployment pipeline usually looks like:
+
+1. Build asset artifact.
+2. Generate provenance manifest from build metadata.
+3. Sign artifact with CI identity.
+4. Upload signed artifact to Arweave.
+5. Run verification check against uploaded output.
+6. Publish resulting `ar://` ID to your app config, manifest, or contract.
+
+This gives you auditable build provenance and immutable distribution references.
+
+## Best Practices
+
+- **Prefer embedded manifests** when format support is strong (fewer moving parts).
+- **Version your claim schema** and keep migration notes.
+- **Tag consistently** for observability and indexing.
+- **Log verification failures** and expose reasons for debugging.
+- **Separate trust domains** (different signing identities for staging vs production).
+- **Keep UX graceful**: verification failures should not crash normal media rendering.
+
+## Interoperability Notes
+
+- Different media formats have different levels of C2PA support and embedding behavior.
+- Some optimization steps (re-encoding, stripping metadata, image transforms) can invalidate signatures if run after signing.
+- For derived assets (thumbnails, previews), either:
+  - generate and sign each derivative, or
+  - clearly mark derivatives as unsigned representations of a signed source.
+
+## Example Data Model
+
+You can store a compact record in your app database:
+
+```json
+{
+  "assetTxId": "abc123...",
+  "contentType": "image/png",
+  "provenance": {
+    "standard": "C2PA",
+    "embedded": true,
+    "schemaVersion": "1.0.0",
+    "verifiedAt": "2026-02-11T10:15:00Z",
+    "verificationStatus": "valid",
+    "signer": "CN=Publisher Signing Cert"
+  }
+}
+```
+
+## Next Steps
+
+- Add a "verified provenance" component in your frontend with clear states (`valid`, `invalid`, `unknown`).
+- Add API fields so clients can query verification status without reparsing media each time.
+- Publish a public policy document describing what your provenance labels mean for users.
+
+With this setup, users can independently verify where your content came from while relying on Arweave/ar.io for durable access.
