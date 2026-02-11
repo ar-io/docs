@@ -1,0 +1,364 @@
+---
+title: "Application Distribution with ArNS + Manifests"
+description: "Distribute applications permanently using Arweave manifests and ArNS for decentralized, censorship-resistant software delivery"
+---
+
+import Mermaid from "@/components/Mermaid";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Globe, Package, Rocket, Shield } from "lucide-react";
+
+**Overview:** This guide shows how to distribute software permanently using Arweave manifests and ArNS.
+
+You can publish binaries once and serve them from stable, human-readable URLs that keep working as releases change. Files are stored immutably on Arweave, old versions remain available, and links never break.
+
+**What you get:**
+- Permanent storage for all releases
+- Stable URLs via ArNS (for example, `releases_yourapp.arweave.net`)
+- Simple versioned paths for latest and pinned releases
+- Automated CI/CD with GitHub Actions and Turbo
+- No centralized registries or CDNs
+
+The case study that follows walks through a real implementation for the Harlequin CLI and shows how to apply this pattern to your own software.
+
+## Architecture Overview
+
+### System Components
+
+<Mermaid chart={`graph TB
+    A[GitHub Actions CI] --> B[GoReleaser]
+    B --> C[Multi-Platform Binaries]
+    C --> D[Turbo SDK Upload]
+    D --> E[Arweave Storage]
+    E --> F[Manifest Creation]
+    F --> G[ArNS Routing]
+    G --> H[Global Distribution]
+
+    I[Install Script] --> J[Platform Detection]
+    J --> K[Binary Download]
+    K --> L[Gzip Decompression]
+    L --> M[Installation]`} />
+
+### Core Technologies
+
+1. **Arweave**: Permanent data storage blockchain
+2. **ArNS**: Decentralized naming service for content routing
+3. **Turbo SDK**: Efficient data upload and payment handling
+4. **GoReleaser**: Multi-platform binary compilation
+5. **GitHub Actions**: Automated CI/CD pipeline
+
+## Implementation Deep Dive
+
+### 1. Binary Build Pipeline
+
+The system uses GoReleaser for creating optimized, multi-platform binaries:
+
+```yaml
+# .goreleaser.yaml
+builds:
+  - id: harlequin
+    main: ./main.go
+    binary: harlequin
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    flags: [-trimpath]
+    ldflags:
+      - -s -w  # Strip debug info for smaller binaries
+      - -X main.version={{.Version}}
+```
+
+**Platform Matrix:**
+- Linux: AMD64, ARM64
+- macOS: AMD64 (Intel), ARM64 (Apple Silicon)
+- Windows: AMD64, ARM64
+
+### 2. Arweave Storage Strategy
+
+#### Compression Optimization
+All binaries are compressed with gzip before upload, achieving significant storage savings:
+
+```typescript
+// Compress binary before upload
+const binaryData = readFileSync(binary);
+const compressedData = gzipSync(binaryData);
+const compressionRatio = ((1 - compressedData.length / binaryData.length) * 100).toFixed(1);
+
+// Upload with proper content headers
+const upload = await turboClient.upload({
+  data: compressedData,
+  dataItemOpts: {
+    tags: [
+      {name: "Content-Type", value: "application/gzip"},
+      {name: "Content-Encoding", value: "gzip"},
+      {name: "Original-Content-Type", value: "application/octet-stream"},
+      {name: "Original-Size", value: binaryData.length.toString()},
+      {name: "Compressed-Size", value: compressedData.length.toString()}
+    ]
+  }
+});
+```
+
+**Storage Efficiency Results:**
+- Average compression ratio: ~70%
+- 10MB binary → ~3MB storage cost
+- Significant cost savings at scale
+
+#### Data Item Tagging
+Each upload includes comprehensive metadata for discoverability and management:
+
+```typescript
+const dataItemOptions = {
+  tags: [
+    {name: 'Type', value: 'release'},
+    {name: 'App-Name', value: 'Harlequin-CLI'},
+    {name: 'App-Version', value: version},
+    {name: 'Content-Type', value: 'application/gzip'},
+    {name: 'Platform', value: platform},
+    {name: 'Architecture', value: arch}
+  ]
+}
+```
+
+### 3. Manifest-Based Routing
+
+The system creates an Arweave manifest that provides structured routing for all binaries and metadata:
+
+```typescript
+const manifest: ArweaveManifest = {
+  manifest: 'arweave/paths',
+  version: '0.1.0',
+  index: {
+    path: 'install_cli.sh'  // Default route
+  },
+  paths: {
+    // Version-specific binaries
+    'releases/1.2.3/linux/amd64': { id: 'arweave_tx_id_1' },
+    'releases/1.2.3/darwin/arm64': { id: 'arweave_tx_id_2' },
+
+    // Latest symlinks for convenience
+    'releases/latest/linux/amd64': { id: 'arweave_tx_id_1' },
+    'releases/latest/darwin/arm64': { id: 'arweave_tx_id_2' },
+
+    // API endpoints
+    'releases': { id: 'releases_json_tx_id' },
+    'install_cli.sh': { id: 'install_script_tx_id' }
+  }
+};
+```
+
+### 4. ArNS URL Structure
+
+Combining ArNS with manifests creates a permanent, human-readable API for your releases. The ArNS undername points to the manifest, and the manifest paths define the URL structure:
+
+```typescript
+// Update ArNS record to point to new manifest
+await ant.setRecord({
+  undername: 'install_cli',  // Subdomain
+  transactionId: manifestId, // New manifest TX ID
+  ttlSeconds: 60            // Cache TTL
+});
+```
+
+This creates a complete URL API:
+
+```
+https://install_cli_harlequin.arweave.net/
+├── install_cli.sh                    # Installation script (default)
+├── releases                          # JSON API with version metadata
+└── releases/
+    ├── 1.2.3/                       # Version-specific binaries
+    │   ├── linux/amd64
+    │   ├── darwin/arm64
+    │   └── windows/amd64
+    └── latest/                       # Latest version aliases
+        ├── linux/amd64
+        └── darwin/arm64
+```
+
+**Key Benefits:**
+- `install_cli_harlequin.arweave.net` provides a permanent, friendly URL
+- Manifest paths create a logical REST-like API structure
+- Updating the ArNS record points to new releases while preserving the URL
+
+### 5. Intelligent Installation Script
+
+The installation script provides a sophisticated user experience with platform detection, version management, and error handling:
+
+#### Platform Detection
+```bash
+# Detect OS and architecture
+OS="$(uname -s)"
+ARCH="$(uname -m)"
+
+case $OS in
+    Darwin) PLATFORM="darwin" ;;
+    Linux) PLATFORM="linux" ;;
+    CYGWIN*|MINGW*|MSYS*) PLATFORM="windows" ;;
+esac
+
+case $ARCH in
+    x86_64) ARCH="amd64" ;;
+    aarch64|arm64) ARCH="arm64" ;;
+    armv7*) ARCH="armv7" ;;
+esac
+```
+
+#### Version Management
+```bash
+# Interactive version selection
+get_available_versions() {
+  curl -fsSL "${BASE_URL}/releases" -o /tmp/releases.json
+  if has_jq; then
+    jq -r '.[].tag_name' /tmp/releases.json | sed 's/^v//'
+  else
+    parse_version < /tmp/releases.json
+  fi
+}
+
+# Upgrade detection
+if [ -n "$CURRENT_VERSION" ] && version_gt "$LATEST_VERSION" "$CURRENT_VERSION"; then
+  prompt "A newer version (v${LATEST_VERSION}) is available. Upgrade? [y/N]"
+fi
+```
+
+#### Robust Download & Decompression
+```bash
+# Download with retry logic and progress tracking
+curl --fail --location --show-error \
+  --connect-timeout 30 --max-time 300 \
+  --retry 3 --retry-delay 2 \
+  --progress-bar \
+  --output "$TEMP_COMPRESSED" \
+  "$BINARY_URL"
+
+# Verify and decompress
+if ! gzip -t "$TEMP_COMPRESSED"; then
+  error "Downloaded file is not a valid gzip archive"
+fi
+
+gzip -dc "$TEMP_COMPRESSED" > "$TEMP_FILE"
+```
+
+## CI/CD Integration
+
+### GitHub Actions Workflow
+
+The deployment is fully automated through GitHub Actions:
+
+```yaml
+name: Nx Release
+on:
+  push:
+    branches: [main, develop]
+    paths: ['cli/**']
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Go & GoReleaser
+        uses: goreleaser/goreleaser-action@v6.4.0
+
+      - name: Release (Main - Stable)
+        if: github.ref == 'refs/heads/main'
+        run: npx nx release patch --yes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ARWEAVE_WALLET_JWK: ${{ secrets.ARWEAVE_WALLET_JWK }}
+
+      - name: Test Installation
+        run: |
+          curl -fsSL https://install_cli_harlequin.daemongate.io | \
+            DRYRUN=true VERSION=0.1.0 sh
+```
+
+### Nx Integration
+
+The system leverages Nx for orchestrating the complex release pipeline:
+
+```json
+{
+  "nx-release-publish": {
+    "executor": "nx:run-commands",
+    "options": {
+      "command": "goreleaser release --clean && cd scripts && yarn deploy"
+    },
+    "configurations": {
+      "dry-run": {
+        "command": "goreleaser release --skip=publish && yarn deploy:dryrun"
+      }
+    }
+  }
+}
+```
+
+**Pipeline Stages:**
+1. **Build**: GoReleaser creates multi-platform binaries
+2. **Upload**: Turbo SDK uploads compressed binaries to Arweave
+3. **Manifest**: Creates routing manifest with all binary paths
+4. **ArNS**: Updates domain to point to new manifest
+5. **Verification**: Tests installation script functionality
+
+## Security & Reliability
+
+### Decentralization Benefits
+- **No Single Point of Failure**: Distributed across the entire ar.io network
+- **Censorship Resistance**: No central authority can block access
+- **Geographic Redundancy**: Data replicated globally
+
+### Access Control
+```typescript
+// Wallet-based deployment authorization
+const signer = new ArweaveSigner(wallet);
+const turboUploader = TurboFactory.authenticated({signer});
+
+// Only authorized wallet can update ArNS records
+await ant.setRecord({
+  undername: 'install_cli',
+  transactionId: manifestId
+});
+```
+
+## Conclusion
+
+This implementation demonstrates that Arweave manifests combined with ArNS provide a powerful alternative to traditional application distribution:
+
+- **Automated Release Pipeline**: CI/CD integration enables seamless multi-platform builds and deployment
+- **Decentralized and Permanent Storage**: Applications are stored immutably across the Arweave network
+- **Zero Reliance on Centralized Registries**: No dependency on npm, GitHub Releases, or traditional CDNs
+- **Permanent Friendly Names**: ArNS provides human-readable URLs with unbreakable links to your releases
+
+## Next Steps
+
+<Cards>
+  <Card 
+    href="/build/upload/manifests" 
+    title="Manifests"
+    icon={<Package />}
+  >
+    Learn the fundamentals of Arweave manifest structure and creation.
+  </Card>
+  
+  <Card 
+    href="/build/guides/working-with-arns" 
+    title="Working with ArNS"
+    icon={<Globe />}
+  >
+    Register and manage ArNS names for your distribution endpoints.
+  </Card>
+  
+  <Card 
+    href="/build/upload/advanced-uploading-with-turbo" 
+    title="Advanced Uploading"
+    icon={<Rocket />}
+  >
+    Explore advanced Turbo SDK features for optimized uploads.
+  </Card>
+  
+  <Card 
+    href="/build/advanced/sandboxing" 
+    title="Security & Sandboxing"
+    icon={<Shield />}
+  >
+    Understand security considerations for permanent data.
+  </Card>
+</Cards>
