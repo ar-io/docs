@@ -19,9 +19,9 @@ interface AskArieWidgetProps {
 }
 
 const STARTER_QUESTIONS = [
-  "How do I get started building on ar.io?",
-  "What's the easiest way to upload or fetch data?",
-  "How do I register a domain for my app with ArNS?",
+  "What can I build with ar.io?",
+  "How do I get started building on ar.io (SDKs, guides, examples)?",
+  "How do I query my data with GraphQL using a gateway?",
 ];
 
 const ASK_ARIE_THREAD_ID_KEY = "ask-arie-thread-id";
