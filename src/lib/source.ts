@@ -3,7 +3,7 @@ import { loader } from "fumadocs-core/source";
 import type { PageTree } from "fumadocs-core/server";
 import { transformerOpenAPI } from 'fumadocs-openapi/server';
 import { icons } from 'lucide-react';
-import { createElement, type ReactElement } from 'react';
+import { createElement } from 'react';
 import Image from 'next/image';
 import { ThemeIcon } from '@/components/theme-icon';
 
