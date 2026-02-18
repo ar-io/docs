@@ -79,7 +79,9 @@ export function AskArieTooltip({ children, term }: AskArieTooltipProps) {
   const handleAskArie = useCallback(() => {
     clearHideTimeout();
     window.dispatchEvent(
-      new CustomEvent(ASK_ARIE_OPEN_EVENT, { detail: { question } })
+      new CustomEvent(ASK_ARIE_OPEN_EVENT, {
+        detail: { question, autoSend: true },
+      })
     );
     setIsVisible(false);
   }, [question, clearHideTimeout]);

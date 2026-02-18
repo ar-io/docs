@@ -8,6 +8,7 @@ import { Check, Copy, MessageCircle, RotateCcw, Send, X } from "lucide-react";
 import {
   askArie,
   ASK_ARIE_OPEN_EVENT,
+  type AskArieOpenDetail,
   ChatMessage,
   checkAskArieHealth,
   createAssistantMessageFromApiResponse,
@@ -130,6 +131,8 @@ export function AskArieWidget({ initialMessages = [] }: AskArieWidgetProps) {
     return () => window.clearTimeout(id);
   }, [messages, isLoading]);
 
+  const pendingAutoSendRef = useRef<string | null>(null);
+
   const openChat = useCallback((initialQuestion?: string) => {
     if (typeof initialQuestion === "string" && initialQuestion.trim()) {
       setInputValue(initialQuestion.trim());
@@ -139,15 +142,36 @@ export function AskArieWidget({ initialMessages = [] }: AskArieWidgetProps) {
     setTimeout(() => inputRef.current?.focus(), 100);
   }, []);
 
+  const startNewChatAndSend = useCallback((question: string) => {
+    const q = question.trim();
+    if (!q) return;
+    setMessages([]);
+    setThreadId(null);
+    setInputValue("");
+    sessionStorage.removeItem(ASK_ARIE_THREAD_ID_KEY);
+    sessionStorage.removeItem(ASK_ARIE_MESSAGES_KEY);
+    setError(null);
+    pendingAutoSendRef.current = q;
+    setIsOpen(true);
+    setTimeout(() => setIsVisible(true), 50);
+    setTimeout(() => inputRef.current?.focus(), 100);
+  }, []);
+
   useEffect(() => {
     const handleOpenWithQuestion = (e: Event) => {
-      const customEvent = e as CustomEvent<{ question: string }>;
-      const question = customEvent.detail?.question;
-      if (typeof question === "string") openChat(question);
+      const customEvent = e as CustomEvent<AskArieOpenDetail>;
+      const detail = customEvent.detail;
+      const question = detail?.question;
+      if (typeof question !== "string") return;
+      if (detail?.autoSend) {
+        startNewChatAndSend(question);
+      } else {
+        openChat(question);
+      }
     };
     window.addEventListener(ASK_ARIE_OPEN_EVENT, handleOpenWithQuestion);
     return () => window.removeEventListener(ASK_ARIE_OPEN_EVENT, handleOpenWithQuestion);
-  }, [openChat]);
+  }, [openChat, startNewChatAndSend]);
 
   const closeChat = useCallback(() => {
     setIsVisible(false);
@@ -233,6 +257,14 @@ export function AskArieWidget({ initialMessages = [] }: AskArieWidgetProps) {
     },
     [threadId]
   );
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const question = pendingAutoSendRef.current;
+    if (!question) return;
+    pendingAutoSendRef.current = null;
+    sendMessage(question);
+  }, [isOpen, sendMessage]);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
