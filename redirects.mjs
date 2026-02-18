@@ -12,7 +12,7 @@ const redirects = [
     permanent: true,
   },
 
-  // Ar.io SDK pages
+  // ar.io SDK pages
   {
     source: '/ar-io-sdk',
     destination: '/sdks/ar-io-sdk',

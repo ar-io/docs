@@ -11,17 +11,17 @@ const PACKAGES: {
   sourceUrl: string;
   icon?: string;
 }[] = [
-  // Ar.io SDK
+  // ar.io SDK
   {
     name: "ar-io-sdk",
     readmeUrl:
       "https://raw.githubusercontent.com/ar-io/ar-io-sdk/alpha/README.md",
     dest: path.resolve("content/sdks/ar-io-sdk"),
-    title: "Ar.ioSDK",
+    title: "ar.io SDK",
     description:
       "TypeScript/JavaScript SDK for interacting with the ar.io ecosystem",
     sourceUrl: "https://github.com/ar-io/ar-io-sdk",
-    icon: "/public/brand/ario-white.svg",
+    icon: "/brand/ario-white.svg",
   },
   // Turbo SDK
   {
@@ -33,7 +33,7 @@ const PACKAGES: {
     description:
       "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave",
     sourceUrl: "https://github.com/ardriveapp/turbo-sdk",
-    icon: "/turbo.svg",
+    icon: "/ecosystem-logos/logo-turbo.svg",
   },
   // Wayfinder SDK packages
   {
@@ -46,7 +46,7 @@ const PACKAGES: {
       "JavaScript/TypeScript SDK for accessing Arweave data with built-in verification and gateway routing",
     sourceUrl:
       "https://github.com/ar-io/wayfinder/tree/main/packages/wayfinder-core",
-    icon: "/wayfinder.svg",
+    icon: "/ecosystem-logos/logo-wayfinder.svg",
   },
   {
     name: "wayfinder-react",
@@ -58,7 +58,7 @@ const PACKAGES: {
       "React hooks and components for integrating Wayfinder into React applications",
     sourceUrl:
       "https://github.com/ar-io/wayfinder/tree/main/packages/wayfinder-react",
-    icon: "/wayfinder.svg",
+    icon: "/ecosystem-logos/logo-wayfinder.svg",
   },
   // ArDrive-Core-Js SDK
   {
@@ -69,7 +69,7 @@ const PACKAGES: {
     title: "ArDrive Core JS",
     description: "JavaScript/TypeScript SDK for interacting with ArDrive",
     sourceUrl: "https://github.com/ardriveapp/ardrive-core-js",
-    icon: "/ardrive.svg",
+    icon: "/ecosystem-logos/logo-ardrive.svg",
   },
 
   {
@@ -80,7 +80,7 @@ const PACKAGES: {
     title: "ArDrive CLI",
     description: "Command line interface for ArDrive",
     sourceUrl: "https://github.com/ardriveapp/ardrive-cli",
-    icon: "/ardrive.svg",
+    icon: "/ecosystem-logos/logo-ardrive.svg",
   },
 ];
 

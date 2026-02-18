@@ -28,7 +28,7 @@ export function baseOptions(pathname?: string): BaseLayoutProps {
       title: (
         <>
           <Logo />
-          Ar.io Documentation
+          ar.io Documentation
         </>
       ),
     },

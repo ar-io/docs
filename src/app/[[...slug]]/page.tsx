@@ -81,36 +81,36 @@ export async function generateMetadata(props: {
   // If no page found, return default metadata
   if (!page) {
     return {
-      title: "Ar.io Documentation",
+      title: "ar.io Documentation",
       description: "Documentation for ar.io",
       openGraph: {
-        title: "Ar.io Documentation",
+        title: "ar.io Documentation",
         description: "Documentation for ar.io",
         type: "website",
         siteName: "ar.io",
         images: [
           {
-            url: "/meta.png",
+            url: "/content/meta.png",
             width: 1200,
             height: 630,
-            alt: "Ar.io Documentation",
+            alt: "ar.io Documentation",
           },
         ],
       },
       twitter: {
         card: "summary_large_image",
-        title: "Ar.io Documentation",
+        title: "ar.io Documentation",
         description: "Documentation for ar.io",
         images: [
-          "/meta.png",
+          "/content/meta.png",
         ],
         creator: "@ar_io_network",
         site: "@ar_io_network",
       },
       icons: {
-        icon: "https://arweave.net/uA4zrhP_ShZ8-QbbKM0XhBQWpXgBpYDhgr6X5f6Ou88g",
-        shortcut: "https://arweave.net/uA4zrhP_ShZ8-QbbKM0XhBQWpXgBpYDhgr6X5f6Ou88",
-        apple: "https://arweave.net/uA4zrhP_ShZ8-QbbKM0XhBQWpXgBpYDhgr6X5f6Ou88",
+        icon: "/brand/favicon.png",
+        shortcut: "/brand/favicon.png",
+        apple: "/brand/favicon.png",
       },
     };
   }
@@ -129,13 +129,13 @@ export async function generateMetadata(props: {
   const pageTitle = frontmatter.title || page.data.title;
   const pageDescription = frontmatter.description || page.data.description;
   const pageImage =
-    frontmatter.image || frontmatter.icon || "/meta.png";
+    frontmatter.image || frontmatter.icon || "/content/meta.png";
   const pageKeywords = frontmatter.keywords || [
     "ar.io",
     "Arweave",
     "documentation",
   ];
-  const pageAuthor = frontmatter.author || "Ar.io Team";
+  const pageAuthor = frontmatter.author || "ar.io Team";
 
   return {
     title: pageTitle,
@@ -165,11 +165,9 @@ export async function generateMetadata(props: {
       site: "@ar_io_network",
     },
     icons: {
-        icon: "https://arweave.net/uA4zrhP_ShZ8-QbbKM0XhBQWpXgBpYDhgr6X5f6Ou88g",
-        shortcut:
-          "https://arweave.net/uA4zrhP_ShZ8-QbbKM0XhBQWpXgBpYDhgr6X5f6Ou88g",
-        apple:
-          "https://arweave.net/uA4zrhP_ShZ8-QbbKM0XhBQWpXgBpYDhgr6X5f6Ou88g",
+        icon: "/brand/favicon.png",
+        shortcut: "/brand/favicon.png",
+        apple: "/brand/favicon.png",
     },
     // Add additional metadata for better SEO
     keywords: pageKeywords,

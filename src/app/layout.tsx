@@ -4,6 +4,7 @@ import { RootProvider } from "fumadocs-ui/provider";
 import type { Metadata } from "next";
 import Script from "next/script";
 import SearchDialog from "@/components/search";
+import { AskArieWidget } from "@/components/ask-arie/AskArieWidget";
 import { Plus_Jakarta_Sans } from "next/font/google";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -15,15 +16,15 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   metadataBase: new URL("https://docs.ar.io"),
   title: {
-    default: "Ar.io Documentation",
-    template: "%s | Ar.io Documentation",
+    default: "ar.io Documentation",
+    template: "%s | ar.io Documentation",
   },
   description:
     "Comprehensive documentation for ar.io and the Arweave ecosystem",
   icons: {
-    icon: "https://arweave.net/uA4zrhP_ShZ8-QbbKM0XhBQWpXgBpYDhgr6X5f6Ou88",
-    shortcut: "https://arweave.net/uA4zrhP_ShZ8-QbbKM0XhBQWpXgBpYDhgr6X5f6Ou88",
-    apple: "https://arweave.net/uA4zrhP_ShZ8-QbbKM0XhBQWpXgBpYDhgr6X5f6Ou88",
+    icon: "/brand/favicon.png",
+    shortcut: "/brand/favicon.png",
+    apple: "/brand/favicon.png",
   },
 };
 
@@ -48,6 +49,7 @@ export default function Layout({ children }: LayoutProps<"/">) {
           }}
         >
           {children}
+          <AskArieWidget />
         </RootProvider>
       </body>
     </html>
