@@ -7,6 +7,7 @@ import { createPortal } from "react-dom";
 import { Check, Copy, MessageCircle, RotateCcw, Send, X } from "lucide-react";
 import {
   askArie,
+  ASK_ARIE_OPEN_EVENT,
   ChatMessage,
   checkAskArieHealth,
   createAssistantMessageFromApiResponse,
@@ -129,11 +130,24 @@ export function AskArieWidget({ initialMessages = [] }: AskArieWidgetProps) {
     return () => window.clearTimeout(id);
   }, [messages, isLoading]);
 
-  const openChat = useCallback(() => {
+  const openChat = useCallback((initialQuestion?: string) => {
+    if (typeof initialQuestion === "string" && initialQuestion.trim()) {
+      setInputValue(initialQuestion.trim());
+    }
     setIsOpen(true);
     setTimeout(() => setIsVisible(true), 50);
     setTimeout(() => inputRef.current?.focus(), 100);
   }, []);
+
+  useEffect(() => {
+    const handleOpenWithQuestion = (e: Event) => {
+      const customEvent = e as CustomEvent<{ question: string }>;
+      const question = customEvent.detail?.question;
+      if (typeof question === "string") openChat(question);
+    };
+    window.addEventListener(ASK_ARIE_OPEN_EVENT, handleOpenWithQuestion);
+    return () => window.removeEventListener(ASK_ARIE_OPEN_EVENT, handleOpenWithQuestion);
+  }, [openChat]);
 
   const closeChat = useCallback(() => {
     setIsVisible(false);
@@ -245,7 +259,7 @@ export function AskArieWidget({ initialMessages = [] }: AskArieWidgetProps) {
     isHealthy === true ? (
       <button
         type="button"
-        onClick={openChat}
+        onClick={() => openChat()}
         className="group fixed bottom-4 right-4 z-50 inline-flex h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-fd-primary text-fd-background shadow-lg hover:bg-fd-primary/90 hover:scale-110 active:scale-95 transition-transform duration-150 ease-out"
         aria-label="Open chat"
       >

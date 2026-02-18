@@ -194,6 +194,9 @@ export async function checkTechnicalAccess(): Promise<boolean> {
   }
 }
 
+/** Custom event name to open the Ask Arie widget with a pre-filled question (detail: { question: string }). */
+export const ASK_ARIE_OPEN_EVENT = "ask-arie-open";
+
 export async function checkAskArieHealth(): Promise<boolean> {
   try {
     const response = await fetch(HEALTH_ENDPOINT, {
