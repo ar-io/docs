@@ -194,6 +194,16 @@ export async function checkTechnicalAccess(): Promise<boolean> {
   }
 }
 
+/** Payload for the Ask Arie open event. */
+export interface AskArieOpenDetail {
+  question: string;
+  /** If true, start a new chat and send the question immediately. */
+  autoSend?: boolean;
+}
+
+/** Custom event name to open the Ask Arie widget (detail: AskArieOpenDetail). */
+export const ASK_ARIE_OPEN_EVENT = "ask-arie-open";
+
 export async function checkAskArieHealth(): Promise<boolean> {
   try {
     const response = await fetch(HEALTH_ENDPOINT, {

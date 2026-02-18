@@ -7,11 +7,14 @@ import { createPortal } from "react-dom";
 import { Check, Copy, MessageCircle, RotateCcw, Send, X } from "lucide-react";
 import {
   askArie,
+  ASK_ARIE_OPEN_EVENT,
+  type AskArieOpenDetail,
   ChatMessage,
   checkAskArieHealth,
   createAssistantMessageFromApiResponse,
   generateMessageId,
 } from "@/lib/ask-arie";
+import { useSetAskArieHealthy } from "./AskArieContext";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 
 interface AskArieWidgetProps {
@@ -37,6 +40,7 @@ export function AskArieWidget({ initialMessages = [] }: AskArieWidgetProps) {
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const [isHealthy, setIsHealthy] = useState<boolean | null>(null);
+  const setAskArieHealthy = useSetAskArieHealthy();
   const [threadId, setThreadId] = useState<string | null>(null);
   const { resolvedTheme } = useTheme();
   const [avatarSrc, setAvatarSrc] = useState("/brand/ask-arie.png");
@@ -105,14 +109,18 @@ export function AskArieWidget({ initialMessages = [] }: AskArieWidgetProps) {
     const checkHealth = async () => {
       const healthy = await checkAskArieHealth();
       if (healthy) {
-        window.setTimeout(() => setIsHealthy(true), 1500);
+        window.setTimeout(() => {
+          setIsHealthy(true);
+          setAskArieHealthy(true);
+        }, 1500);
       } else {
         setIsHealthy(false);
+        setAskArieHealthy(false);
       }
     };
 
     checkHealth();
-  }, [mounted]);
+  }, [mounted, setAskArieHealthy]);
 
   useEffect(() => {
     const el = messagesScrollRef.current;
@@ -129,11 +137,47 @@ export function AskArieWidget({ initialMessages = [] }: AskArieWidgetProps) {
     return () => window.clearTimeout(id);
   }, [messages, isLoading]);
 
-  const openChat = useCallback(() => {
+  const pendingAutoSendRef = useRef<string | null>(null);
+
+  const openChat = useCallback((initialQuestion?: string) => {
+    if (typeof initialQuestion === "string" && initialQuestion.trim()) {
+      setInputValue(initialQuestion.trim());
+    }
     setIsOpen(true);
     setTimeout(() => setIsVisible(true), 50);
     setTimeout(() => inputRef.current?.focus(), 100);
   }, []);
+
+  const startNewChatAndSend = useCallback((question: string) => {
+    const q = question.trim();
+    if (!q) return;
+    setMessages([]);
+    setThreadId(null);
+    setInputValue("");
+    sessionStorage.removeItem(ASK_ARIE_THREAD_ID_KEY);
+    sessionStorage.removeItem(ASK_ARIE_MESSAGES_KEY);
+    setError(null);
+    pendingAutoSendRef.current = q;
+    setIsOpen(true);
+    setTimeout(() => setIsVisible(true), 50);
+    setTimeout(() => inputRef.current?.focus(), 100);
+  }, []);
+
+  useEffect(() => {
+    const handleOpenWithQuestion = (e: Event) => {
+      const customEvent = e as CustomEvent<AskArieOpenDetail>;
+      const detail = customEvent.detail;
+      const question = detail?.question;
+      if (typeof question !== "string") return;
+      if (detail?.autoSend) {
+        startNewChatAndSend(question);
+      } else {
+        openChat(question);
+      }
+    };
+    window.addEventListener(ASK_ARIE_OPEN_EVENT, handleOpenWithQuestion);
+    return () => window.removeEventListener(ASK_ARIE_OPEN_EVENT, handleOpenWithQuestion);
+  }, [openChat, startNewChatAndSend]);
 
   const closeChat = useCallback(() => {
     setIsVisible(false);
@@ -220,6 +264,14 @@ export function AskArieWidget({ initialMessages = [] }: AskArieWidgetProps) {
     [threadId]
   );
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const question = pendingAutoSendRef.current;
+    if (!question) return;
+    pendingAutoSendRef.current = null;
+    sendMessage(question);
+  }, [isOpen, sendMessage]);
+
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
@@ -245,7 +297,7 @@ export function AskArieWidget({ initialMessages = [] }: AskArieWidgetProps) {
     isHealthy === true ? (
       <button
         type="button"
-        onClick={openChat}
+        onClick={() => openChat()}
         className="group fixed bottom-4 right-4 z-50 inline-flex h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-fd-primary text-fd-background shadow-lg hover:bg-fd-primary/90 hover:scale-110 active:scale-95 transition-transform duration-150 ease-out"
         aria-label="Open chat"
       >

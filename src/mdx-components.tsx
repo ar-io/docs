@@ -2,6 +2,7 @@ import defaultMdxComponents from "fumadocs-ui/mdx";
 import type { MDXComponents } from "mdx/types";
 import Tip from "@/components/Tip";
 import { CodeGroup } from "@/components/Code";
+import { AskArieTooltip } from "@/components/ask-arie/AskArieTooltip";
 import Mermaid from "@/components/Mermaid";
 import { openapi } from "@/lib/openapi";
 import { APIPage } from "fumadocs-openapi/ui";
@@ -37,6 +38,7 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     ...defaultMdxComponents,
     Tip,
     CodeGroup,
+    AskArieTooltip,
     Mermaid,
     Step,
     Steps,
