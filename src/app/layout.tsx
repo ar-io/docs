@@ -4,6 +4,7 @@ import { RootProvider } from "fumadocs-ui/provider";
 import type { Metadata } from "next";
 import Script from "next/script";
 import SearchDialog from "@/components/search";
+import { AskArieProvider } from "@/components/ask-arie/AskArieContext";
 import { AskArieWidget } from "@/components/ask-arie/AskArieWidget";
 import { Plus_Jakarta_Sans } from "next/font/google";
 
@@ -48,8 +49,10 @@ export default function Layout({ children }: LayoutProps<"/">) {
             enableSystem: true,
           }}
         >
-          {children}
-          <AskArieWidget />
+          <AskArieProvider>
+            {children}
+            <AskArieWidget />
+          </AskArieProvider>
         </RootProvider>
       </body>
     </html>

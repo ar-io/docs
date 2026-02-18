@@ -3,6 +3,7 @@
 import { MessageCircle } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ASK_ARIE_OPEN_EVENT } from "@/lib/ask-arie";
+import { useAskArieHealth } from "./AskArieContext";
 
 export interface AskArieTooltipProps {
   /** The visible text or content to wrap. Hovering shows the Ask Arie tooltip. */
@@ -27,10 +28,15 @@ function getTextFromChildren(children: React.ReactNode): string {
 const HIDE_DELAY_MS = 150;
 
 export function AskArieTooltip({ children, term }: AskArieTooltipProps) {
+  const isHealthy = useAskArieHealth();
   const [isVisible, setIsVisible] = useState(false);
   const [tooltipPlaceAbove, setTooltipPlaceAbove] = useState(true);
   const triggerRef = useRef<HTMLSpanElement>(null);
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  if (isHealthy !== true) {
+    return <>{children}</>;
+  }
 
   const resolvedTerm = term ?? getTextFromChildren(children);
   const question =

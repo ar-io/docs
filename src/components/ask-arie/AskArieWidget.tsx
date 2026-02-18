@@ -14,6 +14,7 @@ import {
   createAssistantMessageFromApiResponse,
   generateMessageId,
 } from "@/lib/ask-arie";
+import { useSetAskArieHealthy } from "./AskArieContext";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 
 interface AskArieWidgetProps {
@@ -39,6 +40,7 @@ export function AskArieWidget({ initialMessages = [] }: AskArieWidgetProps) {
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const [isHealthy, setIsHealthy] = useState<boolean | null>(null);
+  const setAskArieHealthy = useSetAskArieHealthy();
   const [threadId, setThreadId] = useState<string | null>(null);
   const { resolvedTheme } = useTheme();
   const [avatarSrc, setAvatarSrc] = useState("/brand/ask-arie.png");
@@ -107,14 +109,18 @@ export function AskArieWidget({ initialMessages = [] }: AskArieWidgetProps) {
     const checkHealth = async () => {
       const healthy = await checkAskArieHealth();
       if (healthy) {
-        window.setTimeout(() => setIsHealthy(true), 1500);
+        window.setTimeout(() => {
+          setIsHealthy(true);
+          setAskArieHealthy(true);
+        }, 1500);
       } else {
         setIsHealthy(false);
+        setAskArieHealthy(false);
       }
     };
 
     checkHealth();
-  }, [mounted]);
+  }, [mounted, setAskArieHealthy]);
 
   useEffect(() => {
     const el = messagesScrollRef.current;
