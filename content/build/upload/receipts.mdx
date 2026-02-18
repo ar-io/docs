@@ -45,6 +45,8 @@ Regardless of flow, store receipt timestamps and your own sequence metadata so o
   Turbo does not store and retrieve your receipts for you. If you need receipts
   later, persist the exact payload returned by Turbo in your own storage. You
   can also optionally store receipt records on Arweave for long-term archival.
+  See [Capturing Receipts in Turbo
+  SDK](#capturing-receipts-in-turbo-sdk) for an implementation example.
 </Callout>
 
 ## Receipt Anatomy
@@ -66,7 +68,7 @@ Some fields vary by upload path and service response shape. Do not assume every 
 
 ## Capturing Receipts in Turbo SDK
 
-Capture the upload response as your receipt record and persist it alongside your own object IDs:
+Capture the upload response as your receipt record and persist it alongside your own object IDs. Below is a simple example, in practice you might chose to store this alongside your existing logs in S3, Sentry or similar:
 
 ```typescript
 import fs from "fs";
@@ -85,7 +87,7 @@ const receipt = await turbo.uploadFile({
   },
 });
 
-await fetch("https://api.example.com/upload-receipts", {
+await fetch("https://api.yourdomain.com/upload-receipts", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
