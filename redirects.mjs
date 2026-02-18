@@ -405,11 +405,6 @@ const redirects = [
 
   // Community and other pages
   {
-    source: '/glossary',
-    destination: '/glossary',
-    permanent: true,
-  },
-  {
     source: '/community-resources',
     destination: '/',
     permanent: true,
