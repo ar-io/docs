@@ -1,0 +1,247 @@
+---
+title: "Receipts"
+description: "Understand Turbo upload receipts for chronology, auditability, and later verification workflows"
+---
+
+Turbo upload receipts provide a durable record of what was uploaded, who uploaded it, and what upload cost was assessed in Winston Credits (`winc`). They are useful for provenance, compliance, incident response, and operational debugging.
+
+## What Are Turbo Receipts?
+
+A Turbo receipt is a signed upload attestation returned by Turbo upload flows when a data item is successfully accepted and processed.
+
+In practice, receipts help you:
+
+- Link app-level records to immutable data item IDs
+- Track upload ownership and storage cost (`winc`)
+- Keep machine-readable proof metadata for investigations and audits
+
+<Callout type="info">
+  Receipts are proof of Turbo upload acceptance and signed receipt metadata for
+  a specific upload event. They are not a full substitute for your own
+  retrieval checks, gateway checks, or finality policies.
+</Callout>
+
+## Why Time and Ordering Matter
+
+Receipt timestamps are especially valuable because they let you prove when upload events occurred and how related uploads were ordered.
+
+- A receipt `timestamp` supports evidence of event time in incident and audit workflows.
+- Ordered receipts create chronology across related data items (for example, original item, revision, and derived artifacts).
+- Chronology improves chain-of-custody reconstruction and post-incident analysis.
+
+For production systems, preserving upload order can be as important as preserving data IDs.
+
+## When Receipts Are Created
+
+Turbo receipts are created in three common contexts:
+
+1. Standard SDK uploads: `turbo.upload()` and `turbo.uploadFile()` return upload result payloads that include receipt metadata such as `id`, `owner`, `winc`, `dataCaches`, and `fastFinalityIndexes`.
+2. Multipart uploads: for larger uploads that use chunking, Turbo finalizes the upload and returns a finalized receipt payload when multipart status reaches `FINALIZED`.
+3. x402 uploads: Turbo still returns an upload receipt, and x402 tooling can also provide a separate payment settlement receipt.
+
+Regardless of flow, store receipt timestamps and your own sequence metadata so ordered events can be reconstructed later.
+
+<Callout type="warning">
+  Turbo does not store and retrieve your receipts for you. If you need receipts
+  later, persist the exact payload returned by Turbo in your own storage. You
+  can also optionally store receipt records on Arweave for long-term archival.
+  See [Capturing Receipts in Turbo
+  SDK](#capturing-receipts-in-turbo-sdk) for an implementation example.
+</Callout>
+
+## Receipt Anatomy
+
+| Field | Meaning | Notes |
+| ----- | ------- | ----- |
+| `id` | Data item transaction ID | Primary key to join with your app records |
+| `owner` | Normalized address that signed/owns the data item | Useful for audit and policy checks |
+| `winc` | Upload cost measured in Winston Credits | Useful for billing and reporting. See [Paying for Uploads](/build/upload/turbo-credits) for unit and payment context |
+| `dataCaches` | Caches that accepted the data item | Operational visibility for upload path |
+| `fastFinalityIndexes` | Fast finality indexes that accepted the data item | Useful for observability |
+| `timestamp` | Receipt creation time in milliseconds | Core field for chronology, ordering, and evidence of event time |
+| `version` | Receipt schema/version identifier | Determines how verification inputs should be interpreted |
+| `deadlineHeight` | Deadline block height recorded in receipt payload | Useful as additional upload context |
+| `public` | Public key that signed the receipt | Needed to verify signature validity |
+| `signature` | Base64URL receipt signature | Required to verify receipt authenticity |
+
+Some fields vary by upload path and service response shape. Do not assume every SDK return object includes every signed receipt field in all flows.
+
+## Capturing Receipts in Turbo SDK
+
+Capture the upload response as your receipt record and persist it alongside your own object IDs. Below is a simple example, in practice you might chose to store this alongside your existing logs in S3, Sentry or similar:
+
+```typescript
+import fs from "fs";
+import { TurboFactory } from "@ardrive/turbo-sdk";
+
+const turbo = TurboFactory.authenticated({ privateKey });
+
+const receipt = await turbo.uploadFile({
+  fileStreamFactory: () => fs.createReadStream("./report.json"),
+  fileSizeFactory: () => fs.statSync("./report.json").size,
+  dataItemOpts: {
+    tags: [
+      { name: "Content-Type", value: "application/json" },
+      { name: "App-Name", value: "AnalyticsPipeline-v1.0" },
+    ],
+  },
+});
+
+await fetch("https://api.yourdomain.com/upload-receipts", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    appObjectId: "report-2026-02-16",
+    capturedAt: new Date().toISOString(),
+    receipt,
+  }),
+});
+
+console.log("Stored Turbo receipt:", {
+  id: receipt.id,
+  timestamp: receipt.timestamp,
+  owner: receipt.owner,
+  winc: receipt.winc,
+});
+```
+
+<Callout type="info">
+  Turbo CLI upload commands print JSON output that can be captured as a receipt
+  record in scripts and CI pipelines.
+</Callout>
+
+## Why Receipts Matter Across ar.io Use Cases
+
+| AR.IO Use Case | Receipt Value |
+| -------------- | ------------- |
+| [File Storage](https://ar.io/use-cases/file-storage/) | Map internal file objects to immutable upload IDs and timestamped upload events |
+| [Websites & Apps](https://ar.io/use-cases/websites-and-apps/) | Track deployment artifacts and ordering of publish history over time |
+| [Apps & Game Assets](https://ar.io/use-cases/apps-and-game-assets/) | Prove that specific asset versions were accepted and in which sequence they were released |
+| [Media Provenance](https://ar.io/use-cases/media-provenance/) | Establish chain-of-custody metadata for original and derivative media with event ordering |
+| [Verifiable AI Data](https://ar.io/use-cases/verifiable-ai-data/) | Attach signed upload evidence and chronology to datasets, prompts, and model outputs |
+| [Verifiable Computing](https://ar.io/use-cases/verifiable-computing/) | Bind compute inputs/outputs to durable upload receipts for reproducibility and timeline checks |
+| [Durable Financial Data](https://ar.io/use-cases/durable-financial-data/) | Maintain publish-time evidence for disclosures, reports, and compliance records |
+
+## Deep Dive: Media Provenance
+
+Receipts strengthen provenance workflows by giving each media upload a signed event record with a timestamp and ordering context.
+
+- Preserve the receipt for original media ingestion
+- Store receipts for edited or transformed derivatives
+- Link parent and derivative records in your metadata model
+- Use receipt IDs, timestamps, and signed fields as part of publishing audit trails
+
+This gives teams a clearer chain-of-custody model for authenticity claims, moderation workflows, and external verification requests.
+
+## Deep Dive: Verifiable AI Data
+
+AI pipelines benefit from receipts because reproducibility depends on stable, attributable inputs and outputs over time.
+
+- Store receipts for datasets, prompts, and generated artifacts
+- Link receipts to model versions, run IDs, and evaluation jobs
+- Preserve ordered receipt timelines to reconstruct dataset-to-output lineage
+- Use receipts as evidence in regulated or policy-bound AI workflows
+
+This makes lineage more transparent and reduces ambiguity when debugging model behavior or validating published results.
+
+## Verifying Receipts Later
+
+Delayed verification is valuable for audits, disputes, compliance reviews, and reproducibility checks that happen long after initial upload.
+
+### Verification Checklist
+
+1. Load the stored receipt payload.
+2. Validate required fields (`id`, `version`, `public`, `signature`, and contextual fields you depend on).
+3. Verify the signature against the public key using receipt-version-specific hashing/signing rules.
+4. Confirm data item status and availability via Turbo or gateway status endpoints.
+5. Compare verified receipt data with your internal upload metadata and flag mismatches.
+
+Example verification workflow:
+
+```typescript
+type StoredReceipt = {
+  id: string;
+  version?: string;
+  public?: string;
+  signature?: string;
+  timestamp?: number;
+  owner?: string;
+};
+
+async function verifyStoredReceipt(receipt: StoredReceipt) {
+  if (!receipt.id || !receipt.version || !receipt.public || !receipt.signature) {
+    throw new Error("Receipt is missing required verification fields.");
+  }
+
+  // Implement this in your backend with version-aware receipt rules.
+  const signatureValid = await verifyReceiptSignatureForVersion(receipt);
+  if (!signatureValid) {
+    throw new Error(`Invalid receipt signature for ${receipt.id}`);
+  }
+
+  const statusResponse = await fetch(
+    `https://upload.ardrive.io/v1/tx/${receipt.id}/status`,
+  );
+
+  if (!statusResponse.ok) {
+    throw new Error(`Unable to retrieve status for ${receipt.id}`);
+  }
+
+  const status = await statusResponse.json();
+
+  return {
+    id: receipt.id,
+    signatureValid,
+    status,
+  };
+}
+```
+
+<Callout type="warning">
+  Verification inputs are receipt-version dependent. Do not assume every
+  response field is signature-bound in every version, and do not assume a
+  high-level SDK helper exists unless it is explicitly documented for your
+  target version.
+</Callout>
+
+## Best Practices
+
+- Persist raw receipt payloads server-side and keep them immutable
+- Store receipts with your own object IDs, pipeline IDs, and environment metadata
+- Index by data item `id` for fast traceability across systems
+- Preserve upload chronology (for example sequence numbers, parent/child links, and timestamps)
+- Capture both upload receipts and payment receipts when using x402
+- Re-check status/finality in stricter workflows using service or gateway checks
+
+<Callout type="warning">
+  Treat a receipt as proof of Turbo upload acceptance and signing for that
+  event, not as a blanket guarantee for every downstream retrieval state.
+</Callout>
+
+## Next Steps
+
+<Cards>
+  <Card href="/build/upload/manifests" title="Manifests" icon={<FolderOpen />}>
+    Connect receipt evidence to structured path-based content organization.
+  </Card>
+
+  <Card href="/build/upload/encryption" title="Data Encryption" icon={<Shield />}>
+    Protect sensitive content before uploading to permanent storage.
+  </Card>
+
+  <Card
+    href="/build/upload/x402-uploading-to-turbo"
+    title="x402 Uploading To Turbo"
+    icon={<CreditCard />}
+  >
+    Add just-in-time payment flows to your upload pipeline.
+  </Card>
+
+  <Card
+    href="/build/upload/turbo-credits"
+    title="Paying for Uploads"
+    icon={<CreditCard />}
+  >
+    Understand Turbo Credits, top ups, and funding workflows.
+  </Card>
+</Cards>

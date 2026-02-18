@@ -82,10 +82,9 @@ export function ViewOptions({
   githubUrl: string;
 }) {
   const items = useMemo(() => {
-    const fullMarkdownUrl =
-      typeof window !== 'undefined'
-        ? new URL(markdownUrl, window.location.origin)
-        : 'loading';
+    // markdownUrl is already passed as an absolute URL, so avoid client-only
+    // window access during render to keep server/client output deterministic.
+    const fullMarkdownUrl = markdownUrl;
     const q = `Read ${fullMarkdownUrl}, I want to ask questions about it.`;
 
     return [
