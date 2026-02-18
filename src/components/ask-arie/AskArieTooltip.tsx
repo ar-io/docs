@@ -34,10 +34,6 @@ export function AskArieTooltip({ children, term }: AskArieTooltipProps) {
   const triggerRef = useRef<HTMLSpanElement>(null);
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  if (isHealthy !== true) {
-    return <>{children}</>;
-  }
-
   const resolvedTerm = term ?? getTextFromChildren(children);
   const question =
     resolvedTerm.length > 0
@@ -75,11 +71,6 @@ export function AskArieTooltip({ children, term }: AskArieTooltipProps) {
     }, HIDE_DELAY_MS);
   }, [clearHideTimeout]);
 
-  const hideTooltip = useCallback(() => {
-    clearHideTimeout();
-    setIsVisible(false);
-  }, [clearHideTimeout]);
-
   useEffect(() => () => clearHideTimeout(), [clearHideTimeout]);
 
   const handleAskArie = useCallback(() => {
@@ -104,6 +95,10 @@ export function AskArieTooltip({ children, term }: AskArieTooltipProps) {
     },
     [updatePosition]
   );
+
+  if (isHealthy !== true) {
+    return <>{children}</>;
+  }
 
   return (
     <span
