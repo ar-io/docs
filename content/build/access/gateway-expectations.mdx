@@ -1,0 +1,152 @@
+---
+title: "Gateway Expectations"
+description: "Production-first guidance for choosing gateway access modes, understanding limits, and planning reliable delivery"
+---
+
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Network, Building2, Server, Terminal } from "lucide-react";
+
+For conceptual background, start with [Data Availability](/learn/gateways/data-availability).
+
+## Production Quick Start
+
+If you need stronger uptime and performance guarantees:
+
+1. Use a **managed or self-hosted gateway** as your primary path.
+2. Keep the **open ar.io gateway network** as resilience and backup.
+3. Use **Wayfinder** when you want client-side gateway failover.
+
+This gives you both predictable primary delivery and decentralized fallback.
+
+## Access Options and Recommended Uses
+
+| Access mode | Recommended use | Guarantee profile |
+| --- | --- | --- |
+| **Open network** | Prototypes, low-risk public traffic, fast launch | Strong retrievability, variable per-gateway performance/limits |
+| **Self-hosted gateway** | Teams that want direct control over infra and policy | You define and operate the guarantee level |
+| **Managed gateway** | Teams that want high availability with less ops overhead | Provider-backed operational guarantees |
+| **Hybrid (recommended for production)** | Critical apps and customer-facing workloads | Dedicated primary guarantees + decentralized backup path |
+
+## How to Inspect Any Gateway
+
+Use `GET /ar-io/info`:
+
+```bash
+curl -sS https://<gateway>/ar-io/info | jq
+```
+
+Focus on these fields:
+
+- `rateLimiter.enabled`
+- `rateLimiter.dataEgress.buckets.resource`
+- `rateLimiter.dataEgress.buckets.ip`
+- `x402.enabled`
+- `x402.dataEgress.pricing`
+- `x402.dataEgress.rateLimiterCapacityMultiplier`
+
+Interpretation:
+
+- `capacity` / `capacityBytes`: burst allowance.
+- `refillRate` / `refillRateBytesPerSec`: sustained unpaid throughput.
+- `x402` pricing + multiplier: how paid overflow extends access.
+
+## turbo-gateway.com Snapshot (As of February 16, 2026)
+
+Source: `https://turbo-gateway.com/ar-io/info` queried on February 16, 2026.
+
+### Rate limiter buckets
+
+| Bucket | Value |
+| --- | --- |
+| Resource `capacityBytes` | `1,024,000,000` bytes (~`976.56` MiB burst) |
+| Resource `refillRateBytesPerSec` | `102,400` bytes/s (`100` KiB/s sustained) |
+| IP `capacityBytes` | `102,400,000` bytes (~`97.66` MiB burst) |
+| IP `refillRateBytesPerSec` | `20,480` bytes/s (`20` KiB/s sustained) |
+
+### x402 data egress
+
+| Field | Value |
+| --- | --- |
+| Enabled | `true` |
+| Network | `base` |
+| Per-byte price | `0.0000000001` USDC |
+| Min price | `0.001000` USDC |
+| Max price | `1.000000` USDC |
+| Capacity multiplier | `10` |
+
+<Callout type="warning">
+  This is a dated snapshot. Re-check the live endpoint before relying on exact
+  numbers.
+</Callout>
+
+## Real-World Scenarios (Illustrative)
+
+These examples use current turbo-gateway bucket values and assume bytes are not already absorbed by downstream cache/CDN.
+
+### 1) Small API payload pattern (10 KiB response)
+
+- **Unpaid sustained pace (per client IP):** about **2 requests/second** (`20 KiB/s ÷ 10 KiB`).
+- **Burst behavior:** IP burst bucket (~97.66 MiB) can absorb large short spikes before refill rate becomes the limiter.
+- **With x402 paid path:** additional paid tokens extend access when free tokens are exhausted.
+
+### 2) Static site page-load pattern (~1.5 MiB cold load)
+
+- **Unpaid sustained pace (per client IP):** about **0.8 page loads/minute** if every load is fully uncached.
+- **Burst behavior:** IP burst bucket supports roughly **65 cold loads** in a short window (`97.66 MiB ÷ 1.5 MiB`).
+- **In practice:** browser cache, gateway cache, and CDN caching usually reduce byte pressure significantly.
+
+### 3) Larger file delivery pattern (100 MiB object)
+
+- **Unpaid behavior:** one request can quickly consume most/all IP burst allowance.
+- **Refill reality:** recovering ~100 MiB of unpaid headroom at `20 KiB/s` is slow (~85 minutes).
+- **With x402 paid path:** requests continue through paid tokens, which is important for sustained large-transfer workloads.
+
+<Callout type="info">
+  These scenarios are directional planning examples, not hard guarantees. Real
+  behavior depends on caching, traffic shape, and your selected access mode.
+</Callout>
+
+## How Limits Surface to Clients
+
+- **`402 Payment Required`**: request exceeded free limits and a payment path is available.
+- **`429 Too Many Requests`**: request is rate limited without a usable payment path.
+
+Treat both as control signals and retry/failover events in client logic.
+
+## Client Checklist
+
+- Use exponential backoff with jitter for retriable failures.
+- Implement gateway failover (or use Wayfinder).
+- Use `ETag`/`If-None-Match` and range requests where appropriate.
+- Follow redirects (including sandbox redirects).
+- Monitor `X-Cache`, `X-AR-IO-Verified`, `X-AR-IO-Trusted`, and `Content-Digest`.
+- Re-check `/ar-io/info` regularly for policy/limit changes.
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Data Availability"
+    description="Guarantee levels and strategy selection by access mode"
+    href="/learn/gateways/data-availability"
+    icon={<Network className="w-8 h-8" />}
+  />
+  <Card
+    title="Fetch Data"
+    description="REST retrieval patterns and implementation details"
+    href="/build/access/fetch-data"
+    icon={<Server className="w-8 h-8" />}
+  />
+  <Card
+    title="Ar.io Gateway API"
+    description="`/ar-io/info` and other gateway endpoints"
+    href="/apis/ar-io-node/gateway"
+    icon={<Terminal className="w-8 h-8" />}
+  />
+  <Card
+    title="Wayfinder"
+    description="Production routing and failover across gateway providers"
+    href="/build/access/wayfinder"
+    icon={<Building2 className="w-8 h-8" />}
+  />
+</Cards>
