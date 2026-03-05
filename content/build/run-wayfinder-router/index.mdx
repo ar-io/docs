@@ -10,16 +10,26 @@ import { Rocket, Settings, Monitor, Shield } from "lucide-react";
 Wayfinder Router is a lightweight proxy service that provides a **single trusted endpoint** for accessing Arweave data through the decentralized ar.io gateway network. It fetches content from multiple gateways, verifies integrity via cryptographic hash checking, and serves verified data to your users.
 
 ```
-                      ar.io Gateway Network
-                   +-----+  +-----+  +-----+
-                   | GW1 |  | GW2 |  | GW3 |
-                   +--+--+  +--+--+  +--+--+
-                      |        |        |
-Your Users --> Wayfinder Router ---------+
-                      |
-                      +-- Verification
-                      +-- Caching
-                      +-- Telemetry
+                        Your Users
+                             |
+                             v
+                    +------------------+
+                    | Wayfinder Router |
+                    |------------------|
+                    | - Verification   |
+                    | - Caching        |
+                    | - Telemetry      |
+                    +------------------+
+                             |
+              +--------------+--------------+
+              |              |              |
+              v              v              v
+          +------+       +------+       +------+
+          | GW1  |       | GW2  |       | GW3  |
+          +------+       +------+       +------+
+                 \___________+___________/
+                             |
+                 ar.io Gateway Network
 ```
 
 ## Why Use Wayfinder Router?
