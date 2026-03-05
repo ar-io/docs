@@ -1,0 +1,275 @@
+---
+title: "Operations"
+description: "Monitoring, content moderation, and troubleshooting for Wayfinder Router"
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Tabs, Tab } from "fumadocs-ui/components/tabs";
+
+## Monitoring
+
+### Health and Readiness
+
+```bash
+# Health check (is the process running?)
+curl http://localhost:3000/wayfinder/health
+
+# Readiness check (is the router ready to serve traffic?)
+curl http://localhost:3000/wayfinder/ready
+
+# API Guard compatible health check
+curl http://localhost:3000/ar-io/healthcheck
+```
+
+Use these endpoints for load balancer health checks and orchestration systems.
+
+### Prometheus Metrics
+
+```bash
+curl http://localhost:3000/wayfinder/metrics
+```
+
+Exposes standard metrics for scraping by Prometheus. Configure your Prometheus scrape targets to point at `/wayfinder/metrics`.
+
+### Gateway Statistics
+
+```bash
+# Summary statistics
+curl http://localhost:3000/wayfinder/stats/gateways
+
+# List all tracked gateways
+curl http://localhost:3000/wayfinder/stats/gateways/list
+
+# Detailed stats for a specific gateway
+curl http://localhost:3000/wayfinder/stats/gateways/:gateway
+
+# Export telemetry data
+curl http://localhost:3000/wayfinder/stats/export
+```
+
+### Router Info
+
+```bash
+curl http://localhost:3000/wayfinder/info
+```
+
+Returns current configuration, version, uptime, and operating mode.
+
+### Telemetry Storage
+
+Telemetry is stored in SQLite at `TELEMETRY_DB_PATH` (default `./data/telemetry.db`). Configure sampling rates to control storage growth:
+
+```bash
+TELEMETRY_SAMPLE_SUCCESS=0.1   # Sample 10% of successful requests
+TELEMETRY_SAMPLE_ERRORS=1.0    # Record all errors
+TELEMETRY_RETENTION_DAYS=30    # Auto-purge old data
+```
+
+### Log Levels
+
+Set log verbosity via `LOG_LEVEL`:
+
+```bash
+LOG_LEVEL=debug   # trace, debug, info, warn, error, fatal
+```
+
+## Content Moderation
+
+Block ArNS names or transaction IDs from being served.
+
+### Setup
+
+```bash
+MODERATION_ENABLED=true
+MODERATION_ADMIN_TOKEN=<your-secure-token>
+```
+
+Generate a secure token:
+
+```bash
+openssl rand -base64 32
+```
+
+The blocklist is stored at `MODERATION_BLOCKLIST_PATH` (default `./data/blocklist.json`) and is hot-reloaded on changes.
+
+### API Endpoints
+
+All admin endpoints require `Authorization: Bearer <token>` header.
+
+<Tabs items={['Block Content', 'List/Check', 'Unblock']}>
+  <Tab value="Block Content">
+    ```bash
+    # Block an ArNS name
+    curl -X POST http://localhost:3000/wayfinder/moderation/block \
+      -H "Authorization: Bearer YOUR_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d '{"type":"arns","value":"badcontent","reason":"Policy violation"}'
+
+    # Block a transaction ID
+    curl -X POST http://localhost:3000/wayfinder/moderation/block \
+      -H "Authorization: Bearer YOUR_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d '{"type":"txid","value":"abc123...","reason":"DMCA takedown"}'
+    ```
+  </Tab>
+  <Tab value="List/Check">
+    ```bash
+    # List all blocked content
+    curl http://localhost:3000/wayfinder/moderation/blocklist \
+      -H "Authorization: Bearer YOUR_TOKEN"
+
+    # Check if content is blocked (no auth required)
+    curl http://localhost:3000/wayfinder/moderation/check/arns/somename
+
+    # Moderation statistics
+    curl http://localhost:3000/wayfinder/moderation/stats \
+      -H "Authorization: Bearer YOUR_TOKEN"
+    ```
+  </Tab>
+  <Tab value="Unblock">
+    ```bash
+    # Unblock content
+    curl -X DELETE http://localhost:3000/wayfinder/moderation/block/arns/badcontent \
+      -H "Authorization: Bearer YOUR_TOKEN"
+
+    # Reload blocklist from disk
+    curl -X POST http://localhost:3000/wayfinder/moderation/reload \
+      -H "Authorization: Bearer YOUR_TOKEN"
+    ```
+  </Tab>
+</Tabs>
+
+## Cache Management
+
+For production, enable disk-backed caching. See [Configuration](/build/run-wayfinder-router/configuration#cache) for all cache settings.
+
+### Clearing Caches
+
+**From source:**
+```bash
+bun run clear:telemetry   # Clear telemetry database
+bun run clear:all         # Clear all data (telemetry + cache)
+```
+
+**Binary or Docker:** Delete the data directory contents directly:
+```bash
+rm -rf ./data/content-cache/*
+rm ./data/telemetry.db
+```
+
+## Graceful Shutdown
+
+The router handles SIGTERM and SIGINT signals with a two-phase shutdown:
+
+1. **Drain phase** - Stop accepting new connections, wait for in-flight requests
+2. **Force exit** - If drain exceeds timeout, force shutdown
+
+```bash
+# Configuration
+SHUTDOWN_DRAIN_TIMEOUT_MS=15000   # 15s drain period
+SHUTDOWN_TIMEOUT_MS=30000         # 30s total timeout
+```
+
+```bash
+# Graceful stop
+kill -TERM <pid>
+
+# Docker (sends SIGTERM, waits 10s, then SIGKILL)
+docker stop wayfinder-router
+
+# Docker with custom timeout
+docker stop -t 30 wayfinder-router
+```
+
+## Troubleshooting
+
+### Port Conflicts
+
+If port 3000 or 3001 is already in use:
+
+```bash
+PORT=3080 ADMIN_PORT=3081 ./wayfinder-router-linux-x64
+```
+
+`ADMIN_PORT` must differ from `PORT` - the router validates this at startup.
+
+### Gateway Health Issues
+
+Check gateway status via the admin UI Gateways page or:
+
+```bash
+curl http://localhost:3000/wayfinder/stats/gateways
+```
+
+If all gateways show as unhealthy:
+- Verify internet connectivity
+- Check `ROUTING_GATEWAY_SOURCE` - if `static`, ensure URLs are correct
+- Check circuit breaker settings
+- Review logs: `LOG_LEVEL=debug`
+
+### ArNS Resolution Failures
+
+ArNS names require consensus across multiple verification gateways. If resolution fails:
+
+- Check `ARNS_CONSENSUS_THRESHOLD` (default: 2)
+- Verify the ArNS name exists on the network
+- Check verification gateway health
+- Ensure `VERIFICATION_ENABLED=true`
+
+### Subdomain Routing Not Working
+
+ArNS subdomains require `BASE_DOMAIN` to match your actual domain:
+
+```bash
+# For local development
+BASE_DOMAIN=localhost
+
+# For production
+BASE_DOMAIN=yourdomain.com
+```
+
+Requests to `{name}.yourdomain.com` are only recognized as ArNS subdomains if `BASE_DOMAIN=yourdomain.com`.
+
+### Content Verification Failures
+
+If content consistently fails verification:
+
+- Check `VERIFICATION_GATEWAY_COUNT` - more gateways increases reliability but adds latency
+- Verify `VERIFICATION_GATEWAY_SOURCE` is correctly configured
+- Check if the content transaction is still being seeded
+- Review logs for specific hash mismatch details
+
+### Memory Usage
+
+If memory usage is high:
+
+- Enable disk-backed cache: `CONTENT_CACHE_PATH=./data/content-cache`
+- Reduce cache size: `CONTENT_CACHE_MAX_SIZE_BYTES`
+- Reduce telemetry retention: `TELEMETRY_RETENTION_DAYS`
+- Increase sampling: `TELEMETRY_SAMPLE_SUCCESS=0.01`
+
+### Slow Response Times
+
+If responses are slow:
+
+- Check routing strategy - `temperature` adapts to gateway performance
+- Verify verification gateway health
+- Check network connectivity to gateways
+- Review `STREAM_TIMEOUT_MS` setting
+- Consider reducing `VERIFICATION_GATEWAY_COUNT` if latency is acceptable
+
+## Production Checklist
+
+Before deploying to production:
+
+- [ ] Set `BASE_DOMAIN` to your actual domain
+- [ ] Configure `ROOT_HOST_CONTENT` if serving at root
+- [ ] Enable disk cache: `CONTENT_CACHE_PATH=./data/content-cache`
+- [ ] Set appropriate cache size limits
+- [ ] Enable rate limiting: `RATE_LIMIT_ENABLED=true`
+- [ ] Secure admin UI: `ADMIN_TOKEN` or keep `ADMIN_HOST=127.0.0.1`
+- [ ] Configure telemetry sampling rates
+- [ ] Set up monitoring (health checks, Prometheus)
+- [ ] Configure reverse proxy (nginx/Caddy) with SSL
+- [ ] Set up log aggregation
+- [ ] Plan for graceful shutdown in your orchestration

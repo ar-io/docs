@@ -1,0 +1,248 @@
+---
+title: "Quick Start"
+description: "Get Wayfinder Router running in 30 seconds with a standalone binary or Docker"
+---
+
+import { Steps, Step } from "fumadocs-ui/components/steps";
+import { Tabs, Tab } from "fumadocs-ui/components/tabs";
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Settings, Network, Shield } from "lucide-react";
+
+Get your Wayfinder Router running in **30 seconds**. No configuration needed - the admin UI wizard will guide you through setup.
+
+## Quickstart
+
+<Tabs items={['Binary', 'Docker', 'From Source']}>
+  <Tab value="Binary">
+    Download the latest binary for your platform from [GitHub Releases](https://github.com/ar-io/wayfinder-router/releases):
+
+    | Platform | Binary |
+    |----------|--------|
+    | Linux x64 | `wayfinder-router-linux-x64` |
+    | Linux ARM64 | `wayfinder-router-linux-arm64` |
+    | macOS Intel | `wayfinder-router-darwin-x64` |
+    | macOS Apple Silicon | `wayfinder-router-darwin-arm64` |
+    | Windows x64 | `wayfinder-router-windows-x64.exe` |
+
+    Each release includes `checksums.txt` with SHA256 hashes for verification.
+
+    <Steps>
+      <Step>
+        ### Download and make executable
+
+        ```bash
+        # Download (example for Linux x64)
+        curl -LO https://github.com/ar-io/wayfinder-router/releases/latest/download/wayfinder-router-linux-x64
+
+        # Make executable
+        chmod +x wayfinder-router-linux-x64
+
+        # Verify checksum (optional but recommended)
+        sha256sum wayfinder-router-linux-x64
+        ```
+      </Step>
+      <Step>
+        ### Run
+
+        ```bash
+        ./wayfinder-router-linux-x64
+        ```
+
+        The admin UI automatically opens at `http://localhost:3001` with a setup wizard.
+      </Step>
+      <Step>
+        ### Test
+
+        ```bash
+        # Fetch a test transaction
+        curl http://localhost:3000/4jBV3ofWh41KhuTs2pFvj-KBZWUkbrbCYlJH0vLA6LM
+
+        # Expected output: test
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab value="Docker">
+    <Steps>
+      <Step>
+        ### Run with Docker
+
+        ```bash
+        docker run -p 3000:3000 -p 3001:3001 ghcr.io/ar-io/wayfinder-router:latest
+        ```
+
+        Or with Docker Compose (uses ports 3020/3021 by default):
+
+        ```bash
+        git clone https://github.com/ar-io/wayfinder-router
+        cd wayfinder-router
+        docker compose up -d
+        ```
+      </Step>
+      <Step>
+        ### Open Admin UI
+
+        Navigate to `http://localhost:3001` in your browser. The setup wizard will guide you through configuration.
+      </Step>
+      <Step>
+        ### Test
+
+        ```bash
+        curl http://localhost:3000/4jBV3ofWh41KhuTs2pFvj-KBZWUkbrbCYlJH0vLA6LM
+
+        # Expected output: test
+        ```
+      </Step>
+    </Steps>
+
+    **Production Docker:**
+
+    ```bash
+    docker run -p 3000:3000 -p 3001:3001 \
+      --env-file .env \
+      -v ./data:/app/data \
+      ghcr.io/ar-io/wayfinder-router:latest
+    ```
+
+    The `./data` volume persists telemetry, content cache, and blocklist data.
+  </Tab>
+
+  <Tab value="From Source">
+    Requires [Bun](https://bun.sh) >= 1.0.0.
+
+    <Steps>
+      <Step>
+        ### Clone and install
+
+        ```bash
+        git clone https://github.com/ar-io/wayfinder-router
+        cd wayfinder-router
+        bun install
+        ```
+      </Step>
+      <Step>
+        ### Configure (optional)
+
+        ```bash
+        cp .env.example .env
+        # Edit .env as needed, or skip and use the setup wizard
+        ```
+      </Step>
+      <Step>
+        ### Run
+
+        ```bash
+        # Development with hot reload
+        bun run dev
+
+        # Production
+        bun run start
+        ```
+
+        The admin UI opens at `http://localhost:3001`.
+      </Step>
+    </Steps>
+
+    **Build standalone binaries:**
+
+    ```bash
+    bun run build:binaries   # outputs to ./builds/
+    ```
+  </Tab>
+</Tabs>
+
+## Setup Wizard
+
+On first run (when `BASE_DOMAIN=localhost`), the admin UI shows a guided setup wizard:
+
+<Steps>
+  <Step>
+    ### Domain Configuration
+
+    Configure your base domain, port, and optional root host content. For local development, keep the defaults.
+  </Step>
+  <Step>
+    ### Routing Settings
+
+    Choose your operating mode and routing strategy:
+
+    | Setting | Options | Recommended |
+    |---------|---------|-------------|
+    | **Mode** | `proxy` or `route` | `proxy` for full verification |
+    | **Strategy** | `fastest`, `random`, `round-robin`, `temperature` | `temperature` for production |
+    | **Gateway Source** | `network`, `trusted-peers`, `static` | `network` for full decentralization |
+  </Step>
+  <Step>
+    ### Verification Settings
+
+    Enable content verification and configure trust settings:
+
+    | Setting | Default | Description |
+    |---------|---------|-------------|
+    | **Enabled** | `true` | Verify content hashes before serving |
+    | **Trust Source** | `top-staked` | Use top-staked gateways for verification |
+    | **Gateway Count** | `3` | Number of gateways to query |
+    | **Consensus** | `2` | Minimum gateways that must agree |
+  </Step>
+  <Step>
+    ### Save Configuration
+
+    The wizard generates a `.env` file. You can copy it to clipboard or save directly to the server.
+  </Step>
+</Steps>
+
+## Accessing Content
+
+Once running, access Arweave content through your router:
+
+```bash
+# By transaction ID
+http://localhost:3000/{txId}
+http://localhost:3000/{txId}/path/to/file
+
+# By ArNS name (subdomain)
+http://{arns-name}.localhost:3000/
+http://{arns-name}.localhost:3000/path/to/file
+```
+
+## Serving Content at Root Domain
+
+Configure `ROOT_HOST_CONTENT` to serve an ArNS name or transaction ID at your root domain:
+
+```bash
+# In .env
+ROOT_HOST_CONTENT=wayfinder
+
+# Or a transaction ID
+ROOT_HOST_CONTENT=bNbA3TEQVL60xlgCcqdz4ZPHFZ711cZ3hmkpGttDt_U
+```
+
+With this configuration:
+- `https://yourdomain.com/` serves the configured content
+- `https://yourdomain.com/docs` serves the `/docs` path within that content
+- `https://yourdomain.com/wayfinder/info` still returns router info
+
+## What's Next?
+
+<Cards>
+  <Card
+    icon={<Settings />}
+    title="Configuration"
+    description="Full reference for all environment variables"
+    href="/build/run-wayfinder-router/configuration"
+  />
+  <Card
+    icon={<Network />}
+    title="Admin UI"
+    description="Monitor gateways, view telemetry, manage moderation"
+    href="/build/run-wayfinder-router/admin-ui"
+  />
+  <Card
+    icon={<Shield />}
+    title="Operations"
+    description="Production deployment, monitoring, and troubleshooting"
+    href="/build/run-wayfinder-router/operations"
+  />
+</Cards>

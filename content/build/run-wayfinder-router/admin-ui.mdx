@@ -1,0 +1,137 @@
+---
+title: "Admin UI"
+description: "Web dashboard for monitoring, configuration, and content moderation"
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Steps, Step } from "fumadocs-ui/components/steps";
+
+The admin UI is a built-in web dashboard that runs on a **separate port** (default 3001) from the public router (default 3000). This ensures admin endpoints are never exposed to public traffic.
+
+```
+http://localhost:3001
+```
+
+## Dashboard Pages
+
+### Status
+
+Live dashboard showing:
+- **Uptime** - How long the router has been running
+- **Operating Mode** - Current mode (proxy/route)
+- **Verification Status** - Whether verification is enabled and working
+- **Gateway Health Bar** - Visual indicator of healthy vs unhealthy gateways
+- **Cache Utilization** - Content cache size and hit rate
+- **Ping Service Stats** - Background ping status and results
+
+### Gateways
+
+Sortable table of all ar.io network gateways with:
+- **Health** - Current gateway status (healthy/unhealthy/unknown)
+- **Temperature Score** - Performance score for routing decisions
+- **Latency** - Average response time
+- **Success Rate** - Percentage of successful requests
+- **Traffic Stats** - Requests served and bytes transferred
+
+### Telemetry
+
+Time-ranged metrics with export capability:
+- **Time Ranges** - 1 hour, 6 hours, 24 hours, 7 days
+- **Request Totals** - Total requests, success rate, error breakdown
+- **Bytes Served** - Total data transferred
+- **Per-Gateway Performance** - Table with CSV export
+
+### Moderation
+
+Content moderation management:
+- **Block/Unblock** - Add or remove ArNS names and transaction IDs
+- **View Blocklist** - See all currently blocked content
+- **Enable Moderation** - If not yet configured, shows setup instructions
+
+### Settings
+
+View current configuration grouped by category:
+- Server, Mode, Routing, Verification
+- Cache, Telemetry, Rate Limiting
+- HTTP, Shutdown, Admin
+
+## Setup Wizard
+
+On first run (when `BASE_DOMAIN=localhost`), the admin UI shows a guided setup wizard that walks you through domain, routing, and verification configuration. See [Quick Start](/build/run-wayfinder-router/quick-start#setup-wizard) for details.
+
+## Security Model
+
+| | Public Port (3000) | Admin Port (3001) |
+|---|---|---|
+| **Default bind** | `0.0.0.0` (all interfaces) | `127.0.0.1` (localhost only) |
+| **Admin UI** | Not available (404) | Full access |
+| **Content serving** | Normal operation | N/A |
+
+Key security features:
+- Admin is **never** exposed on the public port
+- Default localhost binding means only local access
+- `ADMIN_PORT` must differ from `PORT` (validated at startup)
+
+<Callout type="warn">
+  If you set `ADMIN_HOST=0.0.0.0` to expose the admin UI over the network, you **must** set `ADMIN_TOKEN` to protect it.
+</Callout>
+
+## Remote Access
+
+To access the admin UI from a remote machine while keeping it secure:
+
+### Option 1: SSH Tunnel (Recommended)
+
+```bash
+# On your local machine
+ssh -L 3001:localhost:3001 your-server
+
+# Then open in your browser
+http://localhost:3001
+```
+
+This forwards port 3001 on your local machine to the server's localhost:3001, keeping the admin UI secure.
+
+### Option 2: Token Authentication
+
+If you need direct remote access:
+
+```bash
+# In .env
+ADMIN_HOST=0.0.0.0
+ADMIN_TOKEN=your-secure-random-token
+```
+
+Generate a secure token:
+
+```bash
+openssl rand -base64 32
+```
+
+The UI will prompt for the token when you load it.
+
+## Admin API Endpoints
+
+The admin UI is backed by JSON API endpoints:
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/status` | GET | Aggregated status data |
+| `/api/gateways` | GET | Gateway list with health and scores |
+| `/api/telemetry` | GET | Time-ranged telemetry stats |
+| `/api/config` | GET | Current configuration (sanitized) |
+| `/api/moderation` | GET | Moderation status and blocklist |
+| `/api/config/save` | POST | Save .env file |
+| `/api/restart` | POST | Validate config and restart router |
+
+All endpoints require the `Authorization: Bearer <token>` header when `ADMIN_TOKEN` is set.
+
+## Restart from Admin UI
+
+The admin UI can restart the router after configuration changes:
+
+1. Make changes in the Settings page
+2. Click "Save Configuration"
+3. Click "Restart Router" to apply changes
+
+The restart endpoint validates the new configuration before restarting, preventing configuration errors from taking down the router.

@@ -1,0 +1,117 @@
+---
+title: "Wayfinder Router"
+description: "A lightweight proxy that provides verified access to Arweave data through the decentralized ar.io gateway network"
+---
+
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Callout } from "fumadocs-ui/components/callout";
+import { Rocket, Settings, Monitor, Shield } from "lucide-react";
+
+Wayfinder Router is a lightweight proxy service that provides a **single trusted endpoint** for accessing Arweave data through the decentralized ar.io gateway network. It fetches content from multiple gateways, verifies integrity via cryptographic hash checking, and serves verified data to your users.
+
+```
+                        Your Users
+                             |
+                             v
+                    +------------------+
+                    | Wayfinder Router |
+                    |------------------|
+                    | - Verification   |
+                    | - Caching        |
+                    | - Telemetry      |
+                    +------------------+
+                             |
+              +--------------+--------------+
+              |              |              |
+              v              v              v
+          +------+       +------+       +------+
+          | GW1  |       | GW2  |       | GW3  |
+          +------+       +------+       +------+
+                 \___________+___________/
+                             |
+                 ar.io Gateway Network
+```
+
+## Why Use Wayfinder Router?
+
+<Cards>
+  <Card
+    icon={<Shield />}
+    title="Content Verification"
+    description="Cryptographically verify all content against trusted gateways before serving"
+  />
+  <Card
+    icon={<Monitor />}
+    title="Single Endpoint"
+    description="Give your users one reliable URL instead of managing gateway failover in client code"
+  />
+  <Card
+    icon={<Rocket />}
+    title="Built-in Caching"
+    description="LRU cache with optional disk persistence for fast repeat access"
+  />
+  <Card
+    icon={<Settings />}
+    title="Admin Dashboard"
+    description="Web UI for configuration, monitoring, and content moderation"
+  />
+</Cards>
+
+## Two Operating Modes
+
+| Mode | Behavior | Use Case |
+|------|----------|----------|
+| **Proxy** | Fetch, verify, and serve content through the router | Full verification, caching, single domain |
+| **Route** | Redirect clients directly to a gateway URL | Lower latency, client-side verification |
+
+## When to Use Wayfinder Router
+
+**Use Wayfinder Router when you need:**
+- A single trusted endpoint for your application
+- Server-side content verification
+- Centralized caching and rate limiting
+- Content moderation capabilities
+- Monitoring and telemetry
+
+**Use the SDKs directly when you need:**
+- Client-side verification in browsers
+- Custom routing logic in your application
+- Integration with existing infrastructure
+
+## Architecture Overview
+
+The router separates **routing** (where to fetch data) from **verification** (who to trust):
+
+- **Routing Gateways** - Where content is fetched from (all ar.io gateways, trusted peers, or static list)
+- **Verification Gateways** - Who to trust for hash verification (top-staked gateways or static list)
+
+This means even if a routing gateway is compromised, tampered content is detected and rejected. When verification fails, the router returns an error to the client rather than serving potentially malicious content.
+
+## Get Started
+
+<Cards>
+  <Card
+    icon={<Rocket />}
+    title="Quick Start"
+    description="Get running in 30 seconds with a standalone binary or Docker"
+    href="/build/run-wayfinder-router/quick-start"
+  />
+  <Card
+    icon={<Settings />}
+    title="Configuration"
+    description="Environment variables for routing, verification, caching, and more"
+    href="/build/run-wayfinder-router/configuration"
+  />
+  <Card
+    icon={<Monitor />}
+    title="Admin UI"
+    description="Web dashboard for monitoring, configuration, and moderation"
+    href="/build/run-wayfinder-router/admin-ui"
+  />
+  <Card
+    icon={<Shield />}
+    title="Operations"
+    description="Monitoring, troubleshooting, and production deployment"
+    href="/build/run-wayfinder-router/operations"
+  />
+</Cards>
