@@ -1,0 +1,258 @@
+---
+title: "Configuration"
+description: "Environment variables for configuring Wayfinder Router"
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+
+All configuration is via environment variables. Create a `.env` file or set them directly in your environment.
+
+<Callout type="tip">
+  The admin UI setup wizard at `http://localhost:3001` can generate a `.env` file for you.
+</Callout>
+
+## Server
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT` | `3000` | Public server port |
+| `HOST` | `0.0.0.0` | Public server bind address |
+| `BASE_DOMAIN` | `localhost` | Base domain for ArNS subdomain routing |
+| `ROOT_HOST_CONTENT` | _(empty)_ | ArNS name or txId to serve at root domain |
+| `RESTRICT_TO_ROOT_HOST` | `false` | Only serve root domain content (404 for subdomains/txIds) |
+| `GRAPHQL_PROXY_URL` | _(empty)_ | Upstream GraphQL endpoint for `/graphql` proxy |
+
+### Root Host Configuration
+
+`ROOT_HOST_CONTENT` accepts either an ArNS name or a transaction ID (auto-detected by format):
+
+```bash
+# ArNS name
+ROOT_HOST_CONTENT=wayfinder
+
+# Transaction ID (43-char base64url)
+ROOT_HOST_CONTENT=bNbA3TEQVL60xlgCcqdz4ZPHFZ711cZ3hmkpGttDt_U
+```
+
+When set, the root domain serves this content instead of the info page. The info page moves to `/wayfinder/info`.
+
+## Operating Mode
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DEFAULT_MODE` | `proxy` | Operating mode: `proxy` or `route` |
+| `ALLOW_MODE_OVERRIDE` | `true` | Allow `?mode=` query parameter to override |
+
+**Modes:**
+- **proxy** - Fetch, verify, and serve content through the router
+- **route** - Redirect clients directly to a gateway URL
+
+## Routing
+
+Controls where content is fetched from.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ROUTING_STRATEGY` | `fastest` | Gateway selection strategy |
+| `ROUTING_GATEWAY_SOURCE` | `network` | Where to get the gateway list |
+| `ROUTING_STATIC_GATEWAYS` | _(see below)_ | Comma-separated gateway URLs (when source=`static`) |
+| `TRUSTED_PEER_GATEWAY` | `https://turbo-gateway.com` | Gateway for peer list (when source=`trusted-peers`) |
+| `TRUSTED_ARIO_GATEWAYS` | _(empty)_ | Trusted gateways (when source=`trusted-ario`) |
+
+### Routing Strategies
+
+| Strategy | Behavior | Best For |
+|----------|----------|----------|
+| `fastest` | Concurrent ping, use first responder | Lowest latency |
+| `random` | Random selection from healthy gateways | Load distribution |
+| `round-robin` | Sequential rotation through gateways | Predictable distribution |
+| `temperature` | Weighted selection based on recent performance | Production (recommended) |
+
+The `temperature` strategy tracks per-gateway latency and success rate. Better-performing gateways get more traffic, but slower gateways still receive some requests to detect improvements.
+
+### Gateway Sources
+
+| Source | Behavior |
+|--------|----------|
+| `network` | All ar.io gateways from the on-chain registry (recommended) |
+| `trusted-peers` | Peer list from `TRUSTED_PEER_GATEWAY` |
+| `trusted-ario` | Specific gateways from `TRUSTED_ARIO_GATEWAYS` |
+| `static` | Manual list from `ROUTING_STATIC_GATEWAYS` |
+
+## Verification
+
+Controls content integrity verification.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VERIFICATION_ENABLED` | `true` | Enable content hash verification |
+| `VERIFICATION_GATEWAY_SOURCE` | `top-staked` | Source for trusted gateways |
+| `VERIFICATION_GATEWAY_COUNT` | `3` | Number of gateways to query for verification |
+| `VERIFICATION_STATIC_GATEWAYS` | _(see below)_ | Comma-separated URLs (when source=`static`) |
+| `VERIFICATION_RETRY_ATTEMPTS` | `3` | Gateways to try before failing |
+| `ARNS_CONSENSUS_THRESHOLD` | `2` | Minimum gateways that must agree on ArNS resolution |
+
+### Verification Sources
+
+| Source | Behavior |
+|--------|----------|
+| `top-staked` | Top N gateways by stake (economic security, recommended) |
+| `static` | Manual list from `VERIFICATION_STATIC_GATEWAYS` |
+
+## Cache
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CONTENT_CACHE_ENABLED` | `true` | Enable verified content cache |
+| `CONTENT_CACHE_MAX_SIZE_BYTES` | `53687091200` (50GB) | Maximum total cache size |
+| `CONTENT_CACHE_MAX_ITEM_SIZE_BYTES` | `2147483648` (2GB) | Maximum single item size |
+| `CONTENT_CACHE_PATH` | _(empty)_ | Disk path for persistence (empty = in-memory only) |
+| `ARNS_CACHE_TTL_MS` | `300000` (5min) | ArNS resolution cache TTL |
+
+### Disk-Backed Cache
+
+For production, enable disk persistence:
+
+```bash
+CONTENT_CACHE_PATH=./data/content-cache
+```
+
+When set:
+- LRU holds metadata only (low memory footprint)
+- Content stored as files on disk (`<sha256>.bin` + `<sha256>.meta.json`)
+- Cache survives restarts
+- Atomic writes via temp file + rename for crash safety
+
+## Admin UI
+
+The admin UI runs on a **separate port** for security.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ADMIN_UI_ENABLED` | `true` | Enable admin UI server |
+| `ADMIN_PORT` | `3001` | Admin server port (must differ from `PORT`) |
+| `ADMIN_HOST` | `127.0.0.1` | Admin bind address |
+| `ADMIN_TOKEN` | _(empty)_ | Bearer token for auth (required when not localhost) |
+| `ADMIN_OPEN_BROWSER` | `true` | Auto-open browser on startup |
+
+<Callout type="warn">
+  When `ADMIN_HOST=0.0.0.0`, you **must** set `ADMIN_TOKEN` to protect the admin UI.
+</Callout>
+
+## Resilience
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `RETRY_ATTEMPTS` | `3` | Retry attempts for failed requests |
+| `RETRY_DELAY_MS` | `100` | Delay between retries |
+| `CIRCUIT_BREAKER_THRESHOLD` | `3` | Failures before marking gateway unavailable |
+| `CIRCUIT_BREAKER_RESET_MS` | `60000` (1min) | Time before retrying a broken gateway |
+| `GATEWAY_HEALTH_TTL_MS` | `300000` (5min) | Health status cache TTL |
+| `STREAM_TIMEOUT_MS` | `120000` (2min) | Per-chunk stream read timeout |
+
+## Telemetry
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `TELEMETRY_ENABLED` | `true` | Enable telemetry collection |
+| `TELEMETRY_ROUTER_ID` | `router-{timestamp}` | Instance identifier |
+| `TELEMETRY_DB_PATH` | `./data/telemetry.db` | SQLite database path |
+| `TELEMETRY_RETENTION_DAYS` | `30` | Data retention period |
+| `TELEMETRY_SAMPLE_SUCCESS` | `0.1` | Sampling rate for successful requests (0.0-1.0) |
+| `TELEMETRY_SAMPLE_ERRORS` | `1.0` | Sampling rate for errors |
+
+## Rate Limiting
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `RATE_LIMIT_ENABLED` | `false` | Enable per-IP rate limiting |
+| `RATE_LIMIT_WINDOW_MS` | `60000` (1min) | Rate limit window |
+| `RATE_LIMIT_MAX_REQUESTS` | `1000` | Max requests per IP per window |
+
+## Content Moderation
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MODERATION_ENABLED` | `false` | Enable content moderation |
+| `MODERATION_BLOCKLIST_PATH` | `./data/blocklist.json` | Blocklist file (auto-created, hot-reloaded) |
+| `MODERATION_ADMIN_TOKEN` | _(empty)_ | Bearer token for moderation API |
+
+## Arweave HTTP API Proxy
+
+Proxy Arweave node API endpoints (`/info`, `/tx/{id}`, `/block/height/{h}`, etc.).
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ARWEAVE_API_ENABLED` | `false` | Enable Arweave API proxy |
+| `ARWEAVE_READ_NODES` | _(Arweave tip nodes)_ | Nodes for GET requests |
+| `ARWEAVE_WRITE_NODES` | _(falls back to read)_ | Nodes for POST requests |
+| `ARWEAVE_API_CACHE_ENABLED` | `true` | Cache API responses |
+
+## Gateway Ping Service
+
+Background latency probing for the `temperature` routing strategy.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PING_ENABLED` | `true` | Enable ping service |
+| `PING_INTERVAL_HOURS` | `4` | How often to refresh ping data |
+| `PING_GATEWAY_COUNT` | `50` | Gateways to ping each round |
+| `PING_TIMEOUT_MS` | `5000` | Timeout per ping |
+| `PING_CONCURRENCY` | `10` | Maximum concurrent pings |
+
+## Shutdown
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SHUTDOWN_DRAIN_TIMEOUT_MS` | `15000` (15s) | Grace period for in-flight requests |
+| `SHUTDOWN_TIMEOUT_MS` | `30000` (30s) | Total shutdown timeout |
+
+## Logging
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `LOG_LEVEL` | `info` | Log level: `trace`, `debug`, `info`, `warn`, `error`, `fatal` |
+
+## Example Configuration
+
+```bash
+# .env - Production example
+
+# Server
+PORT=3000
+HOST=0.0.0.0
+BASE_DOMAIN=yourdomain.com
+ROOT_HOST_CONTENT=your-arns-name
+
+# Mode
+DEFAULT_MODE=proxy
+ALLOW_MODE_OVERRIDE=false
+
+# Routing
+ROUTING_STRATEGY=temperature
+ROUTING_GATEWAY_SOURCE=network
+
+# Verification
+VERIFICATION_ENABLED=true
+VERIFICATION_GATEWAY_SOURCE=top-staked
+VERIFICATION_GATEWAY_COUNT=3
+ARNS_CONSENSUS_THRESHOLD=2
+
+# Cache
+CONTENT_CACHE_ENABLED=true
+CONTENT_CACHE_PATH=./data/content-cache
+CONTENT_CACHE_MAX_SIZE_BYTES=53687091200
+
+# Admin
+ADMIN_UI_ENABLED=true
+ADMIN_PORT=3001
+ADMIN_HOST=127.0.0.1
+
+# Telemetry
+TELEMETRY_ENABLED=true
+TELEMETRY_DB_PATH=./data/telemetry.db
+
+# Rate Limiting
+RATE_LIMIT_ENABLED=true
+RATE_LIMIT_MAX_REQUESTS=1000
+```
