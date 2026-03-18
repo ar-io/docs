@@ -58,8 +58,8 @@ The main ar.io Gateway service that handles data retrieval, indexing, and servin
 
 | Variable                     | Type   | Default                              | Description                                  |
 | ---------------------------- | ------ | ------------------------------------ | -------------------------------------------- |
-| `ON_DEMAND_RETRIEVAL_ORDER`  | string | `s3,trusted-gateways,chunks,tx-data` | On-demand data retrieval priority            |
-| `BACKGROUND_RETRIEVAL_ORDER` | string | `chunks,s3,trusted-gateways,tx-data` | Background data retrieval priority           |
+| `ON_DEMAND_RETRIEVAL_ORDER`  | string | `trusted-gateways,ar-io-network,chunks-offset-aware,tx-data` | On-demand data retrieval priority            |
+| `BACKGROUND_RETRIEVAL_ORDER` | string | `chunks` | Background data retrieval priority           |
 | `CHUNK_DATA_SOURCE_TYPE`     | string | `fs`                                 | Chunk data source type (fs, legacy-s3)       |
 | `CHUNK_METADATA_SOURCE_TYPE` | string | `fs`                                 | Chunk metadata source type (fs, legacy-psql) |
 
@@ -292,9 +292,9 @@ For detailed configuration and usage, see [CDB64 Root TX Index](/build/run-a-gat
 | Variable                               | Type    | Default        | Description                                |
 | -------------------------------------- | ------- | -------------- | ------------------------------------------ |
 | `ENABLE_X_402_USDC_DATA_EGRESS`        | boolean | `false`        | Enable x402 USDC payments                  |
-| `X_402_USDC_NETWORK`                   | string  | -              | Base network (base-sepolia or base)        |
+| `X_402_USDC_NETWORK`                   | string  | `base-sepolia` | Base network (base-sepolia or base)        |
 | `X_402_USDC_WALLET_ADDRESS`            | string  | -              | USDC wallet address for receiving payments |
-| `X_402_USDC_FACILITATOR_URL`           | string  | -              | Payment facilitator URL                    |
+| `X_402_USDC_FACILITATOR_URL`           | string  | `https://x402.org/facilitator` | Payment facilitator URL                    |
 | `X_402_USDC_PER_BYTE_PRICE`            | number  | `0.0000000001` | Price per byte in USDC                     |
 | `X_402_USDC_DATA_EGRESS_MIN_PRICE`     | number  | `0.001`        | Minimum payment amount                     |
 | `X_402_USDC_DATA_EGRESS_MAX_PRICE`     | number  | `1.00`         | Maximum payment amount                     |
