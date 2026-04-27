@@ -6,6 +6,7 @@ import Script from "next/script";
 import SearchDialog from "@/components/search";
 import { AskArieProvider } from "@/components/ask-arie/AskArieContext";
 import { AskArieWidget } from "@/components/ask-arie/AskArieWidget";
+import { AnnouncementBanner } from "@/components/announcement-banner";
 import { Plus_Jakarta_Sans } from "next/font/google";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -50,6 +51,17 @@ export default function Layout({ children }: LayoutProps<"/">) {
           }}
         >
           <AskArieProvider>
+            <AnnouncementBanner
+              storageKey="solana-migration"
+              mobileText="Ar.io is migrating to Solana."
+              badgeText="MAY 2026"
+              ctaHref="https://ar.io/solana-migration"
+              ctaLabel="Learn more"
+              dismissAriaLabel="Dismiss migration banner"
+            >
+              The ar.io smart contract and token are migrating to Solana.
+              Register now to migrate your assets before the deadline.
+            </AnnouncementBanner>
             {children}
             <AskArieWidget />
           </AskArieProvider>
