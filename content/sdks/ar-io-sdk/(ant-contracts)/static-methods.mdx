@@ -9,7 +9,7 @@ Creates a new ANT (Metaplex Core NFT) from an existing one with the same state b
 
 ```typescript
 const newMintAddress = await ANT.fork({
-  signer: solanaKeypairSigner,
+  signer: signer,
   antProcessId: 'existing-ant-mint-address',
   // Optional: specify a specific module ID, defaults to latest from registry
   module: 'new-module-id',
@@ -28,14 +28,14 @@ Static method to upgrade an ANT by forking it to the latest version and reassign
 ```typescript
 // Upgrade and reassign all affiliated names
 const result = await ANT.upgrade({
-  signer: solanaKeypairSigner,
+  signer: signer,
   antProcessId: 'existing-ant-mint-address',
   reassignAffiliatedNames: true,
 });
 
 // Upgrade and reassign specific names
 const result = await ANT.upgrade({
-  signer: solanaKeypairSigner,
+  signer: signer,
   antProcessId: 'existing-ant-mint-address',
   names: ['ardrive', 'example'],
   reassignAffiliatedNames: false,

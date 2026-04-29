@@ -9,17 +9,25 @@ Factory function to that creates a read-only or writeable client. By providing a
 
 ```typescript
 import { ARIO } from '@ar.io/sdk';
+
+// read-only client (Solana mainnet)
+const readOnlyClient = ARIO.init();
+```
+
+```typescript
+import { ARIO } from '@ar.io/sdk';
 import { createKeyPairSignerFromBytes } from '@solana/kit';
 import fs from 'fs';
 
-// read-only client (Solana mainnet)
-const ario = ARIO.init();
-
 // read-write client for node environments (Solana keypair JSON file)
-const keypairBytes = new Uint8Array(JSON.parse(fs.readFileSync('./solana-keypair.json', 'utf-8')));
+const keypairBytes = new Uint8Array(
+  JSON.parse(fs.readFileSync('./solana-keypair.json', 'utf-8')),
+);
 const signer = await createKeyPairSignerFromBytes(keypairBytes);
 const ario = ARIO.init({ signer });
+```
 
+```typescript
 // read-write client for browser environments (Phantom, Solflare, etc.)
 const ario = ARIO.init({ signer: walletAdapter });
 ```
@@ -145,7 +153,7 @@ _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
 const ario = ARIO.mainnet({
-  signer: solanaKeypairSigner,
+  signer: signer,
 });
 const { id: txId } = await ario.transfer(
   {
