@@ -1,15 +1,17 @@
 ---
 title: "Gateway Registry"
-description: "Ar.io consists of ar.io gateway nodes, which are identified by their registered Arweave wallet addresses and either their IP addresses or hostnames, as stored in the network"
+description: "Ar.io consists of ar.io gateway nodes, which are identified by their registered Solana wallet addresses and either their IP addresses or hostnames, as stored in the network"
 ---
 
 import { Network, Target, Shield, Settings } from 'lucide-react';
 
 ## Overview
 
-Ar.io consists of [ar.io gateway nodes](/learn/what-is-ario), which are identified by their registered Arweave wallet addresses and either their IP addresses or hostnames, as stored in the network's [smart contract](/learn/token) Gateway Address Registry (GAR).
+Ar.io consists of [ar.io gateway nodes](/learn/what-is-ario), which are identified by their registered Solana wallet addresses (Ed25519 pubkeys) and either their IP addresses or hostnames, as stored in the network's [Solana programs](/learn/token/architecture) Gateway Address Registry (GAR).
 
-Any gateway operator that wishes to join ar.io must register their node in the ar.io smart contract's Gateway Address Registry. Registration involves staking a minimum amount of ARIO tokens and providing additional metadata describing the gateway service offered.
+The gateway registry supports up to **3,000 gateways** via a zero-copy on-chain registry. Any gateway operator that wishes to join ar.io must register their node in the ario-gar program's Gateway Address Registry. Registration involves staking a minimum of **10,000 ARIO** tokens (plus SOL for transaction fees) and providing additional metadata describing the gateway service offered.
+
+Each gateway must have a **unique observer address** — no two gateways can share the same observer. This is enforced by an ObserverLookup PDA on-chain.
 
 These nodes adhere to ar.io's protocols, creating a collaborative environment of gateway nodes that vary in scale and specialization. The network promotes a fundamental level of service quality and trust minimization among its participants.
 
@@ -56,7 +58,8 @@ The Gateway Registry is the foundation of the ar.io network's decentralized infr
 - **Staking & Rewards**: Gateways earn rewards based on performance through a sophisticated [staking system](/learn/token/staking) that includes delegation opportunities
 - **Discoverability**: The GAR enables apps and users to find suitable gateways based on their needs
 - **Performance-Based Selection**: Gateway metadata allows for intelligent routing based on stake, performance, and capabilities
-- **Transparent Ecosystem**: All gateway information is publicly accessible through the smart contract and at gateways.ar.io
+- **Gateway Pruning**: Gateways that fail 30 consecutive epochs have 100% of their minimum stake slashed and are removed from the network
+- **Transparent Ecosystem**: All gateway information is publicly accessible through the Solana programs and at gateways.ar.io
 
 By joining the network, gateways become part of a collaborative ecosystem that rewards quality service and ensures reliable access to the permaweb.
 

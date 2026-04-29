@@ -6,19 +6,21 @@ description: "Learn about Arweave Name Tokens (ANTs) - the ownership and control
 import { Card, Cards } from 'fumadocs-ui/components/card';
 import { Calculator, FileText, Code } from 'lucide-react';
 
-To establish ownership of a record in the ArNS Registry, each record contains both a friendly name and a reference to an Arweave Name Token, ANT. Name Tokens are unique AO Computer based tokens/processes that give their owners the ability to update the Arweave Transaction IDs that their associated friendly names point to.
+To establish ownership of a record in the ArNS Registry, each record contains both a friendly name and a reference to an Arweave Name Token (ANT). ANTs are [Metaplex Core](https://developers.metaplex.com/core) NFTs on Solana that give their owners the ability to update the Arweave Transaction IDs that their associated friendly names point to.
 
 ## What is an ANT?
 
-The ANT smart contract process is a standardized contract that implements the specific Arweave Name Process specification required by ar.io gateways who resolve ArNS names and their Arweave Transaction IDs. It also contains other basic functionality to establish ownership and the ability to transfer ownership and update the Arweave Transaction ID.
+An ANT is a Metaplex Core NFT managed by the `ario-ant` Solana program. It implements the Arweave Name Token specification required by ar.io gateways who resolve ArNS names and their Arweave Transaction IDs. It also contains functionality to establish ownership, transfer ownership (including via NFT marketplaces like Tensor and Magic Eden), and update the Arweave Transaction ID.
 
 Name Tokens have an owner, who can transfer the token and control its modifiable settings. These settings include modifying the address resolution time to live (ttl) for each name contained in the ANT, and other settings like the ANT Name, Ticker, and an ANT Controller.
 
 ## Ownership and Control
 
-The controller can only manage the ANT and set and update records, name, and the ticker, but cannot transfer the ANT. Note that ANTs are initially created in accordance with network standards by an end user who then has the ability to transfer its ownership or assign a controller as they see fit.
+The controller can only manage the ANT and set and update records, name, and the ticker, but cannot transfer the ANT. Each ANT supports up to 10 controllers. The root (@) record cannot be removed, only updated — ensuring the name always resolves.
 
-Owners of names should ensure their ANT supports evolve ability if future modifications are desired. Loss of a private key for a permanently purchased name can result in the name being "bricked".
+ANTs are initially minted in accordance with network standards by an end user who then has the ability to transfer its ownership or assign controllers as they see fit. When an ANT is transferred via a marketplace (outside the ar.io protocol), controllers are cleared on the next write operation via lazy reconciliation, ensuring the new owner has full control.
+
+Loss of a private key for a permanently purchased name can result in the name being inaccessible.
 
 ### Under_name Ownership
 
@@ -44,7 +46,7 @@ The table below indicates some of the possible interactions with the ArNS regist
 | Transfer ownership                      | ✔        |                |                 |                       |
 | Add / remove controllers                | ✔        |                |                 |                       |
 | Approve/Remove Primary name             | ✔        |                | ✔              |                       |
-| Reassign name to new ANT process        | ✔        |                |                 |                       |
+| Reassign name to new ANT                | ✔        |                |                 |                       |
 | Return a permanent name                 | ✔        |                |                 |                       |
 | Set records (pointers, record metadata) | ✔        | ✔             | ✔              |                       |
 | Update records, name, ticker            | ✔        | ✔             |                 |                       |
@@ -62,7 +64,9 @@ Under*names use an underscore "*" in place of a more typically used dot "." to s
 
 ## Secondary Markets
 
-Secondary markets could be created by ecosystem partners that facilitate the trading of Name Tokens. Additionally, tertiary markets could be created that support the leasing of these friendly names to other users. Such markets, if any, would be created by third parties unrelated to and outside of the scope of this paper or control of the Foundation.
+Since ANTs are standard Metaplex Core NFTs, they are tradeable on any compatible NFT marketplace, including **Tensor** and **Magic Eden**. When an ANT is sold on a marketplace, lazy reconciliation clears the existing controllers on the next write operation, ensuring the new owner gets clean control.
+
+Additionally, tertiary markets could be created that support the leasing of these friendly names to other users.
 
 ## Next Steps
 

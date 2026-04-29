@@ -5,7 +5,35 @@ description: "Key terms and definitions for the ar.io ecosystem"
 
 ## AO Computer
 
-AO (Actor Oriented) is a hyper-parallel computing platform built on Arweave that enables decentralized applications to run with unlimited computational capacity. AO provides the compute layer for ar.io's smart contracts and token operations.
+AO (Actor Oriented) is a hyper-parallel computing platform built on Arweave that enables decentralized applications to run with unlimited computational capacity. AO continues to exist as an independent compute layer in the broader Arweave ecosystem. The ar.io protocol previously ran on AO and has since migrated protocol execution to Solana.
+
+## SPL Token
+
+Solana Program Library token standard. ARIO is implemented as an SPL Token on Solana, making it compatible with the full Solana wallet and DeFi ecosystem.
+
+## PDA (Program Derived Address)
+
+Deterministic Solana account addresses derived from a program ID and a set of seeds. The ar.io protocol uses PDAs extensively — for gateways, delegations, withdrawals, vaults, ArNS records, ANT configs, and more.
+
+## Metaplex Core
+
+The NFT standard used for Arweave Name Tokens (ANTs) on Solana. Metaplex Core assets are tradeable on standard NFT marketplaces like Tensor and Magic Eden.
+
+## CPI (Cross-Program Invocation)
+
+The mechanism by which Solana programs call into each other. The ar.io architecture uses CPI for token operations — ario-gar and ario-arns call into ario-core for SPL Token transfers.
+
+## Cranker
+
+A permissionless bot that drives the 6-step epoch pipeline on Solana. Anyone can run a cranker — the instructions are idempotent and safe to execute multiple times. Crankers can run as standalone bots or be embedded in ar.io observers.
+
+## Epoch Pipeline
+
+The 6-step process for observation, reward calculation, and distribution each epoch: create_epoch → tally_weights → prescribe_epoch → save_observations → distribute_epoch → close_epoch.
+
+## Reward Accumulator
+
+A pattern for distributing delegate rewards on Solana. Rather than distributing to each delegate individually each epoch, the protocol tracks a cumulative reward-per-token on each gateway. Pending rewards are settled when the delegator interacts with the protocol.
 
 ## Winston
 
@@ -17,11 +45,11 @@ Winston Credits (`winc`) are the unit used by Turbo to represent upload purchasi
 
 ## Public Key
 
-A cryptographic key that can be shared publicly and is used to verify digital signatures or encrypt data. In the ar.io context, public keys are used to identify wallet addresses and verify transactions.
+A cryptographic key that can be shared publicly and is used to verify digital signatures or encrypt data. In the ar.io context, Solana public keys (Ed25519, base58-encoded) are used to identify wallet addresses and verify transactions.
 
 ## Native Address
 
-An address format that uses the raw public key bytes directly, without additional encoding or transformation. This is the most basic form of an Arweave address.
+An address format that uses the raw public key bytes directly, without additional encoding or transformation.
 
 ## Normalized Address
 

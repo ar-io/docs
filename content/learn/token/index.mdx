@@ -1,6 +1,6 @@
 ---
 title: 'Token'
-description: 'Learn about the ARIO token - the multifunction AO Computer based token that powers ar.io and its suite of permanent cloud applications'
+description: 'Learn about the ARIO token — the SPL Token on Solana that powers ar.io and its suite of permanent cloud applications'
 ---
 
 import { Card, Cards } from 'fumadocs-ui/components/card';
@@ -8,13 +8,13 @@ import { Building, ShoppingCart, Target, Wallet } from 'lucide-react';
 
 ## Overview
 
-ARIO is the multifunction [AO Computer](/glossary) based token that powers ar.io and its suite of permanent cloud applications. Built on AO, ARIO leverages the computational power and permanence of the Arweave ecosystem to create a robust, decentralized infrastructure token.
+ARIO is the native token of the [ar.io network](https://ar.io), implemented as an [SPL Token](https://spl.solana.com/token) on Solana. It powers the network's decentralized gateway infrastructure, ArNS naming system, and incentive mechanisms. The token uses 6 decimal places (1 ARIO = 1,000,000 mARIO).
 
 ### Key Features
 
-- **Native AO Token**: ARIO is built directly on AO Computer, utilizing its decentralized compute capabilities for smart contract execution and network operations
-- **Staking-Based Infrastructure**: The network operates on a staking-based incentive system where gateway operators secure infrastructure services through token commitment
-- **Multi-utility Design**: ARIO serves multiple functions within the ecosystem, from network participation to governance and payments
+- **SPL Token on Solana**: ARIO is a standard SPL Token, compatible with the full Solana wallet and DeFi ecosystem — including Phantom, Solflare, Backpack, Jupiter, and Raydium
+- **Staking-Based Infrastructure**: Gateway operators and delegators stake ARIO to secure network infrastructure and earn protocol rewards
+- **Multi-utility Design**: ARIO serves multiple functions across the ecosystem — staking, ArNS name registration, delegation, governance participation, and payments
 
 ## Incentive Mechanisms
 
@@ -22,16 +22,16 @@ ARIO's design creates powerful incentives for network participants through multi
 
 ### Gateway Operator Incentives
 
-- **Staking Rewards**: Gateway operators earn rewards for maintaining network infrastructure and providing reliable data services
+- **Staking Rewards**: Gateway operators earn rewards for maintaining network infrastructure and providing reliable data services. Operator rewards automatically compound into their stake.
 - **Performance Bonuses**: Additional rewards for gateways that demonstrate high uptime and fast response times
 - **Network Growth Rewards**: Operators benefit as the network scales and generates more activity
 
 ### Delegator Rewards
 
 - **Delegated Staking**: Token holders can delegate their ARIO to trusted gateway operators to participate in network operations
-- **Increased Operator Stake**: Delegation enhances gateway operator visibility and influence within the network
+- **Reward Accumulator**: Delegate rewards are tracked via a reward-per-share accumulator and settled when the delegator interacts with the protocol
 - **Shared Risk and Rewards**: Delegators participate in the risk and rewards of gateway operations
-- **Withdrawal Flexibility**: Delegated tokens can be withdrawn following the same vault lock period rules
+- **Withdrawal Flexibility**: Delegated tokens can be withdrawn following standard lock period rules, with an optional expedited withdrawal at a fee
 
 ### Ecosystem Participation
 
@@ -45,10 +45,11 @@ Ar.io implements a robust staking-based incentive system that ensures infrastruc
 
 ### Gateway Operator Requirements
 
-- Gateway operators must stake a minimum amount of ARIO tokens to join the network
-- Staking demonstrates commitment to network objectives and promotes infrastructure reliability
+- Gateway operators must stake a minimum of 10,000 ARIO to join the network
+- The gateway registry supports up to 3,000 gateways
 - Only gateways that pass [Observation and Incentive Protocol](/learn/oip) evaluations receive rewards
-- Staked tokens remain locked until withdrawal is initiated or vault period expires
+- Operator rewards always auto-compound — operators must decrease their stake to realize rewards
+- Operators cannot self-delegate
 
 ### Network Quality Assurance
 
@@ -64,34 +65,34 @@ Ar.io implements a robust staking-based incentive system that ensures infrastruc
 - Observer gateways receive additional rewards for monitoring network quality
 - Delegated staking allows broader community participation in successful gateway operations
 
-## Built on AO Computer
+## Protocol Execution on Solana
 
-ARIO's foundation on AO Computer provides unique advantages:
+ARIO's protocol logic runs across four Solana programs that work together via cross-program invocation (CPI):
 
-### Computational Permanence
+### High Performance
 
-- All token operations and smart contracts benefit from Arweave's permanent storage
-- Network history and token transactions are immutably recorded
-- Computational results are verifiable and permanent
-
-### Decentralized Execution
-
-- Token logic runs across distributed AO processes, eliminating single points of failure
-- Smart contract upgrades follow community governance processes
-- Network operations scale with AO's computational capacity
+- Transactions confirm in ~400ms with Solana's proof-of-stake consensus
+- Epoch reward distribution is driven by a permissionless [cranker pipeline](/learn/oip/cranker) — anyone can participate
+- Zero-copy account registries enable efficient on-chain state management
 
 ### Ecosystem Integration
 
-- Native compatibility with other AO-based applications and tokens
-- Seamless interaction with Arweave's data storage layer
-- Built-in interoperability with the broader permaweb ecosystem
+- Native compatibility with the Solana DeFi ecosystem (Jupiter, Raydium, and more)
+- ANTs (Arweave Name Tokens) are Metaplex Core NFTs — tradeable on Tensor, Magic Eden, and other NFT marketplaces
+- Seamless interaction with Arweave's permanent data storage layer
+
+### Security
+
+- All program logic is audited and deployed on-chain
+- Solana's runtime enforces signer authentication and account ownership checks
+- Deterministic PDA (Program Derived Address) accounts ensure predictable state management
 
 ## Explore the Token
 
 <Cards>
   <Card 
     title="Token Architecture" 
-    description="Learn about ARIO's technical implementation and AO Computer integration"
+    description="Learn about ARIO's Solana program architecture"
     href="/learn/token/architecture"
     icon={<Building className="w-8 h-8" />}
   />
@@ -108,9 +109,9 @@ ARIO's foundation on AO Computer provides unique advantages:
     icon={<Target className="w-8 h-8" />}
   />
   <Card 
-    title="Add to Wander" 
-    description="Learn how to add ARIO to your Wander wallet"
-    href="/learn/token/add-to-wander"
+    title="Wallet Setup" 
+    description="Set up a Solana wallet to hold and manage ARIO"
+    href="/learn/token/wallets"
     icon={<Wallet className="w-8 h-8" />}
   />
 </Cards>

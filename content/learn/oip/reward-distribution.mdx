@@ -51,13 +51,28 @@ The reward distribution is contingent on the performance classifications derived
   Epoch reward distributions showing the relationship between eligible rewards (total available) and distributed rewards (actually paid out) across epochs. The difference represents rewards not distributed due to gateway or observer deficiencies.
 </p>
 
-## Auto-Staking
+## Epoch Pipeline
 
-Gateways shall be given the option to have their reward tokens "auto-staked" to their existing stake or sent to their wallet as unlocked tokens. The default setting shall be "auto-staked".
+On Solana, reward distribution is driven by a permissionless 6-step [cranker pipeline](/learn/oip/cranker) rather than a single atomic operation:
+
+1. **create_epoch** — Initialize epoch, compute reward rate
+2. **tally_weights** — Batched weight computation (15 gateways per transaction)
+3. **prescribe_epoch** — Select observers and prescribed names via weighted roulette
+4. **save_observations** — Observers submit pass/fail reports
+5. **distribute_epoch** — Batched reward distribution (15 gateways per transaction)
+6. **close_epoch** — Reclaim rent after 7+ epochs
+
+All steps are permissionless and idempotent — anyone can crank them, and running them multiple times is safe.
+
+## Operator Rewards
+
+Operator rewards always **auto-compound** into the operator's stake. There is no toggle — operators must call `decrease_operator_stake` to realize rewards as liquid tokens.
 
 ## Distribution to Delegates
 
-The protocol will automatically distribute a Functional Gateway's shared rewards with its delegates. The distribution will consider the gateway's total reward for the period (including observation rewards), the gateway's "Delegate Reward Share Ratio", and each delegate's stake proportional to the total delegation.
+Delegate rewards use a **reward-per-share accumulator** pattern. Rather than distributing rewards to each delegate individually each epoch, the protocol tracks a cumulative reward-per-token on each gateway. Pending rewards are settled when the delegator interacts with the protocol (e.g., delegate more, withdraw, or claim rewards).
+
+Leaving gateways receive 0 rewards for any epoch in which they have initiated withdrawal.
 
 Each individual delegate reward is calculated as:
 

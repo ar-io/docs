@@ -160,18 +160,17 @@ Joins a gateway to the ar.io network via its associated wallet.
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.mainnet({ signer });
 const { id: txId } = await ario.joinNetwork(
   {
     qty: new ARIOToken(10_000).toMARIO(), // minimum operator stake allowed
-    autoStake: true, // auto-stake operator rewards to the gateway
     allowDelegatedStaking: true, // allows delegated staking
     minDelegatedStake: new ARIOToken(100).toMARIO(), // minimum delegated stake allowed
     delegateRewardShareRatio: 10, // percentage of rewards to share with delegates (e.g. 10%)
     label: 'john smith', // min 1, max 64 characters
     note: 'The example gateway', // max 256 characters
     properties: 'FH1aVetOoulPGqgYukj0VE0wIhDy90WiQoV3U2PeY44', // Arweave transaction ID containing additional properties of the Gateway
-    observerWallet: '0VE0wIhDy90WiQoV3U2PeY44FH1aVetOoulPGqgYukj', // wallet address of the observer, must match OBSERVER_WALLET on the observer
+    observerWallet: '7xKXtR2qpZm8FjvKNsG3kL9p5yMnYhVdEbxQ4oWc2Rn', // Solana pubkey of the observer, must be unique across all gateways
     fqdn: 'example.com', // fully qualified domain name - note: you must own the domain and set the OBSERVER_WALLET on your gateway to match `observerWallet`
     port: 443, // port number
     protocol: 'https', // only 'https' is supported
@@ -188,7 +187,7 @@ Sets the gateway as `leaving` on the ar.io network. Requires `signer` to be prov
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.mainnet({ signer });
 
 const { id: txId } = await ario.leaveNetwork(
   // optional additional tags
@@ -203,7 +202,7 @@ Writes new gateway settings to the callers gateway configuration.
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.mainnet({ signer });
 const { id: txId } = await ario.updateGatewaySettings(
   {
     // any other settings you want to update
@@ -221,7 +220,7 @@ Increases the callers stake on the target gateway.
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.mainnet({ signer });
 const { id: txId } = await ario.increaseDelegateStake(
   {
     target: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
@@ -239,7 +238,7 @@ Decreases the callers stake on the target gateway. Can instantly decrease stake 
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.mainnet({ signer });
 const { id: txId } = await ario.decreaseDelegateStake(
   {
     target: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
@@ -254,7 +253,7 @@ const { id: txId } = await ario.decreaseDelegateStake(
 Pay the early withdrawal fee and withdraw instantly.
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.mainnet({ signer });
 const { id: txId } = await ario.decreaseDelegateStake({
   target: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
   qty: new ARIOToken(100).toMARIO(),
@@ -315,7 +314,7 @@ Instantly withdraws an existing vault on a gateway. If no `gatewayAddress` is pr
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.mainnet({ signer });
 // removes a delegated vault from a gateway
 const { id: txId } = await ario.instantWithdrawal(
   {
@@ -344,7 +343,7 @@ Cancels an existing vault on a gateway. The vaulted stake will be returned to th
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.mainnet({ signer });
 // cancels a delegated vault from a gateway
 const { id: txId } = await ario.cancelWithdrawal(
   {
@@ -468,7 +467,7 @@ Increases the callers operator stake. Must be executed with a wallet registered 
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.mainnet({ signer });
 const { id: txId } = await ario.increaseOperatorStake(
   {
     qty: new ARIOToken(100).toMARIO(),
@@ -486,7 +485,7 @@ Decreases the callers operator stake. Must be executed with a wallet registered 
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.mainnet({ signer });
 const { id: txId } = await ario.decreaseOperatorStake(
   {
     qty: new ARIOToken(100).toMARIO(),
@@ -504,7 +503,7 @@ Redelegates the stake of a specific address to a new gateway. Vault ID may be op
 e.g: If 1000 mARIO is redelegated and the fee rate is 10%, the fee will be 100 mARIO. Resulting in 900 mARIO being redelegated to the new gateway and 100 mARIO being deducted back to the protocol balance.
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.mainnet({ signer });
 
 const { id: txId } = await ario.redelegateStake({
   target: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',

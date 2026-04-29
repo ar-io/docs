@@ -16,9 +16,9 @@ This creates a consistent evaluation framework where all observers test the same
 
 ## Selection Process
 
-Up to **fifty (50)** gateways are selected as observers per epoch using a sophisticated weighted random selection system. The selection uses **hashchain entropy** from previous ar.io contract state messages to ensure unpredictable and tamper-resistant selection.
+Up to **fifty (50)** gateways are selected as observers per epoch using a sophisticated weighted random selection system. The selection uses **slot-based entropy** — `SHA256(slot || epoch_index || timestamp)` — from Solana to ensure unpredictable and tamper-resistant selection. Collision handling uses a 10× retry multiplier (up to 500 iterations).
 
-The hashchain-based entropy provides cryptographic randomness for selecting:
+The entropy provides cryptographic randomness for selecting:
 
 - **Observer Gateways**: The 50 gateways chosen to perform observations
 - **Prescribed ArNS Names**: The 2 common names all observers must evaluate

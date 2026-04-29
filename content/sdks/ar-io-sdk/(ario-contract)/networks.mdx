@@ -3,17 +3,14 @@ title: "Networks"
 description: "TypeScript/JavaScript SDK for interacting with the ar.io ecosystem"
 ---
 
-The SDK provides the following process IDs for the mainnet and testnet environments:
+The SDK provides program addresses for the mainnet and testnet environments:
 
-- `ARIO_MAINNET_PROCESS_ID` - Mainnet ARIO process ID (production)
-- `ARIO_TESTNET_PROCESS_ID` - Testnet ARIO process ID (testing and development)
-- `ARIO_DEVNET_PROCESS_ID` - Devnet ARIO process ID (development)
+- `ARIO_MAINNET_PROGRAM_ID` — Solana mainnet program address (production)
+- `ARIO_TESTNET_PROGRAM_ID` — Solana devnet program address (testing and development)
 
-As of `v3.8.1` the SDK defaults all API interactions to **mainnet**. To use the **testnet** or **devnet** provide the appropriate `ARIO_TESTNET_PROCESS_ID` or `ARIO_DEVNET_PROCESS_ID` when initializing the client.
+As of `v3.23` the SDK defaults all API interactions to **Solana mainnet**.
 
 #### Mainnet
-
-As of `v3.8.1` the SDK defaults all API interactions to **mainnet**. To use the **testnet** or **devnet** provide the appropriate `ARIO_TESTNET_PROCESS_ID` or `ARIO_DEVNET_PROCESS_ID` when initializing the client.
 
 ```typescript
 import { ARIO } from '@ar.io/sdk';
@@ -26,12 +23,12 @@ const ario = ARIO.mainnet(); // or ARIO.init()
 ```typescript
 import { ARIO } from '@ar.io/sdk';
 
-const testnet = ARIO.testnet(); // or ARIO.init({ processId: ARIO_TESTNET_PROCESS_ID })
+const testnet = ARIO.testnet();
 ```
 
 ##### Faucet
 
-The SDK provides APIs for claiming tokens via a faucet on the ar.io Testnet process (`tARIO`) via the [ar-io-testnet-faucet] service. All token requests require a captcha to be solved, and the faucet is rate limited to prevent abuse.
+The SDK provides APIs for claiming tokens via a faucet on the ar.io Testnet (Solana devnet). All token requests require a captcha to be solved, and the faucet is rate limited to prevent abuse.
 
 To claim testnet tokens from the testnet token faucet, you can use one of the following methods:
 
@@ -72,7 +69,7 @@ window.parent.addEventListener('message', async (event) => {
     const res = await testnet.faucet
       .claimWithAuthToken({
         authToken: event.data.token,
-        recipient: await window.arweaveWallet.getActiveAddress(),
+        recipient: 'YOUR_SOLANA_WALLET_ADDRESS',
         quantity: new ARIOToken(100).toMARIO().valueOf(), // 100 ARIO
       })
       .then((res) => {
@@ -95,7 +92,7 @@ if (
 ) {
   const res = await testnet.faucet.claimWithAuthToken({
     authToken: localStorage.getItem('ario-jwt') ?? '',
-    recipient: await window.arweaveWallet.getActiveAddress(),
+    recipient: 'YOUR_SOLANA_WALLET_ADDRESS',
     quantity: new ARIOToken(100).toMARIO().valueOf(), // 100 ARIO
   });
 }

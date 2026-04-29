@@ -8,16 +8,16 @@ description: "TypeScript/JavaScript SDK for interacting with the ar.io ecosystem
 Factory function to that creates a read-only or writeable client. By providing a `signer` additional write APIs that require signing, like `setRecord` and `transfer` are available. By default, a read-only client is returned and no write APIs are available.
 
 ```typescript
-// in a browser environment with ArConnect
+// in a browser environment with a Solana wallet adapter
 const ant = ANT.init({
-  signer: new ArConnectSigner(window.arweaveWallet, Arweave.init({})),
-  processId: 'bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM'
+  signer: solanaWalletAdapter,
+  processId: 'bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM' // ANT mint address
 });
 
-// in a node environment
+// in a node environment with a Solana keypair
 const ant = ANT.init({
-  signer: new ArweaveSigner(JWK),
-  processId: 'bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM'
+  signer: solanaKeypairSigner,
+  processId: 'bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM' // ANT mint address
 });
 
 ```

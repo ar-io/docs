@@ -16,27 +16,19 @@ Use the **ar.io SDK** to programmatically register and purchase ArNS names. This
 npm install @ar.io/sdk
 ```
 
-**Required files:**
+**Required:**
 
-```bash
-# Your Arweave wallet JSON file
-wallet.json
-```
+- A Solana wallet with ARIO tokens and SOL for transaction fees
 
 ## Basic Setup
 
-**Initialize the SDK with your wallet:**
+**Initialize the SDK with your Solana wallet:**
 
 ```javascript
 const { ARIO } = require("@ar.io/sdk");
-const { ArweaveSigner } = require("@ardrive/turbo-sdk");
-const fs = require("fs");
 
-// Load your wallet JSON file
-const jwk = JSON.parse(fs.readFileSync("./wallet.json", "utf8"));
-
-// Initialize ARIO with signer for transactions
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+// Initialize ARIO with a Solana signer for transactions
+const ario = ARIO.mainnet({ signer: solanaKeypairSigner });
 ```
 
 ## Complete Registration Process

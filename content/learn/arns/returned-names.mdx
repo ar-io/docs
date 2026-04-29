@@ -1,0 +1,76 @@
+---
+title: 'Returned Names'
+description: 'How returned ArNS names are repriced through a Dutch auction mechanism'
+---
+
+## Overview
+
+When an ArNS name expires or is voluntarily returned to the protocol, it enters a **Returned Name Dutch Auction** before becoming available for standard registration. This mechanism prevents name squatting at expiry and provides fair pricing through a time-decaying premium.
+
+## Dutch Auction Mechanics
+
+Returned names start at a high premium and decay to the base price over 14 days:
+
+- **Starting price**: 50× the base registration price
+- **Ending price**: 1× the base registration price (standard rate)
+- **Duration**: 14 days
+- **Decay**: Continuous exponential decay from 50× to 1×
+
+```mermaid
+graph LR
+    A[Name Expired<br/>or Released] --> B[Dutch Auction<br/>Starts at 50x]
+    B --> C[Price Decays<br/>Over 14 Days]
+    C --> D[Reaches 1x<br/>Base Price]
+    D --> E[Standard<br/>Registration]
+```
+
+## Revenue Split
+
+When a returned name is purchased during the Dutch auction:
+
+- **50%** goes to the **protocol balance** (funds epoch rewards)
+- **50%** goes to the **previous owner** (the ANT holder at the time of return)
+
+This incentivizes name owners to voluntarily release names they no longer need, since they receive half the resale value.
+
+## How Names Enter the Returned Pool
+
+### Lease Expiration
+When a leased name's term ends and the 14-day grace period elapses without renewal, the name enters the returned pool.
+
+### Voluntary Release
+Permanent name owners can voluntarily release their name back to the protocol using the `releaseName` instruction. This immediately places the name in the returned pool.
+
+## Lifecycle
+
+| Phase | Duration | Price | Action |
+|-------|----------|-------|--------|
+| **Active lease** | As registered | N/A | Name is in use |
+| **Grace period** | 14 days after expiry | N/A | Owner can renew |
+| **Dutch auction** | 14 days | 50× → 1× | Anyone can purchase |
+| **Standard registration** | Indefinite | Base price | Normal ArNS purchase |
+
+## Querying Returned Names
+
+Use the SDK to check available returned names and their current auction price:
+
+```typescript
+const ario = ARIO.mainnet();
+
+// Get all active returned names
+const returnedNames = await ario.getArNSReturnedNames({
+  limit: 100,
+  sortBy: 'endTimestamp',
+  sortOrder: 'asc',
+});
+
+// Get a specific returned name
+const name = await ario.getArNSReturnedName({ name: 'example' });
+
+// Check current cost (includes auction premium)
+const cost = await ario.getTokenCost({
+  intent: 'Buy-Name',
+  name: 'example',
+  type: 'permabuy',
+});
+```

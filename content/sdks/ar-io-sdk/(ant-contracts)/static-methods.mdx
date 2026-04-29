@@ -5,12 +5,12 @@ description: "TypeScript/JavaScript SDK for interacting with the ar.io ecosystem
 
 #### ANT.fork()
 
-Forks an existing ANT process to create a new one with the same state but potentially a different module. This is used for upgrading ANTs to new versions.
+Creates a new ANT (Metaplex Core NFT) from an existing one with the same state but potentially a different version. This is used for upgrading ANTs.
 
 ```typescript
-const newProcessId = await ANT.fork({
-  signer: new ArweaveSigner(jwk),
-  antProcessId: 'existing-ant-process-id',
+const newMintAddress = await ANT.fork({
+  signer: solanaKeypairSigner,
+  antProcessId: 'existing-ant-mint-address',
   // Optional: specify a specific module ID, defaults to latest from registry
   module: 'new-module-id',
   onSigningProgress: (event, payload) => {
@@ -18,7 +18,7 @@ const newProcessId = await ANT.fork({
   },
 });
 
-console.log(`Forked ANT to new process: ${newProcessId}`);
+console.log(`Forked ANT to new mint: ${newMintAddress}`);
 ```
 
 #### ANT.upgrade()
@@ -28,19 +28,17 @@ Static method to upgrade an ANT by forking it to the latest version and reassign
 ```typescript
 // Upgrade and reassign all affiliated names
 const result = await ANT.upgrade({
-  signer: new ArweaveSigner(jwk),
-  antProcessId: 'existing-ant-process-id',
+  signer: solanaKeypairSigner,
+  antProcessId: 'existing-ant-mint-address',
   reassignAffiliatedNames: true,
-  arioProcessId: ARIO_MAINNET_PROCESS_ID
 });
 
 // Upgrade and reassign specific names
 const result = await ANT.upgrade({
-  signer: new ArweaveSigner(jwk),
-  antProcessId: 'existing-ant-process-id',
+  signer: solanaKeypairSigner,
+  antProcessId: 'existing-ant-mint-address',
   names: ['ardrive', 'example'],
   reassignAffiliatedNames: false,
-  arioProcessId: ARIO_MAINNET_PROCESS_ID
 });
 
 console.log(`Upgraded to process: ${result.forkedProcessId}`);

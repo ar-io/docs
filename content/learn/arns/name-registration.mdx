@@ -19,11 +19,11 @@ Registering a name requires spending ARIO tokens corresponding to the name's cha
 
 ## Name Registry
 
-The ArNS Registry is a list of all registered names and their associated ANT Process IDs. Key rules embedded within the smart contract include:
+The ArNS Registry is a list of all registered names and their associated ANT mint addresses, stored on Solana in the NameRegistry zero-copy account (up to 50,000 names). Key rules embedded within the Solana programs include:
 
 - **Genesis Prices**: Set within the contract as starting conditions
 - **Dynamic Pricing**: Varies based on name length, purchase type (lease vs buy), lease duration, and current Demand Factor
-- **Name Records**: Include a pointer to the Arweave Name Token process identifier, lease end time (if applicable), and undername allocation
+- **Name Records**: Include a pointer to the Arweave Name Token (ANT) mint address, lease end time (if applicable), and undername allocation
 - **Reassignment**: Name registrations can be reassigned from one ANT to another
 - **Lease Extension**: Anyone with available ARIO Tokens can extend any name's active lease
 - **Lease to Permanent Buy**: Anyone with available ARIO Tokens can convert a name's lease to a permanent buy
@@ -38,7 +38,9 @@ All names registered must meet the following criteria:
 2. **Dash placement**: Dashes cannot be leading or trailing characters
 3. **Single character domains**: Dashes cannot be used in single character domains
 4. **Length limits**: 1 character minimum, 51 characters maximum
-5. **Reserved names**: Cannot be an invalid name predesignated to prevent unintentional use/abuse such as `www`
+5. **43-character prohibition**: Names exactly 43 characters long are prohibited to prevent Arweave Transaction ID collisions
+6. **Lowercase enforcement**: Names must be lowercase at submission
+7. **Reserved names**: Cannot be an invalid name predesignated to prevent unintentional use/abuse such as `www`
 
 ## Lease Management
 
@@ -46,7 +48,7 @@ All names registered must meet the following criteria:
 
 When a lease term ends, there is a **grace period of two (2) weeks** where the lease can be renewed before it fully expires. If this grace period elapses, the name is considered expired and returns to the protocol for public registration. Once expired, a name's associated undername registrations and capacity also expire.
 
-A recently expired name's registration shall be priced subject to the "Returned Name Premium" mechanics.
+A recently expired name enters a **Returned Name Dutch Auction**: starting at 50× the base price, decaying to 1× over 14 days. Revenue from returned name purchases is split 50/50 between the protocol and the previous owner.
 
 ### Lease to Permabuy Conversions
 

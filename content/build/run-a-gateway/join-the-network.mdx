@@ -33,9 +33,13 @@ Take control of the permanent web by running your own **ar.io Gateway**. Join th
 
     **Acquisition Options:**
     - Purchase on centralized exchanges like Gate.io
-    - Trade on decentralized exchanges (Dexi, Botega, Vento)
-    - Use Wander wallet for easy exchange and swap functionality
+    - Trade on Solana DEXs (Jupiter, Raydium)
+    - Use a Solana wallet (Phantom, Solflare, Backpack) to manage tokens
     - Earn through network participation and community programs
+    
+    <Callout type="info">
+    You will also need SOL in your wallet for Solana transaction fees when joining the network.
+    </Callout>
   </Step>
 </Steps>
 
@@ -67,7 +71,7 @@ Choose your preferred method to register your gateway:
       <img src="/content/join-2.png" alt="Connect Wallet" className="max-w-md rounded-lg" />
     </div>
 
-    Choose your preferred wallet (Wander, Metamask, or Beacon) to connect.
+    Choose your preferred Solana wallet (Phantom, Solflare, or Backpack) to connect.
 
     <Callout type="warning" title="Wallet Address Requirement">
       Use the same wallet address that you configured in your gateway's `AR_IO_WALLET` environment variable. This wallet will be the owner of your gateway registration.
@@ -139,7 +143,7 @@ Choose your preferred method to register your gateway:
 
         ```bash
         ar.io join-network \
-          --wallet-file ./path/to/wallet.json \
+          --wallet-file ./path/to/solana-keypair.json \
           --qty 10000000000 \
           --auto-stake true \
           --allow-delegated-staking true \
@@ -147,7 +151,7 @@ Choose your preferred method to register your gateway:
           --delegate-reward-share-ratio 10 \
           --label "My Test Gateway" \
           --note "Test gateway for development" \
-          --observer-wallet 0VE0wIhDy90WiQoV3U2PeY44FH1aVetOoulPGqgYukj \
+          --observer-wallet 7xKXtR2qpZm8FjvKNsG3kL9p5yMnYhVdEbxQ4oWc2Rn \
           --fqdn my-gateway.example.com \
           --port 443 \
           --protocol https \
@@ -155,7 +159,7 @@ Choose your preferred method to register your gateway:
         ```
 
         <Callout type="warning" title="Wallet File Requirement">
-          The wallet file used in the `--wallet-file` parameter must be the same wallet configured in your ar.io Gateway's `AR_IO_WALLET` environment variable. This ensures your gateway registration is properly linked to your running gateway instance.
+          The wallet file must be a Solana keypair JSON file (Ed25519). The public key derived from this keypair must match the `AR_IO_WALLET` environment variable configured in your gateway. The observer wallet must also be a unique Solana address — no two gateways can share the same observer.
         </Callout>
 
         **Parameter explanations:**
