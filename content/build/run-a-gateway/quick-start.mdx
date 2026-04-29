@@ -112,12 +112,16 @@ Ready to run a gateway with your own domain name and SSL certificates? Follow th
         START_HEIGHT=1000000
         RUN_OBSERVER=true
         ARNS_ROOT_HOST=<your-domain>
-        AR_IO_WALLET=<your-public-wallet-address>
-        OBSERVER_WALLET=<hot-wallet-public-address>
+        AR_IO_WALLET=<your-solana-pubkey>
+        OBSERVER_WALLET=<observer-solana-pubkey>
         ```
 
+        <Callout type="info">
+        `AR_IO_WALLET` and `OBSERVER_WALLET` must be Solana public keys (base58 Ed25519). The observer address must be unique — no other gateway can use the same observer. The observer wallet needs a small amount of SOL for submitting observation transactions.
+        </Callout>
+
         **Supply Observer Wallet Keyfile:**
-        Save your wallet keyfile as `<Observer-Wallet-Address>.json` in the `wallets` directory.
+        Save your Solana keypair JSON file as `<Observer-Wallet-Address>.json` in the `wallets` directory.
 
         <Callout type="info" title="Payment For Observer Report Uploads">
           By default, the Observer will use [Turbo Credits](https://docs.ardrive.io/docs/turbo/credits) to pay for uploading reports to Arweave. This allows reports under 100kb to be uploaded for free, but larger reports will fail if the Observer wallet does not contain Credits. Including `REPORT_DATA_SINK=arweave` in your `.env` file will configure the Observer to use AR tokens instead of Turbo Credits, without any free limit.
