@@ -1,0 +1,338 @@
+---
+title: "Deploy a Permanent dApp"
+description: "End-to-end guide to deploying a permanent web application using a Solana wallet — upload, register a name, and go live"
+---
+
+import { Rocket, Globe, Upload, Check } from 'lucide-react';
+
+Deploy a permanent web application to Arweave with a human-readable ArNS name — using only your Solana wallet. Your app will be served by ~600 decentralized gateways with zero ongoing hosting costs.
+
+## What You'll Build
+
+By the end of this guide, your app will be:
+- **Permanently stored** on Arweave (can never be deleted or modified)
+- **Accessible** at `https://yourname.arweave.net` (and every other ar.io gateway)
+- **Owned by you** as a Metaplex Core NFT (the ArNS name token)
+
+## Prerequisites
+
+- **Node.js 18+**
+- **A Solana wallet** with SOL and ARIO tokens
+- **A built web app** (any framework that outputs a static folder — React, Next.js, Vue, Svelte, etc.)
+
+```bash
+npm install @ar.io/sdk @ardrive/turbo-sdk @solana/kit bs58
+```
+
+<Callout type="info">
+Requires `@ar.io/sdk` version 3.23+ for Solana support.
+</Callout>
+
+## Step-by-Step
+
+<Steps>
+  <Step>
+    ### Build Your App
+
+    Generate a static build of your web application:
+
+    <Tabs items={['Next.js', 'Vite / React', 'Any Framework']}>
+      <Tab value="Next.js">
+      ```bash
+      # next.config.js must have: output: 'export'
+      npm run build
+      # Output: ./out/
+      ```
+      </Tab>
+      <Tab value="Vite / React">
+      ```bash
+      npm run build
+      # Output: ./dist/
+      ```
+      </Tab>
+      <Tab value="Any Framework">
+      ```bash
+      # Build your app to a static folder
+      npm run build
+      # Use whatever output directory your framework creates
+      ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step>
+    ### Set Up Your Signer
+
+    Create a shared setup file that both Turbo (for uploads) and the ar.io SDK (for naming) can use:
+
+    ```typescript
+    // setup.ts
+    import { ARIO, ANT } from '@ar.io/sdk';
+    import { TurboFactory } from '@ardrive/turbo-sdk';
+    import { createKeyPairSignerFromBytes } from '@solana/kit';
+    import bs58 from 'bs58';
+    import fs from 'fs';
+
+    // Load your Solana keypair
+    const keypairBytes = new Uint8Array(
+      JSON.parse(fs.readFileSync('./solana-keypair.json', 'utf-8')),
+    );
+
+    // For ar.io SDK (ArNS names, records)
+    export const signer = await createKeyPairSignerFromBytes(keypairBytes);
+    export const ario = ARIO.mainnet({ signer });
+
+    // For Turbo (file uploads to Arweave)
+    // Turbo uses its own signer format — pass the secret key as base58
+    export const turbo = TurboFactory.authenticated({
+      privateKey: bs58.encode(keypairBytes.slice(0, 32)),
+      token: 'solana',
+    });
+    ```
+
+    <Callout type="warn">
+    **Security:** Never commit your keypair file to version control. Use a dedicated deployment wallet with only the SOL and ARIO needed for the operation.
+    </Callout>
+  </Step>
+
+  <Step>
+    ### Upload to Arweave via Turbo
+
+    Upload your build folder. Turbo bundles all files into an Arweave manifest — a single transaction ID that maps to all your app's files:
+
+    ```typescript
+    // deploy.ts
+    import { turbo, ario, signer } from './setup';
+    import { ANT } from '@ar.io/sdk';
+
+    const ARNS_NAME = 'my-cool-app'; // the ArNS name you want
+    const BUILD_DIR = './dist';       // your build output folder
+
+    // Step 1: Upload the build folder
+    console.log('Uploading to Arweave...');
+    const uploadResult = await turbo.uploadFolder({
+      folderPath: BUILD_DIR,
+      dataItemOpts: {
+        tags: [
+          { name: 'App-Name', value: ARNS_NAME },
+          { name: 'App-Version', value: '1.0.0' },
+        ],
+      },
+    });
+
+    const manifestTxId = uploadResult.manifestResponse.id;
+    console.log(`Uploaded! Manifest TX: ${manifestTxId}`);
+    console.log(`Direct access: https://arweave.net/${manifestTxId}`);
+    ```
+
+    <Callout type="info">
+    Files under 100KB are free to upload via Turbo. Larger uploads are paid with SOL from your wallet — no pre-funding needed when using just-in-time payments.
+    </Callout>
+  </Step>
+
+  <Step>
+    ### Register an ArNS Name (If You Don't Have One)
+
+    Skip this step if you already own the ArNS name.
+
+    ```typescript
+    // Check if the name is available
+    try {
+      const existing = await ario.getArNSRecord({ name: ARNS_NAME });
+      console.log(`Name "${ARNS_NAME}" is already registered`);
+    } catch {
+      // Name is available — register it
+      console.log(`Registering "${ARNS_NAME}"...`);
+
+      // Check the cost first
+      const cost = await ario.getTokenCost({
+        intent: 'Buy-Name',
+        name: ARNS_NAME,
+        type: 'lease',
+        years: 1,
+      });
+      console.log(`Cost: ${cost / 1_000_000} ARIO`);
+
+      // Buy it (this mints an ANT as a Metaplex Core NFT)
+      await ario.buyRecord({
+        name: ARNS_NAME,
+        type: 'lease',
+        years: 1,
+      });
+
+      console.log(`Registered "${ARNS_NAME}"!`);
+    }
+    ```
+  </Step>
+
+  <Step>
+    ### Point Your Name to Your App
+
+    Set the ANT's root (@) record to your uploaded manifest:
+
+    ```typescript
+    // Get the ANT mint address from the ArNS record
+    const record = await ario.getArNSRecord({ name: ARNS_NAME });
+
+    // Initialize the ANT
+    const ant = ANT.init({ signer, processId: record.processId });
+
+    // Set the root record to your manifest
+    console.log('Setting ArNS record...');
+    await ant.setRecord({
+      undername: '@',
+      transactionId: manifestTxId,
+      ttlSeconds: 3600,
+    });
+
+    console.log('Done! Your app is live at:');
+    console.log(`  https://${ARNS_NAME}.arweave.net`);
+    console.log(`  https://${ARNS_NAME}.ar-io.dev`);
+    ```
+  </Step>
+
+  <Step>
+    ### Verify
+
+    Wait a minute for gateways to pick up the new record, then verify:
+
+    ```bash
+    curl -I https://my-cool-app.arweave.net
+    # Should return 200 OK with your app's index.html
+    ```
+
+    Your app is now permanently hosted and accessible through every ar.io gateway in the network.
+  </Step>
+</Steps>
+
+## Updating Your App
+
+Since Arweave data is immutable, "updating" means uploading a new version and updating your ArNS record to point to it:
+
+```typescript
+// Upload new version
+const newUpload = await turbo.uploadFolder({
+  folderPath: './dist',
+  dataItemOpts: {
+    tags: [
+      { name: 'App-Name', value: 'my-cool-app' },
+      { name: 'App-Version', value: '2.0.0' },
+    ],
+  },
+});
+
+// Update the record
+const ant = ANT.init({ signer, processId: record.processId });
+await ant.setRecord({
+  undername: '@',
+  transactionId: newUpload.manifestResponse.id,
+  ttlSeconds: 3600,
+});
+
+// Old version is still on Arweave forever — instant rollback if needed
+```
+
+## Using Undernames for Staging
+
+You can use undernames to deploy staging environments alongside production:
+
+```typescript
+// Deploy staging version
+await ant.setRecord({
+  undername: 'staging',
+  transactionId: stagingManifestTxId,
+  ttlSeconds: 300, // short TTL for faster updates
+});
+// Access at: https://staging_my-cool-app.arweave.net
+
+// When ready, promote to production
+await ant.setRecord({
+  undername: '@',
+  transactionId: stagingManifestTxId,
+  ttlSeconds: 3600,
+});
+```
+
+## Full Script
+
+Here's the complete deployment script you can adapt:
+
+```typescript
+import { ARIO, ANT } from '@ar.io/sdk';
+import { TurboFactory } from '@ardrive/turbo-sdk';
+import { createKeyPairSignerFromBytes } from '@solana/kit';
+import bs58 from 'bs58';
+import fs from 'fs';
+
+const ARNS_NAME = process.argv[2] || 'my-app';
+const BUILD_DIR = process.argv[3] || './dist';
+
+async function deploy() {
+  // Load Solana keypair
+  const keypairBytes = new Uint8Array(
+    JSON.parse(fs.readFileSync('./solana-keypair.json', 'utf-8')),
+  );
+
+  // Init SDKs
+  const signer = await createKeyPairSignerFromBytes(keypairBytes);
+  const ario = ARIO.mainnet({ signer });
+  const turbo = TurboFactory.authenticated({
+    privateKey: bs58.encode(keypairBytes.slice(0, 32)),
+    token: 'solana',
+  });
+
+  // Upload
+  console.log(`Uploading ${BUILD_DIR}...`);
+  const upload = await turbo.uploadFolder({
+    folderPath: BUILD_DIR,
+    dataItemOpts: {
+      tags: [{ name: 'App-Name', value: ARNS_NAME }],
+    },
+  });
+  const txId = upload.manifestResponse.id;
+  console.log(`Uploaded: https://arweave.net/${txId}`);
+
+  // Get ANT and update record
+  const arnsRecord = await ario.getArNSRecord({ name: ARNS_NAME });
+  const ant = ANT.init({ signer, processId: arnsRecord.processId });
+
+  console.log('Updating ArNS record...');
+  await ant.setRecord({
+    undername: '@',
+    transactionId: txId,
+    ttlSeconds: 3600,
+  });
+
+  console.log(`\nLive at: https://${ARNS_NAME}.arweave.net`);
+}
+
+deploy().catch(console.error);
+```
+
+```bash
+# Usage
+npx tsx deploy.ts my-cool-app ./dist
+```
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="ArNS Name Management"
+    description="Manage records, undernames, and transfer ownership"
+    href="/build/guides/working-with-arns"
+    icon={<Globe className="w-8 h-8" />}
+  />
+  <Card
+    title="Version Control with Undernames"
+    description="Use undernames for staging, rollbacks, and multi-version deployments"
+    href="/build/guides/hosting-decentralised-apps/using-undernames-for-versioning"
+    icon={<Rocket className="w-8 h-8" />}
+  />
+  <Card
+    title="Turbo Upload Options"
+    description="Advanced upload features — encryption, tagging, folder uploads"
+    href="/build/upload"
+    icon={<Upload className="w-8 h-8" />}
+  />
+</Cards>
