@@ -1,11 +1,11 @@
 # Solana Migration — Documentation Page Status
 
-Generated 2026-04-28. Tracks every content page and its migration status from AO to Solana.
+Updated 2026-04-29. Tracks every content page and its migration status from AO to Solana.
 
 ## Legend
 
 - **REWRITTEN** — Full rewrite with new Solana content
-- **UPDATED** — Targeted edits (terminology, code examples, references)
+- **UPDATED** — Targeted edits (terminology, code examples, references, URLs)
 - **NEW** — New page created for Solana features
 - **DELETED** — Removed (AO-only content)
 - **NO CHANGE** — Chain-agnostic, no migration needed
@@ -16,10 +16,10 @@ Generated 2026-04-28. Tracks every content page and its migration status from AO
 
 | Page | Status | Notes |
 |------|--------|-------|
-| `learn/(introduction)/index.mdx` | NO CHANGE | Navigation page |
+| `learn/(introduction)/index.mdx` | UPDATED | arns.app → arns.ar.io |
 | `learn/(introduction)/what-is-ario.mdx` | UPDATED | "Arweave and AO" → "Arweave + Solana" |
 | `learn/(introduction)/what-is-arweave.mdx` | NO CHANGE | Arweave storage layer |
-| `learn/(introduction)/permaweb.mdx` | NO CHANGE | Broader ecosystem; AO refs valid |
+| `learn/(introduction)/permaweb.mdx` | UPDATED | Added Solana as Layer 2 compute alongside AO in diagram and text |
 | `learn/(introduction)/ans-104-bundles.mdx` | NO CHANGE | Bundle standard |
 
 ### learn/token/
@@ -29,7 +29,7 @@ Generated 2026-04-28. Tracks every content page and its migration status from AO
 | `learn/token/index.mdx` | REWRITTEN | SPL Token on Solana, new architecture section |
 | `learn/token/architecture.mdx` | REWRITTEN | 3+1 programs, CPI, PDA state model, new mermaid |
 | `learn/token/get-the-token.mdx` | REWRITTEN | Solana canonical, Jupiter/Raydium, Phantom/Solflare |
-| `learn/token/staking.mdx` | REWRITTEN | Auto-compound, accumulator, pruning, redelegation |
+| `learn/token/staking.mdx` | REWRITTEN | Auto-compound, accumulator, pruning, redelegation, SOL cost estimates |
 | `learn/token/wallets.mdx` | NEW | Phantom/Solflare/Backpack setup (replaces add-to-wander) |
 | `learn/token/migration.mdx` | NEW | Import-then-claim flow, address mapping, FAQ |
 | `learn/token/add-to-wander.mdx` | DELETED | Replaced by wallets.mdx |
@@ -38,10 +38,10 @@ Generated 2026-04-28. Tracks every content page and its migration status from AO
 
 | Page | Status | Notes |
 |------|--------|-------|
-| `learn/arns/index.mdx` | UPDATED | Registry on Solana, mermaid diagram, ANT=NFT |
+| `learn/arns/index.mdx` | UPDATED | Registry on Solana, mermaid diagram ("ANTs (Metaplex Core NFTs)"), arns.ar.io |
 | `learn/arns/ants.mdx` | UPDATED | Metaplex Core NFTs, 10 controller max, lazy reconciliation |
-| `learn/arns/name-registration.mdx` | UPDATED | 43-char prohibition, lowercase, 50K cap, Dutch auction |
-| `learn/arns/pricing-model.mdx` | UPDATED | Fee halving, cost simulation |
+| `learn/arns/name-registration.mdx` | UPDATED | 43-char prohibition, lowercase, 50K cap, Dutch auction, ANT mint address |
+| `learn/arns/pricing-model.mdx` | UPDATED | Fee halving, cost simulation, arns.ar.io |
 | `learn/arns/returned-names.mdx` | NEW | Dutch auction 50x→1x, revenue split |
 
 ### learn/gateways/
@@ -60,12 +60,12 @@ Generated 2026-04-28. Tracks every content page and its migration status from AO
 
 | Page | Status | Notes |
 |------|--------|-------|
-| `learn/oip/index.mdx` | UPDATED | "Smart Contract" → "Solana Programs" |
+| `learn/oip/index.mdx` | UPDATED | "Solana Programs" in mermaid + text |
 | `learn/oip/epoch-pipeline.mdx` | NEW | 6-step pipeline with timing and costs |
 | `learn/oip/cranker.mdx` | NEW | Standalone + observer-embedded cranker |
 | `learn/oip/observer-selection.mdx` | UPDATED | Slot-based entropy, collision handling |
-| `learn/oip/reporting.mdx` | UPDATED | "Smart Contract" → "Solana programs" |
-| `learn/oip/performance-evaluation.mdx` | UPDATED | "Smart Contract" → "Solana programs" |
+| `learn/oip/reporting.mdx` | UPDATED | "on-chain observations" terminology |
+| `learn/oip/performance-evaluation.mdx` | UPDATED | "Solana programs", "on-chain observations" |
 | `learn/oip/reward-distribution.mdx` | UPDATED | 6-step pipeline, auto-compound, accumulator |
 
 ### learn/wayfinder/
@@ -89,7 +89,7 @@ Generated 2026-04-28. Tracks every content page and its migration status from AO
 | Page | Status | Notes |
 |------|--------|-------|
 | `build/access/index.mdx` | NO CHANGE | |
-| `build/access/arns.mdx` | NO CHANGE | Data access |
+| `build/access/arns.mdx` | UPDATED | arns.ar.io |
 | `build/access/fetch-data.mdx` | NO CHANGE | HTTP requests |
 | `build/access/find-data.mdx` | NO CHANGE | GraphQL |
 | `build/access/wayfinder.mdx` | NO CHANGE | Routing |
@@ -99,8 +99,8 @@ Generated 2026-04-28. Tracks every content page and its migration status from AO
 | Page | Status | Notes |
 |------|--------|-------|
 | `build/upload/index.mdx` | NO CHANGE | |
-| `build/upload/turbo-credits.mdx` | UPDATED | AO→Solana for ARIO network labels, removed AO wallets |
-| `build/upload/advanced-uploading-with-turbo.mdx` | NO CHANGE | Turbo SDK |
+| `build/upload/turbo-credits.mdx` | UPDATED | ARIO on Solana network labels, removed AO wallet rows |
+| `build/upload/advanced-uploading-with-turbo.mdx` | NO CHANGE | Turbo SDK (Arweave wallets correct for data uploads) |
 | `build/upload/bundling-services.mdx` | NO CHANGE | |
 | `build/upload/encryption.mdx` | NO CHANGE | |
 | `build/upload/manifests.mdx` | NO CHANGE | |
@@ -113,29 +113,26 @@ Generated 2026-04-28. Tracks every content page and its migration status from AO
 | Page | Status | Notes |
 |------|--------|-------|
 | `build/run-a-gateway/index.mdx` | NO CHANGE | |
-| `build/run-a-gateway/quick-start.mdx` | NO CHANGE | |
-| `build/run-a-gateway/join-the-network.mdx` | UPDATED | Solana wallets, SOL fees, DEX refs |
-| `build/run-a-gateway/manage/environment-variables.mdx` | UPDATED | Removed 2 AO sections, added Solana RPC, updated IO_PROCESS_ID |
-| `build/run-a-gateway/manage/filters.mdx` | UPDATED | Removed compute-unit card link |
+| `build/run-a-gateway/quick-start.mdx` | UPDATED | Solana pubkey format for wallets, observer uniqueness, SOL note |
+| `build/run-a-gateway/join-the-network.mdx` | UPDATED | Solana wallets, SOL fees, DEX refs, keypair CLI example |
+| `build/run-a-gateway/manage/solana-migration.mdx` | NEW | Step-by-step operator migration guide (keypair, SOL, .env, risks) |
+| `build/run-a-gateway/manage/upgrading-a-gateway.mdx` | NO CHANGE | Generic upgrade process |
+| `build/run-a-gateway/manage/environment-variables.mdx` | UPDATED | Removed AO sections, added Solana RPC with provider guidance |
+| `build/run-a-gateway/manage/filters.mdx` | UPDATED | Removed compute-unit card |
+| `build/run-a-gateway/manage/setting-apex-domain.mdx` | UPDATED | arns.ar.io |
 | `build/run-a-gateway/manage/cdb64.mdx` | NO CHANGE | Data indexing (AO refs are filter values) |
 | `build/run-a-gateway/manage/content-moderation.mdx` | NO CHANGE | |
 | `build/run-a-gateway/manage/index.mdx` | NO CHANGE | |
 | `build/run-a-gateway/manage/index-snapshots.mdx` | NO CHANGE | |
-| `build/run-a-gateway/manage/setting-apex-domain.mdx` | NO CHANGE | |
 | `build/run-a-gateway/manage/ssl-certs.mdx` | NO CHANGE | |
 | `build/run-a-gateway/manage/troubleshooting.mdx` | NO CHANGE | |
-| `build/run-a-gateway/manage/upgrading-a-gateway.mdx` | NO CHANGE | |
 | `build/run-a-gateway/manage/x402-setup.mdx` | NO CHANGE | |
 
 ### build/run-wayfinder-router/
 
 | Page | Status | Notes |
 |------|--------|-------|
-| `build/run-wayfinder-router/index.mdx` | NO CHANGE | |
-| `build/run-wayfinder-router/quick-start.mdx` | NO CHANGE | |
-| `build/run-wayfinder-router/configuration.mdx` | NO CHANGE | |
-| `build/run-wayfinder-router/admin-ui.mdx` | NO CHANGE | |
-| `build/run-wayfinder-router/operations.mdx` | NO CHANGE | |
+| All 5 pages | NO CHANGE | Chain-agnostic |
 
 ### build/extensions/
 
@@ -153,25 +150,25 @@ Generated 2026-04-28. Tracks every content page and its migration status from AO
 |------|--------|-------|
 | `build/guides/index.mdx` | NO CHANGE | |
 | `build/guides/arns-marketplace.mdx` | UPDATED | Rewritten for Tensor/Magic Eden NFT trading |
-| `build/guides/working-with-arns/index.mdx` | UPDATED | ANT=Metaplex Core NFT, ario-arns program |
-| `build/guides/working-with-arns/register-arns-programmatically.mdx` | UPDATED | Solana signer, SOL fees |
+| `build/guides/working-with-arns/index.mdx` | UPDATED | ANT=Metaplex Core NFT, ario-ant program, arns.ar.io |
+| `build/guides/working-with-arns/register-arns-programmatically.mdx` | UPDATED | Solana signer, SOL fees, @solana/kit reference |
 | `build/guides/working-with-arns/set-arns-records-programmatically.mdx` | UPDATED | Solana signer, removed ArweaveSigner |
-| `build/guides/working-with-arns/purchase-arns-ui.mdx` | NO CHANGE | UI guide (screenshots TBD later) |
-| `build/guides/working-with-arns/manage-arns-ui.mdx` | NO CHANGE | UI guide (screenshots TBD later) |
+| `build/guides/working-with-arns/purchase-arns-ui.mdx` | UPDATED | arns.ar.io |
+| `build/guides/working-with-arns/manage-arns-ui.mdx` | UPDATED | arns.ar.io |
 | `build/guides/working-with-arns/arns-primary-names.mdx` | NO CHANGE | |
 | `build/guides/hosting-decentralised-apps/index.mdx` | NO CHANGE | |
-| `build/guides/hosting-decentralised-apps/deploying-with-arlink.mdx` | NO CHANGE | |
-| `build/guides/hosting-decentralised-apps/deploying-with-permaweb-deploy.mdx` | NO CHANGE | |
-| `build/guides/hosting-decentralised-apps/hosting-with-ardrive.mdx` | NO CHANGE | |
-| `build/guides/hosting-decentralised-apps/using-undernames-for-versioning.mdx` | NO CHANGE | |
+| `build/guides/hosting-decentralised-apps/deploying-with-arlink.mdx` | UPDATED | arns.ar.io |
+| `build/guides/hosting-decentralised-apps/deploying-with-permaweb-deploy.mdx` | UPDATED | arns.ar.io |
+| `build/guides/hosting-decentralised-apps/hosting-with-ardrive.mdx` | UPDATED | arns.ar.io (was arns.arweave.net) |
+| `build/guides/hosting-decentralised-apps/using-undernames-for-versioning.mdx` | UPDATED | arns.ar.io |
 | `build/guides/using-turbo-in-a-browser/index.mdx` | NO CHANGE | |
 | `build/guides/using-turbo-in-a-browser/html.mdx` | NO CHANGE | |
 | `build/guides/using-turbo-in-a-browser/nextjs.mdx` | NO CHANGE | |
 | `build/guides/using-turbo-in-a-browser/vite.mdx` | NO CHANGE | |
-| `build/guides/depin.mdx` | NO CHANGE | DePIN concepts |
+| `build/guides/depin.mdx` | NO CHANGE | |
 | `build/guides/application-distribution.mdx` | NO CHANGE | |
 | `build/guides/encrypted-data-nillion.mdx` | NO CHANGE | |
-| `build/guides/crossmint-nft-minting-app.mdx` | NO CHANGE | |
+| `build/guides/crossmint-nft-minting-app.mdx` | UPDATED | arns.ar.io |
 | `build/guides/storing-nfts.mdx` | NO CHANGE | |
 
 ### build/advanced/
@@ -179,14 +176,8 @@ Generated 2026-04-28. Tracks every content page and its migration status from AO
 | Page | Status | Notes |
 |------|--------|-------|
 | `build/advanced/index.mdx` | NO CHANGE | |
-| `build/advanced/arfs/index.mdx` | NO CHANGE | |
-| `build/advanced/arfs/creating-drives.mdx` | NO CHANGE | |
-| `build/advanced/arfs/data-model.mdx` | NO CHANGE | |
-| `build/advanced/arfs/entity-types.mdx` | NO CHANGE | |
-| `build/advanced/arfs/privacy.mdx` | NO CHANGE | |
-| `build/advanced/arfs/reading-data.mdx` | NO CHANGE | |
-| `build/advanced/arfs/upgrading-drives.mdx` | NO CHANGE | |
-| `build/advanced/normalized-addresses.mdx` | NO CHANGE | |
+| `build/advanced/arfs/*.mdx` (6 pages) | NO CHANGE | ArFS |
+| `build/advanced/normalized-addresses.mdx` | UPDATED | Removed AO process reference |
 | `build/advanced/sandboxing.mdx` | NO CHANGE | |
 | `build/advanced/ethareum.mdx` | NO CHANGE | |
 
@@ -196,73 +187,61 @@ Generated 2026-04-28. Tracks every content page and its migration status from AO
 
 | Page | Status | Notes |
 |------|--------|-------|
-| `sdks/index.mdx` | UPDATED | "smart contracts" → "Solana programs" |
+| `sdks/index.mdx` | UPDATED | "Solana programs" |
 
 ### sdks/ar-io-sdk/
 
 | Page | Status | Notes |
 |------|--------|-------|
-| `sdks/ar-io-sdk/index.mdx` | UPDATED | "AO contract" → "Solana program" |
+| `sdks/ar-io-sdk/index.mdx` | UPDATED | "Solana program", v3.23+ callout, @solana/kit install note |
 | `sdks/ar-io-sdk/token-conversion.mdx` | UPDATED | "process" → "protocol" |
-| `sdks/ar-io-sdk/pagination.mdx` | NO CHANGE | SDK pagination patterns |
+| `sdks/ar-io-sdk/pagination.mdx` | NO CHANGE | |
 | `sdks/ar-io-sdk/logging.mdx` | NO CHANGE | |
-| `sdks/ar-io-sdk/(ario-contract)/configuration.mdx` | REWRITTEN | Solana RPC config, legacy footnote |
+| `sdks/ar-io-sdk/(ario-contract)/configuration.mdx` | REWRITTEN | Solana RPC, @solana/kit install, version callout, RPC provider guidance, SOL costs |
 | `sdks/ar-io-sdk/(ario-contract)/networks.mdx` | REWRITTEN | Program addresses, Solana devnet |
-| `sdks/ar-io-sdk/(ario-contract)/general.mdx` | REWRITTEN | Solana signers as default |
-| `sdks/ar-io-sdk/(ario-contract)/arweave-name-system-arns.mdx` | UPDATED | mint address, minting-ant callback |
-| `sdks/ar-io-sdk/(ario-contract)/epochs.mdx` | NO CHANGE | API responses (verify post-launch) |
-| `sdks/ar-io-sdk/(ario-contract)/gateways.mdx` | NO CHANGE | API methods unchanged |
-| `sdks/ar-io-sdk/(ario-contract)/primary-names.mdx` | NO CHANGE | API methods unchanged |
-| `sdks/ar-io-sdk/(ario-contract)/vaults.mdx` | NO CHANGE | API methods unchanged |
+| `sdks/ar-io-sdk/(ario-contract)/general.mdx` | REWRITTEN | Solana signers with @solana/kit example, @solana/kit install note |
+| `sdks/ar-io-sdk/(ario-contract)/arweave-name-system-arns.mdx` | UPDATED | processId field note, mint address, minting-ant callback, Solana signers |
+| `sdks/ar-io-sdk/(ario-contract)/epochs.mdx` | UPDATED | Solana signer in saveObservations |
+| `sdks/ar-io-sdk/(ario-contract)/gateways.mdx` | UPDATED | Solana signers (12 instances), removed autoStake, Solana observer address |
+| `sdks/ar-io-sdk/(ario-contract)/primary-names.mdx` | UPDATED | Solana signers, processId → ANT owner note |
+| `sdks/ar-io-sdk/(ario-contract)/vaults.mdx` | UPDATED | Solana signers (5 instances) |
 | `sdks/ar-io-sdk/(ant-contracts)/initialize.mdx` | UPDATED | Solana wallet adapter + mint address |
-| `sdks/ar-io-sdk/(ant-contracts)/spawn.mdx` | UPDATED | "Spawns AO process" → "Mints Metaplex Core NFT" |
+| `sdks/ar-io-sdk/(ant-contracts)/spawn.mdx` | UPDATED | "Mints Metaplex Core NFT", Solana signer |
 | `sdks/ar-io-sdk/(ant-contracts)/static-methods.mdx` | UPDATED | Fork → new NFT, Solana signers |
 | `sdks/ar-io-sdk/(ant-contracts)/upgrade.mdx` | UPDATED | Metaplex Core schema versioning |
-| `sdks/ar-io-sdk/(ant-contracts)/transfer.mdx` | UPDATED | "Arweave address" → "Solana address" |
+| `sdks/ar-io-sdk/(ant-contracts)/transfer.mdx` | UPDATED | "Solana address", Metaplex Core transfer |
 | `sdks/ar-io-sdk/(ant-contracts)/ario-integrations.mdx` | UPDATED | PROCESS_ID → PROGRAM_ID |
-| `sdks/ar-io-sdk/(ant-contracts)/records.mdx` | NO CHANGE | API unchanged |
+| `sdks/ar-io-sdk/(ant-contracts)/undername-ownership.mdx` | UPDATED | Solana signer |
+| `sdks/ar-io-sdk/(ant-contracts)/records.mdx` | NO CHANGE | |
 | `sdks/ar-io-sdk/(ant-contracts)/controllers.mdx` | NO CHANGE | |
 | `sdks/ar-io-sdk/(ant-contracts)/metadata.mdx` | NO CHANGE | |
 | `sdks/ar-io-sdk/(ant-contracts)/balances.mdx` | NO CHANGE | |
 | `sdks/ar-io-sdk/(ant-contracts)/state.mdx` | NO CHANGE | |
-| `sdks/ar-io-sdk/(ant-contracts)/undername-ownership.mdx` | NO CHANGE | |
 | `sdks/ar-io-sdk/(ant-contracts)/versions.mdx` | NO CHANGE | |
 
-### sdks/turbo-sdk/ (11 pages)
+### sdks/turbo-sdk/ (13 pages)
 
 | Page | Status | Notes |
 |------|--------|-------|
-| `sdks/turbo-sdk/index.mdx` | NO CHANGE | Independent service |
-| `sdks/turbo-sdk/logging.mdx` | NO CHANGE | |
-| `sdks/turbo-sdk/turbo-credit-sharing.mdx` | NO CHANGE | |
-| `sdks/turbo-sdk/(apis)/turbofactory.mdx` | NO CHANGE | |
-| `sdks/turbo-sdk/(apis)/turboauthenticatedclient.mdx` | NO CHANGE | |
-| `sdks/turbo-sdk/(apis)/turbounauthenticatedclient.mdx` | NO CHANGE | |
-| `sdks/turbo-sdk/(events)/file-upload-events.mdx` | NO CHANGE | |
-| `sdks/turbo-sdk/(events)/folder-upload-events.mdx` | NO CHANGE | |
-| `sdks/turbo-sdk/(signers)/arweave.mdx` | NO CHANGE | |
-| `sdks/turbo-sdk/(signers)/base.mdx` | NO CHANGE | |
-| `sdks/turbo-sdk/(signers)/ethereum.mdx` | NO CHANGE | |
-| `sdks/turbo-sdk/(signers)/kyve.mdx` | NO CHANGE | |
-| `sdks/turbo-sdk/(signers)/solana.mdx` | NO CHANGE | |
+| All pages | NO CHANGE | Independent service, Arweave wallets correct for data uploads |
 
 ### sdks/ardrive-core-js/ (16 pages)
 
 | Page | Status | Notes |
 |------|--------|-------|
-| All pages | NO CHANGE | ArDrive SDK, chain-agnostic |
+| All pages | NO CHANGE | ArDrive SDK |
 
 ### sdks/(clis)/ardrive-cli/ (~40 pages)
 
 | Page | Status | Notes |
 |------|--------|-------|
-| All pages | NO CHANGE | ArDrive CLI, chain-agnostic |
+| All pages | NO CHANGE | ArDrive CLI |
 
 ### sdks/wayfinder/ (~12 pages)
 
 | Page | Status | Notes |
 |------|--------|-------|
-| All pages | NO CHANGE | Wayfinder SDK, chain-agnostic |
+| All pages | NO CHANGE | Wayfinder SDK |
 
 ---
 
@@ -289,17 +268,16 @@ Generated 2026-04-28. Tracks every content page and its migration status from AO
 | Status | Count |
 |--------|-------|
 | REWRITTEN | 7 |
-| UPDATED | 33 |
-| NEW | 6 |
+| UPDATED | 52 |
+| NEW | 7 |
 | DELETED | 2 |
-| NO CHANGE | ~207 |
-| **Total** | **255** |
+| NO CHANGE | ~192 |
+| **Total** | **260** |
 
 ## Remaining TODOs
 
 - [ ] Replace `<ARIO_MINT_ADDRESS>` and `<ARIO_PROGRAM_ID>` placeholders with final addresses before launch
+- [ ] Regenerate SDK output examples from Solana devnet (`npm run generate-sdk-docs`) — 8 files still show Arweave-format addresses in JSON output
 - [ ] Update UI screenshots in `purchase-arns-ui.mdx` and `manage-arns-ui.mdx` once Solana UI is live
-- [ ] Run `npm run build` to verify no broken MDX
-- [ ] Run `npm run check-links` to validate all internal links
 - [ ] Run `npm run generate-all-docs` to regenerate LLM text files
-- [ ] Verify `turbo-credits.mdx` with Turbo team once ARIO payment chain is finalized
+- [ ] Verify turbo-credits.mdx with Turbo team once ARIO Solana payment is finalized
