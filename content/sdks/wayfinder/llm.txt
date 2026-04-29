@@ -1,6 +1,6 @@
 # Wayfinder SDK's (/index)
 
-Wayfinder leverages the decentralized AR.IO Network to provide robust, censorship-resistant access to data stored on Arweave, removing reliance on centralized gateways. By routing requests through a distributed set of community-operated gateways, Wayfinder ensures high availability, redundancy, and improved performance for users and applications.
+Wayfinder leverages the decentralized ar.io Network to provide robust, censorship-resistant access to data stored on Arweave, removing reliance on centralized gateways. By routing requests through a distributed set of community-operated gateways, Wayfinder ensures high availability, redundancy, and improved performance for users and applications.
 
 The `ar://` protocol enables decentralized resolution and access to Arweave data using several flexible URL formats:
 
@@ -24,6 +24,13 @@ Choose your environment to get started with Wayfinder:
     description="React hooks and components for browser applications"
     href="/sdks/wayfinder/wayfinder-react"
   />
+  }
+    title="Wayfinder Router"
+    description="Standalone proxy service with built-in verification and caching"
+    href="/build/run-wayfinder-router"
+  />
+
+  **Don't want to embed an SDK?** [Wayfinder Router](/build/run-wayfinder-router) is a standalone proxy you can deploy to provide a single verified endpoint for your users.
 
 ## Quick Examples
 
@@ -73,8 +80,8 @@ function WayfinderImage({ txId }: { txId: string }) {
 ## Next Steps
 
   }
-    title="Learn about the AR.IO Network"
-    description="Understanding the AR.IO decentralized infrastructure"
+    title="Learn about ar.io"
+    description="Understanding the ar.io decentralized infrastructure"
     href="/learn/what-is-ario"
   />
   }
@@ -83,49 +90,130 @@ function WayfinderImage({ txId }: { txId: string }) {
     href="/build/access"
   />
   }
-    title="Run a Gateway"
-    description="Join the network by operating your own AR.IO gateway"
-    href="/build/run-a-gateway/quick-start"
+    title="Run Wayfinder Router"
+    description="Deploy a standalone verified proxy for your users"
+    href="/build/run-wayfinder-router"
   />
   }
-    title="Integrate Wayfinder into your App"
-    description="Advanced integration patterns and best practices"
-    href="/sdks/wayfinder/wayfinder-core"
+    title="Run a Gateway"
+    description="Join the network by operating your own ar.io gateway"
+    href="/build/run-a-gateway/quick-start"
   />
 
-# Global Events (/wayfinder-core/(events-and-monitoring)/global-events)
+# Data Retrieval Strategies (/wayfinder-core/data-retrieval-strategies)
+
+Wayfinder supports multiple data retrieval strategies to fetch transaction data from ar.io gateways. These strategies determine how data is requested and assembled from the underlying storage layer.
+
+| Strategy                          | Use Case                                    | Requirements                           |
+| --------------------------------- | ------------------------------------------- | -------------------------------------- |
+| `ContiguousDataRetrievalStrategy`| Standard data fetching via direct GET      | Gateway has the data cached or able to fetch from trusted peers         |
+| `ChunkDataRetrievalStrategy`     | Chunk-based data assembly  | Gateway supports `/chunk/\/data` endpoint (r58) and has requested transactions indexed |
+
+#### ContiguousDataRetrievalStrategy
+
+The default strategy that fetches data using a direct GET request to the gateway. This is the most straightforward approach and works for most use cases.
 
 ```javascript
-const wayfinder = createWayfinderClient({
-  routingSettings: {
-    events: {
-      onRoutingStarted: (event) => console.log('Routing started:', event),
-      onRoutingSucceeded: (event) => console.log('Gateway selected:', event),
-    },
-  },
-  verificationSettings: {
-    events: {
-      onVerificationProgress: (event) => {
-        const percentage = (event.processedBytes / event.totalBytes) * 100;
-        console.log(`Verification: ${percentage.toFixed(2)}%`);
-      },
-      onVerificationSucceeded: (event) => console.log('Verified:', event.txId),
-    },
-  },
+
+const wayfinder = new Wayfinder({
+  dataRetrievalStrategy: new ContiguousDataRetrievalStrategy(),
 });
 ```
 
-# Request-Specific Events (/wayfinder-core/(events-and-monitoring)/request-specific-events)
+#### ChunkDataRetrievalStrategy
+
+An advanced strategy that provides the easiest way to load chunks stored on Arweave nodes via the robust chunk API provided by ar.io gateways. This approach is particularly useful for:
+
+- **Direct chunk access**: Efficiently retrieves data directly from the underlying chunk storage layer
+- **Bundled data items**: Seamlessly fetches data items from within ANS-104 bundles using calculated offsets
+- **x402 payment compatibility**: Both strategies support custom fetch clients for payment-enabled requests
+- **Large file handling**: More reliable for large transactions that may time out with direct requests
+
+**Requirements:**
+
+- Gateway must support the `/chunk/\/data` endpoint (added in [r58](https://github.com/ar-io/ar-io-node/releases/tag/r58))
+- Gateway must have the requested transaction indexed (offsets are needed to fetch directly from chunks)
 
 ```javascript
-const response = await wayfinder.request('ar://example', {
-  verificationSettings: {
-    events: {
-      onVerificationProgress: (event) => {
-        console.log(`This request: ${event.txId}`);
-      },
-    },
-  },
+
+const wayfinder = new Wayfinder({
+  dataRetrievalStrategy: new ChunkDataRetrievalStrategy(),
+});
+```
+
+**How it works:**
+
+1. Makes a HEAD request to get transaction metadata (root transaction ID, data offset, content length)
+2. Queries `/tx/{root-tx-id}/offset` to get the root transaction's absolute offset in the weave
+3. Calculates the absolute offset for the requested data item
+4. Fetches data in chunks using `/chunk/\/data` and assembles the complete data stream
+5. Validates that chunks belong to the expected root transaction for security
+
+**Sequence Diagram:**
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Wayfinder
+    participant Gateway as ar.io Gateway
+    participant Arweave as Arweave Nodes
+
+    Client->>Wayfinder: request('ar://data-item-id')
+    activate Wayfinder
+
+    Wayfinder->>Gateway: HEAD /tx/{data-item-id}
+    Note over Gateway: Lookup data item metadatafrom indexed bundles
+    Gateway-->>Wayfinder: Headers:- x-root-tx-id (bundle ID)- x-data-offset- content-length
+
+    Wayfinder->>Gateway: GET /tx/{root-tx-id}/offset
+    Gateway->>Arweave: GET /tx/{root-tx-id}/offset
+    Note over Arweave: Lookup transaction offsetin the weave
+    Arweave-->>Gateway: Root transaction offset
+    Gateway-->>Wayfinder: Root transaction offset in weave
+
+    Note over Wayfinder: Calculate absolute offset:absolute = root_offset + data_offset
+
+    loop For each chunk needed
+        Wayfinder->>Gateway: GET /chunk/{absolute-offset}/data
+        
+        Note over Gateway: Serve chunk data fromindexed storage usingroot transaction ID
+        
+        Gateway-->>Wayfinder: Chunk data + validation headers(x-root-tx-id for security)
+        
+        Note over Wayfinder: Validate chunk belongsto expected root TX
+        
+        Wayfinder-->>Client: Stream chunk data
+    end
+
+    Wayfinder-->>Client: Complete response
+    deactivate Wayfinder
+```
+
+**Example with createWayfinderClient:**
+
+```javascript
+
+const wayfinder = createWayfinderClient({
+  dataRetrievalStrategy: new ChunkDataRetrievalStrategy(),
+});
+
+// Fetch a data item from within an ANS-104 bundle
+const response = await wayfinder.request('ar://data-item-id');
+```
+
+#### x402 Support
+
+Both data retrieval strategies support custom fetch implementations, allowing you to use x402-enabled fetch clients for paid gateway requests.
+
+```javascript
+
+const x402Fetch = createX402Fetch({ /* payment config */ });
+
+const wayfinder = createWayfinderClient({
+  fetch: x402Fetch,
+  dataRetrievalStrategy: new ChunkDataRetrievalStrategy({
+    fetch: x402Fetch,
+  }),
 });
 ```
 
@@ -177,13 +265,51 @@ const redirectUrl = await wayfinder.resolveUrl({
 // results in https://\/example-name/subpath?query=value
 ```
 
+# Events and Monitoring (/wayfinder-core/events-and-monitoring)
+
+#### Global Events
+
+```javascript
+const wayfinder = createWayfinderClient({
+  routingSettings: {
+    events: {
+      onRoutingStarted: (event) => console.log('Routing started:', event),
+      onRoutingSucceeded: (event) => console.log('Gateway selected:', event),
+    },
+  },
+  verificationSettings: {
+    events: {
+      onVerificationProgress: (event) => {
+        const percentage = (event.processedBytes / event.totalBytes) * 100;
+        console.log(`Verification: ${percentage.toFixed(2)}%`);
+      },
+      onVerificationSucceeded: (event) => console.log('Verified:', event.txId),
+    },
+  },
+});
+```
+
+#### Request-Specific Events
+
+```javascript
+const response = await wayfinder.request('ar://example', {
+  verificationSettings: {
+    events: {
+      onVerificationProgress: (event) => {
+        console.log(`This request: ${event.txId}`);
+      },
+    },
+  },
+});
+```
+
 # Gateway Providers (/wayfinder-core/gateway-providers)
 
 Gateway providers supply the list of gateways for routing. **By default, `createWayfinderClient` uses a cached `TrustedPeersGatewaysProvider`**.
 
 | Provider                       | Description                                    | Use Case                                |
 | ------------------------------ | ---------------------------------------------- | --------------------------------------- |
-| `NetworkGatewaysProvider`      | Returns gateways from AR.IO Network | Leverage AR.IO Network with quality filtering |
+| `NetworkGatewaysProvider`      | Returns gateways from ar.io | Leverage ar.io with quality filtering |
 | `TrustedPeersGatewaysProvider` | Fetches from trusted gateway's peers | Dynamic gateway discovery (default) |
 | `StaticGatewaysProvider`       | Returns a static list of gateways | Testing or specific gateways |
 | `SimpleCacheGatewaysProvider`  | In-memory caching wrapper | Reduce API calls (used by default) |
@@ -206,7 +332,7 @@ const gatewayProvider = new NetworkGatewaysProvider({
 
 #### TrustedPeersGatewaysProvider
 
-Fetches a dynamic list of trusted peer gateways from an AR.IO gateway's `/ar-io/peers` endpoint. This provider is useful for discovering available gateways from a trusted source.
+Fetches a dynamic list of trusted peer gateways from an ar.io gateway's `/ar-io/peers` endpoint. This provider is useful for discovering available gateways from a trusted source.
 
 ```javascript
 
@@ -215,7 +341,7 @@ const gatewayProvider = new TrustedPeersGatewaysProvider({
 });
 ```
 
-# Wayfinder Core (/wayfinder-core)
+# Wayfinder Core (/wayfinder-core/index)
 
 **Building for the web?** Consider using [@ar.io/wayfinder-react](/sdks/wayfinder/wayfinder-react) for React applications, which provides hooks and components optimized for browser environments.
 
@@ -242,7 +368,20 @@ const gatewayProvider = new TrustedPeersGatewaysProvider({
     console.log(response);
     ```
 
-   ### Enable Telemetry
+   ### Use custom strategies
+
+    ```javascript
+    
+    const customWayfinder = createWayfinderClient({
+      routingStrategy: createRoutingStrategy({ strategy: 'random' })
+      verificationStrategy: createVerificationStrategy({ 
+        strategy: 'hash', 
+        trustedGateways: ['https://permagate.io'] 
+      })
+    });
+    ```
+
+   ### Enable Telemetry (Optional)
 
     ```javascript
     
@@ -252,24 +391,6 @@ const gatewayProvider = new TrustedPeersGatewaysProvider({
         sampleRate: 0.1, // 10% sampling
         clientName: 'my-app',
         clientVersion: '1.0.0',
-      }
-    });
-    ```
-
-   ### Use custom strategies
-
-    ```javascript
-    
-    const customWayfinder = createWayfinderClient({
-      routingSettings: {
-        strategy: createRoutingStrategy({ strategy: 'random' })
-      }
-      verificationSettings: {
-        enabled: true,
-        strategy: createVerificationStrategy({ 
-          strategy: 'hash', 
-          trustedGateways: ['https://permagate.io'] 
-        })
       }
     });
     ```
@@ -396,72 +517,70 @@ The `CompositeRoutingStrategy` allows you to chain multiple routing strategies t
 **Common use cases:**
 
 - **Performance + Resilience**: Try fastest ping first, fallback to random if ping fails
-- **Preferred + Network**: Use your own gateway first, fallback to AR.IO network selection
+- **Preferred + Network**: Use your own gateway first, fallback to ar.io network selection
 - **Multi-tier Fallback**: Try premium gateways, then standard gateways, then any available gateway
 
 ```javascript
 import { 
+  createWayfinderClient,
   CompositeRoutingStrategy, 
   FastestPingRoutingStrategy, 
   RandomRoutingStrategy,
   StaticRoutingStrategy,
-  NetworkGatewaysProvider 
+  NetworkGatewaysProvider,
 } from '@ar.io/wayfinder-core';
 
 // Example 1: Performance-first with resilience fallback
-const performanceStrategy = new CompositeRoutingStrategy({
-  strategies: [
-    // Try fastest ping first (high performance, but may fail if all gateways are slow)
-    new FastestPingRoutingStrategy({
-      timeoutMs: 500,
-      gatewaysProvider: new NetworkGatewaysProvider({
-        ario: ARIO.mainnet(),
-        sortBy: 'operatorStake',
-        limit: 10,
+const performanceWayfinder = createWayfinderClient({
+  routingStrategy: new CompositeRoutingStrategy({
+    strategies: [
+      // Try fastest ping first (high performance, but may fail if all gateways are slow)
+      new FastestPingRoutingStrategy({
+        timeoutMs: 500,
+        gatewaysProvider: new NetworkGatewaysProvider({
+          ario: ARIO.mainnet(),
+          sortBy: 'operatorStake',
+          limit: 10,
+        }),
       }),
-    }),
-    // Fallback to random selection (guaranteed to work if gateways exist)
-    new RandomRoutingStrategy({
-      gatewaysProvider: new NetworkGatewaysProvider({
-        ario: ARIO.mainnet(),
-        sortBy: 'operatorStake', 
-        limit: 20, // Use more gateways for fallback
+      // Fallback to random selection (guaranteed to work if gateways exist)
+      new RandomRoutingStrategy({
+        gatewaysProvider: new NetworkGatewaysProvider({
+          ario: ARIO.mainnet(),
+          sortBy: 'operatorStake', 
+          limit: 20, // Use more gateways for fallback
+        }),
       }),
-    }),
-  ],
+    ],
+  }),
 });
 
 // Example 2: Preferred gateway with multi-tier fallback
-const preferredStrategy = new CompositeRoutingStrategy({
-  strategies: [
-    // First, try your preferred gateway
-    new StaticRoutingStrategy({ 
-      gateway: 'https://my-preferred-gateway.com' 
-    }),
-    // If that fails, try fastest ping from top-tier gateways
-    new FastestPingRoutingStrategy({
-      timeoutMs: 1000,
-      gatewaysProvider: new NetworkGatewaysProvider({
-        ario: ARIO.mainnet(),
-        sortBy: 'operatorStake',
-        limit: 5, // Only top 5 gateways
+const preferredWayfinder = createWayfinderClient({
+  routingStrategy: new CompositeRoutingStrategy({
+    strategies: [
+      // First, try your preferred gateway
+      new StaticRoutingStrategy({ 
+        gateway: 'https://my-preferred-gateway.com' 
       }),
-    }),
-    // Final fallback: any random gateway from a larger pool
-    new RandomRoutingStrategy({
-      gatewaysProvider: new NetworkGatewaysProvider({
-        ario: ARIO.mainnet(),
-        limit: 50, // Larger pool for maximum availability
+      // If that fails, try fastest ping from top-tier gateways
+      new FastestPingRoutingStrategy({
+        timeoutMs: 1000,
+        gatewaysProvider: new NetworkGatewaysProvider({
+          ario: ARIO.mainnet(),
+          sortBy: 'operatorStake',
+          limit: 5, // Only top 5 gateways
+        }),
       }),
-    }),
-  ],
-});
-
-// Use with createWayfinderClient
-const wayfinder = createWayfinderClient({
-  routingSettings: {
-    strategy: performanceStrategy,
-  },
+      // Final fallback: any random gateway from a larger pool
+      new RandomRoutingStrategy({
+        gatewaysProvider: new NetworkGatewaysProvider({
+          ario: ARIO.mainnet(),
+          limit: 50, // Larger pool for maximum availability
+        }),
+      }),
+    ],
+  }),
 });
 ```
 
@@ -563,7 +682,9 @@ const wayfinder = new Wayfinder({
 
 Wayfinder can be configured to work with the [x402 payment protocol](https://docs.ar.io/learn/gateways/x402-payments#what-is-x402) for paid gateway services and higher rate limits. This allows you to seamlessly make requests that may require payment without having to manually handle payment flows.
 
-To use x402 payments, you need to install the `@ar.io/wayfinder-x402-fetch` package.
+To get started, install the `@ar.io/wayfinder-x402-fetch` package.
+
+The `@ar.io/wayfinder-x402-fetch` package is a simple wrapper of the [x402-fetch](https://github.com/coinbase/x402/tree/1d4c253aef959b73b46d42e7f0ccf30c7ce64955/typescript/packages/x402-fetch)  library, which creates a fetch implementation to automatically handles x402 payment flows. You can use this fetch implementation with Wayfinder to enable x402 payments for your requests.
 
 ```javascript
 
@@ -576,7 +697,7 @@ const x402Fetch = createX402Fetch({
   walletClient: account,
 });
 
-// Create Wayfinder client with x402 fetch
+// Create Wayfinder client with x402 fetch to handle payments
 const wayfinder = createWayfinderClient({
   fetch: x402Fetch,
   routingSettings: {
@@ -685,11 +806,11 @@ function WayfinderImage({ txId }: { txId: string }) {
 }
 ```
 
-# Wayfinder React (/wayfinder-react)
+# Wayfinder React (/wayfinder-react/index)
 
 A set of React hooks and components for integrating Wayfinder, the decentralized data access system for Arweave.
 
-Wayfinder-react wraps the functionality of wayfinder-core in user-friendly React components and hooks, making it easy to integrate AR.IO network functionality into your React applications with built-in loading states, error handling, and caching.
+Wayfinder-react wraps the functionality of wayfinder-core in user-friendly React components and hooks, making it easy to integrate ar.io network functionality into your React applications with built-in loading states, error handling, and caching.
 
 ## Quick Start
 
