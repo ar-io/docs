@@ -1,14 +1,14 @@
 ---
-title: 'Architecture'
-description: "Explore the technical architecture of the ARIO Solana programs and ar.io's system components"
+title: 'Protocol Architecture'
+description: "Explore the technical architecture of the ar.io Solana programs and protocol components"
 ---
 
-## ARIO Program Architecture
+## Ar.io Protocol Architecture
 
-The ARIO protocol operates through four Solana programs (3+1) that work together via cross-program invocation (CPI). This architecture consolidates what was previously spread across separate processes into a coordinated set of programs with clear responsibilities.
+The ar.io protocol operates through four Solana programs (3+1) that work together via cross-program invocation (CPI). This architecture consolidates what was previously spread across separate processes into a coordinated set of programs with clear responsibilities.
 
 ```mermaid
-graph LR
+graph TD
 
     subgraph CORE["ario-core"]
         direction TB
@@ -19,14 +19,14 @@ graph LR
 
     subgraph GAR["ario-gar"]
         direction TB
-        GW_REG[Gateway Registry<br/>3,000 slots]
+        GW_REG[Gateway Registry]
         STAKING[Staking & Delegation]
         EPOCHS[Epochs & Rewards]
     end
 
     subgraph ARNS["ario-arns"]
         direction TB
-        NAME_REG[Name Registry<br/>50,000 slots]
+        NAME_REG[Name Registry]
         DEMAND[Demand Factor]
         PRICING[Pricing & Auctions]
     end
@@ -38,9 +38,10 @@ graph LR
         CTRL[Controllers]
     end
 
-    GAR -->|CPI: token ops| CORE
-    ARNS -->|CPI: token ops| CORE
-    ARNS -.->|reads gateway data| GAR
+    CORE --> GAR
+    CORE --> ARNS
+    ARNS --> ANT
+    ARNS -.->|gateway data| GAR
 
     classDef coreProgram fill:#e3f2fd
     classDef garProgram fill:#e8f5e8
@@ -60,8 +61,7 @@ graph LR
 The core program manages the ARIO SPL Token, vaults, and primary names:
 
 - **SPL Token Operations**: ARIO is a standard SPL Token (6 decimals, 1 ARIO = 1,000,000 mARIO). Transfers, balances, and token accounts follow the SPL Token standard.
-- **Vaults**: Time-locked token deposits for various purposes — RFPs, bounties, and ecosystem programs. Minimum size: 100 ARIO. Duration: 14 days to 200 years.
-- **Primary Names**: Maps a Solana wallet address to a single ArNS name for easy identification. Fee: 0.2 ARIO × demand factor.
+- **Vaults**: Time-locked token deposits for various purposes, including ecosystem programs and other protocol-managed incentives.
 
 Other programs (ario-gar, ario-arns) call into ario-core via CPI for all token operations.
 
@@ -69,26 +69,26 @@ Other programs (ario-gar, ario-arns) call into ario-core via CPI for all token o
 
 Manages the network's gateway infrastructure, staking, delegation, and the epoch reward pipeline:
 
-- **Gateway Registry**: A zero-copy on-chain registry with up to 3,000 gateway slots. Each gateway is a PDA storing operator address, stake, observer address, settings, and performance stats.
+- **Gateway Registry**: An onchain registry of network gateways. Each gateway is a PDA storing operator address, stake, observer address, settings, and performance stats.
 - **Staking & Delegation**: Operator stakes, delegated stakes (separate PDA per gateway-delegator pair), withdrawals, redelegation, and allowlists.
 - **Observer Address Uniqueness**: An ObserverLookup PDA enforces that no two gateways share the same observer address.
 - **Epoch Pipeline**: A 6-step permissionless pipeline driven by [cranker bots](/learn/oip/cranker):
   1. `create_epoch` — Initialize epoch, compute reward rate
-  2. `tally_weights` — Batched weight computation (15 gateways per transaction)
+  2. `tally_weights` — Batched weight computation
   3. `prescribe_epoch` — Select observers and prescribed names via weighted roulette
   4. `save_observations` — Observers submit pass/fail reports
-  5. `distribute_epoch` — Batched reward distribution (15 gateways per transaction)
-  6. `close_epoch` — Reclaim rent after 7+ epochs
-- **Gateway Pruning**: Gateways that fail 30 consecutive epochs have 100% of their minimum stake slashed and are removed from the network.
+  5. `distribute_epoch` — Batched reward distribution
+  6. `close_epoch` — Reclaim rent from completed epoch accounts
+- **Gateway Pruning**: Gateways that repeatedly fail observation are removed from the network and subject to stake slashing.
 
 ### ario-arns (ArNS Registry)
 
 Manages the Ar.io Name System — name registration, leasing, pricing, and returned names:
 
-- **Name Registry**: A zero-copy on-chain registry with up to 50,000 name slots. Each name is an ArnsRecord PDA storing the owner, ANT mint address, lease type, and expiration.
-- **Pricing**: Dynamic pricing via a DemandFactor PDA. Fee halving occurs when the demand factor stays at minimum (0.5×) for 7 consecutive periods.
-- **Returned Name Auctions**: When a name expires or is released, it enters a Dutch auction: 50× → 1× base price over 14 days, with a 50/50 revenue split between protocol and previous owner.
-- **Validation**: 43-character names are prohibited (Arweave TX ID collision prevention). Names must be lowercase at submission.
+- **Name Registry**: An onchain registry of ArNS domains. Each name is an ArnsRecord PDA storing the owner, ANT mint address, lease type, and expiration.
+- **Pricing**: Dynamic pricing via a DemandFactor PDA.
+- **Returned Name Auctions**: When a name expires or is released, it enters a Dutch auction.
+- **Validation**: Names must meet certain formatting criteria.
 - **Cost Simulation**: `get_token_cost` view instruction available via `simulateTransaction` for fee estimation.
 
 ### ario-ant (Ar.io Name Tokens)
@@ -97,9 +97,8 @@ ANTs are [Metaplex Core](https://developers.metaplex.com/core) NFTs that represe
 
 - **NFT Standard**: Each ANT is a Metaplex Core asset — tradeable on Tensor, Magic Eden, and other NFT marketplaces.
 - **DNS-like Records**: Each ANT stores routing records (AntRecord PDAs) mapping undernames to Arweave transaction IDs or IPFS CIDs, with configurable TTL values.
-- **Controllers**: Up to 10 controllers per ANT can manage records without holding the NFT itself.
+- **Controllers**: Controllers can manage records without holding the NFT itself.
 - **Lazy Reconciliation**: When an ANT is transferred via a marketplace (outside the ar.io protocol), controllers are cleared on the next write operation, ensuring the new owner has full control.
-- **@ Record**: The root (@) record cannot be removed, only updated — ensuring the name always resolves.
 
 ## State Model
 
@@ -129,8 +128,8 @@ All protocol state is stored in Solana accounts using Program Derived Addresses 
 The architecture implements multiple layers of security:
 
 ### Economic Security
-- **Stake Requirements**: Minimum 10,000 ARIO to join as a gateway operator
-- **Performance-Based Pruning**: Gateways that fail observation for 30 consecutive epochs are removed with 100% of minimum stake slashed
+- **Stake Requirements**: Minimum ARIO token stake to join as a gateway operator
+- **Performance-Based Pruning**: Gateways that repeatedly fail observation are removed from the network and subject to stake slashing
 - **Observation Consensus**: Peer-to-peer monitoring ensures no single point of failure
 
 ### Technical Security
@@ -142,4 +141,4 @@ The architecture implements multiple layers of security:
 ### Governance Security
 - **Current Ownership**: Managed by a Squads v4 multisig
 - **Path to Immutability**: Plans to transition to fully immutable protocol
-- **Transparent State**: All on-chain state is publicly verifiable via any Solana RPC or explorer
+- **Transparent State**: All onchain state is publicly verifiable via any Solana RPC or explorer

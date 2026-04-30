@@ -31,9 +31,9 @@ These pages define what AR.IO *is* to new visitors. Incorrect information here u
 
 ---
 
-### 2. `content/learn/token/architecture.mdx` — FULL REWRITE
+### 2. `content/learn/(introduction)/protocol-architecture.mdx` — MOVED + FULL REWRITE
 
-**Current state:** Describes ARIO smart contract on AO with mermaid diagram showing "External AO Processes" including ANT Registry and ANT processes.
+**Current state:** Moved from `content/learn/token/architecture.mdx` to the introduction section because it describes the broader ar.io protocol architecture, not only token mechanics.
 
 **What changes:**
 - Architecture is now 3+1 Solana programs: ario-core, ario-gar, ario-arns, ario-ant
@@ -299,7 +299,7 @@ These pages are used by developers building on ar.io and operators managing gate
 - Max 10 controllers per ANT (was unlimited)
 - @ record cannot be removed (only updated)
 - Lazy reconciliation on marketplace transfer (controllers cleared on next write)
-- No "AO process" — it's an NFT with on-chain state in a PDA
+- No "AO process" — it's an NFT with onchain state in a PDA
 
 **Action:** Major update. Reframe ANTs from AO processes to Solana NFTs. Document new constraints and marketplace compatibility.
 

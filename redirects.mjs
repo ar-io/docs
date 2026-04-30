@@ -399,7 +399,7 @@ const redirects = [
   // Contract pages
   {
     source: '/ario-contract',
-    destination: '/learn/token/architecture',
+    destination: '/learn/protocol-architecture',
     permanent: true,
   },
 

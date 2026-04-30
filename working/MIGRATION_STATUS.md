@@ -12,12 +12,13 @@ Updated 2026-04-29. Tracks every content page and its migration status from AO t
 
 ---
 
-## Learn Section
+## Learn Section (DONE)
 
 | Page | Status | Notes |
 |------|--------|-------|
 | `learn/(introduction)/index.mdx` | DONE - UPDATED | arns.app → arns.ar.io |
 | `learn/(introduction)/what-is-ario.mdx` | DONE - UPDATED | "Arweave and AO" → "Arweave + Solana" |
+| `learn/(introduction)/protocol-architecture.mdx` | DONE - MOVED+UPDATED | Moved from `learn/token/architecture.mdx`; protocol-level 3+1 Solana programs |
 | `learn/(introduction)/what-is-arweave.mdx` | DONE - NO CHANGE | Arweave storage layer |
 | `learn/(introduction)/what-is-permaweb.mdx` | DONE - DELETED | Removed standalone page; light permaweb context moved into `what-is-ario.mdx` |
 | `learn/(introduction)/ans-104-bundles.mdx` | DONE - NO CHANGE | Bundle standard |
@@ -27,7 +28,7 @@ Updated 2026-04-29. Tracks every content page and its migration status from AO t
 | Page | Status | Notes |
 |------|--------|-------|
 | `learn/token/index.mdx` | REWRITTEN | SPL Token on Solana, new architecture section |
-| `learn/token/architecture.mdx` | REWRITTEN | 3+1 programs, CPI, PDA state model, new mermaid |
+| `learn/token/architecture.mdx` | DONE - MOVED | Moved to `learn/(introduction)/protocol-architecture.mdx` |
 | `learn/token/get-the-token.mdx` | REWRITTEN | Solana canonical, Jupiter/Raydium, Phantom/Solflare |
 | `learn/token/staking.mdx` | REWRITTEN | Auto-compound, accumulator, pruning, redelegation, SOL cost estimates |
 | `learn/token/wallets.mdx` | NEW | Phantom/Solflare/Backpack setup (replaces add-to-wander) |
@@ -64,8 +65,8 @@ Updated 2026-04-29. Tracks every content page and its migration status from AO t
 | `learn/oip/epoch-pipeline.mdx` | NEW | 6-step pipeline with timing and costs |
 | `learn/oip/cranker.mdx` | NEW | Standalone + observer-embedded cranker |
 | `learn/oip/observer-selection.mdx` | UPDATED | Slot-based entropy, collision handling |
-| `learn/oip/reporting.mdx` | UPDATED | "on-chain observations" terminology |
-| `learn/oip/performance-evaluation.mdx` | UPDATED | "Solana programs", "on-chain observations" |
+| `learn/oip/reporting.mdx` | UPDATED | "onchain observations" terminology |
+| `learn/oip/performance-evaluation.mdx` | UPDATED | "Solana programs", "onchain observations" |
 | `learn/oip/reward-distribution.mdx` | UPDATED | 6-step pipeline, auto-compound, accumulator |
 
 ### learn/wayfinder/
