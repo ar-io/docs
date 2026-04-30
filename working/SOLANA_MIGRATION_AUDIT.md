@@ -444,9 +444,9 @@ These pages are used by developers building on ar.io and operators managing gate
 
 ---
 
-### 32. `content/learn/(introduction)/what-is-permaweb.mdx` — NO CHANGE
+### 32. `content/learn/(introduction)/what-is-permaweb.mdx` — DELETED
 
-AO is correctly described as the compute layer in the permaweb stack. This remains true — AO still exists for compute; ar.io protocol execution moved to Solana. The permaweb description is about the broader ecosystem, not ar.io specifically.
+Removed standalone page. Light permaweb context was moved into `content/learn/(introduction)/what-is-ario.mdx` to avoid duplicate deep architecture explanations in the introduction section.
 
 ---
 
