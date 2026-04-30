@@ -1,4 +1,9 @@
-# Husky (Developers Only) (/ardrive-cli/(build-and-run-from-source)/husky-developers-only)
+# Untitled (/ardrive-cli/(build-and-run-from-source)/husky-developers-only)
+
+---
+title: "Husky (Developers Only)"
+description: "Command line interface for ArDrive"
+---
 
 We use husky 6.x to manage the git commit hooks that help to improve the quality of our commits. Please run:
 
@@ -8,7 +13,12 @@ yarn husky install
 
 to enable git hooks for your local checkout. Without doing so, you risk committing non-compliant code to the repository.
 
-# Install Yarn 3 (/ardrive-cli/(build-and-run-from-source)/install-yarn-3)
+# Untitled (/ardrive-cli/(build-and-run-from-source)/install-yarn-3)
+
+---
+title: "Install Yarn 3"
+description: "Command line interface for ArDrive"
+---
 
 Both the ArDrive CLI and ArDrive Core JS use Yarn 3 to manage dependencies and initiate workflows, so follow the [yarn installation instructions][yarn-install] in order to get the latest version. In most cases:
 
@@ -18,7 +28,12 @@ brew install yarn
 npm install -g yarn
 ```
 
-# Installing and Starting the CLI From Source (/ardrive-cli/(build-and-run-from-source)/installing-and-starting-the-cli-from-source)
+# Untitled (/ardrive-cli/(build-and-run-from-source)/installing-and-starting-the-cli-from-source)
+
+---
+title: "Installing and Starting the CLI From Source"
+description: "Command line interface for ArDrive"
+---
 
 Now that your runtime and/or development environment is set up, to install the package simply run:
 
@@ -42,7 +57,12 @@ npm install i -g /path/to/package.tgz
 ardrive
 ```
 
-# Recommended Visual Studio Code extensions (Developers Only) (/ardrive-cli/(build-and-run-from-source)/recommended-visual-studio-code-extensions-developers-only)
+# Untitled (/ardrive-cli/(build-and-run-from-source)/recommended-visual-studio-code-extensions-developers-only)
+
+---
+title: "Recommended Visual Studio Code extensions (Developers Only)"
+description: "Command line interface for ArDrive"
+---
 
 To ensure your environment is compatible, we also recommend the following VSCode extensions:
 
@@ -51,7 +71,12 @@ To ensure your environment is compatible, we also recommend the following VSCode
 -   [Prettier][prettier-vscode]
 -   [ZipFS][zipfs-vscode]
 
-# Using a custom ArDrive-Core-JS (Optional) (/ardrive-cli/(build-and-run-from-source)/using-a-custom-ardrive-core-js-optional)
+# Untitled (/ardrive-cli/(build-and-run-from-source)/using-a-custom-ardrive-core-js-optional)
+
+---
+title: "Using a custom ArDrive-Core-JS (Optional)"
+description: "Command line interface for ArDrive"
+---
 
 To test a with a custom version of the `ardrive-core-js` library on your local system, change the `"ardrive-core-js"` line in `package.json` to the root of your local `ardrive-core-js` repo:
 
@@ -60,7 +85,12 @@ To test a with a custom version of the `ardrive-core-js` library on your local s
 + "ardrive-core-js": "../ardrive-core-js/"
 ```
 
-# Dealing With Network Congestion (/ardrive-cli/(other-utility-operations)/dealing-with-network-congestion)
+# Untitled (/ardrive-cli/(other-utility-operations)/dealing-with-network-congestion)
+
+---
+title: "Dealing With Network Congestion"
+description: "Command line interface for ArDrive"
+---
 
 Currently, Arweave blocks hold up to 1000 transactions per block. The "mempool", where pending transactions reside until they've been included into a block, will only hold a transaction for 50 blocks (~100-150 minutes) before it's discarded by the network resulting in no fees or data being transacted. During periods of network congestion (i.e. those where the mempool contains 1000 or more pending transactions), it may make sense to either:
 
@@ -117,7 +147,12 @@ Transport your signed transaction to the Internet-connected machine and run the 
 ardrive send-tx -x /path/to/sendme.json
 ```
 
-# Monitoring Transactions (/ardrive-cli/(other-utility-operations)/monitoring-transactions)
+# Untitled (/ardrive-cli/(other-utility-operations)/monitoring-transactions)
+
+---
+title: "Monitoring Transactions"
+description: "Command line interface for ArDrive"
+---
 
 Block time on Arweave is typically between 2-3 minutes in duration, so transactions can be mined within that time frame when [network congestion](#dealing-with-network-congestion) is low. Transactions, in the general case, proceed through the following set of states:
 
@@ -146,7 +181,12 @@ ekSMckikdRJ8RGIkFa-X3xq3427tvM7J9adv8HP3Bzs: Mined at block height 775810 with 2
 watch -n 10 ardrive tx-status -t "ekSMckikdRJ8RGIkFa-X3xq3427tvM7J9adv8HP3Bzs"
 ```
 
-# Persistent Caching of ArFS Entity Metadata (/ardrive-cli/(other-utility-operations)/persistent-caching-of-arfs-entity-metadata)
+# Untitled (/ardrive-cli/(other-utility-operations)/persistent-caching-of-arfs-entity-metadata)
+
+---
+title: "Persistent Caching of ArFS Entity Metadata"
+description: "Command line interface for ArDrive"
+---
 
 To avoid redundant requests to the Arweave network for immutable ArFS entity metadata, a persistent file cache is created and maintained at:
 
@@ -256,7 +296,12 @@ ardrive \ --help
 [gql-guide]: https://gql-guide.vercel.app/#owners
 [ardrive-turbo]: https://ardrive.io/turbo/
 
-# Using a Custom Arweave Gateway (/ardrive-cli/(other-utility-operations)/using-a-custom-arweave-gateway)
+# Untitled (/ardrive-cli/(other-utility-operations)/using-a-custom-arweave-gateway)
+
+---
+title: "Using a Custom Arweave Gateway"
+description: "Command line interface for ArDrive"
+---
 
 On each command that uses a gateway, it is possible to supply your own custom Arweave gateway using the flag `--gateway` or by setting an environment variable named `ARWEAVE_GATEWAY`.
 
@@ -269,6 +314,8 @@ curl http://localhost:1984/mint/{ your public wallet address }/99999999999999
 
 ardrive create-drive --gateway http://127.0.0.1:1984 -w /path/to/wallet -n 'my-test-drive'
 
+export ARWEAVE_GATEWAY="http://localhost:1984"
+
 curl "$ARWEAVE_GATEWAY/mine"
 
 ardrive upload-file -F { root folder id from create drive } -l /path/to/file -w /path/to/wallet
@@ -280,13 +327,23 @@ ardrive list-drive -d { drive id from create drive }
 ardrive download-file -f { file id from upload file }
 ```
 
-# Git (/ardrive-cli/(prerequisites)/git)
+# Untitled (/ardrive-cli/(prerequisites)/git)
+
+---
+title: "Git"
+description: "Command line interface for ArDrive"
+---
 
 Some of ArDrive's dependencies are transitively installed via Git. Install it, if necessary, and ensure that it's available within your terminal environment:
 
 [Download Git](https://git-scm.com/downloads)
 
-# NVM (Optional - Recommended) (/ardrive-cli/(prerequisites)/nvm-optional-recommended)
+# Untitled (/ardrive-cli/(prerequisites)/nvm-optional-recommended)
+
+---
+title: "NVM (Optional - Recommended)"
+description: "Command line interface for ArDrive"
+---
 
 This project uses the Node Version Manager (NVM) and an `.nvmrc` file to lock the recommended Node version used by the latest version of `ardrive-core-js`.
 
@@ -301,7 +358,12 @@ Follow these steps to get NVM up and running on your system:
 
 **IT IS STRONGLY RECOMMENDED THAT YOU AVOID GENERATING WALLETS VIA SEED PHRASE WITH THE CLI USING ANY NODE VERSION OTHER THAN THE ONE SPECIFIED IN `.nvmrc`.**
 
-# Creating Drives (/ardrive-cli/(working-with-drives)/creating-drives)
+# Untitled (/ardrive-cli/(working-with-drives)/creating-drives)
+
+---
+title: "Creating Drives"
+description: "Command line interface for ArDrive"
+---
 
 ```shell
 ardrive create-drive --wallet-file /path/to/my/wallet.json --drive-name "My Public Archive"
@@ -309,7 +371,12 @@ ardrive create-drive --wallet-file /path/to/my/wallet.json --drive-name "My Publ
 ardrive create-drive --wallet-file /path/to/my/wallet.json --drive-name "Teenage Love Poetry" -P
 ```
 
-# List Drive Pipeline Examples (/ardrive-cli/(working-with-drives)/list-drive-pipeline-examples)
+# Untitled (/ardrive-cli/(working-with-drives)/list-drive-pipeline-examples)
+
+---
+title: "List Drive Pipeline Examples"
+description: "Command line interface for ArDrive"
+---
 
 You can utilize `jq` and the list commands to reshape the commands' output data into useful forms and stats for many use cases. Here are a few examples:
 
@@ -339,7 +406,12 @@ ardrive list-drive -d 13c3c232-6687-4d11-8ac1-35284102c7db | jq ' map(select(.en
 ardrive list-drive -d 01ea6ba3-9e58-42e7-899d-622fd110211c | jq '[ .[] | select(.entityType == "file") ] | length'
 ```
 
-# Listing Drives for an Address (/ardrive-cli/(working-with-drives)/listing-drives-for-an-address)
+# Untitled (/ardrive-cli/(working-with-drives)/listing-drives-for-an-address)
+
+---
+title: "Listing Drives for an Address"
+description: "Command line interface for ArDrive"
+---
 
 You can list all the drives associated with any Arweave wallet address, though the details of private drives will be obfuscated from you unless you provide the necessary decryption data.
 
@@ -349,7 +421,12 @@ ardrive list-all-drives -w /path/to/my/wallet.json -P
 ardrive list-all-drives --address "HTTn8F92tR32N8wuo-NIDkjmqPknrbl10JWo5MZ9x2k"
 ```
 
-# Listing Every Entity in a Drive (/ardrive-cli/(working-with-drives)/listing-every-entity-in-a-drive)
+# Untitled (/ardrive-cli/(working-with-drives)/listing-every-entity-in-a-drive)
+
+---
+title: "Listing Every Entity in a Drive"
+description: "Command line interface for ArDrive"
+---
 
 Useful notes on listing the contents of drives:
 
@@ -365,7 +442,12 @@ ardrive list-drive -d "c7f87712-b54e-4491-bc96-1c5fa7b1da50" -w /path/to/my/wall
 ardrive list-drive -d "c7f87712-b54e-4491-bc96-1c5fa7b1da50" --max-depth 2
 ```
 
-# Managing Drive Passwords (/ardrive-cli/(working-with-drives)/managing-drive-passwords)
+# Untitled (/ardrive-cli/(working-with-drives)/managing-drive-passwords)
+
+---
+title: "Managing Drive Passwords"
+description: "Command line interface for ArDrive"
+---
 
 The ArDrive CLI's private drive and folder functions all require either a drive password OR a drive key. Private file functions require either the drive password or the file key. **Keys and passwords are sensitive data, so manage the entry, display, storage, and transmission of them very carefully.**
 
@@ -379,6 +461,7 @@ Drive passwords are the most portable, and fundamental, encryption facet, so a f
 
 ```shell
 read -rs TMP_ARDRIVE_PW
+export ARDRIVE_DRIVE_PW=$(TMP_ARDRIVE_PW)
 ardrive \ -w /path/to/wallet.json -P
 ```
 
@@ -391,7 +474,12 @@ ardrive \ -w /path/to/wallet.json -P  -w /path/to/wallet.json -P
 ? Enter drive password: › ********
 ```
 
-# Understanding Drive and File Keys (/ardrive-cli/(working-with-drives)/understanding-drive-and-file-keys)
+# Untitled (/ardrive-cli/(working-with-drives)/understanding-drive-and-file-keys)
+
+---
+title: "Understanding Drive and File Keys"
+description: "Command line interface for ArDrive"
+---
 
 Private Drives achieve privacy via end-to-end encryption facilitated by hash-derived "Keys". Drive Keys encrypt/decrypt Drive and Folder data, and File Keys encrypt/decrypt File Data.
 
@@ -414,7 +502,12 @@ To derive the file key again for a file, perform the following:
 ardrive get-file-key --file-id "bd2ce978-6ede-4b0d-8f79-2d7bc235a0e0" --drive-id "6939b9e0-cc98-42cb-bae0-5888eca78885" --drive-key "yHdCjpCK3EcuhQcKNx2d/NN5ReEjoKfZVqKunlCnPEo"
 ```
 
-# Understanding Drive Hierarchies (/ardrive-cli/(working-with-drives)/understanding-drive-hierarchies)
+# Untitled (/ardrive-cli/(working-with-drives)/understanding-drive-hierarchies)
+
+---
+title: "Understanding Drive Hierarchies"
+description: "Command line interface for ArDrive"
+---
 
 At the root of every data tree is a "Drive" entity. When a drive is created, a Root Folder is also created for it. The entity IDs for both are generated and returned when you create a new drive:
 
@@ -448,7 +541,12 @@ ardrive drive-info -d "6939b9e0-cc98-42cb-bae0-5888eca78885"
 
 All file and folder entities in the drive will be anchored to it by a "Drive-ID" GQL Tag. And they'll each be anchored to a parent folder ID, tracked via the "Parent-Folder-ID" GQL tag, forming a tree structure whose base terminates at the Root Folder.
 
-# Dry Run (/ardrive-cli/(working-with-entities)/dry-run)
+# Untitled (/ardrive-cli/(working-with-entities)/dry-run)
+
+---
+title: "Dry Run"
+description: "Command line interface for ArDrive"
+---
 
 An important feature of the ArDrive CLI is the `--dry-run` flag. On each command that would write an ArFS entity, there is the option to run it as a "dry run". This will run all of the steps and print the outputs of a regular ArFS write, but will skip sending the actual transaction:
 
@@ -458,7 +556,12 @@ ardrive \ \ --dry-run
 
 This can be very useful for gathering price estimations or to confirm that you've copy-pasted your entity IDs correctly before committing to an upload.
 
-# Uploading to Turbo (BETA) (/ardrive-cli/(working-with-entities)/uploading-to-turbo-beta)
+# Untitled (/ardrive-cli/(working-with-entities)/uploading-to-turbo-beta)
+
+---
+title: "Uploading to Turbo (BETA)"
+description: "Command line interface for ArDrive"
+---
 
 Users can optionally choose to send each ArFS entities created to [ArDrive Turbo][ardrive-turbo] using the `--turbo` flag. Instead of using AR from an Arweave wallet, you can use Turbo Credits or take advantage of free/discounted upload promotions.
 
@@ -468,7 +571,12 @@ ardrive \ \ --turbo
 
 This flag will skip any balance check on the CLI side. Turbo will check a user's balance and accept/reject a data item at the time of upload. The `--turbo` flag by default will send your files to `upload.ardrive.io` to be bundled. To change the Turbo destination, users can use the `--turbo-url` flag.
 
-# Download a Single file (BETA) (/ardrive-cli/(working-with-files)/download-a-single-file-beta)
+# Untitled (/ardrive-cli/(working-with-files)/download-a-single-file-beta)
+
+---
+title: "Download a Single file (BETA)"
+description: "Command line interface for ArDrive"
+---
 
 By using the `download-file` command you can download a file on chain to a folder in your local storage specified by --local-path (or to your current working directory if not specified):
 
@@ -482,7 +590,12 @@ Specify a filename in the --local-path if you'd like to use a different name tha
 ardrive download-file -w /path/to/wallet.json --file-id "ff450770-a9cb-46a5-9234-89cbd9796610" --local-path /my_ardrive_downloads/my_pic.png
 ```
 
-# Downloading a Drive (/ardrive-cli/(working-with-files)/downloading-a-drive)
+# Untitled (/ardrive-cli/(working-with-files)/downloading-a-drive)
+
+---
+title: "Downloading a Drive"
+description: "Command line interface for ArDrive"
+---
 
 To download the whole drive you can use the `download-drive` command.
 
@@ -492,7 +605,12 @@ ardrive download-drive -d "c0c8ba1c-efc5-420d-a07c-a755dc67f6b2"
 
 This is equivalent to running the `download-folder` command against the root folder of the drive.
 
-# Downloading a Folder with Files (/ardrive-cli/(working-with-files)/downloading-a-folder-with-files)
+# Untitled (/ardrive-cli/(working-with-files)/downloading-a-folder-with-files)
+
+---
+title: "Downloading a Folder with Files"
+description: "Command line interface for ArDrive"
+---
 
 You can download a folder from ArDrive to your local machine with the `download-folder` command. In the following examples, assume that a folder with ID "47f5bde9-61ba-49c7-b409-1aa4a9e250f6" exists in your drive and is named "MyArDriveFolder".
 
@@ -524,7 +642,12 @@ ardrive download-folder -f "47f5bde9-61ba-49c7-b409-1aa4a9e250f6" --local-path "
 ardrive download-folder -f "47f5bde9-61ba-49c7-b409-1aa4a9e250f6" --local-path "/non_existent_folder_1/non_existent_folder_2"
 ```
 
-# Fetching the Metadata of a File Entity (/ardrive-cli/(working-with-files)/fetching-the-metadata-of-a-file-entity)
+# Untitled (/ardrive-cli/(working-with-files)/fetching-the-metadata-of-a-file-entity)
+
+---
+title: "Fetching the Metadata of a File Entity"
+description: "Command line interface for ArDrive"
+---
 
 Simply perform the file-info command to retrieve the metadata of a file:
 
@@ -555,7 +678,12 @@ Example output:
 }
 ```
 
-# IPFS CID Tagging (/ardrive-cli/(working-with-files)/ipfs-cid-tagging)
+# Untitled (/ardrive-cli/(working-with-files)/ipfs-cid-tagging)
+
+---
+title: "IPFS CID Tagging"
+description: "Command line interface for ArDrive"
+---
 
 Certain nodes on the Arweave network may be running the [IPFS+Arweave bridge](https://arweave.medium.com/arweave-ipfs-persistence-for-the-interplanetary-file-system-9f12981c36c3). Tagging your file upload transaction with its IPFS v1 CID value in the 'IPFS-Add' tag may allow you to take advantage of this system. It can also be helpful for finding data on Arweave via GQL based on its CID. To include the CID tag on your **PUBLIC** file uploads, you may use the '--add-ipfs-tag' flag:
 
@@ -563,7 +691,12 @@ Certain nodes on the Arweave network may be running the [IPFS+Arweave bridge](ht
 ardrive upload-file --add-ipfs-tag --local-path /path/to/file.txt  --parent-folder-id "9af694f6-4cfc-4eee-88a8-1b02704760c0" -w /path/to/wallet.json
 ```
 
-# Moving Files (/ardrive-cli/(working-with-files)/moving-files)
+# Untitled (/ardrive-cli/(working-with-files)/moving-files)
+
+---
+title: "Moving Files"
+description: "Command line interface for ArDrive"
+---
 
 Files can be moved from one folder to another within the same drive. Moving a file is simply the process of uploading a new file metadata revision with an updated File ID  Parent Folder ID relationship. The following command will move a file from its current location in a public drive to a new parent folder in that drive:
 
@@ -571,7 +704,12 @@ Files can be moved from one folder to another within the same drive. Moving a fi
 ardrive move-file --file-id "e5ebc14c-5b2d-4462-8f59-7f4a62e7770f" --parent-folder-id "a2c8a0cb-0ca7-4dbb-8bf8-93f75f308e63"
 ```
 
-# Name Conflict Resolution on Upload (/ardrive-cli/(working-with-files)/name-conflict-resolution-on-upload)
+# Untitled (/ardrive-cli/(working-with-files)/name-conflict-resolution-on-upload)
+
+---
+title: "Name Conflict Resolution on Upload"
+description: "Command line interface for ArDrive"
+---
 
 By default, the `upload-file` command will use the upsert behavior if existing entities are encountered in the destination folder tree that would cause naming conflicts.
 
@@ -619,7 +757,12 @@ Please select how to proceed:
     Skip this file upload
 ```
 
-# Progress Logging of Transaction Uploads (/ardrive-cli/(working-with-files)/progress-logging-of-transaction-uploads)
+# Untitled (/ardrive-cli/(working-with-files)/progress-logging-of-transaction-uploads)
+
+---
+title: "Progress Logging of Transaction Uploads"
+description: "Command line interface for ArDrive"
+---
 
 Progress logging of transaction uploads to stderr can be enabled by setting the `ARDRIVE_PROGRESS_LOG` environment variable to `1`:
 
@@ -640,7 +783,12 @@ Transaction nA1stCdTkuf290k0qsqvmJ78isEC0bwgrAi3D8Cl1LU Upload Progress: 91%
 Transaction nA1stCdTkuf290k0qsqvmJ78isEC0bwgrAi3D8Cl1LU Upload Progress: 100%
 ```
 
-# Rename a Single File (/ardrive-cli/(working-with-files)/rename-a-single-file)
+# Untitled (/ardrive-cli/(working-with-files)/rename-a-single-file)
+
+---
+title: "Rename a Single File"
+description: "Command line interface for ArDrive"
+---
 
 To rename an onchain file you can make use of the `rename-file` command. The required parameters are the file ID and the new name, as well as the owner wallet or seed phrase.
 
@@ -648,7 +796,12 @@ To rename an onchain file you can make use of the `rename-file` command. The req
 ardrive rename-file --file-id "290a3f9a-37b2-4f0f-a899-6fac983833b3" --file-name "My custom file name.txt" --wallet-file "wallet.json"
 ```
 
-# Retrying a Failed File Data Transaction (Public Unbundled Files Only) (/ardrive-cli/(working-with-files)/retrying-a-failed-file-data-transaction-public-unbundled-files-only)
+# Untitled (/ardrive-cli/(working-with-files)/retrying-a-failed-file-data-transaction-public-unbundled-files-only)
+
+---
+title: "Retrying a Failed File Data Transaction (Public Unbundled Files Only)"
+description: "Command line interface for ArDrive"
+---
 
 Arweave data upload transactions are split into two phases: transaction posting and chunks uploading. Once the transaction post phase has been completed, you've effectively "paid" the network for storage of the data chunks that you'll send in the next stage.
 
@@ -667,7 +820,12 @@ ardrive retry-tx --tx-id { Data Transaction ID } --parent-folder-id { Destinatio
 
 **Note: Retry feature is currently only available for PUBLIC unbundled file transactions. It is also perfectly safe to mistakenly re-seed the chunks of a healthy transaction, the transaction will remain stable and the wallet balance will not be affected.**
 
-# Understanding Bundled Transactions (/ardrive-cli/(working-with-files)/understanding-bundled-transactions)
+# Untitled (/ardrive-cli/(working-with-files)/understanding-bundled-transactions)
+
+---
+title: "Understanding Bundled Transactions"
+description: "Command line interface for ArDrive"
+---
 
 The ArDrive CLI currently uses two different methods for uploading transactions to the Arweave network: standard transactions and Direct to Network (D2N) bundled transactions. By default, the CLI will send a D2N bundled transaction for any action that would result in multiple transactions. This bundling functionality is currently used on the `upload-file` and `create-drive` commands.
 
@@ -678,7 +836,12 @@ D2N bundled transactions come with several benefits and implications:
 -   Un-bundling can take anywhere from a few minutes up to an hour. During that time, the files in the bundle will neither appear in list- commands nor be downloadable. Similarly, they will not appear in the web app after syncs until un-bundling is complete. **This can negatively affect the accuracy of upsert operations**, so it's best to wait before retrying bulk uploads.
 -   Bundling reliability on the gateway side degrades once bundles reach either 500 data items (or ~250 files) or 500 MiB, so the CLI will create and upload multiple bundles as necessary, or will send files that are simply too large for reliable bundling as unbundled txs.
 
-# Uploading a Custom Manifest (/ardrive-cli/(working-with-files)/uploading-a-custom-manifest)
+# Untitled (/ardrive-cli/(working-with-files)/uploading-a-custom-manifest)
+
+---
+title: "Uploading a Custom Manifest"
+description: "Command line interface for ArDrive"
+---
 
 Using the custom content type feature, it is possible for users to upload their own custom manifests. The Arweave gateways use this special content type in order to identify an uploaded file as a manifest:
 
@@ -706,7 +869,12 @@ https://arweave.net/{dataTxId}/custom-file-1
 https://arweave.net/{dataTxId}/custom-file-2
 ```
 
-# Uploading a Folder with Files (Bulk Upload) (/ardrive-cli/(working-with-files)/uploading-a-folder-with-files-bulk-upload)
+# Untitled (/ardrive-cli/(working-with-files)/uploading-a-folder-with-files-bulk-upload)
+
+---
+title: "Uploading a Folder with Files (Bulk Upload)"
+description: "Command line interface for ArDrive"
+---
 
 Users can perform a bulk upload by using the upload-file command on a target folder. The command will reconstruct the folder hierarchy on local disk as ArFS folders on the permaweb and upload each file into their corresponding folders:
 
@@ -714,7 +882,12 @@ Users can perform a bulk upload by using the upload-file command on a target fol
 ardrive upload-file --local-path /path/to/folder --parent-folder-id "9af694f6-4cfc-4eee-88a8-1b02704760c0" -w /path/to/wallet.json
 ```
 
-# Uploading a Non-Bundled Transaction (NOT RECOMMENDED) (/ardrive-cli/(working-with-files)/uploading-a-non-bundled-transaction-not-recommended)
+# Untitled (/ardrive-cli/(working-with-files)/uploading-a-non-bundled-transaction-not-recommended)
+
+---
+title: "Uploading a Non-Bundled Transaction (NOT RECOMMENDED)"
+description: "Command line interface for ArDrive"
+---
 
 While not recommended, the CLI does provide the option to forcibly send all transactions as standard transactions rather than attempting to bundle them together. To do this, simply add the `--no-bundle` flag to the `upload-file` or `create-drive` command:
 
@@ -722,7 +895,12 @@ While not recommended, the CLI does provide the option to forcibly send all tran
 ardrive upload-file --no-bundle --local-path /path/to/file --parent-folder-id "9af694f6-4cfc-4eee-88a8-1b02704760c0" -w /path/to/wallet.json
 ```
 
-# Uploading a Single File (/ardrive-cli/(working-with-files)/uploading-a-single-file)
+# Untitled (/ardrive-cli/(working-with-files)/uploading-a-single-file)
+
+---
+title: "Uploading a Single File"
+description: "Command line interface for ArDrive"
+---
 
 To upload a file, you'll need a parent folder id, the file to upload's file path, and the path to your wallet:
 
@@ -770,7 +948,12 @@ NOTE: To upload to the root of a drive, specify its root folder ID as the parent
 ardrive drive-info -d "c7f87712-b54e-4491-bc96-1c5fa7b1da50" | jq -r '.rootFolderId'
 ```
 
-# Uploading Files with Custom MetaData (/ardrive-cli/(working-with-files)/uploading-files-with-custom-metadata)
+# Untitled (/ardrive-cli/(working-with-files)/uploading-files-with-custom-metadata)
+
+---
+title: "Uploading Files with Custom MetaData"
+description: "Command line interface for ArDrive"
+---
 
 ArDrive CLI has the capability of attaching custom metadata to ArFS File and Folder MetaData Transactions during the `upload-file` command. This metadata can be applied to either the GQL tags on the MetaData Transaction and/or into the MetaData Transaction's Data JSON.
 
@@ -783,6 +966,7 @@ type CustomMetaDataGqlTags = Record;
 // Data JSON Fields
 type CustomMetaDataJsonFields = Record;
 
+export type JsonSerializable =
     | string
     | number
     | boolean
@@ -879,7 +1063,12 @@ ardrive upload-file -F f0c58c11-430c-4383-8e54-4d864cc7e927 --local-path "../upl
 done
 ```
 
-# Uploading From a Remote URL (/ardrive-cli/(working-with-files)/uploading-from-a-remote-url)
+# Untitled (/ardrive-cli/(working-with-files)/uploading-from-a-remote-url)
+
+---
+title: "Uploading From a Remote URL"
+description: "Command line interface for ArDrive"
+---
 
 You can upload a file from an existing url using the `--remote-path` flag. This must be used in conjunction with `--dest-file-name`.
 
@@ -889,7 +1078,12 @@ You can use a custom content type using the `--content-type` flag, but if this i
 ardrive upload-file --remote-path "https://url/to/file" --parent-folder-id "9af694f6-4cfc-4eee-88a8-1b02704760c0" -d "example.jpg" -w /path/to/wallet.json
 ```
 
-# Uploading Manifests (/ardrive-cli/(working-with-files)/uploading-manifests)
+# Untitled (/ardrive-cli/(working-with-files)/uploading-manifests)
+
+---
+title: "Uploading Manifests"
+description: "Command line interface for ArDrive"
+---
 
 [Arweave Path Manifests][arweave-manifests] are are special `.json` files that instruct Arweave Gateways to map file data associated with specific, unique transaction IDs to customized, hosted paths relative to that of the manifest file itself. So if, for example, your manifest file had an arweave.net URL like:
 
@@ -1003,7 +1197,12 @@ In the return output, the top link will be a link to the deployed web app:
 
 This is effectively hosting a web app with ArDrive. Check out the ArDrive Price Calculator React App hosted as an [ArDrive Manifest][example-manifest-webpage].
 
-# Uploading Multiple Files (/ardrive-cli/(working-with-files)/uploading-multiple-files)
+# Untitled (/ardrive-cli/(working-with-files)/uploading-multiple-files)
+
+---
+title: "Uploading Multiple Files"
+description: "Command line interface for ArDrive"
+---
 
 To upload an arbitrary number of files or folders, pass a space-separated list of paths to `--local-paths`:
 
@@ -1013,7 +1212,12 @@ ardrive upload-file -w wallet.json -F "6939b9e0-cc98-42cb-bae0-5888eca78885" --l
 ardrive upload-file -w wallet.json -F "6939b9e0-cc98-42cb-bae0-5888eca78885" --local-paths ./*.json
 ```
 
-# Uploading With a Custom Content Type (/ardrive-cli/(working-with-files)/uploading-with-a-custom-content-type)
+# Untitled (/ardrive-cli/(working-with-files)/uploading-with-a-custom-content-type)
+
+---
+title: "Uploading With a Custom Content Type"
+description: "Command line interface for ArDrive"
+---
 
 Each file uploaded to the Arweave network receives a `"Content-Type"` GraphQL tag that contains the MIME type for the file. The gateway will use this content type to determine how to serve that file's data transaction at the `arweave.net/{data tx id}` endpoint.
 
@@ -1029,7 +1233,12 @@ It is currently possible to set this value to any given string, but the gateway 
 
 Note: In the case of multi-file uploads or recursive folder uploads, setting this `--content-type` flag will set the provided custom content type on EVERY file entity within a given upload.
 
-# Creating Folders (/ardrive-cli/(working-with-folders)/creating-folders)
+# Untitled (/ardrive-cli/(working-with-folders)/creating-folders)
+
+---
+title: "Creating Folders"
+description: "Command line interface for ArDrive"
+---
 
 Creating folders manually is straightforward:
 
@@ -1059,7 +1268,12 @@ Example output:
 
 Note: Folders can also be created by supplying a folder as the --local-path of an upload-file command. In this case, the folder hierarchy on the local disk will be reconstructed on chain during the course of the recursive bulk upload.
 
-# Listing Contents of a Folder (/ardrive-cli/(working-with-folders)/listing-contents-of-a-folder)
+# Untitled (/ardrive-cli/(working-with-folders)/listing-contents-of-a-folder)
+
+---
+title: "Listing Contents of a Folder"
+description: "Command line interface for ArDrive"
+---
 
 Similar to drives, the `list-folder` command can be used to fetch the metadata of each entity within a folder. But by default, the command will fetch only the immediate children of that folder (`--max-depth 0`):
 
@@ -1160,7 +1374,12 @@ In the case of private entitites, the `--with-keys` flag will make the command t
 ardrive list-folder --parent-folder-id "1b027047-4cfc-4eee-88a8-9af694f660c0" -w /my/wallet.json --with-keys
 ```
 
-# Moving Folders (/ardrive-cli/(working-with-folders)/moving-folders)
+# Untitled (/ardrive-cli/(working-with-folders)/moving-folders)
+
+---
+title: "Moving Folders"
+description: "Command line interface for ArDrive"
+---
 
 Moving a folder is as simple as supplying a new parent folder ID. Note that naming collisions among entities within a folder are not allowed.
 
@@ -1168,7 +1387,12 @@ Moving a folder is as simple as supplying a new parent folder ID. Note that nami
 ardrive move-folder --folder-id "9af694f6-4cfc-4eee-88a8-1b02704760c0" --parent-folder-id "29850ab7-56d4-4e1f-a5be-cb86d5513921" -w /path/to/wallet.json
 ```
 
-# Renaming Folders (/ardrive-cli/(working-with-folders)/renaming-folders)
+# Untitled (/ardrive-cli/(working-with-folders)/renaming-folders)
+
+---
+title: "Renaming Folders"
+description: "Command line interface for ArDrive"
+---
 
 In order to rename a folder you must provide a name different from its current one, and it must not create naming conflicts with its sibling entities.
 
@@ -1176,7 +1400,12 @@ In order to rename a folder you must provide a name different from its current o
 ardrive rename-folder --folder-id "568d5eba-dbf3-4a49-8129-1c58f7fd35bc" --folder-name "Folder with cool stuff" -w "./wallet.json"
 ```
 
-# Viewing Folder Metadata (/ardrive-cli/(working-with-folders)/viewing-folder-metadata)
+# Untitled (/ardrive-cli/(working-with-folders)/viewing-folder-metadata)
+
+---
+title: "Viewing Folder Metadata"
+description: "Command line interface for ArDrive"
+---
 
 To view the metadata of a folder, users can use the `folder-info` command:
 
@@ -1184,11 +1413,21 @@ To view the metadata of a folder, users can use the `folder-info` command:
 ardrive folder-info --folder-id "9af694f6-4cfc-4eee-88a8-1b02704760c0"
 ```
 
-# ArFS (/ardrive-cli/arfs)
+# Untitled (/ardrive-cli/arfs)
+
+---
+title: "ArFS"
+description: "Command line interface for ArDrive"
+---
 
 [ArFS] is a data modeling, storage, and retrieval protocol designed to emulate common file system operations and to provide aspects of mutability to your data hierarchy on [Arweave]'s otherwise permanent, immutable data storage blockweave.
 
-# CLI Help (/ardrive-cli/cli-help)
+# Untitled (/ardrive-cli/cli-help)
+
+---
+title: "CLI Help"
+description: "Command line interface for ArDrive"
+---
 
 Learn to use any command:
 
@@ -1196,7 +1435,12 @@ Learn to use any command:
 ardrive --help
 ```
 
-# CLI Version (/ardrive-cli/cli-version)
+# Untitled (/ardrive-cli/cli-version)
+
+---
+title: "CLI Version"
+description: "Command line interface for ArDrive"
+---
 
 You can print out the version by running any of:
 
@@ -1205,15 +1449,27 @@ ardrive --version
 ardrive -V
 ```
 
-# Data Portability (/ardrive-cli/data-portability)
+# Untitled (/ardrive-cli/data-portability)
+
+---
+title: "Data Portability"
+description: "Command line interface for ArDrive"
+---
 
 Data uploaded via the ArDrive CLI, once indexed by Arweave's Gateways and sufficiently seeded across enough nodes on the network, can be accessed via all other ArDrive applications including the [ArDrive Web application][ardrive-web-app] at https://app.ardrive.io.
 
 All transactions successfully executed by ArDrive can always be inspected in the [Viewblock blockchain explorer].
 
-# ArDrive CLI (/ardrive-cli/index)
+# Untitled (/ardrive-cli/index)
 
-**For AI and LLM users**: Access the complete ArDrive CLI documentation in plain text
+---
+title: "ArDrive CLI"
+description: "Command line interface for ArDrive"
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+
+  **For AI and LLM users**: Access the complete ArDrive CLI documentation in plain text
   format at llm.txt for easy consumption by AI agents
   and language models.
 
@@ -1221,7 +1477,12 @@ All transactions successfully executed by ArDrive can always be inspected in the
 
 Please refer to the [source code](https://github.com/ardriveapp/ardrive-cli) for SDK details.
 
-# Intended Audience (/ardrive-cli/intended-audience)
+# Untitled (/ardrive-cli/intended-audience)
+
+---
+title: "Intended Audience"
+description: "Command line interface for ArDrive"
+---
 
 This tool is intended for use by:
 
@@ -1235,7 +1496,12 @@ For deeper integrations with the [ArDrive] platform, consider using the [ArDrive
 
 To simply install the latest version of the CLI to your local system and get started, follow the [Quick Start](#quick-start) instructions. To build and/or develop the CLI from source, follow the [Build and Run from Source](#build-and-run-from-source) instructions. In either case, be sure to satisfy the requirements in the [Prerequisites](#prerequisites) section.
 
-# Limitations (/ardrive-cli/limitations)
+# Untitled (/ardrive-cli/limitations)
+
+---
+title: "Limitations"
+description: "Command line interface for ArDrive"
+---
 
 **Number of files in a bulk upload:** Theoretically unlimited
 
@@ -1249,7 +1515,12 @@ To simply install the latest version of the CLI to your local system and get sta
 
 # Using the CLI
 
-# Wallet Operations (/ardrive-cli/wallet-operations)
+# Untitled (/ardrive-cli/wallet-operations)
+
+---
+title: "Wallet Operations"
+description: "Command line interface for ArDrive"
+---
 
 Browsing of ArDrive public data is possible without the need for an [Arweave wallet][kb-wallets]. However, for all write operations, or read operations without encryption/decryption keys, you'll need a wallet.
 

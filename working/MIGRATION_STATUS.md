@@ -7,7 +7,7 @@ Updated 2026-04-29. Tracks every content page and its migration status from AO t
 - ✅ **DONE - REWRITTEN / UPDATED / NEW / MOVED / NO CHANGE** — Reviewed and complete
 - 🗑️ **DONE - DELETED** — Removed page or deprecated AO-only content
 - ⚠️ **NEEDS UPDATING** — Attention needed before launch
-- ⏳ **PENDING - REWRITTEN / UPDATED / NEW / DELETED / NO CHANGE** — Migration type identified, but not yet reviewed in this pass
+- ⏳ **PENDING - REWRITTEN / UPDATED / NEW / DELETED / NO CHANGE** — Migration type identified, but not yet reviewed in this branch
 
 ---
 
@@ -60,13 +60,13 @@ Updated 2026-04-29. Tracks every content page and its migration status from AO t
 
 | Page | Status | Notes |
 |------|--------|-------|
-| `learn/oip/index.mdx` | ⏳ PENDING - UPDATED | "Solana Programs" in mermaid + text |
-| `learn/oip/epoch-pipeline.mdx` | ⏳ PENDING - NEW | 6-step pipeline with timing and costs |
-| `learn/oip/cranker.mdx` | ⏳ PENDING - NEW | Standalone + observer-embedded cranker |
-| `learn/oip/observer-selection.mdx` | ⏳ PENDING - UPDATED | Slot-based entropy, collision handling |
-| `learn/oip/reporting.mdx` | ⏳ PENDING - UPDATED | "onchain observations" terminology |
-| `learn/oip/performance-evaluation.mdx` | ⏳ PENDING - UPDATED | "Solana programs", "onchain observations" |
-| `learn/oip/reward-distribution.mdx` | ⏳ PENDING - UPDATED | 6-step pipeline, auto-compound, accumulator |
+| `learn/oip/index.mdx` | ✅ DONE - UPDATED | Simplified OIP overview and observer flow |
+| `learn/oip/epoch-pipeline.mdx` | ✅ DONE - NEW | Permissionless Solana epoch pipeline, trimmed parameters |
+| `learn/oip/cranker.mdx` | ✅ DONE - NEW | Cranker purpose, safety properties, deployment options |
+| `learn/oip/observer-selection.mdx` | ✅ DONE - UPDATED | Weighted random observer selection, removed stale hashchain details |
+| `learn/oip/reporting.mdx` | ✅ DONE - UPDATED | Arweave reports plus compact onchain observations |
+| `learn/oip/performance-evaluation.mdx` | ✅ DONE - UPDATED | Pass/fail classification and weight impacts without formulas |
+| `learn/oip/reward-distribution.mdx` | ✅ DONE - UPDATED | Reward flow, auto-compound, accumulators, deficient gateway handling |
 
 ### learn/wayfinder/
 

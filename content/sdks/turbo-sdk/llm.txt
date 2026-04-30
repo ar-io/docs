@@ -1,4 +1,9 @@
-# TurboAuthenticatedClient (/(apis)/turboauthenticatedclient)
+# Untitled (/(apis)/turboauthenticatedclient)
+
+---
+title: "TurboAuthenticatedClient"
+description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
+---
 
 #### getBalance()
 
@@ -462,7 +467,12 @@ const { givenApprovals, receivedApprovals } =
   });
 ```
 
-# TurboFactory (/(apis)/turbofactory)
+# Untitled (/(apis)/turbofactory)
+
+---
+title: "TurboFactory"
+description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
+---
 
 #### unauthenticated()
 
@@ -535,7 +545,12 @@ const turbo = TurboFactory.authenticated({
 - **Ethereum Sepolia** (`ethereum`) - Manual top-up only
 - **Polygon Amoy** (`pol`) - Manual top-up only
 
-# TurboUnauthenticatedClient (/(apis)/turbounauthenticatedclient)
+# Untitled (/(apis)/turbounauthenticatedclient)
+
+---
+title: "TurboUnauthenticatedClient"
+description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
+---
 
 #### getSupportedCurrencies()
 
@@ -739,7 +754,12 @@ const { status, id, ...fundResult } = await turbo.submitFundTransaction({
 });
 ```
 
-# File Upload Events (/(events)/file-upload-events)
+# Untitled (/(events)/file-upload-events)
+
+---
+title: "File Upload Events"
+description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
+---
 
 These events are available for `upload`, `uploadFile`, and `uploadSignedDataItem` methods:
 
@@ -792,7 +812,12 @@ const uploadResult = await turbo.uploadFile({
 });
 ```
 
-# Folder Upload Events (/(events)/folder-upload-events)
+# Untitled (/(events)/folder-upload-events)
+
+---
+title: "Folder Upload Events"
+description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
+---
 
 These events are available for the `uploadFolder` method:
 
@@ -852,7 +877,12 @@ const uploadResult = await turbo.upload({
 });
 ```
 
-# Arweave (/(signers)/arweave)
+# Untitled (/(signers)/arweave)
+
+---
+title: "Arweave"
+description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
+---
 
 #### Arweave JWK
 
@@ -875,7 +905,12 @@ const signer = new ArconnectSigner(window.arweaveWallet);
 const turbo = TurboFactory.authenticated({ signer });
 ```
 
-# Base (/(signers)/base)
+# Untitled (/(signers)/base)
+
+---
+title: "Base"
+description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
+---
 
 #### Base ETH Private Key
 
@@ -904,7 +939,12 @@ const turbo = TurboFactory.authenticated({
 });
 ```
 
-# Ethereum (/(signers)/ethereum)
+# Untitled (/(signers)/ethereum)
+
+---
+title: "Ethereum"
+description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
+---
 
 #### EthereumSigner
 
@@ -931,7 +971,12 @@ const turbo = TurboFactory.authenticated({
 });
 ```
 
-# KYVE (/(signers)/kyve)
+# Untitled (/(signers)/kyve)
+
+---
+title: "KYVE"
+description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
+---
 
 #### KYVE Private Key
 
@@ -945,6 +990,7 @@ const turbo = TurboFactory.authenticated({
 #### KYVE Mnemonic
 
 ```typescript
+import { privateKeyFromKyveMnemonic } from '@ardrive/turbo-sdk';
 
 const turbo = TurboFactory.authenticated({
   privateKey: privateKeyFromKyveMnemonic(mnemonic),
@@ -952,7 +998,12 @@ const turbo = TurboFactory.authenticated({
 });
 ```
 
-# Solana (/(signers)/solana)
+# Untitled (/(signers)/solana)
+
+---
+title: "Solana"
+description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
+---
 
 #### HexSolanaSigner
 
@@ -979,7 +1030,17 @@ const turbo = TurboFactory.authenticated({
 });
 ```
 
-# Turbo SDK (/index)
+# Untitled (/index)
+
+---
+title: "Turbo SDK"
+description: "JavaScript/TypeScript SDK for uploading data to Arweave via Turbo services with built-in payment handling and optimized performance"
+---
+
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { BookOpen, Code, Upload, Zap, CreditCard, Settings } from "lucide-react";
+import { Steps, Step } from "fumadocs-ui/components/steps";
+import { Callout } from "fumadocs-ui/components/callout";
 
 The Turbo SDK provides a high-level interface for uploading data to Arweave through Turbo's optimized infrastructure. Built with TypeScript, it offers seamless integration with built-in error handling, automatic retries, and transparent pricing.
 
@@ -994,7 +1055,9 @@ The Turbo SDK provides a high-level interface for uploading data to Arweave thro
         ### Use the SDK
 
         ```javascript
-                
+        import { TurboFactory, USD } from '@ardrive/turbo-sdk';
+        import fs from 'fs';
+
         // Create an authenticated client
         const turbo = TurboFactory.authenticated({ privateKey: yourPrivateKey });
 
@@ -1023,8 +1086,11 @@ The Turbo SDK provides a high-level interface for uploading data to Arweave thro
 
         ```js
         // vite.config.js
-                
-                  plugins: [
+        import { defineConfig } from 'vite';
+        import { nodePolyfills } from 'vite-plugin-node-polyfills';
+
+        export default defineConfig({
+          plugins: [
             nodePolyfills({
               globals: {
                 Buffer: true,
@@ -1041,7 +1107,8 @@ The Turbo SDK provides a high-level interface for uploading data to Arweave thro
         ### Use the SDK
 
         ```javascript
-        
+        import { TurboFactory, USD } from '@ardrive/turbo-sdk';
+
         // Create an authenticated client
         const turbo = TurboFactory.authenticated({ privateKey: yourPrivateKey });
 
@@ -1062,7 +1129,8 @@ The Turbo SDK provides a high-level interface for uploading data to Arweave thro
         Turbo SDK Upload Example
         
             // Polyfills are included in the minimized web bundle, so not necessary to import directly
-                        
+            import { TurboFactory } from 'https://unpkg.com/@ardrive/turbo-sdk@latest';
+            
             // Function to handle file upload
             async function uploadFile() {
                 const fileInput = document.getElementById('fileInput');
@@ -1158,7 +1226,12 @@ The Turbo SDK provides a high-level interface for uploading data to Arweave thro
     href="/sdks/turbo-sdk/logging"
   />
 
-# Logging (/logging)
+# Untitled (/logging)
+
+---
+title: "Logging"
+description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
+---
 
 The SDK uses winston for logging. You can set the log level using the `setLogLevel` method.
 
@@ -1166,7 +1239,12 @@ The SDK uses winston for logging. You can set the log level using the `setLogLev
 TurboFactory.setLogLevel('debug');
 ```
 
-# Turbo Credit Sharing (/turbo-credit-sharing)
+# Untitled (/turbo-credit-sharing)
+
+---
+title: "Turbo Credit Sharing"
+description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
+---
 
 Users can share their purchased Credits with other users' wallets by creating Credit Share Approvals. These approvals are created by uploading a signed data item with tags indicating the recipient's wallet address, the amount of Credits to share, and an optional amount of seconds that the approval will expire in. The recipient can then use the shared Credits to pay for their own uploads to Turbo.
 

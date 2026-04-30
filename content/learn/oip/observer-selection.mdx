@@ -1,33 +1,32 @@
 ---
 title: "Observer Selection"
-description: "Learn about how gateways are selected as observers each epoch and how ArNS names are chosen using weighted random selection and Hashchain entropy"
+description: "Learn how gateways are selected as observers each epoch using weighted random selection"
 ---
 
 ## Epochs and Selection Timeline
 
-The ar.io network operates on **24-hour epochs**, during which the observer selection and evaluation process takes place. At the start of each epoch:
+The ar.io network operates in epochs, during which the observer selection and evaluation process takes place. At the start of each epoch:
 
-- **50 observers** are selected to monitor the network
-- **2 prescribed ArNS names** are chosen for all observers to test
-- **8 additional names** are selected by each observer individually
-- **Gateway subset** is selected for chunk/offset validation based on sampling rate
+- Observers are selected to monitor the network
+- Prescribed ArNS names are chosen for all observers to test
+- Observers may evaluate additional names or criteria as defined by the current observation process
 
-This creates a consistent evaluation framework where all observers test the same baseline names while having flexibility to choose additional targets for comprehensive network monitoring, plus advanced data integrity verification.
+This creates a consistent evaluation framework where all observers test the same baseline names while leaving room for the observation process to evolve over time.
 
 ## Selection Process
 
-Up to **fifty (50)** gateways are selected as observers per epoch using a sophisticated weighted random selection system. The selection uses **slot-based entropy** — `SHA256(slot || epoch_index || timestamp)` — from Solana to ensure unpredictable and tamper-resistant selection. Collision handling uses a 10× retry multiplier (up to 500 iterations).
+Gateways are selected as observers using weighted random selection. The process combines randomness with gateway-specific weights so observer duties are unpredictable, but still influenced by stake, tenure, and historical performance.
 
 The entropy provides cryptographic randomness for selecting:
 
-- **Observer Gateways**: The 50 gateways chosen to perform observations
-- **Prescribed ArNS Names**: The 2 common names all observers must evaluate
+- **Observer Gateways**: Gateways chosen to perform observations
+- **Prescribed ArNS Names**: Common names all observers must evaluate
 
 This approach prevents manipulation while maintaining weighted probabilities based on gateway performance and commitment.
 
 ![Current epoch observers showing their observation chance (normalized composite weight) and report status](/content/observers.png)
 
-<p
+<div
   style={{
     textAlign: "center",
     fontStyle: "italic",
@@ -44,7 +43,7 @@ This approach prevents manipulation while maintaining weighted probabilities bas
   </a>{" "}
   shows the current epoch prescribed observers and arns names, as well as their
   submission status
-</p>
+</div>
 
 ## Weighted Selection Criteria
 
@@ -57,45 +56,11 @@ The selection considers four key factors that are multiplied together to create 
 - **Gateway Performance Ratio Weight (GPRW)**: Historical gateway performance
 - **Observer Performance Ratio Weight (OPRW)**: Historical observer performance
 
-These weights are then normalized across all eligible gateways to create selection probabilities. For detailed weight calculations and formulas, see [Performance Evaluation](/learn/oip/performance-evaluation).
+These weights are then normalized across all eligible gateways to create selection probabilities. For more on how performance affects those weights, see [Performance Evaluation](/learn/oip/performance-evaluation).
 
-## Hashchain Random Selection
+## Random Selection
 
-The selection process uses **hashchain entropy** from previous ar.io contract state messages to achieve cryptographically secure randomness:
-
-### How Hashchain Selection Works
-
-1. **Entropy Source**: Random numbers are generated from the hashchain of previous contract state messages
-2. **Weighted Mapping**: Each random number maps to normalized weight ranges of eligible gateways
-3. **Observer Selection**: The gateway whose weight range contains each random number is selected
-4. **Prescribed Names**: The same entropy selects 2 ArNS names that all observers must test
-
-This creates tamper-resistant selection where higher-weighted gateways have proportionally better chances of selection, while maintaining true randomness that cannot be predicted or manipulated.
-
-## Chunk/Offset Sampling
-
-In addition to observer selection, the protocol includes a separate sampling process for chunk/offset validation:
-
-### Gateway Selection for Chunk Validation
-
-- **Deterministic Selection**: Uses PRNG seeded with observation entropy to select gateway subset
-- **Sampling Rate**: Configurable percentage of gateways tested per observation (default: 1%)
-- **Minimum Guarantee**: At least 1 gateway is always selected for testing
-- **Offset Selection**: Random offsets within the stable weave range are chosen for each selected gateway
-
-<Callout type="info">
-  **Initial Implementation**: During the initial rollout phase, only a very
-  small portion of gateways will be checked for chunk/offset validation, and the
-  current validation criteria are extremely lenient to ensure smooth network
-  operation.
-</Callout>
-
-### Validation Process
-
-- **Chunk Retrieval**: Observers request chunk data using `GET /chunk/{offset}`
-- **Merkle Proof Verification**: Cryptographic validation ensures data integrity
-- **Early Stopping**: Tests stop immediately upon first successful validation
-- **Performance Optimization**: Uses LRU caching for efficient transaction lookup
+The selection process maps random values onto normalized gateway weight ranges. Gateways with higher weights have proportionally better chances of selection, while randomness prevents predictable or easily manipulated assignments.
 
 ## Fairness and Meritocracy
 
@@ -103,7 +68,7 @@ This system ensures:
 
 - **Meritocratic Selection**: Higher-performing gateways have better selection odds
 - **Fair Opportunity**: All gateways maintain non-zero selection probability
-- **Tamper Resistance**: Hashchain entropy prevents manipulation
+- **Tamper Resistance**: Entropy prevents predictable observer assignment
 - **Consistent Standards**: Prescribed names create common evaluation baseline
 
 The selection is saved in the contract state at epoch start to ensure that activities during the epoch do not affect selection or reward distribution.
