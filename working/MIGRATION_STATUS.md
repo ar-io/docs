@@ -7,6 +7,7 @@ Updated 2026-04-29. Tracks every content page and its migration status from AO t
 - ✅ **DONE - REWRITTEN / UPDATED / NEW / MOVED / NO CHANGE** — Reviewed and complete
 - 🗑️ **DONE - DELETED** — Removed page or deprecated AO-only content
 - ⚠️ **NEEDS UPDATING** — Attention needed before launch
+- 🔎 **NEEDS TECHNICAL REVIEW** — Light pass complete, but exact product/operator behavior should be verified
 - ⏳ **PENDING - REWRITTEN / UPDATED / NEW / DELETED / NO CHANGE** — Migration type identified, but not yet reviewed in this branch
 
 ---
@@ -82,104 +83,106 @@ Updated 2026-04-29. Tracks every content page and its migration status from AO t
 
 | Page | Status | Notes |
 |------|--------|-------|
-| `build/index.mdx` | ⏳ PENDING - NO CHANGE | Navigation |
+| `build/index.mdx` | ✅ DONE - NO CHANGE | Navigation |
 
 ### build/access/
 
 | Page | Status | Notes |
 |------|--------|-------|
-| `build/access/index.mdx` | ⏳ PENDING - NO CHANGE | |
-| `build/access/arns.mdx` | ⏳ PENDING - UPDATED | arns.ar.io |
-| `build/access/fetch-data.mdx` | ⏳ PENDING - NO CHANGE | HTTP requests |
-| `build/access/find-data.mdx` | ⏳ PENDING - NO CHANGE | GraphQL |
-| `build/access/wayfinder.mdx` | ⏳ PENDING - NO CHANGE | Routing |
+| `build/access/index.mdx` | ✅ DONE - NO CHANGE | Navigation |
+| `build/access/arns.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Updated ArNS host examples; SDK purchase snippet should be verified |
+| `build/access/fetch-data.mdx` | ✅ DONE - NO CHANGE | HTTP requests |
+| `build/access/find-data.mdx` | ✅ DONE - NO CHANGE | GraphQL |
+| `build/access/wayfinder.mdx` | ✅ DONE - NO CHANGE | Routing |
 
 ### build/upload/
 
 | Page | Status | Notes |
 |------|--------|-------|
-| `build/upload/index.mdx` | ⏳ PENDING - NO CHANGE | |
-| `build/upload/turbo-credits.mdx` | ⏳ PENDING - UPDATED | ARIO on Solana network labels, removed AO wallet rows |
-| `build/upload/advanced-uploading-with-turbo.mdx` | ⏳ PENDING - NO CHANGE | Turbo SDK (Arweave wallets correct for data uploads) |
-| `build/upload/bundling-services.mdx` | ⏳ PENDING - NO CHANGE | |
-| `build/upload/encryption.mdx` | ⏳ PENDING - NO CHANGE | |
-| `build/upload/manifests.mdx` | ⏳ PENDING - NO CHANGE | |
-| `build/upload/receipts.mdx` | ⏳ PENDING - NO CHANGE | |
-| `build/upload/tagging.mdx` | ⏳ PENDING - NO CHANGE | |
-| `build/upload/x402-uploading-to-turbo.mdx` | ⏳ PENDING - NO CHANGE | |
+| `build/upload/index.mdx` | ✅ DONE - NO CHANGE | Upload overview is chain-agnostic |
+| `build/upload/turbo-credits.mdx` | ✅ DONE - UPDATED | ARIO/Solana/Base payment matrix should be verified with Turbo team |
+| `build/upload/advanced-uploading-with-turbo.mdx` | ✅ DONE - NO CHANGE | Turbo SDK wallet docs are upload-specific |
+| `build/upload/bundling-services.mdx` | ✅ DONE - NO CHANGE | Bundling-service overview is chain-agnostic |
+| `build/upload/encryption.mdx` | ✅ DONE - NO CHANGE | Encryption guide is chain-agnostic |
+| `build/upload/manifests.mdx` | ✅ DONE - NO CHANGE | Manifest guide is chain-agnostic |
+| `build/upload/receipts.mdx` | ✅ DONE - NO CHANGE | Receipt guide is chain-agnostic |
+| `build/upload/tagging.mdx` | ✅ DONE - NO CHANGE | Tagging guide is chain-agnostic |
+| `build/upload/x402-uploading-to-turbo.mdx` | ✅ DONE - NO CHANGE | x402/Turbo upload flow is independent |
 
 ### build/run-a-gateway/
 
 | Page | Status | Notes |
 |------|--------|-------|
-| `build/run-a-gateway/index.mdx` | ⏳ PENDING - NO CHANGE | |
-| `build/run-a-gateway/quick-start.mdx` | ⏳ PENDING - UPDATED | Solana pubkey format for wallets, observer uniqueness, SOL note |
-| `build/run-a-gateway/join-the-network.mdx` | ⏳ PENDING - UPDATED | Solana wallets, SOL fees, DEX refs, keypair CLI example |
-| `build/run-a-gateway/manage/solana-migration.mdx` | ⏳ PENDING - NEW | Step-by-step operator migration guide (keypair, SOL, .env, risks) |
-| `build/run-a-gateway/manage/upgrading-a-gateway.mdx` | ⏳ PENDING - NO CHANGE | Generic upgrade process |
-| `build/run-a-gateway/manage/environment-variables.mdx` | ⏳ PENDING - UPDATED | Removed AO sections, added Solana RPC with provider guidance |
-| `build/run-a-gateway/manage/filters.mdx` | ⏳ PENDING - UPDATED | Removed compute-unit card |
-| `build/run-a-gateway/manage/setting-apex-domain.mdx` | ⏳ PENDING - UPDATED | arns.ar.io |
-| `build/run-a-gateway/manage/cdb64.mdx` | ⏳ PENDING - NO CHANGE | Data indexing (AO refs are filter values) |
-| `build/run-a-gateway/manage/content-moderation.mdx` | ⏳ PENDING - NO CHANGE | |
-| `build/run-a-gateway/manage/index.mdx` | ⏳ PENDING - NO CHANGE | |
-| `build/run-a-gateway/manage/index-snapshots.mdx` | ⏳ PENDING - NO CHANGE | |
-| `build/run-a-gateway/manage/ssl-certs.mdx` | ⏳ PENDING - NO CHANGE | |
-| `build/run-a-gateway/manage/troubleshooting.mdx` | ⏳ PENDING - NO CHANGE | |
-| `build/run-a-gateway/manage/x402-setup.mdx` | ⏳ PENDING - NO CHANGE | |
+| `build/run-a-gateway/index.mdx` | ✅ DONE - NO CHANGE | Gateway operations landing page |
+| `build/run-a-gateway/quick-start.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Solana wallet/observer setup should be operator-verified |
+| `build/run-a-gateway/join-the-network.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Join flow, SOL fees, staking, and keypair guidance should be operator-verified |
+| `build/run-a-gateway/manage/solana-migration.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Migration guide is intentionally old-vs-new; dates, claim flow, and pruning details need final review |
+| `build/run-a-gateway/manage/upgrading-a-gateway.mdx` | ✅ DONE - NO CHANGE | Generic upgrade process |
+| `build/run-a-gateway/manage/environment-variables.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Includes `<ARIO_PROGRAM_ID>` placeholder and gateway env defaults to verify |
+| `build/run-a-gateway/manage/filters.mdx` | ✅ DONE - UPDATED | AO refs are data filter values; no protocol migration issue |
+| `build/run-a-gateway/manage/setting-apex-domain.mdx` | ✅ DONE - UPDATED | Updated ArNS example hostnames |
+| `build/run-a-gateway/manage/cdb64.mdx` | ✅ DONE - NO CHANGE | Data indexing; AO refs are filter values |
+| `build/run-a-gateway/manage/content-moderation.mdx` | ✅ DONE - NO CHANGE | Content moderation is chain-agnostic |
+| `build/run-a-gateway/manage/index.mdx` | ✅ DONE - NO CHANGE | Management navigation |
+| `build/run-a-gateway/manage/index-snapshots.mdx` | ✅ DONE - NO CHANGE | Snapshot operations are gateway-specific |
+| `build/run-a-gateway/manage/ssl-certs.mdx` | ✅ DONE - NO CHANGE | SSL certificate operations are chain-agnostic |
+| `build/run-a-gateway/manage/troubleshooting.mdx` | ✅ DONE - NO CHANGE | Generic troubleshooting |
+| `build/run-a-gateway/manage/x402-setup.mdx` | ✅ DONE - NO CHANGE | x402 setup is independent of protocol migration |
 
 ### build/run-wayfinder-router/
 
 | Page | Status | Notes |
 |------|--------|-------|
-| All 5 pages | ⏳ PENDING - NO CHANGE | Chain-agnostic |
+| All 5 pages | ✅ DONE - NO CHANGE | Chain-agnostic Wayfinder router docs |
 
 ### build/extensions/
 
 | Page | Status | Notes |
 |------|--------|-------|
-| `build/extensions/index.mdx` | ⏳ PENDING - UPDATED | Removed compute-unit card |
-| `build/extensions/grafana.mdx` | ⏳ PENDING - UPDATED | Removed compute-unit card |
-| `build/extensions/clickhouse.mdx` | ⏳ PENDING - UPDATED | Removed compute-unit card |
-| `build/extensions/bundler.mdx` | ⏳ PENDING - UPDATED | Removed compute-unit card |
-| `build/extensions/compute-unit.mdx` | ⏳ PENDING - DELETED | AO-only |
+| `build/extensions/index.mdx` | ✅ DONE - NO CHANGE | Sidecar overview; compute-unit page already absent |
+| `build/extensions/grafana.mdx` | ✅ DONE - NO CHANGE | Gateway monitoring sidecar |
+| `build/extensions/clickhouse.mdx` | ✅ DONE - NO CHANGE | Gateway data sidecar |
+| `build/extensions/bundler.mdx` | ✅ DONE - NO CHANGE | Bundler sidecar remains Arweave-upload specific |
+| `build/extensions/compute-unit.mdx` | 🗑️ DONE - DELETED | AO-only page is not present |
 
 ### build/guides/
 
 | Page | Status | Notes |
 |------|--------|-------|
-| `build/guides/index.mdx` | ⏳ PENDING - NO CHANGE | |
-| `build/guides/arns-marketplace.mdx` | ⏳ PENDING - UPDATED | Rewritten for Tensor/Magic Eden NFT trading |
-| `build/guides/working-with-arns/index.mdx` | ⏳ PENDING - UPDATED | ANT=Metaplex Core NFT, ario-ant program, arns.ar.io |
-| `build/guides/working-with-arns/register-arns-programmatically.mdx` | ⏳ PENDING - UPDATED | Solana signer, SOL fees, @solana/kit reference |
-| `build/guides/working-with-arns/set-arns-records-programmatically.mdx` | ⏳ PENDING - UPDATED | Solana signer, removed ArweaveSigner |
-| `build/guides/working-with-arns/purchase-arns-ui.mdx` | ⏳ PENDING - UPDATED | arns.ar.io |
-| `build/guides/working-with-arns/manage-arns-ui.mdx` | ⏳ PENDING - UPDATED | arns.ar.io |
-| `build/guides/working-with-arns/arns-primary-names.mdx` | ⏳ PENDING - NO CHANGE | |
-| `build/guides/hosting-decentralised-apps/index.mdx` | ⏳ PENDING - NO CHANGE | |
-| `build/guides/hosting-decentralised-apps/deploying-with-arlink.mdx` | ⏳ PENDING - UPDATED | arns.ar.io |
-| `build/guides/hosting-decentralised-apps/deploying-with-permaweb-deploy.mdx` | ⏳ PENDING - UPDATED | arns.ar.io |
-| `build/guides/hosting-decentralised-apps/hosting-with-ardrive.mdx` | ⏳ PENDING - UPDATED | arns.ar.io (was arns.arweave.net) |
-| `build/guides/hosting-decentralised-apps/using-undernames-for-versioning.mdx` | ⏳ PENDING - UPDATED | arns.ar.io |
-| `build/guides/using-turbo-in-a-browser/index.mdx` | ⏳ PENDING - NO CHANGE | |
-| `build/guides/using-turbo-in-a-browser/html.mdx` | ⏳ PENDING - NO CHANGE | |
-| `build/guides/using-turbo-in-a-browser/nextjs.mdx` | ⏳ PENDING - NO CHANGE | |
-| `build/guides/using-turbo-in-a-browser/vite.mdx` | ⏳ PENDING - NO CHANGE | |
-| `build/guides/depin.mdx` | ⏳ PENDING - NO CHANGE | |
-| `build/guides/application-distribution.mdx` | ⏳ PENDING - NO CHANGE | |
-| `build/guides/encrypted-data-nillion.mdx` | ⏳ PENDING - NO CHANGE | |
-| `build/guides/crossmint-nft-minting-app.mdx` | ⏳ PENDING - UPDATED | arns.ar.io |
-| `build/guides/storing-nfts.mdx` | ⏳ PENDING - NO CHANGE | |
+| `build/guides/index.mdx` | ✅ DONE - NO CHANGE | Guide navigation |
+| `build/guides/migrating-your-app-to-new-sdks.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Placeholder guide added; final SDK migration examples need review |
+| `build/guides/deploy-permanent-dapp.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Added to tracker; Solana wallet + Turbo + ArNS flow should be verified |
+| `build/guides/arns-marketplace.mdx` | ✅ DONE - NO CHANGE | Tensor/Magic Eden marketplace behavior should be verified |
+| `build/guides/working-with-arns/index.mdx` | ✅ DONE - NO CHANGE | ANT/Metaplex/Core program framing should be verified |
+| `build/guides/working-with-arns/register-arns-programmatically.mdx` | 🔎 NEEDS TECHNICAL REVIEW | SDK registration examples need Solana verification |
+| `build/guides/working-with-arns/set-arns-records-programmatically.mdx` | 🔎 NEEDS TECHNICAL REVIEW | SDK record-setting examples need Solana verification |
+| `build/guides/working-with-arns/purchase-arns-ui.mdx` | 🔎 NEEDS TECHNICAL REVIEW | arns.ar.io UI screenshots and flow need product review |
+| `build/guides/working-with-arns/manage-arns-ui.mdx` | 🔎 NEEDS TECHNICAL REVIEW | arns.ar.io UI screenshots and flow need product review |
+| `build/guides/working-with-arns/arns-primary-names.mdx` | ✅ DONE - NO CHANGE | Primary-name concept is chain-agnostic at this level |
+| `build/guides/hosting-decentralised-apps/index.mdx` | ✅ DONE - NO CHANGE | Hosting overview is chain-agnostic |
+| `build/guides/hosting-decentralised-apps/deploying-with-arlink.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Updated host examples; Arlink wallet/UI details need product review |
+| `build/guides/hosting-decentralised-apps/deploying-with-permaweb-deploy.mdx` | 🔎 NEEDS TECHNICAL REVIEW | CLI ArNS deployment flow should be verified against current tooling |
+| `build/guides/hosting-decentralised-apps/hosting-with-ardrive.mdx` | ✅ DONE - NO CHANGE | ArDrive upload flow; arns.ar.io already used |
+| `build/guides/hosting-decentralised-apps/using-undernames-for-versioning.mdx` | ✅ DONE - UPDATED | Updated ArNS host examples and fixed copy typo |
+| `build/guides/using-turbo-in-a-browser/index.mdx` | ✅ DONE - NO CHANGE | Turbo browser upload guide is wallet/provider specific |
+| `build/guides/using-turbo-in-a-browser/html.mdx` | ✅ DONE - NO CHANGE | Turbo browser upload guide |
+| `build/guides/using-turbo-in-a-browser/nextjs.mdx` | ✅ DONE - NO CHANGE | Turbo browser upload guide |
+| `build/guides/using-turbo-in-a-browser/vite.mdx` | ✅ DONE - NO CHANGE | Turbo browser upload guide |
+| `build/guides/depin.mdx` | ✅ DONE - NO CHANGE | Storage/distribution guide is chain-agnostic |
+| `build/guides/application-distribution.mdx` | ✅ DONE - NO CHANGE | Arweave upload/signing guide |
+| `build/guides/encrypted-data-nillion.mdx` | ✅ DONE - NO CHANGE | Arweave/Turbo encryption guide |
+| `build/guides/crossmint-nft-minting-app.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Contains `YOUR_PROCESS_ID_HERE`; verify if current example should use ANT mint/program wording |
+| `build/guides/storing-nfts.mdx` | ✅ DONE - NO CHANGE | NFT storage guide is chain-agnostic |
 
 ### build/advanced/
 
 | Page | Status | Notes |
 |------|--------|-------|
-| `build/advanced/index.mdx` | ⏳ PENDING - NO CHANGE | |
-| `build/advanced/arfs/*.mdx` (6 pages) | ⏳ PENDING - NO CHANGE | ArFS |
-| `build/advanced/normalized-addresses.mdx` | ⏳ PENDING - UPDATED | Removed AO process reference |
-| `build/advanced/sandboxing.mdx` | ⏳ PENDING - NO CHANGE | |
-| `build/advanced/ethareum.mdx` | ⏳ PENDING - NO CHANGE | |
+| `build/advanced/index.mdx` | ✅ DONE - NO CHANGE | Advanced navigation |
+| `build/advanced/arfs/*.mdx` (6 pages) | ✅ DONE - NO CHANGE | ArFS docs intentionally include ArDrive legacy-drive language |
+| `build/advanced/normalized-addresses.mdx` | ✅ DONE - NO CHANGE | Multi-chain address normalization remains relevant |
+| `build/advanced/sandboxing.mdx` | ✅ DONE - NO CHANGE | Gateway sandboxing is chain-agnostic |
+| `build/advanced/ethareum.mdx` | ✅ DONE - NO CHANGE | Ethereum/Arweave bridge topic |
 
 ---
 
@@ -259,7 +262,7 @@ Updated 2026-04-29. Tracks every content page and its migration status from AO t
 
 | Page | Status | Notes |
 |------|--------|-------|
-| `glossary/index.mdx` | ⏳ PENDING - UPDATED | Updated AO def, added 7 Solana terms |
+| `glossary/index.mdx` | ✅ DONE - UPDATED | Updated AO def, added 7 Solana terms |
 
 ---
 
@@ -267,9 +270,10 @@ Updated 2026-04-29. Tracks every content page and its migration status from AO t
 
 | Status | Scope |
 |--------|-------|
-| ✅ Done | `learn/(introduction)`, completed `learn/token` pages, `learn/arns`, `learn/oip`, `learn/gateways`, and `learn/wayfinder` |
+| ✅ Done | Learn section, chain-agnostic Build pages, and safe Build copy/link fixes |
 | ⚠️ Needs updating | `learn/token/get-the-token.mdx`, `learn/token/migration.mdx` |
-| ⏳ Pending | Build, SDKs, APIs, Glossary |
+| 🔎 Needs technical review | Build operator guides, ArNS implementation guides, Turbo Credits matrix, and UI-dependent flows |
+| ⏳ Pending | SDKs, APIs, Glossary |
 
 ## Remaining TODOs
 

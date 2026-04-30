@@ -5,13 +5,13 @@ description: "End-to-end guide to deploying a permanent web application using a 
 
 import { Rocket, Globe, Upload, Check } from 'lucide-react';
 
-Deploy a permanent web application to Arweave with a human-readable ArNS name — using only your Solana wallet. Your app will be served by ~600 decentralized gateways with zero ongoing hosting costs.
+Deploy a permanent web application to Arweave with a human-readable ArNS name — using only your Solana wallet. Your app will be served by the network of decentralized gateways with zero ongoing hosting costs.
 
 ## What You'll Build
 
 By the end of this guide, your app will be:
 - **Permanently stored** on Arweave (can never be deleted or modified)
-- **Accessible** at `https://yourname.arweave.net` (and every other ar.io gateway)
+- **Accessible** at `https://yourname.ar.io` (and every other ar.io gateway)
 - **Owned by you** as a Metaplex Core NFT (the ArNS name token)
 
 ## Prerequisites
@@ -186,7 +186,7 @@ Requires `@ar.io/sdk` version 3.23+ for Solana support.
     });
 
     console.log('Done! Your app is live at:');
-    console.log(`  https://${ARNS_NAME}.arweave.net`);
+    console.log(`  https://${ARNS_NAME}.ar.io`);
     console.log(`  https://${ARNS_NAME}.ar-io.dev`);
     ```
   </Step>
@@ -197,7 +197,7 @@ Requires `@ar.io/sdk` version 3.23+ for Solana support.
     Wait a minute for gateways to pick up the new record, then verify:
 
     ```bash
-    curl -I https://my-cool-app.arweave.net
+    curl -I https://my-cool-app.ar.io
     # Should return 200 OK with your app's index.html
     ```
 
@@ -243,7 +243,7 @@ await ant.setRecord({
   transactionId: stagingManifestTxId,
   ttlSeconds: 300, // short TTL for faster updates
 });
-// Access at: https://staging_my-cool-app.arweave.net
+// Access at: https://staging_my-cool-app.ar.io
 
 // When ready, promote to production
 await ant.setRecord({
@@ -303,7 +303,7 @@ async function deploy() {
     ttlSeconds: 3600,
   });
 
-  console.log(`\nLive at: https://${ARNS_NAME}.arweave.net`);
+  console.log(`\nLive at: https://${ARNS_NAME}.ar.io`);
 }
 
 deploy().catch(console.error);

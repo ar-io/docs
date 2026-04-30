@@ -8,7 +8,7 @@ ar.io is the access and naming layer for Arweave (permanent storage). Protocol e
 
 - **Store data permanently** on Arweave (pay once, stored forever)
 - **Name things** with ArNS (human-readable URLs like `myapp.arweave.net`)
-- **Serve content** through ~600 decentralized gateways worldwide
+- **Serve content** through decentralized network of gateways worldwide
 
 ## Architecture
 
