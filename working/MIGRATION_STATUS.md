@@ -19,7 +19,7 @@ Updated 2026-04-29. Tracks every content page and its migration status from AO t
 | `learn/(introduction)/index.mdx` | UPDATED | arns.app → arns.ar.io |
 | `learn/(introduction)/what-is-ario.mdx` | UPDATED | "Arweave and AO" → "Arweave + Solana" |
 | `learn/(introduction)/what-is-arweave.mdx` | NO CHANGE | Arweave storage layer |
-| `learn/(introduction)/permaweb.mdx` | UPDATED | Added Solana as Layer 2 compute alongside AO in diagram and text |
+| `learn/(introduction)/what-is-permaweb.mdx` | UPDATED | Added Solana as Layer 2 compute alongside AO in diagram and text |
 | `learn/(introduction)/ans-104-bundles.mdx` | NO CHANGE | Bundle standard |
 
 ### learn/token/
