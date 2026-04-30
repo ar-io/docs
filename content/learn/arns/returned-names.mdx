@@ -9,18 +9,17 @@ When an ArNS name expires or is voluntarily returned to the protocol, it enters 
 
 ## Dutch Auction Mechanics
 
-Returned names start at a high premium and decay to the base price over 14 days:
+Returned names start at a high premium and decay to the base price over a return window:
 
-- **Starting price**: 50× the base registration price
-- **Ending price**: 1× the base registration price (standard rate)
-- **Duration**: 14 days
-- **Decay**: Continuous exponential decay from 50× to 1×
+- **Starting price**: premium above the base registration price
+- **Ending price**: standard registration price
+- **Decay**: decreases over time until standard pricing resumes
 
 ```mermaid
 graph LR
     A[Name Expired<br/>or Released] --> B[Dutch Auction<br/>Starts at 50x]
-    B --> C[Price Decays<br/>Over 14 Days]
-    C --> D[Reaches 1x<br/>Base Price]
+    B --> C[Price Decays<br/>Over Time]
+    C --> D[Reaches<br/>Standard Price]
     D --> E[Standard<br/>Registration]
 ```
 
@@ -36,18 +35,18 @@ This incentivizes name owners to voluntarily release names they no longer need, 
 ## How Names Enter the Returned Pool
 
 ### Lease Expiration
-When a leased name's term ends and the 14-day grace period elapses without renewal, the name enters the returned pool.
+When a leased name's term ends and the grace period elapses without renewal or conversion to permanent ownership, the name enters the returned pool.
 
 ### Voluntary Release
-Permanent name owners can voluntarily release their name back to the protocol using the `releaseName` instruction. This immediately places the name in the returned pool.
+Permanent name owners can voluntarily release their name back to the protocol. This places the name in the returned pool.
 
 ## Lifecycle
 
 | Phase | Duration | Price | Action |
 |-------|----------|-------|--------|
 | **Active lease** | As registered | N/A | Name is in use |
-| **Grace period** | 14 days after expiry | N/A | Owner can renew |
-| **Dutch auction** | 14 days | 50× → 1× | Anyone can purchase |
+| **Grace period** | After expiry | N/A | Owner can renew or convert |
+| **Dutch auction** | Return window | Premium → standard price | Anyone can purchase |
 | **Standard registration** | Indefinite | Base price | Normal ArNS purchase |
 
 ## Querying Returned Names

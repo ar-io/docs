@@ -6,28 +6,30 @@ description: "Learn about Ar.io Name Tokens (ANTs) - the ownership and control s
 import { Card, Cards } from 'fumadocs-ui/components/card';
 import { Calculator, FileText, Code } from 'lucide-react';
 
-To establish ownership of a record in the ArNS Registry, each record contains both a friendly name and a reference to an Ar.io Name Token (ANT). ANTs are [Metaplex Core](https://developers.metaplex.com/core) NFTs on Solana that give their owners the ability to update the Arweave Transaction IDs that their associated friendly names point to.
+To establish ownership of a record in the ArNS Registry, each record contains both a friendly name and a reference to an Ar.io Name Token (ANT). ANTs are [Metaplex Core](https://developers.metaplex.com/core) NFTs on Solana that give their owners the ability to update the Arweave transaction IDs their associated friendly names point to.
 
 ## What is an ANT?
 
-An ANT is a Metaplex Core NFT managed by the `ario-ant` Solana program. It implements the Ar.io Name Token specification required by ar.io gateways who resolve ArNS names and their Arweave Transaction IDs. It also contains functionality to establish ownership, transfer ownership (including via NFT marketplaces like Tensor and Magic Eden), and update the Arweave Transaction ID.
+An ANT is a Metaplex Core NFT managed by the `ario-ant` Solana program. It implements the Ar.io Name Token specification required by ar.io gateways to resolve ArNS names to Arweave transaction IDs. The program handles record updates, controller management, metadata changes, and ownership reconciliation after transfers.
 
-Name Tokens have an owner, who can transfer the token and control its modifiable settings. These settings include modifying the address resolution time to live (ttl) for each name contained in the ANT, and other settings like the ANT Name, Ticker, and an ANT Controller.
+Name Tokens have an owner, who can transfer the token and control its modifiable settings. These settings include record targets, address-resolution TTL values, the ANT name and ticker, and controller permissions.
 
 ## Ownership and Control
 
-The controller can only manage the ANT and set and update records, name, and the ticker, but cannot transfer the ANT. Each ANT supports up to 10 controllers. The root (@) record cannot be removed, only updated — ensuring the name always resolves.
+Controllers can manage records, name, and ticker settings, but cannot transfer the ANT or assign additional controllers.
 
-ANTs are initially minted in accordance with network standards by an end user who then has the ability to transfer its ownership or assign controllers as they see fit. When an ANT is transferred via a marketplace (outside the ar.io protocol), controllers are cleared on the next write operation via lazy reconciliation, ensuring the new owner has full control.
+ANTs are minted in accordance with network standards by an end user who can transfer ownership or assign controllers as needed. Because ANT logic lives in the `ario-ant` program rather than inside each individual token, protocol-level updates can apply consistently across ANTs.
+
+When an ANT is transferred through a marketplace outside the ar.io app, the `ario-ant` program reconciles ownership on the next interaction and clears previously assigned controllers so the new owner has clean control.
 
 Loss of a private key for a permanently purchased name can result in the name being inaccessible.
 
-### Under_name Ownership
+### Undername Ownership
 
-Undernames can have an `owner` set on them. This owner is empowered to set that undername as their primary name, can remove that undername as their primary name, and has full control over that Undername's metadata, such as:
+Undernames can have an `owner` set on them. This owner is empowered to set that undername as their primary name, remove that undername as their primary name, and control that undername's metadata, such as:
 
-- Transaction Id - the data the record resolves to.
-- TTL Seconds - the Time To Live in seconds the data is cached for by clients.
+- Transaction ID - the data the record resolves to.
+- TTL seconds - the time to live in seconds the data is cached for by clients.
 - Owner - the owner of the record.
 - Description - the description of the record.
 - Display Name - the display name for the owner of the record.
@@ -56,11 +58,11 @@ The table below indicates some of the possible interactions with the ArNS regist
 | Increase undernames                     | ✔        | ✔             | ✔              | ✔                    |
 | Convert lease to permanent              | ✔        | ✔             | ✔              | ✔                    |
 
-## Under_names
+## Undernames
 
-ANT owners and controllers can configure multiple subdomains for their registered ArNS name known as "under_names" or more easily written "undernames". These undernames are assigned individually at the time of registration or can be added on to any registered name at any time.
+ANT owners and controllers can configure subdomains for their registered ArNS name, known as undernames. These undernames are assigned at registration or added later.
 
-Under*names use an underscore "*" in place of a more typically used dot "." to separate the subdomain from the main ArNS domain.
+Undernames use an underscore (`_`) in place of a dot (`.`) to separate the subdomain from the main ArNS domain.
 
 ## Secondary Markets
 
