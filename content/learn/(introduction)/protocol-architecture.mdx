@@ -125,21 +125,9 @@ All protocol state is stored in Solana accounts using Program Derived Addresses 
 
 ## Security Model
 
-The architecture implements multiple layers of security:
+The protocol relies on a combination of Solana runtime guarantees, deterministic account ownership, and economic incentives:
 
-### Economic Security
-- **Stake Requirements**: Minimum ARIO token stake to join as a gateway operator
-- **Performance-Based Pruning**: Gateways that repeatedly fail observation are removed from the network and subject to stake slashing
-- **Observation Consensus**: Peer-to-peer monitoring ensures no single point of failure
-
-### Technical Security
-- **Solana Runtime**: Enforces signer authentication, account ownership, and rent exemption
-- **Transaction Fees**: Solana fees require state-changing operations to pay execution costs, helping discourage spam and unnecessary writes
-- **PDA Isolation**: Each account type has deterministic seeds preventing collision or unauthorized access
-- **Audited Code**: Independent security audit with all findings addressed
-- **CPI Guards**: Cross-program invocations validate calling program identity
-
-### Governance Security
-- **Current Ownership**: Managed by a Squads v4 multisig
-- **Path to Immutability**: Plans to transition to fully immutable protocol
-- **Transparent State**: All onchain state is publicly verifiable via any Solana RPC or explorer
+- **Signer and account checks**: Solana enforces transaction signatures, account ownership, and program execution rules.
+- **Program Derived Addresses (PDAs)**: Protocol state lives in deterministic accounts controlled by the relevant ar.io programs.
+- **Economic accountability**: Gateway operators stake ARIO, and repeated failure can lead to removal and slashing.
+- **Permissionless verification**: Gateway observations and cranking keep network operations open and independently verifiable.
