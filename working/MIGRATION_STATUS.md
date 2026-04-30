@@ -188,73 +188,54 @@ Updated 2026-04-29. Tracks every content page and its migration status from AO t
 
 ## SDKs Section
 
+> SDK reference pages are generated from upstream READMEs by `npm run generate-sdk-docs`. They are not regenerated automatically by `npm run build`; regenerate all SDK docs before launch because they have likely drifted from upstream. Track generated SDK docs at group level rather than per generated file.
+
 | Page | Status | Notes |
 |------|--------|-------|
-| `sdks/index.mdx` | ⏳ PENDING - UPDATED | "Solana programs" |
+| `sdks/index.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Handwritten landing page; verify Solana SDK framing |
 
 ### sdks/ar-io-sdk/
 
 | Page | Status | Notes |
 |------|--------|-------|
-| `sdks/ar-io-sdk/index.mdx` | ⏳ PENDING - UPDATED | "Solana program", v3.23+ callout, @solana/kit install note |
-| `sdks/ar-io-sdk/token-conversion.mdx` | ⏳ PENDING - UPDATED | "process" → "protocol" |
-| `sdks/ar-io-sdk/pagination.mdx` | ⏳ PENDING - NO CHANGE | |
-| `sdks/ar-io-sdk/logging.mdx` | ⏳ PENDING - NO CHANGE | |
-| `sdks/ar-io-sdk/(ario-contract)/configuration.mdx` | ⏳ PENDING - REWRITTEN | Solana RPC, @solana/kit install, version callout, RPC provider guidance, SOL costs |
-| `sdks/ar-io-sdk/(ario-contract)/networks.mdx` | ⏳ PENDING - REWRITTEN | Program addresses, Solana devnet |
-| `sdks/ar-io-sdk/(ario-contract)/general.mdx` | ⏳ PENDING - REWRITTEN | Solana signers with @solana/kit example, @solana/kit install note |
-| `sdks/ar-io-sdk/(ario-contract)/arweave-name-system-arns.mdx` | ⏳ PENDING - UPDATED | processId field note, mint address, minting-ant callback, Solana signers |
-| `sdks/ar-io-sdk/(ario-contract)/epochs.mdx` | ⏳ PENDING - UPDATED | Solana signer in saveObservations |
-| `sdks/ar-io-sdk/(ario-contract)/gateways.mdx` | ⏳ PENDING - UPDATED | Solana signers (12 instances), removed autoStake, Solana observer address |
-| `sdks/ar-io-sdk/(ario-contract)/primary-names.mdx` | ⏳ PENDING - UPDATED | Solana signers, processId → ANT owner note |
-| `sdks/ar-io-sdk/(ario-contract)/vaults.mdx` | ⏳ PENDING - UPDATED | Solana signers (5 instances) |
-| `sdks/ar-io-sdk/(ant-contracts)/initialize.mdx` | ⏳ PENDING - UPDATED | Solana wallet adapter + mint address |
-| `sdks/ar-io-sdk/(ant-contracts)/spawn.mdx` | ⏳ PENDING - UPDATED | "Mints Metaplex Core NFT", Solana signer |
-| `sdks/ar-io-sdk/(ant-contracts)/static-methods.mdx` | ⏳ PENDING - UPDATED | Fork → new NFT, Solana signers |
-| `sdks/ar-io-sdk/(ant-contracts)/upgrade.mdx` | ⏳ PENDING - UPDATED | Metaplex Core schema versioning |
-| `sdks/ar-io-sdk/(ant-contracts)/transfer.mdx` | ⏳ PENDING - UPDATED | "Solana address", Metaplex Core transfer |
-| `sdks/ar-io-sdk/(ant-contracts)/ario-integrations.mdx` | ⏳ PENDING - UPDATED | PROCESS_ID → PROGRAM_ID |
-| `sdks/ar-io-sdk/(ant-contracts)/undername-ownership.mdx` | ⏳ PENDING - UPDATED | Solana signer |
-| `sdks/ar-io-sdk/(ant-contracts)/records.mdx` | ⏳ PENDING - NO CHANGE | |
-| `sdks/ar-io-sdk/(ant-contracts)/controllers.mdx` | ⏳ PENDING - NO CHANGE | |
-| `sdks/ar-io-sdk/(ant-contracts)/metadata.mdx` | ⏳ PENDING - NO CHANGE | |
-| `sdks/ar-io-sdk/(ant-contracts)/balances.mdx` | ⏳ PENDING - NO CHANGE | |
-| `sdks/ar-io-sdk/(ant-contracts)/state.mdx` | ⏳ PENDING - NO CHANGE | |
-| `sdks/ar-io-sdk/(ant-contracts)/versions.mdx` | ⏳ PENDING - NO CHANGE | |
+| `sdks/ar-io-sdk/index.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Handwritten landing page; verify version/signing guidance |
+| Generated ar.io SDK pages | ⚠️ NEEDS UPDATING | Regenerate from upstream README, then spot-check Solana signer, ArNS, ANT, gateway, epoch, vault, and `processId`/mint-address examples |
 
 ### sdks/turbo-sdk/ (13 pages)
 
 | Page | Status | Notes |
 |------|--------|-------|
-| All pages | ⏳ PENDING - NO CHANGE | Independent service, Arweave wallets correct for data uploads |
+| Generated Turbo SDK pages | ⚠️ NEEDS UPDATING | Regenerate from upstream README; independent service but likely stale |
 
 ### sdks/ardrive-core-js/ (16 pages)
 
 | Page | Status | Notes |
 |------|--------|-------|
-| All pages | ⏳ PENDING - NO CHANGE | ArDrive SDK |
+| Generated ArDrive Core JS pages | ⚠️ NEEDS UPDATING | Regenerate from upstream README; not part of ar.io protocol migration but likely stale |
 
 ### sdks/(clis)/ardrive-cli/ (~40 pages)
 
 | Page | Status | Notes |
 |------|--------|-------|
-| All pages | ⏳ PENDING - NO CHANGE | ArDrive CLI |
+| Generated ArDrive CLI pages | ⚠️ NEEDS UPDATING | Regenerate from upstream README; not part of ar.io protocol migration but likely stale |
 
 ### sdks/wayfinder/ (~12 pages)
 
 | Page | Status | Notes |
 |------|--------|-------|
-| All pages | ⏳ PENDING - NO CHANGE | Wayfinder SDK |
+| Generated Wayfinder SDK pages | ⚠️ NEEDS UPDATING | Regenerate from upstream README; chain-agnostic but likely stale |
 
 ---
 
 ## APIs Section
 
+> API reference pages are generated from upstream OpenAPI specs by `npm run generate-api-docs`. They are not regenerated automatically by `npm run build`; regenerate all API docs before launch because they have likely drifted from upstream. Track generated API docs at group level rather than per generated file.
+
 | Page | Status | Notes |
 |------|--------|-------|
-| `apis/index.mdx` | ⏳ PENDING - NO CHANGE | |
-| `apis/ar-io-node/*.mdx` (13 pages) | ⏳ PENDING - NO CHANGE | Gateway API, chain-agnostic |
-| `apis/turbo/**/*.mdx` (12 pages) | ⏳ PENDING - NO CHANGE | Turbo service APIs |
+| `apis/index.mdx` | ✅ DONE - NO CHANGE | API landing page |
+| Generated `apis/ar-io-node/*` pages | ⚠️ NEEDS UPDATING | Regenerate from ar-io-node OpenAPI spec and spot-check gateway API terminology |
+| Generated `apis/turbo/**/*` pages | ⚠️ NEEDS UPDATING | Regenerate from Turbo OpenAPI specs; independent generated reference but likely stale |
 
 ---
 
@@ -266,19 +247,12 @@ Updated 2026-04-29. Tracks every content page and its migration status from AO t
 
 ---
 
-## Summary
-
-| Status | Scope |
-|--------|-------|
-| ✅ Done | Learn section, chain-agnostic Build pages, and safe Build copy/link fixes |
-| ⚠️ Needs updating | `learn/token/get-the-token.mdx`, `learn/token/migration.mdx` |
-| 🔎 Needs technical review | Build operator guides, ArNS implementation guides, Turbo Credits matrix, and UI-dependent flows |
-| ⏳ Pending | SDKs, APIs, Glossary |
 
 ## Remaining TODOs
 
 - [ ] Replace `<ARIO_MINT_ADDRESS>` and `<ARIO_PROGRAM_ID>` placeholders with final addresses before launch
-- [ ] Regenerate SDK output examples from Solana devnet (`npm run generate-sdk-docs`) — 8 files still show Arweave-format addresses in JSON output
+- [ ] Regenerate all API docs with `npm run generate-api-docs`; not automatic on build
+- [ ] Regenerate all SDK docs with `npm run generate-sdk-docs`; not automatic on build
+- [ ] Regenerate SDK output examples from Solana devnet — generated ar.io SDK pages still need spot-checking for Arweave-format addresses and Solana signer examples
 - [ ] Update UI screenshots in `purchase-arns-ui.mdx` and `manage-arns-ui.mdx` once Solana UI is live
 - [ ] Run `npm run generate-all-docs` to regenerate LLM text files
-- [ ] Verify turbo-credits.mdx with Turbo team once ARIO Solana payment is finalized
