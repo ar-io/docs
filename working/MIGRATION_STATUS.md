@@ -72,9 +72,9 @@ Updated 2026-04-29. Tracks every content page and its migration status from AO t
 
 | Page | Status | Notes |
 |------|--------|-------|
-| `learn/wayfinder/index.mdx` | ⏳ PENDING - NO CHANGE | Routing infrastructure |
-| `learn/wayfinder/integration.mdx` | ⏳ PENDING - NO CHANGE | Chain-agnostic |
-| `learn/wayfinder/use-cases.mdx` | ⏳ PENDING - NO CHANGE | Chain-agnostic |
+| `learn/wayfinder/index.mdx` | ✅ DONE - UPDATED | Removed stale ArNS contract wording |
+| `learn/wayfinder/integration.mdx` | ✅ DONE - UPDATED | Chain-agnostic; refreshed gateway examples and fixed import typo |
+| `learn/wayfinder/use-cases.mdx` | ✅ DONE - UPDATED | Light wording cleanup; chain-agnostic |
 
 ---
 
@@ -267,9 +267,9 @@ Updated 2026-04-29. Tracks every content page and its migration status from AO t
 
 | Status | Scope |
 |--------|-------|
-| ✅ Done | `learn/(introduction)`, completed `learn/token` pages, `learn/arns`, `learn/oip`, and `learn/gateways` |
+| ✅ Done | `learn/(introduction)`, completed `learn/token` pages, `learn/arns`, `learn/oip`, `learn/gateways`, and `learn/wayfinder` |
 | ⚠️ Needs updating | `learn/token/get-the-token.mdx`, `learn/token/migration.mdx` |
-| ⏳ Pending | `learn/wayfinder` onward, Build, SDKs, APIs, Glossary |
+| ⏳ Pending | Build, SDKs, APIs, Glossary |
 
 ## Remaining TODOs
 
