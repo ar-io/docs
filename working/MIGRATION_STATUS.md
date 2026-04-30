@@ -149,20 +149,20 @@ Updated 2026-04-29. Tracks every content page and its migration status from AO t
 
 | Page | Status | Notes |
 |------|--------|-------|
-| `build/guides/index.mdx` | ✅ DONE - NO CHANGE | Guide navigation |
-| `build/guides/migrating-your-app-to-new-sdks.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Placeholder guide added; final SDK migration examples need review |
-| `build/guides/deploy-permanent-dapp.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Added to tracker; Solana wallet + Turbo + ArNS flow should be verified |
+| `build/guides/index.mdx` | ✅ DONE - UPDATED | Guide navigation reordered |
+| `build/guides/hosting-decentralised-apps/migrating-your-app-to-new-sdks.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Moved under app hosting guides; final SDK migration examples need review |
+| `build/guides/hosting-decentralised-apps/deploy-permanent-dapp.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Moved under app hosting guides; Solana wallet + Turbo + ArNS flow should be verified |
 | `build/guides/arns-marketplace.mdx` | ✅ DONE - NO CHANGE | Tensor/Magic Eden marketplace behavior should be verified |
 | `build/guides/working-with-arns/index.mdx` | ✅ DONE - NO CHANGE | ANT/Metaplex/Core program framing should be verified |
 | `build/guides/working-with-arns/register-arns-programmatically.mdx` | 🔎 NEEDS TECHNICAL REVIEW | SDK registration examples need Solana verification |
 | `build/guides/working-with-arns/set-arns-records-programmatically.mdx` | 🔎 NEEDS TECHNICAL REVIEW | SDK record-setting examples need Solana verification |
-| `build/guides/working-with-arns/purchase-arns-ui.mdx` | 🔎 NEEDS TECHNICAL REVIEW | arns.ar.io UI screenshots and flow need product review |
-| `build/guides/working-with-arns/manage-arns-ui.mdx` | 🔎 NEEDS TECHNICAL REVIEW | arns.ar.io UI screenshots and flow need product review |
+| `build/guides/working-with-arns/purchase-arns-ui.mdx` | 🔎 NEEDS UPDATING | arns.ar.io UI screenshots and flow need product review |
+| `build/guides/working-with-arns/manage-arns-ui.mdx` | 🔎 NEEDS UPDATING | arns.ar.io UI screenshots and flow need product review |
 | `build/guides/working-with-arns/arns-primary-names.mdx` | ✅ DONE - NO CHANGE | Primary-name concept is chain-agnostic at this level |
-| `build/guides/hosting-decentralised-apps/index.mdx` | ✅ DONE - NO CHANGE | Hosting overview is chain-agnostic |
-| `build/guides/hosting-decentralised-apps/deploying-with-arlink.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Updated host examples; Arlink wallet/UI details need product review |
+| `build/guides/hosting-decentralised-apps/index.mdx` | ✅ DONE - UPDATED | Added end-to-end permanent dApp guide entry |
+| `build/guides/hosting-decentralised-apps/deploying-with-arlink.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Needs review when ArLink is updated for Solana |
 | `build/guides/hosting-decentralised-apps/deploying-with-permaweb-deploy.mdx` | 🔎 NEEDS TECHNICAL REVIEW | CLI ArNS deployment flow should be verified against current tooling |
-| `build/guides/hosting-decentralised-apps/hosting-with-ardrive.mdx` | ✅ DONE - NO CHANGE | ArDrive upload flow; arns.ar.io already used |
+| `build/guides/hosting-decentralised-apps/hosting-with-ardrive.mdx` | ✅ DONE - UPDATED | ArDrive upload flow; arns.ar.io already used |
 | `build/guides/hosting-decentralised-apps/using-undernames-for-versioning.mdx` | ✅ DONE - UPDATED | Updated ArNS host examples and fixed copy typo |
 | `build/guides/using-turbo-in-a-browser/index.mdx` | ✅ DONE - NO CHANGE | Turbo browser upload guide is wallet/provider specific |
 | `build/guides/using-turbo-in-a-browser/html.mdx` | ✅ DONE - NO CHANGE | Turbo browser upload guide |
@@ -171,7 +171,7 @@ Updated 2026-04-29. Tracks every content page and its migration status from AO t
 | `build/guides/depin.mdx` | ✅ DONE - NO CHANGE | Storage/distribution guide is chain-agnostic |
 | `build/guides/application-distribution.mdx` | ✅ DONE - NO CHANGE | Arweave upload/signing guide |
 | `build/guides/encrypted-data-nillion.mdx` | ✅ DONE - NO CHANGE | Arweave/Turbo encryption guide |
-| `build/guides/crossmint-nft-minting-app.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Contains `YOUR_PROCESS_ID_HERE`; verify if current example should use ANT mint/program wording |
+| `build/guides/crossmint-nft-minting-app.mdx` | 🗑️ DONE - DELETED | Outdated |
 | `build/guides/storing-nfts.mdx` | ✅ DONE - NO CHANGE | NFT storage guide is chain-agnostic |
 
 ### build/advanced/

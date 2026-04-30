@@ -306,6 +306,11 @@ const redirects = [
     permanent: true,
   },
   {
+    source: '/build/guides/deploy-permanent-dapp',
+    destination: '/build/guides/hosting-decentralised-apps/deploy-permanent-dapp',
+    permanent: true,
+  },
+  {
     source: '/guides/ardrive-web',
     destination: '/build/guides/hosting-unstoppable-apps/hosting-with-ardrive',
     permanent: true,
