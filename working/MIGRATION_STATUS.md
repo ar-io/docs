@@ -27,12 +27,12 @@ Updated 2026-04-29. Tracks every content page and its migration status from AO t
 
 | Page | Status | Notes |
 |------|--------|-------|
-| `learn/token/index.mdx` | REWRITTEN | SPL Token on Solana, new architecture section |
+| `learn/token/index.mdx` | DONE - REWRITTEN | Trimmed to lightweight Solana token overview and hub |
 | `learn/token/architecture.mdx` | DONE - MOVED | Moved to `learn/(introduction)/protocol-architecture.mdx` |
-| `learn/token/get-the-token.mdx` | REWRITTEN | Solana canonical, Jupiter/Raydium, Phantom/Solflare |
-| `learn/token/staking.mdx` | REWRITTEN | Auto-compound, accumulator, pruning, redelegation, SOL cost estimates |
-| `learn/token/wallets.mdx` | NEW | Phantom/Solflare/Backpack setup (replaces add-to-wander) |
-| `learn/token/migration.mdx` | NEW | Import-then-claim flow, address mapping, FAQ |
+| `learn/token/get-the-token.mdx` | NEEDS UPDATING | Solana canonical, Jupiter/Raydium, Phantom/Solflare |
+| `learn/token/wallets.mdx` | DONE - NEW | Phantom/Solflare/Backpack setup (replaces add-to-wander) |
+| `learn/token/staking.mdx` | DONE - REWRITTEN | Auto-compound, accumulator, pruning, redelegation, SOL cost estimates |
+| `learn/token/migration.mdx` | NEEDS UPDATING | Import-then-claim flow, address mapping, FAQ |
 | `learn/token/add-to-wander.mdx` | DELETED | Replaced by wallets.mdx |
 
 ### learn/arns/
