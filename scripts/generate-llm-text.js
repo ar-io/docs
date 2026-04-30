@@ -24,7 +24,7 @@ function parseMdxFile(filePath) {
   const content = fs.readFileSync(filePath, "utf8");
 
   // Extract frontmatter
-  const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---\n/);
+  const frontmatterMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/);
   let frontmatter = {};
   let body = content;
 

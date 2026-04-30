@@ -5,7 +5,7 @@ description: "How ar.io gateways retrieve and share data from multiple sources i
 
 import { Shield, Cpu, Globe, Settings } from 'lucide-react';
 
-Ar.io gateways use a sophisticated multi-tier architecture to retrieve and serve Arweave data. This system ensures high availability, fast response times, and data integrity by leveraging multiple data sources with automatic fallback mechanisms.
+Ar.io gateways retrieve and serve Arweave data from multiple sources. They prefer fast local or trusted sources when available, then fall back to broader network peers, chunks, or Arweave nodes as needed.
 
 ## How Gateways Retrieve Data
 
@@ -37,7 +37,7 @@ graph TD
     classDef source fill:#2563eb,stroke:#1d4ed8,stroke-width:2px,color:#fff
     classDef process fill:#16a34a,stroke:#15803d,stroke-width:2px,color:#fff
     
-    class TRUSTED,NETWORK,CHUNKS,TXDATA source
+    class TRUSTED,NETWORK,CHUNKS,ARWEAVE source
     class VALIDATE,SERVE,STORE process
 ```
 
@@ -48,14 +48,14 @@ Ar.io gateways can retrieve data from multiple sources, each with different char
 ### 1. Trusted Gateways
 - **Purpose**: Peer-to-peer data sharing between verified ar.io gateways
 - **Benefits**: Distributed redundancy, load balancing, network resilience
-- **Trust Mechanism**: Performance-based trust scores and reciprocity monitoring
-- **Selection**: Prioritized based on established trust relationships
+- **Trust Mechanism**: Operator-defined trust settings, observed performance, and reciprocity
+- **Selection**: Prioritized based on local gateway configuration
 
 ### 2. ar.io (Untrusted Peers)
 - **Purpose**: Broader network of ar.io gateways without established trust
 - **Benefits**: Geographic distribution, expanded data availability
-- **Selection**: Weighted random selection based on performance metrics
-- **Validation**: Enhanced verification required due to untrusted nature
+- **Selection**: Chosen based on availability, configuration, and routing strategy
+- **Validation**: Verification is important because the peer may not be trusted
 
 ### 3. Chunk Assembly
 - **Purpose**: Direct reconstruction from Arweave chunks via known offsets
@@ -92,7 +92,7 @@ Used specifically for unbundling and verification processes:
 ## Trust and Validation
 
 ### Peer Trust Management
-Gateways maintain sophisticated trust relationships:
+Gateways can maintain trust relationships with peer gateways:
 
 ```mermaid
 graph TD
@@ -147,7 +147,7 @@ Every piece of retrieved data undergoes validation:
 
 ---
 
-The data retrieval system is fundamental to ar.io's mission of providing reliable, performant access to the permaweb. This sophisticated architecture ensures that Arweave's permanent data remains accessible through a resilient, distributed gateway network.
+The data retrieval system is central to ar.io's mission of providing reliable, performant access to the permaweb. Multiple retrieval paths help keep permanent data accessible through a distributed gateway network.
 
 ## Related Gateway Concepts
 

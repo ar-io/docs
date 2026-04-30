@@ -5,7 +5,7 @@ description: "Learn about the technical architecture of ar.io gateways, their co
 
 import { Database, Shield, Layers, Server } from 'lucide-react';
 
-Ar.io gateways are sophisticated data access layers built on top of the Arweave network. They transform the raw Arweave blockchain into a performant, reliable, and developer-friendly platform for storing and retrieving data. Gateways act as bridges between applications and the permanent storage capabilities of Arweave.
+Ar.io gateways are data access layers built on top of Arweave. They make permanent data easier to retrieve, cache, index, and serve through standard web interfaces.
 
 ```mermaid
 graph TB
@@ -87,14 +87,14 @@ Ar.io gateways are built using modern, scalable technologies designed for high-p
 Several important design decisions shape how ar.io gateways operate:
 
 ### Data Retrieval Strategy
-Ar.io gateways use a sophisticated **hierarchical fallback system** for data retrieval:
+Ar.io gateways use a **hierarchical fallback system** for data retrieval:
 
 1. **Trusted gateways**: Prioritize data from verified, high-performance peers
 2. **Ar.io network**: Leverage the broader network of ar.io gateways  
 3. **Chunks data items**: Reconstruct data from individual chunks when needed
 4. **Transaction data**: Fall back to raw Arweave transaction data
 
-This approach ensures data availability while optimizing for speed and reliability.
+This approach improves availability while optimizing for speed and reliability.
 
 ### Verification and Trust Model
 - **Multi-level cryptographic verification**: Data integrity is verified at multiple points
@@ -105,9 +105,9 @@ This approach ensures data availability while optimizing for speed and reliabili
 ### Worker Specialization
 Different background workers handle specific responsibilities:
 
-- **Block synchronization workers**: Keep the gateway synchronized with Arweave blocks
-- **Bundle processing workers**: Handle Layer 2 bundled data items (ANS-104)
-- **Data verification workers**: Continuously verify stored data integrity
+- **Block synchronization workers**: Keep the gateway aligned with Arweave blocks
+- **Bundle processing workers**: Extract and index ANS-104 data items
+- **Data verification workers**: Check cached data integrity
 - **Maintenance workers**: Perform cleanup and optimization tasks
 
 ## Scalability and Configuration
@@ -134,7 +134,7 @@ Operators maintain complete control through **[Data Retrieval](/learn/gateways/d
 ### Network Resilience
 The modular design creates a resilient ecosystem where distributed infrastructure and customizable trust models prevent single points of failure.
 
-This architecture ensures that builders can create powerful applications on Arweave while maintaining independence from any centralized infrastructure or service provider.
+This architecture helps builders use Arweave without depending on a single infrastructure provider.
 
 ## Explore Gateway Capabilities
 

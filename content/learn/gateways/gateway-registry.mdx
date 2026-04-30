@@ -1,92 +1,85 @@
 ---
 title: "Gateway Registry"
-description: "Ar.io consists of ar.io gateway nodes, which are identified by their registered Solana wallet addresses and either their IP addresses or hostnames, as stored in the network"
+description: "How ar.io gateways register, publish metadata, and participate in the network."
 ---
 
-import { Network, Target, Shield, Settings } from 'lucide-react';
+import { Network, Target, Shield, Settings } from "lucide-react";
 
 ## Overview
 
-Ar.io consists of [ar.io gateway nodes](/learn/what-is-ario), which are identified by their registered Solana wallet addresses (Ed25519 pubkeys) and either their IP addresses or hostnames, as stored in the network's [Solana programs](/learn/protocol-architecture) Gateway Address Registry (GAR).
+The Gateway Address Registry (GAR) is the public registry of ar.io gateways. It records which gateways have joined the network, how they can be reached, and the metadata applications need to discover and evaluate them.
 
-The gateway registry supports up to **3,000 gateways** via a zero-copy onchain registry. Any gateway operator that wishes to join ar.io must register their node in the ario-gar program's Gateway Address Registry. Registration involves staking a minimum of **10,000 ARIO** tokens (plus SOL for transaction fees) and providing additional metadata describing the gateway service offered.
-
-Each gateway must have a **unique observer address** — no two gateways can share the same observer. This is enforced by an ObserverLookup PDA onchain.
-
-These nodes adhere to ar.io's protocols, creating a collaborative environment of gateway nodes that vary in scale and specialization. The network promotes a fundamental level of service quality and trust minimization among its participants.
+Gateway registry state is maintained by the ar.io Solana programs. Registered gateways are identified by Solana addresses and publish service information such as hostname, protocol settings, staking state, and operator-provided metadata.
 
 <div className="flex justify-center my-8">
   <div className="text-center">
     <img src="/content/gateways.png" alt="ar.io Network Portal showing the Gateway Address Registry" className="rounded-lg" />
     <span className="block text-md text-primary italic mt-4 px-4">
-      The gateways.ar.io portal displays all gateways currently in the network, showing their stakes, performance scores, and operational metrics
+      The gateways.ar.io portal displays gateways currently in the network, including stake, performance, and operational metadata.
     </span>
   </div>
 </div>
 
-### Benefits of Joining the Network
+## Joining the Registry
 
-Being part of the network grants ar.io gateways an array of advantages:
-- Simplified advertising of services and discovery by end users via the Gateway Address Registry
-- More rapid bootstrapping of key gateway operational data due to prioritized data request fulfillment among gateways joined to the network
-- Sharing of data processing results
-- Auditability and transparency through the use of AGPL-3 licenses, which mandate public disclosure of any software changes, thereby reinforcing the network's integrity and reliability
-- Improved network reliability and performance through an incentive protocol, which uses a system of evaluations and rewards to encourage high-quality service from gateways
-- Eligibility to accept delegated staking improving a gateway's discoverability and reward opportunities
-- **Eligibility to receive distributions from the protocol balance** - Gateways that have joined the network are eligible to receive token distributions based on their performance and contributions to the network
+To join the ar.io network, a gateway operator registers their gateway and locks ARIO as operator stake. Registration connects the gateway's public endpoint, operator address, observer address, and service metadata to the onchain registry.
 
-### How the GAR Works
+Once registered, a gateway can become eligible for network incentives, delegation, and observation through OIP. Gateway operators also need enough SOL to pay Solana transaction fees for network interactions.
 
-After joining the network, the operator's gateway can be easily discovered by permaweb apps, its health can be observed, and it can participate in data sharing protocols. A gateway becomes eligible to participate in the network's incentive protocol in the epoch following the one they joined in.
+## What the Registry Enables
 
-The GAR advertises the specific attributes of each gateway including its stake, delegates, settings and services. This enables permaweb apps and users to discover which gateways are currently available and meet their needs. Apps that read the GAR can sort and filter it using the gateway metadata, for example, ranking gateways with the highest stake, reward performance, or feature set at the top of the list. This allows users to prefer the higher staked, more rewarded gateways with certain capabilities over lower staked, less rewarded gateways.
+### Discovery
 
-## Token Incentives and Network Monitoring
+Apps, users, and other gateways can use the registry to find gateways by endpoint, service metadata, stake, observed performance, and supported capabilities.
 
-The ar.io network uses a sophisticated incentive system to ensure gateway quality and reliability:
+### Incentive Participation
 
-- **Token Incentives**: Learn more about how gateways earn rewards and participate in the network economy in the [Token section](/learn/token/)
-- **Observer Protocol**: The network employs an Observer system that monitors gateway performance and ensures quality of service. Learn more about the [Observer & Incentive Protocol](/learn/oip) and how it maintains network integrity
+The registry connects gateway identity to staking, delegated stake, performance history, and reward eligibility. OIP uses this information to evaluate gateways and distribute rewards.
+
+### Network Transparency
+
+Gateway information is publicly visible through Solana state and network tooling such as [gateways.ar.io](https://gateways.ar.io). This makes participation, performance, and configuration easier to inspect.
+
+### Operator Choice
+
+Gateways can specialize. Some may focus on fast public access, some on indexing, some on private infrastructure, some on paid access, and some on specific moderation or compliance policies.
+
+## Relationship to OIP
+
+The registry is the set of gateways that OIP can observe and evaluate. Registered gateways are periodically checked for availability, correctness, and ArNS resolution behavior. Reliable gateways can earn rewards, while gateways that repeatedly fail can lose eligibility and eventually be removed through pruning.
 
 ## Recap
 
-The Gateway Registry is the foundation of the ar.io network's decentralized infrastructure. Key takeaways:
-
-- **Network Participation**: Gateways must register and stake ARIO tokens to join the network
-- **Protocol Distributions**: Registered gateways are eligible to receive token distributions from the protocol balance
-- **Observer Monitoring**: The network employs an [Observer and Incentives Protocol](/learn/oip) that monitors gateway performance and ensures quality of service
-- **Staking & Rewards**: Gateways earn rewards based on performance through a sophisticated [staking system](/learn/token/staking) that includes delegation opportunities
-- **Discoverability**: The GAR enables apps and users to find suitable gateways based on their needs
-- **Performance-Based Selection**: Gateway metadata allows for intelligent routing based on stake, performance, and capabilities
-- **Gateway Pruning**: Gateways that fail 30 consecutive epochs have 100% of their minimum stake slashed and are removed from the network
-- **Transparent Ecosystem**: All gateway information is publicly accessible through the Solana programs and at gateways.ar.io
-
-By joining the network, gateways become part of a collaborative ecosystem that rewards quality service and ensures reliable access to the permaweb.
+- The Gateway Address Registry is the public source of network gateway metadata.
+- Gateways join by registering service details and locking operator stake.
+- Registered gateways can participate in OIP, receive delegations, and become eligible for rewards.
+- Apps can use registry data to discover, filter, and route through gateways.
+- Poorly performing gateways can be pruned from the network after sustained failure.
 
 ## Explore the Gateway Ecosystem
 
 <Cards>
-  <Card 
-    title="Join the Network" 
+  <Card
+    title="Join the Network"
     description="Learn how to register your gateway and join ar.io"
     href="/build/run-a-gateway/join-the-network"
     icon={<Network className="w-8 h-8" />}
   />
-  <Card 
-    title="Delegate Stake" 
+  <Card
+    title="Delegate Stake"
     description="Participate in the network by delegating stake to existing gateways"
     href="/learn/token/staking"
     icon={<Target className="w-8 h-8" />}
   />
-  <Card 
-    title="Observer Protocol" 
+  <Card
+    title="Observer Protocol"
     description="Understand how the network monitors gateway performance and quality"
     href="/learn/oip"
     icon={<Shield className="w-8 h-8" />}
   />
-  <Card 
-    title="Gateway Configuration" 
-    description="Learn about gateway settings, optimization, and best practices"
+  <Card
+    title="Gateway Configuration"
+    description="Learn about gateway settings, optimization, and operations"
     href="/build/run-a-gateway/manage"
     icon={<Settings className="w-8 h-8" />}
   />

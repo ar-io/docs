@@ -48,13 +48,12 @@ Updated 2026-04-29. Tracks every content page and its migration status from AO t
 
 | Page | Status | Notes |
 |------|--------|-------|
-| `learn/gateways/index.mdx` | ⏳ PENDING - UPDATED | Solana for protocol state, not AO |
-| `learn/gateways/architecture.mdx` | ⏳ PENDING - NO CHANGE | Gateway tech stack |
-| `learn/gateways/data-retrieval.mdx` | ⏳ PENDING - NO CHANGE | Data from Arweave |
-| `learn/gateways/data-verification.mdx` | ⏳ PENDING - NO CHANGE | Merkle verification |
-| `learn/gateways/gateway-registry.mdx` | ⏳ PENDING - UPDATED | Solana pubkeys, 3K cap, observer uniqueness, pruning |
-| `learn/gateways/pruning.mdx` | ⏳ PENDING - NEW | 30 failed epochs → slash + removal |
-| `learn/gateways/x402-payments.mdx` | ⏳ PENDING - NO CHANGE | USDC on Base |
+| `learn/gateways/index.mdx` | ✅ DONE - UPDATED | Current gateway overview; Solana limited to protocol coordination |
+| `learn/gateways/architecture.mdx` | ✅ DONE - UPDATED | Light terminology cleanup; gateway tech stack retained |
+| `learn/gateways/data-retrieval.mdx` | ✅ DONE - UPDATED | Multi-source retrieval clarified and trimmed |
+| `learn/gateways/data-verification.mdx` | ✅ DONE - UPDATED | Verification overview simplified |
+| `learn/gateways/gateway-registry.mdx` | ✅ DONE - UPDATED | Solana registry, staking, OIP, metadata; removed parameter-heavy details |
+| `learn/gateways/x402-payments.mdx` | ✅ DONE - NO CHANGE | USDC on Base; independent gateway monetization topic |
 
 ### learn/oip/
 
@@ -67,6 +66,7 @@ Updated 2026-04-29. Tracks every content page and its migration status from AO t
 | `learn/oip/reporting.mdx` | ✅ DONE - UPDATED | Arweave reports plus compact onchain observations |
 | `learn/oip/performance-evaluation.mdx` | ✅ DONE - UPDATED | Pass/fail classification and weight impacts without formulas |
 | `learn/oip/reward-distribution.mdx` | ✅ DONE - UPDATED | Reward flow, auto-compound, accumulators, deficient gateway handling |
+| `learn/oip/pruning.mdx` | ✅ DONE - MOVED+UPDATED | Moved from `learn/gateways/pruning.mdx`; pruning lifecycle generalized |
 
 ### learn/wayfinder/
 
@@ -267,9 +267,9 @@ Updated 2026-04-29. Tracks every content page and its migration status from AO t
 
 | Status | Scope |
 |--------|-------|
-| ✅ Done | `learn/(introduction)` and completed `learn/token` pages |
+| ✅ Done | `learn/(introduction)`, completed `learn/token` pages, `learn/arns`, `learn/oip`, and `learn/gateways` |
 | ⚠️ Needs updating | `learn/token/get-the-token.mdx`, `learn/token/migration.mdx` |
-| ⏳ Pending | `learn/arns` onward, Build, SDKs, APIs, Glossary |
+| ⏳ Pending | `learn/wayfinder` onward, Build, SDKs, APIs, Glossary |
 
 ## Remaining TODOs
 

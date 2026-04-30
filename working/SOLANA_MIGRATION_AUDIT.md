@@ -1,5 +1,7 @@
 # AR.IO Documentation — Solana Migration Audit
 
+> **Info only / archived working notes:** This audit is no longer the active migration tracker. Keep it for background context and historical findings, but do not treat it as the source of truth. Use `working/MIGRATION_STATUS.md` for current status and ongoing tracking.
+
 This document catalogs every page in `docs.ar.io` that needs updating to reflect the AR.IO Network migration from AO to Solana. It is organized by priority tier, with specific references and recommended actions for each file.
 
 ---
@@ -642,7 +644,7 @@ These pages don't exist yet and should be created for the Solana migration:
 2. **`content/learn/token/solana-wallets.mdx`** — How to set up Phantom/Solflare/Backpack for ARIO (replaces add-to-wander.mdx)
 3. **`content/learn/oip/epoch-pipeline.mdx`** — 6-step epoch pipeline overview (create → tally → prescribe → observe → distribute → close)
 4. **`content/learn/oip/cranker.mdx`** — Permissionless cranker bot: what it does, why it matters, how to run one
-5. **`content/learn/gateways/pruning.mdx`** — Gateway pruning/slashing: 30 failed epochs, stake slash, removal mechanics
+5. **`content/learn/oip/pruning.mdx`** — Gateway pruning/slashing: 30 failed epochs, stake slash, removal mechanics
 6. **`content/learn/arns/returned-names.mdx`** — Returned name Dutch auction: 50x→1x decay, revenue split, lifecycle phases
 7. **`content/build/guides/working-with-arns/arns-on-nft-marketplaces.mdx`** — Buying/selling ArNS names on Tensor, Magic Eden via Metaplex Core NFTs
 
