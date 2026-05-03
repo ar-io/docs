@@ -31,6 +31,19 @@ The main ar.io Gateway service that handles data retrieval, indexing, and servin
 | `ADMIN_API_KEY`      | String | Generated | API key for admin endpoints (auto-generated if not set) |
 | `ADMIN_API_KEY_FILE` | String | -         | Path to file containing admin API key                   |
 
+### HTTP Message Signatures (RFC 9421)
+
+Configure [response signing](/build/run-a-gateway/manage/verification-headers#http-message-signatures-rfc-9421) to provide cryptographic proof that your gateway produced a given response.
+
+| Variable                     | Type    | Default                 | Description                                                        |
+| ---------------------------- | ------- | ----------------------- | ------------------------------------------------------------------ |
+| `HTTPSIG_ENABLED`            | boolean | `false`                 | Enable RFC 9421 response signing                                   |
+| `HTTPSIG_KEY_FILE`           | string  | `data/keys/httpsig.pem` | Path to Ed25519 private key (auto-generated if missing)            |
+| `HTTPSIG_BIND_REQUEST`       | boolean | `true`                  | Include request method and path in signature (prevents replay)     |
+| `OBSERVER_WALLET`            | string  | -                       | Arweave wallet address for attestation signing                     |
+| `WALLETS_PATH`               | string  | `wallets`               | Directory containing Arweave wallet JWK files                      |
+| `HTTPSIG_UPLOAD_ATTESTATION` | boolean | `true`                  | Automatically upload attestation to Arweave                        |
+
 ### Network Configuration
 
 | Variable                              | Type   | Default                      | Description                          |

@@ -9,8 +9,8 @@ Documentation site for the ar.io Developer Platform, covering services, SDKs, an
 ## Key Commands
 
 ```bash
-npm run dev              # Start dev server (uses Turbo, standalone mode)
-npm run build            # Production build (static export to out/)
+npm run dev              # Start dev server (Turbo, standalone mode, no trailing slashes)
+npm run build            # Production build (static export to out/, trailing slashes)
 npm run lint             # ESLint (src/ and content/, .ts/.tsx/.mdx)
 npx tsc --noEmit         # TypeScript type checking
 npm run check-links      # Validate internal/external links
@@ -23,14 +23,13 @@ npm run generate-sdk-llm-texts # Generate per-SDK llm.txt files
 npm run generate-all-docs      # Run all generation scripts (except API docs)
 ```
 
-Note: The `postinstall` script runs `fumadocs-mdx` to generate the `.source/` directory (content type definitions and index). This must run before the dev server or build will work. If `.source/` is missing, run `npm install` or `npx fumadocs-mdx`.
+Note: The `postinstall` script runs `fumadocs-mdx` to generate the `.source/` directory (content type definitions and index). This must run before the dev server or build will work. If `.source/` is missing, run `npm install` or `npx fumadocs-mdx`. The package manager is **yarn 1.22.22** (specified in `package.json`).
 
 ## Architecture
 
 ### Build Modes
-- **Development** (`npm run dev`): Runs as standalone Next.js server with hot reload
-- **Production** (`npm run build`): Static export (`output: "export"`) with trailing slashes and unoptimized images. ESLint errors are ignored during production builds.
-- `redirects.mjs` contains legacy URL redirects from the old docs structure; these only work in dev mode (static export doesn't support server-side redirects)
+- **Development** (`npm run dev`): Standalone Next.js server with Turbo, hot reload, no trailing slashes. Redirects from `redirects.mjs` work here.
+- **Production** (`npm run build`): Static export (`output: "export"`) to `out/`, trailing slashes enabled, unoptimized images. ESLint errors are ignored during production builds. Redirects from `redirects.mjs` do **not** work (static export limitation).
 
 ### Routing
 - `src/app/[[...slug]]/` - Single catch-all route handles all documentation pages
@@ -39,12 +38,14 @@ Note: The `postinstall` script runs `fumadocs-mdx` to generate the `.source/` di
 - 404s redirect to `/learn` as a fallback
 
 ### Content Source Pipeline
+- `source.config.ts` - Fumadocs MDX configuration: registers remark plugins (Mermaid, math) and rehype plugins (KaTeX)
 - `src/lib/source.ts` - Content loader using `fumadocs-core`'s `loader()`, with:
   - OpenAPI transformer for API reference pages
   - Alphabetical sorting for `build/guides` folder (via `ALPHABETICALLY_SORTED_FOLDERS`)
   - Icon resolution from `meta.json` - supports Lucide icon names, SVG/PNG paths, and the special `ThemeIcon` for dark/light variants
 - `.source/` (generated) - TypeScript types and content index produced by `fumadocs-mdx`
-- `src/mdx-components.tsx` - All MDX components registered here, including 30+ Lucide icons available as JSX in MDX files
+- `src/mdx-components.tsx` - All MDX components registered here, including 18 Lucide icons available as JSX in MDX files
+- `src/lib/layout.shared.tsx` - Shared layout options (nav, theme, conditional links)
 
 ### Content Organization
 - `content/` - All documentation in MDX format
@@ -78,6 +79,8 @@ Note: The `postinstall` script runs `fumadocs-mdx` to generate the `.source/` di
 - Frontmatter required: `title`, `description`
 - Optional frontmatter: `image`, `icon`, `keywords`, `author`, `full` (full-width layout)
 - Custom components available: `<Tip>`, `<CodeGroup>`, `<Mermaid>`, `<APIPage>`, `<AskArieTooltip>`, `<Image>`
+- Math/LaTeX: Use `$inline$` and `$$block$$` syntax (remark-math + rehype-katex)
+- ESLint is relaxed in `.mdx` files: unused vars, unescaped entities, and `<img>` elements are allowed
 
 ### Code Examples
 - Use `fetch` instead of `axios` for HTTP requests
@@ -92,6 +95,11 @@ Note: The `postinstall` script runs `fumadocs-mdx` to generate the `.source/` di
 - Use `"!folder-name"` to exclude a folder from navigation
 - Optional fields: `"icon"` (Lucide icon name), `"defaultOpen"` (expand on load)
 - `build/guides` is automatically sorted alphabetically (configured in `src/lib/source.ts`)
+
+### ESLint
+- Extends: `next/core-web-vitals`, `next/typescript`, `plugin:mdx/recommended`
+- Custom plugin: `validate-jsx-nesting` (enforces proper JSX nesting in components)
+- MDX files have relaxed rules (see MDX Content section above)
 
 ## OpenAPI Integration
 
@@ -109,4 +117,5 @@ Scripts generate AI-friendly text files from docs:
 
 ## Deployment
 
-The site deploys to Arweave via GitHub Actions (`.github/workflows/deploy-to-arweave.yaml`) on pushes to main. The `scripts/deploy-to-arweave.mjs` script handles the actual deployment using permaweb-deploy.
+- **Production**: Deploys to Arweave via GitHub Actions (`.github/workflows/deploy-to-arweave.yaml`) on pushes to main. Uses permaweb-deploy. Supports manual dispatch with custom ArNS undername.
+- **PR Previews**: `.github/workflows/pr-preview.yaml` deploys previews for PRs that change `content/` or `src/`. Only runs for PRs from the main repo (not forks).
