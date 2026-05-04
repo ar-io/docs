@@ -54,7 +54,7 @@ export default function Layout({ children }: LayoutProps<"/">) {
             <AnnouncementBanner
               storageKey="solana-migration"
               mobileText="Ar.io is migrating to Solana."
-              badgeText="MAY 2026"
+              badgeText="June 2026"
               ctaHref="https://ar.io/solana-migration"
               ctaLabel="Learn more"
               dismissAriaLabel="Dismiss migration banner"
