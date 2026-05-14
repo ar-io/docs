@@ -1,5 +1,7 @@
 # Whitepaper Draft Audit Notes (Working)
 
+> **Info only / archived working notes:** This audit is no longer the active migration tracker. Keep it for background context and historical findings, but do not treat it as the source of truth. Use `working/MIGRATION_STATUS.md` for current status and ongoing tracking.
+
 Date: 2026-04-30
 
 These notes capture concrete documentation gaps still visible in the repository after the Solana migration pass, to help align docs with the latest whitepaper draft expectations.
