@@ -1,0 +1,178 @@
+---
+title: "Training Provenance"
+description: "Anchor MLflow datasets, model artifacts, params, metrics, and training proofs to Arweave"
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Steps, Step } from "fumadocs-ui/components/steps";
+
+Training provenance starts with a simple question: can someone prove that a model's current MLflow record matches what was recorded when training finished?
+
+`ar-io-mlflow` answers that by writing a canonical payload to MLflow, signing a compact commitment envelope, and anchoring only that envelope to Arweave. The plugin can also anchor MLflow dataset records so downstream trainers can refer to an immutable dataset proof without publishing rows or raw files.
+
+## Prerequisites
+
+- Python 3.10 or newer
+- MLflow 2.14 or newer
+- A local or remote MLflow tracking store
+- Optional Arweave JWK wallet for production identity
+
+<Callout type="info">
+If no wallet is configured, the plugin generates one at `~/.ario-mlflow/wallet.json` and reuses it. That is convenient for evaluation. In production, set `ARIO_MLFLOW_ARWEAVE_WALLET` to a dedicated wallet file from your secrets manager.
+</Callout>
+
+## Install
+
+Install [`ar-io-mlflow`](https://github.com/ar-io/ar-io-mlflow) from source.
+
+```bash
+git clone https://github.com/ar-io/ar-io-mlflow.git
+cd ar-io-mlflow
+pip install -e .
+```
+
+For the quickstart example, install scikit-learn as well:
+
+```bash
+pip install scikit-learn
+```
+
+## Anchor a training run
+
+<Steps>
+<Step>
+### Configure MLflow
+
+Point MLflow at the tracking store you want to use. This can be a local folder for development or your normal remote tracking URI.
+
+```python
+from pathlib import Path
+
+import mlflow
+
+tracking_dir = Path("./mlruns").resolve()
+mlflow.set_tracking_uri(f"file://{tracking_dir}")
+mlflow.set_experiment("verifiable-ai")
+```
+</Step>
+
+<Step>
+### Log a dataset and model
+
+Log the dataset through MLflow so the plugin can include dataset provenance in the training proof. The dataset proof commits to the dataset name, source, digest, and schema hash, not to the row contents.
+
+```python
+import mlflow.data
+from sklearn.datasets import load_iris
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+
+X, y = load_iris(return_X_y=True)
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.2,
+    random_state=42,
+)
+
+with mlflow.start_run() as run:
+    dataset = mlflow.data.from_numpy(
+        X_train,
+        targets=y_train,
+        source="https://archive.ics.uci.edu/dataset/53/iris",
+        name="iris-train",
+    )
+    mlflow.log_input(dataset, context="training")
+
+    model = LogisticRegression(max_iter=200).fit(X_train, y_train)
+    mlflow.log_params({"max_iter": 200, "random_state": 42})
+    mlflow.log_metric("accuracy", model.score(X_test, y_test))
+    mlflow.sklearn.log_model(model, name="model")
+```
+</Step>
+
+<Step>
+### Anchor the proof
+
+Call `ario_mlflow.anchor()` before the run exits. The call hashes model artifacts, writes `ario/payload.json`, signs the envelope, uploads it through Turbo, and writes `ario.*` tags back to MLflow.
+
+```python
+import ario_mlflow
+
+with mlflow.start_run() as run:
+    # Fit model, log params, log metrics, log dataset, log model...
+
+    result = ario_mlflow.anchor(
+        metadata={"service_name": "credit-risk-training"},
+    )
+
+    print("run_id:", run.info.run_id)
+    print("payload_hash:", result["payload_hash"])
+    print("training_tx:", result["tags"].get("ario.training_tx"))
+    print("verify_status:", result["tags"]["ario.verify_status"])
+```
+
+If the Arweave upload fails, the run still succeeds and the envelope remains signed locally. In that case `ario.verify_status` is `signed` and `ario.training_tx` is absent.
+</Step>
+
+<Step>
+### Verify the run later
+
+Run the CLI against the same MLflow tracking store.
+
+```bash
+MLFLOW_TRACKING_URI=file:///absolute/path/to/mlruns \
+ar-io-mlflow verify run <run_id>
+```
+
+Verification checks that the envelope exists on ar.io, the MLflow payload still hashes to the anchored commitment, the live MLflow run still re-derives the same canonical bytes, and the Ed25519 signature is valid.
+</Step>
+</Steps>
+
+## Standalone dataset proofs
+
+Dataset publishers can anchor a dataset proof without an active training run and hand the transaction ID to downstream teams.
+
+```python
+import mlflow
+import ario_mlflow
+
+dataset = mlflow.data.from_pandas(
+    df,
+    source="s3://example-bucket/training/q1.parquet",
+    name="credit-risk-q1",
+)
+
+result = ario_mlflow.anchor(dataset=dataset)
+print(result["tx_id"])
+```
+
+This pattern is useful when a data platform team publishes approved datasets and model teams consume them later. The proof records an immutable commitment to the dataset descriptor, while the source data remains in S3, a lakehouse, or another controlled system.
+
+## What gets written
+
+On the MLflow run, the plugin writes tags such as:
+
+- `ario.enabled`
+- `ario.version`
+- `ario.public_key`
+- `ario.verify_status`
+- `ario.artifact_hash`
+- `ario.payload_hash`
+- `ario.training_tx`
+- `ario.arweave_url`
+- `ario.wallet_mode`
+
+It also writes `ario/payload.json` as the canonical payload artifact. Arweave receives only the compact signed envelope, usually hundreds of bytes rather than the source data or model artifact.
+
+## Production notes
+
+- Use a dedicated wallet per environment through `ARIO_MLFLOW_ARWEAVE_WALLET`.
+- Set `ARIO_MLFLOW_SIGNING_KEY` explicitly if you need controlled key rotation.
+- Configure `ARIO_MLFLOW_GATEWAYS` with at least two gateways for fetch fallback.
+- Monitor runs where `ario.verify_status = signed`, because those were signed but not anchored.
+- Keep MLflow artifacts backed up independently. Arweave preserves the envelope, but MLflow still holds the canonical payload used for full record matching.
+
+## Next steps
+
+After training proofs are anchored, continue to [Model and Decision Proofs](/build/verifiable-ai/model-decision-proofs) to anchor registry events and enforce artifact integrity before inference.
