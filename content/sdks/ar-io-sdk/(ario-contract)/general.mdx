@@ -5,23 +5,38 @@ description: "TypeScript/JavaScript SDK for interacting with the ar.io ecosystem
 
 #### init()
 
-Factory function to that creates a read-only or writeable client. By providing a `signer` additional write APIs that require signing, like `joinNetwork` and `delegateStake` are available. By default, a read-only client is returned and no write APIs are available.
+Factory function that creates a read-only or writeable client. By providing a `signer`, additional write APIs that require signing (like `joinNetwork` and `delegateStake`) become available. By default, a read-only client is returned.
+
+For write operations, create a signer using `@solana/kit` (install with `npm install @solana/kit`).
 
 ```typescript
-// read-only client
-const ario = ARIO.init();
+import { ARIO } from '@ar.io/sdk';
 
-// read-write client for browser environments
-const ario = ARIO.init({ signer: new ArConnectSigner(window.arweaveWallet, Arweave.init({}))});
+// read-only client (Solana mainnet)
+const readOnlyClient = ARIO.init();
+```
 
-// read-write client for node environments
-const ario = ARIO.init({ signer: new ArweaveSigner(JWK) });
+```typescript
+import { ARIO } from '@ar.io/sdk';
+import { createKeyPairSignerFromBytes } from '@solana/kit';
+import fs from 'fs';
 
+// read-write client for node environments (Solana keypair JSON file)
+const keypairBytes = new Uint8Array(
+  JSON.parse(fs.readFileSync('./solana-keypair.json', 'utf-8')),
+);
+const signer = await createKeyPairSignerFromBytes(keypairBytes);
+const ario = ARIO.init({ signer });
+```
+
+```typescript
+// read-write client for browser environments (Phantom, Solflare, etc.)
+const ario = ARIO.init({ signer: walletAdapter });
 ```
 
 #### getInfo()
 
-Retrieves the information of the ARIO process.
+Retrieves the information of the ARIO protocol.
 
 ```typescript
 const ario = ARIO.mainnet();
@@ -95,7 +110,7 @@ const balance = await ario
 
 #### getBalances()
 
-Retrieves the balances of the ARIO process in `mARIO`, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last wallet address from the previous request.
+Retrieves the balances of the ARIO protocol in `mARIO`, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last wallet address from the previous request.
 
 ```typescript
 const ario = ARIO.mainnet();
@@ -138,7 +153,7 @@ _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
 const ario = ARIO.mainnet({
-  signer: new ArweaveSigner(jwk),
+  signer: signer,
 });
 const { id: txId } = await ario.transfer(
   {

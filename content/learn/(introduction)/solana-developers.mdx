@@ -1,0 +1,202 @@
+---
+title: "Ar.io for Solana Developers"
+description: "A quick-start guide for Solana developers — map familiar concepts to ar.io and start building permanent applications"
+---
+
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Upload, Globe, Server, Code } from 'lucide-react';
+
+If you build on Solana, you already know most of what you need to use ar.io. This page maps familiar Solana concepts to ar.io equivalents and gets you to your first permanent deployment fast.
+
+## What ar.io Does
+
+Ar.io is the **access and naming layer for Arweave** — the permanent storage blockchain. It gives you:
+
+- **Permanent hosting** — Upload your frontend once, it lives forever. No hosting bills.
+- **Human-readable URLs** — `yourapp.permagate.io` instead of a 43-character transaction ID
+- **Decentralized CDN** — Gateways worldwide serve your content, no single point of failure
+- **On-chain naming** — ArNS names are Metaplex Core NFTs tradeable on Tensor/Magic Eden
+
+The ar.io protocol runs on Solana. You interact with it using your existing Solana wallet, SOL for fees, and ARIO tokens for protocol operations.
+
+## Concept Mapping
+
+If you know Solana, you already understand ar.io:
+
+| Solana Concept | ar.io Equivalent | Details |
+|---|---|---|
+| **SPL Token** | ARIO token | The protocol token. 6 decimals, 1B supply. Used for staking, ArNS names, delegation. |
+| **Metaplex Core NFT** | ANT (Ar.io Name Token) | Each ArNS name is backed by an NFT. Trade on Tensor/Magic Eden. Holds DNS-like records. |
+| **Anchor Program** | ario-core, ario-gar, ario-arns, ario-ant | Four programs that manage the protocol. Interact via SDK or CPI. |
+| **PDA** | All protocol state | Gateways, delegations, vaults, name records, ANT configs — all PDAs. |
+| **CPI** | Cross-program token ops | ario-gar and ario-arns call into ario-core for SPL Token transfers. |
+| **Transaction fee (SOL)** | Same | Every protocol operation costs a small SOL fee (< 0.01 SOL). |
+| **`@solana/kit`** | Signer creation | The SDK uses `@solana/kit` for keypair signing. |
+
+## What You Need
+
+| Requirement | Why |
+|---|---|
+| **Solana wallet** (Phantom, Solflare, Backpack) | Sign transactions for ArNS names, staking, records |
+| **SOL** | Pay Solana transaction fees (< 0.01 SOL per operation) |
+| **ARIO tokens** | Pay for ArNS names, staking. [Get ARIO tokens here](/token/get-ar.io-token) |
+| **Node.js 18+** | Run the SDK and Turbo CLI |
+
+**What you DON'T need:**
+- No Arweave wallet for protocol operations (staking, names, records)
+- No AR tokens for ArNS or staking
+- No special RPC — the SDK connects to Solana mainnet by default
+
+<Callout type="info">
+You DO still need an Arweave wallet (or SOL via Turbo) to **upload data** to Arweave. Turbo accepts SOL directly — see the upload section below.
+</Callout>
+
+## Quick Start: 5 Minutes to Permanent
+
+### 1. Install
+
+```bash
+npm install @ar.io/sdk @solana/kit @ardrive/turbo-sdk
+```
+
+### 2. Upload Your App to Arweave
+
+Use Turbo to upload your build folder. Turbo accepts SOL directly — no Arweave wallet needed:
+
+```typescript
+import { TurboFactory } from '@ardrive/turbo-sdk';
+
+// Authenticate with your Solana private key
+const turbo = TurboFactory.authenticated({
+  privateKey: bs58.encode(solanaSecretKey),
+  token: 'solana',
+});
+
+// Upload your build folder
+const result = await turbo.uploadFolder({
+  folderPath: './dist',
+  dataItemOpts: {
+    tags: [{ name: 'App-Name', value: 'my-cool-app' }],
+  },
+});
+
+console.log('Manifest TX:', result.manifestResponse.id);
+// This is the Arweave Transaction ID — your app is now permanent
+```
+
+### 3. Register an ArNS Name
+
+```typescript
+import { ARIO } from '@ar.io/sdk';
+import { createKeyPairSignerFromBytes } from '@solana/kit';
+import fs from 'fs';
+
+// Create signer from Solana keypair
+const keypairBytes = new Uint8Array(
+  JSON.parse(fs.readFileSync('./solana-keypair.json', 'utf-8')),
+);
+const signer = await createKeyPairSignerFromBytes(keypairBytes);
+const ario = ARIO.mainnet({ signer });
+
+// Buy the name (mints an ANT as a Metaplex Core NFT)
+const result = await ario.buyRecord({
+  name: 'my-cool-app',
+  type: 'lease',
+  years: 1,
+});
+```
+
+### 4. Point Your Name to Your App
+
+```typescript
+import { ANT } from '@ar.io/sdk';
+
+// Get your ANT's mint address from the ArNS record
+const record = await ario.getArNSRecord({ name: 'my-cool-app' });
+
+// Initialize the ANT and set the record
+const ant = ANT.init({ signer, processId: record.processId });
+await ant.setRecord({
+  undername: '@',
+  transactionId: result.manifestResponse.id, // from the Turbo upload
+  ttlSeconds: 3600,
+});
+
+// Your app is now live at:
+// https://my-cool-app.permagate.io
+// https://my-cool-app.turbo-gateway.com
+// https://my-cool-app.<any-network-gateway>
+```
+
+## How ArNS URLs Work
+
+Every ar.io gateway resolves ArNS names as subdomains:
+
+```
+https://my-cool-app.turbo-gateway.com  → served by turbo-gateway.com gateway
+https://my-cool-app.permagate.io      → served by permagate.io gateway  
+https://my-cool-app.ardrive.net       → served by ardrive.net gateway
+```
+
+All network gateways serve the same content. If one goes down, users access through another. Your app is truly decentralized.
+
+Undernames use underscores:
+```
+https://docs_my-cool-app.permagate.io  → the "docs" undername
+https://api_my-cool-app.permagate.io   → the "api" undername
+```
+
+## Costs at a Glance
+
+| Operation | Cost |
+|---|---|
+| Upload (< 100KB) | **Free** via Turbo |
+| Upload (larger files) | Pay with SOL, ARIO, or fiat. [See pricing](https://console.ar.io) |
+| ArNS name (1 year lease, 5+ chars) | ~200-2,500 ARIO depending on length × demand factor |
+| ArNS name (permabuy, 5+ chars) | ~200-2,500 ARIO × demand factor |
+| Set/update a record | SOL fee only (< 0.01 SOL) |
+| Fetch data from a gateway | **Free** |
+| Solana transaction fees | < 0.01 SOL per operation |
+
+<Callout type="info">
+Use `ario.getTokenCost()` to check exact pricing before any purchase. ArNS prices adjust dynamically based on demand.
+</Callout>
+
+## What to Build
+
+Ar.io is ideal for:
+
+- **Permanent frontends** — Deploy your React/Next.js/Vue app with zero hosting costs forever
+- **Immutable assets** — Store game assets, NFT metadata, or config files that can never be altered
+- **Decentralized publishing** — Blog platforms, documentation sites, content archives
+- **Censorship-resistant apps** — Apps that no single entity can take down
+- **Version-controlled deployments** — Use undernames for staging, production, and rollbacks
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Deploy Your First dApp"
+    description="End-to-end guide: build, upload, register name, go live"
+    href="/build/guides/hosting-decentralised-apps/deploy-permanent-dapp"
+    icon={<Upload className="w-8 h-8" />}
+  />
+  <Card
+    title="ArNS Names"
+    description="Deep dive into the naming system, pricing, and ANT NFTs"
+    href="/learn/arns"
+    icon={<Globe className="w-8 h-8" />}
+  />
+  <Card
+    title="SDK Reference"
+    description="Full API docs for the ar.io SDK"
+    href="/sdks/ar-io-sdk"
+    icon={<Code className="w-8 h-8" />}
+  />
+  <Card
+    title="Run a Gateway"
+    description="Earn ARIO rewards by serving the permanent web"
+    href="/build/run-a-gateway"
+    icon={<Server className="w-8 h-8" />}
+  />
+</Cards>

@@ -1,0 +1,54 @@
+---
+title: 'Cranker'
+description: 'The permissionless cranker bot that drives the ar.io epoch pipeline on Solana'
+---
+
+## What is a Cranker?
+
+A cranker is a permissionless actor that executes the six-step [epoch pipeline](/learn/oip/epoch-pipeline) on Solana. Since Solana programs cannot execute on a timer, an external actor must call each instruction to advance the epoch lifecycle.
+
+The key property is that cranking is **permissionless** — any wallet with SOL for transaction fees can run it. No ARIO tokens, gateway registration, or special authorization is needed.
+
+## Why Cranking Matters
+
+The epoch pipeline is split into manageable transactions that anyone can submit. This keeps epoch advancement open, redundant, and independent of any single operator.
+
+Without crankers, the epoch pipeline would stall — no observations would be prescribed, no rewards would be distributed. Multiple crankers create redundancy so the network is never dependent on a single operator.
+
+## Deployment Options
+
+### Standalone Bot
+
+The standalone cranker runs independently from a gateway or observer. It watches epoch state and submits whichever pipeline instruction is needed next.
+
+The standalone bot:
+- Polls the epoch state on a regular interval
+- Executes whichever pipeline step is needed next
+- Can expose health and monitoring endpoints, depending on deployment
+- Can be run by multiple independent operators for redundancy
+
+### Observer Integration
+
+The cranker can also be embedded directly in ar.io observers:
+
+```bash
+# In your observer's .env file
+ENABLE_EPOCH_CRANKING=true
+```
+
+This uses the observer's existing wallet and RPC connection. Since many observers can run this mode, it creates redundancy without relying on a single cranker operator.
+
+## Safety Properties
+
+- **Idempotent**: Every instruction can be called multiple times safely. Duplicate calls are no-ops.
+- **Permissionless**: No special authority, ARIO tokens, or gateway registration required.
+- **No privilege**: The cranker wallet has no special power — it just submits transactions that anyone could submit.
+- **Low cost**: Crankers only pay normal Solana transaction fees for submitted instructions.
+
+## Multi-Cranker Coordination
+
+Multiple crankers can run simultaneously without coordination:
+
+- **Optimistic concurrency**: All crankers attempt the same steps. The first successful transaction wins; subsequent attempts see the step is already done and skip it.
+- **No wasted work**: Idempotent instructions mean duplicate attempts don't cause errors or double-distribution.
+- **Cost of redundancy**: Limited to normal Solana transaction fees for redundant attempts.

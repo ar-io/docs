@@ -31,6 +31,19 @@ The main ar.io Gateway service that handles data retrieval, indexing, and servin
 | `ADMIN_API_KEY`      | String | Generated | API key for admin endpoints (auto-generated if not set) |
 | `ADMIN_API_KEY_FILE` | String | -         | Path to file containing admin API key                   |
 
+### HTTP Message Signatures (RFC 9421)
+
+Configure [response signing](/build/run-a-gateway/manage/verification-headers#http-message-signatures-rfc-9421) to provide cryptographic proof that your gateway produced a given response.
+
+| Variable                     | Type    | Default                 | Description                                                        |
+| ---------------------------- | ------- | ----------------------- | ------------------------------------------------------------------ |
+| `HTTPSIG_ENABLED`            | boolean | `false`                 | Enable RFC 9421 response signing                                   |
+| `HTTPSIG_KEY_FILE`           | string  | `data/keys/httpsig.pem` | Path to Ed25519 private key (auto-generated if missing)            |
+| `HTTPSIG_BIND_REQUEST`       | boolean | `true`                  | Include request method and path in signature (prevents replay)     |
+| `OBSERVER_WALLET`            | string  | -                       | Arweave wallet address for attestation signing                     |
+| `WALLETS_PATH`               | string  | `wallets`               | Directory containing Arweave wallet JWK files                      |
+| `HTTPSIG_UPLOAD_ATTESTATION` | boolean | `true`                  | Automatically upload attestation to Arweave                        |
+
 ### Network Configuration
 
 | Variable                              | Type   | Default                      | Description                          |
@@ -162,7 +175,7 @@ For detailed configuration and usage, see [CDB64 Root TX Index](/build/run-a-gat
 | Variable                   | Type   | Default                                       | Description                |
 | -------------------------- | ------ | --------------------------------------------- | -------------------------- |
 | `AR_IO_WALLET`             | string | -                                             | Gateway wallet             |
-| `IO_PROCESS_ID`            | string | `qNvAoz0TgcH7DMg8BCVn8jF32QH5L6T29VjHxhHqqGE` | ar.io process ID           |
+| `IO_PROCESS_ID`            | string | `<ARIO_PROGRAM_ID>` | ar.io Solana program address |
 | `AR_IO_NODE_RELEASE`       | string | `33`                                          | ar.io node release version |
 | `APEX_TX_ID`               | string | -                                             | Apex transaction ID        |
 | `APEX_ARNS_NAME`           | string | -                                             | Apex ArNS name             |
@@ -230,16 +243,15 @@ For detailed configuration and usage, see [CDB64 Root TX Index](/build/run-a-gat
 | `LEGACY_PSQL_PASSWORD_FILE`           | string  | -       | Path to PostgreSQL password file    |
 | `LEGACY_PSQL_SSL_REJECT_UNAUTHORIZED` | boolean | `true`  | Reject unauthorized SSL connections |
 
-### AO (Autonomous Objects)
+### Solana
 
-| Variable            | Type   | Default | Description       |
-| ------------------- | ------ | ------- | ----------------- |
-| `AO_CU_URL`         | string | -       | AO CU URL         |
-| `NETWORK_AO_CU_URL` | string | -       | Network AO CU URL |
-| `ANT_AO_CU_URL`     | string | -       | ANT AO CU URL     |
-| `AO_MU_URL`         | string | -       | AO MU URL         |
-| `AO_GATEWAY_URL`    | string | -       | AO Gateway URL    |
-| `AO_GRAPHQL_URL`    | string | -       | AO GraphQL URL    |
+| Variable          | Type   | Default                                    | Description                   |
+| ----------------- | ------ | ------------------------------------------ | ----------------------------- |
+| `SOLANA_RPC_URL`  | string | `https://api.mainnet-beta.solana.com`      | Solana RPC endpoint           |
+
+<Callout type="warn">
+The default public Solana RPC is rate-limited and may block `getProgramAccounts` queries needed for full registry enumeration. For production gateways, use a dedicated RPC provider such as [Helius](https://helius.dev), [Triton](https://triton.one), or [QuickNode](https://quicknode.com).
+</Callout>
 
 ### Circuit Breaker
 
@@ -316,14 +328,14 @@ For detailed configuration and usage, see [CDB64 Root TX Index](/build/run-a-gat
 | `PORT`               | number | `5050`  | Observer service port      |
 | `LOG_LEVEL`          | string | -       | Observer log level         |
 | `OBSERVER_WALLET`    | string | -       | Observer wallet            |
-| `IO_PROCESS_ID`      | string | -       | ar.io process ID           |
+| `IO_PROCESS_ID`      | string | -       | ar.io Solana program address |
 | `AR_IO_NODE_RELEASE` | string | `33`    | ar.io node release version |
 
 ### Observer Operation
 
 | Variable                              | Type    | Default | Description                                |
 | ------------------------------------- | ------- | ------- | ------------------------------------------ |
-| `SUBMIT_CONTRACT_INTERACTIONS`        | boolean | `true`  | Submit contract interactions               |
+| `SUBMIT_CONTRACT_INTERACTIONS`        | boolean | `true`  | Submit observations to Solana programs     |
 | `NUM_ARNS_NAMES_TO_OBSERVE_PER_GROUP` | number  | `8`     | Number of ArNS names per observation group |
 | `REPORT_GENERATION_INTERVAL_MS`       | string  | -       | Report generation interval                 |
 | `REPORT_DATA_SINK`                    | string  | -       | Report data sink                           |
@@ -350,27 +362,17 @@ For detailed configuration and usage, see [CDB64 Root TX Index](/build/run-a-gat
 | ------------------------------------- | ------ | ------- | ------------------------------------------ |
 | `NUM_ARNS_NAMES_TO_OBSERVE_PER_GROUP` | number | `8`     | Number of ArNS names per observation group |
 
-### Contract Interaction
+### On-Chain Observations
 
-| Variable                       | Type    | Default | Description                  |
-| ------------------------------ | ------- | ------- | ---------------------------- |
-| `SUBMIT_CONTRACT_INTERACTIONS` | boolean | `true`  | Submit contract interactions |
+| Variable                       | Type    | Default | Description                           |
+| ------------------------------ | ------- | ------- | ------------------------------------- |
+| `SUBMIT_CONTRACT_INTERACTIONS` | boolean | `true`  | Submit observations to Solana programs |
 
 ### Offset Observation
 
 | Variable                        | Type   | Default | Description                |
 | ------------------------------- | ------ | ------- | -------------------------- |
 | `REPORT_GENERATION_INTERVAL_MS` | string | -       | Report generation interval |
-
-### AO (Autonomous Objects)
-
-| Variable            | Type   | Default | Description       |
-| ------------------- | ------ | ------- | ----------------- |
-| `AO_CU_URL`         | string | -       | AO CU URL         |
-| `NETWORK_AO_CU_URL` | string | -       | Network AO CU URL |
-| `AO_MU_URL`         | string | -       | AO MU URL         |
-| `AO_GATEWAY_URL`    | string | -       | AO Gateway URL    |
-| `AO_GRAPHQL_URL`    | string | -       | AO GraphQL URL    |
 
 ### Data Paths
 

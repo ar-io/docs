@@ -1,105 +1,80 @@
 ---
 title: "ar.io Gateways"
-description: "Ar.io gateways bridge the Arweave network and applications, providing fast, reliable access to permanent data through specialized infrastructure."
+description: "Ar.io gateways provide fast, reliable access to permanent Arweave data through decentralized infrastructure."
 ---
 
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { Building, Download, Shield, Server, CreditCard } from "lucide-react";
 
-## What Are ar.io Gateways?
+## What are Gateways?
 
-Ar.io gateways are specialized infrastructure nodes that serve as bridges between the Arweave network and applications. They transform raw Arweave blockchain data into a fast, reliable, and developer-friendly platform for storing and retrieving permanent data.
+Ar.io gateways are infrastructure nodes that make Arweave data easy to access from web apps, APIs, and users. They retrieve data from Arweave, cache and index it, resolve ArNS names, and expose standard HTTP interfaces for the permaweb.
+
+Gateways do not replace Arweave. Arweave provides permanent storage and data availability guarantees; gateways make that data fast, discoverable, and practical to use.
 
 ## Core Responsibilities
 
-Ar.io gateways handle three fundamental responsibilities:
+### Data Access
 
-### Data Writing & Proxying
+- **Retrieve permanent data** from Arweave, peer gateways, local cache, or chunk-level sources
+- **Serve content over HTTP** using familiar web patterns
+- **Optimize delivery** through caching, streaming, and source selection
 
-- **Transaction relay**: Forward transaction headers to Arweave miners for mempool inclusion
-- **Chunk distribution**: Proxy data chunks to Arweave nodes for storage and replication
-- **Bundle processing**: Receive and bundle ANS-104 data items into base layer transactions
+### Indexing and Discovery
 
-### Data Retrieval & Serving
+- **Index transactions and bundled data items** so apps can search and retrieve content efficiently
+- **Resolve ArNS names** into the data records and routes they point to
+- **Expose gateway metadata** so users and applications can discover available infrastructure
 
-- **Fast access**: Serve cached data with optimized performance and reliability
-- **Multi-source fallback**: Retrieve data from trusted gateways, network peers, or directly from Arweave
-- **Content delivery**: Stream complete transactions, individual chunks, or bundled data items
+### Network Participation
 
-### Data Discovery & Indexing
-
-- **Structured queries**: Enable efficient searches across transactions, bundles, and wallet data
-- **Real-time indexing**: Process incoming data streams and maintain searchable databases
-- **ArNS routing**: Provide human-readable name resolution for Arweave content
-
-## Key Features
-
-### Modular Architecture
-
-Gateways are built with interchangeable components that operators can customize:
-
-- **Configurable services**: Enable or disable features based on specific needs
-- **Scalable storage**: From SQLite for small deployments to cloud databases for enterprise scale
-- **Flexible infrastructure**: Adaptable to different operational environments and requirements
-
-### Network Connectivity
-
-- **Decentralized network**: Connect to other ar.io gateways for data sharing and redundancy
-- **Trust-minimized access**: Cryptographically verify data integrity without relying on central authorities
-- **Performance optimization**: Intelligent caching and content delivery strategies
-
-### Developer Experience
-
-- **HTTP APIs**: Standard web interfaces for all gateway functionality
-- **Monitoring & telemetry**: Built-in observability for operational insights
-- **Content moderation**: Configurable policies for community and compliance needs
+- **Register in the Gateway Address Registry** to become discoverable as an ar.io network gateway
+- **Stake ARIO** to participate in network incentives and signal operational commitment
+- **Participate in OIP** by being observed, reporting observations when selected, and earning rewards for reliable service
 
 ## What Gateways Are Not
 
-It's important to understand the boundaries of what ar.io gateways do and don't provide:
-
 ### Not Storage Providers
 
-- **Don't enforce Arweave protocol**: Gateways don't validate consensus or mining rules
-- **Don't guarantee permanence**: Storage permanence comes from Arweave itself, not gateways
-- **Don't replicate all data**: Gateways cache popular content but aren't full blockchain replicas
+- **They do not create Arweave permanence**: permanence comes from Arweave itself
+- **They do not need to store everything**: operators choose what to cache, index, and serve
+- **They do not control user data**: data ownership remains with the original publisher and underlying protocols
 
-### Not Compute Platforms
+### Not Application Compute
 
-- **Don't depend on AO**: Gateways operate independently of any compute layer
-- **Don't execute smart contracts**: Computation happens on AO or other platforms, not gateways
-- **Don't process application logic**: Gateways focus purely on data access and delivery
+- **They do not run protocol logic**: ar.io protocol state, staking, ArNS, and incentives are coordinated by Solana programs
+- **They do not process arbitrary app logic**: gateways focus on data access, indexing, routing, and delivery
 
-### Not Centralized Services
+### Not a Single Service
 
-- **Don't control data**: Content ownership and control remain with original creators
-- **Don't gate access**: Anyone can run a gateway and access Arweave data
-- **Don't create vendor lock-in**: Gateway APIs and protocols are open and interoperable
+- **Anyone can run one**: the gateway network is open to independent operators
+- **Apps can choose among gateways**: routing can consider availability, geography, performance, policy, and payment requirements
+- **Operators can specialize**: gateways may differ in scale, indexing choices, moderation policy, payment setup, and extensions
 
 ## Explore Gateways
 
 <Cards>
   <Card
     title="Gateway Architecture"
-    description="Learn about system design, components, and technology stack"
+    description="Learn about gateway components, data layers, and extension points"
     href="/learn/gateways/architecture"
     icon={<Building className="w-8 h-8" />}
   />
   <Card
     title="Data Retrieval"
-    description="Understand multi-source fallback strategies and performance optimization"
+    description="Understand how gateways fetch data from cache, peers, chunks, and Arweave"
     href="/learn/gateways/data-retrieval"
     icon={<Download className="w-8 h-8" />}
   />
   <Card
     title="Data Verification"
-    description="Learn about cryptographic validation and integrity assurance"
+    description="Learn how gateways check data integrity against Arweave"
     href="/learn/gateways/data-verification"
     icon={<Shield className="w-8 h-8" />}
   />
   <Card
     title="x402 Payments"
-    description="Understand how gateways monetize data access with frictionless cryptocurrency payments"
+    description="Understand optional payment rails for gateway data access"
     href="/learn/gateways/x402-payments"
     icon={<CreditCard className="w-8 h-8" />}
   />

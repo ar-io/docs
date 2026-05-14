@@ -1,0 +1,192 @@
+---
+title: "Solana Migration for Operators"
+description: "What existing ar.io gateway operators need to do to transition from AO to Solana"
+---
+
+import { Shield, Key, Server, Coins } from 'lucide-react';
+
+## Overview
+
+The ar.io network has migrated protocol execution from AO to Solana. If you're an existing gateway operator, this guide covers everything you need to change. **Your gateway will continue serving Arweave data uninterrupted** — the changes affect how your node interacts with the protocol layer (staking, observations, rewards).
+
+<Callout type="warn">
+Complete these steps before the cutover date to ensure uninterrupted reward eligibility. Gateways that fail 30 consecutive epochs will be [pruned](/learn/oip/pruning) with 100% of minimum stake slashed.
+</Callout>
+
+## What Changed
+
+| Before (AO) | After (Solana) |
+|-------------|----------------|
+| Arweave wallet (RSA JWK) | Solana keypair (Ed25519) |
+| AO Compute Unit for state reads | Solana RPC for state reads |
+| `AO_CU_URL`, `AO_MU_URL`, etc. | `SOLANA_RPC_URL` |
+| Observations submitted via AO messages | Observations submitted as Solana transactions |
+| Observer wallet pays in AR/Turbo credits | Observer wallet pays in SOL |
+| Rewards distributed atomically | Rewards distributed via [cranker pipeline](/learn/oip/epoch-pipeline) |
+| Observer address not unique | Observer address must be unique per gateway |
+| Minimum stake = 10,000 ARIO | Minimum stake = 20,000 ARIO |
+
+## What Didn't Change
+
+- Your gateway still serves Arweave data (caching, indexing, ArNS resolution)
+- Docker-based deployment workflow is the same
+- Epoch duration remains 24 hours
+- Staking, delegation, and reward mechanics are functionally equivalent
+
+## Step-by-Step Migration
+
+<Steps>
+  <Step>
+    ### Map Your Address
+
+    Before the cutover, register your Solana wallet address using the ar.io claim app. This maps your existing Arweave address to your new Solana address so your stake, delegation, and gateway registration carry over automatically.
+
+    See the [Migration Guide](/learn/token/migration) for details on the address mapping process.
+  </Step>
+
+  <Step>
+    ### Generate a Solana Keypair
+
+    Create a new Solana keypair for your gateway and observer:
+
+    ```bash
+    # Install Solana CLI tools
+    sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
+
+    # Generate gateway operator keypair
+    solana-keygen new --outfile operator-keypair.json
+
+    # Generate observer keypair (must be unique — not shared with any other gateway)
+    solana-keygen new --outfile observer-keypair.json
+    ```
+
+    <Callout type="warn">
+    Your observer address must be **unique across all gateways**. If another gateway is already using the same observer address, your registration will fail. This is enforced onchain by the ObserverLookup PDA.
+    </Callout>
+  </Step>
+
+  <Step>
+    ### Fund Your Wallets with SOL
+
+    Your observer wallet needs SOL for submitting observation transactions. Typical costs are less than 0.01 SOL per transaction.
+
+    ```bash
+    # Check your observer address
+    solana-keygen pubkey observer-keypair.json
+
+    # Send SOL to it from an exchange or existing wallet
+    ```
+
+    We recommend keeping at least **0.5 SOL** in the observer wallet to cover several months of observation submissions.
+  </Step>
+
+  <Step>
+    ### Update Environment Variables
+
+    Edit your `.env` file with the new Solana configuration:
+
+    ```bash
+    # Replace your wallet addresses with Solana pubkeys
+    AR_IO_WALLET=<your-solana-operator-pubkey>
+    OBSERVER_WALLET=<your-solana-observer-pubkey>
+
+    # Add Solana RPC (recommended: use a dedicated provider for production)
+    SOLANA_RPC_URL=https://your-rpc-provider.com
+    ```
+
+    **Remove the old AO variables** (they are no longer used):
+    ```bash
+    # DELETE THESE from your .env:
+    # AO_CU_URL=...
+    # NETWORK_AO_CU_URL=...
+    # ANT_AO_CU_URL=...
+    # AO_MU_URL=...
+    # AO_GATEWAY_URL=...
+    # AO_GRAPHQL_URL=...
+    ```
+
+    <Callout type="warn">
+    The default public Solana RPC (`api.mainnet-beta.solana.com`) is rate-limited. For production gateways, use a dedicated RPC provider such as [Helius](https://helius.dev), [Triton](https://triton.one), or [QuickNode](https://quicknode.com).
+    </Callout>
+  </Step>
+
+  <Step>
+    ### Place Observer Keypair
+
+    Copy your observer Solana keypair JSON file to the `wallets` directory:
+
+    ```bash
+    cp observer-keypair.json wallets/<observer-pubkey>.json
+    ```
+  </Step>
+
+  <Step>
+    ### Update ar-io-node
+
+    Pull the latest Solana-compatible release:
+
+    ```bash
+    cd ar-io-node
+    git pull
+    sudo docker compose down -v
+    sudo docker compose up -d
+    ```
+
+    Check your release version at `https://<your-gateway>/ar-io/info`.
+  </Step>
+
+  <Step>
+    ### Optional: Enable Epoch Cranking
+
+    Your observer can optionally help drive the epoch reward pipeline. This is completely permissionless and costs minimal SOL (~0.000155 SOL per epoch):
+
+    ```bash
+    # Add to .env
+    ENABLE_EPOCH_CRANKING=true
+    ```
+
+    See [Cranker](/learn/oip/cranker) for details. Running the cranker creates redundancy so the network is never dependent on a single bot.
+  </Step>
+
+  <Step>
+    ### Verify
+
+    After restarting, verify your gateway is operating correctly:
+
+    1. Check gateway status at [gateways.ar.io](https://gateways.ar.io)
+    2. Verify your gateway is resolving ArNS names: `curl https://<your-domain>/ar-io/info`
+    3. Monitor your observer reports at `https://<your-domain>/ar-io/observer/reports/current`
+    4. Track your epoch performance to ensure you're not accumulating failed epochs
+  </Step>
+</Steps>
+
+## New Risks to Be Aware Of
+
+### Gateway Pruning
+
+Gateways that fail **30 consecutive epochs** are automatically pruned from the network. When pruned:
+- 100% of minimum stake (20,000 ARIO) is slashed to the protocol balance
+- Excess operator stake enters the standard 30-day withdrawal queue
+- Delegated stakes enter the standard 30-day withdrawal queue (delegators are not slashed)
+
+See [Gateway Pruning](/learn/oip/pruning) for full details.
+
+### SOL Balance Monitoring
+
+Keep your observer wallet funded with SOL. If it runs out, your observer cannot submit observations, which leads to failed epochs and eventually pruning. Set up monitoring/alerts for your observer wallet balance.
+
+## FAQ
+
+**Do I need to re-register my gateway?**
+No. If you mapped your address before cutover, your gateway registration, stake, and delegations are migrated automatically.
+
+**What happens to my delegators?**
+Delegations are migrated as-is. Delegators who mapped their addresses will see their stakes in their Solana wallet. Unmapped delegations are held in escrow for claiming.
+
+**Can I still use my Arweave wallet for data uploads?**
+Yes. Arweave wallets are still used for uploading data to Arweave via Turbo. The Solana wallet is only for protocol interactions (staking, observations, ArNS).
+
+**How do I check my observer's SOL balance?**
+```bash
+solana balance <observer-pubkey> --url mainnet-beta
+```

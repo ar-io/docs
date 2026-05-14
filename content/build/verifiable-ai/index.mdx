@@ -1,0 +1,79 @@
+---
+title: "Verifiable AI with ar.io"
+description: "Anchor MLflow training, registration, and inference proofs to Arweave, then verify them through ar.io gateways"
+---
+
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Callout } from "fumadocs-ui/components/callout";
+import {
+  Database,
+  FileCheck,
+  ShieldCheck,
+} from "lucide-react";
+
+## Verifiable MLflow lifecycle
+
+The verifiable AI stack is built around two projects:
+
+- [`ar-io-mlflow`](https://github.com/ar-io/ar-io-mlflow): a Python MLflow plugin that signs compact lifecycle proofs and anchors them to Arweave through ar.io Turbo.
+- [`ar-io-verify`](https://github.com/ar-io/ar-io-verify): an ar.io gateway sidecar that independently verifies Arweave data and can issue operator-signed attestations.
+
+This workflow keeps MLflow as the system of record and uses Arweave as a public, permanent witness.
+
+<Callout type="info">
+The plugin is currently alpha. Its proof format, verification flow, and API surface are stable enough for evaluation, but production deployments should use dedicated wallets, explicit signing keys, monitoring, and ar.io Verify attestations.
+</Callout>
+
+<Callout type="info">
+Verifiable AI builds on ar.io's broader verification model for gateway claims, client-side verification, and network accountability. For the network-level concepts, see [Verification and Accountability](/learn/verification).
+</Callout>
+
+## Architecture
+
+The lifecycle is:
+
+1. Train a model in MLflow and anchor the run.
+2. Register the model and anchor the registry event.
+3. Load the model through an integrity-checking wrapper before inference.
+4. Anchor prediction proofs without publishing raw inputs or outputs.
+5. Verify and attest the Arweave transactions through an ar.io gateway.
+
+Each lifecycle event produces a small signed envelope on Arweave. The envelope contains event metadata, a SHA-256 hash of canonical payload bytes, the previous proof hash for that event chain, the public key, and an Ed25519 signature.
+
+The canonical payload stays in MLflow as an `ario/payload.json` artifact, or as `ario/predictions/<decision_id>/payload.json` for inference. A verifier fetches the envelope from an ar.io gateway, re-hashes the MLflow payload, re-derives the live MLflow record, and verifies the signature.
+
+Nothing sensitive needs to be written to Arweave. Source data, model artifacts, inputs, outputs, metrics, and traces remain in your MLflow store. Arweave stores the commitment that lets an auditor prove whether those records changed after anchoring.
+
+## What you will build
+
+<Cards>
+  <Card
+    title="Training Provenance"
+    description="Install the MLflow plugin, log datasets and models, anchor training proofs, and verify runs from the CLI."
+    href="/build/verifiable-ai/training-provenance"
+    icon={<Database className="w-6 h-6" />}
+  />
+  <Card
+    title="Model and Decision Proofs"
+    description="Anchor model registration and promotion events, block tampered artifacts at load time, and attach proofs to predictions."
+    href="/build/verifiable-ai/model-decision-proofs"
+    icon={<FileCheck className="w-6 h-6" />}
+  />
+  <Card
+    title="Operator Attestations"
+    description="Run the verification sidecar, expose single and batch verification APIs, and issue operator-signed attestations."
+    href="/build/verifiable-ai/operator-attestations"
+    icon={<ShieldCheck className="w-6 h-6" />}
+  />
+</Cards>
+
+## Verification checks
+
+All verification paths reduce to the same core checks:
+
+1. **Proof found**: the signed envelope is retrievable from an ar.io gateway for the recorded transaction ID.
+2. **Record matches**: MLflow's stored payload re-hashes to the envelope's `payload_hash`, and a separate live MLflow surface re-derives the same canonical bytes.
+3. **Signature confirmed**: the envelope signature verifies against the embedded Ed25519 public key.
+4. **ar.io attestation**: optional gateway-operator verification that can be signed independently by the operator.
+
+This gives teams a tamper-evident record for training, registration, promotion, and inference without making Arweave the place where private AI data lives.

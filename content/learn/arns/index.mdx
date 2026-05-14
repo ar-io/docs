@@ -1,6 +1,6 @@
 ---
-title: "Arweave Name System (ArNS)"
-description: "ArNS is a censorship-resistant naming system stored on Arweave, powered by ARIO tokens, enabled through ar.io gateway domains, and used to connect friendly domain names to permaweb apps, web pages, data, and identities."
+title: "Ar.io Name System (ArNS)"
+description: "ArNS is a censorship-resistant naming system powered by ARIO and ar.io gateways, connecting friendly names to permaweb apps, pages, data, and identities."
 ---
 
 import { Card, Cards } from "fumadocs-ui/components/card";
@@ -8,9 +8,9 @@ import { Globe, Key, DollarSign, ShoppingCart } from "lucide-react";
 
 ## What is ArNS?
 
-Arweave URLs and transaction IDs are long, difficult to remember, and occasionally categorized as spam. The Arweave Name System (ArNS) aims to resolve these problems in a decentralized manner.
+Arweave URLs and transaction IDs are long, difficult to remember, and occasionally categorized as spam. The Ar.io Name System (ArNS) aims to resolve these problems in a decentralized manner.
 
-ArNS is a **censorship-resistant naming system** stored on Arweave, powered by [ARIO tokens](/learn/token), enabled through [ar.io gateway](/learn/gateways) domains, and used to connect friendly domain names to permaweb apps, web pages, data, and identities.
+ArNS is a **censorship-resistant naming system** powered by [ARIO tokens](/learn/token), enabled through [ar.io gateway](/learn/gateways) domains, and used to connect friendly domain names to permaweb apps, web pages, data, and identities.
 
 It's an open, permissionless, domain name registrar that doesn't rely on a single TLD.
 
@@ -18,48 +18,27 @@ It's an open, permissionless, domain name registrar that doesn't rely on a singl
 
 This system works similarly to traditional DNS services, where users can purchase a name in a registry and DNS Name servers resolve these names to IP addresses. The system is flexible and allows users to purchase names permanently or lease them for a defined duration based on their use case.
 
-With ArNS, the registry is stored permanently on Arweave via [AO](/glossary), making it immutable and globally resilient. This also means that apps and infrastructure cannot just read the latest state of the registry but can also check any point in time in the past, creating a "Wayback Machine" of permanent data.
+With ArNS, the registry is managed on Solana by the `ario-arns` program, making ownership and registration state globally verifiable. Names are controlled by Ar.io Name Tokens (ANTs), which point to Arweave transaction IDs so gateways can route friendly names to permanent data.
 
 ```mermaid
-graph TB
-    subgraph "ar.io Smart Contract"
-        Registry[ArNS Registry]
-        Registry --> Name1[ardrive]
-        Registry --> Name2[ao]
-        Registry --> Name3[gateways]
-        Registry --> NameN[...]
-    end
-
-    subgraph "Arweave Name Token"
-        Name1 -.->|owned by| ANT1[Owner: 0x242424...<br/>Record: @<br/>Target: TxID_123]
-        Name2 -.->|owned by| ANT2[Owner: Zjgamagh...<br/>Record: @<br/>Target: TxID_456]
-        Name3 -.->|owned by| ANT3[Owner: Hboaalf...<br/>Record: @<br/>Target: TxID_789]
-    end
-
-    subgraph "Arweave"
-        ANT1 -.->|points to| TX1[TxID_123<br/>ArDrive App]
-        ANT2 -.->|points to| TX2[TxID_456<br/>Email App]
-        ANT3 -.->|points to| TX3[TxID_789<br/>Pages App]
-    end
-
-    style Registry fill:#f9f,stroke:#333,stroke-width:3px,color:#333
-    style ANT1 fill:#b3d9ff,stroke:#333,stroke-width:2px,color:#333
-    style ANT2 fill:#b3d9ff,stroke:#333,stroke-width:2px
-    style ANT3 fill:#b3d9ff,stroke:#333,stroke-width:2px
-    style TX1 fill:#bfb,stroke:#333,stroke-width:2px,color:#333
-    style TX2 fill:#bfb,stroke:#333,stroke-width:2px,color:#333
-    style TX3 fill:#bfb,stroke:#333,stroke-width:2px,color:#333
+graph TD
+    User[User requests friendly name] --> Gateway[ar.io Gateway]
+    Gateway --> Registry[ArNS Registry<br/>ario-arns]
+    Registry --> ANT[Ar.io Name Token<br/>Metaplex Core NFT]
+    ANT --> Target[Arweave Transaction ID]
+    Gateway --> Content[Permaweb app, page, or data]
+    Target --> Content
 ```
 
 ## Name Resolution
 
-Users can register a name, like `ardrive`, within the ArNS Registry. Before owning a name, they must create an Arweave Name Token (ANT), an AO Computer based token and open-source protocol used by ArNS to track the ownership and control over the name.
+Users can register a name, like `ardrive`, within the ArNS Registry. Ownership is represented by an Ar.io Name Token (ANT), a Metaplex Core NFT on Solana used by ArNS to track control over the name.
 
 ANTs allow the owner to set a mutable pointer to any type of permaweb data, like a page, app or file, via its Arweave transaction ID.
 
-Each ar.io gateway acts as an ArNS Name resolver. They fetch the latest state of both the ArNS Registry and its associated ANTs from an AO compute unit (CU) and serve this information rapidly for apps and users.
+Each ar.io gateway acts as an ArNS name resolver. Gateways fetch the latest state of both the ArNS Registry and associated ANTs from Solana and use that state to route users to the right Arweave transaction.
 
-Ar.io gateways will also resolve that name as one of their own subdomains, e.g., `https://ardrive.arweave.net` and proxy all requests to the associated Arweave transaction ID. This means that ANTs work across all ar.io gateways that support them: `https://ardrive.ar-io.dev`, `https://ardrive.g8way.io/`, etc.
+Ar.io gateways resolve names as gateway subdomains, e.g., `https://ardrive.ar.io`, and proxy requests to the associated Arweave transaction ID. This means an ArNS name can work across ar.io gateways that support ArNS.
 
 Users can easily reference these friendly names in their browsers, and other applications and infrastructure can build rich solutions on top of these ArNS primitives.
 
@@ -68,10 +47,10 @@ sequenceDiagram
     participant User
     participant Gateway as ar.io Gateway
     participant Registry as ArNS Registry
-    participant ANT as Arweave Name Token
+    participant ANT as Ar.io Name Token
     participant Arweave
 
-    User->>Gateway: Request ardrive.arweave.net
+    User->>Gateway: Request ardrive.ar.io
     Gateway->>Registry: Query "ardrive" record
     Registry-->>Gateway: Returns ANT address
     Gateway->>ANT: Get target TxID
@@ -88,10 +67,9 @@ sequenceDiagram
 
 - **Human-readable URLs** instead of complex transaction IDs
 - **Censorship-resistant** and decentralized
-- **Permanent storage** on Arweave
+- **Permanent data routing** to Arweave transaction IDs
 - **Cross-gateway compatibility** - works on all ar.io gateways
-- **Historical data access** - check any point in time
-- **Flexible ownership** - permanent or leased names
+- **Flexible ownership** - lease names for a defined period or buy them permanently
 
 ## Explore ArNS
 
@@ -103,7 +81,7 @@ sequenceDiagram
     icon={<Globe className="w-8 h-8" />}
   />
   <Card
-    title="Arweave Name Tokens (ANTs)"
+    title="Ar.io Name Tokens (ANTs)"
     description="Understand ownership, control, and interaction permissions for names"
     href="/learn/arns/ants"
     icon={<Key className="w-8 h-8" />}
@@ -117,7 +95,7 @@ sequenceDiagram
   <Card
     title="Buy ArNS Names"
     description="Start registering names for your permanent applications"
-    href="https://arns.app"
+    href="https://arns.ar.io"
     icon={<ShoppingCart className="w-8 h-8" />}
   />
 </Cards>

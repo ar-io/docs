@@ -1,0 +1,55 @@
+---
+title: "Client-Side Verification"
+description: "How applications can verify ar.io gateway responses instead of trusting one gateway"
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+
+Client-side verification lets applications decide how much trust they place in a gateway response. In ar.io, this is primarily exposed through Wayfinder verification strategies.
+
+This page focuses on the verification model. For integration examples and SDK usage, see [Wayfinder](/learn/wayfinder).
+
+## Verification Strategies
+
+| Strategy | What it checks | Trust profile |
+| --- | --- | --- |
+| Remote verification | Accepts the serving gateway's verification claim. | Trusts the serving gateway. |
+| Hash verification | Hashes the received data and compares it to hashes from reference gateways. | Trusts the reference set. |
+| Data root verification | Computes the Merkle data root and compares it to a known or referenced root. | Stronger for L1 transactions when root data is available. |
+| Signature verification | Reconstructs the signed commitment and verifies the transaction or data item signature. | Strongest path for known IDs. |
+
+## Known IDs
+
+For requests by known transaction ID or data item ID, signature verification can establish data integrity without trusting the serving gateway.
+
+For ANS-104 data items, the verifier reconstructs the deep hash over the item fields and data, verifies the signature, and confirms that the item ID is derived from that signature.
+
+For Arweave L1 transactions, the verifier computes the data root from the served bytes, verifies the transaction signature over the committed fields, and confirms that the transaction ID is derived from the signature.
+
+## ArNS Names
+
+Name resolution adds a separate question: did the name resolve to the correct ID?
+
+After a name resolves to a transaction ID, the data can be verified against that ID. But content integrity does not by itself prove that the gateway resolved the ArNS name correctly or freshly.
+
+Applications that need stronger ArNS guarantees can compare resolution across gateways, check protocol state directly, or require signed ArNS resolution headers from gateways that support response signing.
+
+## Failure Handling
+
+Applications need to choose whether verification failures are fail-open or fail-closed:
+
+- **Fail-closed**: reject the response and surface an error.
+- **Fail-open**: return the response but emit a warning or telemetry event.
+
+High-integrity workflows should prefer fail-closed behavior. General browsing experiences may choose fail-open behavior for compatibility and performance.
+
+<Callout type="info">
+Verification is a policy choice. Ar.io provides the mechanisms, but applications decide the verification strategy, reference set, and failure behavior that match their risk model.
+</Callout>
+
+## Related Docs
+
+- [Wayfinder Protocol](/learn/wayfinder)
+- [Wayfinder Integration](/learn/wayfinder/integration)
+- [Gateway Data Verification](/learn/gateways/data-verification)
+- [Signed Gateway Claims](/learn/verification/signed-gateway-claims)
