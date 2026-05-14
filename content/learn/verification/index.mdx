@@ -1,0 +1,76 @@
+---
+title: "Verification and Accountability"
+description: "How ar.io combines Arweave commitments, gateway verification, signed claims, client-side checks, and network incentives"
+---
+
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Callout } from "fumadocs-ui/components/callout";
+import { FileCheck, KeyRound, Route, Server, Activity } from "lucide-react";
+
+Arweave stores data permanently. Ar.io focuses on the delivery layer: retrieving that data, serving it through independent gateways, and giving clients ways to detect or hold gateways accountable when delivery is wrong.
+
+The key distinction is that **storage integrity** and **delivery integrity** are different problems. Arweave can prove that data was committed to the storage layer. A client still needs to know whether a gateway served the right bytes, made honest claims about those bytes, and resolved mutable names correctly.
+
+## The Five Layers
+
+| Layer | What it does | Where to learn more |
+| --- | --- | --- |
+| Arweave base commitments | Bind transaction and data item IDs to signed data commitments. | [What is Arweave?](/learn/what-is-arweave) |
+| Gateway local verification | Recompute data roots, verify bundles, and re-import corrupted data. | [Gateway data verification](/learn/gateways/data-verification) |
+| Signed gateway claims | Sign trust-relevant response headers so gateway claims are attributable. | [Signed Gateway Claims](/learn/verification/signed-gateway-claims) |
+| Client-side verification | Let applications verify responses instead of trusting one gateway. | [Client-Side Verification](/learn/verification/client-side-verification) |
+| Network observation and incentives | Sample gateway behavior, record reports, and apply economic consequences. | [Observation & Incentive Protocol](/learn/oip) |
+
+
+## The Core Property
+
+When a client knows the transaction ID or data item ID it wants, the strongest verification path is cryptographic: verify the signature chain from the served bytes back to the requested identifier.
+
+For Arweave L1 transactions, the identifier is derived from the transaction signature, and the signature commits to the transaction data root. For ANS-104 data items, the item ID is derived from the data item signature, and the signature commits to the item fields and data.
+
+This means a gateway cannot fabricate different valid bytes for a known ID without the original signer's private key. Other parts of the ar.io architecture make that property easier to use in production.
+
+## What This Does Not Prove
+
+Verification is powerful, but the limits matter:
+
+- A signed gateway response proves that the gateway made a claim, not that the claim was true.
+- There is no universal proof that a specific client received a complete response body.
+- Client-side verification is opt-in and can be configured fail-open or fail-closed.
+- Observer-based accountability is sampling-based and is designed for persistent public misbehavior, not every targeted attack.
+- ArNS name correctness is separate from content integrity. A client can verify bytes for a transaction ID while still needing to verify that a name resolved to the right ID.
+
+## Explore
+
+<Cards>
+  <Card
+    title="Claims, Proofs, and Accountability"
+    description="Understand the difference between gateway claims, signed claims, cryptographic proofs, and economic accountability."
+    href="/learn/verification/claims-proofs-accountability"
+    icon={<FileCheck className="w-8 h-8" />}
+  />
+  <Card
+    title="Signed Gateway Claims"
+    description="Learn how RFC 9421 HTTP Message Signatures make gateway response claims attributable."
+    href="/learn/verification/signed-gateway-claims"
+    icon={<KeyRound className="w-8 h-8" />}
+  />
+  <Card
+    title="Client-Side Verification"
+    description="See how Wayfinder verification strategies let clients choose their own trust and performance profile."
+    href="/learn/verification/client-side-verification"
+    icon={<Route className="w-8 h-8" />}
+  />
+  <Card
+    title="Gateway Data Verification"
+    description="Review how gateways verify cached data and heal corrupted imports."
+    href="/learn/gateways/data-verification"
+    icon={<Server className="w-8 h-8" />}
+  />
+  <Card
+    title="OIP"
+    description="Review observer selection, reporting, performance evaluation, rewards, and pruning."
+    href="/learn/oip"
+    icon={<Activity className="w-8 h-8" />}
+  />
+</Cards>

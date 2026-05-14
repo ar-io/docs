@@ -1,0 +1,60 @@
+---
+title: "Signed Gateway Claims"
+description: "How ar.io gateways use HTTP Message Signatures to make response claims attributable"
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+
+Gateway verification headers are useful, but unsigned headers can be modified, stripped, or fabricated. Ar.io gateways can opt in to signing trust-relevant response headers with [RFC 9421 HTTP Message Signatures](https://www.rfc-editor.org/rfc/rfc9421.html).
+
+## What Gets Signed
+
+A gateway signs the trust-relevant headers that are present on a response. These can include:
+
+| Category | Examples |
+| --- | --- |
+| Data identity and status | `x-ar-io-data-id`, `x-ar-io-verified`, `x-ar-io-stable`, `x-ar-io-trusted` |
+| Body integrity | `content-type`, `content-digest` |
+| ArNS resolution | `x-arns-name`, `x-arns-resolved-id`, `x-arns-ttl-seconds`, `x-arns-process-id` |
+| Bundled data | `x-ar-io-root-transaction-id` |
+
+When gateways chain requests through one another, each gateway signs its own assessment. Upstream signature headers are stripped before the serving gateway signs its response.
+
+## Signing Keys and Operator Identity
+
+The response-signing key is a hot Ed25519 key used for per-response signatures. It is separate from the operator wallet.
+
+The operator wallet signs an attestation document that binds the Ed25519 response-signing key to the operator's gateway identity. This creates a chain:
+
+1. The gateway signs response headers with Ed25519.
+2. The Ed25519 public key is attested by the operator wallet.
+3. The operator identity is connected to network state through the Gateway Address Registry.
+
+That chain makes signed claims attributable to a gateway operator for the time period in which the attestation and registry state are valid.
+
+## Body Integrity
+
+HTTP signatures sign headers, not necessarily the full response body. Body integrity depends on whether a signed `Content-Digest` is present.
+
+The architecture is designed around a performance tradeoff:
+
+- Cached responses, `HEAD` requests, and buffered responses under the gateway's body-digest threshold can include `Content-Digest`.
+- Large streamed responses may omit body binding to preserve streaming performance.
+- When no body digest is signed, clients that need integrity should use client-side Arweave verification.
+
+<Callout type="warning">
+Signed headers provide non-repudiation for gateway claims. They do not by themselves prove that the response body was correct.
+</Callout>
+
+## Limitations
+
+- A malicious gateway can still sign a false claim.
+- Missing signatures should be treated as unsigned mode, not as proof of failure.
+- If a response-signing key is compromised, historical signatures from that key remain cryptographically valid until clients apply rotation or revocation policy.
+- Partial content responses need special care because signing the data ID does not necessarily bind a specific byte range.
+
+## Related Docs
+
+- [Claims, Proofs, and Accountability](/learn/verification/claims-proofs-accountability)
+- [Gateway Registry](/learn/gateways/gateway-registry)
+- [Client-Side Verification](/learn/verification/client-side-verification)
