@@ -35,6 +35,8 @@ SOL is required for Solana transaction fees when staking, delegating, redelegati
 
 A gateway operator must stake ARIO to join their gateway to the network. This makes them eligible for protocol rewards and promotes network reliability by giving operators an economic commitment to the network's performance.
 
+The minimum network-join stake is **20,000 ARIO**. The gateway registry can hold up to **3,000 gateways**; when the registry is full, new gateways cannot join until existing gateways leave.
+
 Operators may increase their stake above the minimum required to join the network. This additional amount is known as **excess stake**. A gateway's total stake impacts the following epoch once excess stake is added or removed.
 
 Operator rewards auto-compound into operator stake. To realize rewards, operators must withdraw excess stake. If an excess stake withdrawal is still within its withdrawal period, the operator can cancel it and immediately restake the amount to the original gateway.
@@ -69,6 +71,13 @@ When you delegate stake to a gateway, you're increasing that gateway's total sta
 Delegate rewards use a **reward-per-share accumulator** pattern. Rather than distributing rewards to each delegate individually each epoch, the protocol tracks a cumulative reward-per-token on each gateway. Your pending rewards are settled when you interact with the protocol (e.g., delegate more, withdraw, or claim rewards).
 
 Gateway operators can choose whether to accept delegated staking and can configure their own delegation settings within protocol limits. They may also offer non-protocol incentives, such as faster access, privileged access, or other off-chain perks.
+
+Delegated staking has these protocol limits:
+
+- Global minimum delegated stake: **10 ARIO**
+- Gateway-selected delegate reward share: **0% to 95%**
+- Maximum unique delegates per gateway: **10,000**
+- Delegated stake withdrawal duration: **30 days**
 
 ### Benefits
 
@@ -116,7 +125,7 @@ Track your delegation performance and rewards through the portal's dashboard. Yo
 - **Reward Sharing**: Gateway operators set the percentage of rewards shared with delegators
 - **Delegation Settings**: Gateway operators can update delegation settings; changes take effect in the following epoch
 - **Redelegation**: You can move your stake between gateways as network conditions change
-- **Withdrawal Delays**: There is a standard delay when withdrawing your delegated stake
+- **Withdrawal Delays**: There is a 30 day standard delay when withdrawing your delegated stake
 - **Gateway Exit or Removal**: If a gateway leaves or is removed from the network, delegates must claim their stake through the protocol, subject to withdrawal delays
 
 ## Stake Redelegation

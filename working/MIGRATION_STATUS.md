@@ -1,6 +1,6 @@
 # Solana Migration — Documentation Page Status
 
-Updated 2026-04-29. Tracks every content page and its migration status from AO to Solana.
+Updated 2026-05-14. Tracks every content page and its migration status from AO to Solana.
 
 ## Legend
 
@@ -29,10 +29,10 @@ Updated 2026-04-29. Tracks every content page and its migration status from AO t
 |------|--------|-------|
 | `learn/token/index.mdx` | ✅ DONE - REWRITTEN | Trimmed to lightweight Solana token overview and hub |
 | `learn/token/architecture.mdx` | ✅ DONE - MOVED | Moved to `learn/(introduction)/protocol-architecture.mdx` |
-| `learn/token/get-the-token.mdx` | ⚠️ NEEDS UPDATING | Solana canonical, Jupiter/Raydium, Phantom/Solflare |
+| `learn/token/get-the-token.mdx` | ✅ DONE - UPDATED | Solana canonical, Jupiter/Raydium, Phantom/Solflare; minimum gateway stake updated to 20,000 ARIO; mint placeholder intentionally retained until address is available |
 | `learn/token/wallets.mdx` | ✅ DONE - NEW | Phantom/Solflare/Backpack setup (replaces add-to-wander) |
-| `learn/token/staking.mdx` | ✅ DONE - REWRITTEN | Auto-compound, accumulator, pruning, redelegation, SOL cost estimates |
-| `learn/token/migration.mdx` | ⚠️ NEEDS UPDATING | Import-then-claim flow, address mapping, FAQ |
+| `learn/token/staking.mdx` | ✅ DONE - REWRITTEN | Auto-compound, accumulator, pruning, redelegation, SOL cost estimates; v3.0.0 staking limits added |
+| `learn/token/migration.mdx` | ⚠️ NEEDS UPDATING | Import-then-claim flow, address mapping, FAQ; minimum stake updated to 20,000 ARIO, but final dates/claim details still pending |
 | `learn/token/add-to-wander.mdx` | 🗑️ DONE - DELETED | Replaced by wallets.mdx |
 
 ### learn/arns/
@@ -41,8 +41,8 @@ Updated 2026-04-29. Tracks every content page and its migration status from AO t
 |------|--------|-------|
 | `learn/arns/index.mdx` | ✅ DONE - UPDATED | Solana registry, ANT routing, arns.ar.io examples |
 | `learn/arns/ants.mdx` | ✅ DONE - UPDATED | Metaplex Core NFTs, controller model, lazy reconciliation |
-| `learn/arns/name-registration.mdx` | ✅ DONE - UPDATED | Lease/permanent model, validation, returned-name lifecycle |
-| `learn/arns/pricing-model.mdx` | ✅ DONE - UPDATED | Trimmed formula-heavy content into conceptual pricing overview |
+| `learn/arns/name-registration.mdx` | ✅ DONE - UPDATED | Lease/permanent model, validation, returned-name lifecycle; primary-name fee and uniqueness rules aligned with v3.0.0 |
+| `learn/arns/pricing-model.mdx` | ✅ DONE - UPDATED | Trimmed formula-heavy content into conceptual pricing overview; gateway operator discount criteria added |
 | `learn/arns/returned-names.mdx` | ✅ DONE - NEW | Simplified Dutch auction lifecycle and revenue split |
 
 ### learn/gateways/
@@ -50,10 +50,10 @@ Updated 2026-04-29. Tracks every content page and its migration status from AO t
 | Page | Status | Notes |
 |------|--------|-------|
 | `learn/gateways/index.mdx` | ✅ DONE - UPDATED | Current gateway overview; Solana limited to protocol coordination |
-| `learn/gateways/architecture.mdx` | ✅ DONE - UPDATED | Light terminology cleanup; gateway tech stack retained |
+| `learn/gateways/architecture.mdx` | ✅ DONE - UPDATED | Light terminology cleanup; gateway tech stack retained; serving capability group added |
 | `learn/gateways/data-retrieval.mdx` | ✅ DONE - UPDATED | Multi-source retrieval clarified and trimmed |
 | `learn/gateways/data-verification.mdx` | ✅ DONE - UPDATED | Verification overview simplified |
-| `learn/gateways/gateway-registry.mdx` | ✅ DONE - UPDATED | Solana registry, staking, OIP, metadata; removed parameter-heavy details |
+| `learn/gateways/gateway-registry.mdx` | ✅ DONE - UPDATED | Solana registry, staking, OIP, metadata; v3.0.0 gateway/delegator limits added |
 | `learn/gateways/x402-payments.mdx` | ✅ DONE - NO CHANGE | USDC on Base; independent gateway monetization topic |
 
 ### learn/oip/
@@ -115,8 +115,8 @@ Updated 2026-04-29. Tracks every content page and its migration status from AO t
 |------|--------|-------|
 | `build/run-a-gateway/index.mdx` | ✅ DONE - NO CHANGE | Gateway operations landing page |
 | `build/run-a-gateway/quick-start.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Solana wallet/observer setup should be operator-verified |
-| `build/run-a-gateway/join-the-network.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Join flow, SOL fees, staking, and keypair guidance should be operator-verified |
-| `build/run-a-gateway/manage/solana-migration.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Migration guide is intentionally old-vs-new; dates, claim flow, and pruning details need final review |
+| `build/run-a-gateway/join-the-network.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Join flow, SOL fees, staking, and keypair guidance should be operator-verified; minimum stake updated to 20,000 ARIO |
+| `build/run-a-gateway/manage/solana-migration.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Migration guide is intentionally old-vs-new; dates and claim flow need final review; pruning stake/withdrawal constants aligned with v3.0.0 |
 | `build/run-a-gateway/manage/upgrading-a-gateway.mdx` | ✅ DONE - NO CHANGE | Generic upgrade process |
 | `build/run-a-gateway/manage/environment-variables.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Includes `<ARIO_PROGRAM_ID>` placeholder and gateway env defaults to verify |
 | `build/run-a-gateway/manage/filters.mdx` | ✅ DONE - UPDATED | AO refs are data filter values; no protocol migration issue |
@@ -126,7 +126,7 @@ Updated 2026-04-29. Tracks every content page and its migration status from AO t
 | `build/run-a-gateway/manage/index.mdx` | ✅ DONE - NO CHANGE | Management navigation |
 | `build/run-a-gateway/manage/index-snapshots.mdx` | ✅ DONE - NO CHANGE | Snapshot operations are gateway-specific |
 | `build/run-a-gateway/manage/ssl-certs.mdx` | ✅ DONE - NO CHANGE | SSL certificate operations are chain-agnostic |
-| `build/run-a-gateway/manage/troubleshooting.mdx` | ✅ DONE - NO CHANGE | Generic troubleshooting |
+| `build/run-a-gateway/manage/troubleshooting.mdx` | ✅ DONE - UPDATED | Stake withdrawal troubleshooting aligned with v3.0.0 durations and minimum stake |
 | `build/run-a-gateway/manage/x402-setup.mdx` | ✅ DONE - NO CHANGE | x402 setup is independent of protocol migration |
 
 ### build/run-wayfinder-router/
@@ -158,7 +158,7 @@ Updated 2026-04-29. Tracks every content page and its migration status from AO t
 | `build/guides/working-with-arns/set-arns-records-programmatically.mdx` | 🔎 NEEDS TECHNICAL REVIEW | SDK record-setting examples need Solana verification |
 | `build/guides/working-with-arns/purchase-arns-ui.mdx` | 🔎 NEEDS UPDATING | arns.ar.io UI screenshots and flow need product review |
 | `build/guides/working-with-arns/manage-arns-ui.mdx` | 🔎 NEEDS UPDATING | arns.ar.io UI screenshots and flow need product review |
-| `build/guides/working-with-arns/arns-primary-names.mdx` | ✅ DONE - NO CHANGE | Primary-name concept is chain-agnostic at this level |
+| `build/guides/working-with-arns/arns-primary-names.mdx` | ✅ DONE - UPDATED | Primary-name concept plus v3.0.0 fee, uniqueness, and base-owner removal rules |
 | `build/guides/hosting-decentralised-apps/index.mdx` | ✅ DONE - UPDATED | Added end-to-end permanent dApp guide entry |
 | `build/guides/hosting-decentralised-apps/deploying-with-arlink.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Needs review when ArLink is updated for Solana |
 | `build/guides/hosting-decentralised-apps/deploying-with-permaweb-deploy.mdx` | 🔎 NEEDS TECHNICAL REVIEW | CLI ArNS deployment flow should be verified against current tooling |
@@ -250,7 +250,7 @@ Updated 2026-04-29. Tracks every content page and its migration status from AO t
 
 ## Remaining TODOs
 
-- [ ] Replace `<ARIO_MINT_ADDRESS>` and `<ARIO_PROGRAM_ID>` placeholders with final addresses before launch
+- [ ] Replace `<ARIO_MINT_ADDRESS>` and `<ARIO_PROGRAM_ID>` placeholders once final addresses are available
 - [ ] Regenerate all API docs with `npm run generate-api-docs`; not automatic on build
 - [ ] Regenerate all SDK docs with `npm run generate-sdk-docs`; not automatic on build
 - [ ] Regenerate SDK output examples from Solana devnet — generated ar.io SDK pages still need spot-checking for Arweave-format addresses and Solana signer examples
