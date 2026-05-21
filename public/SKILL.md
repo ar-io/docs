@@ -7,7 +7,7 @@ This file gives AI coding agents the knowledge to build applications on ar.io an
 ar.io is the access and naming layer for Arweave (permanent storage). Protocol execution runs on Solana. You use it to:
 
 - **Store data permanently** on Arweave (pay once, stored forever)
-- **Name things** with ArNS (human-readable URLs like `myapp.arweave.net`)
+- **Name things** with ArNS (human-readable URLs like `myapp.turbo-gateway.com`)
 - **Serve content** through decentralized network of gateways worldwide
 
 ## Architecture
@@ -79,7 +79,7 @@ const result = await turbo.upload({
   },
 });
 console.log('TX:', result.id);
-// Access: https://arweave.net/${result.id}
+// Access: https://turbo-gateway.com/${result.id}
 ```
 
 Files under 100 KiB upload free. Larger files paid with SOL via just-in-time funding.
@@ -98,7 +98,7 @@ const { manifestResponse } = await turbo.uploadFolder({
   },
 });
 console.log('Manifest:', manifestResponse.id);
-// Access: https://arweave.net/${manifestResponse.id}
+// Access: https://turbo-gateway.com/${manifestResponse.id}
 ```
 
 ### Register an ArNS name
@@ -129,7 +129,7 @@ await ant.setRecord({
   transactionId: manifestResponse.id, // Arweave TX ID
   ttlSeconds: 3600,
 });
-// Live at: https://myapp.arweave.net
+// Live at: https://myapp.turbo-gateway.com
 
 // Set undername
 await ant.setRecord({
@@ -137,7 +137,7 @@ await ant.setRecord({
   transactionId: docsManifestId,
   ttlSeconds: 3600,
 });
-// Live at: https://docs_myapp.arweave.net
+// Live at: https://docs_myapp.turbo-gateway.com
 ```
 
 ### Resolve an ArNS name
@@ -157,10 +157,10 @@ const sub = await ario.resolveArNSName({ name: 'docs_ardrive' });
 
 ```typescript
 // Direct fetch by TX ID
-const res = await fetch('https://arweave.net/{txId}');
+const res = await fetch('https://turbo-gateway.com/{txId}');
 
 // Fetch via ArNS name
-const res = await fetch('https://ardrive.arweave.net');
+const res = await fetch('https://ardrive.turbo-gateway.com');
 
 // Fetch with Wayfinder (verified, multi-gateway fallback)
 import { createWayfinderClient } from '@ar.io/wayfinder-core';
@@ -202,9 +202,9 @@ https://<undername>_<name>.<gateway> → undername (UNDERSCORE, not dot)
 
 Examples:
 ```
-https://myapp.arweave.net          → served by arweave.net
-https://myapp.ar-io.dev            → same content, different gateway
-https://docs_myapp.arweave.net     → "docs" undername
+https://myapp.turbo-gateway.com          → served by turbo-gateway.com
+https://myapp.turbo-gateway.com            → same content, different gateway
+https://docs_myapp.turbo-gateway.com     → "docs" undername
 https://api_myapp.g8way.io         → "api" undername on g8way.io
 ```
 
@@ -223,7 +223,7 @@ Base URL: `https://<gateway>/`
 | GET | `/ar-io/healthcheck` | Health status |
 | GET | `graphql` | GraphQL endpoint for querying transactions |
 
-Public gateways: `arweave.net`, `ar-io.dev`, `permagate.io`, `g8way.io`
+Public gateways: `turbo-gateway.com`, `turbo-gateway.com`, `ardrive.net`, `g8way.io`
 
 ## Key Constants
 
@@ -267,7 +267,7 @@ Actual price = Base Fee x Demand Factor. Use `ario.getTokenCost()` to check live
 
 - **Use `fetch` not `axios`** for HTTP requests
 - **Use `ARIO.mainnet()` from `@ar.io/sdk`** — this defaults to Solana
-- **ArNS undernames use underscores**: `docs_myapp.arweave.net` (NOT dots)
+- **ArNS undernames use underscores**: `docs_myapp.turbo-gateway.com` (NOT dots)
 - **Call `setRecord` on ANT instances**, not on the ARIO client
 - **All token amounts are in mARIO** (multiply ARIO by 1,000,000)
 - **SOL is needed** for every write operation (Solana transaction fees)

@@ -24,7 +24,7 @@ This separation allows for powerful data discovery while keeping data retrieval 
 
 ## GraphQL Providers
 
-- **arweave.net** - `https://arweave.net/graphql` - Comprehensive indexing of all Arweave data
+- **turbo-gateway.com** - `https://turbo-gateway.com/graphql` - Comprehensive indexing of all Arweave data
 - **Goldsky** - `https://arweave-search.goldsky.com/graphql` - High-performance GraphQL service with full data coverage
 
 <Callout type="info">
@@ -39,7 +39,7 @@ This separation allows for powerful data discovery while keeping data retrieval 
 
 The easiest way to get started is using the interactive GraphQL playground:
 
-1. Navigate to [https://arweave.net/graphql](https://arweave.net/graphql) in your browser
+1. Navigate to [https://turbo-gateway.com/graphql](https://turbo-gateway.com/graphql) in your browser
 2. Enter your GraphQL query in the interface
 3. Press the "play" button to execute and see results
 
@@ -102,7 +102,7 @@ query {
       }
     `;
 
-    const response = await fetch("https://arweave.net/graphql", {
+    const response = await fetch("https://turbo-gateway.com/graphql", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -140,7 +140,7 @@ query {
       }
     `;
 
-    const response = await fetch("https://arweave.net/graphql", {
+    const response = await fetch("https://turbo-gateway.com/graphql", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -172,7 +172,7 @@ query {
       }
     `;
 
-    const response = await fetch("https://arweave.net/graphql", {
+    const response = await fetch("https://turbo-gateway.com/graphql", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -213,7 +213,7 @@ query {
       }
     `;
 
-    const response = await fetch("https://arweave.net/graphql", {
+    const response = await fetch("https://turbo-gateway.com/graphql", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -250,7 +250,7 @@ query {
         }
       `;
 
-      const nextResponse = await fetch("https://arweave.net/graphql", {
+      const nextResponse = await fetch("https://turbo-gateway.com/graphql", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -271,16 +271,13 @@ query {
 
 ## Pagination
 
-As of September 2025, GraphQL endpoints have different limits:
+Different GraphQL providers may enforce varying limits on the maximum number of items returned per query.
 
-- **arweave.net**: Supports queries up to **1,000 items at once**
-- **Goldsky**: Supports queries up to **100 items at once**
-
-For larger datasets, use cursor-based pagination to navigate through results.
+For larger datasets, use cursor-based pagination techniques to navigate through the complete set of results.
 
 **How Pagination Works:**
 
-- Use `first` parameter to specify page size (max 1,000 for arweave.net, max 100 for Goldsky)
+- Use `first` parameter to specify page size
 - Use `pageInfo.hasNextPage` to check if more results exist
 - Use `cursor` from the last item with `after` parameter for the next page
 
@@ -314,7 +311,7 @@ while (hasNextPage) {
     }
   `;
 
-  const response = await fetch("https://arweave.net/graphql", {
+  const response = await fetch("https://turbo-gateway.com/graphql", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

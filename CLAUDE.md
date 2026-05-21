@@ -86,7 +86,7 @@ Note: The `postinstall` script runs `fumadocs-mdx` to generate the `.source/` di
 - Use `fetch` instead of `axios` for HTTP requests
 - Use `ARIO.mainnet()` from '@ar.io/sdk' for ArNS operations
 - Call `setRecord` on ANT instances, not ARIO instances
-- ArNS undernames use underscores: `api_myapp.arweave.net` (not periods)
+- ArNS undernames use underscores: `api_myapp.gateway-url.tld` (not periods)
 
 ### Navigation
 - `meta.json` files control page ordering in each directory
