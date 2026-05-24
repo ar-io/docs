@@ -1,0 +1,109 @@
+---
+title: "Data Availability"
+description: "Choose an access strategy, understand guarantee levels, and run production-ready gateway access with network fallback"
+---
+
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Compass, Shield, Network, Server } from "lucide-react";
+
+Data availability has two parts:
+
+- **Permanent storage** from Arweave.
+- **Reliable delivery** from gateways.
+
+For production workloads, the key decision is not whether data exists, but how you want to deliver it with the guarantee level you need.
+
+## Choose Your Access Strategy (Quick Recommendation)
+
+| Strategy | Best for | Recommendation |
+| --- | --- | --- |
+| **A. Open network only** | Fast startup, prototypes, low-risk public content | Good default for early-stage projects |
+| **B. Self-hosted gateway + network fallback** | Teams wanting control and custom policy | Strong production option when you can operate infra |
+| **C. Managed gateway + network fallback** | Teams needing high availability with less ops overhead | **Recommended for production guarantees** |
+
+<Callout type="tip">
+  If uptime and performance guarantees matter, run a dedicated gateway path
+  (self-hosted or managed) and keep the decentralized network as resilience and
+  backup.
+</Callout>
+
+## What We Can Guarantee (Mode-Based)
+
+### Network-level guarantees
+
+With the ar.io gateway model, you get:
+
+- **Retrievability through multiple paths**: requests can resolve through cache, trusted gateways, ar.io peers, chunk reconstruction, and tx-data fallback.
+- **Open access across independent operators**: no single required public gateway.
+- **Integrity/trust signals in responses**: headers such as `X-AR-IO-Verified`, `X-AR-IO-Trusted`, `X-AR-IO-Digest`, and `Content-Digest`.
+
+### Network-level non-guarantees
+
+At the public-network layer, there is no single global guarantee for:
+
+- One universal latency target.
+- One universal throughput target.
+- One universal rate-limit profile across all operators.
+
+### Dedicated gateway guarantees (managed or self-hosted)
+
+When you run dedicated infrastructure (or have it managed for you), you can provide stronger guarantees, including:
+
+- High-availability architecture and failover policy.
+- Predictable performance targets for your workload profile.
+- Explicit traffic policies and operational ownership.
+
+In short: the network guarantees resilient access paths, while dedicated gateways are how you guarantee stricter production outcomes.
+
+## Recommended Production Patterns
+
+1. **Direct network access**: simplest path for non-critical or moderate workloads.
+2. **Hybrid fallback**: dedicated primary gateway, network as backup.
+3. **Managed HA primary + optional self-hosted secondary**: strongest balance of guarantees and independence.
+
+## How Availability Works Under the Hood
+
+Most gateways follow a layered read path:
+
+1. Local cache.
+2. Trusted gateways.
+3. Ar.io network peers.
+4. Chunk-based reconstruction.
+5. Transaction-data fallback.
+
+This layered path is why data stays reachable even when a single source is slow or unavailable.
+
+## When to Use Wayfinder
+
+Use [Wayfinder](/build/access/wayfinder) when you want client-side routing and failover across gateways without hard-coding a single endpoint.
+
+Wayfinder is a strong default for production read paths that need resilience.
+
+## Next Steps
+
+<Cards>
+  <Card
+    title="Gateway Expectations"
+    description="Production expectations, turbo-gateway snapshot, and real-world traffic scenarios"
+    href="/build/access/gateway-expectations"
+    icon={<Server className="w-8 h-8" />}
+  />
+  <Card
+    title="Data Retrieval"
+    description="Deep dive into fallback ordering and retrieval sources"
+    href="/learn/gateways/data-retrieval"
+    icon={<Network className="w-8 h-8" />}
+  />
+  <Card
+    title="Data Verification"
+    description="How gateways validate integrity across retrieval paths"
+    href="/learn/gateways/data-verification"
+    icon={<Shield className="w-8 h-8" />}
+  />
+  <Card
+    title="Wayfinder"
+    description="Route requests across gateways with failover and verification controls"
+    href="/build/access/wayfinder"
+    icon={<Compass className="w-8 h-8" />}
+  />
+</Cards>
