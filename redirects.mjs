@@ -172,7 +172,7 @@ const redirects = [
   },
   {
     source: '/gateways/delegated-staking',
-    destination: '/learn/token/staking',
+    destination: '/learn/oip/staking',
     permanent: true,
   },
   {
@@ -268,7 +268,7 @@ const redirects = [
   },
   {
     source: '/staking',
-    destination: '/learn/token/staking',
+    destination: '/learn/oip/staking',
     permanent: true,
   },
   {

@@ -1,6 +1,6 @@
 # Solana Migration — Documentation Page Status
 
-Updated 2026-05-14. Tracks every content page and its migration status from AO to Solana.
+Updated 2026-05-26. Tracks every content page and its migration status from AO to Solana.
 
 ## Legend
 
@@ -31,7 +31,7 @@ Updated 2026-05-14. Tracks every content page and its migration status from AO t
 | `learn/token/architecture.mdx` | ✅ DONE - MOVED | Moved to `learn/(introduction)/protocol-architecture.mdx` |
 | `learn/token/get-the-token.mdx` | ✅ DONE - UPDATED | Solana canonical, Jupiter/Raydium, Phantom/Solflare; minimum gateway stake updated to 20,000 ARIO; mint placeholder intentionally retained until address is available |
 | `learn/token/wallets.mdx` | ✅ DONE - NEW | Phantom/Solflare/Backpack setup (replaces add-to-wander) |
-| `learn/token/staking.mdx` | ✅ DONE - REWRITTEN | Auto-compound, accumulator, pruning, redelegation, SOL cost estimates; v3.0.0 staking limits added |
+| `learn/token/staking.mdx` | ✅ DONE - MOVED | Moved to `learn/oip/staking.mdx`; staking belongs with the incentive protocol section |
 | `learn/token/migration.mdx` | 🗑️ DONE - DELETED | Removed standalone migration page; was provisional with unresolved dates/claim details |
 | `learn/token/add-to-wander.mdx` | 🗑️ DONE - DELETED | Replaced by wallets.mdx |
 
@@ -61,8 +61,9 @@ Updated 2026-05-14. Tracks every content page and its migration status from AO t
 | Page | Status | Notes |
 |------|--------|-------|
 | `learn/oip/index.mdx` | ✅ DONE - UPDATED | Simplified OIP overview and observer flow |
-| `learn/oip/epoch-pipeline.mdx` | ✅ DONE - NEW | Permissionless Solana epoch pipeline, trimmed parameters |
-| `learn/oip/cranker.mdx` | ✅ DONE - NEW | Cranker purpose, safety properties, deployment options |
+| `learn/oip/staking.mdx` | ✅ DONE - MOVED | Moved from `learn/token/staking.mdx`; auto-compound, accumulator, pruning, redelegation, SOL cost estimates; v3.0.0 staking limits added |
+| `learn/oip/epoch-pipeline.mdx` | ✅ DONE - NEW | Permissionless Solana epoch pipeline, trimmed parameters; absorbs former `cranker.mdx` content under "Who Cranks?" |
+| `learn/oip/cranker.mdx` | 🗑️ DONE - DELETED | Folded into `epoch-pipeline.mdx`; content was too thin to justify a standalone page |
 | `learn/oip/observer-selection.mdx` | ✅ DONE - UPDATED | Weighted random observer selection, removed stale hashchain details |
 | `learn/oip/reporting.mdx` | ✅ DONE - UPDATED | Arweave reports plus compact onchain observations |
 | `learn/oip/performance-evaluation.mdx` | ✅ DONE - UPDATED | Pass/fail classification and weight impacts without formulas |

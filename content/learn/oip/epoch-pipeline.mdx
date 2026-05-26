@@ -86,4 +86,17 @@ The pipeline steps can be executed as the epoch progresses:
 
 ## Who Cranks?
 
-See the [Cranker](/learn/oip/cranker) documentation for details on the permissionless cranker bot that automates the epoch pipeline.
+A cranker is a permissionless actor that executes the epoch pipeline on Solana. Since Solana programs cannot execute on a timer, an external wallet must call each instruction to advance the epoch lifecycle.
+
+The key property is that cranking is **permissionless**: any wallet with SOL for transaction fees can run it. No ARIO tokens, gateway registration, or special authorization is required.
+
+Without crankers, the epoch pipeline would stall. Observations would not be prescribed, rewards would not be distributed, and completed epoch state would not be closed. Multiple independent crankers provide redundancy so the network is not dependent on a single operator.
+
+Cranking can run as a standalone bot that watches epoch state and submits whichever pipeline instruction is needed next. It can also be embedded directly in ar.io observers:
+
+```bash
+# In your observer's .env file
+ENABLE_EPOCH_CRANKING=true
+```
+
+Multiple crankers can run at the same time without coordination. The first successful transaction advances the pipeline, and later attempts see that the step is already complete. Because the instructions are idempotent, duplicate calls do not double-distribute rewards or corrupt epoch state.
