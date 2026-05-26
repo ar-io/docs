@@ -32,7 +32,7 @@ Updated 2026-05-14. Tracks every content page and its migration status from AO t
 | `learn/token/get-the-token.mdx` | ✅ DONE - UPDATED | Solana canonical, Jupiter/Raydium, Phantom/Solflare; minimum gateway stake updated to 20,000 ARIO; mint placeholder intentionally retained until address is available |
 | `learn/token/wallets.mdx` | ✅ DONE - NEW | Phantom/Solflare/Backpack setup (replaces add-to-wander) |
 | `learn/token/staking.mdx` | ✅ DONE - REWRITTEN | Auto-compound, accumulator, pruning, redelegation, SOL cost estimates; v3.0.0 staking limits added |
-| `learn/token/migration.mdx` | ⚠️ NEEDS UPDATING | Import-then-claim flow, address mapping, FAQ; minimum stake updated to 20,000 ARIO, but final dates/claim details still pending |
+| `learn/token/migration.mdx` | 🗑️ DONE - DELETED | Removed standalone migration page; was provisional with unresolved dates/claim details |
 | `learn/token/add-to-wander.mdx` | 🗑️ DONE - DELETED | Replaced by wallets.mdx |
 
 ### learn/arns/
