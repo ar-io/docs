@@ -3,7 +3,7 @@
 # ---------------------------------------
 
 # 1) deps: install node_modules with good caching
-FROM node:20-bullseye-slim AS deps
+FROM node:22-bullseye-slim AS deps
 WORKDIR /app
 
 # Copy only the dependency manifests first for caching
@@ -13,7 +13,7 @@ COPY source.config.ts ./
 RUN yarn install --frozen-lockfile
 
 # 2) build: compile Next.js (static export)
-FROM node:20-bullseye-slim AS build
+FROM node:22-bullseye-slim AS build
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
