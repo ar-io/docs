@@ -2,6 +2,7 @@ import "@/app/global.css";
 import "katex/dist/katex.css";
 import { RootProvider } from "fumadocs-ui/provider";
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import Script from "next/script";
 import SearchDialog from "@/components/search";
 import { AskArieProvider } from "@/components/ask-arie/AskArieContext";
@@ -30,9 +31,7 @@ export const metadata: Metadata = {
   },
 };
 
-// some comment to trigger deployment
-
-export default function Layout({ children }: LayoutProps<"/">) {
+export default function Layout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={plusJakartaSans.variable} suppressHydrationWarning>
       <body className="flex flex-col min-h-screen">

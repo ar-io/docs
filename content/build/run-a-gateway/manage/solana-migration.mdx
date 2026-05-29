@@ -117,7 +117,7 @@ Complete these steps before the cutover date to ensure uninterrupted reward elig
     ```
 
     <Callout type="warn">
-    The default public Solana RPC (`api.mainnet-beta.solana.com`) is rate-limited and will visibly throttle your observer/cranker — most observation cycles will silently miss their submission window. Use a dedicated RPC provider in production such as [Helius](https://helius.dev), [Triton](https://triton.one), or [QuickNode](https://quicknode.com).
+    The default public Solana RPC (`api.mainnet-beta.solana.com`) is rate-limited. Under any real load your observer and cranker will start dropping transactions, and the resulting timeouts cause most observation cycles to miss their submission window. Use a dedicated RPC provider in production: [Helius](https://helius.dev), [Triton](https://triton.one), or [QuickNode](https://quicknode.com).
     </Callout>
 
     <Callout type="info" title="Phantom-export keys">
@@ -180,7 +180,7 @@ Complete these steps before the cutover date to ensure uninterrupted reward elig
        ```bash
        curl -s https://<your-domain>/ar-io/info | jq '{release, wallet, programIds}'
        ```
-       `programIds.core/gar/arns/ant` should match the network you're targeting. A mismatch here is the most common "I migrated but nothing's working" cause.
+       `programIds.core/gar/arns/ant` should match the network you're targeting. If they don't, the gateway is still pointed at the old program set, which is usually why a migrated gateway looks inert.
 
     2. **Gateway registration is live on the new network:**
        ```bash
@@ -227,7 +227,7 @@ If this returns `"Epoch 0 not found"`, the network is configured but inactive. T
 
 ### "Cranker started but never submits any instructions"
 
-The cranker silently bails out if `EpochSettings.enabled` is `false`. This is by design — operators shouldn't pay SOL fees attempting cranker ix against a paused network. Confirm via `ar.io get-epoch-settings` and check whether epochs are enabled on your target network. If `enabled` is false, no cranker activity is expected.
+The cranker silently bails out if `EpochSettings.enabled` is `false`. This is intentional: operators shouldn't pay SOL fees attempting cranker instructions against a paused network. Confirm with `ar.io get-epoch-settings` and check whether epochs are enabled on your target network. If `enabled` is false, no cranker activity is expected.
 
 ### "ArNS names return 404 but the on-chain record exists"
 

@@ -139,7 +139,7 @@ Choose your preferred method to register your gateway:
       <Step>
         ### Run the Join Network Command
 
-        Use the `ar.io join-network` command with your gateway configuration. The operator key can be supplied either as a JSON keypair file (`--wallet-file`) **or** as a base58-encoded 64-byte secret key string (`--private-key`) — the latter is the format Phantom and other browser wallets export, so most operators can paste it directly.
+        Use the `ar.io join-network` command with your gateway configuration. The operator key can be supplied either as a JSON keypair file (`--wallet-file`) or as a base58-encoded 64-byte secret key string (`--private-key`). The latter is the format Phantom and similar browser wallets export, so most operators can paste it directly.
 
         ```bash
         ar.io join-network \
@@ -164,7 +164,7 @@ Choose your preferred method to register your gateway:
         </Callout>
 
         <Callout type="warning" title="Operator vs Observer Identity">
-          The public key derived from your `--wallet-file` / `--private-key` becomes your `AR_IO_WALLET` (operator). The `--observer-address` must be a **unique** Solana address — no two gateways can share an observer. If you don't have a separate observer key, set `--observer-address` to your operator address (single-key setup) — the gateway accepts this.
+          The public key derived from your `--wallet-file` / `--private-key` becomes your `AR_IO_WALLET` (operator). The `--observer-address` must be a **unique** Solana address; no two gateways can share an observer. If you don't have a separate observer key, set `--observer-address` to your operator address. The gateway accepts this single-key setup.
         </Callout>
 
         **Parameter explanations:**
@@ -198,7 +198,7 @@ Choose your preferred method to register your gateway:
         - `wallet` should match the operator pubkey you joined with.
         - `programIds.{core,gar,arns,ant}` should match the network you joined (mainnet program IDs, or whichever staging/devnet set you're using).
 
-        Mismatches here are the most common "I joined but observations aren't being submitted" cause — the gateway is configured for a different network than the one you joined.
+        If those don't line up, your gateway is querying a different network than the one you joined. That's the usual reason a freshly-joined gateway doesn't show up as observing.
 
         You can also verify in the portal: `gateways.ar.io/#/<your-operator-pubkey>`.
       </Step>

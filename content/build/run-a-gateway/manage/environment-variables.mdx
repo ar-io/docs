@@ -35,7 +35,7 @@ The main ar.io Gateway service that handles data retrieval, indexing, and servin
 
 Configure [response signing](/build/run-a-gateway/manage/verification-headers#http-message-signatures-rfc-9421) to provide cryptographic proof that your gateway produced a given response.
 
-When `OBSERVER_KEYPAIR_PATH` or `OBSERVER_PRIVATE_KEY` is set, the observer's Ed25519 Solana key is used directly as the HTTPSIG signing key — its Solana address is registered in the on-chain Gateway Registry, so verifiers can derive trust from a single lookup (no attestation document needed). When neither is set, a standalone Ed25519 key is auto-generated at `HTTPSIG_KEY_FILE` (responses are signed but not verifiable against the registry). Setting both `OBSERVER_KEYPAIR_PATH` and `OBSERVER_PRIVATE_KEY` is rejected at startup as ambiguous.
+If `OBSERVER_KEYPAIR_PATH` or `OBSERVER_PRIVATE_KEY` is set, the observer's Ed25519 Solana key signs responses directly. The key's Solana address is already in the on-chain Gateway Registry, so verifiers can confirm the signer with a single GAR lookup. If neither is set, the gateway auto-generates a standalone Ed25519 key at `HTTPSIG_KEY_FILE`; responses are still signed but can't be tied back to the registry. Setting both at once is rejected at startup as ambiguous.
 
 | Variable                | Type    | Default                 | Description                                                                                                                                          |
 | ----------------------- | ------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -173,7 +173,7 @@ For detailed configuration and usage, see [CDB64 Root TX Index](/build/run-a-gat
 
 ### ar.io
 
-The gateway talks to four separate Solana programs that together implement the ar.io protocol (see [protocol architecture](/learn/protocol-architecture)). Each program ID is configured independently so a single gateway image can run against mainnet, staging-devnet, or a local devnet without rebuilding. After startup, you can confirm which set the gateway is using via `GET /ar-io/info`, which echoes the resolved `programIds` object.
+The gateway talks to four Solana programs that together implement the ar.io protocol (see [protocol architecture](/learn/protocol-architecture)). Each program ID is configured independently, so the same image can run against mainnet, staging-devnet, or a local devnet. To confirm which set a running gateway is using, `GET /ar-io/info` returns the resolved `programIds` object.
 
 | Variable                   | Type   | Default                              | Description                                                                                                          |
 | -------------------------- | ------ | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
