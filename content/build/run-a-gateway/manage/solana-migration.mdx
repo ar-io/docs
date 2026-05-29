@@ -84,12 +84,23 @@ Complete these steps before the cutover date to ensure uninterrupted reward elig
     Edit your `.env` file with the new Solana configuration:
 
     ```bash
-    # Replace your wallet addresses with Solana pubkeys
+    # Operator + observer addresses (Solana pubkeys, base58)
     AR_IO_WALLET=<your-solana-operator-pubkey>
     OBSERVER_WALLET=<your-solana-observer-pubkey>
 
-    # Add Solana RPC (recommended: use a dedicated provider for production)
+    # Solana RPC endpoint (see Callout below — use a premium provider in production)
     SOLANA_RPC_URL=https://your-rpc-provider.com
+
+    # Keypair file paths inside the container (mounted from ./wallets/)
+    SOLANA_KEYPAIR_PATH=/app/wallets/operator-keypair.json
+    OBSERVER_KEYPAIR_PATH=/app/wallets/observer-keypair.json
+
+    # The four ar.io Solana programs (mainnet values are set as defaults in the
+    # ar-io-node image; only override these for staging-devnet or a local devnet)
+    # ARIO_CORE_PROGRAM_ID=...
+    # ARIO_GAR_PROGRAM_ID=...
+    # ARIO_ARNS_PROGRAM_ID=...
+    # ARIO_ANT_PROGRAM_ID=...
     ```
 
     **Remove the old AO variables** (they are no longer used):
@@ -101,34 +112,48 @@ Complete these steps before the cutover date to ensure uninterrupted reward elig
     # AO_MU_URL=...
     # AO_GATEWAY_URL=...
     # AO_GRAPHQL_URL=...
+    # HTTPSIG_UPLOAD_ATTESTATION=...
+    # WALLETS_PATH=...
     ```
 
     <Callout type="warn">
-    The default public Solana RPC (`api.mainnet-beta.solana.com`) is rate-limited. For production gateways, use a dedicated RPC provider such as [Helius](https://helius.dev), [Triton](https://triton.one), or [QuickNode](https://quicknode.com).
+    The default public Solana RPC (`api.mainnet-beta.solana.com`) is rate-limited and will visibly throttle your observer/cranker — most observation cycles will silently miss their submission window. Use a dedicated RPC provider in production such as [Helius](https://helius.dev), [Triton](https://triton.one), or [QuickNode](https://quicknode.com).
+    </Callout>
+
+    <Callout type="info" title="Phantom-export keys">
+      If you already have a Phantom-exported base58 secret string for the observer or operator, you can skip the JSON keypair file entirely: set `OBSERVER_PRIVATE_KEY=<base58>` (or `SOLANA_PRIVATE_KEY=<base58>`) instead of the `*_KEYPAIR_PATH` env. Setting both forms for the same role is rejected at startup.
     </Callout>
   </Step>
 
   <Step>
-    ### Place Observer Keypair
+    ### Place Keypair Files
 
-    Copy your observer Solana keypair JSON file to the `wallets` directory:
+    Copy your operator and observer Solana keypair JSON files into the `wallets/` directory in your ar-io-node checkout. Docker Compose mounts this directory into `/app/wallets/` inside the container, which is where the `*_KEYPAIR_PATH` env vars point.
 
     ```bash
-    cp observer-keypair.json wallets/<observer-pubkey>.json
+    cp operator-keypair.json wallets/operator-keypair.json
+    cp observer-keypair.json wallets/observer-keypair.json
+    chmod 600 wallets/*.json
     ```
+
+    Skip this step entirely if you set `OBSERVER_PRIVATE_KEY` / `SOLANA_PRIVATE_KEY` env vars (base58 strings) instead.
   </Step>
 
   <Step>
     ### Update ar-io-node
 
-    Pull the latest Solana-compatible release:
+    Pull the latest Solana-compatible release and recreate the containers:
 
     ```bash
     cd ar-io-node
     git pull
-    sudo docker compose down -v
-    sudo docker compose up -d
+    docker compose pull
+    docker compose up -d --force-recreate core envoy observer
     ```
+
+    <Callout type="warn" title="Don't use `down -v`">
+      Avoid `docker compose down -v` here — the `-v` flag deletes named volumes, which on most setups wipes the sqlite index and chunk data the gateway has spent days/weeks building. Use `docker compose up -d --force-recreate <service>` instead, which restarts containers in place without touching volumes.
+    </Callout>
 
     Check your release version at `https://<your-gateway>/ar-io/info`.
   </Step>
@@ -151,12 +176,67 @@ Complete these steps before the cutover date to ensure uninterrupted reward elig
 
     After restarting, verify your gateway is operating correctly:
 
-    1. Check gateway status at [gateways.ar.io](https://gateways.ar.io)
-    2. Verify your gateway is resolving ArNS names: `curl https://<your-domain>/ar-io/info`
-    3. Monitor your observer reports at `https://<your-domain>/ar-io/observer/reports/current`
-    4. Track your epoch performance to ensure you're not accumulating failed epochs
+    1. **Release + program IDs (cross-check config is what you intended):**
+       ```bash
+       curl -s https://<your-domain>/ar-io/info | jq '{release, wallet, programIds}'
+       ```
+       `programIds.core/gar/arns/ant` should match the network you're targeting. A mismatch here is the most common "I migrated but nothing's working" cause.
+
+    2. **Gateway registration is live on the new network:**
+       ```bash
+       ar.io get-gateway --mainnet -t solana --address <your-operator-pubkey>
+       ```
+       Should return `"status": "joined"` with the FQDN/stake/settings you set at join time.
+
+    3. **ArNS resolution works end-to-end:**
+       ```bash
+       curl -I -H "Host: ardrive.<your-domain>" https://<your-domain>/
+       ```
+       Expect HTTP 200 (or a manifest redirect). 404 here means the cache hasn't hydrated yet — give it a minute and re-check.
+
+    4. **Observer reports are flowing:** `https://<your-domain>/ar-io/observer/reports/current`
+
+    5. **Gateway listed in the portal:** [gateways.ar.io](https://gateways.ar.io)
+
+    6. **No accumulating failed epochs** in the portal's gateway view.
   </Step>
 </Steps>
+
+## Troubleshooting
+
+### "Observer is restart-looping with 'Epoch 0 PDA not found'"
+
+If the observer logs repeatedly:
+
+```
+error: Continuous observer start() rejected — attempting auto-restart
+  ...error: "Epoch 0 PDA not found at <pda> — has prescribe_epoch run yet?"
+```
+
+…the network you're targeting hasn't had its first epoch initialized. The observer needs entropy from `epoch[N].prescribed_observers` to bootstrap, which doesn't exist until someone calls `create_epoch` (typically a cranker).
+
+Verify the epoch state directly:
+
+```bash
+ar.io get-current-epoch --mainnet -t solana
+# or for staging/devnet:
+ar.io get-current-epoch --rpc-url <staging-rpc> --core-program-id ... --gar-program-id ... -t solana
+```
+
+If this returns `"Epoch 0 not found"`, the network is configured but inactive. This is a network-operations state, not a gateway misconfiguration. Wait for an active cranker (yours or another operator's) to bootstrap epoch 0.
+
+### "Cranker started but never submits any instructions"
+
+The cranker silently bails out if `EpochSettings.enabled` is `false`. This is by design — operators shouldn't pay SOL fees attempting cranker ix against a paused network. Confirm via `ar.io get-epoch-settings` and check whether epochs are enabled on your target network. If `enabled` is false, no cranker activity is expected.
+
+### "ArNS names return 404 but the on-chain record exists"
+
+The gateway hydrates an ArNS names cache at boot, paginating through the on-chain registry. If your SDK pin is significantly older than the deployed `ario-arns` program, the paginated response shape may not match and the cache hydrates incompletely. Symptoms:
+
+- Cache hydration logs `Successfully hydrated ArNS names cache` quickly (e.g. ~4s for thousands of records)
+- Resolver logs report `Base name not found in ArNS names cache` for names that demonstrably exist via the SDK CLI's `get-arns-record --name <name>`
+
+Fix: bump `@ar.io/sdk` in your gateway's image (`package.json`) to the latest `^4.0.0-solana.*` and rebuild.
 
 ## New Risks to Be Aware Of
 

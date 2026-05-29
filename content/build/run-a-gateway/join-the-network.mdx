@@ -139,51 +139,68 @@ Choose your preferred method to register your gateway:
       <Step>
         ### Run the Join Network Command
 
-        Use the `ar.io join-network` command with your gateway configuration:
+        Use the `ar.io join-network` command with your gateway configuration. The operator key can be supplied either as a JSON keypair file (`--wallet-file`) **or** as a base58-encoded 64-byte secret key string (`--private-key`) — the latter is the format Phantom and other browser wallets export, so most operators can paste it directly.
 
         ```bash
         ar.io join-network \
           --wallet-file ./path/to/solana-keypair.json \
-          --qty 20000000000 \
-          --auto-stake true \
-          --allow-delegated-staking true \
+          -t solana \
+          --mainnet \
+          --operator-stake 20000 \
+          --auto-stake \
+          --allow-delegated-staking \
           --min-delegated-stake 100000000 \
           --delegate-reward-share-ratio 10 \
-          --label "My Test Gateway" \
-          --note "Test gateway for development" \
-          --observer-wallet 7xKXtR2qpZm8FjvKNsG3kL9p5yMnYhVdEbxQ4oWc2Rn \
+          --label "My Gateway" \
+          --note "Production ar.io gateway" \
+          --observer-address 7xKXtR2qpZm8FjvKNsG3kL9p5yMnYhVdEbxQ4oWc2Rn \
           --fqdn my-gateway.example.com \
           --port 443 \
-          --protocol https \
-          --mainnet
+          --protocol https
         ```
 
-        <Callout type="warning" title="Wallet File Requirement">
-          The wallet file must be a Solana keypair JSON file (Ed25519). The public key derived from this keypair must match the `AR_IO_WALLET` environment variable configured in your gateway. The observer wallet must also be a unique Solana address — no two gateways can share the same observer.
+        <Callout type="info" title="Phantom-export base58 key">
+          To use a Phantom-exported secret key directly, replace `--wallet-file ./path/to/solana-keypair.json` with `--private-key '<base58-string>'`. The SDK decodes the 64-byte secret, derives the public key, and signs in-memory — no JSON file required.
+        </Callout>
+
+        <Callout type="warning" title="Operator vs Observer Identity">
+          The public key derived from your `--wallet-file` / `--private-key` becomes your `AR_IO_WALLET` (operator). The `--observer-address` must be a **unique** Solana address — no two gateways can share an observer. If you don't have a separate observer key, set `--observer-address` to your operator address (single-key setup) — the gateway accepts this.
         </Callout>
 
         **Parameter explanations:**
-        - `--qty 20000000000` - 20,000 ARIO in mARIO (multiply by 1,000,000)
-        - `--min-delegated-stake 100000000` - 100 ARIO in mARIO
-        - `--delegate-reward-share-ratio 10` - 10% shared with delegators
-        - `--observer-wallet` - Must match your gateway's OBSERVER_WALLET env var
-        - `--fqdn` - Your gateway's domain name
+        - `--operator-stake 20000` — operator stake in whole ARIO units (CLI converts to mARIO internally). Minimum is 20,000 ARIO on mainnet.
+        - `--auto-stake` — flag-only (no value). When set, operator rewards auto-restake to your gateway.
+        - `--allow-delegated-staking` — flag-only. Permits other wallets to delegate stake to you.
+        - `--min-delegated-stake 100000000` — minimum delegation in mARIO (100 ARIO × 1,000,000). Unlike `--operator-stake`, this argument is in mARIO directly.
+        - `--delegate-reward-share-ratio 10` — percentage of rewards shared with delegators (0-100).
+        - `--observer-address` — Solana address of the observer key (often the same as the operator address).
+        - `--fqdn` — your gateway's public domain name.
+        - `-t solana --mainnet` — required to target the canonical Solana mainnet program IDs. For staging or local devnet, drop `--mainnet` and pass explicit `--core-program-id` / `--gar-program-id` / `--arns-program-id` / `--ant-program-id` + `--rpc-url`.
       </Step>
 
       <Step>
         ### Verify Registration
 
-        After running the command, verify your gateway registration using the CLI:
+        Verify the on-chain registration via the CLI:
 
         ```bash
-        ar.io get-gateway 0VE0wIhDy90WiQoV3U2PeY44FH1aVetOoulPGqgYukj
+        ar.io get-gateway --mainnet -t solana --address <your-operator-pubkey>
         ```
 
-        The status should show `joined` when your gateway is successfully registered.
+        The result should show `"status": "joined"` and the settings (FQDN, stake, allow-delegated, etc.) you passed at join time.
 
-        You can also verify by visiting: `gateways.ar.io/#/<your-wallet-address>`
+        Once your gateway is running and pointed at the same network, cross-check from the gateway side too:
 
-        The CLI will output transaction details and your gateway should appear in the network portal within a few minutes.
+        ```bash
+        curl https://<your-gateway>/ar-io/info | jq '{wallet, programIds}'
+        ```
+
+        - `wallet` should match the operator pubkey you joined with.
+        - `programIds.{core,gar,arns,ant}` should match the network you joined (mainnet program IDs, or whichever staging/devnet set you're using).
+
+        Mismatches here are the most common "I joined but observations aren't being submitted" cause — the gateway is configured for a different network than the one you joined.
+
+        You can also verify in the portal: `gateways.ar.io/#/<your-operator-pubkey>`.
       </Step>
     </Steps>
 

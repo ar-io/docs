@@ -35,14 +35,15 @@ The main ar.io Gateway service that handles data retrieval, indexing, and servin
 
 Configure [response signing](/build/run-a-gateway/manage/verification-headers#http-message-signatures-rfc-9421) to provide cryptographic proof that your gateway produced a given response.
 
-| Variable                     | Type    | Default                 | Description                                                        |
-| ---------------------------- | ------- | ----------------------- | ------------------------------------------------------------------ |
-| `HTTPSIG_ENABLED`            | boolean | `false`                 | Enable RFC 9421 response signing                                   |
-| `HTTPSIG_KEY_FILE`           | string  | `data/keys/httpsig.pem` | Path to Ed25519 private key (auto-generated if missing)            |
-| `HTTPSIG_BIND_REQUEST`       | boolean | `true`                  | Include request method and path in signature (prevents replay)     |
-| `OBSERVER_WALLET`            | string  | -                       | Arweave wallet address for attestation signing                     |
-| `WALLETS_PATH`               | string  | `wallets`               | Directory containing Arweave wallet JWK files                      |
-| `HTTPSIG_UPLOAD_ATTESTATION` | boolean | `true`                  | Automatically upload attestation to Arweave                        |
+When `OBSERVER_KEYPAIR_PATH` or `OBSERVER_PRIVATE_KEY` is set, the observer's Ed25519 Solana key is used directly as the HTTPSIG signing key — its Solana address is registered in the on-chain Gateway Registry, so verifiers can derive trust from a single lookup (no attestation document needed). When neither is set, a standalone Ed25519 key is auto-generated at `HTTPSIG_KEY_FILE` (responses are signed but not verifiable against the registry). Setting both `OBSERVER_KEYPAIR_PATH` and `OBSERVER_PRIVATE_KEY` is rejected at startup as ambiguous.
+
+| Variable                | Type    | Default                 | Description                                                                                                                                          |
+| ----------------------- | ------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `HTTPSIG_ENABLED`       | boolean | `false`                 | Enable RFC 9421 response signing                                                                                                                     |
+| `HTTPSIG_KEY_FILE`      | string  | `data/keys/httpsig.pem` | Path to standalone Ed25519 private key PEM. Auto-generated on first startup if missing. Ignored when `OBSERVER_KEYPAIR_PATH` or `OBSERVER_PRIVATE_KEY` is set |
+| `HTTPSIG_BIND_REQUEST`  | boolean | `true`                  | Include request method and path in signature (prevents replay)                                                                                       |
+| `OBSERVER_KEYPAIR_PATH` | string  | -                       | Path to a 64-byte Solana keypair JSON file (e.g. `solana-keygen new` output). When set, used as the HTTPSIG signing key                              |
+| `OBSERVER_PRIVATE_KEY`  | string  | -                       | Alternative to `OBSERVER_KEYPAIR_PATH`: base58-encoded 64-byte Solana secret key (the format Phantom and other browser wallets export)               |
 
 ### Network Configuration
 
@@ -172,15 +173,22 @@ For detailed configuration and usage, see [CDB64 Root TX Index](/build/run-a-gat
 
 ### ar.io
 
-| Variable                   | Type   | Default                                       | Description                |
-| -------------------------- | ------ | --------------------------------------------- | -------------------------- |
-| `AR_IO_WALLET`             | string | -                                             | Gateway wallet             |
-| `IO_PROCESS_ID`            | string | `<ARIO_PROGRAM_ID>` | ar.io Solana program address |
-| `AR_IO_NODE_RELEASE`       | string | `33`                                          | ar.io node release version |
-| `APEX_TX_ID`               | string | -                                             | Apex transaction ID        |
-| `APEX_ARNS_NAME`           | string | -                                             | Apex ArNS name             |
-| `ARNS_NOT_FOUND_TX_ID`     | string | -                                             | Not found transaction ID   |
-| `ARNS_NOT_FOUND_ARNS_NAME` | string | `unregistered_arns`                           | Not found ArNS name        |
+The gateway talks to four separate Solana programs that together implement the ar.io protocol (see [protocol architecture](/learn/protocol-architecture)). Each program ID is configured independently so a single gateway image can run against mainnet, staging-devnet, or a local devnet without rebuilding. After startup, you can confirm which set the gateway is using via `GET /ar-io/info`, which echoes the resolved `programIds` object.
+
+| Variable                   | Type   | Default                              | Description                                                                                                          |
+| -------------------------- | ------ | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| `AR_IO_WALLET`             | string | -                                    | Operator Solana public key (base58). Display label surfaced on `/ar-io/info`                                         |
+| `SOLANA_RPC_URL`           | string | `https://api.mainnet-beta.solana.com`| Solana JSON-RPC endpoint. Public defaults throttle hard — use a premium provider (QuickNode, Helius, Triton) in production |
+| `SOLANA_KEYPAIR_PATH`      | string | -                                    | Path to the operator's 64-byte Solana keypair JSON file (signs cranker instructions when `ENABLE_EPOCH_CRANKING=true`) |
+| `ARIO_CORE_PROGRAM_ID`     | string | -                                    | `ario-core` program ID (token, staking, epoch state)                                                                 |
+| `ARIO_GAR_PROGRAM_ID`      | string | -                                    | `ario-gar` program ID (Gateway Registry; joins, observations, distributions)                                         |
+| `ARIO_ARNS_PROGRAM_ID`     | string | -                                    | `ario-arns` program ID (ArNS name registry)                                                                          |
+| `ARIO_ANT_PROGRAM_ID`      | string | -                                    | `ario-ant` program ID (ANT records — Metaplex Core NFTs that route names to data)                                    |
+| `AR_IO_NODE_RELEASE`       | string | `33`                                 | ar.io node release version                                                                                           |
+| `APEX_TX_ID`               | string | -                                    | Apex transaction ID                                                                                                  |
+| `APEX_ARNS_NAME`           | string | -                                    | Apex ArNS name                                                                                                       |
+| `ARNS_NOT_FOUND_TX_ID`     | string | -                                    | Not found transaction ID                                                                                             |
+| `ARNS_NOT_FOUND_ARNS_NAME` | string | `unregistered_arns`                  | Not found ArNS name                                                                                                  |
 
 ### Apex Domain
 
