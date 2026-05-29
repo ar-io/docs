@@ -184,9 +184,15 @@ Complete these steps before the cutover date to ensure uninterrupted reward elig
 
     2. **Gateway registration is live on the new network:**
        ```bash
-       ar.io get-gateway --mainnet -t solana --address <your-operator-pubkey>
+       ar.io get-gateway -t solana \
+         --rpc-url <your-rpc-url> \
+         --core-program-id <ario-core-id> \
+         --gar-program-id <ario-gar-id> \
+         --arns-program-id <ario-arns-id> \
+         --ant-program-id <ario-ant-id> \
+         --address <your-operator-pubkey>
        ```
-       Should return `"status": "joined"` with the FQDN/stake/settings you set at join time.
+       Should return `"status": "joined"` with the FQDN/stake/settings you set at join time. (Once `@ar.io/sdk` ships canonical mainnet defaults, `--mainnet` will be a shorthand for the four program-ID flags; until then, pass them explicitly.)
 
     3. **ArNS resolution works end-to-end:**
        ```bash
@@ -218,10 +224,15 @@ error: Continuous observer start() rejected — attempting auto-restart
 Verify the epoch state directly:
 
 ```bash
-ar.io get-current-epoch --mainnet -t solana
-# or for staging/devnet:
-ar.io get-current-epoch --rpc-url <staging-rpc> --core-program-id ... --gar-program-id ... -t solana
+ar.io get-current-epoch -t solana \
+  --rpc-url <your-rpc-url> \
+  --core-program-id <ario-core-id> \
+  --gar-program-id <ario-gar-id> \
+  --arns-program-id <ario-arns-id> \
+  --ant-program-id <ario-ant-id>
 ```
+
+(In `@ar.io/sdk@^4.0.0-solana.22` the `--mainnet` shorthand still resolves to placeholder addresses, so the explicit `--*-program-id` flags are required regardless of which network you're querying. This will change once canonical mainnet IDs are baked into the SDK.)
 
 If this returns `"Epoch 0 not found"`, the network is configured but inactive. This is a network-operations state, not a gateway misconfiguration. Wait for an active cranker (yours or another operator's) to bootstrap epoch 0.
 
