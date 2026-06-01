@@ -7,7 +7,10 @@ import Script from "next/script";
 import SearchDialog from "@/components/search";
 import { AskArieProvider } from "@/components/ask-arie/AskArieContext";
 import { AskArieWidget } from "@/components/ask-arie/AskArieWidget";
-import { AnnouncementBanner } from "@/components/announcement-banner";
+import {
+  AnnouncementBanner,
+  type AnnouncementBannerProps,
+} from "@/components/announcement-banner";
 import { Plus_Jakarta_Sans } from "next/font/google";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -31,7 +34,13 @@ export const metadata: Metadata = {
   },
 };
 
+function getAnnouncementBanner(): AnnouncementBannerProps | null {
+  return null;
+}
+
 export default function Layout({ children }: { children: ReactNode }) {
+  const announcementBanner = getAnnouncementBanner();
+
   return (
     <html lang="en" className={plusJakartaSans.variable} suppressHydrationWarning>
       <body className="flex flex-col min-h-screen">
@@ -50,17 +59,9 @@ export default function Layout({ children }: { children: ReactNode }) {
           }}
         >
           <AskArieProvider>
-            <AnnouncementBanner
-              storageKey="solana-migration"
-              mobileText="Ar.io is migrating to Solana."
-              badgeText="June 2026"
-              ctaHref="https://ar.io/solana-migration"
-              ctaLabel="Learn more"
-              dismissAriaLabel="Dismiss migration banner"
-            >
-              The ar.io smart contract and token are migrating to Solana.
-              Register now to migrate your assets before the deadline.
-            </AnnouncementBanner>
+            {announcementBanner ? (
+              <AnnouncementBanner {...announcementBanner} />
+            ) : null}
             {children}
             <AskArieWidget />
           </AskArieProvider>
