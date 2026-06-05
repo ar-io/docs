@@ -1,6 +1,6 @@
 # Solana Migration — Documentation Page Status
 
-Updated 2026-05-26. Tracks every content page and its migration status from AO to Solana.
+Updated 2026-06-05. Tracks every content page and its migration status from AO to Solana.
 
 ## Legend
 
@@ -18,7 +18,7 @@ Updated 2026-05-26. Tracks every content page and its migration status from AO t
 |------|--------|-------|
 | `learn/(introduction)/index.mdx` | ✅ DONE - UPDATED | arns.app → arns.ar.io |
 | `learn/(introduction)/what-is-ario.mdx` | ✅ DONE - UPDATED | "Arweave and AO" → "Arweave + Solana" |
-| `learn/(introduction)/protocol-architecture.mdx` | ✅ DONE - MOVED+UPDATED | Moved from `learn/token/architecture.mdx`; protocol-level 3+1 Solana programs |
+| `learn/(introduction)/protocol-architecture.mdx` | ✅ DONE - MOVED+UPDATED | Moved from `learn/token/architecture.mdx`; protocol-level 3+1 Solana programs; links to canonical mainnet addresses |
 | `learn/(introduction)/what-is-arweave.mdx` | ✅ DONE - NO CHANGE | Arweave storage layer |
 | `learn/(introduction)/what-is-permaweb.mdx` | 🗑️ DONE - DELETED | Removed standalone page; light permaweb context moved into `what-is-ario.mdx` |
 | `learn/(introduction)/ans-104-bundles.mdx` | ✅ DONE - NO CHANGE | Bundle standard |
@@ -27,10 +27,10 @@ Updated 2026-05-26. Tracks every content page and its migration status from AO t
 
 | Page | Status | Notes |
 |------|--------|-------|
-| `learn/token/index.mdx` | ✅ DONE - REWRITTEN | Trimmed to lightweight Solana token overview and hub |
+| `learn/token/index.mdx` | ✅ DONE - REWRITTEN | Trimmed to lightweight Solana token overview and hub; includes canonical ARIO mint and mainnet program IDs |
 | `learn/token/architecture.mdx` | ✅ DONE - MOVED | Moved to `learn/(introduction)/protocol-architecture.mdx` |
-| `learn/token/get-the-token.mdx` | ✅ DONE - UPDATED | Solana canonical, Jupiter/Raydium, Phantom/Solflare; minimum gateway stake updated to 20,000 ARIO; mint placeholder intentionally retained until address is available |
-| `learn/token/wallets.mdx` | ✅ DONE - NEW | Phantom/Solflare/Backpack setup (replaces add-to-wander) |
+| `learn/token/get-the-token.mdx` | ✅ DONE - UPDATED | Solana canonical, Jupiter/Raydium, Phantom/Solflare; minimum gateway stake updated to 20,000 ARIO; canonical mint and Solscan link added |
+| `learn/token/wallets.mdx` | ✅ DONE - NEW | Phantom/Solflare/Backpack setup (replaces add-to-wander); canonical mint added for manual token import |
 | `learn/token/staking.mdx` | ✅ DONE - MOVED | Moved to `learn/oip/staking.mdx`; staking belongs with the incentive protocol section |
 | `learn/token/migration.mdx` | 🗑️ DONE - DELETED | Removed standalone migration page; was provisional with unresolved dates/claim details |
 | `learn/token/add-to-wander.mdx` | 🗑️ DONE - DELETED | Replaced by wallets.mdx |
@@ -116,10 +116,10 @@ Updated 2026-05-26. Tracks every content page and its migration status from AO t
 |------|--------|-------|
 | `build/run-a-gateway/index.mdx` | ✅ DONE - NO CHANGE | Gateway operations landing page |
 | `build/run-a-gateway/quick-start.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Solana wallet/observer setup should be operator-verified |
-| `build/run-a-gateway/join-the-network.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Join flow, SOL fees, staking, and keypair guidance should be operator-verified; minimum stake updated to 20,000 ARIO |
-| `build/run-a-gateway/manage/solana-migration.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Migration guide is intentionally old-vs-new; dates and claim flow need final review; pruning stake/withdrawal constants aligned with v3.0.0 |
+| `build/run-a-gateway/join-the-network.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Join flow, SOL fees, staking, and keypair guidance should be operator-verified; minimum stake updated to 20,000 ARIO; canonical mainnet program IDs added to CLI examples |
+| `build/run-a-gateway/manage/solana-migration.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Migration guide is intentionally old-vs-new; dates and claim flow need final review; pruning stake/withdrawal constants aligned with v3.0.0; canonical mainnet program IDs added to env/CLI examples |
 | `build/run-a-gateway/manage/upgrading-a-gateway.mdx` | ✅ DONE - NO CHANGE | Generic upgrade process |
-| `build/run-a-gateway/manage/environment-variables.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Includes `<ARIO_PROGRAM_ID>` placeholder and gateway env defaults to verify |
+| `build/run-a-gateway/manage/environment-variables.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Gateway env defaults and observer `IO_PROCESS_ID` naming should be verified; ar.io program-ID section links to canonical mainnet addresses |
 | `build/run-a-gateway/manage/filters.mdx` | ✅ DONE - UPDATED | AO refs are data filter values; no protocol migration issue |
 | `build/run-a-gateway/manage/setting-apex-domain.mdx` | ✅ DONE - UPDATED | Updated ArNS example hostnames |
 | `build/run-a-gateway/manage/cdb64.mdx` | ✅ DONE - NO CHANGE | Data indexing; AO refs are filter values |
@@ -251,9 +251,9 @@ Updated 2026-05-26. Tracks every content page and its migration status from AO t
 
 ## Remaining TODOs
 
-- [ ] Replace `<ARIO_MINT_ADDRESS>` and `<ARIO_PROGRAM_ID>` placeholders once final addresses are available
 - [ ] Regenerate all API docs with `npm run generate-api-docs`; not automatic on build
 - [ ] Regenerate all SDK docs with `npm run generate-sdk-docs`; not automatic on build
 - [ ] Regenerate SDK output examples from Solana devnet — generated ar.io SDK pages still need spot-checking for Arweave-format addresses and Solana signer examples
+- [ ] Operator/product review: verify join-network, Solana migration, gateway env defaults, observer `IO_PROCESS_ID`, and RPC guidance against current mainnet release behavior
 - [ ] Update UI screenshots in `purchase-arns-ui.mdx` and `manage-arns-ui.mdx` once Solana UI is live
 - [ ] Run `npm run generate-all-docs` to regenerate LLM text files
