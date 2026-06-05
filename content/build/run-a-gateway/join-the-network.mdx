@@ -146,6 +146,11 @@ Choose your preferred method to register your gateway:
           --wallet-file ./path/to/solana-keypair.json \
           -t solana \
           --mainnet \
+          --rpc-url https://api.mainnet-beta.solana.com \
+          --core-program-id 73YoECm6NKXpVRoe5f1Q9BcP5DJGPFUjnFy6AxBE5Nvh \
+          --gar-program-id 89fNiiwgpFSPHKuqfNUkgYTYjtAJAhyqHjXmgXeppGpf \
+          --arns-program-id 2yCUx5edFvUrkibYaUa2ZXWyx9kuJkS8CwyzsgHPWdZZ \
+          --ant-program-id 2MWexMHfMhGJwMHv9Qm9YAVCqjUFUJwDJAysW4oCUGk5 \
           --operator-stake 20000 \
           --auto-stake \
           --allow-delegated-staking \
@@ -176,7 +181,7 @@ Choose your preferred method to register your gateway:
         - `--observer-address` — Solana address of the observer key (often the same as the operator address).
         - `--fqdn` — your gateway's public domain name.
         - `-t solana` — required to switch the CLI into Solana mode (default is Arweave).
-        - `--mainnet` — reserved for future use as a shorthand for the canonical mainnet program IDs. **In `@ar.io/sdk@^4.0.0-solana.22` (current) the bundled mainnet constants are still placeholders, so `--mainnet` alone resolves to non-existent addresses.** Until canonical mainnet IDs ship in the SDK, pass explicit `--core-program-id` / `--gar-program-id` / `--arns-program-id` / `--ant-program-id` + `--rpc-url` for whichever environment you're joining (mainnet, staging-devnet, or local devnet).
+        - `--mainnet` — selects Solana mainnet behavior. The explicit `--core-program-id`, `--gar-program-id`, `--arns-program-id`, `--ant-program-id`, and `--rpc-url` flags pin the command to the canonical mainnet deployment.
       </Step>
 
       <Step>
@@ -185,7 +190,15 @@ Choose your preferred method to register your gateway:
         Verify the on-chain registration via the CLI:
 
         ```bash
-        ar.io get-gateway --mainnet -t solana --address <your-operator-pubkey>
+        ar.io get-gateway \
+          --mainnet \
+          -t solana \
+          --rpc-url https://api.mainnet-beta.solana.com \
+          --core-program-id 73YoECm6NKXpVRoe5f1Q9BcP5DJGPFUjnFy6AxBE5Nvh \
+          --gar-program-id 89fNiiwgpFSPHKuqfNUkgYTYjtAJAhyqHjXmgXeppGpf \
+          --arns-program-id 2yCUx5edFvUrkibYaUa2ZXWyx9kuJkS8CwyzsgHPWdZZ \
+          --ant-program-id 2MWexMHfMhGJwMHv9Qm9YAVCqjUFUJwDJAysW4oCUGk5 \
+          --address <your-operator-pubkey>
         ```
 
         The result should show `"status": "joined"` and the settings (FQDN, stake, allow-delegated, etc.) you passed at join time.

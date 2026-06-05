@@ -95,12 +95,11 @@ Complete these steps before the cutover date to ensure uninterrupted reward elig
     SOLANA_KEYPAIR_PATH=/app/wallets/operator-keypair.json
     OBSERVER_KEYPAIR_PATH=/app/wallets/observer-keypair.json
 
-    # The four ar.io Solana programs (mainnet values are set as defaults in the
-    # ar-io-node image; only override these for staging-devnet or a local devnet)
-    # ARIO_CORE_PROGRAM_ID=...
-    # ARIO_GAR_PROGRAM_ID=...
-    # ARIO_ARNS_PROGRAM_ID=...
-    # ARIO_ANT_PROGRAM_ID=...
+    # The four ar.io Solana programs (canonical mainnet)
+    ARIO_CORE_PROGRAM_ID=73YoECm6NKXpVRoe5f1Q9BcP5DJGPFUjnFy6AxBE5Nvh
+    ARIO_GAR_PROGRAM_ID=89fNiiwgpFSPHKuqfNUkgYTYjtAJAhyqHjXmgXeppGpf
+    ARIO_ARNS_PROGRAM_ID=2yCUx5edFvUrkibYaUa2ZXWyx9kuJkS8CwyzsgHPWdZZ
+    ARIO_ANT_PROGRAM_ID=2MWexMHfMhGJwMHv9Qm9YAVCqjUFUJwDJAysW4oCUGk5
     ```
 
     **Remove the old AO variables** (they are no longer used):
@@ -185,14 +184,14 @@ Complete these steps before the cutover date to ensure uninterrupted reward elig
     2. **Gateway registration is live on the new network:**
        ```bash
        ar.io get-gateway -t solana \
-         --rpc-url <your-rpc-url> \
-         --core-program-id <ario-core-id> \
-         --gar-program-id <ario-gar-id> \
-         --arns-program-id <ario-arns-id> \
-         --ant-program-id <ario-ant-id> \
+         --rpc-url https://api.mainnet-beta.solana.com \
+         --core-program-id 73YoECm6NKXpVRoe5f1Q9BcP5DJGPFUjnFy6AxBE5Nvh \
+         --gar-program-id 89fNiiwgpFSPHKuqfNUkgYTYjtAJAhyqHjXmgXeppGpf \
+         --arns-program-id 2yCUx5edFvUrkibYaUa2ZXWyx9kuJkS8CwyzsgHPWdZZ \
+         --ant-program-id 2MWexMHfMhGJwMHv9Qm9YAVCqjUFUJwDJAysW4oCUGk5 \
          --address <your-operator-pubkey>
        ```
-       Should return `"status": "joined"` with the FQDN/stake/settings you set at join time. (Once `@ar.io/sdk` ships canonical mainnet defaults, `--mainnet` will be a shorthand for the four program-ID flags; until then, pass them explicitly.)
+       Should return `"status": "joined"` with the FQDN/stake/settings you set at join time.
 
     3. **ArNS resolution works end-to-end:**
        ```bash
@@ -225,14 +224,14 @@ Verify the epoch state directly:
 
 ```bash
 ar.io get-current-epoch -t solana \
-  --rpc-url <your-rpc-url> \
-  --core-program-id <ario-core-id> \
-  --gar-program-id <ario-gar-id> \
-  --arns-program-id <ario-arns-id> \
-  --ant-program-id <ario-ant-id>
+  --rpc-url https://api.mainnet-beta.solana.com \
+  --core-program-id 73YoECm6NKXpVRoe5f1Q9BcP5DJGPFUjnFy6AxBE5Nvh \
+  --gar-program-id 89fNiiwgpFSPHKuqfNUkgYTYjtAJAhyqHjXmgXeppGpf \
+  --arns-program-id 2yCUx5edFvUrkibYaUa2ZXWyx9kuJkS8CwyzsgHPWdZZ \
+  --ant-program-id 2MWexMHfMhGJwMHv9Qm9YAVCqjUFUJwDJAysW4oCUGk5
 ```
 
-(In `@ar.io/sdk@^4.0.0-solana.22` the `--mainnet` shorthand still resolves to placeholder addresses, so the explicit `--*-program-id` flags are required regardless of which network you're querying. This will change once canonical mainnet IDs are baked into the SDK.)
+For staging-devnet or local devnet, replace the RPC URL and program IDs with that environment's values.
 
 If this returns `"Epoch 0 not found"`, the network is configured but inactive. This is a network-operations state, not a gateway misconfiguration. Wait for an active cranker (yours or another operator's) to bootstrap epoch 0.
 
