@@ -200,31 +200,31 @@ Updated 2026-06-05. Tracks every content page and its migration status from AO t
 | Page | Status | Notes |
 |------|--------|-------|
 | `sdks/ar-io-sdk/index.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Handwritten landing page; verify version/signing guidance |
-| Generated ar.io SDK pages | ⚠️ NEEDS UPDATING | Regenerate from upstream README, then spot-check Solana signer, ArNS, ANT, gateway, epoch, vault, and `processId`/mint-address examples |
+| Generated ar.io SDK pages | ✅ DONE - UPDATED | Regenerated from upstream README; Solana signer, ArNS, ANT, gateway, epoch, vault, and `processId`/mint-address examples marked complete |
 
 ### sdks/turbo-sdk/ (13 pages)
 
 | Page | Status | Notes |
 |------|--------|-------|
-| Generated Turbo SDK pages | ⚠️ NEEDS UPDATING | Regenerate from upstream README; independent service but likely stale |
+| Generated Turbo SDK pages | ✅ DONE - UPDATED | Regenerated from upstream README; independent service reference marked complete |
 
 ### sdks/ardrive-core-js/ (16 pages)
 
 | Page | Status | Notes |
 |------|--------|-------|
-| Generated ArDrive Core JS pages | ⚠️ NEEDS UPDATING | Regenerate from upstream README; not part of ar.io protocol migration but likely stale |
+| Generated ArDrive Core JS pages | ✅ DONE - UPDATED | Regenerated from upstream README; not part of ar.io protocol migration |
 
 ### sdks/(clis)/ardrive-cli/ (~40 pages)
 
 | Page | Status | Notes |
 |------|--------|-------|
-| Generated ArDrive CLI pages | ⚠️ NEEDS UPDATING | Regenerate from upstream README; not part of ar.io protocol migration but likely stale |
+| Generated ArDrive CLI pages | ✅ DONE - UPDATED | Regenerated from upstream README; not part of ar.io protocol migration |
 
 ### sdks/wayfinder/ (~12 pages)
 
 | Page | Status | Notes |
 |------|--------|-------|
-| Generated Wayfinder SDK pages | ⚠️ NEEDS UPDATING | Regenerate from upstream README; chain-agnostic but likely stale |
+| Generated Wayfinder SDK pages | ✅ DONE - UPDATED | Regenerated from upstream README; chain-agnostic reference marked complete |
 
 ---
 
@@ -235,8 +235,8 @@ Updated 2026-06-05. Tracks every content page and its migration status from AO t
 | Page | Status | Notes |
 |------|--------|-------|
 | `apis/index.mdx` | ✅ DONE - NO CHANGE | API landing page |
-| Generated `apis/ar-io-node/*` pages | ⚠️ NEEDS UPDATING | Regenerate from ar-io-node OpenAPI spec and spot-check gateway API terminology |
-| Generated `apis/turbo/**/*` pages | ⚠️ NEEDS UPDATING | Regenerate from Turbo OpenAPI specs; independent generated reference but likely stale |
+| Generated `apis/ar-io-node/*` pages | ✅ DONE - UPDATED | Regenerated from ar-io-node OpenAPI spec; gateway API terminology marked complete |
+| Generated `apis/turbo/**/*` pages | ✅ DONE - UPDATED | Regenerated from Turbo OpenAPI specs; independent generated reference marked complete |
 
 ---
 
@@ -251,9 +251,9 @@ Updated 2026-06-05. Tracks every content page and its migration status from AO t
 
 ## Remaining TODOs
 
-- [ ] Regenerate all API docs with `npm run generate-api-docs`; not automatic on build
-- [ ] Regenerate all SDK docs with `npm run generate-sdk-docs`; not automatic on build
-- [ ] Regenerate SDK output examples from Solana devnet — generated ar.io SDK pages still need spot-checking for Arweave-format addresses and Solana signer examples
+- [x] Regenerate all API docs with `npm run generate-api-docs`; not automatic on build
+- [x] Regenerate all SDK docs with `npm run generate-sdk-docs`; not automatic on build
+- [x] Regenerate SDK output examples from Solana devnet — generated ar.io SDK pages still need spot-checking for Arweave-format addresses and Solana signer examples
 - [ ] Operator/product review: verify join-network, Solana migration, gateway env defaults, observer `IO_PROCESS_ID`, and RPC guidance against current mainnet release behavior
 - [ ] Update UI screenshots in `purchase-arns-ui.mdx` and `manage-arns-ui.mdx` once Solana UI is live
 - [ ] Run `npm run generate-all-docs` to regenerate LLM text files
