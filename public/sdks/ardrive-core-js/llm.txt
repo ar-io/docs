@@ -1,14 +1,8 @@
-# Untitled (/(advanced-features)/anonymous-operations)
-
----
-title: "Anonymous Operations"
-description: "JavaScript/TypeScript SDK for interacting with ArDrive"
----
+# Anonymous Operations (/(advanced-features)/anonymous-operations)
 
 Use ArDrive without a wallet for read-only operations:
 
 ```typescript
-import { arDriveAnonymousFactory } from 'ardrive-core-js';
 
 const anonymousArDrive = arDriveAnonymousFactory({});
 
@@ -17,12 +11,7 @@ const publicFile = await anonymousArDrive.getPublicFile({ fileId });
 const folderContents = await anonymousArDrive.listPublicFolder({ folderId });
 ```
 
-# Untitled (/(advanced-features)/bundle-support)
-
----
-title: "Bundle Support"
-description: "JavaScript/TypeScript SDK for interacting with ArDrive"
----
+# Bundle Support (/(advanced-features)/bundle-support)
 
 Large uploads are automatically bundled for efficiency:
 
@@ -34,12 +23,7 @@ const bulkResult = await arDrive.uploadAllEntities({
 });
 ```
 
-# Untitled (/(advanced-features)/caching)
-
----
-title: "Caching"
-description: "JavaScript/TypeScript SDK for interacting with ArDrive"
----
+# Caching (/(advanced-features)/caching)
 
 ArDrive Core maintains a metadata cache for improved performance:
 
@@ -51,15 +35,9 @@ Non-Windows: /.ardrive/caches/metadata
 Enable cache logging:
 
 ```bash
-export ARDRIVE_CACHE_LOG=1
 ```
 
-# Untitled (/(advanced-features)/community-features)
-
----
-title: "Community Features"
-description: "JavaScript/TypeScript SDK for interacting with ArDrive"
----
+# Community Features (/(advanced-features)/community-features)
 
 Send tips to the ArDrive community:
 
@@ -72,12 +50,7 @@ await arDrive.sendCommunityTip({
 });
 ```
 
-# Untitled (/(advanced-features)/manifest-creation)
-
----
-title: "Manifest Creation"
-description: "JavaScript/TypeScript SDK for interacting with ArDrive"
----
+# Manifest Creation (/(advanced-features)/manifest-creation)
 
 Create Arweave manifests for web hosting:
 
@@ -89,20 +62,14 @@ const manifest = await arDrive.uploadPublicManifest({
     conflictResolution: 'upsert'
 });
 
-// Access: https://arweave.net/{manifestId}
+// Access: https://turbo-gateway.com/{manifestId}
 ```
 
-# Untitled (/(advanced-features)/progress-tracking)
-
----
-title: "Progress Tracking"
-description: "JavaScript/TypeScript SDK for interacting with ArDrive"
----
+# Progress Tracking (/(advanced-features)/progress-tracking)
 
 Enable upload progress logging:
 
 ```bash
-export ARDRIVE_PROGRESS_LOG=1
 ```
 
 Progress will be logged to stderr:
@@ -115,12 +82,7 @@ Transaction _GKQasQX194a364Hph8Oe-oku1AdfHwxWOw9_JC1yjc Upload Progress: 66%
 Transaction _GKQasQX194a364Hph8Oe-oku1AdfHwxWOw9_JC1yjc Upload Progress: 100%
 ```
 
-# Untitled (/(advanced-features)/turbo-integration)
-
----
-title: "Turbo Integration"
-description: "JavaScript/TypeScript SDK for interacting with ArDrive"
----
+# Turbo Integration (/(advanced-features)/turbo-integration)
 
 Enable Turbo for optimized uploads:
 
@@ -134,7 +96,6 @@ const arDriveWithTurbo = arDriveFactory({
 });
 
 // Browser
-import { arDriveFactory } from 'ardrive-core-js/web';
 
 const arDrive = arDriveFactory({
     signer: myBrowserSigner,
@@ -149,17 +110,11 @@ const result = await arDriveWithTurbo.uploadAllEntities({
 });
 ```
 
-# Untitled (/(api-reference)/bulk-operations)
-
----
-title: "Bulk Operations"
-description: "JavaScript/TypeScript SDK for interacting with ArDrive"
----
+# Bulk Operations (/(api-reference)/bulk-operations)
 
 #### Upload Multiple Files and Folders
 
 ```typescript
-import { wrapFileOrFolder, EntityKey } from 'ardrive-core-js';
 
 // Prepare entities for upload
 const folder1 = wrapFileOrFolder('/path/to/folder1');
@@ -205,12 +160,7 @@ const folderWithContents = await arDrive.createPublicFolderAndUploadChildren({
 });
 ```
 
-# Untitled (/(api-reference)/conflict-resolution)
-
----
-title: "Conflict Resolution"
-description: "JavaScript/TypeScript SDK for interacting with ArDrive"
----
+# Conflict Resolution (/(api-reference)/conflict-resolution)
 
 Available strategies when uploading files/folders that already exist:
 
@@ -252,12 +202,7 @@ await arDrive.uploadAllEntities({
 });
 ```
 
-# Untitled (/(api-reference)/custom-metadata)
-
----
-title: "Custom Metadata"
-description: "JavaScript/TypeScript SDK for interacting with ArDrive"
----
+# Custom Metadata (/(api-reference)/custom-metadata)
 
 Attach custom metadata to files:
 
@@ -283,12 +228,7 @@ await arDrive.uploadPublicFile({
 });
 ```
 
-# Untitled (/(api-reference)/download-operations)
-
----
-title: "Download Operations"
-description: "JavaScript/TypeScript SDK for interacting with ArDrive"
----
+# Download Operations (/(api-reference)/download-operations)
 
 #### Download Files
 
@@ -323,12 +263,7 @@ const privateFolderData = await arDrive.downloadPrivateFolder({
 });
 ```
 
-# Untitled (/(api-reference)/drive-operations)
-
----
-title: "Drive Operations"
-description: "JavaScript/TypeScript SDK for interacting with ArDrive"
----
+# Drive Operations (/(api-reference)/drive-operations)
 
 #### Creating Drives
 
@@ -383,17 +318,11 @@ await arDrive.renamePrivateDrive({
 });
 ```
 
-# Untitled (/(api-reference)/encryption-security)
-
----
-title: "Encryption & Security"
-description: "JavaScript/TypeScript SDK for interacting with ArDrive"
----
+# Encryption & Security (/(api-reference)/encryption-security)
 
 #### Key Derivation
 
 ```typescript
-import { deriveDriveKey, deriveFileKey } from 'ardrive-core-js';
 
 // Derive drive key from password
 const driveKey = await deriveDriveKey('myPassword', driveId.toString(), JSON.stringify(wallet.getPrivateKey()));
@@ -405,7 +334,6 @@ const fileKey = await deriveFileKey(driveKey, fileId);
 #### Manual Encryption/Decryption
 
 ```typescript
-import { driveEncrypt, driveDecrypt } from 'ardrive-core-js';
 
 // Encrypt data
 const { cipher, cipherIV } = await driveEncrypt(driveKey, data);
@@ -414,17 +342,11 @@ const { cipher, cipherIV } = await driveEncrypt(driveKey, data);
 const decrypted = await driveDecrypt(cipherIV, driveKey, cipher);
 ```
 
-# Untitled (/(api-reference)/file-operations)
-
----
-title: "File Operations"
-description: "JavaScript/TypeScript SDK for interacting with ArDrive"
----
+# File Operations (/(api-reference)/file-operations)
 
 #### Uploading Files
 
 ```typescript
-import { wrapFileOrFolder } from 'ardrive-core-js';
 
 // Wrap file for upload
 const wrappedFile = wrapFileOrFolder('/path/to/file.pdf');
@@ -473,12 +395,7 @@ await arDrive.renamePublicFile({
 });
 ```
 
-# Untitled (/(api-reference)/folder-operations)
-
----
-title: "Folder Operations"
-description: "JavaScript/TypeScript SDK for interacting with ArDrive"
----
+# Folder Operations (/(api-reference)/folder-operations)
 
 #### Creating Folders
 
@@ -533,12 +450,7 @@ await arDrive.renamePublicFolder({
 });
 ```
 
-# Untitled (/(api-reference)/pricing-cost-estimation)
-
----
-title: "Pricing & Cost Estimation"
-description: "JavaScript/TypeScript SDK for interacting with ArDrive"
----
+# Pricing & Cost Estimation (/(api-reference)/pricing-cost-estimation)
 
 ```typescript
 // Get price estimator
@@ -555,19 +467,9 @@ const basePrice = await priceEstimator.getBaseWinstonPriceForByteCount(
 );
 ```
 
-# Untitled (/index)
+# ArDrive Core JS (/index)
 
----
-title: "ArDrive Core JS"
-description: "JavaScript/TypeScript SDK for building ArDrive applications with drive management, file uploads, and encryption support"
----
-
-import { Card, Cards } from "fumadocs-ui/components/card";
-import { BookOpen, Code, HardDrive, FolderOpen, FileUp, Shield, DollarSign, Settings } from "lucide-react";
-import { Steps, Step } from "fumadocs-ui/components/steps";
-import { Callout } from "fumadocs-ui/components/callout";
-
-  **For AI and LLM users**: Access the complete ArDrive Core JS documentation in plain text
+**For AI and LLM users**: Access the complete ArDrive Core JS documentation in plain text
   format at llm.txt for easy consumption by AI agents
   and language models.
 
@@ -584,8 +486,7 @@ The ArDrive Core JS SDK provides a comprehensive TypeScript library for building
         ### Initialize with a Wallet
 
         ```typescript
-        import { readJWKFile, arDriveFactory } from 'ardrive-core-js';
-
+        
         // Load your Arweave wallet
         const wallet = readJWKFile('./wallet.json');
 
@@ -596,8 +497,7 @@ The ArDrive Core JS SDK provides a comprehensive TypeScript library for building
         ### Create a Drive and Upload Files
 
         ```typescript
-        import { wrapFileOrFolder } from 'ardrive-core-js';
-
+        
         // Create a new public drive
         const { driveId, rootFolderId } = await arDrive.createPublicDrive({
           driveName: 'My-Drive'
@@ -632,11 +532,8 @@ The ArDrive Core JS SDK provides a comprehensive TypeScript library for building
 
         ```js
         // vite.config.js
-        import { defineConfig } from 'vite';
-        import { nodePolyfills } from 'vite-plugin-node-polyfills';
-
-        export default defineConfig({
-          plugins: [
+                
+                  plugins: [
             nodePolyfills({
               globals: {
                 Buffer: true,
@@ -653,8 +550,7 @@ The ArDrive Core JS SDK provides a comprehensive TypeScript library for building
         ### Use the SDK
 
         ```typescript
-        import { arDriveFactory } from 'ardrive-core-js/web';
-
+        
         // Initialize with a JWK wallet object
         const arDrive = arDriveFactory({ wallet: jwkWallet });
 

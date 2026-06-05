@@ -438,13 +438,10 @@ ${escapedContent}`;
 async function main() {
   console.log("Generating SDK documentation from GitHub...");
 
-  const pkg = process.argv[2];
-  const packageToProcess = PACKAGES.find((p) => p.name === pkg);
-  if (packageToProcess) {
+  for (const packageToProcess of PACKAGES) {
     await processPackage(packageToProcess);
-    console.log("SDK documentation generated successfully!");
-    return;
   }
+  console.log("SDK documentation generated successfully!");
 
   // Create top-level SDKs meta.json
   const sdksMetaPath = path.resolve("content/sdks/meta.json");

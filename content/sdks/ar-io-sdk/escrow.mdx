@@ -1,0 +1,53 @@
+---
+title: "Escrow"
+description: "TypeScript/JavaScript SDK for interacting with the ar.io ecosystem"
+---
+
+Trustless, multi-protocol escrow for handing an asset to a recipient identified by
+an **Arweave** or **Ethereum** address, claimable once they hold a Solana wallet.
+Backed by the `ario-ant-escrow` program. Two clients:
+
+- `TokenEscrow` — escrow liquid **ARIO** (SPL) or a **time-locked vault**.
+- `ANTEscrow` — escrow an **ANT** (Metaplex Core NFT).
+
+Each supports **deposit → claim → cancel/refund → update-recipient**. Claims work
+three ways: **Arweave-attested** (an off-chain attestor re-signs the canonical
+claim with Ed25519, verified on-chain), **Ethereum** (on-chain `secp256k1_recover`
++ EIP-191), and **vault** (instruction introspection that preserves the remaining
+lock).
+
+```typescript
+import { TokenEscrow, canonicalMessageV2 } from '@ar.io/sdk';
+
+const escrow = new TokenEscrow({
+  rpc,
+  rpcSubscriptions,
+  signer,
+  programId,
+  coreProgram,
+});
+
+// deposit 50 ARIO to an Ethereum recipient
+await escrow.depositTokens({
+  assetId, // 32-byte client-supplied id
+  amount: 50_000_000n,
+  arioMint,
+  depositorTokenAccount,
+  recipient: { protocol: 'ethereum', publicKey: ethAddress20 },
+});
+
+// the recipient claims (Ethereum path) once they have a Solana wallet
+await escrow.claimTokensEthereum({
+  depositor,
+  assetId,
+  claimant,
+  claimantTokenAccount,
+  escrowTokenAccount,
+  signature, // recipient's EIP-191 signature over canonicalMessageV2(...)
+});
+```
+
+Build the exact bytes a recipient signs with `canonicalMessage` /
+`canonicalMessageV2` — byte-identical to the on-chain program (and the off-chain
+attestor). See the contracts repo's escrow design + protocol spec for the full
+flow and the cross-language canonical-message vectors.

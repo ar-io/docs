@@ -8,7 +8,7 @@ description: "TypeScript/JavaScript SDK for interacting with the ar.io ecosystem
 Returns the current epoch data.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const epoch = await ario.getCurrentEpoch();
 ```
 
@@ -17,62 +17,9 @@ const epoch = await ario.getCurrentEpoch();
 ```json
 {
   "epochIndex": 0,
+  "startHeight": 0,
   "startTimestamp": 1720720621424,
   "endTimestamp": 1752256702026,
-  "startHeight": 1350700,
-  "distributionTimestamp": 1711122739,
-  "observations": {
-    "failureSummaries": {
-      "-Tk2DDk8k4zkwtppp_XFKKI5oUgh6IEHygAoN7mD-w8": [
-        "Ie2wEEUDKoU26c7IuckHNn3vMFdNQnMvfPBrFzAb3NA"
-      ]
-    },
-    "reports": {
-      "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs": "B6UUjKWjjEWDBvDSMXWNmymfwvgR9EN27z5FTkEVlX4"
-    }
-  },
-  "prescribedNames": ["ardrive", "ar-io", "arweave", "fwd", "ao"],
-  "prescribedObservers": [
-    {
-      "gatewayAddress": "2Fk8lCmDegPg6jjprl57-UCpKmNgYiKwyhkU4vMNDnE",
-      "observerAddress": "2Fk8lCmDegPg6jjprl57-UCpKmNgYiKwyhkU4vMNDnE",
-      "stake": 10000000000,
-      "start": 1292450,
-      "stakeWeight": 1,
-      "tenureWeight": 0.4494598765432099,
-      "gatewayPerformanceRatio": 1,
-      "observerRewardRatioWeight": 1,
-      "compositeWeight": 0.4494598765432099,
-      "normalizedCompositeWeight": 0.002057032496835938
-    }
-  ],
-  "distributions": {
-    "distributedTimestamp": 1711122739,
-    "totalEligibleRewards": 100000000,
-    "rewards": {
-      "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs": 100000000
-    }
-  }
-}
-```
-
-#### getEpoch()
-
-Returns the epoch data for the specified block height. If no epoch index is provided, the current epoch is used.
-
-```typescript
-const ario = ARIO.mainnet();
-const epoch = await ario.getEpoch({ epochIndex: 0 });
-```
-
-**Output:**
-
-```json
-{
-  "epochIndex": 0,
-  "startTimestamp": 1720720620813,
-  "endTimestamp": 1752256702026,
-  "startHeight": 1350700,
   "distributionTimestamp": 1752256702026,
   "observations": {
     "failureSummaries": {
@@ -89,11 +36,13 @@ const epoch = await ario.getEpoch({ epochIndex: 0 });
     {
       "gatewayAddress": "2Fk8lCmDegPg6jjprl57-UCpKmNgYiKwyhkU4vMNDnE",
       "observerAddress": "2Fk8lCmDegPg6jjprl57-UCpKmNgYiKwyhkU4vMNDnE",
-      "stake": 10000000000, // value in mARIO
-      "startTimestamp": 1720720620813,
+      "stake": 10000000000,
+      "startTimestamp": 1720720621424,
       "stakeWeight": 1,
       "tenureWeight": 0.4494598765432099,
       "gatewayPerformanceRatio": 1,
+      "observerPerformanceRatio": 1,
+      "gatewayRewardRatioWeight": 1,
       "observerRewardRatioWeight": 1,
       "compositeWeight": 0.4494598765432099,
       "normalizedCompositeWeight": 0.002057032496835938
@@ -103,14 +52,73 @@ const epoch = await ario.getEpoch({ epochIndex: 0 });
     "totalEligibleGateways": 1,
     "totalEligibleRewards": 100000000,
     "totalEligibleObserverReward": 100000000,
-    "totalEligibleGatewayReward": 100000000,
-    "totalDistributedRewards": 100000000,
-    "distributedTimestamp": 1720720621424,
-    "rewards": {
-      "distributed": {
-        "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs": 100000000
-      }
+    "totalEligibleGatewayReward": 100000000
+  },
+  "arnsStats": {
+    "totalReturnedNames": 0,
+    "totalActiveNames": 0,
+    "totalGracePeriodNames": 0,
+    "totalReservedNames": 0
+  }
+}
+```
+
+#### getEpoch()
+
+Returns the epoch data for the specified block height. If no epoch index is provided, the current epoch is used.
+
+```typescript
+const ario = ARIO.init({ rpc });
+const epoch = await ario.getEpoch({ epochIndex: 0 });
+```
+
+**Output:**
+
+```json
+{
+  "epochIndex": 0,
+  "startHeight": 0,
+  "startTimestamp": 1720720620813,
+  "endTimestamp": 1752256702026,
+  "distributionTimestamp": 1752256702026,
+  "observations": {
+    "failureSummaries": {
+      "-Tk2DDk8k4zkwtppp_XFKKI5oUgh6IEHygAoN7mD-w8": [
+        "Ie2wEEUDKoU26c7IuckHNn3vMFdNQnMvfPBrFzAb3NA"
+      ]
+    },
+    "reports": {
+      "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs": "B6UUjKWjjEWDBvDSMXWNmymfwvgR9EN27z5FTkEVlX4"
     }
+  },
+  "prescribedNames": ["ardrive", "ar-io", "arweave", "fwd", "ao"],
+  "prescribedObservers": [
+    {
+      "gatewayAddress": "2Fk8lCmDegPg6jjprl57-UCpKmNgYiKwyhkU4vMNDnE",
+      "observerAddress": "2Fk8lCmDegPg6jjprl57-UCpKmNgYiKwyhkU4vMNDnE",
+      "stake": 10000000000,
+      "startTimestamp": 1720720620813,
+      "stakeWeight": 1,
+      "tenureWeight": 0.4494598765432099,
+      "gatewayPerformanceRatio": 1,
+      "observerPerformanceRatio": 1,
+      "gatewayRewardRatioWeight": 1,
+      "observerRewardRatioWeight": 1,
+      "compositeWeight": 0.4494598765432099,
+      "normalizedCompositeWeight": 0.002057032496835938
+    }
+  ],
+  "distributions": {
+    "totalEligibleGateways": 1,
+    "totalEligibleRewards": 100000000,
+    "totalEligibleObserverReward": 100000000,
+    "totalEligibleGatewayReward": 100000000
+  },
+  "arnsStats": {
+    "totalReturnedNames": 0,
+    "totalActiveNames": 0,
+    "totalGracePeriodNames": 0,
+    "totalReservedNames": 0
   }
 }
 ```
@@ -120,7 +128,7 @@ const epoch = await ario.getEpoch({ epochIndex: 0 });
 Returns the eligible epoch rewards for the specified block height. If no epoch index is provided, the current epoch is used.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const rewards = await ario.getEligibleEpochRewards({ epochIndex: 0 });
 ```
 
@@ -151,7 +159,7 @@ const rewards = await ario.getEligibleEpochRewards({ epochIndex: 0 });
 Returns the epoch-indexed observation list. If no epoch index is provided, the current epoch is used.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const observations = await ario.getObservations();
 ```
 
@@ -159,19 +167,16 @@ const observations = await ario.getObservations();
 
 ```json
 {
-  "0": {
-    "failureSummaries": {
-      "-Tk2DDk8k4zkwtppp_XFKKI5oUgh6IEHygAoN7mD-w8": [
-        "Ie2wEEUDKoU26c7IuckHNn3vMFdNQnMvfPBrFzAb3NA",
-        "Ie2wEEUDKoU26c7IuckHNn3vMFdNQnMvfPBrFzAb3NA"
-      ]
-    },
-    "reports": {
-      "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs": "B6UUjKWjjEWDBvDSMXWNmymfwvgR9EN27z5FTkEVlX4",
-      "Ie2wEEUDKoU26c7IuckHNn3vMFdNQnMvfPBrFzAb3NA": "7tKsiQ2fxv0D8ZVN_QEv29fZ8hwFIgHoEDrpeEG0DIs",
-      "osZP4D9cqeDvbVFBaEfjIxwc1QLIvRxUBRAxDIX9je8": "aatgznEvC_UPcxp1v0uw_RqydhIfKm4wtt1KCpONBB0",
-      "qZ90I67XG68BYIAFVNfm9PUdM7v1XtFTn7u-EOZFAtk": "Bd8SmFK9-ktJRmwIungS8ur6JM-JtpxrvMtjt5JkB1M"
-    }
+  "failureSummaries": {
+    "-Tk2DDk8k4zkwtppp_XFKKI5oUgh6IEHygAoN7mD-w8": [
+      "Ie2wEEUDKoU26c7IuckHNn3vMFdNQnMvfPBrFzAb3NA"
+    ]
+  },
+  "reports": {
+    "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs": "B6UUjKWjjEWDBvDSMXWNmymfwvgR9EN27z5FTkEVlX4",
+    "Ie2wEEUDKoU26c7IuckHNn3vMFdNQnMvfPBrFzAb3NA": "7tKsiQ2fxv0D8ZVN_QEv29fZ8hwFIgHoEDrpeEG0DIs",
+    "osZP4D9cqeDvbVFBaEfjIxwc1QLIvRxUBRAxDIX9je8": "aatgznEvC_UPcxp1v0uw_RqydhIfKm4wtt1KCpONBB0",
+    "qZ90I67XG68BYIAFVNfm9PUdM7v1XtFTn7u-EOZFAtk": "Bd8SmFK9-ktJRmwIungS8ur6JM-JtpxrvMtjt5JkB1M"
   }
 }
 ```
@@ -181,7 +186,7 @@ const observations = await ario.getObservations();
 Returns the current rewards distribution information. If no epoch index is provided, the current epoch is used.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const distributions = await ario.getDistributions({ epochIndex: 0 });
 ```
 
@@ -192,20 +197,7 @@ const distributions = await ario.getDistributions({ epochIndex: 0 });
   "totalEligibleGateways": 1,
   "totalEligibleRewards": 100000000,
   "totalEligibleObserverReward": 100000000,
-  "totalEligibleGatewayReward": 100000000,
-  "totalDistributedRewards": 100000000,
-  "distributedTimestamp": 1720720621424,
-  "rewards": {
-    "eligible": {
-      "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs": {
-        "operatorReward": 100000000,
-        "delegateRewards": {}
-      }
-    },
-    "distributed": {
-      "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs": 100000000
-    }
-  }
+  "totalEligibleGatewayReward": 100000000
 }
 ```
 
@@ -216,24 +208,24 @@ Saves the observations of the current epoch. Requires `signer` to be provided on
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer });
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
 const { id: txId } = await ario.saveObservations(
   {
-    reportTxId: 'fDrr0_J4Iurt7caNST02cMotaz2FIbWQ4Kcj616RHl3',
-    failedGateways: ['t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3'],
+    reportTxId: "fDrr0_J4Iurt7caNST02cMotaz2FIbWQ4Kcj616RHl3",
+    failedGateways: ["t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3"],
   },
   {
-    tags: [{ name: 'App-Name', value: 'My-Awesome-App' }],
+    tags: [{ name: "App-Name", value: "My-Awesome-App" }],
   },
 );
 ```
 
 #### getPrescribedObservers()
 
-Retrieves the prescribed observers of the ARIO protocol. To fetch prescribed observers for a previous epoch set the `epochIndex` to the desired epoch index.
+Retrieves the prescribed observers of the ARIO process. To fetch prescribed observers for a previous epoch set the `epochIndex` to the desired epoch index.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const observers = await ario.getPrescribedObservers({ epochIndex: 0 });
 ```
 
@@ -244,14 +236,50 @@ const observers = await ario.getPrescribedObservers({ epochIndex: 0 });
   {
     "gatewayAddress": "BpQlyhREz4lNGS-y3rSS1WxADfxPpAuing9Lgfdrj2U",
     "observerAddress": "2Fk8lCmDegPg6jjprl57-UCpKmNgYiKwyhkU4vMNDnE",
-    "stake": 10000000000, // value in mARIO
-    "start": 1296976,
+    "stake": 10000000000,
+    "startTimestamp": 1720720620813,
     "stakeWeight": 1,
     "tenureWeight": 0.41453703703703704,
     "gatewayPerformanceRatio": 1,
+    "observerPerformanceRatio": 1,
+    "gatewayRewardRatioWeight": 1,
     "observerRewardRatioWeight": 1,
     "compositeWeight": 0.41453703703703704,
     "normalizedCompositeWeight": 0.0018972019546783507
   }
 ]
 ```
+
+#### crankEpochStep()
+
+High-level, permissionless epoch crank. Advances the epoch lifecycle by **one
+step per call** and returns the action it took — run it on a loop (this is what
+the standalone cranker and the observer-embedded cranker do). It owns the whole
+sequence so you don't orchestrate the individual instructions yourself:
+
+`create` → `tally` → `prescribe` → `distribute` → `close` — closing an epoch's
+observation PDAs first (`close_observation`) so `close_epoch` doesn't revert —
+plus an idle-tail of permissionless maintenance: `compound` delegate rewards,
+`update_demand_factor`, and `prune_returned_names`. The close path is
+non-wedging: a cleanup failure never blocks creation of the next epoch.
+
+```typescript
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
+
+// one step
+const result = await ario.crankEpochStep();
+// → { action, epochIndex?, txId?, progress? }
+//   action ∈ create | tally | prescribe | distribute | close
+//          | close_observation | compound | update_demand_factor
+//          | prune_returned_names | idle
+
+// or drive it on an interval
+setInterval(async () => {
+  const r = await ario.crankEpochStep();
+  if (r.action !== 'idle') console.log(r.action, r.epochIndex, r.txId);
+}, 60_000);
+```
+
+All options are optional: `batchSize`, `enableClose`, `epochRetention`,
+`enableCompound`, `compoundMinPendingRewards`, `enableDemandFactorRoll`,
+`enablePrune`, `pruneBatchSize`, `nameRegistryAccount`.

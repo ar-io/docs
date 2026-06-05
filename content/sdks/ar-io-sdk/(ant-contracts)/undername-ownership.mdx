@@ -21,8 +21,8 @@ _Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
 
 ```typescript
 const { id: txId } = await ant.transferRecord({
-  undername: 'alice', // the subdomain/record to transfer
-  recipient: 'new-owner-address-123...', // address of the new owner
+  undername: "alice", // the subdomain/record to transfer
+  recipient: "new-owner-address-123...", // address of the new owner
 });
 
 // alice_ardrive.ar.io is now owned by the new owner address
@@ -44,7 +44,7 @@ ar.io transfer-record \
 **Checking Record Ownership:**
 
 ```typescript
-const record = await ant.getRecord({ undername: 'alice' });
+const record = await ant.getRecord({ undername: "alice" });
 console.log(`Record owner: ${record.owner}`);
 console.log(`Transaction ID: ${record.transactionId}`);
 ```
@@ -53,35 +53,37 @@ console.log(`Transaction ID: ${record.transactionId}`);
 
 ```typescript
 // Alice (record owner) updating her own record
-const aliceAnt = ANT.init({
-  processId: 'ANT_PROCESS_ID',
-  signer: aliceSigner, // Alice's Solana wallet
+const aliceAnt = await ANT.init({
+  processId: 'ANT_MINT_PUBKEY',
+  rpc,
+  rpcSubscriptions,
+  signer: aliceSigner, // Alice's @solana/kit signer
 });
 
 // ✅ CORRECT: Alice includes her own address as owner
 const { id: txId } = await aliceAnt.setUndernameRecord({
-  undername: 'alice',
-  transactionId: 'new-content-tx-id-456...',
+  undername: "alice",
+  transactionId: "new-content-tx-id-456...",
   ttlSeconds: 1800,
-  owner: 'alice-wallet-address-123...', // MUST be Alice's own address
-  displayName: 'Alice Updated Portfolio',
-  description: 'Updated personal portfolio and blog',
+  owner: "alice-wallet-address-123...", // MUST be Alice's own address
+  displayName: "Alice Updated Portfolio",
+  description: "Updated personal portfolio and blog",
 });
 
 // ❌ WRONG: Omitting owner field will renounce ownership
 const badUpdate = await aliceAnt.setUndernameRecord({
-  undername: 'alice',
-  transactionId: 'new-content-tx-id-456...',
+  undername: "alice",
+  transactionId: "new-content-tx-id-456...",
   ttlSeconds: 1800,
   // Missing owner field - this will renounce ownership!
 });
 
 // ❌ WRONG: Setting different owner will transfer ownership
 const badTransfer = await aliceAnt.setUndernameRecord({
-  undername: 'alice',
-  transactionId: 'new-content-tx-id-456...',
+  undername: "alice",
+  transactionId: "new-content-tx-id-456...",
   ttlSeconds: 1800,
-  owner: 'someone-else-address-789...', // This transfers ownership to someone else!
+  owner: "someone-else-address-789...", // This transfers ownership to someone else!
 });
 ```
 
@@ -91,18 +93,18 @@ If a record owner updates their record without including the `owner` field, the 
 
 ```typescript
 // Before: alice record is owned by alice-wallet-address-123...
-const recordBefore = await ant.getRecord({ undername: 'alice' });
+const recordBefore = await ant.getRecord({ undername: "alice" });
 console.log(recordBefore.owner); // "alice-wallet-address-123..."
 
 // Alice updates without owner field
 await aliceAnt.setUndernameRecord({
-  undername: 'alice',
-  transactionId: 'new-tx-id...',
+  undername: "alice",
+  transactionId: "new-tx-id...",
   ttlSeconds: 900,
   // No owner field = renounces ownership
 });
 
 // After: record ownership reverts to ANT owner
-const recordAfter = await ant.getRecord({ undername: 'alice' });
+const recordAfter = await ant.getRecord({ undername: "alice" });
 console.log(recordAfter.owner); // undefined (controlled by ANT owner again)
 ```

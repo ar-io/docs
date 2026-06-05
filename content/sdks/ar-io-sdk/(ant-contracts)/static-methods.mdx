@@ -3,45 +3,7 @@ title: "Static Methods"
 description: "TypeScript/JavaScript SDK for interacting with the ar.io ecosystem"
 ---
 
-#### ANT.fork()
-
-Creates a new ANT (Metaplex Core NFT) from an existing one with the same state but potentially a different version. This is used for upgrading ANTs.
-
-```typescript
-const newMintAddress = await ANT.fork({
-  signer: signer,
-  antProcessId: 'existing-ant-mint-address',
-  // Optional: specify a specific module ID, defaults to latest from registry
-  module: 'new-module-id',
-  onSigningProgress: (event, payload) => {
-    console.log(`Fork progress: ${event}`);
-  },
-});
-
-console.log(`Forked ANT to new mint: ${newMintAddress}`);
-```
-
-#### ANT.upgrade()
-
-Static method to upgrade an ANT by forking it to the latest version and reassigning names.
-
-```typescript
-// Upgrade and reassign all affiliated names
-const result = await ANT.upgrade({
-  signer: signer,
-  antProcessId: 'existing-ant-mint-address',
-  reassignAffiliatedNames: true,
-});
-
-// Upgrade and reassign specific names
-const result = await ANT.upgrade({
-  signer: signer,
-  antProcessId: 'existing-ant-mint-address',
-  names: ['ardrive', 'example'],
-  reassignAffiliatedNames: false,
-});
-
-console.log(`Upgraded to process: ${result.forkedProcessId}`);
-console.log(`Successfully reassigned names: ${Object.keys(result.reassignedNames)}`);
-console.log(`Failed reassignments: ${Object.keys(result.failedReassignedNames)}`);
-```
+`ANT.fork()` and the static `ANT.upgrade()` were AO-only (process
+forking + name reassignment). On Solana, schema migration is a
+per-asset CPI exposed as the instance method `ant.upgrade()` documented
+above; new ANTs are created with `ANT.spawn()`.

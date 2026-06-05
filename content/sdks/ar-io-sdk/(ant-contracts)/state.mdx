@@ -5,7 +5,7 @@ description: "TypeScript/JavaScript SDK for interacting with the ar.io ecosystem
 
 #### getInfo()
 
-Retrieves information for the ANT.
+Retrieves the information of the ANT process.
 
 ```typescript
 const info = await ant.getInfo();
@@ -15,11 +15,42 @@ const info = await ant.getInfo();
 
 ```json
 {
-  "name": "ArDrive",
-  "ticker": "ANT-ARDRIVE",
-  "description": "This is the ANT for the ArDrive decentralized web app.",
-  "keywords": ["File-sharing", "Publishing", "dApp"],
-  "owner": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ"
+  "Name": "ArDrive",
+  "Owner": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
+  "Ticker": "ANT-ARDRIVE",
+  "Total-Supply": "1",
+  "Description": "This is the ANT for the ArDrive decentralized web app.",
+  "Keywords": ["File-sharing", "Publishing", "dApp"],
+  "Logo": "Sie_26dvgyok0PZD_-iQAFOhOd5YxDTkczOLoqTTL_A",
+  "Denomination": "0",
+  "Handlers": [
+    "balance",
+    "balances",
+    "totalSupply",
+    "info",
+    "controllers",
+    "record",
+    "records",
+    "state",
+    "transfer",
+    "addController",
+    "removeController",
+    "setRecord",
+    "removeRecord",
+    "setName",
+    "setTicker",
+    "setDescription",
+    "setKeywords",
+    "setLogo",
+    "initializeState",
+    "releaseName",
+    "reassignName",
+    "approvePrimaryName",
+    "removePrimaryNames",
+    "transferRecordOwnership",
+    "_eval",
+    "_default"
+  ]
 }
 ```
 
@@ -35,30 +66,38 @@ const handlers = await ant.getHandlers();
 
 ```json
 [
-  "_eval",
-  "_default",
-  "transfer",
   "balance",
   "balances",
   "totalSupply",
   "info",
-  "addController",
-  "removeController",
   "controllers",
-  "setRecord",
-  "removeRecord",
   "record",
   "records",
+  "state",
+  "transfer",
+  "addController",
+  "removeController",
+  "setRecord",
+  "removeRecord",
   "setName",
   "setTicker",
+  "setDescription",
+  "setKeywords",
+  "setLogo",
   "initializeState",
-  "state"
+  "releaseName",
+  "reassignName",
+  "approvePrimaryName",
+  "removePrimaryNames",
+  "transferRecordOwnership",
+  "_eval",
+  "_default"
 ]
 ```
 
 #### getState()
 
-Retrieves the state of the ANT.
+Retrieves the state of the ANT process.
 
 ```typescript
 const state = await ant.getState();
@@ -68,23 +107,28 @@ const state = await ant.getState();
 
 ```json
 {
-  "TotalSupply": 1,
-  "Balances": {
-    "98O1_xqDLrBKRfQPWjF5p7xZ4Jx6GM8P5PeJn26xwUY": 1
-  },
+  "Name": "ar.io Foundation",
+  "Ticker": "ANT-AR-IO",
+  "Description": "A friendly description for this ANT.",
+  "Keywords": ["keyword1", "keyword2", "keyword3"],
+  "Denomination": 0,
+  "Owner": "98O1_xqDLrBKRfQPWjF5p7xZ4Jx6GM8P5PeJn26xwUY",
   "Controllers": [],
   "Records": {
     "v1-0-0_whitepaper": {
       "transactionId": "lNjWn3LpyhKC95Kqe-x8X2qgju0j98MhucdDKK85vc4",
-      "ttlSeconds": 900
+      "ttlSeconds": 900,
+      "targetProtocol": 0
     },
     "@": {
       "transactionId": "2rMLb2uHAyEt7jSu6bXtKx8e-jOfIf7E-DOgQnm8EtU",
-      "ttlSeconds": 3600
+      "ttlSeconds": 3600,
+      "targetProtocol": 0
     },
     "alice": {
       "transactionId": "kMk95k_3R8x_7d3wB9tEOiL5v6n8QhR_VnFCh3aeE3f",
       "ttlSeconds": 900,
+      "targetProtocol": 0,
       "owner": "alice-wallet-address-123...",
       "displayName": "Alice's Portfolio",
       "logo": "avatar-tx-id-456...",
@@ -93,23 +137,22 @@ const state = await ant.getState();
     },
     "whitepaper": {
       "transactionId": "lNjWn3LpyhKC95Kqe-x8X2qgju0j98MhucdDKK85vc4",
-      "ttlSeconds": 900
+      "ttlSeconds": 900,
+      "targetProtocol": 0
     }
   },
-  "Initialized": true,
-  "Ticker": "ANT-AR-IO",
-  "Description": "A friendly description for this ANT.",
-  "Keywords": ["keyword1", "keyword2", "keyword3"],
+  "Balances": {
+    "98O1_xqDLrBKRfQPWjF5p7xZ4Jx6GM8P5PeJn26xwUY": 1
+  },
   "Logo": "Sie_26dvgyok0PZD_-iQAFOhOd5YxDTkczOLoqTTL_A",
-  "Denomination": 0,
-  "Name": "ar.io Foundation",
-  "Owner": "98O1_xqDLrBKRfQPWjF5p7xZ4Jx6GM8P5PeJn26xwUY"
+  "TotalSupply": 1,
+  "Initialized": true
 }
 ```
 
 #### getOwner()
 
-Returns the owner of the configured ANT.
+Returns the owner of the configured ANT process.
 
 ```typescript
 const owner = await ant.getOwner();
@@ -151,7 +194,7 @@ const ticker = await ant.getTicker();
 
 #### getControllers()
 
-Returns the controllers of the configured ANT.
+Returns the controllers of the configured ANT process.
 
 ```typescript
 const controllers = await ant.getControllers();
@@ -165,7 +208,7 @@ const controllers = await ant.getControllers();
 
 #### getRecords()
 
-Returns all records on the configured ANT, including the required `@` record that resolve connected ArNS names.
+Returns all records on the configured ANT process, including the required `@` record that resolve connected ArNS names.
 
 ```typescript
 const records = await ant.getRecords();
@@ -177,24 +220,32 @@ const records = await ant.getRecords();
 {
   "@": {
     "transactionId": "UyC5P5qKPZaltMmmZAWdakhlDXsBF6qmyrbWYFchRTk",
-    "ttlSeconds": 3600
+    "ttlSeconds": 3600,
+    "targetProtocol": 0,
+    "index": 0
   },
   "alice": {
     "transactionId": "kMk95k_3R8x_7d3wB9tEOiL5v6n8QhR_VnFCh3aeE3f",
     "ttlSeconds": 900,
+    "targetProtocol": 0,
     "owner": "alice-wallet-address-123...",
     "displayName": "Alice's Portfolio",
     "logo": "avatar-tx-id-456...",
     "description": "Personal portfolio and blog",
-    "keywords": ["portfolio", "personal", "blog"]
+    "keywords": ["portfolio", "personal", "blog"],
+    "index": 1
   },
   "zed": {
     "transactionId": "-k7t8xMoB8hW482609Z9F4bTFMC3MnuW8bTvTyT8pFI",
-    "ttlSeconds": 900
+    "ttlSeconds": 900,
+    "targetProtocol": 0,
+    "index": 2
   },
   "ardrive": {
     "transactionId": "-cucucachoodwedwedoiwepodiwpodiwpoidpwoiedp",
-    "ttlSeconds": 900
+    "ttlSeconds": 900,
+    "targetProtocol": 0,
+    "index": 3
   }
 }
 ```
@@ -204,7 +255,7 @@ const records = await ant.getRecords();
 Returns a specific record by its undername.
 
 ```typescript
-const record = await ant.getRecord({ undername: 'dapp' });
+const record = await ant.getRecord({ undername: "dapp" });
 ```
 
 **Output:**
@@ -213,6 +264,7 @@ const record = await ant.getRecord({ undername: 'dapp' });
 {
   "transactionId": "432l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM",
   "ttlSeconds": 900,
+  "targetProtocol": 0,
   "owner": "alice-wallet-address-123...",
   "displayName": "Alice's Site",
   "logo": "avatar-tx-id-456...",

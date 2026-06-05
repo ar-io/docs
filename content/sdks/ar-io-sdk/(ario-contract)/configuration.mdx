@@ -3,36 +3,6 @@ title: "Configuration"
 description: "TypeScript/JavaScript SDK for interacting with the ar.io ecosystem"
 ---
 
-<Callout type="info">
-**Solana support requires `@ar.io/sdk` version 3.23 or later.** Use the latest SDK version for current protocol interactions.
-</Callout>
-
-The ARIO client class exposes APIs relevant to the ar.io protocol. By default, `ARIO.mainnet()` connects to the Solana mainnet cluster. You can provide a custom Solana RPC URL for different environments or infrastructure providers.
-
-### Installation
-
-```bash
-npm install @ar.io/sdk @solana/kit
-```
-
-### Basic Usage
-
-```typescript
-import { ARIO } from '@ar.io/sdk';
-
-// default Solana mainnet connection
-const ario = ARIO.mainnet();
-
-// custom Solana RPC endpoint (recommended for production)
-const ario = ARIO.mainnet({
-  rpcUrl: 'https://your-rpc-provider.com',
-});
-```
-
-<Callout type="warn">
-The default public Solana RPC (`api.mainnet-beta.solana.com`) is rate-limited and may block certain queries. For production use, configure a dedicated RPC provider such as [Helius](https://helius.dev), [Triton](https://triton.one), or [QuickNode](https://quicknode.com).
-</Callout>
-
-### Transaction Fees
-
-All write operations (staking, delegating, registering names, setting records) require a small amount of **SOL** for Solana transaction fees — typically less than 0.01 SOL per transaction.
+`ARIO.init` accepts a `@solana/kit` RPC client plus optional program ID
+overrides for non-mainnet clusters. See [Networks](#networks) above for
+the full shape.
