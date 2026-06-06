@@ -3,31 +3,31 @@ title: "Name Registration"
 description: "Learn about registering ArNS names, including lease vs permanent options, validation rules, and the registration process"
 ---
 
-There are two different types of name registrations that can be utilized based upon the needs of the user:
+ArNS names can be registered as leases or permanent purchases, depending on how long the user needs the name and how much they want to commit up front.
 
 ## Registration Types
 
 ### Lease Registration
 
-A name may be **leased on a yearly basis**. A leased name can have its lease extended or renewed but only up to a maximum active lease of **five (5) years** at any time.
+A name may be **leased on a yearly basis**. Leases lower the barrier to entry, support temporary projects, and allow inactive names to eventually return to public availability.
 
 ### Permanent Registration (Permabuy)
 
-A name may be **purchased for an indefinite duration** with no expiration date.
+A name may be **purchased for an indefinite duration** with no expiration date. This is useful for long-lived apps, identities, and data references that should remain associated with a stable friendly name.
 
 Registering a name requires spending ARIO tokens corresponding to the name's character length and purchase type.
 
 ## Name Registry
 
-The ArNS Registry is a list of all registered names and their associated ANT Process IDs. Key rules embedded within the smart contract include:
+The ArNS Registry is a list of registered names and their associated ANT mint addresses, managed by the `ario-arns` Solana program. Key rules embedded within the protocol include:
 
 - **Genesis Prices**: Set within the contract as starting conditions
 - **Dynamic Pricing**: Varies based on name length, purchase type (lease vs buy), lease duration, and current Demand Factor
-- **Name Records**: Include a pointer to the Arweave Name Token process identifier, lease end time (if applicable), and undername allocation
+- **Name Records**: Include a pointer to the Ar.io Name Token (ANT) mint address, lease end time (if applicable), and undername allocation
 - **Reassignment**: Name registrations can be reassigned from one ANT to another
 - **Lease Extension**: Anyone with available ARIO Tokens can extend any name's active lease
 - **Lease to Permanent Buy**: Anyone with available ARIO Tokens can convert a name's lease to a permanent buy
-- **Undername Capacity**: Additional undername capacity can be purchased for any actively registered name
+- **Undername Capacity**: Additional undername capacity can be purchased for actively registered names
 - **Name Removal**: Name records can only be removed from the registry if a lease expires, or a permanent name is returned to the protocol
 
 ## Name Validation Rules
@@ -38,19 +38,21 @@ All names registered must meet the following criteria:
 2. **Dash placement**: Dashes cannot be leading or trailing characters
 3. **Single character domains**: Dashes cannot be used in single character domains
 4. **Length limits**: 1 character minimum, 51 characters maximum
-5. **Reserved names**: Cannot be an invalid name predesignated to prevent unintentional use/abuse such as `www`
+5. **43-character prohibition**: Names exactly 43 characters long are prohibited to prevent Arweave transaction ID collisions
+6. **Lowercase enforcement**: Names must be lowercase at submission
+7. **Reserved names**: Cannot be an invalid name predesignated to prevent unintentional use/abuse such as `www`
 
 ## Lease Management
 
 ### Lease Expirations
 
-When a lease term ends, there is a **grace period of two (2) weeks** where the lease can be renewed before it fully expires. If this grace period elapses, the name is considered expired and returns to the protocol for public registration. Once expired, a name's associated undername registrations and capacity also expire.
+When a lease term ends, there is a grace period where the lease can be renewed or converted to a permanent purchase before it fully expires. If this grace period elapses, the name is considered expired and returns to the protocol for public registration. Once expired, a name's associated undername registrations and capacity also expire.
 
-A recently expired name's registration shall be priced subject to the "Returned Name Premium" mechanics.
+A recently expired name enters a **Returned Name Dutch Auction**, where it starts at a premium and decays back toward standard pricing over time. Revenue from returned name purchases is split between the protocol and the previous owner.
 
 ### Lease to Permabuy Conversions
 
-An actively leased name may be converted to a permanent registration. The price for this conversion shall be treated as if it were a new permanent name purchase.
+An actively leased name may be converted to a permanent registration. The price for this conversion is treated as if it were a new permanent name purchase.
 
 This functionality allows users to transition from leasing to permanent ownership based on changing needs and available resources. It generates additional protocol revenue through conversion fees, contributing to the ecosystem's financial health and reward system.
 
@@ -62,10 +64,14 @@ When a permanent name is returned, the name is subject to a "Returned Name Premi
 
 ## Primary Names
 
-The Arweave Name System (ArNS) supports the designation of a "Primary Name" for users, simplifying how Arweave addresses are displayed across applications. A Primary Name is a user-friendly alias that replaces complex wallet addresses, making interactions and profiles easier to manage and identify.
+The Ar.io Name System (ArNS) supports the designation of a "Primary Name" for users, simplifying how wallet addresses are displayed across applications. A Primary Name is a user-friendly alias that can replace complex wallet addresses, making interactions and profiles easier to manage and identify.
 
-Users can set one of their owned ArNS names as their Primary Name, subject to a small fee. This allows applications to use a single, human-readable identifier for a wallet, improving user experience across the network.
+Users can set one of their owned ArNS names as their Primary Name. The fee is equivalent to the cost of a single undername on a 51-character name of the same purchase type, adjusted by the current Demand Factor.
+
+Only one Primary Name can be set per wallet, and the same name cannot be the Primary Name for more than one wallet. The base name's ANT owner can remove any Primary Name set on one of its undernames.
+
+This allows applications to use a single, human-readable identifier for a wallet, improving user experience across the network.
 
 ## Next Steps
 
-Now that you understand name registration, learn about [Arweave Name Tokens (ANTs)](/learn/arns/ants) to see how ownership and control work, or explore the [Pricing Model](/learn/arns/pricing-model) to understand how costs are calculated.
+Now that you understand name registration, learn about [Ar.io Name Tokens (ANTs)](/learn/arns/ants) to see how ownership and control work, or explore the [Pricing Model](/learn/arns/pricing-model) to understand how costs are calculated.

@@ -10,42 +10,40 @@ Resolves an ArNS name to the underlying data id stored on the names correspondin
 ##### Resolving a base name
 
 ```typescript
-const ario = ARIO.mainnet();
-const record = await ario.resolveArNSName({ name: 'ardrive' });
+const ario = ARIO.init({ rpc });
+const record = await ario.resolveArNSName({ name: "ardrive" });
 ```
 
 **Output:**
 
 ```json
 {
+  "name": "ardrive",
   "processId": "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM",
   "txId": "kvhEUsIY5bXe0Wu2-YUFz20O078uYFzmQIO-7brv8qw",
   "type": "lease",
-  "recordIndex": 0,
-  "undernameLimit": 100,
-  "owner": "t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3",
-  "name": "ardrive"
+  "ttlSeconds": 3600,
+  "undernameLimit": 100
 }
 ```
 
 ##### Resolving an undername
 
 ```typescript
-const ario = ARIO.mainnet();
-const record = await ario.resolveArNSName({ name: 'logo_ardrive' });
+const ario = ARIO.init({ rpc });
+const record = await ario.resolveArNSName({ name: "logo_ardrive" });
 ```
 
 **Output:**
 
 ```json
 {
+  "name": "ardrive",
   "processId": "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM",
   "txId": "kvhEUsIY5bXe0Wu2-YUFz20O078uYFzmQIO-7brv8qw",
   "type": "lease",
-  "recordIndex": 1,
-  "undernameLimit": 100,
-  "owner": "t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3",
-  "name": "ardrive"
+  "ttlSeconds": 3600,
+  "undernameLimit": 100
 }
 ```
 
@@ -64,31 +62,31 @@ _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 - `referrer` - _optional_: track purchase referrals for analytics (e.g. `my-app.com`)
 
 ```typescript
-const ario = ARIO.mainnet({ signer });
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
 const record = await ario.buyRecord(
   {
-    name: 'ardrive',
-    type: 'lease',
+    name: "ardrive",
+    type: "lease",
     years: 1,
-    processId: 'bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM', // optional: assign to existing ANT process
-    referrer: 'my-app.com', // optional: track purchase referrals for analytics
+    processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM", // optional: assign to existing ANT process
+    referrer: "my-app.com", // optional: track purchase referrals for analytics
   },
   {
     // optional tags
-    tags: [{ name: 'App-Name', value: 'ArNS-App' }],
+    tags: [{ name: "App-Name", value: "ArNS-App" }],
     onSigningProgress: (step, event) => {
       console.log(`Signing progress: ${step}`);
-      if (step === 'spawning-ant') {
-        console.log('Spawning ant:', event);
+      if (step === "spawning-ant") {
+        console.log("Spawning ant:", event);
       }
-      if (step === 'registering-ant') {
-        console.log('Registering ant:', event);
+      if (step === "registering-ant") {
+        console.log("Registering ant:", event);
       }
-      if (step === 'verifying-state') {
-        console.log('Verifying state:', event);
+      if (step === "verifying-state") {
+        console.log("Verifying state:", event);
       }
-      if (step === 'buying-name') {
-        console.log('Buying name:', event);
+      if (step === "buying-name") {
+        console.log("Buying name:", event);
       }
     },
   },
@@ -102,15 +100,15 @@ Upgrades an existing leased ArNS record to a permanent ownership. The record mus
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer });
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
 const record = await ario.upgradeRecord(
   {
-    name: 'ardrive',
-    referrer: 'my-app.com', // optional: track purchase referrals for analytics
+    name: "ardrive",
+    referrer: "my-app.com", // optional: track purchase referrals for analytics
   },
   {
     // optional tags
-    tags: [{ name: 'App-Name', value: 'ArNS-App' }],
+    tags: [{ name: "App-Name", value: "ArNS-App" }],
   },
 );
 ```
@@ -120,8 +118,8 @@ const record = await ario.upgradeRecord(
 Retrieves the record info of the specified ArNS name.
 
 ```typescript
-const ario = ARIO.mainnet();
-const record = await ario.getArNSRecord({ name: 'ardrive' });
+const ario = ARIO.init({ rpc });
+const record = await ario.getArNSRecord({ name: "ardrive" });
 ```
 
 **Output:**
@@ -129,10 +127,11 @@ const record = await ario.getArNSRecord({ name: 'ardrive' });
 ```json
 {
   "processId": "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM",
-  "endTimestamp": 1752256702026,
   "startTimestamp": 1720720819969,
+  "endTimestamp": 1752256702026,
   "type": "lease",
-  "undernameLimit": 100
+  "undernameLimit": 100,
+  "purchasePrice": 75541282285
 }
 ```
 
@@ -141,12 +140,12 @@ const record = await ario.getArNSRecord({ name: 'ardrive' });
 Retrieves all registered ArNS records of the ARIO process, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last ArNS name from the previous request.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 // get the newest 100 names
 const records = await ario.getArNSRecords({
   limit: 100,
-  sortBy: 'startTimestamp',
-  sortOrder: 'desc',
+  sortBy: "startTimestamp",
+  sortOrder: "desc",
 });
 ```
 
@@ -217,12 +216,12 @@ Available `sortBy` options are any of the keys on the record object, e.g. `name`
 Retrieves all registered ArNS records of the specified address according to the `ANTRegistry` access control list, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last ArNS name from the previous request.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const records = await ario.getArNSRecordsForAddress({
-  address: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
+  address: "t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3",
   limit: 100,
-  sortBy: 'startTimestamp',
-  sortOrder: 'desc',
+  sortBy: "startTimestamp",
+  sortOrder: "desc",
 });
 ```
 
@@ -259,15 +258,15 @@ Increases the undername support of a domain up to a maximum of 10k. Domains, by 
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
 const { id: txId } = await ario.increaseUndernameLimit(
   {
-    name: 'ar-io',
+    name: "ar-io",
     qty: 420,
-    referrer: 'my-app.com', // optional: track purchase referrals for analytics
+    referrer: "my-app.com", // optional: track purchase referrals for analytics
   },
   // optional additional tags
-  { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+  { tags: [{ name: "App-Name", value: "My-Awesome-App" }] },
 );
 ```
 
@@ -276,15 +275,15 @@ const { id: txId } = await ario.increaseUndernameLimit(
 Extends the lease of a registered ArNS domain, with an extension of 1-5 years depending on grace period status. Permanently registered domains cannot be extended.
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
 const { id: txId } = await ario.extendLease(
   {
-    name: 'ar-io',
+    name: "ar-io",
     years: 1,
-    referrer: 'my-app.com', // optional: track purchase referrals for analytics
+    referrer: "my-app.com", // optional: track purchase referrals for analytics
   },
   // optional additional tags
-  { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+  { tags: [{ name: "App-Name", value: "My-Awesome-App" }] },
 );
 ```
 
@@ -295,9 +294,9 @@ Calculates the price in mARIO to perform the interaction in question, eg a 'Buy-
 ```typescript
 const price = await ario
   .getTokenCost({
-    intent: 'Buy-Name',
-    name: 'ar-io',
-    type: 'permabuy',
+    intent: "Buy-Name",
+    name: "ar-io",
+    type: "permabuy",
   })
   .then((p) => new mARIOToken(p).toARIO()); // convert to ARIO for readability
 ```
@@ -314,11 +313,11 @@ Calculates the expanded cost details for the interaction in question, e.g a 'Buy
 
 ```typescript
 const costDetails = await ario.getCostDetails({
-  intent: 'Buy-Name',
-  fromAddress: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
-  fundFrom: 'stakes',
-  name: 'ar-io',
-  type: 'permabuy',
+  intent: "Buy-Name",
+  fromAddress: "t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3",
+  fundFrom: "stakes",
+  name: "ar-io",
+  type: "permabuy",
 });
 ```
 
@@ -326,19 +325,14 @@ const costDetails = await ario.getCostDetails({
 
 ```json
 {
-  "tokenCost": 2384252273,
-  "fundingPlan": {
-    "address": "t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3",
-    "balance": 0,
-    "stakes": {
-      "Rc80LG6h27Y3p9TN6J5hwDeG5M51cu671YwZpU9uAVE": {
-        "vaults": [],
-        "delegatedStake": 2384252273
-      }
-    },
-    "shortfall": 0
-  },
-  "discounts": []
+  "tokenCost": 1907401818,
+  "discounts": [
+    {
+      "name": "Gateway Operator",
+      "discountTotal": 476850455,
+      "multiplier": 0.8
+    }
+  ]
 }
 ```
 
@@ -347,7 +341,7 @@ const costDetails = await ario.getCostDetails({
 Retrieves the current demand factor of the network. The demand factor is a multiplier applied to the cost of ArNS interactions based on the current network demand.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const demandFactor = await ario.getDemandFactor();
 ```
 
@@ -362,11 +356,11 @@ const demandFactor = await ario.getDemandFactor();
 Retrieves all active returned names of the ARIO process, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last returned name from the previous request.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const returnedNames = await ario.getArNSReturnedNames({
   limit: 100,
-  sortBy: 'endTimestamp',
-  sortOrder: 'asc', // return the returned names ending soonest first
+  sortBy: "endTimestamp",
+  sortOrder: "asc", // return the returned names ending soonest first
 });
 ```
 
@@ -377,21 +371,15 @@ const returnedNames = await ario.getArNSReturnedNames({
   "items": [
     {
       "name": "permalink",
-      "endTimestamp": 1730985241349,
       "startTimestamp": 1729775641349,
-      "baseFee": 250000000,
-      "demandFactor": 1.05256,
+      "endTimestamp": 1730985241349,
       "initiator": "GaQrvEMKBpkjofgnBi_B3IgIDmY_XYelVLB6GcRGrHc",
-      "settings": {
-        "durationMs": 1209600000,
-        "decayRate": 0.000000000016847809193121693,
-        "scalingExponent": 190,
-        "startPriceMultiplier": 50
-      }
+      "premiumMultiplier": 50
     }
   ],
   "hasMore": false,
   "totalItems": 1,
+  "limit": 100,
   "sortBy": "endTimestamp",
   "sortOrder": "asc"
 }
@@ -402,8 +390,8 @@ const returnedNames = await ario.getArNSReturnedNames({
 Retrieves the returned name data for the specified returned name.
 
 ```typescript
-const ario = ARIO.mainnet();
-const returnedName = await ario.getArNSReturnedName({ name: 'permalink' });
+const ario = ARIO.init({ rpc });
+const returnedName = await ario.getArNSReturnedName({ name: "permalink" });
 ```
 
 **Output:**
@@ -411,16 +399,9 @@ const returnedName = await ario.getArNSReturnedName({ name: 'permalink' });
 ```json
 {
   "name": "permalink",
-  "endTimestamp": 1730985241349,
   "startTimestamp": 1729775641349,
-  "baseFee": 250000000,
-  "demandFactor": 1.05256,
+  "endTimestamp": 1730985241349,
   "initiator": "GaQrvEMKBpkjofgnBi_B3IgIDmY_XYelVLB6GcRGrHc",
-  "settings": {
-    "durationMs": 1209600000,
-    "decayRate": 0.000000000016847809193121693,
-    "scalingExponent": 190,
-    "startPriceMultiplier": 50
-  }
+  "premiumMultiplier": 50
 }
 ```

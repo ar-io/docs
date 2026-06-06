@@ -5,18 +5,30 @@ description: "TypeScript/JavaScript SDK for interacting with the ar.io ecosystem
 
 #### init()
 
-Factory function to that creates a read-only or writeable client. By providing a `signer` additional write APIs that require signing, like `joinNetwork` and `delegateStake` are available. By default, a read-only client is returned and no write APIs are available.
+Factory function that creates a read-only or writeable ARIO client.
+Providing `signer` plus `rpcSubscriptions` enables write methods
+(`joinNetwork`, `delegateStake`, `buyRecord`, etc.). Without a signer,
+the client is read-only.
 
 ```typescript
+import { ARIO } from "@ar.io/sdk";
+import {
+    createSolanaRpc,
+    createSolanaRpcSubscriptions,
+    createKeyPairSignerFromBytes,
+} from "@solana/kit";
+
+const rpc = createSolanaRpc("https://api.mainnet-beta.solana.com");
+
 // read-only client
-const ario = ARIO.init();
+const ario = ARIO.init({ rpc });
 
-// read-write client for browser environments
-const ario = ARIO.init({ signer: new ArConnectSigner(window.arweaveWallet, Arweave.init({}))});
-
-// read-write client for node environments
-const ario = ARIO.init({ signer: new ArweaveSigner(JWK) });
-
+// read-write client (needs rpcSubscriptions for sendAndConfirm)
+const rpcSubscriptions = createSolanaRpcSubscriptions(
+    "wss://api.mainnet-beta.solana.com",
+);
+const signer = await createKeyPairSignerFromBytes(/* 64-byte secret key */);
+const arioWrite = ARIO.init({ rpc, rpcSubscriptions, signer });
 ```
 
 #### getInfo()
@@ -24,7 +36,7 @@ const ario = ARIO.init({ signer: new ArweaveSigner(JWK) });
 Retrieves the information of the ARIO process.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const info = await ario.getInfo();
 ```
 
@@ -32,15 +44,28 @@ const info = await ario.getInfo();
 
 ```json
 {
-  "Name": "ARIO",
-  "Ticker": "ARIO",
-  "Owner": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
-  "Denomination": 6,
-  "Handlers": ["_eval", "_default_"], // full list of handlers, useful for debugging
-  "LastCreatedEpochIndex": 31, // epoch index of the last tick
-  "LastDistributedEpochIndex": 31 // epoch index of the last distribution
+    "Name": "AR.IO",
+    "Ticker": "ARIO",
+    "Logo": "",
+    "Denomination": 6,
+    "Handlers": [],
+    "LastCreatedEpochIndex": 0,
+    "LastDistributedEpochIndex": 0,
+    "totalSupply": 1000000000000000,
+    "protocolBalance": 0,
+    "epochSettings": {
+        "durationMs": 86400000,
+        "prescribedNameCount": 25,
+        "maxObservers": 50
+    }
 }
 ```
+
+> **Note**: `Handlers`, `LastCreatedEpochIndex`, and `LastDistributedEpochIndex`
+> are placeholders on Solana (returned for backwards-compatible field shape
+> with consumer code). `totalSupply` / `protocolBalance` are live reads from
+> the `ArioConfig` PDA; `epochSettings` is live from the `EpochSettings`
+> PDA. See `src/solana/io-readable.ts` for the exact projection.
 
 #### getTokenSupply()
 
@@ -55,36 +80,39 @@ Retrieves the total supply of tokens, returned in mARIO. The total supply includ
 - `protocolBalance` - tokens that are held in the protocol's treasury. This is included in the circulating supply.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const supply = await ario.getTokenSupply();
 ```
 
-**Output:**
+<details>
+  <summary>Output</summary>
 
 ```json
 {
-  "total": 1000000000000000000,
-  "circulating": 998094653842520,
-  "locked": 0,
-  "withdrawn": 560563387278,
-  "delegated": 1750000000,
-  "staked": 1343032770199,
-  "protocolBalance": 46317263683761
+    "total": 1000000000000000000,
+    "circulating": 998094653842520,
+    "locked": 0,
+    "withdrawn": 560563387278,
+    "delegated": 1750000000,
+    "staked": 1343032770199,
+    "protocolBalance": 46317263683761
 }
 ```
+
+</details>
 
 #### getBalance()
 
 Retrieves the balance of the specified wallet address.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 // the balance will be returned in mARIO as a value
 const balance = await ario
-  .getBalance({
-    address: 'QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ',
-  })
-  .then((balance: number) => new mARIOToken(balance).toARIO()); // convert it to ARIO for readability
+    .getBalance({
+        address: "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
+    })
+    .then((balance: number) => new mARIOToken(balance).toARIO()); // convert it to ARIO for readability
 ```
 
 **Output:**
@@ -98,12 +126,12 @@ const balance = await ario
 Retrieves the balances of the ARIO process in `mARIO`, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last wallet address from the previous request.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const balances = await ario.getBalances({
-  cursor: '-4xgjroXENKYhTWqrBo57HQwvDL51mMdfsdsxJy6Y2Z_sA',
-  limit: 100,
-  sortBy: 'balance',
-  sortOrder: 'desc',
+    cursor: "-4xgjroXENKYhTWqrBo57HQwvDL51mMdfsdsxJy6Y2Z_sA",
+    limit: 100,
+    sortBy: "balance",
+    sortOrder: "desc",
 });
 ```
 
@@ -111,22 +139,22 @@ const balances = await ario.getBalances({
 
 ```json
 {
-  "items": [
-    {
-      "address": "-4xgjroXENKYhTWqrBo57HQwvDL51mMvSxJy6Y2Z_sA",
-      "balance": 1000000
-    },
-    {
-      "address": "-7vXsQZQDk8TMDlpiSLy3CnLi5PDPlAaN2DaynORpck",
-      "balance": 1000000
-    }
-    // ...98 other balances
-  ],
-  "hasMore": true,
-  "nextCursor": "-7vXsQZQDk8TMDlpiSLy3CnLi5PDPlAaN2DaynORpck",
-  "totalItems": 1789,
-  "sortBy": "balance",
-  "sortOrder": "desc"
+    "items": [
+        {
+            "address": "-4xgjroXENKYhTWqrBo57HQwvDL51mMvSxJy6Y2Z_sA",
+            "balance": 1000000
+        },
+        {
+            "address": "-7vXsQZQDk8TMDlpiSLy3CnLi5PDPlAaN2DaynORpck",
+            "balance": 1000000
+        }
+        // ...98 other balances
+    ],
+    "hasMore": true,
+    "nextCursor": "-7vXsQZQDk8TMDlpiSLy3CnLi5PDPlAaN2DaynORpck",
+    "totalItems": 1789,
+    "sortBy": "balance",
+    "sortOrder": "desc"
 }
 ```
 
@@ -137,15 +165,9 @@ Transfers `mARIO` to the designated `target` recipient address. Requires `signer
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({
-  signer: new ArweaveSigner(jwk),
-});
-const { id: txId } = await ario.transfer(
-  {
-    target: '-5dV7nk7waR8v4STuwPnTck1zFVkQqJh5K9q9Zik4Y5',
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
+const { id: txId } = await ario.transfer({
+    target: "RecipientSolanaPubkeyBase58",
     qty: new ARIOToken(1000).toMARIO(),
-  },
-  // optional additional tags
-  { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
-);
+});
 ```

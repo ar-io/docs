@@ -4,30 +4,34 @@ import { X } from "lucide-react";
 import Link from "next/link";
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
-type AnnouncementBannerProps = {
-  storageKey: string;
+type AnnouncementBannerAction = {
+  href: string;
+  label: string;
+  external?: boolean;
+};
+
+export type AnnouncementBannerProps = {
+  id: string;
   children: ReactNode;
-  mobileText?: string;
-  badgeText?: string;
-  ctaHref?: string;
-  ctaLabel?: string;
+  mobileContent?: ReactNode;
+  badge?: ReactNode;
+  action?: AnnouncementBannerAction;
   dismissAriaLabel?: string;
 };
 
 export function AnnouncementBanner({
-  storageKey,
+  id,
   children,
-  mobileText,
-  badgeText,
-  ctaHref,
-  ctaLabel,
+  mobileContent,
+  badge,
+  action,
   dismissAriaLabel = "Dismiss announcement",
 }: AnnouncementBannerProps) {
   const [isVisible, setIsVisible] = useState(false);
   const bannerRef = useRef<HTMLDivElement | null>(null);
   const dismissKey = useMemo(
-    () => `announcement-banner-dismissed:${storageKey}`,
-    [storageKey],
+    () => `announcement-banner-dismissed:${id}`,
+    [id],
   );
 
   useEffect(() => {
@@ -79,34 +83,34 @@ export function AnnouncementBanner({
       className="relative z-[60] w-full border-b border-white/20 bg-[#5B2AD1] text-white"
     >
       <div className="mx-auto flex max-w-[90rem] flex-col items-center gap-2 px-4 py-3 text-sm sm:flex-row sm:justify-center sm:gap-3 sm:px-4 sm:py-2 sm:pr-12">
-        {badgeText ? (
+        {badge ? (
           <span className="hidden rounded-full bg-white/20 px-2 py-0.5 text-[11px] font-semibold tracking-[0.08em] text-white/95 sm:inline-flex">
-            {badgeText}
+            {badge}
           </span>
         ) : null}
         <p className="text-center leading-5 text-white/95 sm:text-left">
-          {mobileText ? <span className="sm:hidden">{mobileText}</span> : null}
-          <span className={mobileText ? "hidden sm:inline" : ""}>{children}</span>
+          {mobileContent ? <span className="sm:hidden">{mobileContent}</span> : null}
+          <span className={mobileContent ? "hidden sm:inline" : ""}>{children}</span>
         </p>
-        {ctaHref && ctaLabel ? (
+        {action ? (
           <Link
-            href={ctaHref}
-            target="_blank"
-            rel="noreferrer"
+            href={action.href}
+            target={action.external ? "_blank" : undefined}
+            rel={action.external ? "noreferrer" : undefined}
             className="hidden items-center rounded-full bg-white/20 px-3 py-1 font-semibold text-white transition hover:bg-white/30 sm:inline-flex"
           >
-            {ctaLabel} &#8594;
+            {action.label} &#8594;
           </Link>
         ) : null}
         <div className="flex items-center gap-3 sm:hidden">
-          {ctaHref && ctaLabel ? (
+          {action ? (
             <Link
-              href={ctaHref}
-              target="_blank"
-              rel="noreferrer"
+              href={action.href}
+              target={action.external ? "_blank" : undefined}
+              rel={action.external ? "noreferrer" : undefined}
               className="inline-flex items-center rounded-full bg-white/20 px-4 py-1.5 font-semibold text-white transition hover:bg-white/30"
             >
-              {ctaLabel} &#8594;
+              {action.label} &#8594;
             </Link>
           ) : null}
           <button

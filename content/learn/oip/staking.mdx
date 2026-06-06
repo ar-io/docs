@@ -1,0 +1,188 @@
+---
+title: "Staking"
+description: "Learn how staking ARIO tokens enables gateway operators and delegators to participate in ar.io and earn protocol rewards"
+---
+
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Target, Network, Shield, Coins } from 'lucide-react';
+
+## Overview
+
+Staking tokens within ar.io serves a dual primary purpose: it signifies a public commitment by gateway operators and qualifies them and their delegates for reward distributions.
+
+In the ar.io ecosystem, "staking" refers to the process of locking ARIO tokens into protocol-controlled vaults on Solana. This act signifies an opportunity cost for the staker, acting both as a motivator and a public pledge to uphold the network's collective interests. Once staked, tokens remain locked until the staker initiates an unstake or withdrawal action, or reaches the end of the vault's lock period.
+
+It is important to note that the ARIO Token is non-inflationary, distinguishing ar.io's staking mechanism from yield-generation tools found in other protocols. Staking in this context is about eligibility for potential rewards rather than direct token yield. By staking tokens, gateway operators (and their delegates) demonstrate their commitment to the network, thereby gaining eligibility for protocol-driven rewards and access to the network's shared resources.
+
+<Callout type="info">
+SOL is required for Solana transaction fees when staking, delegating, redelegating, or withdrawing ARIO.
+</Callout>
+
+<div className="flex justify-center my-8">
+  <iframe 
+    width="560" 
+    height="315" 
+    src="https://www.youtube.com/embed/yGHkHXOSSN8" 
+    title="Ar.io Staking Overview" 
+    frameBorder="0" 
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+    allowFullScreen
+    className="rounded-lg"
+  />
+</div>
+
+## Gateway Staking
+
+A gateway operator must stake ARIO to join their gateway to the network. This makes them eligible for protocol rewards and promotes network reliability by giving operators an economic commitment to the network's performance.
+
+The minimum network-join stake is **20,000 ARIO**. The gateway registry can hold up to **3,000 gateways**; when the registry is full, new gateways cannot join until existing gateways leave.
+
+Operators may increase their stake above the minimum required to join the network. This additional amount is known as **excess stake**. A gateway's total stake impacts the following epoch once excess stake is added or removed.
+
+Operator rewards auto-compound into operator stake. To realize rewards, operators must withdraw excess stake. If an excess stake withdrawal is still within its withdrawal period, the operator can cancel it and immediately restake the amount to the original gateway.
+
+<Callout type="warn">
+Operators cannot self-delegate. Operator stake and delegated stake are managed through separate mechanisms.
+</Callout>
+
+### Gateway Pruning
+
+Gateways that repeatedly fail observation can be pruned from the network. When a gateway is removed for sustained poor performance, its minimum operator stake is slashed to the protocol balance. Any excess operator stake and delegated stake enter the standard withdrawal process.
+
+## Delegated Staking
+
+To promote participation from a wider audience, the network allows anyone with available ARIO tokens to partake in delegated staking. Users can choose to take part in the risk and rewards of gateway operations by staking their tokens with an active gateway (or multiple gateways) through an act known as delegating.
+
+<div className="flex justify-center my-8">
+  <div className="text-center">
+    <img src="/content/staking.png" alt="Gateway Portal Staking Page" className="rounded-lg" />
+    <span className="block text-md text-primary italic mt-4 px-4">
+      Delegators can select which gateways to stake with in gateways.ar.io — maximize their potential rewards based on operator performance, stakes, and weights
+    </span>
+  </div>
+</div>
+
+### How Delegated Staking Works
+
+**Delegated staking allows you to participate in ar.io's reward system without running your own gateway.** By staking your ARIO tokens on existing gateways, you can earn rewards while supporting network infrastructure.
+
+When you delegate stake to a gateway, you're increasing that gateway's total stake. This can improve the gateway's chances of being selected as an observer, which means more potential rewards for both the gateway operator and you as a delegator.
+
+Delegate rewards use a **reward-per-share accumulator** pattern. Rather than distributing rewards to each delegate individually each epoch, the protocol tracks a cumulative reward-per-token on each gateway. Your pending rewards are settled when you interact with the protocol (e.g., delegate more, withdraw, or claim rewards).
+
+Gateway operators can choose whether to accept delegated staking and can configure their own delegation settings within protocol limits. They may also offer non-protocol incentives, such as faster access, privileged access, or other off-chain perks.
+
+Delegated staking has these protocol limits:
+
+- Global minimum delegated stake: **10 ARIO**
+- Gateway-selected delegate reward share: **0% to 95%**
+- Maximum unique delegates per gateway: **10,000**
+- Delegated stake withdrawal duration: **30 days**
+
+### Benefits
+
+- **Potential Rewards**: Become eligible for rewards without running infrastructure
+- **Network Participation**: Support ar.io's growth
+- **Flexibility**: Redelegate to different gateways as conditions change
+- **Low Barrier to Entry**: No technical expertise required
+- **Transparent Rewards**: Clear visibility into reward distribution
+
+### Getting Started
+
+<Steps>
+<Step>
+**Get ARIO Tokens**
+
+You'll need ARIO tokens in a Solana wallet to delegate. See our comprehensive guide on [How to Get ARIO Tokens](/learn/token/get-the-token) for detailed information about acquiring tokens through exchanges, swaps, and network participation.
+
+</Step>
+
+<Step>
+**Choose a Gateway**
+
+Research gateways on the [Gateway Portal](https://gateways.ar.io/#/staking) to find one that matches your preferences for reward sharing and performance. Look for gateways with strong uptime, competitive reward sharing percentages, and reliable operation history.
+
+</Step>
+
+<Step>
+**Delegate Your Stake**
+
+Use the [Gateway Portal](https://gateways.ar.io/#/staking) to delegate your tokens. Connect your Solana wallet (Phantom, Solflare, or Backpack) and the process is straightforward.
+
+</Step>
+
+<Step>
+**Monitor Your Rewards**
+
+Track your delegation performance and rewards through the portal's dashboard. Your rewards accumulate via the reward-per-share accumulator and are settled when you interact with the protocol.
+
+</Step>
+</Steps>
+
+### Important Considerations
+
+- **Gateway Performance**: Your rewards depend on the gateway's performance and observer selection
+- **Reward Sharing**: Gateway operators set the percentage of rewards shared with delegators
+- **Delegation Settings**: Gateway operators can update delegation settings; changes take effect in the following epoch
+- **Redelegation**: You can move your stake between gateways as network conditions change
+- **Withdrawal Delays**: There is a 30 day standard delay when withdrawing your delegated stake
+- **Gateway Exit or Removal**: If a gateway leaves or is removed from the network, delegates must claim their stake through the protocol, subject to withdrawal delays
+
+## Stake Redelegation
+
+This feature enables existing stakers to reallocate their staked tokens between gateways, known as redelegation. Both delegated stakers and gateway operators with excess stake (stake above the minimum network-join requirement) can take advantage of this feature. Redelegation is intended to offer users flexibility and the ability to respond to changing network conditions.
+
+To balance flexibility with network stability, users are entitled to one free redelegation during each seven-day window from their last redelegation action. Additional redelegations within that window incur increasing protocol fees, capped at 60%, and fees are sent to the protocol balance.
+
+All redelegations must respect minimum stake requirements at both the source and destination gateways. Gateway minimum network-join stakes are not eligible for redelegation, but operator excess stake and eligible withdrawal vaults may be redelegated.
+
+## Redeeming Stake for ArNS
+
+Staked tokens generally have restricted liquidity to maintain a healthy degree of stability in the network. However, an exception allows delegated stakers and gateway operators to redeem eligible staked tokens to fund specific ArNS-related services. By leveraging their stake, participants can further engage with ArNS, strengthening the name system's utilization and impact across the network.
+
+Eligible ArNS interactions include:
+
+- Purchasing a name
+- Extending a lease
+- Upgrading a lease to a permabuy
+- Increasing undername capacity
+- Requesting or setting a primary name
+
+Each ArNS purchase is funded from a single source selected by the user: liquid balance, delegated stake, a delegated stake withdrawal vault, or eligible operator excess stake. If the selected source does not cover the full purchase, the transaction fails and no balances or stakes are modified. Using eligible staked tokens for ArNS interactions does not impose an additional fee, but source gateway minimum stake requirements still apply.
+
+## Expedited Withdrawal Fees
+
+Gateway operators and delegated stakers can shorten the standard withdrawal delay period after initiating a withdrawal or being placed into an automatic withdrawal by protocol mechanisms. This action is subject to a dynamic fee paid to the protocol balance.
+
+At any point during the withdrawal delay, users can expedite access to pending withdrawal tokens by paying a fee based on how much sooner they want to receive their funds. Once triggered, the tokens are returned immediately to the user's wallet.
+
+A gateway's minimum operator stake is not withdrawable while the gateway is active; only excess stake can be placed into withdrawal during normal operation. If a gateway voluntarily leaves the network, the minimum stake becomes an exit vault and can follow the same expedited withdrawal flow. If a gateway is removed for sustained poor performance, the minimum stake is slashed and cannot be recovered.
+
+## Explore Staking
+
+<Cards>
+  <Card 
+    title="Delegate Stake" 
+    description="Start staking your ARIO tokens with gateways to earn rewards"
+    href="https://gateways.ar.io/#/staking"
+    icon={<Target className="w-8 h-8" />}
+  />
+  <Card 
+    title="Gateway Registry" 
+    description="Learn how gateways join the network and stake requirements"
+    href="/learn/gateways/gateway-registry"
+    icon={<Network className="w-8 h-8" />}
+  />
+  <Card 
+    title="Observer Protocol" 
+    description="Understand how gateway performance affects staking rewards"
+    href="/learn/oip"
+    icon={<Shield className="w-8 h-8" />}
+  />
+  <Card 
+    title="ARIO Token" 
+    description="Learn about the token that powers ar.io"
+    href="/learn/token"
+    icon={<Coins className="w-8 h-8" />}
+  />
+</Cards>

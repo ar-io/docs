@@ -1,0 +1,159 @@
+---
+title: "Model and Decision Proofs"
+description: "Anchor MLflow model registration, promotion, and prediction proofs with ar-io-mlflow"
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Steps, Step } from "fumadocs-ui/components/steps";
+
+The model registry is where training provenance becomes runtime protection. `ar-io-mlflow` provides a drop-in MLflow client that anchors registration and promotion events, plus a `VerifiedModel` wrapper that checks model artifact integrity before loading the underlying pyfunc model.
+
+## Prerequisites
+
+- Completed [Training Provenance](/build/verifiable-ai/training-provenance)
+- A model logged to MLflow with `ario_mlflow.anchor()`
+- MLflow model registry access
+- Optional `ARIO_MLFLOW_ARIO_VERIFY_URL` for ar.io gateway attestations
+
+## Anchor model registration
+
+<Steps>
+<Step>
+### Register with ArioMlflowClient
+
+Use `ArioMlflowClient` where you would normally use `mlflow.tracking.MlflowClient`. Registration returns immediately; anchoring runs in a background thread.
+
+```python
+from ario_mlflow import ArioMlflowClient
+
+client = ArioMlflowClient()
+
+model_version = client.create_model_version(
+    name="credit-risk-scorer",
+    source=f"runs:/{run_id}/model",
+)
+
+client.wait_for_anchor(
+    "registration",
+    "credit-risk-scorer",
+    str(model_version.version),
+    timeout=30,
+)
+
+status = client.anchor_status(
+    "registration",
+    "credit-risk-scorer",
+    str(model_version.version),
+)
+print(status)
+```
+
+The status is one of `anchoring`, `anchored`, `signed`, `failed`, or `unknown`.
+</Step>
+
+<Step>
+### Verify the model version
+
+```bash
+MLFLOW_TRACKING_URI=file:///absolute/path/to/mlruns \
+ar-io-mlflow verify model credit-risk-scorer/1
+```
+
+Model verification re-hashes the registered model artifact, checks the registration proof, and confirms that the proof chains back to the training event where possible.
+</Step>
+
+<Step>
+### Audit lineage
+
+Use the audit command when you want a registry-oriented view of the proof chain.
+
+```bash
+MLFLOW_TRACKING_URI=file:///absolute/path/to/mlruns \
+ar-io-mlflow audit credit-risk-scorer/1
+```
+</Step>
+</Steps>
+
+## Guard inference with VerifiedModel
+
+`VerifiedModel` verifies artifact integrity before loading the model. If the model bytes in MLflow were swapped after registration, the constructor raises `IntegrityError` before user model code can execute.
+
+```python
+from ario_mlflow import IntegrityError, VerifiedModel
+
+try:
+    model = VerifiedModel("models:/credit-risk-scorer/1")
+except IntegrityError as exc:
+    # Treat this as a security incident in production.
+    raise RuntimeError("Registered model artifact failed verification") from exc
+
+result = model.predict([78000, 0.18, 0.22, 72, 745])
+
+print("decision_id:", result.decision_id)
+print("proof_status:", result.proof_status)
+print("tx_id:", result.tx_id)
+```
+
+Prediction anchoring is asynchronous. The prediction returns as soon as the model has produced an output, and the proof upload completes in the background.
+
+When you need the transaction ID before responding to a caller, wait explicitly:
+
+```python
+result.wait_for_anchor(timeout=10)
+print(result.tx_id, result.anchor_error)
+```
+
+## Verify an inference proof
+
+Each `VerifiedModel.predict()` call writes prediction proof data to MLflow trace tags and `ario/predictions/<decision_id>/payload.json`.
+
+```bash
+MLFLOW_TRACKING_URI=file:///absolute/path/to/mlruns \
+ar-io-mlflow verify trace <trace_id>
+```
+
+The verification flow checks:
+
+1. The prediction envelope exists on ar.io for the recorded transaction ID.
+2. The prediction payload artifact hashes to the envelope's `payload_hash`.
+3. The trace tag mirror, `ario.payload_json`, re-derives the same canonical payload.
+4. The envelope signature is valid.
+5. Optional ar.io Verify attestation passes if configured.
+
+## What gets written
+
+On model versions, the client writes tags such as:
+
+- `ario.artifact_verified`
+- `ario.registration_tx`
+- `ario.promotion_tx`
+- `ario.arweave_url`
+
+On prediction traces, `VerifiedModel` writes tags such as:
+
+- `ario.decision_id`
+- `ario.model_name`
+- `ario.model_version`
+- `ario.input_hash`
+- `ario.output_hash`
+- `ario.payload_hash`
+- `ario.proof_status`
+- `ario.prediction_tx`
+- `ario.payload_json`
+
+Raw inference inputs and outputs are not written to Arweave by the plugin. The proof stores hashes and lineage metadata.
+
+<Callout type="warning">
+Verification proves that the model artifact and recorded decision metadata match what was anchored. It does not prove that the model is accurate, unbiased, or semantically correct for the task.
+</Callout>
+
+## Failure behavior
+
+- Registration and promotion still succeed if the background anchor fails. Inspect `anchor_status()` and alert on `signed` or `failed`.
+- `VerifiedModel(...)` fails closed on artifact hash mismatch by raising `IntegrityError`.
+- `predict()` returns even if proof anchoring later fails. Inspect `result.proof_status` and `result.anchor_error`.
+- If registration anchoring has not completed when a model is loaded, early predictions may chain to `GENESIS` instead of the model version registration transaction.
+
+## Next steps
+
+Continue to [Operator Attestations](/build/verifiable-ai/operator-attestations) to add independent gateway verification, PDFs, attestations, and batch audits.

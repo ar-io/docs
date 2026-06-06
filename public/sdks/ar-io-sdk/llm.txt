@@ -9,7 +9,7 @@ _Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
 ```typescript
 const { id: txId } = await ant.releaseName({
   name: 'permalink',
-  arioProcessId: ARIO_MAINNET_PROCESS_ID, // releases the name owned by the ANT and sends it to recently returned names on the ARIO contract
+  arioProcessId: ARIO_MAINNET_PROGRAM_ID, // releases the name owned by the ANT and sends it to recently returned names on the ARIO contract
 });
 ```
 
@@ -22,8 +22,8 @@ _Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
 ```typescript
 const { id: txId } = await ant.reassignName({
   name: 'ardrive',
-  arioProcessId: ARIO_MAINNET_PROCESS_ID,
-  antProcessId: NEW_ANT_PROCESS_ID, // the new ANT process id that will take over ownership of the name
+  arioProcessId: ARIO_MAINNET_PROGRAM_ID,
+  antProcessId: NEW_ANT_PROCESS_ID, // the new ANT identifier that will take over ownership of the name
 });
 ```
 
@@ -37,21 +37,21 @@ _Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
 const { id: txId } = await ant.approvePrimaryNameRequest({
   name: 'arns',
   address: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3', // must match the request initiator address
-  arioProcessId: ARIO_MAINNET_PROCESS_ID, // the ARIO process id to use for the request
+  arioProcessId: ARIO_MAINNET_PROGRAM_ID, // the ARIO program address to use for the request
 });
 ```
 
 #### removePrimaryNames()
 
-Removes primary names from the ANT process.
+Removes primary names from the ANT.
 
 _Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
 
 ```typescript
 const { id: txId } = await ant.removePrimaryNames({
   names: ['arns', 'test_arns'], // any primary names associated with a base name controlled by this ANT will be removed
-  arioProcessId: ARIO_MAINNET_PROCESS_ID,
-  notifyOwners: true, // if true, the owners of the removed names will be send AO messages to notify them of the removal
+  arioProcessId: ARIO_MAINNET_PROGRAM_ID,
+  notifyOwners: true, // if true, the owners of the removed names will be notified of the removal
 });
 ```
 
@@ -94,7 +94,7 @@ const balance = await ant.getBalance({
 
 #### addController()
 
-Adds a new controller to the list of approved controllers on the ANT. Controllers can set records and change the ticker and name of the ANT process.
+Adds a new controller to the list of approved controllers on the ANT. Controllers can set records and change the ticker and name of the ANT.
 
 _Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
 
@@ -127,25 +127,24 @@ const { id: txId } = await ant.removeController(
 Factory function to that creates a read-only or writeable client. By providing a `signer` additional write APIs that require signing, like `setRecord` and `transfer` are available. By default, a read-only client is returned and no write APIs are available.
 
 ```typescript
-// in a browser environment with ArConnect
+// in a browser environment (Phantom, Solflare, etc.)
 const ant = ANT.init({
-  signer: new ArConnectSigner(window.arweaveWallet, Arweave.init({})),
-  processId: 'bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM'
+  signer: walletAdapter,
+  processId: 'bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM' // ANT mint address
 });
 
 // in a node environment
 const ant = ANT.init({
-  signer: new ArweaveSigner(JWK),
-  processId: 'bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM'
+  signer,
+  processId: 'bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM' // ANT mint address
 });
-
 ```
 
 # Metadata (/(ant-contracts)/metadata)
 
 #### setName()
 
-Sets the name of the ANT process.
+Sets the name of the ANT.
 
 _Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
 
@@ -159,7 +158,7 @@ const { id: txId } = await ant.setName(
 
 #### setTicker()
 
-Sets the ticker of the ANT process.
+Sets the ticker of the ANT.
 
 _Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
 
@@ -173,7 +172,7 @@ const { id: txId } = await ant.setTicker(
 
 #### setDescription()
 
-Sets the description of the ANT process.
+Sets the description of the ANT.
 
 _Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
 
@@ -187,13 +186,13 @@ const { id: txId } = await ant.setDescription(
 
 #### setKeywords()
 
-Sets the keywords of the ANT process.
+Sets the keywords of the ANT.
 
 _Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
 
 ```typescript
 const { id: txId } = await ant.setKeywords(
-  { keywords: ['Game', 'FPS', 'AO'] },
+  { keywords: ['Game', 'FPS', 'Permaweb'] },
   // optional tags
   { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
 );
@@ -298,7 +297,7 @@ const { id: txId } = await ant.setUndernameRecord(
 
 #### removeUndernameRecord()
 
-Removes an undername record from the ANT process.
+Removes an undername record from the ANT.
 
 _Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
 
@@ -316,7 +315,7 @@ const { id: txId } = await ant.removeUndernameRecord(
 
 Deprecated: Use `setBaseNameRecord` or `setUndernameRecord` instead.
 
-Adds or updates a record for the ANT process. The `undername` parameter is used to specify the record name. Use `@` for the base name record.
+Adds or updates a record for the ANT. The `undername` parameter is used to specify the record name. Use `@` for the base name record.
 
 _Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
 
@@ -338,7 +337,7 @@ const { id: txId } = await ant.setRecord(
 
 Deprecated: Use `removeUndernameRecord` instead.
 
-Removes a record from the ANT process.
+Removes a record from the ANT.
 
 _Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
 
@@ -358,29 +357,18 @@ const { id: txId } = await ant.removeRecord(
 
 #### spawn()
 
-Spawns a new ANT (Arweave Name Token) process. This static function creates a new ANT process on the AO network and returns the process ID.
+Mints a new ANT (Ar.io Name Token) as a Metaplex Core NFT on Solana. This static function creates a new ANT and returns its mint address.
 
-_Note: Requires `signer` to be provided to sign the spawn transaction._
+_Note: Requires `signer` to be provided to sign the mint transaction._
 
 ```typescript
 
-const processId = await ANT.spawn({
-  signer: new ArweaveSigner(jwk),
+const mintAddress = await ANT.spawn({
+  signer: signer,
   state: {
     name: 'My ANT',
     ticker: 'MYANT',
     description: 'My custom ANT token',
-  },
-});
-
-// Using a custom module ID
-const processId = await ANT.spawn({
-  signer: new ArweaveSigner(jwk),
-  module: 'FKtQtOOtlcWCW2pXrwWFiCSlnuewMZOHCzhulVkyqBE', // Custom module ID
-  state: {
-    name: 'My Custom Module ANT',
-    ticker: 'CUSTOM',
-    description: 'ANT using a specific module version',
   },
 });
 ```
@@ -388,29 +376,22 @@ const processId = await ANT.spawn({
 **CLI Usage:**
 
 ```bash
-ar.io spawn-ant --wallet-file wallet.json --name "My ANT" --ticker "MYANT"
-
-ar.io spawn-ant --wallet-file wallet.json --module FKtQtOOtlcWCW2pXrwWFiCSlnuewMZOHCzhulVkyqBE --name "My Custom ANT" --ticker "CUSTOM"
+ar.io spawn-ant --name "My ANT" --ticker "MYANT"
 ```
 
 **Parameters:**
 
-- `signer: AoSigner` - The signer used to authenticate the spawn transaction
-- `module?: string` - Optional module ID to use; if not provided, gets latest from ANT registry
-- `ao?: AoClient` - Optional AO client instance (defaults to legacy mode connection)
-- `scheduler?: string` - Optional scheduler ID
+- `signer: SolanaSigner` - The signer used to authenticate the mint transaction
 - `state?: SpawnANTState` - Optional initial state for the ANT including name, ticker, description, etc.
-- `antRegistryId?: string` - Optional ANT registry ID
 - `logger?: Logger` - Optional logger instance
-- `authority?: string` - Optional authority
 
-**Returns:** `Promise\` - The process ID of the newly spawned ANT
+**Returns:** `Promise` - The mint address of the newly created ANT (Metaplex Core NFT)
 
 # State (/(ant-contracts)/state)
 
 #### getInfo()
 
-Retrieves the information of the ANT process.
+Retrieves information for the ANT.
 
 ```typescript
 const info = await ant.getInfo();
@@ -463,7 +444,7 @@ const handlers = await ant.getHandlers();
 
 #### getState()
 
-Retrieves the state of the ANT process.
+Retrieves the state of the ANT.
 
 ```typescript
 const state = await ant.getState();
@@ -507,14 +488,14 @@ const state = await ant.getState();
   "Keywords": ["keyword1", "keyword2", "keyword3"],
   "Logo": "Sie_26dvgyok0PZD_-iQAFOhOd5YxDTkczOLoqTTL_A",
   "Denomination": 0,
-  "Name": "AR.IO Foundation",
+  "Name": "ar.io Foundation",
   "Owner": "98O1_xqDLrBKRfQPWjF5p7xZ4Jx6GM8P5PeJn26xwUY"
 }
 ```
 
 #### getOwner()
 
-Returns the owner of the configured ANT process.
+Returns the owner of the configured ANT.
 
 ```typescript
 const owner = await ant.getOwner();
@@ -556,7 +537,7 @@ const ticker = await ant.getTicker();
 
 #### getControllers()
 
-Returns the controllers of the configured ANT process.
+Returns the controllers of the configured ANT.
 
 ```typescript
 const controllers = await ant.getControllers();
@@ -570,7 +551,7 @@ const controllers = await ant.getControllers();
 
 #### getRecords()
 
-Returns all records on the configured ANT process, including the required `@` record that resolve connected ArNS names.
+Returns all records on the configured ANT, including the required `@` record that resolve connected ArNS names.
 
 ```typescript
 const records = await ant.getRecords();
@@ -630,12 +611,12 @@ const record = await ant.getRecord({ undername: 'dapp' });
 
 #### ANT.fork()
 
-Forks an existing ANT process to create a new one with the same state but potentially a different module. This is used for upgrading ANTs to new versions.
+Creates a new ANT (Metaplex Core NFT) from an existing one with the same state but potentially a different version. This is used for upgrading ANTs.
 
 ```typescript
-const newProcessId = await ANT.fork({
-  signer: new ArweaveSigner(jwk),
-  antProcessId: 'existing-ant-process-id',
+const newMintAddress = await ANT.fork({
+  signer: signer,
+  antProcessId: 'existing-ant-mint-address',
   // Optional: specify a specific module ID, defaults to latest from registry
   module: 'new-module-id',
   onSigningProgress: (event, payload) => {
@@ -643,7 +624,7 @@ const newProcessId = await ANT.fork({
   },
 });
 
-console.log(`Forked ANT to new process: ${newProcessId}`);
+console.log(`Forked ANT to new mint: ${newMintAddress}`);
 ```
 
 #### ANT.upgrade()
@@ -653,19 +634,17 @@ Static method to upgrade an ANT by forking it to the latest version and reassign
 ```typescript
 // Upgrade and reassign all affiliated names
 const result = await ANT.upgrade({
-  signer: new ArweaveSigner(jwk),
-  antProcessId: 'existing-ant-process-id',
+  signer: signer,
+  antProcessId: 'existing-ant-mint-address',
   reassignAffiliatedNames: true,
-  arioProcessId: ARIO_MAINNET_PROCESS_ID
 });
 
 // Upgrade and reassign specific names
 const result = await ANT.upgrade({
-  signer: new ArweaveSigner(jwk),
-  antProcessId: 'existing-ant-process-id',
+  signer: signer,
+  antProcessId: 'existing-ant-mint-address',
   names: ['ardrive', 'example'],
   reassignAffiliatedNames: false,
-  arioProcessId: ARIO_MAINNET_PROCESS_ID
 });
 
 console.log(`Upgraded to process: ${result.forkedProcessId}`);
@@ -677,7 +656,7 @@ console.log(`Failed reassignments: ${Object.keys(result.failedReassignedNames)}`
 
 #### transfer()
 
-Transfers ownership of the ANT to a new target address. Target MUST be an Arweave address.
+Transfers ownership of the ANT to a new target address. Target must be a Solana address. ANT transfers are standard Metaplex Core NFT transfers.
 
 _Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
 
@@ -741,7 +720,7 @@ console.log(`Transaction ID: ${record.transactionId}`);
 // Alice (record owner) updating her own record
 const aliceAnt = ANT.init({
   processId: 'ANT_PROCESS_ID',
-  signer: new ArweaveSigner(aliceJwk), // Alice's wallet
+  signer: aliceSigner, // Alice's Solana wallet
 });
 
 // ✅ CORRECT: Alice includes her own address as owner
@@ -797,7 +776,7 @@ console.log(recordAfter.owner); // undefined (controlled by ANT owner again)
 
 #### upgrade()
 
-Upgrades an ANT by forking it to the latest version from the ANT registry and optionally reassigning ArNS names to the new process. This function first checks the version of the existing ANT, creates a new ANT using `.fork()` to the latest version, and then reassigns the ArNS names affiliated with this process to the new process.
+Upgrades an ANT to the latest version and optionally reassigns ArNS names. On Solana, this uses the `migrate_ant` instruction with `realloc` to update the ANT's onchain schema. This function checks the version of the existing ANT and performs the necessary migration.
 
 _Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
 
@@ -839,9 +818,8 @@ console.log(`Failed to reassign names: ${result.failedReassignedNames}`);
 **Parameters:**
 
 - `reassignAffiliatedNames?: boolean` - If true, reassigns all names associated with this process to the new forked process (defaults to true when names is empty)
-- `names?: string[]` - Optional array of specific names to reassign (cannot be used with `reassignAffiliatedNames: true`). These names must be affiliated with this ANT on the provided ARIO process.
-- `arioProcessId?: string` - Optional ARIO process ID (defaults to mainnet)
-- `antRegistryId?: string` - Optional ANT registry process ID used to resolve the latest version (defaults to mainnet registry)
+- `names?: string[]` - Optional array of specific names to reassign (cannot be used with `reassignAffiliatedNames: true`). These names must be affiliated with this ANT on the provided ARIO program.
+- `arioProcessId?: string` - Optional ARIO program address (defaults to mainnet)
 - `skipVersionCheck?: boolean` - Skip checking if ANT is already latest version (defaults to false)
 - `onSigningProgress?: Function` - Optional progress callback for tracking upgrade steps
 
@@ -851,7 +829,7 @@ console.log(`Failed to reassign names: ${result.failedReassignedNames}`);
 
 #### getModuleId()
 
-Gets the module ID of the current ANT process by querying its spawn transaction tags. Results are cached after the first successful fetch.
+Gets the module ID of the current ANT by querying its spawn transaction tags. Results are cached after the first successful fetch.
 
 ```typescript
 const moduleId = await ant.getModuleId();
@@ -859,7 +837,7 @@ console.log(`ANT was spawned with module: ${moduleId}`);
 
 // With custom GraphQL URL and retries
 const moduleId = await ant.getModuleId({
-  graphqlUrl: 'https://arweave.net/graphql',
+  graphqlUrl: 'https://turbo-gateway.com/graphql',
   retries: 5
 });
 ```
@@ -959,11 +937,13 @@ Result:
 }
 ```
 
-# Arweave Name System (ArNS) (/(ario-contract)/arweave-name-system-arns)
+# Ar.io Name System (ArNS) (/(ario-contract)/arweave-name-system-arns)
+
+**Field naming note:** API responses use `processId` to refer to the ANT identifier. On Solana, this is the ANT's Metaplex Core NFT **mint address**.
 
 #### resolveArNSName()
 
-Resolves an ArNS name to the underlying data id stored on the names corresponding ANT id.
+Resolves an ArNS name to the underlying data id stored on the name's corresponding ANT.
 
 ##### Resolving a base name
 
@@ -1017,7 +997,7 @@ _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 - `name` - _required_: the name of the ArNS record to purchase
 - `type` - _required_: the type of ArNS record to purchase
-- `processId` - _optional_: the process id of an existing ANT process. If not provided, a new ANT process using the provided `signer` will be spawned, and the ArNS record will be assigned to that process.
+- `processId` - _optional_: the mint address of an existing ANT (Metaplex Core NFT). If not provided, a new ANT will be minted using the provided `signer`, and the ArNS record will be assigned to it.
 - `years` - _optional_: the duration of the ArNS record in years. If not provided and `type` is `lease`, the record will be leased for 1 year. If not provided and `type` is `permabuy`, the record will be permanently registered.
 - `referrer` - _optional_: track purchase referrals for analytics (e.g. `my-app.com`)
 
@@ -1028,7 +1008,7 @@ const record = await ario.buyRecord(
     name: 'ardrive',
     type: 'lease',
     years: 1,
-    processId: 'bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM', // optional: assign to existing ANT process
+    processId: 'bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM', // optional: assign to existing ANT mint address
     referrer: 'my-app.com', // optional: track purchase referrals for analytics
   },
   {
@@ -1036,11 +1016,11 @@ const record = await ario.buyRecord(
     tags: [{ name: 'App-Name', value: 'ArNS-App' }],
     onSigningProgress: (step, event) => {
       console.log(`Signing progress: ${step}`);
-      if (step === 'spawning-ant') {
-        console.log('Spawning ant:', event);
+      if (step === 'minting-ant') {
+        console.log('Minting ANT:', event);
       }
       if (step === 'registering-ant') {
-        console.log('Registering ant:', event);
+        console.log('Registering ANT:', event);
       }
       if (step === 'verifying-state') {
         console.log('Verifying state:', event);
@@ -1096,7 +1076,7 @@ const record = await ario.getArNSRecord({ name: 'ardrive' });
 
 #### getArNSRecords()
 
-Retrieves all registered ArNS records of the ARIO process, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last ArNS name from the previous request.
+Retrieves all registered ArNS records of the ARIO protocol, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last ArNS name from the previous request.
 
 ```typescript
 const ario = ARIO.mainnet();
@@ -1116,7 +1096,7 @@ Available `sortBy` options are any of the keys on the record object, e.g. `name`
 {
   "items": [
     {
-      "name": "ao",
+      "name": "solana",
       "processId": "eNey-H9RB9uCdoJUvPULb35qhZVXZcEXv8xds4aHhkQ",
       "purchasePrice": 75541282285,
       "startTimestamp": 1720720621424,
@@ -1152,7 +1132,7 @@ Available `sortBy` options are any of the keys on the record object, e.g. `name`
       "undernameLimit": 100
     },
     {
-      "name": "fwd",
+      "name": "backward",
       "processId": "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM",
       "endTimestamp": 1720720819969,
       "startTimestamp": 1720720220811,
@@ -1163,7 +1143,7 @@ Available `sortBy` options are any of the keys on the record object, e.g. `name`
     // ...95 other records
   ],
   "hasMore": true,
-  "nextCursor": "fwdresearch",
+  "nextCursor": "helloCursor",
   "totalItems": 21740,
   "sortBy": "startTimestamp",
   "sortOrder": "desc"
@@ -1217,7 +1197,7 @@ Increases the undername support of a domain up to a maximum of 10k. Domains, by 
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.mainnet({ signer: signer });
 const { id: txId } = await ario.increaseUndernameLimit(
   {
     name: 'ar-io',
@@ -1234,7 +1214,7 @@ const { id: txId } = await ario.increaseUndernameLimit(
 Extends the lease of a registered ArNS domain, with an extension of 1-5 years depending on grace period status. Permanently registered domains cannot be extended.
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.mainnet({ signer: signer });
 const { id: txId } = await ario.extendLease(
   {
     name: 'ar-io',
@@ -1317,7 +1297,7 @@ const demandFactor = await ario.getDemandFactor();
 
 #### getArNSReturnedNames()
 
-Retrieves all active returned names of the ARIO process, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last returned name from the previous request.
+Retrieves all active returned names of the ARIO protocol, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last returned name from the previous request.
 
 ```typescript
 const ario = ARIO.mainnet();
@@ -1385,24 +1365,34 @@ const returnedName = await ario.getArNSReturnedName({ name: 'permalink' });
 
 # Configuration (/(ario-contract)/configuration)
 
-The ARIO client class exposes APIs relevant to the ar.io process. It can be configured to use any AO Process ID that adheres to the [ARIO Network Spec]. By default, it will use the current [ARIO Testnet Process]. Refer to [AO Connect] for more information on how to configure an ARIO process to use specific AO infrastructure.
+**Solana support requires `@ar.io/sdk` version 3.23 or later.** Use the latest SDK version for current protocol interactions.
+
+The ARIO client class exposes APIs relevant to the ar.io protocol. By default, `ARIO.mainnet()` connects to the Solana mainnet cluster. You can provide a custom Solana RPC URL for different environments or infrastructure providers.
+
+### Installation
+
+```bash
+npm install @ar.io/sdk @solana/kit
+```
+
+### Basic Usage
 
 ```typescript
 
-// provide a custom ao infrastructure and process id
+// default Solana mainnet connection
+const ario = ARIO.mainnet();
+
+// custom Solana RPC endpoint (recommended for production)
 const ario = ARIO.mainnet({
-  process: new AOProcess({
-    processId: 'ARIO_PROCESS_ID'
-    ao: connect({
-      MODE: 'legacy',
-      MU_URL: 'https://mu-testnet.xyz',
-      CU_URL: 'https://cu-testnet.xyz',
-      GRAPHQL_URL: 'https://arweave.net/graphql',
-      GATEWAY_URL: 'https://arweave.net',
-    })
-  })
+  rpcUrl: 'https://your-rpc-provider.com',
 });
 ```
+
+The default public Solana RPC (`api.mainnet-beta.solana.com`) is rate-limited and may block certain queries. For production use, configure a dedicated RPC provider such as [Helius](https://helius.dev), [Triton](https://triton.one), or [QuickNode](https://quicknode.com).
+
+### Transaction Fees
+
+All write operations (staking, delegating, registering names, setting records) require a small amount of **SOL** for Solana transaction fees — typically less than 0.01 SOL per transaction.
 
 # Epochs (/(ario-contract)/epochs)
 
@@ -1619,7 +1609,7 @@ Saves the observations of the current epoch. Requires `signer` to be provided on
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.mainnet({ signer });
 const { id: txId } = await ario.saveObservations(
   {
     reportTxId: 'fDrr0_J4Iurt7caNST02cMotaz2FIbWQ4Kcj616RHl3',
@@ -1633,7 +1623,7 @@ const { id: txId } = await ario.saveObservations(
 
 #### getPrescribedObservers()
 
-Retrieves the prescribed observers of the ARIO process. To fetch prescribed observers for a previous epoch set the `epochIndex` to the desired epoch index.
+Retrieves the prescribed observers of the ARIO protocol. To fetch prescribed observers for a previous epoch set the `epochIndex` to the desired epoch index.
 
 ```typescript
 const ario = ARIO.mainnet();
@@ -1679,9 +1669,9 @@ const gateway = await ario.getGateway({
   "observerAddress": "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs",
   "operatorStake": 250000000000,
   "settings": {
-    "fqdn": "ar-io.dev",
-    "label": "AR.IO Test",
-    "note": "Test Gateway operated by PDS for the AR.IO ecosystem.",
+    "fqdn": "turbo-gateway.com",
+    "label": "ar.io Test",
+    "note": "Test Gateway operated by PDS for the ar.io ecosystem.",
     "port": 443,
     "properties": "raJgvbFU-YAnku-WsupIdbTsqqGLQiYpGzoqk9SCVgY",
     "protocol": "https"
@@ -1709,7 +1699,7 @@ const gateway = await ario.getGateway({
 
 #### getGateways()
 
-Retrieves registered gateways of the ARIO process, using pagination and sorting by the specified criteria. The `cursor` used for pagination is the last gateway address from the previous request.
+Retrieves registered gateways of the ARIO protocol, using pagination and sorting by the specified criteria. The `cursor` used for pagination is the last gateway address from the previous request.
 
 ```typescript
 const ario = ARIO.mainnet();
@@ -1732,9 +1722,9 @@ Available `sortBy` options are any of the keys on the gateway object, e.g. `oper
       "observerAddress": "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs",
       "operatorStake": 250000000000,
       "settings": {
-        "fqdn": "ar-io.dev",
-        "label": "AR.IO Test",
-        "note": "Test Gateway operated by PDS for the AR.IO ecosystem.",
+        "fqdn": "turbo-gateway.com",
+        "label": "ar.io Test",
+        "note": "Test Gateway operated by PDS for the ar.io ecosystem.",
         "port": 443,
         "properties": "raJgvbFU-YAnku-WsupIdbTsqqGLQiYpGzoqk9SCVgY",
         "protocol": "https"
@@ -1818,18 +1808,17 @@ Joins a gateway to the ar.io network via its associated wallet.
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.mainnet({ signer });
 const { id: txId } = await ario.joinNetwork(
   {
     qty: new ARIOToken(10_000).toMARIO(), // minimum operator stake allowed
-    autoStake: true, // auto-stake operator rewards to the gateway
     allowDelegatedStaking: true, // allows delegated staking
     minDelegatedStake: new ARIOToken(100).toMARIO(), // minimum delegated stake allowed
     delegateRewardShareRatio: 10, // percentage of rewards to share with delegates (e.g. 10%)
     label: 'john smith', // min 1, max 64 characters
     note: 'The example gateway', // max 256 characters
     properties: 'FH1aVetOoulPGqgYukj0VE0wIhDy90WiQoV3U2PeY44', // Arweave transaction ID containing additional properties of the Gateway
-    observerWallet: '0VE0wIhDy90WiQoV3U2PeY44FH1aVetOoulPGqgYukj', // wallet address of the observer, must match OBSERVER_WALLET on the observer
+    observerWallet: '7xKXtR2qpZm8FjvKNsG3kL9p5yMnYhVdEbxQ4oWc2Rn', // Solana pubkey of the observer, must be unique across all gateways
     fqdn: 'example.com', // fully qualified domain name - note: you must own the domain and set the OBSERVER_WALLET on your gateway to match `observerWallet`
     port: 443, // port number
     protocol: 'https', // only 'https' is supported
@@ -1846,7 +1835,7 @@ Sets the gateway as `leaving` on the ar.io network. Requires `signer` to be prov
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.mainnet({ signer });
 
 const { id: txId } = await ario.leaveNetwork(
   // optional additional tags
@@ -1861,7 +1850,7 @@ Writes new gateway settings to the callers gateway configuration.
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.mainnet({ signer });
 const { id: txId } = await ario.updateGatewaySettings(
   {
     // any other settings you want to update
@@ -1879,7 +1868,7 @@ Increases the callers stake on the target gateway.
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.mainnet({ signer });
 const { id: txId } = await ario.increaseDelegateStake(
   {
     target: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
@@ -1897,7 +1886,7 @@ Decreases the callers stake on the target gateway. Can instantly decrease stake 
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.mainnet({ signer });
 const { id: txId } = await ario.decreaseDelegateStake(
   {
     target: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
@@ -1912,7 +1901,7 @@ const { id: txId } = await ario.decreaseDelegateStake(
 Pay the early withdrawal fee and withdraw instantly.
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.mainnet({ signer });
 const { id: txId } = await ario.decreaseDelegateStake({
   target: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
   qty: new ARIOToken(100).toMARIO(),
@@ -1973,7 +1962,7 @@ Instantly withdraws an existing vault on a gateway. If no `gatewayAddress` is pr
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.mainnet({ signer });
 // removes a delegated vault from a gateway
 const { id: txId } = await ario.instantWithdrawal(
   {
@@ -2002,7 +1991,7 @@ Cancels an existing vault on a gateway. The vaulted stake will be returned to th
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.mainnet({ signer });
 // cancels a delegated vault from a gateway
 const { id: txId } = await ario.cancelWithdrawal(
   {
@@ -2126,7 +2115,7 @@ Increases the callers operator stake. Must be executed with a wallet registered 
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.mainnet({ signer });
 const { id: txId } = await ario.increaseOperatorStake(
   {
     qty: new ARIOToken(100).toMARIO(),
@@ -2144,7 +2133,7 @@ Decreases the callers operator stake. Must be executed with a wallet registered 
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.mainnet({ signer });
 const { id: txId } = await ario.decreaseOperatorStake(
   {
     qty: new ARIOToken(100).toMARIO(),
@@ -2162,7 +2151,7 @@ Redelegates the stake of a specific address to a new gateway. Vault ID may be op
 e.g: If 1000 mARIO is redelegated and the fee rate is 10%, the fee will be 100 mARIO. Resulting in 900 mARIO being redelegated to the new gateway and 100 mARIO being deducted back to the protocol balance.
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.mainnet({ signer });
 
 const { id: txId } = await ario.redelegateStake({
   target: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
@@ -2241,23 +2230,34 @@ const delegates = await ario.getAllDelegates({
 
 #### init()
 
-Factory function to that creates a read-only or writeable client. By providing a `signer` additional write APIs that require signing, like `joinNetwork` and `delegateStake` are available. By default, a read-only client is returned and no write APIs are available.
+Factory function that creates a read-only or writeable client. By providing a `signer`, additional write APIs that require signing (like `joinNetwork` and `delegateStake`) become available. By default, a read-only client is returned.
+
+For write operations, create a signer using `@solana/kit` (install with `npm install @solana/kit`).
 
 ```typescript
-// read-only client
-const ario = ARIO.init();
 
-// read-write client for browser environments
-const ario = ARIO.init({ signer: new ArConnectSigner(window.arweaveWallet, Arweave.init({}))});
+// read-only client (Solana mainnet)
+const readOnlyClient = ARIO.init();
+```
 
-// read-write client for node environments
-const ario = ARIO.init({ signer: new ArweaveSigner(JWK) });
+```typescript
 
+// read-write client for node environments (Solana keypair JSON file)
+const keypairBytes = new Uint8Array(
+  JSON.parse(fs.readFileSync('./solana-keypair.json', 'utf-8')),
+);
+const signer = await createKeyPairSignerFromBytes(keypairBytes);
+const ario = ARIO.init({ signer });
+```
+
+```typescript
+// read-write client for browser environments (Phantom, Solflare, etc.)
+const ario = ARIO.init({ signer: walletAdapter });
 ```
 
 #### getInfo()
 
-Retrieves the information of the ARIO process.
+Retrieves the information of the ARIO protocol.
 
 ```typescript
 const ario = ARIO.mainnet();
@@ -2331,7 +2331,7 @@ const balance = await ario
 
 #### getBalances()
 
-Retrieves the balances of the ARIO process in `mARIO`, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last wallet address from the previous request.
+Retrieves the balances of the ARIO protocol in `mARIO`, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last wallet address from the previous request.
 
 ```typescript
 const ario = ARIO.mainnet();
@@ -2374,7 +2374,7 @@ _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
 const ario = ARIO.mainnet({
-  signer: new ArweaveSigner(jwk),
+  signer: signer,
 });
 const { id: txId } = await ario.transfer(
   {
@@ -2388,17 +2388,14 @@ const { id: txId } = await ario.transfer(
 
 # Networks (/(ario-contract)/networks)
 
-The SDK provides the following process IDs for the mainnet and testnet environments:
+The SDK provides program addresses for the mainnet and testnet environments:
 
-- `ARIO_MAINNET_PROCESS_ID` - Mainnet ARIO process ID (production)
-- `ARIO_TESTNET_PROCESS_ID` - Testnet ARIO process ID (testing and development)
-- `ARIO_DEVNET_PROCESS_ID` - Devnet ARIO process ID (development)
+- `ARIO_MAINNET_PROGRAM_ID` — Solana mainnet program address (production)
+- `ARIO_TESTNET_PROGRAM_ID` — Solana devnet program address (testing and development)
 
-As of `v3.8.1` the SDK defaults all API interactions to **mainnet**. To use the **testnet** or **devnet** provide the appropriate `ARIO_TESTNET_PROCESS_ID` or `ARIO_DEVNET_PROCESS_ID` when initializing the client.
+As of `v3.23` the SDK defaults all API interactions to **Solana mainnet**.
 
 #### Mainnet
-
-As of `v3.8.1` the SDK defaults all API interactions to **mainnet**. To use the **testnet** or **devnet** provide the appropriate `ARIO_TESTNET_PROCESS_ID` or `ARIO_DEVNET_PROCESS_ID` when initializing the client.
 
 ```typescript
 
@@ -2409,70 +2406,8 @@ const ario = ARIO.mainnet(); // or ARIO.init()
 
 ```typescript
 
-const testnet = ARIO.testnet(); // or ARIO.init({ processId: ARIO_TESTNET_PROCESS_ID })
-```
-
-##### Faucet
-
-The SDK provides APIs for claiming tokens via a faucet on the AR.IO Testnet process (`tARIO`) via the [ar-io-testnet-faucet] service. All token requests require a captcha to be solved, and the faucet is rate limited to prevent abuse.
-
-To claim testnet tokens from the testnet token faucet, you can use one of the following methods:
-
-1. Visit [faucet.ar.io](https://faucet.ar.io) - the easiest way to quickly get tokens for testing for a single address.
-
-2. Programmatically via the SDK - useful if you need to claim tokens for multiple addresses or dynamically within your application.
-
-   - `ARIO.testnet().faucet.captchaUrl()` - returns the captcha URL for the testnet faucet. Open this URL in a new browser window and listen for the `ario-jwt-success` event to be emitted.
-   - `ARIO.testnet().faucet.claimWithAuthToken({ authToken, recipient, quantity })` - claims tokens for the specified recipient address using the provided auth token.
-   - `ARIO.testnet().faucet.verifyAuthToken({ authToken })` - verifies if the provided auth token is still valid.
-
-  Example client-side code for claiming tokens
-
-```typescript
-
 const testnet = ARIO.testnet();
-const captchaUrl = await ario.faucet.captchaUrl();
-
-// open the captcha URL in the browser, and listen for the auth token event
-const captchaWindow = window.open(
-  captchaUrl.captchaUrl,
-  '_blank',
-  'width=600,height=600',
-);
-/**
- * The captcha URL includes a window.parent.postMessage event that is used to send the auth token to the parent window.
- * You can store the auth token in localStorage and use it to claim tokens for the duration of the auth token's expiration (default 1 hour).
- */
-window.parent.addEventListener('message', async (event) => {
-  if (event.data.type === 'ario-jwt-success') {
-    localStorage.setItem('ario-jwt', event.data.token);
-    localStorage.setItem('ario-jwt-expires-at', event.data.expiresAt);
-    // close our captcha window
-    captchaWindow?.close();
-    // claim the tokens using the JWT token
-    const res = await testnet.faucet
-      .claimWithAuthToken({
-        authToken: event.data.token,
-        recipient: await window.arweaveWallet.getActiveAddress(),
-        quantity: new ARIOToken(100).toMARIO().valueOf(), // 100 ARIO
-      })
-      .then((res) => {
-        alert(
-          'Successfully claimed 100 ARIO tokens! Transaction ID: ' + res.id,
-        );
-      })
-      .catch((err) => {
-        alert(`Failed to claim tokens: ${err}`);
-      });
-  }
-});
-
-/**
- * Once you have a valid JWT, you can check if it is still valid and use it for subsequent requests without having to open the captcha again.
- */
-if (
-  localStorage.getItem('ario-jwt-expires-at') &&
-  Date.now()
+```
 
 # Primary Names (/(ario-contract)/primary-names)
 
@@ -2542,9 +2477,8 @@ Sets an ArNS name already owned by the `signer` as their primary name. Note: `si
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const signer = new ArweaveSigner(jwk);
 const ario = ARIO.mainnet({ signer });
-await ario.setPrimaryName({ name: 'my-arns-name' }); // the caller must already have purchased the name my-arns-name and be assigned as the owner of the processId that is assigned to the name
+await ario.setPrimaryName({ name: 'my-arns-name' }); // the caller must own the ANT assigned to this name
 ```
 
 #### requestPrimaryName()
@@ -2554,7 +2488,7 @@ Requests a primary name for the `signer`'s address. The request must be approved
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.mainnet({ signer });
 const { id: txId } = await ario.requestPrimaryName({
   name: 'arns',
 });
@@ -2586,7 +2520,7 @@ const request = await ario.getPrimaryNameRequest({
 
 #### getVault()
 
-Retrieves the locked-balance user vault of the ARIO process by the specified wallet address and vault ID.
+Retrieves the locked-balance user vault of the ARIO protocol by the specified wallet address and vault ID.
 
 ```typescript
 const ario = ARIO.mainnet();
@@ -2608,7 +2542,7 @@ const vault = await ario.getVault({
 
 #### getVaults()
 
-Retrieves all locked-balance user vaults of the ARIO process, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last wallet address from the previous request.
+Retrieves all locked-balance user vaults of the ARIO protocol, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last wallet address from the previous request.
 
 ```typescript
 const ario = ARIO.mainnet();
@@ -2656,7 +2590,7 @@ Transfers `mARIO` to the designated `recipient` address and locks the balance fo
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.mainnet({ signer });
 const { id: txId } = await ario.vaultedTransfer(
   {
     recipient: '-5dV7nk7waR8v4STuwPnTck1zFVkQqJh5K9q9Zik4Y5',
@@ -2676,7 +2610,7 @@ Revokes a vaulted transfer by the recipient address and vault ID. Only the sende
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.mainnet({ signer });
 const { id: txId } = await ario.revokeVault({
   recipient: '-5dV7nk7waR8v4STuwPnTck1zFVkQqJh5K9q9Zik4Y5',
   vaultId: 'IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs',
@@ -2688,7 +2622,7 @@ const { id: txId } = await ario.revokeVault({
 Creates a vault for the specified `quantity` of mARIO from the signer's balance and locks it for the specified `lockLengthMs` milliseconds.
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.mainnet({ signer });
 
 const { id: txId } = await ario.createVault({
   lockLengthMs: 1000 * 60 * 60 * 24 * 365, // 1 year
@@ -2701,7 +2635,7 @@ const { id: txId } = await ario.createVault({
 Extends the lock length of a signer's vault by the specified `extendLengthMs` milliseconds.
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.mainnet({ signer });
 
 const { id: txId } = await ario.extendVault({
   vaultId: 'vaultIdOne',
@@ -2714,22 +2648,165 @@ const { id: txId } = await ario.extendVault({
 Increases the balance of a signer's vault by the specified `quantity` of mARIO.
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.mainnet({ signer });
 const { id: txId } = await ario.increaseVault({
   vaultId: 'vaultIdOne',
   quantity: new ARIOToken(1000).toMARIO(),
 });
 ```
 
-# AR.IO SDK (/index)
+# ar.io SDK (/index)
 
-**For AI and LLM users**: Access the complete AR.IO SDK documentation in plain text
-  format at llm.txt for easy consumption by AI agents
-  and language models.
+The ar.io SDK provides comprehensive tools for interacting with ar.io and the Arweave ecosystem. Built with TypeScript, it offers type-safe interfaces for ArNS name management, gateway operations, and Solana program interactions. The SDK defaults to the Solana backend as of v3.23.
 
-# AR.IO SDK
+## Quick Start
 
-Please refer to the [source code](https://github.com/ar-io/ar-io-sdk) for SDK details.
+**Requires `@ar.io/sdk` version 3.23+** for Solana support. Write operations also need `@solana/kit` for signing — see the [Configuration](/sdks/ar-io-sdk/configuration) page for setup details.
+
+        ### Install the SDK
+
+        ```npm
+        npm install @ar.io/sdk
+        ```
+
+        ### Use the SDK
+
+        ```javascript
+        
+        // Connect to mainnet
+        const ario = ARIO.mainnet();
+
+        // Get paginated gateway registry
+        const { items: gateways } = await ario.getGateways();
+
+        // Get paginated ArNS registry
+        const { items: records } = await ario.getArNSRecords();
+
+        console.log('Network data:', { gateways, records });
+        ```
+
+        ### Install the SDK
+
+        ```npm
+        npm install @ar.io/sdk
+        ```
+
+        ### Install polyfills (required for web environments)
+
+        Polyfills are required for React web environments due to the use of `crypto`, `buffer` and `process` types in the SDK's dependencies.
+
+        ```npm
+        npm install --save-dev vite-plugin-node-polyfills
+        ```
+
+        ```js
+        // vite.config.js
+                
+                  plugins: [
+            nodePolyfills({
+              globals: {
+                Buffer: true,
+                global: true,
+                process: true,
+              },
+            }),
+          ],
+        });
+        ```
+
+        Configure your bundler (Webpack, Vite, Rollup, etc.) to provide polyfills for `crypto`, `process`, and `buffer`. Refer to your bundler's documentation for polyfill configuration.
+
+        ### Use the SDK
+
+        ```javascript
+        
+        // Connect to mainnet
+        const ario = ARIO.mainnet();
+
+        // Get paginated gateway registry
+        const { items: gateways } = await ario.getGateways();
+
+        // Get paginated ArNS registry
+        const { items: records } = await ario.getArNSRecords();
+
+        console.log('Network data:', { gateways, records });
+        ```
+
+    ```html
+
+        ar.io SDK Example
+        
+            // Polyfills are included in the minimized web bundle, so not necessary to import directly
+                        
+            // Connect to mainnet
+            const ario = ARIO.mainnet();
+            
+            // Function to load ar.io data
+            async function loadArioData() {
+                try {
+                    // Get gateway information
+                    const { items: gateways } = await ario.getGateways();
+                    
+                    // Get ArNS records
+                    const { items: records } = await ario.getArNSRecords();
+                    
+                    // Display results
+                    document.getElementById('results').innerHTML = `
+                        Gateways: ${Object.keys(gateways).length}
+                        ArNS Records: ${Object.keys(records).length}
+                        ${JSON.stringify({ gateways, records }, null, 2)}
+                    `;
+                } catch (error) {
+                    document.getElementById('results').innerHTML = `
+                        Error: ${error.message}
+                    `;
+                }
+            }
+            
+            // Load data when page loads
+            window.addEventListener('load', loadArioData);
+
+        ar.io SDK Example
+        
+            Loading ar.io data...
+
+    ```
+
+## API Reference & Documentation
+
+  }
+    title="API Reference"
+    description="Complete API documentation for all SDK methods and classes"
+    href="/apis/ar-io-node"
+  />
+  }
+    title="SDK Details"
+    description="Detailed guides for ARIO contracts, ANT operations, and utilities"
+    href="/sdks/ar-io-sdk/arweave-name-system-arns"
+  />
+
+## Core Features
+
+  }
+    title="ARIO Protocol Operations"
+    description="ArNS management, gateway discovery, and network configuration"
+    href="/sdks/ar-io-sdk/arweave-name-system-arns"
+  />
+  }
+    title="ANT Contract Integration"
+    description="Initialize, manage records, and transfer ANT ownership"
+    href="/sdks/ar-io-sdk/initialize"
+  />
+  }
+    title="Pagination & Utilities"
+    description="Handle large datasets and token conversions efficiently"
+    href="/sdks/ar-io-sdk/overview"
+  />
+  }
+    title="Token Operations"
+    description="ARIO token conversions and management utilities"
+    href="/sdks/ar-io-sdk/converting-ario-to-mario"
+  />
 
 # Logging (/logging)
 
@@ -2868,9 +2945,9 @@ In the example above, the query will return ArNS records where:
 
 # Token Conversion (/token-conversion)
 
-The ARIO process stores all values as mARIO (micro-ARIO) to avoid floating-point arithmetic issues. The SDK provides an `ARIOToken` and `mARIOToken` classes to handle the conversion between ARIO and mARIO, along with rounding logic for precision.
+The ARIO protocol stores all values as mARIO (micro-ARIO) to avoid floating-point arithmetic issues. The SDK provides `ARIOToken` and `mARIOToken` classes to handle the conversion between ARIO and mARIO, along with rounding logic for precision.
 
-**All process interactions expect values in mARIO. If numbers are provided as inputs, they are assumed to be in raw mARIO values.**
+**All protocol operations expect values in mARIO. If numbers are provided as inputs, they are assumed to be in raw mARIO values.**
 
 #### Converting ARIO to mARIO
 

@@ -1,0 +1,182 @@
+---
+title: "Operator Attestations"
+description: "Run the ar.io Verify sidecar to independently verify Arweave data and issue operator-signed attestations"
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Steps, Step } from "fumadocs-ui/components/steps";
+
+[`ar-io-verify`](https://github.com/ar-io/ar-io-verify) is a verification sidecar for ar.io gateways. It fetches data through a gateway, reconstructs the cryptographic proof, reports the strongest verification level reached, and can sign the result as an operator attestation.
+
+For verifiable AI, this gives an independent party a way to verify the envelopes written by `ar-io-mlflow` without trusting the training or inference service.
+
+For the broader network model behind gateway claims, client-side checks, and economic accountability, see [Verification and Accountability](/learn/verification).
+
+## Verification levels
+
+| Level | Name | What it proves |
+| --- | --- | --- |
+| 1 | Existence confirmed | The transaction exists on Arweave and is associated with a confirmed block. |
+| 2 | Partially verified | The sidecar downloaded the bytes and computed a matching SHA-256 fingerprint. |
+| 3 | Verified | The sidecar verified the original Arweave or ANS-104 signature against the signed data. |
+
+When the operator configures a wallet, the sidecar signs the verification result with RSA-PSS SHA-256. That attestation can be checked later using the operator public key.
+
+## Deploy the sidecar
+
+<Steps>
+<Step>
+### Start from the reference repo
+
+```bash
+git clone https://github.com/ar-io/ar-io-verify.git
+cd ar-io-verify
+pnpm install
+```
+</Step>
+
+<Step>
+### Run locally for development
+
+In one terminal, run the server:
+
+```bash
+pnpm run dev
+```
+
+In another terminal, run the standalone web UI:
+
+```bash
+pnpm --filter verify-web run dev
+```
+</Step>
+
+<Step>
+### Run beside an ar.io gateway
+
+The Docker deployment expects an existing gateway on the `ar-io-network` Docker network.
+
+```bash
+cd deploy
+cp .env.example .env
+```
+
+Edit `.env`:
+
+```bash
+VERIFY_IMAGE=ar-io-verify:local
+GATEWAY_URL=http://ar-io-node-envoy-1:3000
+GATEWAY_HOST=example.com
+PUBLIC_GATEWAY_URL=https://example.com
+VERIFY_PORT=4001
+NODE_ENV=production
+WALLET_FILE=/absolute/path/to/operator-wallet.json
+```
+
+Start the sidecar and nginx proxy:
+
+```bash
+bash start.sh
+```
+</Step>
+</Steps>
+
+## Connect ar-io-mlflow to ar.io Verify
+
+Set the plugin's Verify endpoint to the sidecar base URL exposed by your operator.
+
+```bash
+export ARIO_MLFLOW_ARIO_VERIFY_URL=https://example.com
+```
+
+After this is configured, `ar-io-mlflow verify run`, `verify model`, and `verify trace` include the ar.io attestation row and write attestation metadata back to MLflow tags when available:
+
+- `ario.attestation_level`
+- `ario.report_url`
+- `ario.attested_by`
+- `ario.attested_at`
+
+<Callout type="info">
+The configured base URL must expose `GET /health` and `POST /api/v1/verify`. If you mount the sidecar under a path prefix, make sure those routes are still available under that same prefix.
+</Callout>
+
+## Single-transaction API
+
+Submit a transaction ID for verification:
+
+```bash
+curl -X POST http://localhost:4001/api/v1/verify \
+  -H "Content-Type: application/json" \
+  -d '{"txId":"<arweave_tx_id>"}'
+```
+
+Fetch the cached result:
+
+```bash
+curl http://localhost:4001/api/v1/verify/<verification_id>
+```
+
+Download the PDF certificate:
+
+```bash
+curl -L http://localhost:4001/api/v1/verify/<verification_id>/pdf \
+  -o verification.pdf
+```
+
+Fetch the programmatic attestation:
+
+```bash
+curl http://localhost:4001/api/v1/verify/<verification_id>/attestation
+```
+
+The same API is used by the standalone `/verify/` UI and by ar.io Console integrations.
+
+## Batch verification jobs
+
+Use jobs for periodic audits, upload reconciliation, or verifier workflows that need to check many transaction IDs.
+
+```bash
+curl -X POST http://localhost:4001/api/v1/jobs \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-Id: audit-team" \
+  -H "Idempotency-Key: run-2026-05-14" \
+  -d '{"txIds":["<tx_id_1>","<tx_id_2>"]}'
+```
+
+Check status:
+
+```bash
+curl -H "X-Tenant-Id: audit-team" \
+  http://localhost:4001/api/v1/jobs/<job_id>
+```
+
+Fetch the signed verification bundle:
+
+```bash
+curl -H "X-Tenant-Id: audit-team" \
+  http://localhost:4001/api/v1/jobs/<job_id>/report
+```
+
+The bundle is canonical JSON. To verify it offline, re-serialize the bundle without `signature` and `payloadHash`, compute SHA-256, compare that to `payloadHash`, then verify the RSA-PSS SHA-256 signature against `operatorPublicKey`.
+
+## Operations
+
+The sidecar exposes:
+
+- `GET /health` for liveness
+- `GET /ready` for DB and gateway readiness
+- `GET /metrics` for Prometheus metrics
+- `GET /api-docs/` for Swagger UI
+
+Production deployments should restrict `/metrics` and administrative routes at the proxy layer, inject `X-Tenant-Id` from authenticated infrastructure for batch jobs, and treat the attestation wallet as a production signing secret.
+
+## Production checklist
+
+- Configure `GATEWAY_URL` to a gateway reachable from the sidecar container.
+- Set `GATEWAY_HOST` to the public operator hostname included in attestations.
+- Set `PUBLIC_GATEWAY_URL` when browser previews need a public gateway URL.
+- Mount `WALLET_FILE` read-only if operator-signed attestations are required.
+- Monitor readiness failures, gateway request failures, job duration, and verification outcomes.
+- Configure `ARIO_MLFLOW_ARIO_VERIFY_URL` in MLflow verification environments.
+
+With these pieces in place, training, model, and inference proofs anchored by `ar-io-mlflow` can be independently verified and attested by an ar.io gateway operator.

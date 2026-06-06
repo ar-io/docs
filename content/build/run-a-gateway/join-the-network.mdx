@@ -27,15 +27,19 @@ Take control of the permanent web by running your own **ar.io Gateway**. Join th
   <Step>
     ### Minimum Stake Requirement
 
-    To join the network as a gateway operator, you need **10,000 ARIO tokens** as the minimum stake requirement.
+    To join the network as a gateway operator, you need **20,000 ARIO tokens** as the minimum stake requirement.
 
     **Need to acquire ARIO tokens?** Visit our [Get the Token guide](/learn/token/get-the-token) to learn about all available methods including exchanges, DEXs, and network participation.
 
     **Acquisition Options:**
     - Purchase on centralized exchanges like Gate.io
-    - Trade on decentralized exchanges (Dexi, Botega, Vento)
-    - Use Wander wallet for easy exchange and swap functionality
+    - Trade on Solana DEXs (Jupiter, Raydium)
+    - Use a Solana wallet (Phantom, Solflare, Backpack) to manage tokens
     - Earn through network participation and community programs
+    
+    <Callout type="info">
+    You will also need SOL in your wallet for Solana transaction fees when joining the network.
+    </Callout>
   </Step>
 </Steps>
 
@@ -67,7 +71,7 @@ Choose your preferred method to register your gateway:
       <img src="/content/join-2.png" alt="Connect Wallet" className="max-w-md rounded-lg" />
     </div>
 
-    Choose your preferred wallet (Wander, Metamask, or Beacon) to connect.
+    Choose your preferred Solana wallet (Phantom, Solflare, or Backpack) to connect.
 
     <Callout type="warning" title="Wallet Address Requirement">
       Use the same wallet address that you configured in your gateway's `AR_IO_WALLET` environment variable. This wallet will be the owner of your gateway registration.
@@ -88,7 +92,7 @@ Choose your preferred method to register your gateway:
     - **Address**: Your gateway's domain with port (e.g., `https://fastandfurious.io:443`)
     - **Observer Wallet**: The public address of your observer wallet
     - **Properties ID**: Transaction ID of your gateway properties
-    - **Stake (ARIO)**: Minimum stake required (typically 10,000 ARIO)
+    - **Stake (ARIO)**: Minimum stake required (20,000 ARIO)
     - **Delegated Staking**: Enable to allow others to delegate stake to your gateway
     - **Minimum Delegated Stake**: Set minimum delegation amount (e.g., 100 ARIO)
     - **Reward Share Ratio**: Percentage of rewards shared with delegators (e.g., 50%)
@@ -135,51 +139,82 @@ Choose your preferred method to register your gateway:
       <Step>
         ### Run the Join Network Command
 
-        Use the `ar.io join-network` command with your gateway configuration:
+        Use the `ar.io join-network` command with your gateway configuration. The operator key can be supplied either as a JSON keypair file (`--wallet-file`) or as a base58-encoded 64-byte secret key string (`--private-key`). The latter is the format Phantom and similar browser wallets export, so most operators can paste it directly.
 
         ```bash
         ar.io join-network \
-          --wallet-file ./path/to/wallet.json \
-          --qty 10000000000 \
-          --auto-stake true \
-          --allow-delegated-staking true \
+          --wallet-file ./path/to/solana-keypair.json \
+          -t solana \
+          --mainnet \
+          --rpc-url https://api.mainnet-beta.solana.com \
+          --core-program-id 73YoECm6NKXpVRoe5f1Q9BcP5DJGPFUjnFy6AxBE5Nvh \
+          --gar-program-id 89fNiiwgpFSPHKuqfNUkgYTYjtAJAhyqHjXmgXeppGpf \
+          --arns-program-id 2yCUx5edFvUrkibYaUa2ZXWyx9kuJkS8CwyzsgHPWdZZ \
+          --ant-program-id 2MWexMHfMhGJwMHv9Qm9YAVCqjUFUJwDJAysW4oCUGk5 \
+          --operator-stake 20000 \
+          --auto-stake \
+          --allow-delegated-staking \
           --min-delegated-stake 100000000 \
           --delegate-reward-share-ratio 10 \
-          --label "My Test Gateway" \
-          --note "Test gateway for development" \
-          --observer-wallet 0VE0wIhDy90WiQoV3U2PeY44FH1aVetOoulPGqgYukj \
+          --label "My Gateway" \
+          --note "Production ar.io gateway" \
+          --observer-address 7xKXtR2qpZm8FjvKNsG3kL9p5yMnYhVdEbxQ4oWc2Rn \
           --fqdn my-gateway.example.com \
           --port 443 \
-          --protocol https \
-          --mainnet
+          --protocol https
         ```
 
-        <Callout type="warning" title="Wallet File Requirement">
-          The wallet file used in the `--wallet-file` parameter must be the same wallet configured in your ar.io Gateway's `AR_IO_WALLET` environment variable. This ensures your gateway registration is properly linked to your running gateway instance.
+        <Callout type="info" title="Phantom-export base58 key">
+          To use a Phantom-exported secret key directly, replace `--wallet-file ./path/to/solana-keypair.json` with `--private-key '<base58-string>'`. The SDK decodes the 64-byte secret, derives the public key, and signs in-memory — no JSON file required.
+        </Callout>
+
+        <Callout type="warning" title="Operator vs Observer Identity">
+          The public key derived from your `--wallet-file` / `--private-key` becomes your `AR_IO_WALLET` (operator). The `--observer-address` must be a **unique** Solana address; no two gateways can share an observer. If you don't have a separate observer key, set `--observer-address` to your operator address. The gateway accepts this single-key setup.
         </Callout>
 
         **Parameter explanations:**
-        - `--qty 10000000000` - 10,000 ARIO in mARIO (multiply by 1,000,000)
-        - `--min-delegated-stake 100000000` - 100 ARIO in mARIO
-        - `--delegate-reward-share-ratio 10` - 10% shared with delegators
-        - `--observer-wallet` - Must match your gateway's OBSERVER_WALLET env var
-        - `--fqdn` - Your gateway's domain name
+        - `--operator-stake 20000` — operator stake in whole ARIO units (CLI converts to mARIO internally). Minimum is 20,000 ARIO on mainnet.
+        - `--auto-stake` — flag-only (no value). When set, operator rewards auto-restake to your gateway.
+        - `--allow-delegated-staking` — flag-only. Permits other wallets to delegate stake to you.
+        - `--min-delegated-stake 100000000` — minimum delegation in mARIO (100 ARIO × 1,000,000). Unlike `--operator-stake`, this argument is in mARIO directly.
+        - `--delegate-reward-share-ratio 10` — percentage of rewards shared with delegators (0-100).
+        - `--observer-address` — Solana address of the observer key (often the same as the operator address).
+        - `--fqdn` — your gateway's public domain name.
+        - `-t solana` — required to switch the CLI into Solana mode (default is Arweave).
+        - `--mainnet` — selects Solana mainnet behavior. The explicit `--core-program-id`, `--gar-program-id`, `--arns-program-id`, `--ant-program-id`, and `--rpc-url` flags pin the command to the canonical mainnet deployment.
       </Step>
 
       <Step>
         ### Verify Registration
 
-        After running the command, verify your gateway registration using the CLI:
+        Verify the on-chain registration via the CLI:
 
         ```bash
-        ar.io get-gateway 0VE0wIhDy90WiQoV3U2PeY44FH1aVetOoulPGqgYukj
+        ar.io get-gateway \
+          --mainnet \
+          -t solana \
+          --rpc-url https://api.mainnet-beta.solana.com \
+          --core-program-id 73YoECm6NKXpVRoe5f1Q9BcP5DJGPFUjnFy6AxBE5Nvh \
+          --gar-program-id 89fNiiwgpFSPHKuqfNUkgYTYjtAJAhyqHjXmgXeppGpf \
+          --arns-program-id 2yCUx5edFvUrkibYaUa2ZXWyx9kuJkS8CwyzsgHPWdZZ \
+          --ant-program-id 2MWexMHfMhGJwMHv9Qm9YAVCqjUFUJwDJAysW4oCUGk5 \
+          --address <your-operator-pubkey>
         ```
 
-        The status should show `joined` when your gateway is successfully registered.
+        The result should show `"status": "joined"` and the settings (FQDN, stake, allow-delegated, etc.) you passed at join time.
 
-        You can also verify by visiting: `gateways.ar.io/#/<your-wallet-address>`
+        Once your gateway is running and pointed at the same network, cross-check from the gateway side too:
 
-        The CLI will output transaction details and your gateway should appear in the network portal within a few minutes.
+        ```bash
+        curl https://<your-gateway>/ar-io/info | jq '{wallet, programIds}'
+        ```
+
+        - `wallet` should match the operator pubkey you joined with.
+        - `programIds.{core,gar,arns,ant}` should match the network you joined (mainnet program IDs, or whichever staging/devnet set you're using).
+
+        If those don't line up, your gateway is querying a different network than the one you joined. That's the usual reason a freshly-joined gateway doesn't show up as observing.
+
+        You can also verify in the portal: `gateways.ar.io/#/<your-operator-pubkey>`.
       </Step>
     </Steps>
 
@@ -203,7 +238,7 @@ Your gateway is now part of ar.io! Here are some next steps to maximize your par
   <Card 
     title="Delegate to Gateways" 
     description="Participate in the network by delegating your stake to other gateways and earn rewards"
-    href="/learn/token/staking"
+    href="/learn/oip/staking"
     icon={<Target className="w-8 h-8" />}
   />
   <Card 

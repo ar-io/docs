@@ -1,0 +1,798 @@
+---
+title: "Advanced NGINX Caching"
+description: "Production-tested NGINX caching configuration for high-traffic ar.io gateways with tiered cache zones, thundering herd protection, and route-specific TTLs"
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Tabs, Tab } from "fumadocs-ui/components/tabs";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Database, Shield, Zap, Network } from "lucide-react";
+
+The [quick-start guide](/build/run-a-gateway/quick-start) covers basic NGINX reverse proxy setup for SSL termination and header forwarding. This guide covers adding a caching layer in front of your ar.io node for high-traffic gateways, based on production configurations running at scale.
+
+<Callout type="info">
+  NGINX caching is optional. The ar.io node has its own internal caching and serves data correctly without it. Add NGINX caching when you need to reduce load on the node process or serve high volumes of traffic for popular content.
+</Callout>
+
+## Prerequisites
+
+- A running ar.io gateway with NGINX already configured as a reverse proxy (see the [quick-start guide](/build/run-a-gateway/quick-start))
+- Root or sudo access on the host running NGINX
+
+<Callout type="warn">
+  If you are running the default Docker Compose setup, NGINX runs on the host and proxies to **envoy** on port 3000, which in turn proxies to the ar.io node core on port 4000. The `proxy_pass http://127.0.0.1:3000` directives in this guide target envoy, which is the correct entry point. The cache directories described below are on the host filesystem.
+</Callout>
+
+If you already have an NGINX configuration (e.g., `/etc/nginx/sites-available/default` from the quick-start), you will be adding cache directives to it. The `http`-block directives (cache zones, maps) go outside your existing `server` block, and the location blocks replace or extend the ones in your existing `server` block.
+
+## Why Cache at NGINX
+
+Arweave data is immutable - once a transaction is confirmed, its content never changes. This makes it an ideal candidate for aggressive edge caching:
+
+- **Reduce node load** - Serve repeated requests for the same content directly from NGINX's disk cache without hitting the node process.
+- **Thundering herd protection** - When many clients request the same uncached content simultaneously, NGINX ensures only one request reaches the node while others wait for the cached result.
+- **Stale serving during failures** - If the node is temporarily unavailable, NGINX can serve stale cached content rather than returning errors.
+- **Faster response times** - Cached responses skip the node entirely, reducing latency.
+
+<Callout type="info">
+  **Rate limiter interaction**: Once NGINX caches a significant portion of traffic, fewer requests reach the ar.io node's rate limiter. This effectively increases per-IP limits for cached content. This is generally beneficial but means abusive clients can hammer cached endpoints without triggering rate limits. Consider this when tuning rate limit values.
+</Callout>
+
+## http Block Configuration
+
+All `proxy_cache_path` and `map` directives must be placed in the `http` block of your NGINX config, **outside** the `server` block. On Debian/Ubuntu, files in `/etc/nginx/sites-enabled/` are included inside the `http` block via `nginx.conf`, so you can place these directives at the top of your site config file (before the `server` block).
+
+### Create Cache Directories
+
+Create the directories and set ownership before reloading NGINX. NGINX will fail to start if these directories don't exist.
+
+<Tabs items={["Debian/Ubuntu", "RHEL/CentOS"]}>
+<Tab value="Debian/Ubuntu">
+```bash
+sudo mkdir -p /var/lib/nginx/cache/api
+sudo mkdir -p /var/lib/nginx/cache/block
+sudo mkdir -p /var/lib/nginx/cache/tx-and-chunk
+sudo mkdir -p /var/lib/nginx/cache/data
+sudo mkdir -p /var/lib/nginx/cache/arns
+sudo chown -R www-data:www-data /var/lib/nginx/cache
+```
+</Tab>
+<Tab value="RHEL/CentOS">
+```bash
+sudo mkdir -p /var/lib/nginx/cache/api
+sudo mkdir -p /var/lib/nginx/cache/block
+sudo mkdir -p /var/lib/nginx/cache/tx-and-chunk
+sudo mkdir -p /var/lib/nginx/cache/data
+sudo mkdir -p /var/lib/nginx/cache/arns
+sudo chown -R nginx:nginx /var/lib/nginx/cache
+```
+</Tab>
+</Tabs>
+
+<Callout type="warn">
+  If your cache directories are on a different filesystem than NGINX's temp path, cached file writes will use slow cross-filesystem copies instead of fast renames. For best performance, keep cache directories on the same filesystem as NGINX's default temp path. Also avoid placing the cache on the same disk as your ar.io node's SQLite/ClickHouse databases if I/O is constrained.
+</Callout>
+
+### Tiered Cache Zones
+
+Different types of gateway content have different caching characteristics. A tiered approach uses separate cache zones sized and configured for each content type:
+
+```nginx
+# --- Tiered cache zones (http block, outside server) ---
+
+# High churn - small short-TTL API responses
+proxy_cache_path /var/lib/nginx/cache/api
+    levels=1:2
+    keys_zone=api_cache:10m
+    max_size=1g
+    inactive=10m
+    use_temp_path=off;
+
+# Block metadata - highly cacheable, rarely changes
+proxy_cache_path /var/lib/nginx/cache/block
+    levels=1:2
+    keys_zone=block_cache:10m
+    max_size=10g
+    inactive=365d
+    use_temp_path=off;
+
+# TX + chunk metadata - tens of millions of items
+proxy_cache_path /var/lib/nginx/cache/tx-and-chunk
+    levels=1:2
+    keys_zone=tx_and_chunk_cache:30m
+    max_size=30g
+    inactive=90d
+    use_temp_path=off
+    manager_threshold=500ms
+    loader_files=1000
+    loader_threshold=500ms;
+
+# Data - immutable Arweave content, bulk of disk usage
+# Set max_size based on your available disk space
+proxy_cache_path /var/lib/nginx/cache/data
+    levels=1:2
+    keys_zone=data_cache:200m
+    max_size=500g
+    inactive=90d
+    use_temp_path=off
+    manager_threshold=500ms
+    loader_files=1000
+    loader_threshold=500ms;
+
+# ArNS - web app content served via ArNS subdomains
+proxy_cache_path /var/lib/nginx/cache/arns
+    levels=1:2
+    keys_zone=arns_cache:10m
+    max_size=50g
+    inactive=30d
+    use_temp_path=off;
+```
+
+<Callout type="warn">
+  Size the `data_cache` zone based on your actual available disk space. The data cache will be the largest zone by far. Leave headroom for the node's own data storage, databases, and OS needs. The `keys_zone` memory size determines how many entries can be tracked — 1MB holds approximately 8,000 keys.
+</Callout>
+
+| Parameter | Purpose |
+|-----------|---------|
+| `levels=1:2` | Two-level directory structure for cache files. Prevents any single directory from containing too many files. |
+| `keys_zone=name:size` | Shared memory zone for cache keys. Size based on expected number of cached items. |
+| `max_size` | Maximum disk space for this cache zone. NGINX evicts least-recently-used entries when exceeded. |
+| `inactive` | Remove entries not accessed within this period, even if not expired. |
+| `use_temp_path=off` | Write cache files directly to the cache directory (avoids cross-filesystem copies). |
+| `manager_threshold` | Maximum time the cache manager spends per cleanup iteration. Prevents disk I/O spikes on large caches. |
+| `loader_files` / `loader_threshold` | Controls how NGINX loads cache metadata on startup. Important for large caches to avoid slow restarts. |
+
+### Map Directives
+
+All `map` directives must also be in the `http` block. These must be defined **before** the `server` block because the server references the variables they create.
+
+```nginx
+# --- Map directives (http block, outside server) ---
+
+# WebSocket upgrade support (used by /graphql and catch-all)
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
+# Route ArNS subdomains to arns_cache, everything else to api_cache.
+# Excludes sandbox subdomains (52-char base32) which are not ArNS.
+map $host $catch_all_cache {
+    "~^[a-z2-7]{52}\."   api_cache;
+    "~^[^.]+\..+\..+"    arns_cache;
+    default               api_cache;
+}
+
+# Never cache 429 responses — prevent rate-limit errors from
+# overwriting valid cache entries.
+map $upstream_status $no_cache_429 {
+    429     1;
+    default 0;
+}
+
+# Never cache responses with Cache-Control: no-store — prevents
+# caching 402 Payment Required and other uncacheable responses.
+map $upstream_http_cache_control $no_cache_no_store {
+    "~no-store"  1;
+    default      0;
+}
+```
+
+## Cache Key Design
+
+For Arweave content, query strings are not meaningful - the content is identified by its transaction ID in the URL path. The cache key excludes query strings to prevent cache fragmentation:
+
+```nginx
+proxy_cache_key "$scheme://$host$uri";
+```
+
+The `$host` component is important because ArNS subdomains serve different content at the same path.
+
+## Server Block Configuration
+
+The following directives go inside your `server` block. If you have an existing server block from the quick-start guide, merge these directives into it.
+
+### Shared Defaults
+
+These directives apply as defaults across all locations. Individual locations override them as needed:
+
+```nginx
+server {
+    # ... your existing SSL, server_name, listen directives ...
+
+    # Default cache zone (overridden per-location)
+    proxy_cache api_cache;
+    proxy_cache_key "$scheme://$host$uri";
+
+    # Thundering herd protection: first request fetches from origin,
+    # others wait up to lock_timeout, then go to origin if lock_age exceeded
+    proxy_cache_lock on;
+    proxy_cache_lock_age 60s;
+    proxy_cache_lock_timeout 60s;
+
+    # Serve stale entries during errors, timeouts, or background updates
+    proxy_cache_use_stale error timeout updating http_500 http_502 http_503 http_504;
+    proxy_cache_revalidate on;
+    proxy_cache_background_update on;
+
+    # Never cache 429 or no-store responses
+    proxy_no_cache $no_cache_429 $no_cache_no_store;
+    proxy_cache_bypass $no_cache_429 $no_cache_no_store;
+
+    # Error TTLs shared across all locations
+    proxy_cache_valid 400 60s;
+    proxy_cache_valid 403 10s;
+    proxy_cache_valid 451 30d;
+    proxy_cache_valid 500 502 503 504 10s;
+
+    # Prevent cache fragmentation from Vary headers.
+    # Trade-off: this drops ALL Vary values, not just Vary: Origin.
+    # For Arweave gateways this is safe because the node does not use
+    # Vary: Accept-Encoding for content negotiation.
+    proxy_ignore_headers Vary;
+
+    # Proxy buffer settings
+    proxy_buffering on;
+    proxy_buffer_size 32k;
+    proxy_buffers 64 32k;
+    proxy_max_temp_file_size 8192m;
+
+    # Default timeouts
+    proxy_read_timeout 120s;
+    proxy_send_timeout 30s;
+
+    # ... location blocks follow ...
+}
+```
+
+### Route-Specific Caching
+
+#### Immutable Data (30-day TTL)
+
+Transaction data and raw content are immutable on Arweave. Cache aggressively with extended timeouts for large file downloads:
+
+```nginx
+# Raw data endpoint
+location ^~ /raw/ {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-AR-IO-Origin $http_x_ar_io_origin;
+    proxy_set_header X-AR-IO-Origin-Node-Release $http_x_ar_io_origin_node_release;
+    proxy_set_header X-AR-IO-Hops $http_x_ar_io_hops;
+
+    add_header X-Cache-Status $upstream_cache_status always;
+
+    proxy_read_timeout 600s;
+    proxy_send_timeout 600s;
+    # Lock holder gets 10 minutes for large file downloads;
+    # waiters give up after 5s and go to origin directly
+    proxy_cache_lock_age 600s;
+    proxy_cache_lock_timeout 5s;
+    proxy_cache data_cache;
+    # Disable background refresh — avoids expensive multi-GB origin fetches
+    proxy_cache_background_update off;
+    proxy_ignore_headers Set-Cookie Vary;
+    proxy_hide_header Set-Cookie;
+    proxy_cache_valid 200 30d;
+    proxy_cache_valid 404 60s;
+}
+
+# Transaction data (43-char base64url IDs)
+location ~ "^/[a-zA-Z0-9_-]{43}(/|$)" {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-AR-IO-Origin $http_x_ar_io_origin;
+    proxy_set_header X-AR-IO-Origin-Node-Release $http_x_ar_io_origin_node_release;
+    proxy_set_header X-AR-IO-Hops $http_x_ar_io_hops;
+
+    add_header X-Cache-Status $upstream_cache_status always;
+
+    proxy_read_timeout 600s;
+    proxy_send_timeout 600s;
+    proxy_cache_lock_age 600s;
+    proxy_cache_lock_timeout 5s;
+    proxy_cache data_cache;
+    proxy_cache_background_update off;
+    proxy_ignore_headers Set-Cookie Vary;
+    proxy_hide_header Set-Cookie;
+    proxy_cache_valid 200 30d;
+    proxy_cache_valid 404 60s;
+}
+```
+
+<Callout type="info">
+  Note that `/raw/TX_ID` and `/TX_ID` serve the same content but are cached as separate entries because the cache key includes the URI path. For most gateways this duplication is acceptable. If disk space is tight, you can normalize the cache key with a `map` — see the [Troubleshooting](#troubleshooting) section.
+</Callout>
+
+#### Chunks (24-hour TTL)
+
+Arweave chunks are immutable but accessed less frequently than full transactions:
+
+```nginx
+location ^~ /chunk/ {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-AR-IO-Origin $http_x_ar_io_origin;
+    proxy_set_header X-AR-IO-Origin-Node-Release $http_x_ar_io_origin_node_release;
+    proxy_set_header X-AR-IO-Hops $http_x_ar_io_hops;
+
+    add_header X-Cache-Status $upstream_cache_status always;
+
+    proxy_cache tx_and_chunk_cache;
+    proxy_cache_background_update off;
+    proxy_ignore_headers Cache-Control Expires Set-Cookie Vary;
+    proxy_hide_header Set-Cookie;
+    proxy_cache_valid 200 24h;
+    proxy_cache_valid 404 30s;
+}
+```
+
+#### Volatile Metadata (Short TTLs)
+
+API endpoints and metadata change frequently and need short TTLs:
+
+```nginx
+# Health, info, metrics, tx_anchor (2-minute TTL)
+location ~ ^/(health|info|metrics|tx_anchor)$ {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-AR-IO-Origin $http_x_ar_io_origin;
+    proxy_set_header X-AR-IO-Origin-Node-Release $http_x_ar_io_origin_node_release;
+    proxy_set_header X-AR-IO-Hops $http_x_ar_io_hops;
+
+    add_header X-Cache-Status $upstream_cache_status always;
+    proxy_cache_valid 200 120s;
+    proxy_cache_valid 404 30s;
+}
+
+# Height and time (20-second TTL - changes every block)
+location ~ ^/(height|time)$ {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-AR-IO-Origin $http_x_ar_io_origin;
+    proxy_set_header X-AR-IO-Origin-Node-Release $http_x_ar_io_origin_node_release;
+    proxy_set_header X-AR-IO-Hops $http_x_ar_io_hops;
+
+    add_header X-Cache-Status $upstream_cache_status always;
+    proxy_cache_valid 200 20s;
+    proxy_cache_valid 404 30s;
+}
+
+# Peers, current_block (30-second TTL)
+location ~ ^/(peers|current_block)$ {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-AR-IO-Origin $http_x_ar_io_origin;
+    proxy_set_header X-AR-IO-Origin-Node-Release $http_x_ar_io_origin_node_release;
+    proxy_set_header X-AR-IO-Hops $http_x_ar_io_hops;
+
+    add_header X-Cache-Status $upstream_cache_status always;
+    proxy_cache_valid 200 30s;
+    proxy_cache_valid 404 15s;
+}
+
+# Wallet, price, unconfirmed TX lookups (30-second TTL)
+location ~ ^/(wallet|price|unconfirmed_tx)/ {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-AR-IO-Origin $http_x_ar_io_origin;
+    proxy_set_header X-AR-IO-Origin-Node-Release $http_x_ar_io_origin_node_release;
+    proxy_set_header X-AR-IO-Hops $http_x_ar_io_hops;
+
+    add_header X-Cache-Status $upstream_cache_status always;
+    proxy_cache_valid 200 30s;
+    proxy_cache_valid 404 15s;
+}
+
+# AR.IO API (30-second TTL)
+location ^~ /ar-io/ {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-AR-IO-Origin $http_x_ar_io_origin;
+    proxy_set_header X-AR-IO-Origin-Node-Release $http_x_ar_io_origin_node_release;
+    proxy_set_header X-AR-IO-Hops $http_x_ar_io_hops;
+
+    add_header X-Cache-Status $upstream_cache_status always;
+    proxy_cache_valid 200 30s;
+    proxy_cache_valid 404 5s;
+}
+
+# Block metadata
+location ^~ /block/ {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-AR-IO-Origin $http_x_ar_io_origin;
+    proxy_set_header X-AR-IO-Origin-Node-Release $http_x_ar_io_origin_node_release;
+    proxy_set_header X-AR-IO-Hops $http_x_ar_io_hops;
+
+    add_header X-Cache-Status $upstream_cache_status always;
+    proxy_cache block_cache;
+    proxy_cache_valid 404 30s;
+}
+
+# TX metadata
+location /tx/ {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-AR-IO-Origin $http_x_ar_io_origin;
+    proxy_set_header X-AR-IO-Origin-Node-Release $http_x_ar_io_origin_node_release;
+    proxy_set_header X-AR-IO-Hops $http_x_ar_io_hops;
+
+    add_header X-Cache-Status $upstream_cache_status always;
+    proxy_cache tx_and_chunk_cache;
+    proxy_cache_valid 404 30s;
+}
+
+# TX status (30-second TTL)
+location ~ ^/tx/[A-Za-z0-9_-]+/status$ {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-AR-IO-Origin $http_x_ar_io_origin;
+    proxy_set_header X-AR-IO-Origin-Node-Release $http_x_ar_io_origin_node_release;
+    proxy_set_header X-AR-IO-Hops $http_x_ar_io_hops;
+
+    add_header X-Cache-Status $upstream_cache_status always;
+    proxy_cache tx_and_chunk_cache;
+    proxy_cache_valid 200 30s;
+    proxy_cache_valid 404 30s;
+}
+
+# Pending transactions (20-second TTL)
+location = /tx/pending {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-AR-IO-Origin $http_x_ar_io_origin;
+    proxy_set_header X-AR-IO-Origin-Node-Release $http_x_ar_io_origin_node_release;
+    proxy_set_header X-AR-IO-Hops $http_x_ar_io_hops;
+
+    add_header X-Cache-Status $upstream_cache_status always;
+    proxy_cache tx_and_chunk_cache;
+    proxy_cache_valid 200 20s;
+    proxy_cache_valid 404 30s;
+}
+
+# Current block (2-minute TTL)
+location = /block/current {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-AR-IO-Origin $http_x_ar_io_origin;
+    proxy_set_header X-AR-IO-Origin-Node-Release $http_x_ar_io_origin_node_release;
+    proxy_set_header X-AR-IO-Hops $http_x_ar_io_hops;
+
+    add_header X-Cache-Status $upstream_cache_status always;
+    proxy_cache_valid 200 120s;
+    proxy_cache_valid 404 30s;
+}
+```
+
+#### Endpoints to Never Cache
+
+Some endpoints must never be cached because they handle writes, WebSocket connections, or state-changing operations. These locations use `proxy_cache off` and explicitly set `Cache-Control: no-store` (this is a response header injected by NGINX, distinct from the upstream `no-store` bypass in the map directives):
+
+```nginx
+# GraphQL - supports WebSocket upgrades and POST mutations
+location = /graphql {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-AR-IO-Origin $http_x_ar_io_origin;
+    proxy_set_header X-AR-IO-Origin-Node-Release $http_x_ar_io_origin_node_release;
+    proxy_set_header X-AR-IO-Hops $http_x_ar_io_hops;
+
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+    proxy_cache off;
+    proxy_hide_header Cache-Control;
+    add_header Cache-Control "no-store" always;
+}
+
+# Transaction submission (POST endpoint)
+location = /tx {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+
+    proxy_cache off;
+    proxy_hide_header Cache-Control;
+    add_header Cache-Control "no-store" always;
+}
+
+# Chunk upload (POST endpoint)
+location = /chunk {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+
+    proxy_cache off;
+    proxy_hide_header Cache-Control;
+    add_header Cache-Control "no-store" always;
+}
+```
+
+#### Catch-All with ArNS Routing
+
+The catch-all location handles remaining requests including ArNS subdomain content:
+
+```nginx
+location / {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-AR-IO-Origin $http_x_ar_io_origin;
+    proxy_set_header X-AR-IO-Origin-Node-Release $http_x_ar_io_origin_node_release;
+    proxy_set_header X-AR-IO-Hops $http_x_ar_io_hops;
+
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+
+    add_header X-Cache-Status $upstream_cache_status always;
+    proxy_cache $catch_all_cache;
+    proxy_cache_valid 200 300s;
+    proxy_cache_valid 404 30s;
+}
+```
+
+## TTL Summary
+
+| Route | Cache Zone | 200 TTL | 404 TTL | Notes |
+|-------|-----------|---------|---------|-------|
+| `/raw/`, `/[TX_ID]` | data_cache | 30d | 60s | Immutable content, extended timeouts |
+| `/chunk/` | tx_and_chunk_cache | 24h | 30s | Immutable chunks |
+| `/block/` | block_cache | origin | 30s | Origin-controlled TTL |
+| `/block/current` | api_cache | 120s | 30s | Changes every block |
+| `/tx/` | tx_and_chunk_cache | origin | 30s | Origin-controlled TTL |
+| `/tx/[ID]/status` | tx_and_chunk_cache | 30s | 30s | Status can change |
+| `/tx/pending` | tx_and_chunk_cache | 20s | 30s | Changes frequently |
+| `/ar-io/` | api_cache | 30s | 5s | Short-lived API data |
+| `/health`, `/info` | api_cache | 120s | 30s | Metadata endpoints |
+| `/height`, `/time` | api_cache | 20s | 30s | Changes every block |
+| `/peers`, `/current_block` | api_cache | 30s | 15s | Network state |
+| `/wallet/`, `/price/` | api_cache | 30s | 15s | Volatile data |
+| `/` (catch-all) | dynamic | 300s | 30s | ArNS or API cache |
+| `/graphql`, `/tx` POST, `/chunk` POST | none | - | - | Never cached |
+
+## Content Moderation & Cache Purging
+
+Caching immutable content for 30 days creates a compliance risk: if the ar.io node blocks a transaction via [content moderation](/build/run-a-gateway/manage/content-moderation), NGINX may continue serving the cached copy for the remainder of the TTL.
+
+<Callout type="warn">
+  This is a compliance concern for production gateways. If you use content moderation filters, you need a way to force-refresh cached entries after blocking.
+</Callout>
+
+### Cache Bypass Header
+
+Add a `map` that checks a secret bypass header value, and use it with `proxy_cache_bypass`. When triggered, NGINX skips the cache and fetches fresh from the ar.io node — which now returns the blocked response — and overwrites the stale cache entry.
+
+In the `http` block (with your other maps), add:
+
+```nginx
+# Cache bypass for content moderation purging.
+# Only bypass when the header matches your secret — prevents abuse.
+map $http_x_cache_bypass $purge_allowed {
+    "your-secret-here"  1;
+    default             0;
+}
+```
+
+In each data-serving location (`/raw/`, `/[TX_ID]`, catch-all), add:
+
+```nginx
+proxy_cache_bypass $purge_allowed;
+```
+
+Then force-refresh a blocked transaction:
+
+```bash
+# Replace "your-secret-here" and domain with your actual values
+curl -s -o /dev/null -H "X-Cache-Bypass: your-secret-here" \
+    https://your-domain.example/TX_ID_HERE
+curl -s -o /dev/null -H "X-Cache-Bypass: your-secret-here" \
+    https://your-domain.example/raw/TX_ID_HERE
+```
+
+The node returns its blocked/404 response, NGINX caches that instead, and subsequent requests get the blocked response.
+
+If you run a content scanning sidecar, fire these bypass requests automatically after each block event to complete the purge without any extra infrastructure.
+
+## Monitoring Cache Performance
+
+Add the `X-Cache-Status` header to expose cache behavior on every response:
+
+```nginx
+add_header X-Cache-Status $upstream_cache_status always;
+```
+
+Check cache performance:
+
+```bash
+curl -s -D - -o /dev/null https://your-gateway.example/TX_ID 2>&1 | grep -i x-cache
+```
+
+| Status | Meaning |
+|--------|---------|
+| `HIT` | Served from cache |
+| `MISS` | Fetched from origin, now cached |
+| `EXPIRED` | Cache entry expired, fetched fresh from origin |
+| `UPDATING` | Stale entry served while background update runs |
+| `STALE` | Stale entry served due to origin error |
+| `BYPASS` | Cache was bypassed (e.g., 429 or no-store response) |
+| (empty) | Response status not covered by any `proxy_cache_valid` directive for this location |
+
+## Validate and Reload
+
+Always test your configuration before reloading NGINX:
+
+```bash
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+If `nginx -t` reports errors, fix them before reloading. A bad reload with `systemctl reload` is safe (NGINX keeps the old config running), but `systemctl restart` with a broken config will take NGINX offline.
+
+## Additional Configuration
+
+### Load Balancer Real IP
+
+If your gateway is behind a load balancer, configure NGINX to trust the `X-Forwarded-For` header from the load balancer's IP:
+
+```nginx
+# Replace with your load balancer's actual IP
+set_real_ip_from 10.0.0.1/32;
+real_ip_header X-Forwarded-For;
+real_ip_recursive on;
+```
+
+Without this, all requests appear to come from the load balancer's IP.
+
+## Troubleshooting
+
+### Duplicate Cache Entries for /raw/ and /
+
+`/raw/TX_ID` and `/TX_ID` serve the same bytes but are cached as separate entries because the cache key includes the full URI path. If disk space is a concern, normalize the key with a map in the `http` block:
+
+```nginx
+map $uri $normalized_cache_uri {
+    "~^/raw/(.+)$"  "/$1";
+    default          $uri;
+}
+```
+
+Then use `proxy_cache_key "$scheme://$host$normalized_cache_uri";` in both the `/raw/` and TX data locations. This causes both endpoints to share one cache entry.
+
+### Cache Directories Not Writable
+
+If NGINX logs show write errors, check ownership matches the NGINX worker user (`www-data` on Debian/Ubuntu, `nginx` on RHEL/CentOS):
+
+```bash
+ls -la /var/lib/nginx/cache/
+```
+
+### Shared Memory Exhaustion
+
+If `keys_zone` is too small for the number of cached items, NGINX silently evicts entries. Monitor with `stub_status` and increase `keys_zone` size if your hit rate drops unexpectedly despite having disk space available.
+
+## Related
+
+<Cards>
+  <Card
+    title="Quick Start"
+    description="Basic NGINX reverse proxy setup with SSL"
+    href="/build/run-a-gateway/quick-start"
+    icon={<Zap className="w-8 h-8" />}
+  />
+  <Card
+    title="Verification Headers"
+    description="Understanding the trust and verification headers in gateway responses"
+    href="/build/run-a-gateway/manage/verification-headers"
+    icon={<Shield className="w-8 h-8" />}
+  />
+  <Card
+    title="x402 Payment Setup"
+    description="Configure payment protocol for data egress monetization"
+    href="/build/run-a-gateway/manage/x402-setup"
+    icon={<Database className="w-8 h-8" />}
+  />
+  <Card
+    title="Environment Variables"
+    description="Full reference for gateway configuration"
+    href="/build/run-a-gateway/manage/environment-variables"
+    icon={<Network className="w-8 h-8" />}
+  />
+</Cards>

@@ -1,0 +1,62 @@
+---
+title: "Claims, Proofs, and Accountability"
+description: "Understand the difference between what a gateway says, what a client can verify, and what the network can hold operators accountable for"
+---
+
+Not every verification signal has the same meaning. Ar.io uses claims, signed claims, cryptographic proofs, and economic accountability together because each one catches a different failure mode.
+
+## Quick Reference
+
+| Mechanism | Type | Meaning |
+| --- | --- | --- |
+| `X-AR-IO-Verified` | Claim | The gateway says its local cache has verified the data. |
+| RFC 9421 `Signature` | Signed claim | The gateway is accountable for the response headers it signed. |
+| `Content-Digest` | Verifiable digest | The client can hash the response body and compare it to the header. |
+| Arweave signature verification | Proof | The client verifies the bytes match the signed commitment for a known ID. |
+| Observer reports and slashing | Economic accountability | Persistent network-visible failure can affect rewards or stake. |
+
+## Claims
+
+A claim is a statement from a gateway. For example, `X-AR-IO-Verified: true` says the gateway believes the returned data was verified in its local system.
+
+That is useful operational metadata, but it is not a cryptographic proof. A malicious gateway controls its own software and database. It can set false headers.
+
+## Signed Claims
+
+Signed response headers make claims attributable. If a gateway signs `X-AR-IO-Verified`, `X-AR-IO-Stable`, ArNS resolution headers, or a `Content-Digest`, the gateway cannot later deny that it made those claims.
+
+Signed claims are evidence. They are not automatically truth. A false signed claim is still possible, but it becomes attributable to a signing key bound to a gateway operator identity.
+
+## Proofs
+
+A proof is something the client can verify independently. For known transaction or data item IDs, the strongest path is Arweave signature verification:
+
+1. Fetch the data and the signed metadata needed for verification.
+2. Recompute the data root or ANS-104 deep hash.
+3. Verify the transaction or data item signature.
+4. Confirm that `SHA-256(signature)` matches the requested ID.
+
+If this chain verifies, the bytes match the commitment for that ID. The result does not depend on trusting the gateway's local verification header.
+
+## Accountability
+
+Network accountability is handled through OIP. Observers sample gateway behavior, upload detailed reports to Arweave, and submit compact results to the protocol. Gateways that perform poorly can miss rewards and, after sustained failure, become eligible for pruning.
+
+OIP is intentionally not duplicated here. For mechanics, see:
+
+- [Observation & Incentive Protocol](/learn/oip)
+- [Observer Selection](/learn/oip/observer-selection)
+- [Reporting](/learn/oip/reporting)
+- [Performance Evaluation](/learn/oip/performance-evaluation)
+- [Pruning](/learn/oip/pruning)
+
+## How They Compose
+
+These mechanisms are not redundant:
+
+- Gateway local verification catches cache corruption and stale imports.
+- Signed claims create portable evidence about what a gateway said.
+- Client-side verification detects bad data at request time.
+- OIP handles long-running public behavior across the network.
+
+For high-integrity applications, use client-side verification for request-time correctness and signed claims or observer reports for later accountability.
