@@ -6,7 +6,7 @@ description: "Learn about browser sandboxing in ar.io gateways - how security is
 
 ## Overview
 
-Browser sandboxing allows data requests to a gateway node to benefit from the security advantages of using a browser's same-origin policy by redirecting the requests to a pseudo-unique subdomain of the gateway's apex domain. For example, an attempt to access `https://arweave.net/gnWKBqFXMJrrksEWrXLQRUQQQeFhv4uVxesHBcT8i6o` would redirect to `https://qj2yubvbk4yjv24syelk24wqivcbaqpbmg7yxfof5mdqlrh4rova.arweave.net/gnWKBqFXMJrrksEWrXLQRUQQQeFhv4uVxesHBcT8i6o`
+Browser sandboxing allows data requests to a gateway node to benefit from the security advantages of using a browser's same-origin policy by redirecting the requests to a pseudo-unique subdomain of the gateway's apex domain. For example, an attempt to access `https://turbo-gateway.com/gnWKBqFXMJrrksEWrXLQRUQQQeFhv4uVxesHBcT8i6o` would redirect to `https://qj2yubvbk4yjv24syelk24wqivcbaqpbmg7yxfof5mdqlrh4rova.turbo-gateway.com/gnWKBqFXMJrrksEWrXLQRUQQQeFhv4uVxesHBcT8i6o`
 
 Two DNS records are required to link a domain to an Arweave transaction on a gateway node. For example, `www.mycustomsite.com` would need the following records to link it to `www.arweave-gateway.net`:
 
@@ -29,7 +29,7 @@ The integration of TLS is crucial for the implementation of browser sandboxing. 
 
 Ar.io nodes generate browser sandbox values deterministically. Because of this, it is possible to calculate ahead of time what that value will be for a particular transaction id.
 
-Sandbox values are a Base32 encoding of the transaction ID. ar.io gateways use the following code snippet to accomplish the encoding:
+Sandbox values are a Base32 encoding of the transaction ID. Ar.io gateways use the following code snippet to accomplish the encoding:
 
 ```typescript
 const expectedTxSandbox = (id: string): string => {

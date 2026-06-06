@@ -1,0 +1,41 @@
+---
+title: "RPC Configuration"
+description: "TypeScript/JavaScript SDK for interacting with the ar.io ecosystem"
+---
+
+The SDK accepts any `@solana/kit` RPC client. For read-only usage, only
+`rpc` is required. Write operations additionally need `rpcSubscriptions`
+(WebSocket) for transaction confirmation and a `signer`.
+
+#### Basic (read-only)
+
+```ts
+import { ARIO } from '@ar.io/sdk';
+import { createSolanaRpc } from '@solana/kit';
+
+const rpc = createSolanaRpc('https://api.mainnet-beta.solana.com');
+const ario = ARIO.init({ rpc });
+```
+
+#### With writes (signer + WebSocket subscriptions)
+
+```ts
+import { ARIO } from '@ar.io/sdk';
+import {
+  createSolanaRpc,
+  createSolanaRpcSubscriptions,
+  createKeyPairSignerFromBytes,
+} from '@solana/kit';
+
+const rpc = createSolanaRpc('https://api.mainnet-beta.solana.com');
+const rpcSubscriptions = createSolanaRpcSubscriptions(
+  'wss://api.mainnet-beta.solana.com',
+);
+const signer = await createKeyPairSignerFromBytes(/* ... */);
+
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
+```
+
+> **Note:** `rpcSubscriptions` opens a WebSocket connection and is only
+> needed for writes. If your RPC provider doesn't expose a WebSocket
+> endpoint, omit it and use the SDK in read-only mode.

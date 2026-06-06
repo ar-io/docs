@@ -9,7 +9,7 @@ The ar.io network maintains a protocol balance that funds all gateway and observ
 
 ## Epoch Allocation
 
-Each epoch, a portion of the protocol balance is earmarked for distribution as rewards. This value shall begin at 0.1% per epoch for the first year of operation, then linearly decline down to and stabilize at 0.05% over the following 6 months.
+Each epoch, a portion of the protocol balance is earmarked for distribution as rewards. The protocol uses this allocation to reward functional gateways and observers.
 
 ### Funding Sources
 - **ArNS Name Purchases**: Primary funding mechanism - fees from ArNS name registrations and renewals
@@ -22,19 +22,11 @@ From this allocation, two distinct reward categories are derived:
 
 ### Base Gateway Reward (BGR)
 
-This is the portion of the reward allocated to each Functional Gateway within the network and is calculated as:
-
-```math
-BGR = \frac{\text{Epoch Reward Allocation} \times 0.9}{\text{Total Gateways in the Network}}
-```
+This is the portion of the epoch reward allocation distributed to functional gateways.
 
 ### Base Observer Reward (BOR)
 
-Observers, due to their additional responsibilities, have a separate reward calculated as:
-
-```math
-BOR = \frac{\text{Epoch Reward Allocation} \times 0.1}{\text{Total Selected Observers for the Epoch}}
-```
+Observers, due to their additional responsibilities, have a separate reward category for successfully performing observation duties.
 
 ## Distribution Based on Performance
 
@@ -43,29 +35,38 @@ The reward distribution is contingent on the performance classifications derived
 - **Functional Gateways**: Gateways that meet the performance criteria receive the Base Gateway Reward.
 - **Deficient Gateways**: Gateways falling short in performance do not receive any gateway rewards.
 - **Functional Observers**: Observers that fulfilled their duty receive the Base Observer Reward.
-- **Deficient Observers**: Observers failing to meet their responsibilities do not receive observer rewards. Furthermore, if they are also Functional Gateways, their gateway reward is reduced by **25%** for that epoch as a consequence for not performing their observation duty.
+- **Deficient Observers**: Observers failing to meet their responsibilities do not receive observer rewards. If they are also functional gateways, their gateway reward can be reduced for that epoch as a consequence for not performing their observation duty.
 
 ![Epoch reward distributions showing eligible vs distributed ARIO tokens](/content/epoch-distributions.png)
 
-<p style={{textAlign: "center", fontStyle: "italic", width: "80%", margin: "0.5rem auto"}}>
+<div style={{textAlign: "center", fontStyle: "italic", width: "80%", margin: "0.5rem auto"}}>
   Epoch reward distributions showing the relationship between eligible rewards (total available) and distributed rewards (actually paid out) across epochs. The difference represents rewards not distributed due to gateway or observer deficiencies.
-</p>
+</div>
 
-## Auto-Staking
+## Epoch Pipeline
 
-Gateways shall be given the option to have their reward tokens "auto-staked" to their existing stake or sent to their wallet as unlocked tokens. The default setting shall be "auto-staked".
+On Solana, reward distribution is driven by a permissionless 6-step [epoch pipeline](/learn/oip/epoch-pipeline) rather than a single atomic operation:
+
+1. **create_epoch** — Initialize epoch, compute reward rate
+2. **tally_weights** — Batched weight computation
+3. **prescribe_epoch** — Select observers and prescribed names via weighted roulette
+4. **save_observations** — Observers submit pass/fail reports
+5. **distribute_epoch** — Batched reward distribution
+6. **close_epoch** — Reclaim rent from completed epoch accounts
+
+All steps are permissionless and idempotent — anyone can crank them, and running them multiple times is safe.
+
+## Operator Rewards
+
+Operator rewards always **auto-compound** into the operator's stake. There is no toggle — operators must call `decrease_operator_stake` to realize rewards as liquid tokens.
 
 ## Distribution to Delegates
 
-The protocol will automatically distribute a Functional Gateway's shared rewards with its delegates. The distribution will consider the gateway's total reward for the period (including observation rewards), the gateway's "Delegate Reward Share Ratio", and each delegate's stake proportional to the total delegation.
+Delegate rewards use a **reward-per-share accumulator** pattern. Rather than distributing rewards to each delegate individually each epoch, the protocol tracks a cumulative reward-per-token on each gateway. Pending rewards are settled when the delegator interacts with the protocol (e.g., delegate more, withdraw, or claim rewards).
 
-Each individual delegate reward is calculated as:
+Leaving gateways receive 0 rewards for any epoch in which they have initiated withdrawal.
 
-```math
-DR_i = \text{Total Rewards} \times \text{Reward Share Ratio} \times \frac{\text{Delegate's Stake}}{\text{Total Delegated Stake}}
-```
-
-Unlike gateways, token reward distributions to delegated stakers will only be "auto-staked" in that they will be automatically added to the delegate's existing stake associated with the rewarded gateway. The delegated staker is then free to withdraw their staked rewards at any time (subject to withdrawal delays).
+Delegate reward distribution considers the gateway's total reward, the gateway's delegate reward share setting, and each delegate's proportional stake. Delegated rewards are added to the delegate's existing stake for that gateway and can later be withdrawn subject to normal withdrawal rules.
 
 ## Undistributed Rewards
 
@@ -77,9 +78,7 @@ Note that if a gateway (and its delegates) leaves the network or a delegate full
 
 ## Handling Deficient Gateways
 
-To maintain network efficiency and reduce contract state bloat, gateways that are marked as deficient, and thus fail to receive rewards, for **thirty (30)** consecutive epochs will automatically trigger a "Network Leave" action and be subject to the associated stake withdrawal durations for both gateway stake and any delegated stake.
-
-In addition, the gateway shall have its **minimum network-join stake slashed by 100%**. The slashed stake shall be immediately sent to the protocol balance.
+To maintain network efficiency and reduce state bloat, gateways that remain deficient for a sustained period can be removed from the network. When this happens, their minimum network-join stake is slashed to the protocol balance, while eligible excess and delegated stake follow the standard withdrawal process.
 
 
 ---

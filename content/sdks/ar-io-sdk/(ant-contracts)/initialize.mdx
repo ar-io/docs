@@ -5,19 +5,32 @@ description: "TypeScript/JavaScript SDK for interacting with the ar.io ecosystem
 
 #### init()
 
-Factory function to that creates a read-only or writeable client. By providing a `signer` additional write APIs that require signing, like `setRecord` and `transfer` are available. By default, a read-only client is returned and no write APIs are available.
+Factory that creates a read-only or writeable ANT client. Providing
+`signer` and `rpcSubscriptions` enables write methods (`setRecord`,
+`transfer`, `addController`, etc.).
 
 ```typescript
-// in a browser environment with ArConnect
-const ant = ANT.init({
-  signer: new ArConnectSigner(window.arweaveWallet, Arweave.init({})),
-  processId: 'bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM'
+import { ANT } from '@ar.io/sdk';
+import {
+  createSolanaRpc,
+  createSolanaRpcSubscriptions,
+} from '@solana/kit';
+
+const rpc = createSolanaRpc('https://api.mainnet-beta.solana.com');
+
+// Read-only
+const ant = await ANT.init({
+  processId: '\<MPL Core asset pubkey\>',
+  rpc,
 });
 
-// in a node environment
-const ant = ANT.init({
-  signer: new ArweaveSigner(JWK),
-  processId: 'bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM'
+// Read + write
+const antWrite = await ANT.init({
+  processId: '\<MPL Core asset pubkey\>',
+  rpc,
+  rpcSubscriptions: createSolanaRpcSubscriptions(
+    'wss://api.mainnet-beta.solana.com',
+  ),
+  signer,
 });
-
 ```

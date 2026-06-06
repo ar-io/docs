@@ -1,0 +1,280 @@
+---
+title: "Solana Migration for Operators"
+description: "What existing ar.io gateway operators need to do to transition from AO to Solana"
+---
+
+import { Shield, Key, Server, Coins } from 'lucide-react';
+
+## Overview
+
+The ar.io network has migrated protocol execution from AO to Solana. If you're an existing gateway operator, this guide covers everything you need to change. **Your gateway will continue serving Arweave data uninterrupted** — the changes affect how your node interacts with the protocol layer (staking, observations, rewards).
+
+<Callout type="warn">
+Complete these steps before the cutover date to ensure uninterrupted reward eligibility. Gateways that fail 30 consecutive epochs will be [pruned](/learn/oip/pruning) with 100% of minimum stake slashed.
+</Callout>
+
+## What Changed
+
+| Before (AO) | After (Solana) |
+|-------------|----------------|
+| Arweave wallet (RSA JWK) | Solana keypair (Ed25519) |
+| AO Compute Unit for state reads | Solana RPC for state reads |
+| `AO_CU_URL`, `AO_MU_URL`, etc. | `SOLANA_RPC_URL` |
+| Observations submitted via AO messages | Observations submitted as Solana transactions |
+| Observer wallet pays in AR/Turbo credits | Observer wallet pays in SOL |
+| Rewards distributed atomically | Rewards distributed via [cranker pipeline](/learn/oip/epoch-pipeline) |
+| Observer address not unique | Observer address must be unique per gateway |
+| Minimum stake = 10,000 ARIO | Minimum stake = 20,000 ARIO |
+
+## What Didn't Change
+
+- Your gateway still serves Arweave data (caching, indexing, ArNS resolution)
+- Docker-based deployment workflow is the same
+- Epoch duration remains 24 hours
+- Staking, delegation, and reward mechanics are functionally equivalent
+
+## Step-by-Step Migration
+
+<Steps>
+  <Step>
+    ### Map Your Address
+
+    Before the cutover, register your Solana wallet address using the ar.io claim app. This maps your existing Arweave address to your new Solana address so your stake, delegation, and gateway registration carry over automatically.
+  </Step>
+
+  <Step>
+    ### Generate a Solana Keypair
+
+    Create a new Solana keypair for your gateway and observer:
+
+    ```bash
+    # Install Solana CLI tools
+    sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
+
+    # Generate gateway operator keypair
+    solana-keygen new --outfile operator-keypair.json
+
+    # Generate observer keypair (must be unique — not shared with any other gateway)
+    solana-keygen new --outfile observer-keypair.json
+    ```
+
+    <Callout type="warn">
+    Your observer address must be **unique across all gateways**. If another gateway is already using the same observer address, your registration will fail. This is enforced onchain by the ObserverLookup PDA.
+    </Callout>
+  </Step>
+
+  <Step>
+    ### Fund Your Wallets with SOL
+
+    Your observer wallet needs SOL for submitting observation transactions. Typical costs are less than 0.01 SOL per transaction.
+
+    ```bash
+    # Check your observer address
+    solana-keygen pubkey observer-keypair.json
+
+    # Send SOL to it from an exchange or existing wallet
+    ```
+
+    We recommend keeping at least **0.5 SOL** in the observer wallet to cover several months of observation submissions.
+  </Step>
+
+  <Step>
+    ### Update Environment Variables
+
+    Edit your `.env` file with the new Solana configuration:
+
+    ```bash
+    # Operator + observer addresses (Solana pubkeys, base58)
+    AR_IO_WALLET=<your-solana-operator-pubkey>
+    OBSERVER_WALLET=<your-solana-observer-pubkey>
+
+    # Solana RPC endpoint (see Callout below — use a premium provider in production)
+    SOLANA_RPC_URL=https://your-rpc-provider.com
+
+    # Keypair file paths inside the container (mounted from ./wallets/)
+    SOLANA_KEYPAIR_PATH=/app/wallets/operator-keypair.json
+    OBSERVER_KEYPAIR_PATH=/app/wallets/observer-keypair.json
+
+    # The four ar.io Solana programs (canonical mainnet)
+    ARIO_CORE_PROGRAM_ID=73YoECm6NKXpVRoe5f1Q9BcP5DJGPFUjnFy6AxBE5Nvh
+    ARIO_GAR_PROGRAM_ID=89fNiiwgpFSPHKuqfNUkgYTYjtAJAhyqHjXmgXeppGpf
+    ARIO_ARNS_PROGRAM_ID=2yCUx5edFvUrkibYaUa2ZXWyx9kuJkS8CwyzsgHPWdZZ
+    ARIO_ANT_PROGRAM_ID=2MWexMHfMhGJwMHv9Qm9YAVCqjUFUJwDJAysW4oCUGk5
+    ```
+
+    **Remove the old AO variables** (they are no longer used):
+    ```bash
+    # DELETE THESE from your .env:
+    # AO_CU_URL=...
+    # NETWORK_AO_CU_URL=...
+    # ANT_AO_CU_URL=...
+    # AO_MU_URL=...
+    # AO_GATEWAY_URL=...
+    # AO_GRAPHQL_URL=...
+    # HTTPSIG_UPLOAD_ATTESTATION=...
+    # WALLETS_PATH=...
+    ```
+
+    <Callout type="warn">
+    The default public Solana RPC (`api.mainnet-beta.solana.com`) is rate-limited. Under any real load your observer and cranker will start dropping transactions, and the resulting timeouts cause most observation cycles to miss their submission window. Use a dedicated RPC provider in production: [Helius](https://helius.dev), [Triton](https://triton.one), or [QuickNode](https://quicknode.com).
+    </Callout>
+
+    <Callout type="info" title="Phantom-export keys">
+      If you already have a Phantom-exported base58 secret string for the observer or operator, you can skip the JSON keypair file entirely: set `OBSERVER_PRIVATE_KEY=<base58>` (or `SOLANA_PRIVATE_KEY=<base58>`) instead of the `*_KEYPAIR_PATH` env. Setting both forms for the same role is rejected at startup.
+    </Callout>
+  </Step>
+
+  <Step>
+    ### Place Keypair Files
+
+    Copy your operator and observer Solana keypair JSON files into the `wallets/` directory in your ar-io-node checkout. Docker Compose mounts this directory into `/app/wallets/` inside the container, which is where the `*_KEYPAIR_PATH` env vars point.
+
+    ```bash
+    cp operator-keypair.json wallets/operator-keypair.json
+    cp observer-keypair.json wallets/observer-keypair.json
+    chmod 600 wallets/*.json
+    ```
+
+    Skip this step entirely if you set `OBSERVER_PRIVATE_KEY` / `SOLANA_PRIVATE_KEY` env vars (base58 strings) instead.
+  </Step>
+
+  <Step>
+    ### Update ar-io-node
+
+    Pull the latest Solana-compatible release and recreate the containers:
+
+    ```bash
+    cd ar-io-node
+    git pull
+    docker compose pull
+    docker compose up -d --force-recreate core envoy observer
+    ```
+
+    <Callout type="warn" title="Don't use `down -v`">
+      Avoid `docker compose down -v` here — the `-v` flag deletes named volumes, which on most setups wipes the sqlite index and chunk data the gateway has spent days/weeks building. Use `docker compose up -d --force-recreate <service>` instead, which restarts containers in place without touching volumes.
+    </Callout>
+
+    Check your release version at `https://<your-gateway>/ar-io/info`.
+  </Step>
+
+  <Step>
+    ### Optional: Enable Epoch Cranking
+
+    Your observer can optionally help drive the epoch reward pipeline. This is completely permissionless and costs minimal SOL (~0.000155 SOL per epoch):
+
+    ```bash
+    # Add to .env
+    ENABLE_EPOCH_CRANKING=true
+    ```
+
+    See the [epoch pipeline](/learn/oip/epoch-pipeline) docs for details. Running the cranker creates redundancy so the network is never dependent on a single bot.
+  </Step>
+
+  <Step>
+    ### Verify
+
+    After restarting, verify your gateway is operating correctly:
+
+    1. **Release + program IDs (cross-check config is what you intended):**
+       ```bash
+       curl -s https://<your-domain>/ar-io/info | jq '{release, wallet, programIds}'
+       ```
+       `programIds.core/gar/arns/ant` should match the network you're targeting. If they don't, the gateway is still pointed at the old program set, which is usually why a migrated gateway looks inert.
+
+    2. **Gateway registration is live on the new network:**
+       ```bash
+       ar.io get-gateway -t solana \
+         --rpc-url https://api.mainnet-beta.solana.com \
+         --core-program-id 73YoECm6NKXpVRoe5f1Q9BcP5DJGPFUjnFy6AxBE5Nvh \
+         --gar-program-id 89fNiiwgpFSPHKuqfNUkgYTYjtAJAhyqHjXmgXeppGpf \
+         --arns-program-id 2yCUx5edFvUrkibYaUa2ZXWyx9kuJkS8CwyzsgHPWdZZ \
+         --ant-program-id 2MWexMHfMhGJwMHv9Qm9YAVCqjUFUJwDJAysW4oCUGk5 \
+         --address <your-operator-pubkey>
+       ```
+       Should return `"status": "joined"` with the FQDN/stake/settings you set at join time.
+
+    3. **ArNS resolution works end-to-end:**
+       ```bash
+       curl -I -H "Host: ardrive.<your-domain>" https://<your-domain>/
+       ```
+       Expect HTTP 200 (or a manifest redirect). 404 here means the cache hasn't hydrated yet — give it a minute and re-check.
+
+    4. **Observer reports are flowing:** `https://<your-domain>/ar-io/observer/reports/current`
+
+    5. **Gateway listed in the portal:** [gateways.ar.io](https://gateways.ar.io)
+
+    6. **No accumulating failed epochs** in the portal's gateway view.
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+### "Observer is restart-looping with 'Epoch 0 PDA not found'"
+
+If the observer logs repeatedly:
+
+```
+error: Continuous observer start() rejected — attempting auto-restart
+  ...error: "Epoch 0 PDA not found at <pda> — has prescribe_epoch run yet?"
+```
+
+…the network you're targeting hasn't had its first epoch initialized. The observer needs entropy from `epoch[N].prescribed_observers` to bootstrap, which doesn't exist until someone calls `create_epoch` (typically a cranker).
+
+Verify the epoch state directly:
+
+```bash
+ar.io get-current-epoch -t solana \
+  --rpc-url https://api.mainnet-beta.solana.com \
+  --core-program-id 73YoECm6NKXpVRoe5f1Q9BcP5DJGPFUjnFy6AxBE5Nvh \
+  --gar-program-id 89fNiiwgpFSPHKuqfNUkgYTYjtAJAhyqHjXmgXeppGpf \
+  --arns-program-id 2yCUx5edFvUrkibYaUa2ZXWyx9kuJkS8CwyzsgHPWdZZ \
+  --ant-program-id 2MWexMHfMhGJwMHv9Qm9YAVCqjUFUJwDJAysW4oCUGk5
+```
+
+For staging-devnet or local devnet, replace the RPC URL and program IDs with that environment's values.
+
+If this returns `"Epoch 0 not found"`, the network is configured but inactive. This is a network-operations state, not a gateway misconfiguration. Wait for an active cranker (yours or another operator's) to bootstrap epoch 0.
+
+### "Cranker started but never submits any instructions"
+
+The cranker silently bails out if `EpochSettings.enabled` is `false`. This is intentional: operators shouldn't pay SOL fees attempting cranker instructions against a paused network. Confirm with `ar.io get-epoch-settings` and check whether epochs are enabled on your target network. If `enabled` is false, no cranker activity is expected.
+
+### "ArNS names return 404 but the on-chain record exists"
+
+The gateway hydrates an ArNS names cache at boot, paginating through the on-chain registry. If your SDK pin is significantly older than the deployed `ario-arns` program, the paginated response shape may not match and the cache hydrates incompletely. Symptoms:
+
+- Cache hydration logs `Successfully hydrated ArNS names cache` quickly (e.g. ~4s for thousands of records)
+- Resolver logs report `Base name not found in ArNS names cache` for names that demonstrably exist via the SDK CLI's `get-arns-record --name <name>`
+
+Fix: bump `@ar.io/sdk` in your gateway's image (`package.json`) to the latest `^4.0.0-solana.*` and rebuild.
+
+## New Risks to Be Aware Of
+
+### Gateway Pruning
+
+Gateways that fail **30 consecutive epochs** are automatically pruned from the network. When pruned:
+- 100% of minimum stake (20,000 ARIO) is slashed to the protocol balance
+- Excess operator stake enters the standard 30-day withdrawal queue
+- Delegated stakes enter the standard 30-day withdrawal queue (delegators are not slashed)
+
+See [Gateway Pruning](/learn/oip/pruning) for full details.
+
+### SOL Balance Monitoring
+
+Keep your observer wallet funded with SOL. If it runs out, your observer cannot submit observations, which leads to failed epochs and eventually pruning. Set up monitoring/alerts for your observer wallet balance.
+
+## FAQ
+
+**Do I need to re-register my gateway?**
+No. If you mapped your address before cutover, your gateway registration, stake, and delegations are migrated automatically.
+
+**What happens to my delegators?**
+Delegations are migrated as-is. Delegators who mapped their addresses will see their stakes in their Solana wallet. Unmapped delegations are held in escrow for claiming.
+
+**Can I still use my Arweave wallet for data uploads?**
+Yes. Arweave wallets are still used for uploading data to Arweave via Turbo. The Solana wallet is only for protocol interactions (staking, observations, ArNS).
+
+**How do I check my observer's SOL balance?**
+```bash
+solana balance <observer-pubkey> --url mainnet-beta
+```

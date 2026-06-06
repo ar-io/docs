@@ -9,7 +9,7 @@ import { Card, Cards } from 'fumadocs-ui/components/card';
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 import { GitBranch, Code, Rocket, Network, Settings, RefreshCw, CheckCircle, Zap, Upload } from 'lucide-react';
 
-In the [previous guide](/build/guides/hosting-decentralised-apps/deploying-with-permaweb-deploy), you deployed your application to your base ArNS name. Now you'll learn how to manage multiple versions and environments using **undernames** - subdomains under your ArNS name.`
+In the [previous guide](/build/guides/hosting-decentralised-apps/deploying-with-permaweb-deploy), you deployed your application to your base ArNS name. Now you'll learn how to manage multiple versions and environments using **undernames** - subdomains under your ArNS name.
 
 ## What You'll Learn
 
@@ -27,10 +27,10 @@ Undernames let you create multiple versions under one ArNS name - like subdomain
 
 ```
 your-arns-name (your ArNS name)
-├─ @ (base)       → your-arns-name.arweave.net
-├─ dev            → dev_your-arns-name.arweave.net
-├─ staging        → staging_your-arns-name.arweave.net
-└─ v2             → v2_your-arns-name.arweave.net
+├─ @ (base)       → your-arns-name.ar.io
+├─ dev            → dev_your-arns-name.ar.io
+├─ staging        → staging_your-arns-name.ar.io
+└─ v2             → v2_your-arns-name.ar.io
 ```
 
 **Key benefits:**
@@ -134,7 +134,7 @@ Create a script that automatically archives based on your `package.json` version
       { stdio: 'inherit' }
     );
 
-    console.log(`✓ Archived at: https://v${version}_your-arns-name.arweave.net`);
+    console.log(`✓ Archived at: https://v${version}_your-arns-name.ar.io`);
     ```
 
     Then add to `package.json`:
@@ -167,7 +167,7 @@ Create a script that automatically archives based on your `package.json` version
       { stdio: 'inherit' }
     );
 
-    console.log(`✓ Archived at: https://v${version}_your-arns-name.arweave.net`);
+    console.log(`✓ Archived at: https://v${version}_your-arns-name.ar.io`);
     ```
 
     Then add to `package.json`:
@@ -185,9 +185,9 @@ Create a script that automatically archives based on your `package.json` version
   </Tab>
 </Tabs>
 
-Now whenever you run `deploy:archive` a version specific immutable deployment of your app we be create and hosted permanently.
+Now whenever you run `deploy:archive` a version-specific immutable deployment of your app will be created and hosted permanently.
 
-For example, version 2.1.0 would be accessible forever at `https://v2-1-0_your-arns-name.arweave.net`.
+For example, version 2.1.0 would be accessible forever at `https://v2-1-0_your-arns-name.ar.io`.
 
 ---
 
@@ -258,7 +258,7 @@ Building on the [GitHub Actions workflow](/build/guides/hosting-decentralised-ap
               DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
     ```
 
-    **Usage:** Push to `develop` branch → Auto-deploys to `dev_your-arns-name.arweave.net`
+    **Usage:** Push to `develop` branch → Auto-deploys to `dev_your-arns-name.ar.io`
   </Tab>
 
   <Tab value="Staging">
@@ -293,7 +293,7 @@ Building on the [GitHub Actions workflow](/build/guides/hosting-decentralised-ap
               DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
     ```
 
-    **Usage:** Push to `staging` branch → Auto-deploys to `staging_your-arns-name.arweave.net`
+    **Usage:** Push to `staging` branch → Auto-deploys to `staging_your-arns-name.ar.io`
   </Tab>
 
   <Tab value="Production">
@@ -334,10 +334,10 @@ Building on the [GitHub Actions workflow](/build/guides/hosting-decentralised-ap
               DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
     ```
 
-    **Usage:** Push to `main` branch → Auto-deploys to `your-arns-name.arweave.net` and archives to `v{version}_your-arns-name.arweave.net`
+    **Usage:** Push to `main` branch → Auto-deploys to `your-arns-name.ar.io` and archives to `v{version}_your-arns-name.ar.io`
 
     <Callout type="info" title="Version archives">
-      Every production deployment automatically creates a permanent archive based on your `package.json` version. For example, version 2.1.0 is archived at `v2-1-0_your-arns-name.arweave.net`.
+      Every production deployment automatically creates a permanent archive based on your `package.json` version. For example, version 2.1.0 is archived at `v2-1-0_your-arns-name.ar.io`.
     </Callout>
   </Tab>
 </Tabs>
@@ -366,13 +366,13 @@ git push origin main  # Auto-deploys to production
 
 ## Instant Rollbacks with ArNS App
 
-One of the key benefits of undernames is instant rollbacks. Since all versions are permanently stored on Arweave, you can instantly switch between them using the [ArNS app](https://arns.app).
+One of the key benefits of undernames is instant rollbacks. Since all versions are permanently stored on Arweave, you can instantly switch between them using the [ArNS app](https://arns.ar.io).
 
 **To rollback to a previous version:**
 
 <Steps>
   <Step title="Open ArNS app">
-    Navigate to [arns.app](https://arns.app) and find your ArNS name. You'll see all undernames and their transaction IDs.
+    Navigate to [arns.ar.io](https://arns.ar.io) and find your ArNS name. You'll see all undernames and their transaction IDs.
   </Step>
 
   <Step title="Copy transaction ID">

@@ -7,198 +7,51 @@ import { Globe, Database, Code } from "lucide-react";
 
 ## Addressing Variable Market Conditions
 
-The future market landscape is unpredictable, and ar.io's smart contract is designed to be immutable, operating without governance or manual intervention. Using a pricing oracle to fix name prices relative to a stable currency is not viable due to the infancy of available solutions and reliance on external dependencies.
+The future market landscape is unpredictable, and ArNS is designed to adapt without relying on a centralized pricing oracle. Instead of fixing name prices to an external currency, the protocol adjusts pricing based on network activity and registration demand.
 
-To address these challenges, ArNS is self-contained and adaptive, with name prices reflecting network activity and market conditions over time.
+This keeps ArNS self-contained while still allowing name prices to respond to changing market conditions over time.
 
-To achieve this, ArNS incorporates:
+ArNS pricing is built from a few core ideas:
 
-1. A **dynamic pricing model** that adjusts fees using a "Demand Factor" based on ArNS purchase activity
-2. A **Returned Name Premium (RNP)** system that applies a timed, descending multiplier to registration prices for names that have recently expired or been returned to the protocol
+1. **Name length**: Shorter, more memorable names generally cost more.
+2. **Registration type**: Names can be leased for a defined period or purchased permanently.
+3. **Demand Factor**: A protocol multiplier adjusts prices based on recent ArNS activity.
+4. **Returned Name Premium (RNP)**: Recently expired or returned names re-enter the market through a descending premium window.
 
-This approach ensures that name valuations adapt to market conditions within the constraints of an immutable, maintenance-free smart contract framework.
+This approach lets ArNS remain predictable enough for users while still adapting to namespace demand.
 
-You can view current live pricing at [ArNS.app](https://arns.ar.io/#/prices) to see these formulas in action.
+You can view current live pricing at [arns.ar.io](https://arns.ar.io/#/prices) to see these formulas in action.
 
 ## Key Definitions
 
-- **Protocol Revenue:** Accumulated ARIO tokens from name registrations, lease extensions, and under_name sales
-- **Period (P):** The time unit for DF adjustments, equivalent to one (1) day, denoted in milliseconds
-- **n:** The current period indicator
-- **Price:** The cost for permabuy or lease of a name
-- **Under_names:** Subdomain equivalents, denoted by an underscore "\_" prefixing the base domain
+- **Demand Factor:** A protocol multiplier that adjusts prices based on recent registration activity.
+- **Base Fee:** The starting price for a name before dynamic adjustments.
+- **Lease:** A time-limited registration.
+- **Permabuy:** A permanent registration.
+- **Undername:** A subdomain-style record written with an underscore (`_`) instead of a dot (`.`).
+- **Protocol Revenue:** ARIO collected from ArNS actions, such as name registrations, lease extensions, and undername purchases.
 
 ## Dynamic Pricing Model
 
-ArNS employs an adaptive pricing model to balance market demand with pricing fairness for name registration within the network. This model integrates static and dynamic elements, adjusting prices based on name length and purchase options like leasing, permanent acquisition, and undername amounts.
+ArNS uses an adaptive model to balance name availability, demand, and long-term sustainability. Prices are influenced by name length, whether the name is leased or bought permanently, undername capacity, and the current Demand Factor.
 
-### Core Pricing Components
+The Demand Factor changes over time based on protocol activity. When demand is high, it can increase prices; when demand is low, it can decrease prices. If demand remains low for long enough, the protocol can step base fees downward so names stay accessible.
 
-#### Base Registration Fee (BRF)
-
-The fundamental price for names, varying by character length, adjusted periodically.
-
-#### Genesis Registration Fee (GRF)
-
-The starting price for name registrations varies by character length. This is superseded by Base Registration Fees as the protocol evolves.
-
-**Table: Genesis Registration Fees**
-
-| Name Length | Fee (ARIO) |
-| ----------- | ---------- |
-| 1           | 1,000,000  |
-| 2           | 200,000    |
-| 3           | 20,000     |
-| 4           | 10,000     |
-| 5           | 2,500      |
-| 6           | 1,500      |
-| 7           | 800        |
-| 8           | 500        |
-| 9           | 400        |
-| 10          | 350        |
-| 11          | 300        |
-| 12          | 250        |
-| 13-51       | 200        |
-
-#### Demand Factor (DF)
-
-A global price multiplier, reflecting namespace demand, adjusted each period based on revenue trends.
-
-**DF Mechanics:**
-
-- **Intent:** The Demand Factor adjusts based on protocol revenue comparison to the Revenue Moving Average (RMA)
-- **Increase DF:** When recent revenue is higher than or equal to (but non-zero) the RMA, the DF increases by 5.0%
-- **Decrease DF:** When recent revenue is less than the RMA or both are zero, the DF decreases by 1.5%
-- **Maximum DF Value:** Unbounded
-- **Minimum DF Value:** 0.5
-- **Starting Demand Factor:** 1 (initial value at network launch)
-
-#### Revenue Moving Average (RMA)
-
-The average of protocol revenue from the past seven (7) periods.
-
-### Pricing Formulas
-
-#### Adjusted Registration Fee (ARF)
-
-```math
-ARF = BRF × DF
-```
-
-#### Annual Fee
-
-```math
-Annual ~Fee = ARF × 20%
-```
-
-#### Lease Pricing
-
-- **Lease Registration Price:**
-
-```math
-Lease ~Price = ARF + (Annual ~Fee × Years)
-```
-
-- **Lease Extension/Renewal Price:**
-
-```math
-Lease ~Renewal ~Price = Annual ~Fee × Years (max 5 years)
-```
-
-- **Grace period:** Two (2) weeks
-
-#### Permanent Purchases
-
-- **Permabuy Price:**
-
-```math
-Permabuy ~Price = ARF + (Annual Fee × 20 years)
-```
-
-- **Lease to Permabuy Price:** Same as above
-
-#### Under Name Fees
-
-- **Initial Allocation:** 10 `under_names` are included with each name registration
-- **For Leases:**
-
-```math
-Lease ~Under ~Name ~Fee = BRF × DF × 0.1%
-```
-
-- **For Permabuys:**
-
-```math
-Permabuy ~Under ~Name ~Fee = BRF × DF × 0.5%
-```
-
-#### Primary Name Fee
-
-Set or change primary name: The fee is equal to the associated fee for a single `under_name` purchase of a 51-character name of equivalent purchase type to the new primary name, regardless of the new primary name's length.
-
-### Step Pricing Mechanics
-
-- Synchronizes BRF (Base Rate Factor) with ARF (Adjusted Rate Factor) after seven (7) consecutive periods at the minimum DF value
-- Resets DF to 1 following a step pricing adjustment
+For exact costs, users should rely on the live ArNS app or SDK cost simulation rather than copying formulas into their own applications.
 
 ## Returned Name Premiums (RNP)
 
-ArNS applies a **Returned Name Premium (RNP)** to names that re-enter the market after expiration or permanent return. This premium starts at a maximum value and decreases linearly over a predefined window, ensuring fair and transparent pricing for re-registered names.
+ArNS applies a **Returned Name Premium (RNP)** to names that re-enter the market after expiration or permanent return. The premium starts high and decreases over a return window until the name reaches standard pricing again.
 
-### RNP Mechanics
+Returned name purchases split proceeds between the protocol balance and the previous owner. This discourages instant name sniping after expiry and gives owners a reason to release names they no longer need.
 
-#### Intent
-
-The premium starts at its maximum and decreases linearly until the name is purchased. If the name is not purchased before the premium window closes, it reverts to standard pricing and is no longer classified as "recently returned."
-
-#### RNP Window
-
-- **Duration:** Fourteen (14) periods
-
-#### Returned Name Premium Formula
-
-The premium multiplier follows a linearly declining function:
-
-```math
-RNP = 50 - (49 / 14) × t
-```
-
-Where:
-
-- **RNP:** The Returned Name Premium multiplier applied to the purchased name price
-- **t:** Amount of time (or time-intervals) elapsed since the start of the return window
-
-#### RNP Registration Price
-
-```math
-Price = RNP × (Lease~Or~Permabuy) ~Registration~ Price
-```
-
-#### Permanent Name Return Proceeds Split
-
-- **50%** goes to the returning name owner
-- **50%** goes to the protocol balance
-
-The RNP multiplier is applied to the registration price of both permanently purchased and leased names.
+For more detail, see [Returned Names](/learn/arns/returned-names).
 
 ## Gateway Operator ArNS Discount
 
-Gateway operators who demonstrate consistent, healthy participation in the network are eligible for a **20% discount** on certain ArNS interactions.
+Gateway operators who demonstrate consistent, healthy participation in the network may be eligible for discounted ArNS interactions. This creates another incentive for gateways to provide reliable service while supporting ArNS usage.
 
-### Qualification Requirements
-
-To qualify for the discount:
-
-- The gateway must maintain a "Gateway Performance Ratio Weight" (GPRW) of **0.9 or higher**
-- The gateway must have a "Tenure Weight" (TW) of **1.0 or greater**
-- A gateway marked as "Leaving" shall not be eligible for this discount
-
-### Eligible Discounted Interactions
-
-- Purchasing a name
-- Extending a lease
-- Upgrading a lease to permabuy
-- Increasing undernames capacity
+Discount eligibility requires a **Gateway Performance Ratio Weight (GPRW) of 0.9** and a **Tenure Weight (TW) of 1.0**. Eligible operators receive a **20% discount** on new ArNS name registrations, lease extensions, lease upgrades, and undername purchases.
 
 ## Next Steps
 
@@ -209,15 +62,15 @@ Congratulations! You now understand the complete ArNS pricing system. Ready to g
     See current ArNS pricing in real-time with the live pricing chart.
   </Card>
 
-<Card href="https://arns.app" title="Register a Name" icon={<Globe />}>
-  Visit ArNS.app to register your first name and explore the pricing in action.
+<Card href="https://arns.ar.io" title="Register a Name" icon={<Globe />}>
+  Visit arns.ar.io to register your first name and explore the pricing in action.
 </Card>
 
 <Card href="/learn/gateways" title="Explore Gateways" icon={<Database />}>
   Learn about ar.io gateways and how they integrate with ArNS.
 </Card>
 
-  <Card href="/build/arns" title="Build with ArNS" icon={<Code />}>
+<Card href="/build/access/arns" title="Build with ArNS" icon={<Code />}>
     Start building applications that leverage ArNS for decentralized naming.
   </Card>
 </Cards>

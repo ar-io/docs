@@ -62,7 +62,7 @@ const manifest = await arDrive.uploadPublicManifest({
     conflictResolution: 'upsert'
 });
 
-// Access: https://arweave.net/{manifestId}
+// Access: https://turbo-gateway.com/{manifestId}
 ```
 
 # Progress Tracking (/(advanced-features)/progress-tracking)
@@ -467,48 +467,143 @@ const basePrice = await priceEstimator.getBaseWinstonPriceForByteCount(
 );
 ```
 
-# Entity IDs (/(core-concepts)/entity-ids)
-
-Use the type-safe entity ID constructors:
-
-```typescript
-
-// Generic entity ID
-const entityId = EID('10108b54a-eb5e-4134-8ae2-a3946a428ec7');
-
-// Specific entity IDs
-const driveId = new DriveID('12345674a-eb5e-4134-8ae2-a3946a428ec7');
-const folderId = new FolderID('47162534a-eb5e-4134-8ae2-a3946a428ec7');
-const fileId = new FileID('98765432a-eb5e-4134-8ae2-a3946a428ec7');
-```
-
-# Entity Types (/(core-concepts)/entity-types)
-
-ArDrive uses a hierarchical structure:
-
-- **Drives**: Top-level containers (public or private)
-- **Folders**: Organize files within drives
-- **Files**: Individual files stored on Arweave
-
-Each entity has a unique ID (`DriveID`, `FolderID`, `FileID`) and can be either public (unencrypted) or private (encrypted).
-
-# Wallet Management (/(core-concepts)/wallet-management)
-
-```typescript
-
-// Create wallet from JWK
-const wallet = new JWKWallet(jwkKey);
-
-// Check wallet balance
-const balance = await wallet.getBalance();
-```
-
 # ArDrive Core JS (/index)
 
 **For AI and LLM users**: Access the complete ArDrive Core JS documentation in plain text
   format at llm.txt for easy consumption by AI agents
   and language models.
 
-# ArDrive Core JS
+The ArDrive Core JS SDK provides a comprehensive TypeScript library for building applications on ArDrive. It offers type-safe interfaces for drive management, file operations, encryption, and seamless integration with Arweave.
 
-Please refer to the [source code](https://github.com/ardriveapp/ardrive-core-js) for SDK details.
+## Quick Start
+
+        ### Install the SDK
+
+        ```npm
+        npm install ardrive-core-js
+        ```
+
+        ### Initialize with a Wallet
+
+        ```typescript
+        
+        // Load your Arweave wallet
+        const wallet = readJWKFile('./wallet.json');
+
+        // Create an ArDrive instance
+        const arDrive = arDriveFactory({ wallet });
+        ```
+
+        ### Create a Drive and Upload Files
+
+        ```typescript
+        
+        // Create a new public drive
+        const { driveId, rootFolderId } = await arDrive.createPublicDrive({
+          driveName: 'My-Drive'
+        });
+
+        console.log('Drive created:', driveId.toString());
+        console.log('Root folder:', rootFolderId.toString());
+
+        // Upload a file to the drive
+        const wrappedFile = wrapFileOrFolder('./my-file.pdf');
+        const uploadResult = await arDrive.uploadPublicFile({
+          parentFolderId: rootFolderId,
+          wrappedFile
+        });
+
+        console.log('File uploaded:', uploadResult.fileId.toString());
+        ```
+
+        ### Install the SDK
+
+        ```npm
+        npm install ardrive-core-js
+        ```
+
+        ### Configure Polyfills
+
+        Polyfills are required for web environments due to Node.js dependencies used by the SDK.
+
+        ```npm
+        npm install --save-dev vite-plugin-node-polyfills
+        ```
+
+        ```js
+        // vite.config.js
+                
+                  plugins: [
+            nodePolyfills({
+              globals: {
+                Buffer: true,
+                global: true,
+                process: true,
+              },
+            }),
+          ],
+        });
+        ```
+
+        Configure your bundler (Webpack, Vite, Rollup, etc.) to provide polyfills for `crypto`, `process`, and `buffer`. Refer to your bundler's documentation for polyfill configuration.
+
+        ### Use the SDK
+
+        ```typescript
+        
+        // Initialize with a JWK wallet object
+        const arDrive = arDriveFactory({ wallet: jwkWallet });
+
+        // Create a public drive
+        const { driveId, rootFolderId } = await arDrive.createPublicDrive({
+          driveName: 'My-Drive'
+        });
+
+        console.log('Drive created:', driveId.toString());
+        ```
+
+## Documentation
+
+  }
+    title="Source Code"
+    description="View the complete source code and contribute on GitHub"
+    href="https://github.com/ardriveapp/ardrive-core-js"
+  />
+  }
+    title="API Reference"
+    description="Detailed documentation for all SDK methods and classes"
+    href="/sdks/ardrive-core-js/drive-operations"
+  />
+
+## Core Features
+
+  }
+    title="Drive Operations"
+    description="Create and manage public and private drives"
+    href="/sdks/ardrive-core-js/drive-operations"
+  />
+  }
+    title="Folder Operations"
+    description="Create folders, list contents, and organize your data"
+    href="/sdks/ardrive-core-js/folder-operations"
+  />
+  }
+    title="File Operations"
+    description="Upload, download, and manage files on Arweave"
+    href="/sdks/ardrive-core-js/file-operations"
+  />
+  }
+    title="Encryption & Security"
+    description="End-to-end encryption for private drives and files"
+    href="/sdks/ardrive-core-js/encryption-security"
+  />
+  }
+    title="Pricing & Cost Estimation"
+    description="Estimate upload costs before committing transactions"
+    href="/sdks/ardrive-core-js/pricing-cost-estimation"
+  />
+  }
+    title="Advanced Features"
+    description="Turbo integration, bundling, manifests, and more"
+    href="/sdks/ardrive-core-js/turbo-integration"
+  />

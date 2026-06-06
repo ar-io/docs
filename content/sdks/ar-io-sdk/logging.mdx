@@ -8,13 +8,13 @@ The library uses a lightweight console logger by default for both Node.js and we
 #### Default Logger
 
 ```typescript
-import { Logger } from '@ar.io/sdk';
+import { Logger } from "@ar.io/sdk";
 
 // set the log level
-Logger.default.setLogLevel('debug');
+Logger.default.setLogLevel("debug");
 
 // Create a new logger instance with a specific level
-const logger = new Logger({ level: 'debug' });
+const logger = new Logger({ level: "debug" });
 ```
 
 #### Custom Logger Implementation
@@ -22,7 +22,7 @@ const logger = new Logger({ level: 'debug' });
 You can provide any custom logger that implements the `ILogger` interface:
 
 ```typescript
-import { ARIO, ILogger } from '@ar.io/sdk';
+import { ARIO, ILogger } from "@ar.io/sdk";
 
 // Custom logger example
 const customLogger: ILogger = {
@@ -35,56 +35,8 @@ const customLogger: ILogger = {
   },
 };
 
-// Use custom logger with any class
-const ario = ARIO.mainnet({ logger: customLogger });
-
-// or set it as the default logger in the entire SDK
+// Set it as the default logger across the entire SDK — every class
+// (ARIO, ANT, ANTRegistry, etc.) will route logs through it. `ARIO.init`
+// does not accept a per-instance logger.
 Logger.default = customLogger;
-```
-
-#### Winston Logger (Optional)
-
-For advanced logging features, you can optionally install Winston and use the provided Winston logger adapter:
-
-```bash
-yarn add winston
-```
-
-```typescript
-import { ARIO, WinstonLogger } from '@ar.io/sdk';
-
-// Create Winston logger with custom configuration
-const winstonLogger = new WinstonLogger({
-  level: 'debug',
-});
-
-// Use with any class that accepts a logger
-const ario = ARIO.mainnet({ logger: winstonLogger });
-
-// or set it as the default logger in the entire SDK
-Logger.default = winstonLogger;
-```
-
-#### Other Popular Loggers
-
-You can easily integrate other popular logging libraries:
-
-```typescript
-// Bunyan example
-import { ARIO, ILogger } from '@ar.io/sdk';
-import bunyan from 'bunyan';
-
-const bunyanLogger = bunyan.createLogger({ name: 'ar-io-sdk' });
-const adapter: ILogger = {
-  info: (message, ...args) => bunyanLogger.info({ args }, message),
-  warn: (message, ...args) => bunyanLogger.warn({ args }, message),
-  error: (message, ...args) => bunyanLogger.error({ args }, message),
-  debug: (message, ...args) => bunyanLogger.debug({ args }, message),
-  setLogLevel: (level) => bunyanLogger.level(level),
-};
-
-const ario = ARIO.mainnet({ logger: adapter });
-
-// or set it as the default logger in the entire SDK
-Logger.default = adapter;
 ```

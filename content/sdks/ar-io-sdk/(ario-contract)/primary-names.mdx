@@ -8,12 +8,12 @@ description: "TypeScript/JavaScript SDK for interacting with the ar.io ecosystem
 Retrieves all primary names paginated and sorted by the specified criteria. The `cursor` used for pagination is the last name from the previous request.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const names = await ario.getPrimaryNames({
-  cursor: 'ao', // this is the last name from the previous request
+  cursor: "ao", // this is the last name from the previous request
   limit: 1,
-  sortBy: 'startTimestamp',
-  sortOrder: 'desc',
+  sortBy: "startTimestamp",
+  sortOrder: "desc",
 });
 ```
 
@@ -26,12 +26,13 @@ const names = await ario.getPrimaryNames({
   "totalItems": 100,
   "limit": 1,
   "sortBy": "startTimestamp",
-  "cursor": "arns",
+  "nextCursor": "arns",
   "items": [
     {
+      "name": "arns",
       "owner": "HwFceQaMQnOBgKDpnFqCqgwKwEU5LBme1oXRuQOWSRA",
-      "startTimestamp": 1719356032297,
-      "name": "arns"
+      "processId": "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM",
+      "startTimestamp": 1719356032297
     }
   ]
 }
@@ -42,13 +43,13 @@ const names = await ario.getPrimaryNames({
 Retrieves the primary name for a given name or address.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const name = await ario.getPrimaryName({
-  name: 'arns',
+  name: "arns",
 });
 // or
 const name = await ario.getPrimaryName({
-  address: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
+  address: "t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3",
 });
 ```
 
@@ -56,9 +57,10 @@ const name = await ario.getPrimaryName({
 
 ```json
 {
+  "name": "arns",
   "owner": "HwFceQaMQnOBgKDpnFqCqgwKwEU5LBme1oXRuQOWSRA",
-  "startTimestamp": 1719356032297,
-  "name": "arns"
+  "processId": "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM",
+  "startTimestamp": 1719356032297
 }
 ```
 
@@ -69,9 +71,8 @@ Sets an ArNS name already owned by the `signer` as their primary name. Note: `si
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const signer = new ArweaveSigner(jwk);
-const ario = ARIO.mainnet({ signer });
-await ario.setPrimaryName({ name: 'my-arns-name' }); // the caller must already have purchased the name my-arns-name and be assigned as the owner of the processId that is assigned to the name
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
+await ario.setPrimaryName({ name: 'my-arns-name' });
 ```
 
 #### requestPrimaryName()
@@ -81,9 +82,9 @@ Requests a primary name for the `signer`'s address. The request must be approved
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer: new ArweaveSigner(jwk) });
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
 const { id: txId } = await ario.requestPrimaryName({
-  name: 'arns',
+  name: "arns",
 });
 ```
 
@@ -92,9 +93,9 @@ const { id: txId } = await ario.requestPrimaryName({
 Retrieves the primary name request for a a wallet address.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const request = await ario.getPrimaryNameRequest({
-  initiator: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
+  initiator: "t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3",
 });
 ```
 

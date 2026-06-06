@@ -1,0 +1,207 @@
+---
+title: "Verification & Trust Headers"
+description: "Understanding the HTTP response headers that ar.io gateways use to communicate data verification status, integrity, and trust to clients"
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Shield, Globe, Search, Cpu } from "lucide-react";
+
+Ar.io gateways attach HTTP response headers to every data response that communicate whether the data has been verified against the Arweave base layer, whether it has reached finality, and whether the source is trusted. These headers enable clients to make informed trust decisions without relying solely on the gateway operator's reputation.
+
+## Trust & Verification Headers
+
+Every data response from an ar.io gateway includes the following headers:
+
+| Header | Values | Description |
+|--------|--------|-------------|
+| `X-AR-IO-Verified` | `true` / `false` | `true` only when data is served from local cache **and** has been verified against the Arweave base layer. Data streamed from network sources is marked `false` even if the gateway's database indicates prior verification, because the hash cannot be confirmed in-flight during streaming. |
+| `X-AR-IO-Stable` | `true` / `false` | `true` when the data exists beyond Arweave's maximum fork depth, indicating finality. Once stable, the data cannot be reorganized out of the chain. |
+| `X-AR-IO-Trusted` | `true` / `false` | `true` when the data was retrieved from a source the operator has configured as trusted (via `TRUSTED_GATEWAY_URL` or `TRUSTED_GATEWAYS_URLS`). |
+| `Content-Digest` | `sha-256=:base64:` | SHA-256 hash of the response body in [RFC 9530](https://www.rfc-editor.org/rfc/rfc9530.html) format. Only set on cache hits and HEAD requests, since the hash cannot be computed during network streaming. Enables direct body integrity verification by clients. |
+| `X-AR-IO-Digest` | base64url string | The raw SHA-256 hash of the content in base64url encoding. Set alongside `Content-Digest`. |
+| `ETag` | `"hash"` | Content hash for HTTP conditional requests (`If-None-Match`). Enables 304 Not Modified responses for efficient caching. |
+| `X-AR-IO-Data-Id` | base64url string | The Arweave transaction ID or data item ID of the content being served. |
+| `X-AR-IO-Hops` | number | The number of inter-gateway hops the request traversed before reaching this gateway. |
+| `X-Cache` | `HIT` / `MISS` | Whether the data was served from the gateway's local cache or fetched from the network. |
+
+### Why X-AR-IO-Verified Can Be False for Verified Data
+
+A common source of confusion: data may be verified in the gateway's database but still return `X-AR-IO-Verified: false`. This happens when the data is streamed from a network source rather than served from local cache. During streaming, the gateway cannot compute a hash of the data in-flight to confirm it matches the verified hash. Only when the data is served from local cache can the gateway guarantee that the bytes being sent match what was previously verified.
+
+```
+# Cache hit - verified data served from local storage
+X-AR-IO-Verified: true
+X-Cache: HIT
+Content-Digest: sha-256=:4ROTs2lTPAKbr8Y41WrjHu+2q+7S+m+yTuO7fAUzZI4=:
+
+# Network fetch - same data, but hash can't be confirmed in-flight
+X-AR-IO-Verified: false
+X-Cache: MISS
+# Content-Digest is NOT set (can't hash during streaming)
+```
+
+## ANS-104 Bundle Headers
+
+For data items served from [ANS-104 bundles](https://specs.turbo-gateway.com/?tx=fFJEsPOLDJKRfNgaeaRPlfSvcNtHp0Y3JVxD-HHzmwA), gateways include additional headers in two categories.
+
+### Position Headers
+
+These headers describe the data item's location within its parent bundle, allowing clients to independently verify inclusion:
+
+| Header | Description |
+|--------|-------------|
+| `X-AR-IO-Root-Transaction-Id` | The root Arweave transaction containing the bundle |
+| `X-AR-IO-Data-Item-Offset` | Byte offset of this data item within the bundle |
+| `X-AR-IO-Data-Item-Size` | Size of the data item in bytes |
+| `X-AR-IO-Data-Item-Data-Offset` | Byte offset of the data payload within the data item |
+| `X-AR-IO-Root-Item-Offset` | Offset of the root item in the bundle |
+| `X-AR-IO-Root-Item-Size` | Size of the root item |
+
+### Metadata Headers
+
+ANS-104 fields are exposed at the HTTP layer so clients can read data item tags and owner information directly from response headers without parsing the binary format:
+
+| Header | Description |
+|--------|-------------|
+| `X-Arweave-Owner` | The raw owner public key of the data item |
+| `X-Arweave-Owner-Address` | The data item signer's wallet address (derived from the owner key) |
+| `X-Arweave-Tag-*` | One header per tag, with the tag name as the suffix (e.g., `X-Arweave-Tag-Content-Type`) |
+| `X-Arweave-Tags-Truncated` | Set when the tag set exceeds a configurable byte budget, indicating partial tag exposure |
+
+## Client-Side Verification
+
+Clients can verify gateway responses at multiple levels, from lightweight header checks to full cryptographic verification:
+
+### Body Integrity
+
+Compare the `Content-Digest` header (when present) against a locally computed SHA-256 hash of the response body. For Arweave content, the `X-AR-IO-Data-Id` is itself a content hash - clients can walk the Arweave or ANS-104 signature chain from this ID to verify the content.
+
+```javascript
+// Verify Content-Digest in a browser
+const response = await fetch('https://gateway.example/raw/TX_ID');
+const body = await response.arrayBuffer();
+const hash = await crypto.subtle.digest('SHA-256', body);
+const base64Hash = btoa(String.fromCharCode(...new Uint8Array(hash)));
+
+const digestHeader = response.headers.get('Content-Digest');
+// Header format: sha-256=:base64hash=:
+// Extract the hash between the colons
+const match = digestHeader?.match(/sha-256=:(.+?):/);
+const verified = match?.[1] === base64Hash;
+console.log('Integrity check:', verified);
+```
+
+### Cross-Gateway Comparison
+
+Query the same data from multiple gateways and compare their response headers. If `X-AR-IO-Verified: true` and `Content-Digest` values match across independent gateways, the data is authentic with high confidence.
+
+### Wayfinder Verification
+
+The [Wayfinder](/learn/wayfinder) protocol provides automated client-side routing and verification across the gateway network. It supports configurable strategies including balanced (random), fastest ping, and static gateway selection, with built-in response verification.
+
+## HTTP Message Signatures (RFC 9421)
+
+Gateways can opt in to signing response headers using [RFC 9421 HTTP Message Signatures](https://www.rfc-editor.org/rfc/rfc9421.html). When enabled, an Ed25519 sub-key signs all trust-relevant headers at response time, producing a `Signature` and `Signature-Input` header pair. This provides cryptographic proof that a specific gateway operator produced a given response.
+
+### Enabling HTTP Signatures
+
+Add the following to your gateway's `.env` file:
+
+```bash
+# Enable response signing
+HTTPSIG_ENABLED=true
+```
+
+On startup, the gateway automatically generates an Ed25519 key at `data/keys/httpsig.pem` if one doesn't exist. The key also functions as a valid Solana address.
+
+#### Optional: Attestation
+
+To link your signing key to your on-chain identity, configure an observer wallet. The gateway will create an RSA-signed attestation linking the Ed25519 key to your Arweave wallet and upload it to Arweave:
+
+```bash
+# Observer wallet for attestation (Arweave address)
+OBSERVER_WALLET=your-arweave-address
+WALLETS_PATH=wallets
+
+# Automatically upload attestation to Arweave (default: true)
+HTTPSIG_UPLOAD_ATTESTATION=true
+
+# Optional: include staked gateway address in attestation
+AR_IO_WALLET=your-gateway-address
+```
+
+Place your Arweave wallet JWK file in the `WALLETS_PATH` directory. The attestation is cached to `data/keys/httpsig-attestation.json` and only regenerated if the key or wallet changes.
+
+### Configuration Reference
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `HTTPSIG_ENABLED` | `false` | Enable RFC 9421 response signing |
+| `HTTPSIG_KEY_FILE` | `data/keys/httpsig.pem` | Path to Ed25519 private key (auto-generated if missing) |
+| `HTTPSIG_BIND_REQUEST` | `true` | Include request method and path in signature (prevents replay) |
+| `OBSERVER_WALLET` | - | Arweave wallet address for attestation signing |
+| `WALLETS_PATH` | `wallets` | Directory containing Arweave wallet JWK files |
+| `HTTPSIG_UPLOAD_ATTESTATION` | `true` | Upload attestation to Arweave automatically |
+
+### Verifying It's Working
+
+Once enabled, check the `/ar-io/info` endpoint to confirm:
+
+```bash
+curl -s https://your-gateway.example/ar-io/info | jq '.httpsig'
+```
+
+The response includes the public key, key ID, Solana address, and attestation details (if configured). Signed responses will include `Signature` and `Signature-Input` headers on all trust-relevant data responses.
+
+### What Gets Signed
+
+The gateway signs all trust-relevant response headers but **not the response body**. Body integrity is achieved through the signed `X-AR-IO-Data-Id` (which is a content hash) and the `Content-Digest` header. Header-only signing preserves streaming performance for large responses.
+
+**Signed headers** (when present on the response):
+- Trust headers: `X-AR-IO-Data-Id`, `X-AR-IO-Verified`, `X-AR-IO-Stable`, `X-AR-IO-Trusted`
+- Bundle headers: `X-AR-IO-Root-Transaction-Id`, `X-Arweave-Owner-Address`, `X-Arweave-Tags-Truncated`
+- ArNS headers: `X-ArNS-Name`, `X-ArNS-Resolved-Id`, `X-ArNS-TTL-Seconds`, `X-ArNS-Process-Id`
+- Chunk headers: `X-Arweave-Chunk-Data-Root`, `X-Arweave-Chunk-Tx-Id`, `X-AR-IO-Chunk-Source-Type`
+- Content headers: `Content-Type`, `Content-Digest`
+- All `X-Arweave-Tag-*` headers (dynamically matched)
+- Request components (when `HTTPSIG_BIND_REQUEST=true`): `@method`, `@path`, `@status`
+
+Only responses containing at least one trust-relevant header are signed. Non-data responses (health checks, info endpoint, errors) are not signed.
+
+### Verification Chain
+
+Clients can verify signed responses through the following chain:
+
+1. **Signature verification** - The public key is embedded in the `Signature-Input` header's `keyid` parameter and is verifiable via the Web Crypto API in modern browsers.
+2. **Identity verification** - If attestation is configured, follow the attestation chain from the Ed25519 signing key to the operator's Arweave RSA wallet to confirm the signer is a registered gateway. The attestation is available at `/ar-io/info` and on Arweave.
+3. **Body integrity** - Compare the `Content-Digest` header against a locally computed hash, or walk the Arweave signature chain from the signed `X-AR-IO-Data-Id`.
+
+## Related
+
+<Cards>
+  <Card
+    title="Data Verification"
+    description="How gateways verify data integrity using Merkle tree cryptography"
+    href="/learn/gateways/data-verification"
+    icon={<Shield className="w-8 h-8" />}
+  />
+  <Card
+    title="Wayfinder"
+    description="Client-side routing and verification across the gateway network"
+    href="/learn/wayfinder"
+    icon={<Globe className="w-8 h-8" />}
+  />
+  <Card
+    title="Gateway API Reference"
+    description="Full API reference including data retrieval endpoints"
+    href="/apis/ar-io-node/data"
+    icon={<Search className="w-8 h-8" />}
+  />
+  <Card
+    title="Environment Variables"
+    description="Configure trusted sources, verification, and gateway behavior"
+    href="/build/run-a-gateway/manage/environment-variables"
+    icon={<Cpu className="w-8 h-8" />}
+  />
+</Cards>

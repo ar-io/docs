@@ -248,7 +248,7 @@ ardrive \ --help
 [arconnect]: https://arconnect.io/
 [kb-wallets]: https://ardrive.atlassian.net/l/c/FpK8FuoQ
 [arweave-manifests]: https://github.com/ArweaveTeam/arweave/wiki/Path-Manifests
-[example-manifest-webpage]: https://arweave.net/qozq9YIUPEHfZhoTp9DkBpJuA_KNULBnfLiMroj5pZI
+[example-manifest-webpage]: https://turbo-gateway.com/qozq9YIUPEHfZhoTp9DkBpJuA_KNULBnfLiMroj5pZI
 [arlocal]: https://github.com/textury/arlocal
 [mozilla-mime-types]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types
 [viewblock]: https://viewblock.io/arweave/
@@ -500,7 +500,7 @@ You can download a folder from ArDrive to your local machine with the `download-
 ardrive download-folder -f "47f5bde9-61ba-49c7-b409-1aa4a9e250f6"
 ```
 
-By specifying the `--local-path` option, you can choose the local parent folder into which the on-chain folder will be downloaded. When the parameter is omitted, its value defaults to the current working directory (i.e. `./`).
+By specifying the `--local-path` option, you can choose the local parent folder into which the onchain folder will be downloaded. When the parameter is omitted, its value defaults to the current working directory (i.e. `./`).
 
 ```shell
 ardrive download-folder -f "47f5bde9-61ba-49c7-b409-1aa4a9e250f6" --local-path /my_ardrive_downloads/
@@ -642,7 +642,7 @@ Transaction nA1stCdTkuf290k0qsqvmJ78isEC0bwgrAi3D8Cl1LU Upload Progress: 100%
 
 # Rename a Single File (/ardrive-cli/(working-with-files)/rename-a-single-file)
 
-To rename an on-chain file you can make use of the `rename-file` command. The required parameters are the file ID and the new name, as well as the owner wallet or seed phrase.
+To rename an onchain file you can make use of the `rename-file` command. The required parameters are the file ID and the new name, as well as the owner wallet or seed phrase.
 
 ```shell
 ardrive rename-file --file-id "290a3f9a-37b2-4f0f-a899-6fac983833b3" --file-name "My custom file name.txt" --wallet-file "wallet.json"
@@ -701,9 +701,9 @@ ardrive upload-file --content-type "application/x.arweave-manifest+json" --local
 The returned `dataTxId` field on the created `file` entity will be the endpoint that the manifest can be found on Arweave, just as explained in the [manifest sections](#uploading-manifests) above:
 
 ```shell
-https://arweave.net/{dataTxId}
-https://arweave.net/{dataTxId}/custom-file-1
-https://arweave.net/{dataTxId}/custom-file-2
+https://turbo-gateway.com/{dataTxId}
+https://turbo-gateway.com/{dataTxId}/custom-file-1
+https://turbo-gateway.com/{dataTxId}/custom-file-2
 ```
 
 # Uploading a Folder with Files (Bulk Upload) (/ardrive-cli/(working-with-files)/uploading-a-folder-with-files-bulk-upload)
@@ -800,7 +800,7 @@ e.g:
 
 When the custom metadata is attached to the MetaData Transaction's GQL tags, they will become visible on any Arweave GQL gateway and also third party tools that read GQL data.
 
-When these tags are added to the MetaData Transaction's Data JSON they can be read by downloading the JSON data directly from `https://arweave.net/METADATA_TX_ID`.
+When these tags are added to the MetaData Transaction's Data JSON they can be read by downloading the JSON data directly from `https://turbo-gateway.com/METADATA_TX_ID`.
 
 To add this custom metadata to your file metadata transactions, CLI users can pass custom metadata these parameters:
 
@@ -891,17 +891,17 @@ ardrive upload-file --remote-path "https://url/to/file" --parent-folder-id "9af6
 
 # Uploading Manifests (/ardrive-cli/(working-with-files)/uploading-manifests)
 
-[Arweave Path Manifests][arweave-manifests] are are special `.json` files that instruct Arweave Gateways to map file data associated with specific, unique transaction IDs to customized, hosted paths relative to that of the manifest file itself. So if, for example, your manifest file had an arweave.net URL like:
+[Arweave Path Manifests][arweave-manifests] are are special `.json` files that instruct Arweave Gateways to map file data associated with specific, unique transaction IDs to customized, hosted paths relative to that of the manifest file itself. So if, for example, your manifest file had an turbo-gateway.com URL like:
 
 ```shell
-https://arweave.net/{manifest tx id}
+https://turbo-gateway.com/{manifest tx id}
 ```
 
 Then, all the mapped transactions and paths in the manifest file would be addressable at URLs like:
 
 ```shell
-https://arweave.net/{manifest tx id}/foo.txt
-https://arweave.net/{manifest tx id}/bar/baz.png
+https://turbo-gateway.com/{manifest tx id}/foo.txt
+https://turbo-gateway.com/{manifest tx id}/bar/baz.png
 ```
 
 ArDrive supports the creation of these Arweave manifests using any of your PUBLIC folders. The generated manifest paths will be links to each of the file entities within the specified folder. The manifest file entity will be created at the root of the folder.
@@ -994,10 +994,10 @@ In the return output, the top link will be a link to the deployed web app:
 
 ```shell
     "links": [
-        "https://arweave.net/0MK68J8TqGhaaOpPe713Zn0jdpczMt2NGS2CtRYiuAg",
-        "https://arweave.net/0MK68J8TqGhaaOpPe713Zn0jdpczMt2NGS2CtRYiuAg/asset-manifest.json",
-        "https://arweave.net/0MK68J8TqGhaaOpPe713Zn0jdpczMt2NGS2CtRYiuAg/favicon.ico",
-        "https://arweave.net/0MK68J8TqGhaaOpPe713Zn0jdpczMt2NGS2CtRYiuAg/index.html",
+        "https://turbo-gateway.com/0MK68J8TqGhaaOpPe713Zn0jdpczMt2NGS2CtRYiuAg",
+        "https://turbo-gateway.com/0MK68J8TqGhaaOpPe713Zn0jdpczMt2NGS2CtRYiuAg/asset-manifest.json",
+        "https://turbo-gateway.com/0MK68J8TqGhaaOpPe713Zn0jdpczMt2NGS2CtRYiuAg/favicon.ico",
+        "https://turbo-gateway.com/0MK68J8TqGhaaOpPe713Zn0jdpczMt2NGS2CtRYiuAg/index.html",
         # ...
 ```
 
@@ -1015,7 +1015,7 @@ ardrive upload-file -w wallet.json -F "6939b9e0-cc98-42cb-bae0-5888eca78885" --l
 
 # Uploading With a Custom Content Type (/ardrive-cli/(working-with-files)/uploading-with-a-custom-content-type)
 
-Each file uploaded to the Arweave network receives a `"Content-Type"` GraphQL tag that contains the MIME type for the file. The gateway will use this content type to determine how to serve that file's data transaction at the `arweave.net/{data tx id}` endpoint.
+Each file uploaded to the Arweave network receives a `"Content-Type"` GraphQL tag that contains the MIME type for the file. The gateway will use this content type to determine how to serve that file's data transaction at the `turbo-gateway.com/{data tx id}` endpoint.
 
 By default, the CLI will attempt to derive this content type from the file extension of the provided file. In most cases, the content type that is derived will be correct and the gateway will properly serve the file.
 

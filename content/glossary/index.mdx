@@ -3,9 +3,77 @@ title: "Glossary"
 description: "Key terms and definitions for the ar.io ecosystem"
 ---
 
-## AO Computer
+## Ar.io Name System (ArNS)
 
-AO (Actor Oriented) is a hyper-parallel computing platform built on Arweave that enables decentralized applications to run with unlimited computational capacity. AO provides the compute layer for ar.io's smart contracts and token operations.
+A decentralized naming system in the ar.io network that maps human-readable names to Arweave transaction IDs and application/content routes.
+
+## Ar.io Name Token (ANT)
+
+An NFT on Solana associated with a registered ArNS name. ANT ownership controls name-level configuration such as records, undernames, and transfer operations.
+
+## CPI (Cross-Program Invocation)
+
+The mechanism by which Solana programs call into each other. The ar.io architecture uses CPI for token operations — ario-gar and ario-arns call into ario-core for SPL Token transfers.
+
+## Cranker
+
+A permissionless actor (bot or user) that submits transactions to drive lazy protocol operations, including the epoch pipeline and other state advancement tasks. Any participant can crank if protocol conditions are met.
+
+## Epoch Pipeline
+
+The 6-step process for observation, reward calculation, and distribution each epoch: create_epoch → tally_weights → prescribe_epoch → save_observations → distribute_epoch → close_epoch.
+
+## Gateway Address Registry (GAR)
+
+The protocol-level registry of joined gateways and their metadata. GAR powers gateway discovery and is a core input to observer selection, rewards, and network operations.
+
+## Metaplex Core
+
+The NFT standard used for Ar.io Name Tokens (ANTs) on Solana. Metaplex Core assets are tradeable on standard NFT marketplaces like Tensor and Magic Eden.
+
+## Native Address
+
+An address format that uses the raw public key bytes directly, without additional encoding or transformation.
+
+## Normalized Address
+
+A standardized address format that ensures consistent representation across different systems and contexts. Normalized addresses help prevent issues with address matching and lookup operations.
+
+## Observer
+
+A gateway selected to evaluate peer gateways during an epoch. Observers test assigned ArNS resolutions and submit reports used by the protocol for performance evaluation and rewards.
+
+## Optimistic Indexing
+
+A data indexing strategy where new data is immediately made available for queries while verification processes continue in the background. This approach improves performance while maintaining data integrity through eventual consistency.
+
+## PDA (Program Derived Address)
+
+Deterministic Solana account addresses derived from a program ID and a set of seeds. The ar.io protocol uses PDAs extensively — for gateways, delegations, withdrawals, vaults, ArNS records, ANT configs, and more.
+
+## Program ID
+
+The unique onchain address of a deployed Solana program. Ar.io protocol interactions target specific program IDs for instructions and state access.
+
+## Protocol Balance
+
+A protocol-controlled ARIO token pool that accumulates relevant inflows (for example, protocol fees) and serves as a source for incentive distributions according to protocol rules.
+
+## Public Key
+
+A cryptographic key that can be shared publicly and is used to verify digital signatures or encrypt data. In the ar.io context, Solana public keys (Ed25519, base58-encoded) are used to identify wallet addresses and verify transactions.
+
+## SPL Token
+
+Solana Program Library token standard. ARIO is implemented as an SPL Token on Solana, making it compatible with the full Solana wallet and DeFi ecosystem.
+
+## Transaction (Solana)
+
+A signed unit of interaction with Solana containing one or more instructions. Instructions in a transaction are processed atomically: all succeed, or the transaction fails without applying state changes.
+
+## Vault
+
+A protocol-level token lock with a start time, optional end time, and token balance. Vaults are used to hold ARIO over time and may be revocable depending on how they were created.
 
 ## Winston
 
@@ -14,19 +82,3 @@ Winston is the smallest unit of Arweave's native AR token. One AR equals 10^12 W
 ## Winston Credits (winc)
 
 Winston Credits (`winc`) are the unit used by Turbo to represent upload purchasing power. In Turbo contexts, receipt and balance fields often return values in `winc`.
-
-## Public Key
-
-A cryptographic key that can be shared publicly and is used to verify digital signatures or encrypt data. In the ar.io context, public keys are used to identify wallet addresses and verify transactions.
-
-## Native Address
-
-An address format that uses the raw public key bytes directly, without additional encoding or transformation. This is the most basic form of an Arweave address.
-
-## Normalized Address
-
-A standardized address format that ensures consistent representation across different systems and contexts. Normalized addresses help prevent issues with address matching and lookup operations.
-
-## Optimistic Indexing
-
-A data indexing strategy where new data is immediately made available for queries while verification processes continue in the background. This approach improves performance while maintaining data integrity through eventual consistency.

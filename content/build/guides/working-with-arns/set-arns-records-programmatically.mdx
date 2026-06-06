@@ -12,15 +12,12 @@ Use the **ar.io SDK** to programmatically set and manage ArNS records. This appr
 **Install the required packages:**
 
 ```bash
-npm install @ar.io/sdk @ardrive/turbo-sdk
+npm install @ar.io/sdk
 ```
 
-**Required files:**
+**Required:**
 
-```bash
-# Your Arweave wallet JSON file
-wallet.json
-```
+- A Solana wallet with ARIO tokens and SOL for transaction fees
 
 ## Basic Setup
 
@@ -28,15 +25,12 @@ wallet.json
 
 ```javascript
 const { ARIO, ANT } = require("@ar.io/sdk");
-const { ArweaveSigner } = require("@ardrive/turbo-sdk");
-const fs = require("fs");
 
 // Initialize ARIO for mainnet
 const ario = ARIO.mainnet();
 
-// Load your wallet JSON file
-const jwk = JSON.parse(fs.readFileSync("./wallet.json", "utf8"));
-const signer = new ArweaveSigner(jwk);
+// See the Configuration page for how to create a signer from @solana/kit
+// const signer = await createKeyPairSignerFromBytes(keypairBytes);
 ```
 
 ## Setting Base Name Records
@@ -152,7 +146,7 @@ async function deployAndSetRecord(arnsName, undername, distFolderPath) {
 
     console.log(`Deployment complete!`);
     console.log(
-      `Access at: https://${arnsName}.ar-io.dev${undername === "@" ? "" : `/${undername}`}`
+      `Access at: https://${arnsName}.turbo-gateway.com${undername === "@" ? "" : `/${undername}`}`
     );
   } catch (error) {
     console.error("Deployment failed:", error);

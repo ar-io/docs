@@ -5,11 +5,13 @@ description: "How ar.io gateways ensure data integrity by verifying chunks are c
 
 import { Database, Cpu, Server, Cog } from 'lucide-react';
 
-Ar.io gateways continuously verify that data chunks are correctly stored and retrievable from Arweave. This ensures users receive authentic, uncorrupted data with cryptographic proof of integrity. The verification system is what makes ar.io gateways trustworthy data providers for the permaweb.
+Ar.io gateways verify that retrieved and cached data matches what was committed to Arweave. Verification helps users receive authentic, uncorrupted data without trusting a single gateway operator.
+
+Gateway data verification is one layer of ar.io's broader verification architecture. For how gateway verification composes with signed response claims, client-side verification, and OIP accountability, see [Verification and Accountability](/learn/verification).
 
 ## How Gateways Verify Data
 
-Data verification is an ongoing process that uses Merkle tree cryptography to provide mathematical proof of data integrity. The process involves multiple specialized components working together to ensure cached data matches what's stored on Arweave:
+Data verification uses Arweave data roots, hashes, and Merkle proofs to check that cached data matches what was originally stored. A gateway can verify data before serving it or re-import data when verification fails:
 
 ```mermaid
 sequenceDiagram
@@ -59,7 +61,7 @@ sequenceDiagram
 
 **The Verification Workflow:**
 
-Gateways achieve verification through a systematic five-phase process orchestrated by the DataVerificationWorker. This process ensures that every piece of cached data cryptographically matches its original form on Arweave, providing mathematical proof of integrity before serving data to users.
+At a high level, verification moves through discovery, retrieval, cryptographic computation, comparison, and recovery:
 
 **1. Discovery Phase**
 - Periodically scan for unverified data items
@@ -92,7 +94,7 @@ Ar.io gateways handle different types of data verification based on the data's o
 
 ### Transaction Data Verification
 For individual Arweave transactions:
-- **Direct root validation** against transaction data roots stored on-chain
+- **Direct root validation** against transaction data roots stored onchain
 - **Complete data reconstruction** from chunks to ensure availability
 - **Cryptographic proof** that data matches what was originally stored
 
@@ -116,12 +118,10 @@ At the most granular level:
 ### Cryptographic Trust Foundation
 - **Mathematical Proof**: Merkle tree cryptography provides irrefutable proof of data integrity
 - **Independent Validation**: Multiple gateways verify the same data independently
-- **Network Consensus**: Distributed verification creates trust without central authority
 
 ### Data Integrity Guarantees
 - **Tamper Detection**: Any alteration to data is immediately detectable
 - **Corruption Recovery**: Automatic healing of corrupted data through re-import
-- **Permanent Storage Validation**: Ensures Arweave's permanence promise is maintained
 
 ### Gateway Reliability
 - **Continuous Monitoring**: Ongoing verification catches issues before users encounter them

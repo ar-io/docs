@@ -172,7 +172,7 @@ const redirects = [
   },
   {
     source: '/gateways/delegated-staking',
-    destination: '/learn/token/staking',
+    destination: '/learn/oip/staking',
     permanent: true,
   },
   {
@@ -268,7 +268,7 @@ const redirects = [
   },
   {
     source: '/staking',
-    destination: '/learn/token/staking',
+    destination: '/learn/oip/staking',
     permanent: true,
   },
   {
@@ -303,6 +303,11 @@ const redirects = [
   {
     source: '/guides',
     destination: '/build/guides',
+    permanent: true,
+  },
+  {
+    source: '/build/guides/deploy-permanent-dapp',
+    destination: '/build/guides/hosting-decentralised-apps/deploy-permanent-dapp',
     permanent: true,
   },
   {
@@ -399,7 +404,7 @@ const redirects = [
   // Contract pages
   {
     source: '/ario-contract',
-    destination: '/learn/token/architecture',
+    destination: '/learn/protocol-architecture',
     permanent: true,
   },
 

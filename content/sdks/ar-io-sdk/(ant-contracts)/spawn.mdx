@@ -3,33 +3,24 @@ title: "Spawn"
 description: "TypeScript/JavaScript SDK for interacting with the ar.io ecosystem"
 ---
 
-#### spawn()
+#### ANT.spawn()
 
-Spawns a new ANT (Arweave Name Token) process. This static function creates a new ANT process on the AO network and returns the process ID.
-
-_Note: Requires `signer` to be provided to sign the spawn transaction._
+Static factory that mints a new MPL Core asset and initializes the
+`ario-ant` PDAs in a single transaction. Returns
+`{ processId, mint, signature }`.
 
 ```typescript
 import { ANT } from '@ar.io/sdk';
-import { ArweaveSigner } from '@ar.io/sdk/node';
 
-const processId = await ANT.spawn({
-  signer: new ArweaveSigner(jwk),
+const { processId, signature } = await ANT.spawn({
+  rpc,
+  rpcSubscriptions,
+  signer,
   state: {
     name: 'My ANT',
     ticker: 'MYANT',
-    description: 'My custom ANT token',
-  },
-});
-
-// Using a custom module ID
-const processId = await ANT.spawn({
-  signer: new ArweaveSigner(jwk),
-  module: 'FKtQtOOtlcWCW2pXrwWFiCSlnuewMZOHCzhulVkyqBE', // Custom module ID
-  state: {
-    name: 'My Custom Module ANT',
-    ticker: 'CUSTOM',
-    description: 'ANT using a specific module version',
+    description: 'My ANT token',
+    uri: 'ar://\<metadata-tx-id\>',
   },
 });
 ```
@@ -37,20 +28,31 @@ const processId = await ANT.spawn({
 **CLI Usage:**
 
 ```bash
-ar.io spawn-ant --wallet-file wallet.json --name "My ANT" --ticker "MYANT"
-
-ar.io spawn-ant --wallet-file wallet.json --module FKtQtOOtlcWCW2pXrwWFiCSlnuewMZOHCzhulVkyqBE --name "My Custom ANT" --ticker "CUSTOM"
+ar.io spawn-ant \
+  --wallet-file wallet.json \
+  --name "My ANT" \
+  --ticker "MYANT" \
+  --metadata-uri "ar://\<metadata-tx-id\>"
 ```
 
 **Parameters:**
 
-- `signer: AoSigner` - The signer used to authenticate the spawn transaction
-- `module?: string` - Optional module ID to use; if not provided, gets latest from ANT registry
-- `ao?: AoClient` - Optional AO client instance (defaults to legacy mode connection)
-- `scheduler?: string` - Optional scheduler ID
-- `state?: SpawnANTState` - Optional initial state for the ANT including name, ticker, description, etc.
-- `antRegistryId?: string` - Optional ANT registry ID
-- `logger?: Logger` - Optional logger instance
-- `authority?: string` - Optional authority
+- `state.name: string` — display name of the ANT
+- `state.ticker?: string` — ticker symbol
+- `state.description?: string` — short description
+- `state.uri: string` — `ar://` URI of the Metaplex Core asset's JSON
+  metadata. Build via `buildAntMetadata` from `@ar.io/sdk` and upload
+  to Arweave (e.g. via `@ardrive/turbo-sdk`).
+- `state.keywords?: string[]`
+- `state.logo?: string` — Arweave TX ID of the logo
+- `state.transactionId?: string` — initial `@` record target
 
-**Returns:** `Promise\<ProcessId\>` - The process ID of the newly spawned ANT
+**Returns:**
+
+```ts
+{
+  processId: string;  // the MPL Core asset mint pubkey
+  mint: Address;
+  signature: string;  // the Solana tx signature
+}
+```

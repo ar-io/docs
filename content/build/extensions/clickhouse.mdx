@@ -1,419 +1,451 @@
 ---
 title: "ClickHouse & Parquet"
-description: "Learn how to use Parquet files and ClickHouse to improve performance and scalability of your ar.io gateway for large datasets."
+description: "Scale your gateway's GraphQL performance with ClickHouse analytical queries and Parquet-based data export for large datasets"
 ---
 
-## Overview
+import { Callout } from "fumadocs-ui/components/callout";
+import { Steps, Step } from "fumadocs-ui/components/steps";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import Mermaid from "@/components/Mermaid";
 
-Ar.io gateway Release 33 introduces a new configuration option for using Parquet files and ClickHouse to improve performance and scalability of your ar.io gateway for large datasets.
+ClickHouse is an optional analytical database that runs alongside your ar.io gateway to accelerate GraphQL queries on large datasets. It stores stable historical data in a compressed columnar format while SQLite continues handling real-time writes and recent data.
 
-This guide will walk you through the process of setting up ClickHouse with your ar.io gateway, and importing Parquet files to bootstrap your ClickHouse database.
-
-## What is Parquet?
-
-Apache Parquet is a columnar storage file format designed for efficient data storage and retrieval. Unlike row-based storage formats like SQLite, Parquet organizes data by column rather than by row, which provides several advantages for analytical workloads:
-
-- **Efficient compression**: Similar data is stored together, leading to better compression ratios
-- **Columnar access**: You can read only the columns you need, reducing I/O operations
-- **Predicate pushdown**: Filter operations can be pushed down to the storage layer, improving query performance
-
-For more information about Parquet, see the [Parquet documentation](https://parquet.apache.org/docs/).
-
-## Current Integration with ar.io Gateways
-
-In the current ar.io gateway implementation, Parquet and ClickHouse run alongside SQLite rather than replacing it. This parallel architecture allows each database to handle what it does best:
-
-- **SQLite** continues to handle transaction writes and updates
-- **ClickHouse** with Parquet files is optimized for fast query performance, especially with large datasets
-
-The gateway continues to operate with SQLite just as it always has, maintaining all of its normal functionality. Periodically, the gateway will export batches of data from SQLite to Parquet files, which are then imported into ClickHouse. This batch-oriented approach is much more efficient than attempting to synchronize the databases in real-time, as it leverages Parquet's strength in handling large, immutable data sets.
-
-Note that despite Parquet's efficient compression, gateways may not see significant disk space reduction in all cases. While bundled transaction data is exported to Parquet, L1 data remains in SQLite. Without substantial unbundling and indexing filters, minimal data gets exported to Parquet, limiting potential storage savings.
-
-With ClickHouse integration enabled, GraphQL queries are primarily routed to ClickHouse, leveraging its superior performance for large datasets. This significantly improves response times while maintaining SQLite's reliability for transaction processing.
-
-For more information about gateway architecture and data processing, see our [Gateway Architecture](/learn/gateways/architecture) documentation.
-
-## Parquet vs. SQLite in ar.io Gateways
-
-While SQLite is excellent for transactional workloads and small to medium datasets, it faces challenges with very large datasets:
-
-| Feature                  | SQLite                        | Parquet + ClickHouse             |
-| ------------------------ | ----------------------------- | -------------------------------- |
-| Storage model            | Row-based                     | Column-based                     |
-| Query optimization       | Basic                         | Advanced analytical optimization |
-| Compression              | Limited                       | High compression ratios          |
-| Scaling                  | Limited by single file        | Distributed processing capable   |
-| Write speed              | Fast for small transactions   | Optimized for batch operations   |
-| Read speed for analytics | Slower for large datasets     | Optimized for analytical queries |
-| Ideal use case           | Recent transaction data, OLTP | Historical data, OLAP workloads  |
-
-## Benefits for Gateway Operators
-
-Implementing Parquet and ClickHouse alongside SQLite in your ar.io gateway offers several key advantages:
-
-- **Dramatically improved query performance** for GraphQL endpoints, especially for large result sets
-- **Reduced storage requirements** through efficient columnar compression
-- **Better scalability** for growing datasets
-- **Faster bootstrapping** of new gateways through Parquet file imports
-- **Reduced load on SQLite** by offloading query operations to ClickHouse
-
-The primary focus of the Parquet/ClickHouse integration is the significant speed improvement for querying large datasets. Gateway operators managing significant volumes of data will notice substantial performance gains when using this configuration.
-
-## Storage Considerations
-
-While Parquet files offer more efficient compression for the data they contain, it's important to understand the storage impact:
-
-- Bundled transaction data is exported to Parquet and removed from SQLite, potentially saving space
-- L1 data remains in SQLite regardless of Parquet configuration
-- Space savings are highly dependent on your unbundling filters - without substantial unbundling configurations, minimal data gets exported to Parquet
-- The more data you unbundle and export to Parquet, the greater the potential storage efficiency
-
-For gateway operators, this means proper filter configuration is crucial to realize storage benefits. The primary advantage remains significantly improved query performance for large datasets, with potential space savings as a secondary benefit depending on your specific configuration.
-
-The following sections will guide you through setting up ClickHouse with your ar.io gateway, exporting data from SQLite to Parquet, and importing Parquet files to bootstrap your ClickHouse database.
-
-<Callout type="info" title="Note">
-The below instructions are designed to be used in a linux environment. Windows and MacOS users must modify the instructions to use the appropriate package manager/ command syntax for their platform.
-
-Unless otherwise specified, all commands should be run from the root directory of the gateway.
-
+<Callout type="info">
+  ClickHouse requires version **24.8 or later**. Earlier versions have known issues with projections on ReplacingMergeTree tables. The default Docker image uses ClickHouse 26.3.
 </Callout>
 
-## Installing ClickHouse
+## How It Works
 
-ClickHouse is a powerful, open-source analytical database that excels at handling large datasets and complex queries. It is the tool used by the gateway to integrate with the Parquet format.
+The gateway uses a speed/batch layer architecture:
 
-For more information about ClickHouse, see the [ClickHouse documentation](https://clickhouse.com/docs/).
+- **SQLite (speed layer)** — Handles all real-time writes, recent/unstable data, and non-GraphQL operations (data retrieval, chunk fetches, admin APIs)
+- **ClickHouse (batch layer)** — Stores stable historical data exported as Parquet files, optimized for analytical GraphQL queries
 
-<Steps>
-<Step>
-### Add ClickHouse Repository
+<Mermaid chart={`
+graph LR
+    A[ar.io Node] -->|writes| B[SQLite]
+    B -->|stable data export| C[Parquet Files]
+    C -->|batch import| D[ClickHouse]
+    E[GraphQL Query] -->|height > boundary| B
+    E -->|height ≤ boundary| D
+`} />
 
-It is recommended to use [official pre-compiled deb packages for Debian or Ubuntu](https://clickhouse.com/docs/install#quick-install). Run these commands to install packages:
+### Query Routing
 
-```bash
-sudo apt-get install -y apt-transport-https ca-certificates curl gnupg
-curl -fsSL 'https://packages.clickhouse.com/rpm/lts/repodata/repomd.xml.key' | sudo gpg --dearmor -o /usr/share/keyrings/clickhouse-keyring.gpg
+When ClickHouse is enabled, GraphQL queries are split by block height:
 
-ARCH=$(dpkg --print-architecture)
-echo "deb [signed-by=/usr/share/keyrings/clickhouse-keyring.gpg arch=${ARCH}] https://packages.clickhouse.com/deb stable main" | sudo tee /etc/apt/sources.list.d/clickhouse.list
-sudo apt-get update
-```
+- **ClickHouse** handles blocks up to `(max_imported_height - 10)` — the bulk of historical data
+- **SQLite** handles blocks above that boundary — recent, potentially unstable data
 
-This will verify the installation package from official sources and enable installation via `apt-get`.
+Results from both backends are merged and deduplicated before being returned to the client. If either backend is unavailable, a circuit breaker degrades gracefully rather than failing the entire query.
 
-</Step>
+### When to Enable ClickHouse
 
-<Step>
-### Install ClickHouse
+Enable ClickHouse if your gateway:
 
-```bash
-sudo apt-get install -y clickhouse-client
-```
+- Serves heavy GraphQL traffic on historical data
+- Indexes millions of data items (large unbundling filters)
+- Needs faster bootstrapping than a full SQLite reindex (import pre-built Parquet snapshots)
+- Would benefit from 3-5x storage compression on historical data
 
-This will perform the actual installation of the ClickHouse server and client.
+Keep it disabled for small deployments, gateways that only serve data retrieval (not GraphQL), or single-node low-resource environments.
 
-During installation, you will be prompted to set a password for the `default` user. This is required to connect to the ClickHouse server.
-
-Advanced users may also choose to create a designated user account in clickhouse for the gateway to use, but the default gateway configuration will assume the `default` user.
-
-</Step>
-</Steps>
-
-## Configure Gateway to use ClickHouse
+## Quick Start
 
 <Steps>
 <Step>
-### Set Basic ClickHouse Configuration
+### Configure Environment
 
-Because the gateway will be accessing ClickHouse, host address andthe password for the selected user must be provided. This is done via the `CLICKHOUSE_PASSWORD` environment variable.
-
-Update your .env file with the following:
+Add ClickHouse settings to your `.env` file:
 
 ```bash
-CLICKHOUSE_URL="http://clickhouse:8123"
-CLICKHOUSE_PASSWORD=<your-password>
+CLICKHOUSE_URL=http://clickhouse:8123
+CLICKHOUSE_PASSWORD=your-password
+CLICKHOUSE_SQLITE_MIN_HEIGHT_ENABLED=true
+ADMIN_API_KEY=your-admin-key
 ```
 
-If you set a specific user account for the gateway to use, you can set the `CLICKHOUSE_USER` environment variable to the username.
+If using a non-default username:
 
 ```bash
-CLICKHOUSE_USER=<your-username>
+CLICKHOUSE_USER=your-username
 ```
-
-If omitted, the gateway will use the `default` user.
 
 </Step>
 
 <Step>
 ### Configure Unbundling Filters
 
-Additionally, The Parquet file provided below contains an unbundled data set that includes all data items uploaded via an ArDrive product, including Turbo. Because of this, it is recommended to include unbundling filters that match, or expand, this configuration.
+ClickHouse stores data items exported from SQLite. The more you unbundle, the more data flows into ClickHouse. At minimum, configure filters that match the pre-built snapshot you plan to import.
+
+The ArDrive snapshot includes all ArDrive-uploaded data items. To match this:
 
 ```bash
 ANS104_UNBUNDLE_FILTER='{ "and": [ { "not": { "or": [ { "tags": [ { "name": "Bundler-App-Name", "value": "Warp" } ] }, { "tags": [ { "name": "Bundler-App-Name", "value": "Redstone" } ] }, { "tags": [ { "name": "Bundler-App-Name", "value": "KYVE" } ] }, { "tags": [ { "name": "Bundler-App-Name", "value": "AO" } ] }, { "attributes": { "owner_address": "-OXcT1sVRSA5eGwt2k6Yuz8-3e3g9WJi5uSE99CWqsBs" } }, { "attributes": { "owner_address": "ZE0N-8P9gXkhtK-07PQu9d8me5tGDxa_i4Mee5RzVYg" } }, { "attributes": { "owner_address": "6DTqSgzXVErOuLhaP0fmAjqF4yzXkvth58asTxP3pNw" } } ] } }, { "tags": [ { "name": "App-Name", "valueStartsWith": "ArDrive" } ] } ] }'
 ANS104_INDEX_FILTER='{ "tags": [ { "name": "App-Name", "value": "ArDrive-App" } ] }'
 ```
 
+See the [Filters guide](/build/run-a-gateway/manage/filters) for building custom filter configurations.
+
 </Step>
 
 <Step>
-### Set Admin API Key
+### Start ClickHouse
 
-Lastly, you must have a gateway admin password set. This is used for the periodic export of data from SQLite to Parquet.
+ClickHouse runs as a Docker profile alongside your gateway:
 
 ```bash
-ADMIN_API_KEY=<example>
+docker compose --profile clickhouse up -d
 ```
 
-Once the .env file is updated, restart the gateway to apply the changes.
-
-</Step>
-</Steps>
-
-## Downloading and Importing the Parquet File
-
-<Steps>
-<Step>
-### Download the Parquet File
-
-A Parquet archive file is available for download from [ar://JVmsuD2EmFkhitzWN71oi9woADE4WUfvrbBYgremCBM](https://arweave.net/JVmsuD2EmFkhitzWN71oi9woADE4WUfvrbBYgremCBM). This file contains an unbundled data set that includes all data items uploaded via an ArDrive product, current to April 23, 2025, and compressed using tar.gz.
-
-To download the file, run the following command:
-
-```bash
-curl -L https://arweave.net/JVmsuD2EmFkhitzWN71oi9woADE4WUfvrbBYgremCBM -o 2025-04-23-ardrive-ans104-parquet.tar.gz
-```
-
-or visit the url [https://arweave.net/JVmsuD2EmFkhitzWN71oi9woADE4WUfvrbBYgremCBM](https://arweave.net/JVmsuD2EmFkhitzWN71oi9woADE4WUfvrbBYgremCBM) and download the file manually.
-
-<Callout type="info" title="Note">
-If downloaded manually, it will download as a binary file named `JVmsuD2EmFkhitzWN71oi9woADE4WUfvrbBYgremCBM`. This is normal and must be converted to a tar.gz file by renaming it to `2025-04-23-ardrive-ans104-parquet.tar.gz`.
-
-It should also be placed in the root directory of the gateway.
-
-</Callout>
-
-The downloaded file will be approximately 3.5GB in size.
+This starts both the ClickHouse server and the auto-import daemon.
 
 </Step>
 
 <Step>
-### Extract the Parquet Files
+### Import a Parquet Snapshot
 
-With the parquet file downloaded and placed in the root directory of the gateway, you can extract the file and import it into ClickHouse.
-
-```bash
-tar -xzf 2025-04-23-ardrive-ans104-parquet.tar.gz
-```
-
-This will extract the file into a directory named `2025-04-23-ardrive-ans104-parquet`, and take a while to complete.
-
-</Step>
-
-<Step>
-### Prepare the Data Directory
-
-Next, if you do not already have a `data/parquet` directory, you must create it. Release 33 does not have this directory by default, but future Releases will. You can create the directory by using the following command:
+Download and import a pre-built snapshot to bootstrap your ClickHouse instance:
 
 ```bash
+# Download the ArDrive snapshot (~3.5GB, current to April 23, 2025)
+curl -L https://turbo-gateway.com/JVmsuD2EmFkhitzWN71oi9woADE4WUfvrbBYgremCBM -o ardrive-parquet.tar.gz
+
+# Extract
+tar -xzf ardrive-parquet.tar.gz
+
+# Move into the data directory
 mkdir -p data/parquet
-```
+mv 2025-04-23-ardrive-ans104-parquet/* data/parquet/
 
-or by starting the gateway ClickHouse container with the following command:
-
-```bash
-docker compose --profile clickhouse up clickhouse -d
-```
-
-<Callout type="info" title="Note">
-Depending on your system configurations, allowing the gateway to create the directory may result in the directory being created with incorrect permissions. If this is the case, you can remove the restrictions by running the following command:
-
-```bash
-sudo chmod -R 777 data/parquet
-```
-
-</Callout>
-
-With the directory created, you can now move the extracted parquet files into it.
-
-```bash
-mv 2025-04-23-ardrive-ans104-parquet/* data/parquet
-```
-
-</Step>
-
-<Step>
-### Import Data into ClickHouse
-
-When this is complete, you can run the import script to import the parquet files into ClickHouse.
-
-If you haven't done so already, start the ClickHouse container with the following command:
-
-```bash
-docker compose --profile clickhouse up clickhouse -d
-```
-
-Then run the import script with the following command:
-
-```bash
+# Run the import script
 ./scripts/clickhouse-import
 ```
 
-This process will take several minutes, and will output the progress of the import.
+The import takes 10-20 minutes depending on hardware.
 
 </Step>
-</Steps>
 
-## Verifying Successful Import
-
-<Steps>
 <Step>
-### Verify ClickHouse Import
+### Verify
 
-To verify that the import was successful, run the following commands:
+Check the transaction count:
 
 ```bash
-clickhouse client --password <your-password> -h localhost -q 'SELECT COUNT(DISTINCT id) FROM transactions'
+docker compose exec clickhouse clickhouse-client \
+  --password your-password \
+  -q 'SELECT COUNT(DISTINCT id) FROM transactions'
 ```
 
-Being sure to replace `<your-password>` with the password you set for the selected ClickHouse user.
+Expected result: `32712311` (for the ArDrive snapshot).
 
-This should return a count of the number of unique transactions in the parquet file, which is `32712311`.
-
-</Step>
-
-<Step>
-### Test GraphQL Endpoint
-
-You can also verify that the data is being served by the gateway's GraphQL endpoint by ensuring the gateway is not proxying its GraphQL queries (Make sure `GRAPHQL_HOST` is not set) and running the following command:
+Test a GraphQL query:
 
 ```bash
 curl -g -X POST \
   -H "Content-Type: application/json" \
   -d '{"query":"query { transactions(ids: [\"YSNwoYB01EFIzbs6HmkGUjjxHW3xuqh-rckYhi0av4A\"]) { edges { node { block { height } bundledIn { id } } } } }"}' \
   http://localhost:3000/graphql
-
-# Expected output:
-# {"data":{"transactions":{"edges":[{"node":{"block":{"height":1461918},"bundledIn":{"id":"ylhb0PqDtG5HwBg00_RYztUl0x2RuKvbNzT6YiNR2JA"}}}]}}}
 ```
 
 </Step>
 </Steps>
 
-## Starting and Stopping the Gateway with ClickHouse
+## Auto-Import
 
-The gateway ClickHouse container is run as a "profile" in the main docker compose file. That means you must specify the profile when starting or stopping the gateway if you want to include the ClickHouse container in the commands.
+The `clickhouse-auto-import` container runs a continuous loop that exports new stable data from SQLite to Parquet and imports it into ClickHouse. This keeps ClickHouse up to date without manual intervention.
 
-<Steps>
-<Step>
-### Start Gateway with ClickHouse
+Each cycle:
+1. Reloads TTL rules from `config/clickhouse-ttl-rules.yaml`
+2. Advances the export window to the latest stable height
+3. Exports new Parquet partitions from SQLite
+4. Imports Parquet into ClickHouse staging tables
+5. Migrates staging to the final `transactions` table (applying TTL rules)
 
-To start the gateway with the ClickHouse profile, run the following command:
+### Auto-Import Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CLICKHOUSE_AUTO_IMPORT_SLEEP_INTERVAL` | `3600` | Seconds between import cycles |
+| `CLICKHOUSE_AUTO_IMPORT_HEIGHT_INTERVAL` | `1000` | Blocks per Parquet partition |
+| `CLICKHOUSE_AUTO_IMPORT_MAX_ROWS_PER_FILE` | - | Maximum rows per Parquet file |
+
+The default 1-hour interval is conservative. For gateways with high unbundling throughput, reduce to 600-900 seconds to keep ClickHouse more current.
+
+## TTL Rules (Data Retention)
+
+TTL rules control how long data items remain in ClickHouse before automatic expiration. Use them to manage storage costs by expiring ephemeral or low-value data while retaining important content indefinitely.
+
+### Configuration
+
+Copy the example template and edit:
+
+```bash
+cp config/clickhouse-ttl-rules.example.yaml config/clickhouse-ttl-rules.yaml
+```
+
+Example configuration:
+
+```yaml
+# Keep L1 transactions forever, expire unmatched data items after 30 days
+default_ttl_seconds: 2592000
+l1_never_expires: true
+
+rules:
+  # Keep ArDrive content forever
+  - tag_name: App-Name
+    tag_value: ArDrive
+    match: prefix
+    never_expire: true
+
+  # Expire ephemeral chat messages after 1 day
+  - tag_name: App-Name
+    tag_value: ephemeral-chat
+    ttl_seconds: 86400
+
+  # Expire test uploads after 1 hour
+  - tag_name: App-Name
+    tag_value: test-
+    match: prefix
+    ttl_seconds: 3600
+
+  # Expire specific owner's data after 7 days
+  - field: owner_address
+    value: abcDEF0123xyz
+    ttl_seconds: 604800
+```
+
+### Rule Precedence
+
+When multiple rules could apply, the first matching branch wins:
+
+1. `l1_never_expires: true` AND row is L1 transaction → kept forever
+2. Any matching rule with `never_expire: true` → kept forever
+3. One or more matching TTL rules → shortest `ttl_seconds` wins
+4. `default_ttl_seconds` set → applied to all unmatched rows
+5. Otherwise → kept indefinitely (no expiry)
+
+### Match Modes
+
+- **`exact`** (default) — O(1) dictionary lookup. Use for specific tag values.
+- **`prefix`** — Matches the beginning of the value. Use for `Content-Type` with parameters (e.g., `image/gif` catches `image/gif; charset=...`) or app name families.
+
+<Callout type="warn">
+  TTL rules apply only to rows imported after the rules are loaded. Previously imported rows keep their existing expiration. To apply new rules retroactively, re-import affected Parquet partitions.
+</Callout>
+
+### Normalization
+
+- Tag names are lower-cased and trimmed
+- Tag values are trimmed but case-preserving
+- Owner values use base64url format (as displayed on Arweave explorers)
+
+## Deployment Topologies
+
+### Single Gateway (Default)
+
+One gateway runs ClickHouse locally. The auto-import daemon handles continuous data export and import.
 
 ```bash
 docker compose --profile clickhouse up -d
 ```
 
-This will start all of the containers normally covered by the `docker compose up` command, but will also start the ClickHouse container.
+### Shared ClickHouse Cluster
 
-</Step>
-
-<Step>
-### Stop Gateway with ClickHouse
-
-To stop the gateway with the ClickHouse profile, run the following command:
+Multiple gateways share a replicated ClickHouse cluster. Only **one** gateway runs `clickhouse-auto-import` as the writer; others query the same cluster as readers.
 
 ```bash
-docker compose --profile clickhouse down
+# Writer gateway
+CLICKHOUSE_URL=http://clickhouse-writer:8123
+# runs clickhouse-auto-import
+
+# Reader gateways
+CLICKHOUSE_URL=http://clickhouse-reader:8123
+# do NOT run clickhouse-auto-import
 ```
 
-This will stop all of the containers normally covered by the `docker compose down` command, but will also stop the ClickHouse container.
+<Callout type="warn">
+  Reader gateways still need `START_WRITERS=true` because SQLite indexing is required for data retrieval, chunk fetches, and other non-GraphQL operations. Only GraphQL queries are routed to ClickHouse.
+</Callout>
 
-</Step>
+### Independent ClickHouse per Gateway
 
-<Step>
-### Manage ClickHouse Container Only
+Each gateway runs its own ClickHouse instance, bootstrapped from a shared Parquet snapshot (downloaded from Arweave, S3, or BitTorrent). No shared state between gateways.
 
-To start or stop only the ClickHouse container, you can use the following commands:
+This is the simplest topology for operators who want ClickHouse performance without cluster management.
+
+## Configuration Reference
+
+### Connection
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CLICKHOUSE_URL` | - | ClickHouse HTTP endpoint (e.g., `http://clickhouse:8123`) |
+| `CLICKHOUSE_USER` | `default` | ClickHouse username |
+| `CLICKHOUSE_PASSWORD` | - | ClickHouse password |
+
+### Query Routing
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CLICKHOUSE_SQLITE_MIN_HEIGHT_ENABLED` | `false` | Enable height-based query split between ClickHouse and SQLite |
+| `CLICKHOUSE_SQLITE_MIN_HEIGHT_BUFFER` | `10` | Number of blocks below ClickHouse max height still served by SQLite |
+| `CLICKHOUSE_MAX_HEIGHT_CACHE_TTL_SECONDS` | `60` | Cache duration for ClickHouse max-height lookup |
+| `CLICKHOUSE_QUERY_TIMEOUT_SECONDS` | `3` | Query timeout (both client and server side) |
+| `CLICKHOUSE_GQL_MAX_ROWS_TO_READ` | `10000000` | Safety guardrail: max rows scanned per query |
+| `CLICKHOUSE_GQL_DEDUPE_HEADROOM` | `4` | Pagination headroom multiplier for deduplication |
+
+### Circuit Breaker
+
+The circuit breaker protects against cascading failures when the SQLite leg is unhealthy. When tripped, queries degrade to ClickHouse-only results with a partial result warning.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CLICKHOUSE_SQLITE_CIRCUIT_BREAKER_TIMEOUT_MS` | `5000` | SQLite query timeout before counting as error |
+| `CLICKHOUSE_SQLITE_CIRCUIT_BREAKER_ERROR_THRESHOLD_PERCENTAGE` | `80` | Error rate percentage that trips the breaker |
+| `CLICKHOUSE_SQLITE_CIRCUIT_BREAKER_ROLLING_COUNT_TIMEOUT_MS` | `60000` | Rolling window for error rate calculation |
+| `CLICKHOUSE_SQLITE_CIRCUIT_BREAKER_RESET_TIMEOUT_MS` | `30000` | Wait time before attempting half-open trial |
+
+## Tuning
+
+### Short Pages in GraphQL Pagination
+
+If GraphQL queries return fewer results than expected per page, unmerged duplicates in ClickHouse may be consuming pagination slots. Increase the deduplication headroom:
 
 ```bash
-docker compose --profile clickhouse up clickhouse -d
+CLICKHOUSE_GQL_DEDUPE_HEADROOM=8  # default is 4
 ```
 
-and
+This makes the inner query fetch more rows to compensate for duplicates that get collapsed.
+
+### Query Timeouts
+
+For queries over very large datasets or complex tag filters, increase the timeout:
 
 ```bash
-docker compose --profile clickhouse down clickhouse
+CLICKHOUSE_QUERY_TIMEOUT_SECONDS=10  # default is 3
 ```
 
-</Step>
-</Steps>
+### Max Rows Safety Guardrail
 
-## Useful Docker Commands
-
-Monitor and manage your gateway with ClickHouse using these commands:
+If queries hit the `max_rows_to_read` limit (returns an error), you can raise it — but do so with caution as it removes the protection against runaway full-table scans:
 
 ```bash
-# View all running services
-docker ps
+CLICKHOUSE_GQL_MAX_ROWS_TO_READ=50000000  # default is 10M
+```
 
-# Start gateway with ClickHouse profile
+## Upgrading
+
+### Schema Evolution
+
+Schema changes are applied automatically on each import cycle via idempotent `ALTER TABLE` statements. No manual migration steps are needed for routine upgrades.
+
+### Projection Rebuild (One-Time)
+
+Gateways upgrading from pre-24.8 ClickHouse deployments may need to rebuild the owner projection:
+
+```sql
+ALTER TABLE transactions MATERIALIZE PROJECTION owner_projection;
+```
+
+This runs in the background and may take time on large tables.
+
+### Rollback
+
+If you need to roll back a ClickHouse upgrade:
+
+1. Drop the `transactions` table
+2. Re-import from your Parquet files using `./scripts/clickhouse-import`
+
+Parquet files are the source of truth — ClickHouse is always rebuildable from them.
+
+## Troubleshooting
+
+### Import Failures
+
+Failed imports leave files in `data/etl/staging/` for inspection. Check the auto-import container logs:
+
+```bash
+docker compose --profile clickhouse logs clickhouse-auto-import -f
+```
+
+Fix the underlying issue (disk space, permissions, ClickHouse connectivity) and restart the container — the next cycle will retry.
+
+### Disk Usage Growing
+
+If ClickHouse disk usage is higher than expected:
+
+- Check your TTL rules are configured and expiring data as intended
+- Verify background merges are running (rows are only deleted on merge):
+  ```bash
+  docker compose exec clickhouse clickhouse-client \
+    --password your-password \
+    -q 'SELECT partition, count() FROM system.parts WHERE table = '\''transactions'\'' GROUP BY partition'
+  ```
+- Force a merge on a specific partition if needed (heavyweight operation):
+  ```bash
+  OPTIMIZE TABLE transactions PARTITION 14 FINAL
+  ```
+
+### Checking Import Status
+
+View the current max imported height:
+
+```bash
+docker compose exec clickhouse clickhouse-client \
+  --password your-password \
+  -q 'SELECT max(height) FROM transactions'
+```
+
+Compare this to the gateway's current height (`/height` endpoint) — the difference indicates how far behind ClickHouse is.
+
+## Docker Commands
+
+```bash
+# Start gateway with ClickHouse
 docker compose --profile clickhouse up -d
 
-# Stop gateway with ClickHouse profile
+# Stop gateway with ClickHouse
 docker compose --profile clickhouse down
+
+# View ClickHouse logs
+docker compose --profile clickhouse logs clickhouse -f
+
+# View auto-import logs
+docker compose --profile clickhouse logs clickhouse-auto-import -f
+
+# Restart auto-import after config change
+docker compose --profile clickhouse restart clickhouse-auto-import
 
 # Pull latest images
 docker compose --profile clickhouse pull
-
-# Start only ClickHouse container
-docker compose --profile clickhouse up clickhouse -d
-
-# Stop only ClickHouse container
-docker compose --profile clickhouse down clickhouse
-
-# Follow gateway logs
-docker compose logs core -f -n 10
-
-# Follow ClickHouse logs
-docker compose --profile clickhouse logs clickhouse -f -n 10
-
-# Check ClickHouse container status
-docker compose --profile clickhouse ps clickhouse
-
-# Restart ClickHouse container
-docker compose --profile clickhouse restart clickhouse
 ```
 
-## Next Steps
-
-Now that you have ClickHouse set up for improved query performance, continue building your gateway infrastructure:
+## Related
 
 <Cards>
   <Card
+    icon={<Database className="w-8 h-8" />}
+    title="Filters"
+    description="Configure unbundling and indexing filters that control what data flows into ClickHouse"
+    href="/build/run-a-gateway/manage/filters"
+  />
+  <Card
     icon={<BarChart3 className="w-8 h-8" />}
-    title="Set Up Monitoring"
-    description="Deploy Grafana to visualize your gateway's performance metrics"
+    title="Grafana Monitoring"
+    description="Visualize gateway and ClickHouse performance metrics"
     href="/build/extensions/grafana"
   />
   <Card
-    icon={<Package className="w-8 h-8" />}
-    title="Deploy Bundler"
-    description="Accept data uploads directly through your gateway"
-    href="/build/extensions/bundler"
-  />
-  <Card
     icon={<Cpu className="w-8 h-8" />}
-    title="Run Compute Unit"
-    description="Execute AO processes locally for maximum efficiency"
-    href="/build/extensions/compute-unit"
+    title="Environment Variables"
+    description="Full configuration reference for all gateway services"
+    href="/build/run-a-gateway/manage/environment-variables"
   />
   <Card
-    icon={<Database className="w-8 h-8" />}
-    title="Join the Network"
-    description="Register your gateway and start serving the permanent web"
-    href="/build/run-a-gateway/join-the-network"
+    icon={<Network className="w-8 h-8" />}
+    title="Gateway Architecture"
+    description="Understand the data layer and worker system architecture"
+    href="/learn/gateways/architecture"
   />
 </Cards>

@@ -35,7 +35,7 @@ The [wayfinder-core](/sdks/wayfinder/wayfinder-core) library is the core protoco
 
 - **Gateway selection strategies** - Choose how to route requests
 - **Content verification** - Optionally verify content authenticity
-- **Telemetry collection** - Understand performance vs arweave.net
+- **Telemetry collection** - Understand gateway performance across routing strategies
 - **Custom configurations** - Fine-tune behavior for your use case
 
 ### Wayfinder React
@@ -71,12 +71,12 @@ const wayfinder = new createWayfinderClient({
   ario: ARIO.mainnet(),
   verification: 'hash',
   routing: 'preferred',
-  preferredGateway: 'arweave.net',
+  preferredGateway: 'ar-io.net',
 });
 ```
 
 This pattern ensures:
-1. **Primary traffic** goes to your preferred gateway (one you run or are delegated to)
+1. **Primary traffic** goes to your preferred gateway (for example, one you run or trust)
 2. **Automatic failover** if your gateway can't serve the data
 3. **Network resilience** by finding another gateway that can serve the content
 
@@ -99,7 +99,7 @@ Verification ensures you're receiving authentic content regardless of which gate
 
 ## Telemetry for Performance Insights
 
-Enable telemetry to understand how Wayfinder performs relative to arweave.net:
+Enable telemetry to understand how Wayfinder performs across gateways:
 
 ```typescript
 import { createWayfinderClient } from '@ar-io/wayfinder-core';
@@ -124,7 +124,7 @@ Here's a complete example using wayfinder-react:
 
 ```tsx
 import { WayfinderProvider, FastestPingRoutingStrategy } from '@ar-io/wayfinder-react';
-import { ARIO } from '@ar.io/sdk;
+import { ARIO } from '@ar.io/sdk';
 
 // Configure Wayfinder
 const wayfinderConfig = {

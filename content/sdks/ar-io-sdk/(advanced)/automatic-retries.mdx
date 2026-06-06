@@ -1,0 +1,24 @@
+---
+title: "Automatic Retries"
+description: "TypeScript/JavaScript SDK for interacting with the ar.io ecosystem"
+---
+
+All RPC **read** calls (account fetches, `getProgramAccounts`, etc.)
+automatically retry on transient transport errors with exponential
+back-off. Writes are **not** retried (to avoid double-sends).
+
+Retried errors: HTTP 429/5xx, `fetch failed`, `ECONNRESET`,
+`ETIMEDOUT`, `AbortError` / timeouts. Non-retryable errors (account
+not found, invalid params, deserialization) throw immediately.
+
+Defaults: **6 attempts**, 500 ms base delay, 5 s max delay. Override
+per-call with the exported `withRetry` helper:
+
+```ts
+import { withRetry } from '@ar.io/sdk';
+
+const result = await withRetry(() => rpc.getAccountInfo(addr).send(), {
+  maxAttempts: 3,
+  baseDelayMs: 1000,
+});
+```
