@@ -179,7 +179,9 @@ The gateway talks to four Solana programs that together implement the ar.io prot
 | -------------------------- | ------ | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
 | `AR_IO_WALLET`             | string | -                                    | Operator Solana public key (base58). Display label surfaced on `/ar-io/info`                                         |
 | `SOLANA_RPC_URL`           | string | `https://api.mainnet-beta.solana.com`| Solana JSON-RPC endpoint. Public defaults throttle hard — use a premium provider (QuickNode, Helius, Triton) in production |
-| `SOLANA_KEYPAIR_PATH`      | string | -                                    | Path to the operator's 64-byte Solana keypair JSON file (signs cranker instructions when `ENABLE_EPOCH_CRANKING=true`) |
+| `SOLANA_KEYPAIR_PATH`      | string | -                                    | Path to the operator's 64-byte Solana keypair JSON file. Signs `join_network`, `update_gateway_settings`, and cranker instructions. Inside the container the path must start with `/app/wallets/` |
+| `SOLANA_PRIVATE_KEY`       | string | -                                    | Alternative to `SOLANA_KEYPAIR_PATH`: base58-encoded 64-byte secret (Phantom export format). Mutually exclusive with the file form |
+| `ENABLE_EPOCH_CRANKING`    | boolean | unset (= off)                       | When `true`, the observer runs permissionless epoch instructions (`close_observation`, `tick_epoch`, etc.). "When unset, observer skips cranking." Set `false` to make the off-state explicit |
 | `ARIO_CORE_PROGRAM_ID`     | string | -                                    | `ario-core` program ID (token, staking, epoch state)                                                                 |
 | `ARIO_GAR_PROGRAM_ID`      | string | -                                    | `ario-gar` program ID (Gateway Registry; joins, observations, distributions)                                         |
 | `ARIO_ARNS_PROGRAM_ID`     | string | -                                    | `ario-arns` program ID (ArNS name registry)                                                                          |
@@ -374,7 +376,22 @@ The default public Solana RPC is rate-limited and may block `getProgramAccounts`
 
 | Variable                       | Type    | Default | Description                           |
 | ------------------------------ | ------- | ------- | ------------------------------------- |
-| `SUBMIT_CONTRACT_INTERACTIONS` | boolean | `true`  | Submit observations to Solana programs |
+| `SUBMIT_CONTRACT_INTERACTIONS` | boolean | `true`  | Submit observations to Solana programs. Pre-flight no-ops unless your pubkey is in `epoch.prescribed_observers` — harmless to leave at default before `join_network` |
+
+### Upload Wallet Identities
+
+The observer uploads report bundles to Turbo. The upload signer is resolved from the first matching env in the [precedence chain](/build/run-a-gateway/manage/solana-migration#upload-signing-precedence). Setting envs from more than one chain group at once is rejected at startup.
+
+| Variable                          | Type   | Default | Description                                                                 |
+| --------------------------------- | ------ | ------- | --------------------------------------------------------------------------- |
+| `ARWEAVE_UPLOAD_KEY_FILE`         | string | -       | Path to an Arweave JWK file. Highest priority for upload signing            |
+| `ARWEAVE_UPLOAD_JWK`              | string | -       | Inline Arweave JWK JSON. Lower priority than the file form                  |
+| `ETHEREUM_UPLOAD_PRIVATE_KEY_FILE`| string | -       | Path to a 32-byte hex private key (with or without `0x` prefix)             |
+| `ETHEREUM_UPLOAD_PRIVATE_KEY`     | string | -       | Inline hex private key. Lower priority than the file form                   |
+| `SOLANA_UPLOAD_KEYPAIR_PATH`      | string | -       | Path to a separate Solana keypair JSON for uploads. Ignored when any `ARWEAVE_UPLOAD_*` or `ETHEREUM_UPLOAD_*` is set |
+| `SOLANA_UPLOAD_PRIVATE_KEY`       | string | -       | Alternative to above: base58 secret. Mutually exclusive with the file form  |
+
+When none of the above are set, uploads fall back to the observer key, then the operator key.
 
 ### Offset Observation
 
