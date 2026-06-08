@@ -135,6 +135,14 @@ Complete these steps before the cutover date to ensure uninterrupted reward elig
     chmod 600 wallets/*.json
     ```
 
+    <Callout type="warn" title="Use container paths, not host paths">
+    Env vars must use the **in-container** path (`/app/wallets/...`), not the host path (`./wallets/...`). Docker Compose bind-mounts `${WALLETS_PATH:-./wallets}` to `/app/wallets` inside the container.
+
+    | Wrong (host path) | Right (container path) |
+    |---|---|
+    | `SOLANA_KEYPAIR_PATH=./wallets/operator-keypair.json` | `SOLANA_KEYPAIR_PATH=/app/wallets/operator-keypair.json` |
+    </Callout>
+
     Skip this step entirely if you set `OBSERVER_PRIVATE_KEY` / `SOLANA_PRIVATE_KEY` env vars (base58 strings) instead.
   </Step>
 
@@ -207,6 +215,85 @@ Complete these steps before the cutover date to ensure uninterrupted reward elig
   </Step>
 </Steps>
 
+## Wallet Roles and Configuration Patterns
+
+The gateway uses up to four distinct wallet roles. Understanding these helps you pick the right configuration for your setup.
+
+| Role | What it signs | Env vars | Fallback |
+|---|---|---|---|
+| **Operator** (+ cranker) | `join_network`, `update_gateway_settings`, permissionless cranker instructions | `SOLANA_KEYPAIR_PATH` or `SOLANA_PRIVATE_KEY` | — (required) |
+| **Observer** | `save_observations` transactions | `OBSERVER_KEYPAIR_PATH` or `OBSERVER_PRIVATE_KEY` | Falls back to operator key |
+| **Upload** | Observer report bundles sent to Turbo | See [upload precedence](#upload-signing-precedence) below | Falls back to observer → operator Solana key |
+| **HTTPSIG signer** | RFC 9421 response headers | Uses observer Solana key when set | Auto-generated standalone Ed25519 key |
+
+<Callout type="info">
+Setting both the file-path and inline forms for the same role (e.g. `SOLANA_KEYPAIR_PATH` **and** `SOLANA_PRIVATE_KEY`) is rejected at startup as ambiguous. Pick one.
+</Callout>
+
+### Supported Configurations
+
+These are the five supported wallet setups. **Pattern 1 is the recommended default** — one key does everything. Pattern 2 is the most common migration path for operators who already have an Arweave JWK.
+
+| # | Operator | Observer | Upload | Required envs |
+|---|---|---|---|---|
+| **1** | Solana | = operator | = operator (Solana) | `SOLANA_KEYPAIR_PATH` |
+| **2** | Solana | = operator | Arweave JWK | `SOLANA_KEYPAIR_PATH` + `ARWEAVE_UPLOAD_KEY_FILE` |
+| **3** | Solana A | Solana B | Solana C | `SOLANA_KEYPAIR_PATH` + `OBSERVER_KEYPAIR_PATH` + `SOLANA_UPLOAD_KEYPAIR_PATH` |
+| **4** | Solana A | Solana B | Arweave JWK | `SOLANA_KEYPAIR_PATH` + `OBSERVER_KEYPAIR_PATH` + `ARWEAVE_UPLOAD_KEY_FILE` |
+| **5** | Solana A | Solana B | Ethereum | `SOLANA_KEYPAIR_PATH` + `OBSERVER_KEYPAIR_PATH` + `ETHEREUM_UPLOAD_PRIVATE_KEY_FILE` |
+
+#### Pattern 1 — Single Solana keypair (recommended)
+
+```bash
+# One key for operator + observer + uploads
+SOLANA_KEYPAIR_PATH=/app/wallets/operator-keypair.json
+SOLANA_RPC_URL=<your dedicated RPC endpoint>
+AR_IO_WALLET=<your Solana pubkey>
+OBSERVER_WALLET=<your Solana pubkey>
+ENABLE_EPOCH_CRANKING=false   # flip to true when ready
+```
+
+#### Pattern 2 — Keep existing Arweave JWK for uploads
+
+The most common path for operators migrating from a pre-Solana setup. Your existing Arweave JWK continues signing report bundles while the Solana keypair handles protocol interactions.
+
+```bash
+SOLANA_KEYPAIR_PATH=/app/wallets/operator-keypair.json
+ARWEAVE_UPLOAD_KEY_FILE=/app/wallets/<your-arweave-jwk>.json
+SOLANA_RPC_URL=<your dedicated RPC endpoint>
+AR_IO_WALLET=<your Solana pubkey>
+OBSERVER_WALLET=<your Solana pubkey>
+ENABLE_EPOCH_CRANKING=false
+```
+
+### Upload Signing Precedence
+
+The gateway picks the first matching upload signer from this list:
+
+```
+1. ARWEAVE_UPLOAD_KEY_FILE     (file)     → ArweaveSigner
+2. ARWEAVE_UPLOAD_JWK          (inline)   → ArweaveSigner
+3. ETHEREUM_UPLOAD_PRIVATE_KEY_FILE (file) → EthereumSigner
+4. ETHEREUM_UPLOAD_PRIVATE_KEY (inline)    → EthereumSigner
+5. SOLANA_UPLOAD_KEYPAIR_PATH  (explicit)  → SolanaSigner
+6. Fallback: OBSERVER_KEYPAIR_PATH ?? SOLANA_KEYPAIR_PATH → SolanaSigner
+```
+
+<Callout type="warn">
+Setting upload envs from more than one chain at once (e.g. `ARWEAVE_UPLOAD_KEY_FILE` **plus** `ETHEREUM_UPLOAD_PRIVATE_KEY`) raises a startup error listing every conflicting env. Pick exactly one upload chain.
+</Callout>
+
+### Key Formats
+
+Solana keypairs come in two common formats. Both encode the same 64-byte secret (`seed(32) || pubkey(32)`):
+
+| Format | Example | Source |
+|---|---|---|
+| **JSON array** (Solana CLI standard) | `[12,34,56,...]` — 64 uint8 integers | `solana-keygen new --outfile keypair.json` |
+| **base58 secret** | 87–88 character base58 string | Phantom "export private key", browser wallets |
+
+Use the JSON file with `*_KEYPAIR_PATH` env vars, or the base58 string with `*_PRIVATE_KEY` env vars — never both for the same role.
+
 ## Troubleshooting
 
 ### "Observer is restart-looping with 'Epoch 0 PDA not found'"
@@ -247,6 +334,19 @@ The gateway hydrates an ArNS names cache at boot, paginating through the on-chai
 - Resolver logs report `Base name not found in ArNS names cache` for names that demonstrably exist via the SDK CLI's `get-arns-record --name <name>`
 
 Fix: bump `@ar.io/sdk` in your gateway's image (`package.json`) to the latest `^4.0.0-solana.*` and rebuild.
+
+### Wallet Configuration Startup Errors
+
+The gateway validates wallet configuration at startup. Errors are loud and name the offending env:
+
+| Error pattern | Cause | Fix |
+|---|---|---|
+| `multiple chain groups configured for upload role` | Upload envs from more than one chain are set (e.g. `ARWEAVE_UPLOAD_*` and `ETHEREUM_UPLOAD_*`) | Pick one upload chain and remove the others |
+| `ambiguous: both ... set for role` | File-path and inline forms for the same role are both set (e.g. `SOLANA_KEYPAIR_PATH` + `SOLANA_PRIVATE_KEY`) | Use one form per role |
+| `material at SOLANA_KEYPAIR_PATH does not look like a Solana keypair` | An Arweave JWK or other JSON was placed at the Solana keypair path | Check you copied the right file — Solana keypairs are a JSON array of 64 integers, not a JWK object |
+| `material at ARWEAVE_UPLOAD_KEY_FILE does not look like an Arweave JWK` | A Solana keypair (JSON array) was placed at the Arweave upload slot | Swap the file for your Arweave JWK |
+| `SOLANA_KEYPAIR_PATH not set in Solana mode` | The operator key is missing entirely | Set `SOLANA_KEYPAIR_PATH` or `SOLANA_PRIVATE_KEY` |
+| `OBSERVER_KEYPAIR_PATH does not match on-chain Gateway.observer_address` | The observer key doesn't match what was registered at `join_network` | Update the key to match, or call `update_observer_address` on-chain |
 
 ## New Risks to Be Aware Of
 

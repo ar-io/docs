@@ -113,36 +113,25 @@ Add the following to your gateway's `.env` file:
 HTTPSIG_ENABLED=true
 ```
 
-On startup, the gateway automatically generates an Ed25519 key at `data/keys/httpsig.pem` if one doesn't exist. The key also functions as a valid Solana address.
+#### Signing Key Selection
 
-#### Optional: Attestation
+When `OBSERVER_KEYPAIR_PATH` or `OBSERVER_PRIVATE_KEY` is set, the gateway uses the observer's Solana keypair directly as the HTTPSIG signing key. Verifiers derive the Solana address from the public key in the `keyId` and look it up in the on-chain Gateway Registry — no separate attestation is needed.
 
-To link your signing key to your on-chain identity, configure an observer wallet. The gateway will create an RSA-signed attestation linking the Ed25519 key to your Arweave wallet and upload it to Arweave:
+When neither observer env is set, the gateway auto-generates a standalone Ed25519 key at `data/keys/httpsig.pem`. Responses are still signed, but the signer can't be tied back to the on-chain registry.
 
-```bash
-# Observer wallet for attestation (Arweave address)
-OBSERVER_WALLET=your-arweave-address
-WALLETS_PATH=wallets
-
-# Automatically upload attestation to Arweave (default: true)
-HTTPSIG_UPLOAD_ATTESTATION=true
-
-# Optional: include staked gateway address in attestation
-AR_IO_WALLET=your-gateway-address
-```
-
-Place your Arweave wallet JWK file in the `WALLETS_PATH` directory. The attestation is cached to `data/keys/httpsig-attestation.json` and only regenerated if the key or wallet changes.
+<Callout type="info">
+If you use a single Solana key for both operator and observer (Pattern 1 in the [migration guide](/build/run-a-gateway/manage/solana-migration#supported-configurations)), HTTPSIG falls back to the auto-generated key because the gateway only piggybacks on `OBSERVER_KEYPAIR_PATH`/`OBSERVER_PRIVATE_KEY` when they're **explicitly set**. To get on-chain-verifiable HTTPSIG with a single key, explicitly set `OBSERVER_KEYPAIR_PATH` (or `OBSERVER_PRIVATE_KEY`) to the same value as your operator key.
+</Callout>
 
 ### Configuration Reference
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `HTTPSIG_ENABLED` | `false` | Enable RFC 9421 response signing |
-| `HTTPSIG_KEY_FILE` | `data/keys/httpsig.pem` | Path to Ed25519 private key (auto-generated if missing) |
+| `HTTPSIG_KEY_FILE` | `data/keys/httpsig.pem` | Path to standalone Ed25519 private key (auto-generated if missing). Ignored when `OBSERVER_KEYPAIR_PATH` or `OBSERVER_PRIVATE_KEY` is set |
 | `HTTPSIG_BIND_REQUEST` | `true` | Include request method and path in signature (prevents replay) |
-| `OBSERVER_WALLET` | - | Arweave wallet address for attestation signing |
-| `WALLETS_PATH` | `wallets` | Directory containing Arweave wallet JWK files |
-| `HTTPSIG_UPLOAD_ATTESTATION` | `true` | Upload attestation to Arweave automatically |
+| `OBSERVER_KEYPAIR_PATH` | - | Path to a 64-byte Solana keypair JSON. When set, used as the HTTPSIG signing key — verifiable against the on-chain GAR |
+| `OBSERVER_PRIVATE_KEY` | - | Alternative: base58-encoded 64-byte secret. Mutually exclusive with the file form |
 
 ### Verifying It's Working
 
@@ -173,9 +162,9 @@ Only responses containing at least one trust-relevant header are signed. Non-dat
 
 Clients can verify signed responses through the following chain:
 
-1. **Signature verification** - The public key is embedded in the `Signature-Input` header's `keyid` parameter and is verifiable via the Web Crypto API in modern browsers.
-2. **Identity verification** - If attestation is configured, follow the attestation chain from the Ed25519 signing key to the operator's Arweave RSA wallet to confirm the signer is a registered gateway. The attestation is available at `/ar-io/info` and on Arweave.
-3. **Body integrity** - Compare the `Content-Digest` header against a locally computed hash, or walk the Arweave signature chain from the signed `X-AR-IO-Data-Id`.
+1. **Signature verification** — The public key is embedded in the `Signature-Input` header's `keyid` parameter and is verifiable via the Web Crypto API in modern browsers.
+2. **Identity verification** — When the observer Solana key is used for signing, derive the Solana address from the public key and look it up in the on-chain Gateway Registry (GAR). A match confirms the signer is a registered gateway operator.
+3. **Body integrity** — Compare the `Content-Digest` header against a locally computed hash, or walk the Arweave signature chain from the signed `X-AR-IO-Data-Id`.
 
 ## Related
 
