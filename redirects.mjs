@@ -1,5 +1,12 @@
 // Comprehensive redirects from old URL structure (main branch) to new structure (fumadocs branch)
 const redirects = [
+  // Renamed pages
+  {
+    source: '/build/guides/hosting-decentralised-apps/deploying-with-permaweb-deploy',
+    destination: '/build/guides/hosting-decentralised-apps/deploying-with-ario-deploy',
+    permanent: true,
+  },
+
   // Main documentation sections
   {
     source: '/introduction',
