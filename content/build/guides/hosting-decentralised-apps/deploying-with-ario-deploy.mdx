@@ -1,0 +1,611 @@
+---
+title: "Deploying with ARIO Deploy"
+description: "Learn how to deploy permanent web applications to Arweave using the @ar.io/deploy CLI tool with Next.js, React, and GitHub Actions"
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+import {
+  Terminal,
+  Rocket,
+  Wallet,
+  Zap,
+  GitBranch,
+  BookOpen,
+  Bot,
+  Shield,
+} from 'lucide-react';
+
+ARIO Deploy (`@ar.io/deploy`) is the recommended CLI tool for hosting decentralised applications on ar.io.
+
+It streamlines the entire deployment process by uploading your build folder to Arweave, creating Arweave manifests, and optionally updating your ArNS records in a single command. Built on the Turbo SDK, it offers flexible payment options, smart deduplication, interactive mode, a first-class GitHub Action for CI/CD, and even AI-assisted deployments via Claude Code.
+
+<Cards>
+  <Card
+    title="Upload to Arweave"
+    description="Upload any static folder or file to permanent storage with a single command."
+    icon={<Rocket className="w-6 h-6" />}
+  />
+  <Card
+    title="Update ArNS Names"
+    description="Point human-readable domains like myapp.ar.io at your latest deployment."
+    icon={<Zap className="w-6 h-6" />}
+  />
+  <Card
+    title="GitHub Action CI/CD"
+    description="Automate production deploys and PR previews with ar-io/ar-io-deploy@v1."
+    icon={<GitBranch className="w-6 h-6" />}
+  />
+  <Card
+    title="AI-Assisted Deployment"
+    description="Deploy with natural language using the built-in Claude Code skill."
+    icon={<Bot className="w-6 h-6" />}
+  />
+</Cards>
+
+<Callout type="info" title="New to decentralised apps?">
+  Check out the [series introduction](/build/guides/hosting-decentralised-apps) to learn about permanent hosting and ArNS domains.
+</Callout>
+
+## Prerequisites
+
+Before starting, ensure you have:
+
+- **Node.js 18+** — Download from [nodejs.org](https://nodejs.org/)
+- **A Wallet** — Arweave (JWK), Ethereum/Polygon/KYVE (hex key), or Solana (base58 key)
+- **ArNS Name** (optional) — Register one at [arns.ar.io](https://arns.ar.io)
+- **Turbo Credits** — Fund your wallet at [console.ar.io/topup](https://console.ar.io/topup) or use on-demand payment
+
+<Callout type="warn" title="Two-key model">
+  ARIO Deploy uses two separate keys:
+
+  - **`DEPLOY_KEY`** — pays for the upload. Can be any supported signer type.
+  - **`ARNS_KEY`** — updates the ArNS record. Must always be a **Solana** key that controls the ArNS name.
+
+  If you use a Solana wallet for uploads, the same key can serve both roles.
+</Callout>
+
+## Installation
+
+Install `@ar.io/deploy` as a dev dependency in your project or globally:
+
+```bash title="Terminal"
+# As a dev dependency (recommended for teams)
+npm install --save-dev @ar.io/deploy
+
+# Or globally
+npm install -g @ar.io/deploy
+```
+
+The CLI command is `ario-deploy`. Verify it works:
+
+```bash title="Terminal"
+npx ario-deploy --version
+```
+
+## Project Setup
+
+ARIO Deploy works with any framework that generates a static build folder. The default deploy folder is `./dist`.
+
+<Tabs items={['Next.js', 'React + Vite', 'Any Static Site']}>
+  <Tab value="Next.js">
+    <Steps>
+      <Step title="Create a Next.js project">
+        Initialize a new Next.js application:
+
+        ```bash title="Terminal"
+        npx create-next-app@latest my-arweave-app
+        cd my-arweave-app
+        ```
+
+        Enable static export by updating `next.config.js`:
+
+        ```javascript title="next.config.js"
+        /** @type {import('next').NextConfig} */
+        const nextConfig = {
+          output: 'export',
+          images: {
+            unoptimized: true,
+          },
+          trailingSlash: true,
+        }
+
+        module.exports = nextConfig
+        ```
+
+        - `output: 'export'` generates a static site in the `out` folder
+        - `images.unoptimized: true` prevents server-side image optimization
+        - `trailingSlash: true` ensures URLs work correctly on static hosting
+      </Step>
+
+      <Step title="Install and configure">
+        ```bash title="Terminal"
+        npm install --save-dev @ar.io/deploy
+        ```
+
+        Update your `package.json` scripts:
+
+        ```json title="package.json"
+        {
+          "scripts": {
+            "dev": "next dev",
+            "build": "next build",
+            "deploy": "next build && ario-deploy deploy --deploy-folder out",
+            "deploy:arns": "next build && ario-deploy deploy --deploy-folder out --arns-name your-arns-name"
+          }
+        }
+        ```
+
+        Note the `--deploy-folder out` flag is required since Next.js exports to `./out` instead of the default `./dist`.
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab value="React + Vite">
+    <Steps>
+      <Step title="Create a Vite project">
+        ```bash title="Terminal"
+        npm create vite@latest my-arweave-app -- --template react
+        cd my-arweave-app
+        npm install
+        ```
+      </Step>
+
+      <Step title="Configure Vite for static hosting">
+        Update `vite.config.js` to use relative paths for Arweave:
+
+        ```javascript title="vite.config.js"
+        import { defineConfig } from 'vite'
+        import react from '@vitejs/plugin-react'
+
+        export default defineConfig({
+          plugins: [react()],
+          base: './', // Use relative paths for Arweave
+        })
+        ```
+
+        The `base: './'` setting ensures all asset paths are relative, which is required for proper loading on Arweave gateways.
+      </Step>
+
+      <Step title="Install and configure">
+        ```bash title="Terminal"
+        npm install --save-dev @ar.io/deploy
+        ```
+
+        Update your `package.json` scripts:
+
+        ```json title="package.json"
+        {
+          "scripts": {
+            "dev": "vite",
+            "build": "vite build",
+            "deploy": "vite build && ario-deploy deploy",
+            "deploy:arns": "vite build && ario-deploy deploy --arns-name your-arns-name"
+          }
+        }
+        ```
+
+        Vite builds to `./dist` by default, which matches the ARIO Deploy default.
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab value="Any Static Site">
+    <Steps>
+      <Step title="Install ARIO Deploy">
+        ```bash title="Terminal"
+        npm install --save-dev @ar.io/deploy
+        ```
+      </Step>
+
+      <Step title="Configure your deploy script">
+        Add a deploy command that points to your build output folder:
+
+        ```json title="package.json"
+        {
+          "scripts": {
+            "deploy": "ario-deploy deploy --deploy-folder ./public",
+            "deploy:arns": "ario-deploy deploy --deploy-folder ./public --arns-name your-arns-name"
+          }
+        }
+        ```
+
+        Replace `./public` with whatever directory contains your built static files (e.g., `./build`, `./out`, `./dist`).
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+## Deploying from the Command Line
+
+### Upload Only (Quick Start)
+
+The simplest deployment uploads your build folder to Arweave and returns a transaction ID. No ArNS name is needed.
+
+<Tabs items={['Arweave Wallet', 'EVM Wallet', 'Solana Wallet']}>
+  <Tab value="Arweave Wallet">
+    ```bash title="Terminal"
+    DEPLOY_KEY=$(base64 -i wallet.json) npx ario-deploy deploy --deploy-folder ./dist
+    ```
+
+    The `$(base64 -i wallet.json)` command encodes your JWK wallet on-the-fly without saving the encoded value to disk.
+  </Tab>
+
+  <Tab value="EVM Wallet">
+    ```bash title="Terminal"
+    DEPLOY_KEY="0x1234567890abcdef..." npx ario-deploy deploy --deploy-folder ./dist --sig-type ethereum
+    ```
+
+    Replace `0x1234...` with your actual hex private key. Use `--sig-type polygon` or `--sig-type kyve` for those chains.
+  </Tab>
+
+  <Tab value="Solana Wallet">
+    ```bash title="Terminal"
+    DEPLOY_KEY="your-base58-secret-key" npx ario-deploy deploy --deploy-folder ./dist --sig-type solana
+    ```
+
+    Or use a wallet file:
+
+    ```bash title="Terminal"
+    npx ario-deploy deploy --deploy-folder ./dist --wallet ~/.config/solana/id.json --sig-type solana
+    ```
+  </Tab>
+</Tabs>
+
+### With ArNS Update (Two-Key Model)
+
+To upload and update an ArNS name in one command, you need both keys:
+
+<Tabs items={['Separate Keys', 'Same Solana Key']}>
+  <Tab value="Separate Keys">
+    When your upload key and ArNS authority key are different wallets:
+
+    ```bash title="Terminal"
+    DEPLOY_KEY=$(base64 -i wallet.json) \
+    ARNS_KEY="your-solana-base58-secret-key" \
+    npx ario-deploy deploy \
+      --deploy-folder ./dist \
+      --arns-name myapp
+    ```
+
+    Or using file paths:
+
+    ```bash title="Terminal"
+    npx ario-deploy deploy \
+      --deploy-folder ./dist \
+      --wallet ./wallet.json \
+      --arns-wallet ~/.config/solana/id.json \
+      --arns-name myapp
+    ```
+  </Tab>
+
+  <Tab value="Same Solana Key">
+    When you use a single Solana wallet for both upload and ArNS:
+
+    ```bash title="Terminal"
+    DEPLOY_KEY="your-solana-base58-secret-key" \
+    ARNS_KEY="your-solana-base58-secret-key" \
+    npx ario-deploy deploy \
+      --deploy-folder ./dist \
+      --sig-type solana \
+      --arns-name myapp
+    ```
+  </Tab>
+</Tabs>
+
+<Callout type="info" title="ArNS authority must be Solana">
+  Regardless of what signer type you use for uploads, the ArNS key (`ARNS_KEY` or `--arns-wallet`) must always be a Solana key that controls the ANT (Arweave Name Token) for your ArNS name.
+</Callout>
+
+### Interactive Mode
+
+If you are unsure about options or prefer a guided experience, run the deploy command with no flags:
+
+```bash title="Terminal"
+npx ario-deploy deploy
+```
+
+The interactive wizard prompts you for:
+- Deploy target (folder or file)
+- Signer type and wallet
+- Whether to update an ArNS name
+- ArNS name and undername
+- Solana cluster (mainnet or devnet)
+
+This is the easiest way to get started when you are exploring the tool for the first time.
+
+## On-Demand Payment
+
+Instead of pre-funding Turbo Credits, you can pay for deployments on-demand. ARIO Deploy will automatically convert tokens to credits at upload time with a 10% buffer to cover price fluctuations.
+
+<Tabs items={['ARIO Tokens (Arweave signer)', 'Base-ETH (Ethereum signer)']}>
+  <Tab value="ARIO Tokens (Arweave signer)">
+    ```bash title="Terminal"
+    DEPLOY_KEY=$(base64 -i wallet.json) npx ario-deploy deploy \
+      --deploy-folder ./dist \
+      --on-demand ario \
+      --max-token-amount 2.0
+    ```
+
+    - `--on-demand ario` enables automatic ARIO-to-credits conversion
+    - `--max-token-amount 2.0` caps the maximum ARIO to spend (prevents unexpected costs)
+    - Your wallet must hold ARIO tokens
+  </Tab>
+
+  <Tab value="Base-ETH (Ethereum signer)">
+    ```bash title="Terminal"
+    DEPLOY_KEY="0x1234..." npx ario-deploy deploy \
+      --deploy-folder ./dist \
+      --sig-type ethereum \
+      --on-demand base-eth \
+      --max-token-amount 0.01
+    ```
+
+    - `--on-demand base-eth` enables automatic ETH-to-credits conversion on Base Network
+    - Your wallet must have ETH on the **Base Network** (not Ethereum mainnet)
+
+    <Callout type="warn" title="Network requirement">
+      Base-ETH on-demand payment only works with Ethereum signer types. Ensure your wallet is funded with ETH on Base Network.
+    </Callout>
+  </Tab>
+</Tabs>
+
+<Callout type="info" title="Cost estimation">
+  A typical static site (5-10 MB) costs approximately 0.1-0.5 ARIO. You can pre-fund credits at [console.ar.io/topup](https://console.ar.io/topup) to avoid on-demand conversion fees.
+</Callout>
+
+## Deduplication (Smart Caching)
+
+ARIO Deploy automatically deduplicates files across deployments. When you redeploy an app where most files have not changed, only the new or modified files are uploaded. This saves time and money on repeat deployments.
+
+How it works:
+
+1. Each file is SHA-256 hashed before upload
+2. Hashes are compared against the local cache at `.ario-deploy/transaction-cache.json`
+3. Unchanged files reuse their existing Arweave transaction IDs
+4. Only new or modified files are uploaded and billed
+
+The cache uses LRU eviction with a default maximum of 10,000 entries.
+
+```bash title="Terminal"
+# Disable deduplication for a clean deploy
+npx ario-deploy deploy --no-dedupe
+
+# Customize cache size
+npx ario-deploy deploy --dedupe-cache-max-entries 5000
+```
+
+<Callout type="info" title="Team sharing">
+  You can commit `.ario-deploy/transaction-cache.json` to version control so team members benefit from shared deduplication. Alternatively, add it to `.gitignore` for per-machine caching. The GitHub Action handles caching automatically.
+</Callout>
+
+## GitHub Action (Recommended CI/CD)
+
+The `ar-io/ar-io-deploy@v1` GitHub Action is the recommended way to automate deployments. It handles Node.js setup, deduplication caching, and PR comment notifications out of the box.
+
+### Production Deployment
+
+<Steps>
+  <Step title="Add secrets to your repository">
+    In your GitHub repository, navigate to **Settings** > **Secrets and variables** > **Actions** and add:
+
+    | Secret | Format | Purpose |
+    |--------|--------|---------|
+    | `DEPLOY_KEY` | Base64 JWK, hex key, or base58 key | Pays for the Arweave upload |
+    | `ARNS_KEY` | Base58 Solana secret key | Updates the ArNS record |
+
+    <Callout type="warn" title="Secret format">
+      For Arweave wallets, base64-encode the entire JWK file before adding it as a secret: `base64 -i wallet.json`. For Solana, use the base58 secret key from `solana-keygen export-private-key`.
+    </Callout>
+  </Step>
+
+  <Step title="Create the workflow file">
+    ```yaml title=".github/workflows/deploy.yml"
+    name: Deploy to Permaweb
+
+    on:
+      push:
+        branches: [main]
+
+    jobs:
+      deploy:
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v4
+
+          - name: Setup Node.js
+            uses: actions/setup-node@v4
+            with:
+              node-version: '20'
+              cache: 'npm'
+
+          - name: Install and build
+            run: |
+              npm ci
+              npm run build
+
+          - name: Deploy to AR.IO
+            uses: ar-io/ar-io-deploy@v1
+            with:
+              deploy-key: ${{ secrets.DEPLOY_KEY }}
+              arns-key: ${{ secrets.ARNS_KEY }}
+              arns-name: your-arns-name
+              deploy-folder: ./dist
+    ```
+
+    Replace `your-arns-name` with your actual ArNS name and adjust `deploy-folder` if your framework outputs elsewhere (e.g., `./out` for Next.js).
+  </Step>
+
+  <Step title="Push and verify">
+    Push to your main branch and check the **Actions** tab to monitor the deployment. On success, the action outputs:
+
+    - `tx-id` — the Arweave transaction ID
+    - `deployment-url` — the full ArNS URL (e.g., `https://myapp.ar.io`)
+    - `undername-used` — which undername was updated
+  </Step>
+</Steps>
+
+### PR Previews
+
+Enable PR previews to automatically deploy each pull request to a unique undername and post a comment with the preview URL:
+
+```yaml title=".github/workflows/preview.yml"
+name: PR Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install and build
+        if: github.event.action != 'closed'
+        run: |
+          npm ci
+          npm run build
+
+      - name: Deploy Preview
+        uses: ar-io/ar-io-deploy@v1
+        with:
+          deploy-key: ${{ secrets.DEPLOY_KEY }}
+          arns-key: ${{ secrets.ARNS_KEY }}
+          arns-name: your-arns-name
+          deploy-folder: ./dist
+          preview: 'true'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+```
+
+When `preview: 'true'` is set, the action:
+
+1. Auto-generates an undername from the PR number (e.g., `myrepo-pr-42`)
+2. Deploys the build to that undername (e.g., `https://myrepo-pr-42_myapp.ar.io`)
+3. Posts a comment on the PR with the preview URL
+4. Updates the comment on subsequent pushes
+5. Cleans up the undername when the PR is closed
+
+<Callout type="info" title="Automatic cache management">
+  The GitHub Action automatically saves and restores the deduplication cache between runs using `actions/cache`. You do not need to configure anything extra.
+</Callout>
+
+### Action Inputs Reference
+
+| Input | Required | Default | Description |
+|-------|----------|---------|-------------|
+| `deploy-key` | Yes | — | Upload key (Arweave JWK base64, hex, or base58) |
+| `arns-key` | Yes | — | ArNS authority key (Solana base58) |
+| `arns-name` | Yes | — | ArNS name to update |
+| `deploy-folder` | No | `./dist` | Path to built static files |
+| `deploy-file` | No | — | Single file to deploy (alternative) |
+| `sig-type` | No | `arweave` | Upload signer type |
+| `undername` | No | `@` | Undername to update |
+| `ttl-seconds` | No | `3600` | TTL for the ArNS record |
+| `preview` | No | `false` | Enable PR preview mode |
+| `github-token` | No | — | Required when `preview` is enabled |
+| `on-demand` | No | — | On-demand payment token (`ario` or `base-eth`) |
+| `max-token-amount` | No | — | Max spend for on-demand payment |
+| `no-dedupe` | No | `false` | Disable deduplication cache |
+
+## CLI in GitHub Actions (Alternative)
+
+If you need more control than the composite action provides, you can use the CLI directly in your workflow:
+
+```yaml title=".github/workflows/deploy-cli.yml"
+name: Deploy via CLI
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies and build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Install ARIO Deploy
+        run: npm install -g @ar.io/deploy
+
+      - name: Deploy
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+          ARNS_KEY: ${{ secrets.ARNS_KEY }}
+        run: |
+          ario-deploy deploy \
+            --deploy-folder ./dist \
+            --arns-name your-arns-name \
+            --sig-type arweave
+```
+
+<Callout type="info" title="When to use the CLI approach">
+  Use the CLI directly when you need custom pre/post-deploy steps, conditional logic around the deploy command, or integration with other tools in the same job step.
+</Callout>
+
+## Claude Code / AI Agent Deployment
+
+ARIO Deploy includes a built-in Claude Code skill that enables natural-language deployments. If you use [Claude Code](https://claude.ai/code) in your project, you can deploy by saying:
+
+> "Deploy to ar.io"
+
+The skill will:
+
+1. Detect your build folder automatically
+2. Check for wallet configuration
+3. Run the appropriate deploy command
+4. Report the transaction ID and live URL
+
+To add the skill to your project, copy the skill file from the [@ar.io/deploy repository](https://github.com/ar-io/ar-io-deploy/tree/main/examples/claude-skill) into your project's `.claude/skills/` directory.
+
+<Callout type="info" title="First-time setup">
+  On first use, the skill guides you through wallet creation, ArNS name registration, and funding. It supports both upload-only and full ArNS deployments.
+</Callout>
+
+## Summary
+
+You now know how to deploy permanent web applications using `@ar.io/deploy`:
+
+- **Static site setup** for Next.js, React + Vite, or any framework with static output
+- **Two-key model** separating upload payment (`DEPLOY_KEY`) from ArNS authority (`ARNS_KEY`)
+- **Five signer types** — Arweave, Ethereum, Polygon, KYVE, and Solana
+- **On-demand payment** with ARIO tokens or Base-ETH for pay-as-you-go deployments
+- **Smart deduplication** that skips unchanged files across deployments
+- **GitHub Action** (`ar-io/ar-io-deploy@v1`) for automated production deploys and PR previews
+- **Interactive mode** for guided first-time deployments
+- **AI-assisted deployment** via Claude Code natural language commands
+
+<Cards>
+  <Card
+    title="Using Undernames for Versioning"
+    description="Manage environments and versions with ArNS undernames."
+    href="/build/guides/hosting-decentralised-apps/using-undernames-for-versioning"
+    icon={<GitBranch className="w-6 h-6" />}
+  />
+  <Card
+    title="Learn About ArNS"
+    description="Understand how the Ar.io Name System works under the hood."
+    href="/learn/arns"
+    icon={<BookOpen className="w-6 h-6" />}
+  />
+</Cards>
