@@ -1,0 +1,35 @@
+---
+title: "Advanced Usage"
+description: "CLI for deploying apps to the permaweb (Arweave) and updating ArNS"
+---
+
+Deploy to an undername (subdomain) — the ArNS authority key is a Solana wallet:
+
+```bash
+ario-deploy deploy --use-arns --arns-name my-app --wallet ./wallet.json --arns-wallet ./arns-id.json --undername staging
+```
+
+Deploy with a custom TTL:
+
+```bash
+ario-deploy deploy --use-arns --arns-name my-app --wallet ./wallet.json --arns-wallet ./arns-id.json --ttl-seconds 7200
+```
+
+Update ArNS on devnet (or against a custom RPC):
+
+```bash
+ario-deploy deploy --use-arns --arns-name my-app --wallet ./wallet.json --arns-wallet ./arns-id.json --cluster devnet
+ario-deploy deploy --use-arns --arns-name my-app --wallet ./wallet.json --arns-wallet ./arns-id.json --rpc-url https://my-rpc.example.com
+```
+
+Upload using an Ethereum wallet (file):
+
+```bash
+ario-deploy deploy --sig-type ethereum --wallet ./private-key.txt
+```
+
+Upload using a Solana wallet (base58 private key):
+
+```bash
+ario-deploy deploy --sig-type solana --private-key "\<base58-secret-key\>"
+```

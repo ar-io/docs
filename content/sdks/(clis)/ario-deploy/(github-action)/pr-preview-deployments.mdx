@@ -1,0 +1,47 @@
+---
+title: "PR Preview Deployments"
+description: "CLI for deploying apps to the permaweb (Arweave) and updating ArNS"
+---
+
+Automatically deploy preview builds for each pull request. The `preview` mode auto-generates an undername from the PR number and posts a comment with the preview URL:
+
+```yaml
+name: Deploy PR Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  deploy-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Deploy Preview
+        uses: ar-io/ar-io-deploy@v1
+        with:
+          deploy-key: ${{ secrets.DEPLOY_KEY }}
+          arns-key: ${{ secrets.ARNS_KEY }}
+          arns-name: myapp
+          preview: 'true'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-folder: ./dist
+```
+
+When `preview` is enabled, the action will:
+
+- Auto-generate an undername like `pr-123` from the PR number
+- Post a comment on the PR with the preview URL
+- Update the comment on subsequent pushes instead of creating new ones

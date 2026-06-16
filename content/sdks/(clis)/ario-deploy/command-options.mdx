@@ -1,0 +1,33 @@
+---
+title: "Command Options"
+description: "CLI for deploying apps to the permaweb (Arweave) and updating ArNS"
+---
+
+**`deploy`** (upload by default, optional ArNS update):
+
+- `--use-arns`: Update an ArNS/ANT record after upload. When ArNS details aren't supplied and you're in a TTY, `deploy` asks by default.
+- `--arns-name, -n`: The ArNS name to update. Required when using `--use-arns`; also implies ArNS mode.
+- `--cluster, -p`: Solana cluster for ArNS updates. Choices: `mainnet`, `devnet`. Default: `mainnet`
+- `--rpc-url`: Optional Solana RPC URL override for ArNS updates
+- `--deploy-folder, -d`: Folder to deploy. Default: `./dist`
+- `--deploy-file, -f`: Deploy a single file instead of a folder
+- `--undername, -u`: ANT undername to update. Default: `@`
+- `--ttl-seconds, -t`: TTL in seconds for the ANT record (60-86400). Default: `60`
+
+Upload key (pays for the upload):
+
+- `--sig-type, -s`: Signer type for the upload key. Choices: `arweave`, `ethereum`, `polygon`, `kyve`, `solana`. Default: `arweave`
+- `--wallet, -w`: Path to the upload wallet file (JWK for Arweave, private key for Ethereum/Polygon/KYVE, `solana-keygen` `id.json` for Solana). Falls back to `DEPLOY_KEY`.
+- `--private-key, -k`: Upload private-key string (alternative to `--wallet`). JWK JSON for Arweave, hex for EVM chains, base58 secret key for Solana.
+
+ArNS authority key (controls the name, signs the update — always Solana):
+
+- `--arns-wallet`: Path to the Solana `solana-keygen` `id.json` wallet that controls the ArNS name. Falls back to `ARNS_KEY`.
+- `--arns-private-key`: Base58 Solana secret key for the ArNS authority (alternative to `--arns-wallet`). Falls back to `ARNS_KEY`.
+- `--on-demand`: Enable on-demand payment with specified token. Choices: `ario`, `base-eth`
+- `--max-token-amount`: Maximum token amount for on-demand payment (used with `--on-demand`)
+- `--no-dedupe`: Disable deduplication (do not cache or reuse previous uploads)
+- `--dedupe-cache-max-entries`: Maximum number of entries to keep in the dedupe cache (LRU). Default: `10000`
+- `--uploader`: Custom Turbo upload service base URL. See the **Bundler service** section.
+
+**`upload`** (explicit upload without ArNS): accepts `--deploy-folder`, `--deploy-file`, wallet/signer flags, `--uploader`, `--on-demand` / `--max-token-amount`, and dedupe flags only.
