@@ -5633,12 +5633,416 @@ npx tsx deploy.ts my-cool-app ./dist
   }
   />
 
+# Deploying with ARIO Deploy (/build/guides/hosting-decentralised-apps/deploying-with-ario-deploy)
+
+import {
+  Terminal,
+  Rocket,
+  Wallet,
+  Zap,
+  GitBranch,
+  BookOpen,
+} from 'lucide-react';
+
+[ARIO Deploy](https://github.com/ar-io/ar-io-deploy) is the recommended CLI tool for hosting decentralised applications on ar.io.
+
+It streamlines the entire deployment process by uploading your build folder to Arweave, creating Arweave manifests, and automatically updating your ArNS records in a single command.
+
+Built on the Turbo SDK, ario-deploy offers flexible payment options including pre-funded Turbo Credits or on-demand topups using ARIO or Base-ETH tokens. It works seamlessly with both Arweave and EVM wallets, making it easy to integrate permanent hosting into your existing development workflow.
+
+  Check out the [series introduction](/build/guides/hosting-decentralised-apps) to learn about permanent hosting and ArNS domains.
+
+## Prerequisites
+
+Before starting, ensure you have:
+
+- **Node.js 18+** - Download from [nodejs.org](https://nodejs.org/)
+- **Upload Wallet** - An Arweave JWK or EVM private key to pay for the upload
+- **Solana Wallet** - A base58 Solana secret key that controls your ArNS name (for ArNS record updates)
+- **ArNS Name** - Register one at [arns.ar.io](https://arns.ar.io)
+- **Command Line Familiarity** - Basic terminal/shell knowledge
+
+  ARIO Deploy uses two separate keys:
+  - **`DEPLOY_KEY`** — pays for the Arweave upload (Arweave, Ethereum, Polygon, KYVE, or Solana wallet)
+  - **`ARNS_KEY`** — a Solana key that controls the ArNS name and signs the record update
+
+  These can be different wallets. The upload key handles payment; the ArNS key handles name ownership. If you only need to upload without updating an ArNS record, you can use the `ario-deploy upload` command with just a `DEPLOY_KEY`.
+
+## Project Setup
+
+Let's create a new web application and configure it for deployment. ARIO Deploy works with any framework that generates a static build folder.
+
+        Initialize a new Next.js application:
+
+        ```bash title="Terminal"
+        npx create-next-app@latest my-permaweb-app
+        cd my-permaweb-app
+        ```
+
+        When prompted, select your preferences. For permanent hosting, **enable static export** by updating `next.config.js`:
+
+        ```javascript title="next.config.js"
+        /** @type {import('next').NextConfig} */
+        const nextConfig = {
+          output: 'export',
+          images: {
+            unoptimized: true,
+          },
+          trailingSlash: true,
+        }
+
+        module.exports = nextConfig
+        ```
+
+        - `output: 'export'` generates a static site in the `out` folder
+        - `images.unoptimized: true` prevents server-side image optimization
+        - `trailingSlash: true` ensures URLs work correctly on static hosting
+
+        Add ario-deploy as a development dependency:
+
+        ```bash title="Terminal"
+        npm install --save-dev @ar.io/deploy
+        ```
+
+        Update your `package.json` to include deployment commands:
+
+        ```json title="package.json"
+        {
+          "scripts": {
+            "dev": "next dev",
+            "build": "next build",
+            "deploy": "next build && ario-deploy deploy --arns-name your-arns-name --deploy-folder out"
+          }
+        }
+        ```
+
+        Replace `your-arns-name` with your actual ArNS domain name. Note the `--deploy-folder out` flag is required since Next.js exports to `./out` instead of the default `./dist`.
+
+        Initialize a new Vite application with React:
+
+        ```bash title="Terminal"
+        npm create vite@latest my-permaweb-app -- --template react
+        cd my-permaweb-app
+        npm install
+        ```
+
+        Update `vite.config.js` to use relative paths for Arweave:
+
+        ```javascript title="vite.config.js"
+                
+                  plugins: [react()],
+          base: './', // Use relative paths for Arweave
+        })
+        ```
+
+        The `base: './'` setting ensures all asset paths are relative, which is required for proper loading on Arweave gateways.
+
+        Add ario-deploy as a development dependency:
+
+        ```bash title="Terminal"
+        npm install --save-dev @ar.io/deploy
+        ```
+
+        Update your `package.json` to include deployment commands:
+
+        ```json title="package.json"
+        {
+          "scripts": {
+            "dev": "vite",
+            "build": "vite build",
+            "deploy": "vite build && ario-deploy deploy --arns-name your-arns-name"
+          }
+        }
+        ```
+
+        Replace `your-arns-name` with your actual ArNS domain name.
+
+## Deploying from the Command Line
+
+For this walkthrough, we'll deploy directly from the command line using inline credentials. For production apps, we recommend using GitHub Actions with secrets (covered later in this guide).
+
+  Always use a dedicated wallet for deployments to minimize security risks. Never commit wallet files or keys to version control.
+
+    ARIO Deploy uses [Turbo](https://console.ar.io) to upload files to Arweave. Before deploying, ensure your wallet has sufficient credits.
+
+    Visit the [Console app](https://console.ar.io/topup) and connect your deployment wallet to view your current balance.
+
+      A typical static site (5-10 MB) costs approximately 0.1-0.5 ARIO. Credits are applied instantly and remain in your wallet for future deployments.
+
+    The `npm run deploy` command we configured earlier will build your app and deploy it to Arweave. You need both the upload key (`DEPLOY_KEY`) and the ArNS authority key (`ARNS_KEY`):
+
+        For Arweave upload wallets, base64 encode your JWK file. The `ARNS_KEY` is always a base58 Solana secret key:
+
+        ```bash title="Terminal"
+        DEPLOY_KEY=$(base64 -i wallet.json) ARNS_KEY="your-base58-solana-key" npm run deploy
+        ```
+
+        - `DEPLOY_KEY` — your Arweave JWK wallet (base64-encoded), pays for the upload
+        - `ARNS_KEY` — your Solana secret key (base58), signs the ArNS record update
+
+        For EVM wallets (Ethereum, Polygon, Base, KYVE), use your raw private key for the upload. The `ARNS_KEY` is always a base58 Solana secret key:
+
+        ```bash title="Terminal"
+        DEPLOY_KEY="0x1234567890abcdef..." ARNS_KEY="your-base58-solana-key" npm run deploy
+        ```
+
+        - `DEPLOY_KEY` — your EVM private key, pays for the upload
+        - `ARNS_KEY` — your Solana secret key (base58), signs the ArNS record update
+
+          For EVM wallets, ensure your deploy script in `package.json` includes the `--sig-type` flag (e.g., `--sig-type ethereum`).
+
+      When running from a terminal, ario-deploy will interactively prompt for any missing keys or configuration. You can omit `ARNS_KEY` from the command and the CLI will prompt you for it.
+
+    ARIO Deploy will:
+
+    1. **Upload files** to Arweave via Turbo
+    2. **Create a manifest** with SPA fallback detection
+    3. **Update ArNS records** to point to the new transaction
+
+    Expected output:
+
+    ```
+    Starting deployment...
+
+    ✔ ARIO initialized
+    ✔ ArNS record fetched for your-arns-name
+    ✔ Signer created (arweave)
+    ✔ Turbo initialized
+    ✔ Turbo credits check passed
+    ✔ Folder uploaded: abc123def456ghi789jkl012mno345pqr678stu901v
+    ✔ ANT record updated
+
+    Deployment Successful!
+    ┌─────────────┬───────────────────────────────────────────────┐
+    │ Tx ID       │ abc123def456ghi789jkl012mno345pqr678stu901v  │
+    │ ArNS Name   │ your-arns-name                               │
+    │ Undername   │ @                                             │
+    │ ArNS URL    │ https://your-arns-name.ar.io                  │
+    └─────────────┴───────────────────────────────────────────────┘
+    ```
+
+  ArNS updates typically propagate across the gateway network within 60 seconds (the default TTL). You may need to hard refresh your browser to see changes immediately.
+
+## On-Demand Payment
+
+Instead of pre-funding Turbo Credits, you can pay for deployments on-demand. ARIO Deploy will automatically convert tokens to credits as needed.
+
+    Update your `package.json` to include an on-demand deployment script:
+
+            For Arweave wallets using ARIO tokens:
+
+            ```json title="package.json"
+            {
+              "scripts": {
+                "dev": "next dev",
+                "build": "next build",
+                "deploy": "next build && ario-deploy deploy --arns-name your-arns-name --deploy-folder out",
+                "deploy:on-demand": "next build && ario-deploy deploy --arns-name your-arns-name --deploy-folder out --on-demand ario --max-token-amount 2.0"
+              }
+            }
+            ```
+
+            - `--on-demand ario` enables ARIO payment mode
+            - `--max-token-amount 2.0` sets maximum ARIO to spend (prevents unexpected costs)
+
+            For EVM wallets using Base-ETH:
+
+            ```json title="package.json"
+            {
+              "scripts": {
+                "dev": "next dev",
+                "build": "next build",
+                "deploy": "next build && ario-deploy deploy --arns-name your-arns-name --deploy-folder out --sig-type ethereum",
+                "deploy:on-demand": "next build && ario-deploy deploy --arns-name your-arns-name --deploy-folder out --sig-type ethereum --on-demand base-eth --max-token-amount 0.01"
+              }
+            }
+            ```
+
+            - `--sig-type ethereum` required for EVM wallets
+            - `--on-demand base-eth` enables Base Network payment
+            - Wallet must be funded with ETH on Base Network
+
+              Base-ETH on-demand payment only works with Ethereum signer types. Your wallet must have ETH on the Base Network, not Ethereum mainnet.
+
+            For Arweave wallets using ARIO tokens:
+
+            ```json title="package.json"
+            {
+              "scripts": {
+                "dev": "vite",
+                "build": "vite build",
+                "deploy": "vite build && ario-deploy deploy --arns-name your-arns-name",
+                "deploy:on-demand": "vite build && ario-deploy deploy --arns-name your-arns-name --on-demand ario --max-token-amount 2.0"
+              }
+            }
+            ```
+
+            - `--on-demand ario` enables ARIO payment mode
+            - `--max-token-amount 2.0` sets maximum ARIO to spend (prevents unexpected costs)
+
+            For EVM wallets using Base-ETH:
+
+            ```json title="package.json"
+            {
+              "scripts": {
+                "dev": "vite",
+                "build": "vite build",
+                "deploy": "vite build && ario-deploy deploy --arns-name your-arns-name --sig-type ethereum",
+                "deploy:on-demand": "vite build && ario-deploy deploy --arns-name your-arns-name --sig-type ethereum --on-demand base-eth --max-token-amount 0.01"
+              }
+            }
+            ```
+
+            - `--sig-type ethereum` required for EVM wallets
+            - `--on-demand base-eth` enables Base Network payment
+            - Wallet must be funded with ETH on Base Network
+
+              Base-ETH on-demand payment only works with Ethereum signer types. Your wallet must have ETH on the Base Network, not Ethereum mainnet. See [Base documentation](https://docs.base.org/) for getting testnet or mainnet ETH.
+
+    Run the on-demand deployment command with both keys:
+
+        ```bash title="Terminal"
+        DEPLOY_KEY=$(base64 -i wallet.json) ARNS_KEY="your-base58-solana-key" npm run deploy:on-demand
+        ```
+
+        The tool will automatically convert ARIO to Turbo Credits as needed for the deployment.
+
+        ```bash title="Terminal"
+        DEPLOY_KEY="0x1234567890abcdef..." ARNS_KEY="your-base58-solana-key" npm run deploy:on-demand
+        ```
+
+        The tool will automatically convert Base-ETH to Turbo Credits as needed for the deployment.
+
+The on-demand approach is ideal for:
+- **Frequent deployments** where pre-funding isn't convenient
+- **CI/CD pipelines** that need reliable automated deployments
+- **Multi-team projects** where different wallets handle different apps
+
+## Automating with GitHub Actions
+
+The simplest way to automate deployments is with the official [`ar-io/ar-io-deploy`](https://github.com/ar-io/ar-io-deploy) GitHub Action. It handles node setup, dedup caching, and PR preview comments automatically.
+
+    In your GitHub repository, navigate to **Settings** → **Secrets and variables** → **Actions** and add:
+
+    | Secret | Description |
+    |--------|-------------|
+    | `DEPLOY_KEY` | Upload wallet key. For Arweave: base64-encoded JWK. For EVM: raw private key with `0x` prefix. |
+    | `ARNS_KEY` | Base58-encoded Solana secret key that controls the ArNS name. |
+    | `ARNS_NAME` | Your ArNS domain name (e.g., `myapp`). |
+
+    Create `.github/workflows/deploy.yml`:
+
+    ```yaml title=".github/workflows/deploy.yml"
+    name: Deploy to Arweave
+
+    on:
+      push:
+        branches: [main]
+
+    jobs:
+      build:
+        runs-on: ubuntu-latest
+
+        steps:
+          - uses: actions/checkout@v4
+
+          - name: Setup Node.js
+            uses: actions/setup-node@v4
+            with:
+              node-version: '20'
+              cache: 'npm'
+
+          - name: Install and build
+            run: |
+              npm ci
+              npm run build
+
+          - name: Deploy to Arweave
+            uses: ar-io/ar-io-deploy@v1
+            with:
+              deploy-key: ${{ secrets.DEPLOY_KEY }}
+              arns-key: ${{ secrets.ARNS_KEY }}
+              arns-name: ${{ secrets.ARNS_NAME }}
+    ```
+
+    The action automatically detects and uploads the `./dist` folder. For Next.js projects, add `deploy-folder: ./out`.
+
+    Create a separate workflow for PR preview deployments at `.github/workflows/pr-preview.yml`:
+
+    ```yaml title=".github/workflows/pr-preview.yml"
+    name: PR Preview
+
+    on:
+      pull_request:
+        types: [opened, synchronize, reopened, closed]
+
+    jobs:
+      preview:
+        runs-on: ubuntu-latest
+        if: github.event.pull_request.head.repo.full_name == github.repository
+
+        steps:
+          - uses: actions/checkout@v4
+
+          - name: Setup Node.js
+            uses: actions/setup-node@v4
+            with:
+              node-version: '20'
+              cache: 'npm'
+
+          - name: Install and build
+            run: |
+              npm ci
+              npm run build
+
+          - name: Deploy preview
+            uses: ar-io/ar-io-deploy@v1
+            with:
+              deploy-key: ${{ secrets.DEPLOY_KEY }}
+              arns-key: ${{ secrets.ARNS_KEY }}
+              arns-name: ${{ secrets.ARNS_NAME }}
+              preview: 'true'
+              github-token: ${{ secrets.GITHUB_TOKEN }}
+    ```
+
+    When `preview` is enabled, the action:
+    - Auto-generates an undername from the PR number (e.g., `myrepo-pr-42`)
+    - Posts a comment on the PR with the preview URL
+    - Cleans up the undername when the PR is closed
+
+    Make a commit and push to your main branch:
+
+    ```bash title="Terminal"
+    git add .
+    git commit -m "Set up automated deployments"
+    git push origin main
+    ```
+
+    Check the **Actions** tab in your GitHub repository to monitor the deployment progress.
+
+  Each push triggers a new deployment. For high-traffic repositories, consider adding `paths` filters to deploy only when specific files change, or use manual workflow triggers.
+
+## Summary
+
+You now know how to deploy permanent web applications using ario-deploy:
+
+- **Static site setup** for Next.js and React + Vite with proper configuration
+- **Two-key model** with separate upload (`DEPLOY_KEY`) and ArNS authority (`ARNS_KEY`) keys
+- **Flexible wallet options** supporting Arweave, EVM, and Solana wallets
+- **Payment methods** including pre-funded Turbo Credits and on-demand topups with ARIO or Base-ETH
+- **Command-line deployment** with inline wallet credentials for quick deployments
+- **GitHub Actions automation** with the official `ar-io/ar-io-deploy` action for production deploys and PR previews
+
+For more details, see the [ARIO Deploy GitHub repository](https://github.com/ar-io/ar-io-deploy).
+
+In the next guide, you'll learn how to use undernames to manage multiple environments and versions of your application.
+
 # One Click Deployments with Arlink (/build/guides/hosting-decentralised-apps/deploying-with-arlink)
 
 ![Arlink login page showing GitHub, Wander, and MetaMask authentication options](/content/arlink-homepage.png)
 ## Introduction
 
-In the previous guides in this series, we've used a CLI tool called `permaweb-deploy` to configure and host decentralised apps on ar.io.
+In the previous guides in this series, we've used a CLI tool called `ario-deploy` to configure and host decentralised apps on ar.io.
 
 In this guide we'll be using [Arlink](https://arlink.ar.io), a visual, web-based platform for hosting decentralised apps on ar.io without needing command-line tools. 
 
@@ -5666,9 +6070,9 @@ Arlink is a web-based deployment platform that simplifies hosting applications o
 - **Real-Time Monitoring** - Live build logs and progress tracking
 - **ArNS Management** - Connect existing ArNS names or use free Arlink undernames
 
-All applications that can be deployed with `permaweb-deploy` CLI can also be deployed with Arlink. Choose the tool that fits your workflow:
+All applications that can be deployed with `ario-deploy` CLI can also be deployed with Arlink. Choose the tool that fits your workflow:
 - **Arlink**: Visual workflows, quick deployments, smaller projects (under 10MB)
-- **permaweb-deploy**: CI/CD pipelines, large applications, custom automation
+- **ario-deploy**: CI/CD pipelines, large applications, custom automation
 
 See [Limitations & Considerations](#limitations--considerations) below to help decide.
 
@@ -5753,7 +6157,7 @@ Click **Deploy** to start the build process. Arlink will clone your repository, 
 - Medium apps (1-5MB): 3-5 minutes
 - Large apps (5-10MB): 5-10 minutes
 
-Arlink enforces a **10MB max build output** and **10-minute build timeout**. For larger applications, use `permaweb-deploy` CLI instead.
+Arlink enforces a **10MB max build output** and **10-minute build timeout**. For larger applications, use `ario-deploy` CLI instead.
 
 Once complete, your application is permanently deployed and accessible via:
 - Your chosen domain (e.g., `myapp_arlink.ar.io`)
@@ -5812,9 +6216,9 @@ npm run build
 du -sh dist/  # or build/, out/, etc.
 ```
 
-If your build exceeds 10MB, use `permaweb-deploy` CLI instead.
+If your build exceeds 10MB, use `ario-deploy` CLI instead.
 
-### Comparison: Arlink vs permaweb-deploy CLI
+### Comparison: Arlink vs ario-deploy CLI
 
 Choose the right tool for your use case:
 
@@ -5846,7 +6250,7 @@ Choose the right tool for your use case:
 - Must purchase ArNS names separately at [arns.ar.io](https://arns.ar.io)
 - Limited undername configuration options
 
-If you outgrow Arlink's capabilities, all your existing deployments can be managed with `permaweb-deploy` CLI. See the [other guides in this series](/build/guides/hosting-decentralised-apps) for CLI deployment instructions.
+If you outgrow Arlink's capabilities, all your existing deployments can be managed with `ario-deploy` CLI. See the [other guides in this series](/build/guides/hosting-decentralised-apps) for CLI deployment instructions.
 
 ## Continuous Deployment
 
@@ -5888,396 +6292,9 @@ You now know how to deploy applications using Arlink's visual interface:
 - **Build monitoring** with real-time logs and progress tracking
 - **Understanding limitations** to choose between Arlink and CLI tools for your project needs
 
-Arlink provides a quick and accessible way to deploy smaller applications. For larger builds, advanced CI/CD, or custom deployments, consider using the `permaweb-deploy` CLI covered in earlier guides.
+Arlink provides a quick and accessible way to deploy smaller applications. For larger builds, advanced CI/CD, or custom deployments, consider using the `ario-deploy` CLI covered in earlier guides.
 
 In our final guide we'll explore deploying using the ArDrive web UI.
-
-# Deploying with Permaweb-Deploy (/build/guides/hosting-decentralised-apps/deploying-with-permaweb-deploy)
-
-import {
-  Terminal,
-  Rocket,
-  Wallet,
-  Zap,
-  GitBranch,
-  BookOpen,
-} from 'lucide-react';
-
-Permaweb-deploy is the recommended CLI tool for hosting decentralised applications on ar.io.
-
-It streamlines the entire deployment process by uploading your build folder to Arweave, creating Arweave manifests, and automatically updating your ArNS records in a single command.
-
-Built on the Turbo SDK, permaweb-deploy offers flexible payment options including pre-funded Turbo Credits or on-demand topups using ARIO or Base-ETH tokens. It works seamlessly with both Arweave and EVM wallets, making it easy to integrate permanent hosting into your existing development workflow.
-
-  Check out the [series introduction](/build/guides/hosting-decentralised-apps) to learn about permanent hosting and ArNS domains.
-
-## Prerequisites
-
-Before starting, ensure you have:
-
-- **Node.js 18+** - Download from [nodejs.org](https://nodejs.org/)
-- **Arweave or EVM Wallet** - You'll need the private key or JWK file
-- **ArNS Name** - Register one at [arns.ar.io](https://arns.ar.io)
-- **Command Line Familiarity** - Basic terminal/shell knowledge
-
-  Always use a dedicated wallet for deployments to minimize security risks. Never commit your private keys to version control.
-
-## Project Setup
-
-Let's create a new web application and configure it for deployment. Permaweb-deploy works with any framework that generates a static build folder.
-
-        Initialize a new Next.js application:
-
-        ```bash title="Terminal"
-        npx create-next-app@latest my-permaweb-app
-        cd my-permaweb-app
-        ```
-
-        When prompted, select your preferences. For permanent hosting, **enable static export** by updating `next.config.js`:
-
-        ```javascript title="next.config.js"
-        /** @type {import('next').NextConfig} */
-        const nextConfig = {
-          output: 'export',
-          images: {
-            unoptimized: true,
-          },
-          trailingSlash: true,
-        }
-
-        module.exports = nextConfig
-        ```
-
-        - `output: 'export'` generates a static site in the `out` folder
-        - `images.unoptimized: true` prevents server-side image optimization
-        - `trailingSlash: true` ensures URLs work correctly on static hosting
-
-        Add permaweb-deploy as a development dependency:
-
-        ```bash title="Terminal"
-        npm install --save-dev permaweb-deploy
-        ```
-
-        Update your `package.json` to include deployment commands:
-
-        ```json title="package.json"
-        {
-          "scripts": {
-            "dev": "next dev",
-            "build": "next build",
-            "deploy": "next build && permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out"
-          }
-        }
-        ```
-
-        Replace `your-arns-name` with your actual ArNS domain name. Note the `--deploy-folder out` flag is required since Next.js exports to `./out` instead of the default `./dist`.
-
-        Initialize a new Vite application with React:
-
-        ```bash title="Terminal"
-        npm create vite@latest my-permaweb-app -- --template react
-        cd my-permaweb-app
-        npm install
-        ```
-
-        Update `vite.config.js` to use relative paths for Arweave:
-
-        ```javascript title="vite.config.js"
-                
-                  plugins: [react()],
-          base: './', // Use relative paths for Arweave
-        })
-        ```
-
-        The `base: './'` setting ensures all asset paths are relative, which is required for proper loading on Arweave gateways.
-
-        Add permaweb-deploy as a development dependency:
-
-        ```bash title="Terminal"
-        npm install --save-dev permaweb-deploy
-        ```
-
-        Update your `package.json` to include deployment commands:
-
-        ```json title="package.json"
-        {
-          "scripts": {
-            "dev": "vite",
-            "build": "vite build",
-            "deploy": "vite build && permaweb-deploy deploy --arns-name your-arns-name"
-          }
-        }
-        ```
-
-        Replace `your-arns-name` with your actual ArNS domain name.
-
-## Deploying from the Command Line
-
-For this walkthrough, we'll deploy directly from the command line using inline credentials. For production apps, we recommend using GitHub Actions with secrets (covered later in this guide).
-
-  Always use a dedicated wallet for deployments to minimize security risks. Never commit wallet files or keys to version control.
-
-    Permaweb-deploy uses [Turbo](https://console.ar.io) to upload files to Arweave. Before deploying, ensure your wallet has sufficient credits.
-
-    Visit the [Console app](https://console.ar.io/topup) and connect your deployment wallet to view your current balance.
-
-      A typical static site (5-10 MB) costs approximately 0.1-0.5 ARIO. Credits are applied instantly and remain in your wallet for future deployments.
-
-    The `npm run deploy` command we configured earlier will build your app and deploy it to Arweave. Use the `DEPLOY_KEY` environment variable to pass your wallet credentials inline:
-
-        For Arweave wallets, base64 encode your JWK file and pass it inline:
-
-        ```bash title="Terminal"
-        DEPLOY_KEY=$(base64 -i wallet.json) npm run deploy
-        ```
-
-        This command will:
-        1. Build your application (`next build` or `vite build`)
-        2. Deploy to Arweave using your base64-encoded wallet
-
-        The `$(base64 -i wallet.json)` command encodes your wallet on-the-fly without saving it to disk.
-
-        For EVM wallets (Ethereum, Polygon, Base, KYVE), use your raw private key:
-
-        ```bash title="Terminal"
-        DEPLOY_KEY="0x1234567890abcdef..." npm run deploy
-        ```
-
-        This command will:
-        1. Build your application (`next build` or `vite build`)
-        2. Deploy to Arweave using your EVM wallet
-
-        Replace `0x1234...` with your actual private key from MetaMask or your wallet provider.
-
-          For EVM wallets, ensure your deploy script in `package.json` includes the `--sig-type` flag (e.g., `--sig-type ethereum`).
-
-    Permaweb-deploy will:
-
-    1. **Upload files** to Arweave via Turbo
-    2. **Create a manifest** with SPA fallback detection
-    3. **Update ArNS records** to point to the new transaction
-    4. **Tag the deployment** with your current git commit hash
-
-    Expected output:
-
-    ```
-    -------------------- DEPLOY DETAILS --------------------
-Tx ID: abc123def456ghi789jkl012mno345pqr678stu901v
-ArNS Name: your-arns-name
-Undername: @
-ANT: xyz789abc012def345ghi678jkl901mno234pqr567s
-AR IO Process: bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM
-TTL Seconds: 60
---------------------------------------------------------
-Deployed TxId [abc123def456ghi789jkl012mno345pqr678stu901v] to name [your-arns-name] for ANT [xyz789abc012def345ghi678jkl901mno234pqr567s] using undername [@]
-
-    ```
-
-  ArNS updates typically propagate across the gateway network within 60 seconds (the default TTL). You may need to hard refresh your browser to see changes immediately.
-
-## On-Demand Payment
-
-Instead of pre-funding Turbo Credits, you can pay for deployments on-demand. Permaweb-deploy will automatically convert tokens to credits as needed.
-
-    Update your `package.json` to include an on-demand deployment script:
-
-            For Arweave wallets using ARIO tokens:
-
-            ```json title="package.json"
-            {
-              "scripts": {
-                "dev": "next dev",
-                "build": "next build",
-                "deploy": "next build && permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out",
-                "deploy:on-demand": "next build && permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out --on-demand ario --max-token-amount 2.0"
-              }
-            }
-            ```
-
-            - `--on-demand ario` enables ARIO payment mode
-            - `--max-token-amount 2.0` sets maximum ARIO to spend (prevents unexpected costs)
-
-            For EVM wallets using Base-ETH:
-
-            ```json title="package.json"
-            {
-              "scripts": {
-                "dev": "next dev",
-                "build": "next build",
-                "deploy": "next build && permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out --sig-type ethereum",
-                "deploy:on-demand": "next build && permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out --sig-type ethereum --on-demand base-eth --max-token-amount 0.01"
-              }
-            }
-            ```
-
-            - `--sig-type ethereum` required for EVM wallets
-            - `--on-demand base-eth` enables Base Network payment
-            - Wallet must be funded with ETH on Base Network
-
-              Base-ETH on-demand payment only works with Ethereum signer types. Your wallet must have ETH on the Base Network, not Ethereum mainnet.
-
-            For Arweave wallets using ARIO tokens:
-
-            ```json title="package.json"
-            {
-              "scripts": {
-                "dev": "vite",
-                "build": "vite build",
-                "deploy": "vite build && permaweb-deploy deploy --arns-name your-arns-name",
-                "deploy:on-demand": "vite build && permaweb-deploy deploy --arns-name your-arns-name --on-demand ario --max-token-amount 2.0"
-              }
-            }
-            ```
-
-            - `--on-demand ario` enables ARIO payment mode
-            - `--max-token-amount 2.0` sets maximum ARIO to spend (prevents unexpected costs)
-
-            For EVM wallets using Base-ETH:
-
-            ```json title="package.json"
-            {
-              "scripts": {
-                "dev": "vite",
-                "build": "vite build",
-                "deploy": "vite build && permaweb-deploy deploy --arns-name your-arns-name --sig-type ethereum",
-                "deploy:on-demand": "vite build && permaweb-deploy deploy --arns-name your-arns-name --sig-type ethereum --on-demand base-eth --max-token-amount 0.01"
-              }
-            }
-            ```
-
-            - `--sig-type ethereum` required for EVM wallets
-            - `--on-demand base-eth` enables Base Network payment
-            - Wallet must be funded with ETH on Base Network
-
-              Base-ETH on-demand payment only works with Ethereum signer types. Your wallet must have ETH on the Base Network, not Ethereum mainnet. See [Base documentation](https://docs.base.org/) for getting testnet or mainnet ETH.
-
-    Run the on-demand deployment command with your wallet credentials:
-
-        ```bash title="Terminal"
-        DEPLOY_KEY=$(base64 -i wallet.json) npm run deploy:on-demand
-        ```
-
-        The tool will automatically convert ARIO to Turbo Credits as needed for the deployment.
-
-        ```bash title="Terminal"
-        DEPLOY_KEY="0x1234567890abcdef..." npm run deploy:on-demand
-        ```
-
-        The tool will automatically convert Base-ETH to Turbo Credits as needed for the deployment.
-
-The on-demand approach is ideal for:
-- **Frequent deployments** where pre-funding isn't convenient
-- **CI/CD pipelines** that need reliable automated deployments
-- **Multi-team projects** where different wallets handle different apps
-
-## Automating with GitHub Actions
-
-Automate deployments on every push to your main branch using GitHub Actions.
-
-    In your GitHub repository:
-
-    1. Navigate to **Settings** → **Secrets and variables** → **Actions**
-    2. Click **New repository secret**
-    3. Name: `DEPLOY_KEY`
-    4. Value: Paste in your wallet key
-    5. Click **Add secret**
-
-      For Arweave wallets, encode the entire JWK file to base64 before adding it as a secret. For EVM wallets, use the raw private key with the `0x` prefix.
-
-    Create `.github/workflows/deploy.yml`:
-
-    ```yaml title=".github/workflows/deploy.yml"
-    name: Deploy to Arweave
-
-    on:
-      push:
-        branches: [main]
-
-    jobs:
-      deploy:
-        runs-on: ubuntu-latest
-
-        steps:
-          - uses: actions/checkout@v4
-
-          - name: Setup Node.js
-            uses: actions/setup-node@v4
-            with:
-              node-version: '18'
-              cache: 'npm'
-
-          - name: Install dependencies
-            run: npm ci
-
-          - name: Deploy to Arweave
-            run: npm run deploy
-            env:
-              DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
-    ```
-
-    This workflow:
-    - Triggers on pushes to the `main` branch
-    - Checks out your code
-    - Installs dependencies
-    - Runs your `deploy` script with the secret `DEPLOY_KEY`
-
-    Adjust the workflow based on your needs:
-
-        For Next.js, ensure your deploy script includes `--deploy-folder out`:
-
-        ```json title="package.json"
-        {
-          "scripts": {
-            "deploy": "next build && permaweb-deploy deploy --arns-name myapp --deploy-folder out"
-          }
-        }
-        ```
-
-        For Vite, the default `./dist` folder works automatically:
-
-        ```json title="package.json"
-        {
-          "scripts": {
-            "deploy": "vite build && permaweb-deploy deploy --arns-name myapp"
-          }
-        }
-        ```
-
-        For on-demand deployments, add the appropriate flags:
-
-        ```json title="package.json"
-        {
-          "scripts": {
-            "deploy": "vite build && permaweb-deploy deploy --arns-name myapp --on-demand ario --max-token-amount 2.0"
-          }
-        }
-        ```
-
-        The workflow will automatically convert tokens as needed during CI runs.
-
-    Make a commit and push to your main branch:
-
-    ```bash title="Terminal"
-    git add .
-    git commit -m "Set up automated deployments"
-    git push origin main
-    ```
-
-    Check the **Actions** tab in your GitHub repository to monitor the deployment progress.
-
-  Each push triggers a new deployment. For high-traffic repositories, consider adding conditions to deploy only when specific files change, or use manual workflow triggers.
-
-## Summary
-
-You now know how to deploy permanent web applications using permaweb-deploy:
-
-- **Static site setup** for Next.js and React + Vite with proper configuration
-- **Flexible wallet options** supporting both Arweave (JWK) and EVM wallets
-- **Payment methods** including pre-funded Turbo Credits and on-demand topups with ARIO or Base-ETH
-- **Command-line deployment** with inline wallet credentials for quick deployments
-- **GitHub Actions automation** for continuous deployment on every push
-
-In the next guide, you'll learn how to use undernames to manage multiple environments and versions of your application.
 
 # Deploying with ArDrive (/build/guides/hosting-decentralised-apps/hosting-with-ardrive)
 
@@ -6481,7 +6498,7 @@ This page needs technical review before launch. Final content should be checked 
 
 # Undernames for Environments and Versioning (/build/guides/hosting-decentralised-apps/using-undernames-for-versioning)
 
-In the [previous guide](/build/guides/hosting-decentralised-apps/deploying-with-permaweb-deploy), you deployed your application to your base ArNS name. Now you'll learn how to manage multiple versions and environments using **undernames** - subdomains under your ArNS name.
+In the [previous guide](/build/guides/hosting-decentralised-apps/deploying-with-ario-deploy), you deployed your application to your base ArNS name. Now you'll learn how to manage multiple versions and environments using **undernames** - subdomains under your ArNS name.
 
 ## What You'll Learn
 
@@ -6537,10 +6554,10 @@ In your `my-permaweb-app` project from the previous guide, update `package.json`
       "scripts": {
         "dev": "next dev",
         "build": "next build",
-        "deploy": "next build && permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out",
-        "deploy:dev": "next build && permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out --undername dev --ttl-seconds 60",
-        "deploy:staging": "next build && permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out --undername staging --ttl-seconds 60",
-        "deploy:prod": "next build && permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out --ttl-seconds 3600"
+        "deploy": "next build && ario-deploy deploy --arns-name your-arns-name --deploy-folder out",
+        "deploy:dev": "next build && ario-deploy deploy --arns-name your-arns-name --deploy-folder out --undername dev --ttl-seconds 60",
+        "deploy:staging": "next build && ario-deploy deploy --arns-name your-arns-name --deploy-folder out --undername staging --ttl-seconds 60",
+        "deploy:prod": "next build && ario-deploy deploy --arns-name your-arns-name --deploy-folder out --ttl-seconds 3600"
       }
     }
     ```
@@ -6552,10 +6569,10 @@ In your `my-permaweb-app` project from the previous guide, update `package.json`
       "scripts": {
         "dev": "vite",
         "build": "vite build",
-        "deploy": "vite build && permaweb-deploy deploy --arns-name your-arns-name",
-        "deploy:dev": "vite build && permaweb-deploy deploy --arns-name your-arns-name --undername dev --ttl-seconds 60",
-        "deploy:staging": "vite build && permaweb-deploy deploy --arns-name your-arns-name --undername staging --ttl-seconds 60",
-        "deploy:prod": "vite build && permaweb-deploy deploy --arns-name your-arns-name --ttl-seconds 60"
+        "deploy": "vite build && ario-deploy deploy --arns-name your-arns-name",
+        "deploy:dev": "vite build && ario-deploy deploy --arns-name your-arns-name --undername dev --ttl-seconds 60",
+        "deploy:staging": "vite build && ario-deploy deploy --arns-name your-arns-name --undername staging --ttl-seconds 60",
+        "deploy:prod": "vite build && ario-deploy deploy --arns-name your-arns-name --ttl-seconds 60"
       }
     }
     ```
@@ -6593,7 +6610,7 @@ Create a script that automatically archives based on your `package.json` version
 
     // Deploy to version-specific undername (build already done by npm script)
     execSync(
-      `permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out --undername v${version} --ttl-seconds 3600`,
+      `ario-deploy deploy --arns-name your-arns-name --deploy-folder out --undername v${version} --ttl-seconds 3600`,
       { stdio: 'inherit' }
     );
 
@@ -6605,9 +6622,9 @@ Create a script that automatically archives based on your `package.json` version
     ```json title="package.json"
     {
       "scripts": {
-        "deploy:dev": "next build && permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out --undername dev --ttl-seconds 60",
-        "deploy:staging": "next build && permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out --undername staging --ttl-seconds 60",
-        "deploy:prod": "next build && permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out --ttl-seconds 3600",
+        "deploy:dev": "next build && ario-deploy deploy --arns-name your-arns-name --deploy-folder out --undername dev --ttl-seconds 60",
+        "deploy:staging": "next build && ario-deploy deploy --arns-name your-arns-name --deploy-folder out --undername staging --ttl-seconds 60",
+        "deploy:prod": "next build && ario-deploy deploy --arns-name your-arns-name --deploy-folder out --ttl-seconds 3600",
         "deploy:archive": "next build && node scripts/deploy-archive.js"
       }
     }
@@ -6624,7 +6641,7 @@ Create a script that automatically archives based on your `package.json` version
 
     // Deploy to version-specific undername (build already done by npm script)
     execSync(
-      `permaweb-deploy deploy --arns-name your-arns-name --undername v${version} --ttl-seconds 3600`,
+      `ario-deploy deploy --arns-name your-arns-name --undername v${version} --ttl-seconds 3600`,
       { stdio: 'inherit' }
     );
 
@@ -6636,9 +6653,9 @@ Create a script that automatically archives based on your `package.json` version
     ```json title="package.json"
     {
       "scripts": {
-        "deploy:dev": "vite build && permaweb-deploy deploy --arns-name your-arns-name --undername dev --ttl-seconds 60",
-        "deploy:staging": "vite build && permaweb-deploy deploy --arns-name your-arns-name --undername staging --ttl-seconds 60",
-        "deploy:prod": "vite build && permaweb-deploy deploy --arns-name your-arns-name --ttl-seconds 3600",
+        "deploy:dev": "vite build && ario-deploy deploy --arns-name your-arns-name --undername dev --ttl-seconds 60",
+        "deploy:staging": "vite build && ario-deploy deploy --arns-name your-arns-name --undername staging --ttl-seconds 60",
+        "deploy:prod": "vite build && ario-deploy deploy --arns-name your-arns-name --ttl-seconds 3600",
         "deploy:archive": "vite build && node scripts/deploy-archive.js"
       }
     }
@@ -6668,9 +6685,9 @@ admin            → Admin panel
 ```json title="package.json"
 {
   "scripts": {
-    "deploy:marketing": "permaweb-deploy deploy --arns-name your-arns-name --deploy-folder ./marketing/dist --ttl-seconds 3600",
-    "deploy:app": "permaweb-deploy deploy --arns-name your-arns-name --undername app --deploy-folder ./app/dist --ttl-seconds 60",
-    "deploy:docs": "permaweb-deploy deploy --arns-name your-arns-name --undername docs --deploy-folder ./docs/dist --ttl-seconds 1800",
+    "deploy:marketing": "ario-deploy deploy --arns-name your-arns-name --deploy-folder ./marketing/dist --ttl-seconds 3600",
+    "deploy:app": "ario-deploy deploy --arns-name your-arns-name --undername app --deploy-folder ./app/dist --ttl-seconds 60",
+    "deploy:docs": "ario-deploy deploy --arns-name your-arns-name --undername docs --deploy-folder ./docs/dist --ttl-seconds 1800",
     "deploy:all": "npm run deploy:marketing && npm run deploy:app && npm run deploy:docs"
   }
 }
@@ -6682,7 +6699,7 @@ Each component can be deployed independently or all at once with `npm run deploy
 
 ## Automating Environment Deployments
 
-Building on the [GitHub Actions workflow](/build/guides/hosting-decentralised-apps/deploying-with-permaweb-deploy#automating-with-github-actions) from the previous guide, let's create environment-specific workflows that deploy based on branch activity.
+Building on the [GitHub Actions workflow](/build/guides/hosting-decentralised-apps/deploying-with-ario-deploy#automating-with-github-actions) from the previous guide, let's create environment-specific workflows that deploy based on branch activity.
 
     Deploy automatically when pushing to the `develop` branch:
 
@@ -6840,7 +6857,7 @@ You now know how to manage multiple environments using ArNS undernames:
 - **GitHub Actions automation** for branch-based deployments
 - **Instant rollbacks** through the ArNS app interface
 
-In our next guides we're explore other tools you can use to host websites on ar.io without needing to configure `permaweb-deploy`.
+In our next guides we'll explore other tools you can use to host websites on ar.io without needing to configure `ario-deploy`.
 
 # Guides (/build/guides)
 
@@ -11227,6 +11244,11 @@ Choose your preferred method to register your gateway:
           --wallet-file ./path/to/solana-keypair.json \
           -t solana \
           --mainnet \
+          --rpc-url https://api.mainnet-beta.solana.com \
+          --core-program-id 73YoECm6NKXpVRoe5f1Q9BcP5DJGPFUjnFy6AxBE5Nvh \
+          --gar-program-id 89fNiiwgpFSPHKuqfNUkgYTYjtAJAhyqHjXmgXeppGpf \
+          --arns-program-id 2yCUx5edFvUrkibYaUa2ZXWyx9kuJkS8CwyzsgHPWdZZ \
+          --ant-program-id 2MWexMHfMhGJwMHv9Qm9YAVCqjUFUJwDJAysW4oCUGk5 \
           --operator-stake 20000 \
           --auto-stake \
           --allow-delegated-staking \
@@ -11253,14 +11275,22 @@ Choose your preferred method to register your gateway:
         - `--observer-address` — Solana address of the observer key (often the same as the operator address).
         - `--fqdn` — your gateway's public domain name.
         - `-t solana` — required to switch the CLI into Solana mode (default is Arweave).
-        - `--mainnet` — reserved for future use as a shorthand for the canonical mainnet program IDs. **In `@ar.io/sdk@^4.0.0-solana.22` (current) the bundled mainnet constants are still placeholders, so `--mainnet` alone resolves to non-existent addresses.** Until canonical mainnet IDs ship in the SDK, pass explicit `--core-program-id` / `--gar-program-id` / `--arns-program-id` / `--ant-program-id` + `--rpc-url` for whichever environment you're joining (mainnet, staging-devnet, or local devnet).
+        - `--mainnet` — selects Solana mainnet behavior. The explicit `--core-program-id`, `--gar-program-id`, `--arns-program-id`, `--ant-program-id`, and `--rpc-url` flags pin the command to the canonical mainnet deployment.
 
         ### Verify Registration
 
         Verify the on-chain registration via the CLI:
 
         ```bash
-        ar.io get-gateway --mainnet -t solana --address 
+        ar.io get-gateway \
+          --mainnet \
+          -t solana \
+          --rpc-url https://api.mainnet-beta.solana.com \
+          --core-program-id 73YoECm6NKXpVRoe5f1Q9BcP5DJGPFUjnFy6AxBE5Nvh \
+          --gar-program-id 89fNiiwgpFSPHKuqfNUkgYTYjtAJAhyqHjXmgXeppGpf \
+          --arns-program-id 2yCUx5edFvUrkibYaUa2ZXWyx9kuJkS8CwyzsgHPWdZZ \
+          --ant-program-id 2MWexMHfMhGJwMHv9Qm9YAVCqjUFUJwDJAysW4oCUGk5 \
+          --address 
         ```
 
         The result should show `"status": "joined"` and the settings (FQDN, stake, allow-delegated, etc.) you passed at join time.
@@ -11812,13 +11842,14 @@ For detailed configuration and usage, see [CDB64 Root TX Index](/build/run-a-gat
 
 ### ar.io
 
-The gateway talks to four Solana programs that together implement the ar.io protocol (see [protocol architecture](/learn/protocol-architecture)). Each program ID is configured independently, so the same image can run against mainnet, staging-devnet, or a local devnet. To confirm which set a running gateway is using, `GET /ar-io/info` returns the resolved `programIds` object.
+The gateway talks to four Solana programs that together implement the ar.io protocol (see [protocol architecture](/learn/protocol-architecture)). Each program ID is configured independently, so the same image can run against mainnet, staging-devnet, or a local devnet. Canonical mainnet IDs are listed in the [Token](/learn/token#mainnet-addresses) docs. To confirm which set a running gateway is using, `GET /ar-io/info` returns the resolved `programIds` object.
 
 | Variable                   | Type   | Default                              | Description                                                                                                          |
 | -------------------------- | ------ | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
 | `AR_IO_WALLET`             | string | -                                    | Operator Solana public key (base58). Display label surfaced on `/ar-io/info`                                         |
 | `SOLANA_RPC_URL`           | string | `https://api.mainnet-beta.solana.com`| Solana JSON-RPC endpoint. Public defaults throttle hard — use a premium provider (QuickNode, Helius, Triton) in production |
-| `SOLANA_KEYPAIR_PATH`      | string | -                                    | Path to the operator's 64-byte Solana keypair JSON file (signs cranker instructions when `ENABLE_EPOCH_CRANKING=true`) |
+| `SOLANA_KEYPAIR_PATH`      | string | -                                    | Path to the operator's 64-byte Solana keypair JSON file. Signs `join_network`, `update_gateway_settings`, and cranker instructions. Inside the container the path must start with `/app/wallets/` |
+| `SOLANA_PRIVATE_KEY`       | string | -                                    | Alternative to `SOLANA_KEYPAIR_PATH`: base58-encoded 64-byte secret (Phantom | `ENABLE_EPOCH_CRANKING`    | boolean | unset (= off)                       | When `true`, the observer runs permissionless epoch instructions (`close_observation`, `tick_epoch`, etc.). "When unset, observer skips cranking." Set `false` to make the off-state explicit |
 | `ARIO_CORE_PROGRAM_ID`     | string | -                                    | `ario-core` program ID (token, staking, epoch state)                                                                 |
 | `ARIO_GAR_PROGRAM_ID`      | string | -                                    | `ario-gar` program ID (Gateway Registry; joins, observations, distributions)                                         |
 | `ARIO_ARNS_PROGRAM_ID`     | string | -                                    | `ario-arns` program ID (ArNS name registry)                                                                          |
@@ -12011,7 +12042,22 @@ The default public Solana RPC is rate-limited and may block `getProgramAccounts`
 
 | Variable                       | Type    | Default | Description                           |
 | ------------------------------ | ------- | ------- | ------------------------------------- |
-| `SUBMIT_CONTRACT_INTERACTIONS` | boolean | `true`  | Submit observations to Solana programs |
+| `SUBMIT_CONTRACT_INTERACTIONS` | boolean | `true`  | Submit observations to Solana programs. Pre-flight no-ops unless your pubkey is in `epoch.prescribed_observers` — harmless to leave at default before `join_network` |
+
+### Upload Wallet Identities
+
+The observer uploads report bundles to Turbo. The upload signer is resolved from the first matching env in the [precedence chain](/build/run-a-gateway/manage/solana-migration#upload-signing-precedence). Setting envs from more than one chain group at once is rejected at startup.
+
+| Variable                          | Type   | Default | Description                                                                 |
+| --------------------------------- | ------ | ------- | --------------------------------------------------------------------------- |
+| `ARWEAVE_UPLOAD_KEY_FILE`         | string | -       | Path to an Arweave JWK file. Highest priority for upload signing            |
+| `ARWEAVE_UPLOAD_JWK`              | string | -       | Inline Arweave JWK JSON. Lower priority than the file form                  |
+| `ETHEREUM_UPLOAD_PRIVATE_KEY_FILE`| string | -       | Path to a 32-byte hex private key (with or without `0x` prefix)             |
+| `ETHEREUM_UPLOAD_PRIVATE_KEY`     | string | -       | Inline hex private key. Lower priority than the file form                   |
+| `SOLANA_UPLOAD_KEYPAIR_PATH`      | string | -       | Path to a separate Solana keypair JSON for uploads. Ignored when any `ARWEAVE_UPLOAD_*` or `ETHEREUM_UPLOAD_*` is set |
+| `SOLANA_UPLOAD_PRIVATE_KEY`       | string | -       | Alternative to above: base58 secret. Mutually exclusive with the file form  |
+
+When none of the above are set, uploads fall back to the observer key, then the operator key.
 
 ### Offset Observation
 
@@ -14577,12 +14623,11 @@ Complete these steps before the cutover date to ensure uninterrupted reward elig
     SOLANA_KEYPAIR_PATH=/app/wallets/operator-keypair.json
     OBSERVER_KEYPAIR_PATH=/app/wallets/observer-keypair.json
 
-    # The four ar.io Solana programs (mainnet values are set as defaults in the
-    # ar-io-node image; only override these for staging-devnet or a local devnet)
-    # ARIO_CORE_PROGRAM_ID=...
-    # ARIO_GAR_PROGRAM_ID=...
-    # ARIO_ARNS_PROGRAM_ID=...
-    # ARIO_ANT_PROGRAM_ID=...
+    # The four ar.io Solana programs (canonical mainnet)
+    ARIO_CORE_PROGRAM_ID=73YoECm6NKXpVRoe5f1Q9BcP5DJGPFUjnFy6AxBE5Nvh
+    ARIO_GAR_PROGRAM_ID=89fNiiwgpFSPHKuqfNUkgYTYjtAJAhyqHjXmgXeppGpf
+    ARIO_ARNS_PROGRAM_ID=2yCUx5edFvUrkibYaUa2ZXWyx9kuJkS8CwyzsgHPWdZZ
+    ARIO_ANT_PROGRAM_ID=2MWexMHfMhGJwMHv9Qm9YAVCqjUFUJwDJAysW4oCUGk5
     ```
 
     **Remove the old AO variables** (they are no longer used):
@@ -14611,6 +14656,12 @@ Complete these steps before the cutover date to ensure uninterrupted reward elig
     cp observer-keypair.json wallets/observer-keypair.json
     chmod 600 wallets/*.json
     ```
+
+    Env vars must use the **in-container** path (`/app/wallets/...`), not the host path (`./wallets/...`). Docker Compose bind-mounts `${WALLETS_PATH:-./wallets}` to `/app/wallets` inside the container.
+
+    | Wrong (host path) | Right (container path) |
+    |---|---|
+    | `SOLANA_KEYPAIR_PATH=./wallets/operator-keypair.json` | `SOLANA_KEYPAIR_PATH=/app/wallets/operator-keypair.json` |
 
     Skip this step entirely if you set `OBSERVER_PRIVATE_KEY` / `SOLANA_PRIVATE_KEY` env vars (base58 strings) instead.
 
@@ -14653,14 +14704,14 @@ Complete these steps before the cutover date to ensure uninterrupted reward elig
     2. **Gateway registration is live on the new network:**
        ```bash
        ar.io get-gateway -t solana \
-         --rpc-url  \
-         --core-program-id  \
-         --gar-program-id  \
-         --arns-program-id  \
-         --ant-program-id  \
+         --rpc-url https://api.mainnet-beta.solana.com \
+         --core-program-id 73YoECm6NKXpVRoe5f1Q9BcP5DJGPFUjnFy6AxBE5Nvh \
+         --gar-program-id 89fNiiwgpFSPHKuqfNUkgYTYjtAJAhyqHjXmgXeppGpf \
+         --arns-program-id 2yCUx5edFvUrkibYaUa2ZXWyx9kuJkS8CwyzsgHPWdZZ \
+         --ant-program-id 2MWexMHfMhGJwMHv9Qm9YAVCqjUFUJwDJAysW4oCUGk5 \
          --address 
        ```
-       Should return `"status": "joined"` with the FQDN/stake/settings you set at join time. (Once `@ar.io/sdk` ships canonical mainnet defaults, `--mainnet` will be a shorthand for the four program-ID flags; until then, pass them explicitly.)
+       Should return `"status": "joined"` with the FQDN/stake/settings you set at join time.
 
     3. **ArNS resolution works end-to-end:**
        ```bash
@@ -14673,6 +14724,80 @@ Complete these steps before the cutover date to ensure uninterrupted reward elig
     5. **Gateway listed in the portal:** [gateways.ar.io](https://gateways.ar.io)
 
     6. **No accumulating failed epochs** in the portal's gateway view.
+
+## Wallet Roles and Configuration Patterns
+
+The gateway uses up to four distinct wallet roles. Understanding these helps you pick the right configuration for your setup.
+
+| Role | What it signs | Env vars | Fallback |
+|---|---|---|---|
+| **Operator** (+ cranker) | `join_network`, `update_gateway_settings`, permissionless cranker instructions | `SOLANA_KEYPAIR_PATH` or `SOLANA_PRIVATE_KEY` | — (required) |
+| **Observer** | `save_observations` transactions | `OBSERVER_KEYPAIR_PATH` or `OBSERVER_PRIVATE_KEY` | Falls back to operator key |
+| **Upload** | Observer report bundles sent to Turbo | See [upload precedence](#upload-signing-precedence) below | Falls back to observer → operator Solana key |
+| **HTTPSIG signer** | RFC 9421 response headers | Uses observer Solana key when set | Auto-generated standalone Ed25519 key |
+
+Setting both the file-path and inline forms for the same role (e.g. `SOLANA_KEYPAIR_PATH` **and** `SOLANA_PRIVATE_KEY`) is rejected at startup as ambiguous. Pick one.
+
+### Supported Configurations
+
+These are the five supported wallet setups. **Pattern 1 is the recommended default** — one key does everything. Pattern 2 is the most common migration path for operators who already have an Arweave JWK.
+
+| # | Operator | Observer | Upload | Required envs |
+|---|---|---|---|---|
+| **1** | Solana | = operator | = operator (Solana) | `SOLANA_KEYPAIR_PATH` |
+| **2** | Solana | = operator | Arweave JWK | `SOLANA_KEYPAIR_PATH` + `ARWEAVE_UPLOAD_KEY_FILE` |
+| **3** | Solana A | Solana B | Solana C | `SOLANA_KEYPAIR_PATH` + `OBSERVER_KEYPAIR_PATH` + `SOLANA_UPLOAD_KEYPAIR_PATH` |
+| **4** | Solana A | Solana B | Arweave JWK | `SOLANA_KEYPAIR_PATH` + `OBSERVER_KEYPAIR_PATH` + `ARWEAVE_UPLOAD_KEY_FILE` |
+| **5** | Solana A | Solana B | Ethereum | `SOLANA_KEYPAIR_PATH` + `OBSERVER_KEYPAIR_PATH` + `ETHEREUM_UPLOAD_PRIVATE_KEY_FILE` |
+
+#### Pattern 1 — Single Solana keypair (recommended)
+
+```bash
+# One key for operator + observer + uploads
+SOLANA_KEYPAIR_PATH=/app/wallets/operator-keypair.json
+SOLANA_RPC_URL=
+AR_IO_WALLET=
+OBSERVER_WALLET=
+ENABLE_EPOCH_CRANKING=false   # flip to true when ready
+```
+
+#### Pattern 2 — Keep existing Arweave JWK for uploads
+
+The most common path for operators migrating from a pre-Solana setup. Your existing Arweave JWK continues signing report bundles while the Solana keypair handles protocol interactions.
+
+```bash
+SOLANA_KEYPAIR_PATH=/app/wallets/operator-keypair.json
+ARWEAVE_UPLOAD_KEY_FILE=/app/wallets/.json
+SOLANA_RPC_URL=
+AR_IO_WALLET=
+OBSERVER_WALLET=
+ENABLE_EPOCH_CRANKING=false
+```
+
+### Upload Signing Precedence
+
+The gateway picks the first matching upload signer from this list:
+
+```
+1. ARWEAVE_UPLOAD_KEY_FILE     (file)     → ArweaveSigner
+2. ARWEAVE_UPLOAD_JWK          (inline)   → ArweaveSigner
+3. ETHEREUM_UPLOAD_PRIVATE_KEY_FILE (file) → EthereumSigner
+4. ETHEREUM_UPLOAD_PRIVATE_KEY (inline)    → EthereumSigner
+5. SOLANA_UPLOAD_KEYPAIR_PATH  (explicit)  → SolanaSigner
+6. Fallback: OBSERVER_KEYPAIR_PATH ?? SOLANA_KEYPAIR_PATH → SolanaSigner
+```
+
+Setting upload envs from more than one chain at once (e.g. `ARWEAVE_UPLOAD_KEY_FILE` **plus** `ETHEREUM_UPLOAD_PRIVATE_KEY`) raises a startup error listing every conflicting env. Pick exactly one upload chain.
+
+### Key Formats
+
+Solana keypairs come in two common formats. Both encode the same 64-byte secret (`seed(32) || pubkey(32)`):
+
+| Format | Example | Source |
+|---|---|---|
+| **JSON array** (Solana CLI standard) | `[12,34,56,...]` — 64 uint8 integers | `solana-keygen new --outfile keypair.json` |
+| **base58 secret** | 87–88 character base58 string | Phantom "
+Use the JSON file with `*_KEYPAIR_PATH` env vars, or the base58 string with `*_PRIVATE_KEY` env vars — never both for the same role.
 
 ## Troubleshooting
 
@@ -14691,14 +14816,14 @@ Verify the epoch state directly:
 
 ```bash
 ar.io get-current-epoch -t solana \
-  --rpc-url  \
-  --core-program-id  \
-  --gar-program-id  \
-  --arns-program-id  \
-  --ant-program-id 
+  --rpc-url https://api.mainnet-beta.solana.com \
+  --core-program-id 73YoECm6NKXpVRoe5f1Q9BcP5DJGPFUjnFy6AxBE5Nvh \
+  --gar-program-id 89fNiiwgpFSPHKuqfNUkgYTYjtAJAhyqHjXmgXeppGpf \
+  --arns-program-id 2yCUx5edFvUrkibYaUa2ZXWyx9kuJkS8CwyzsgHPWdZZ \
+  --ant-program-id 2MWexMHfMhGJwMHv9Qm9YAVCqjUFUJwDJAysW4oCUGk5
 ```
 
-(In `@ar.io/sdk@^4.0.0-solana.22` the `--mainnet` shorthand still resolves to placeholder addresses, so the explicit `--*-program-id` flags are required regardless of which network you're querying. This will change once canonical mainnet IDs are baked into the SDK.)
+For staging-devnet or local devnet, replace the RPC URL and program IDs with that environment's values.
 
 If this returns `"Epoch 0 not found"`, the network is configured but inactive. This is a network-operations state, not a gateway misconfiguration. Wait for an active cranker (yours or another operator's) to bootstrap epoch 0.
 
@@ -14714,6 +14839,19 @@ The gateway hydrates an ArNS names cache at boot, paginating through the on-chai
 - Resolver logs report `Base name not found in ArNS names cache` for names that demonstrably exist via the SDK CLI's `get-arns-record --name `
 
 Fix: bump `@ar.io/sdk` in your gateway's image (`package.json`) to the latest `^4.0.0-solana.*` and rebuild.
+
+### Wallet Configuration Startup Errors
+
+The gateway validates wallet configuration at startup. Errors are loud and name the offending env:
+
+| Error pattern | Cause | Fix |
+|---|---|---|
+| `multiple chain groups configured for upload role` | Upload envs from more than one chain are set (e.g. `ARWEAVE_UPLOAD_*` and `ETHEREUM_UPLOAD_*`) | Pick one upload chain and remove the others |
+| `ambiguous: both ... set for role` | File-path and inline forms for the same role are both set (e.g. `SOLANA_KEYPAIR_PATH` + `SOLANA_PRIVATE_KEY`) | Use one form per role |
+| `material at SOLANA_KEYPAIR_PATH does not look like a Solana keypair` | An Arweave JWK or other JSON was placed at the Solana keypair path | Check you copied the right file — Solana keypairs are a JSON array of 64 integers, not a JWK object |
+| `material at ARWEAVE_UPLOAD_KEY_FILE does not look like an Arweave JWK` | A Solana keypair (JSON array) was placed at the Arweave upload slot | Swap the file for your Arweave JWK |
+| `SOLANA_KEYPAIR_PATH not set in Solana mode` | The operator key is missing entirely | Set `SOLANA_KEYPAIR_PATH` or `SOLANA_PRIVATE_KEY` |
+| `OBSERVER_KEYPAIR_PATH does not match on-chain Gateway.observer_address` | The observer key doesn't match what was registered at `join_network` | Update the key to match, or call `update_observer_address` on-chain |
 
 ## New Risks to Be Aware Of
 
@@ -15611,36 +15749,23 @@ Add the following to your gateway's `.env` file:
 HTTPSIG_ENABLED=true
 ```
 
-On startup, the gateway automatically generates an Ed25519 key at `data/keys/httpsig.pem` if one doesn't exist. The key also functions as a valid Solana address.
+#### Signing Key Selection
 
-#### Optional: Attestation
+When `OBSERVER_KEYPAIR_PATH` or `OBSERVER_PRIVATE_KEY` is set, the gateway uses the observer's Solana keypair directly as the HTTPSIG signing key. Verifiers derive the Solana address from the public key in the `keyId` and look it up in the on-chain Gateway Registry — no separate attestation is needed.
 
-To link your signing key to your on-chain identity, configure an observer wallet. The gateway will create an RSA-signed attestation linking the Ed25519 key to your Arweave wallet and upload it to Arweave:
+When neither observer env is set, the gateway auto-generates a standalone Ed25519 key at `data/keys/httpsig.pem`. Responses are still signed, but the signer can't be tied back to the on-chain registry.
 
-```bash
-# Observer wallet for attestation (Arweave address)
-OBSERVER_WALLET=your-arweave-address
-WALLETS_PATH=wallets
-
-# Automatically upload attestation to Arweave (default: true)
-HTTPSIG_UPLOAD_ATTESTATION=true
-
-# Optional: include staked gateway address in attestation
-AR_IO_WALLET=your-gateway-address
-```
-
-Place your Arweave wallet JWK file in the `WALLETS_PATH` directory. The attestation is cached to `data/keys/httpsig-attestation.json` and only regenerated if the key or wallet changes.
+If you use a single Solana key for both operator and observer (Pattern 1 in the [migration guide](/build/run-a-gateway/manage/solana-migration#supported-configurations)), HTTPSIG falls back to the auto-generated key because the gateway only piggybacks on `OBSERVER_KEYPAIR_PATH`/`OBSERVER_PRIVATE_KEY` when they're **explicitly set**. To get on-chain-verifiable HTTPSIG with a single key, explicitly set `OBSERVER_KEYPAIR_PATH` (or `OBSERVER_PRIVATE_KEY`) to the same value as your operator key.
 
 ### Configuration Reference
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `HTTPSIG_ENABLED` | `false` | Enable RFC 9421 response signing |
-| `HTTPSIG_KEY_FILE` | `data/keys/httpsig.pem` | Path to Ed25519 private key (auto-generated if missing) |
+| `HTTPSIG_KEY_FILE` | `data/keys/httpsig.pem` | Path to standalone Ed25519 private key (auto-generated if missing). Ignored when `OBSERVER_KEYPAIR_PATH` or `OBSERVER_PRIVATE_KEY` is set |
 | `HTTPSIG_BIND_REQUEST` | `true` | Include request method and path in signature (prevents replay) |
-| `OBSERVER_WALLET` | - | Arweave wallet address for attestation signing |
-| `WALLETS_PATH` | `wallets` | Directory containing Arweave wallet JWK files |
-| `HTTPSIG_UPLOAD_ATTESTATION` | `true` | Upload attestation to Arweave automatically |
+| `OBSERVER_KEYPAIR_PATH` | - | Path to a 64-byte Solana keypair JSON. When set, used as the HTTPSIG signing key — verifiable against the on-chain GAR |
+| `OBSERVER_PRIVATE_KEY` | - | Alternative: base58-encoded 64-byte secret. Mutually exclusive with the file form |
 
 ### Verifying It's Working
 
@@ -15671,9 +15796,9 @@ Only responses containing at least one trust-relevant header are signed. Non-dat
 
 Clients can verify signed responses through the following chain:
 
-1. **Signature verification** - The public key is embedded in the `Signature-Input` header's `keyid` parameter and is verifiable via the Web Crypto API in modern browsers.
-2. **Identity verification** - If attestation is configured, follow the attestation chain from the Ed25519 signing key to the operator's Arweave RSA wallet to confirm the signer is a registered gateway. The attestation is available at `/ar-io/info` and on Arweave.
-3. **Body integrity** - Compare the `Content-Digest` header against a locally computed hash, or walk the Arweave signature chain from the signed `X-AR-IO-Data-Id`.
+1. **Signature verification** — The public key is embedded in the `Signature-Input` header's `keyid` parameter and is verifiable via the Web Crypto API in modern browsers.
+2. **Identity verification** — When the observer Solana key is used for signing, derive the Solana address from the public key and look it up in the on-chain Gateway Registry (GAR). A match confirms the signer is a registered gateway operator.
+3. **Body integrity** — Compare the `Content-Digest` header against a locally computed hash, or walk the Arweave signature chain from the signed `X-AR-IO-Data-Id`.
 
 ## Related
 
@@ -20241,6 +20366,8 @@ Connect with developers, gateway operators, and the ar.io team. Get help, share 
 
 The ar.io protocol operates through four Solana programs (3+1) that work together via cross-program invocation (CPI). This architecture organizes protocol responsibilities into a coordinated set of programs with clear boundaries.
 
+For the deployed Solana mainnet program IDs and ARIO token mint, see [Mainnet Addresses](/learn/token#mainnet-addresses).
+
 ```mermaid
 graph TD
 
@@ -22464,10 +22591,10 @@ Choose between mainnet and testnet tokens based on your requirements.
 
   ### Token Details
 
-  - **Mint Address:** ``
+  - **Mint Address:** `DcNnMuFxwhgV4WY1HVSaSEgr92bv2b1vUvEKiNxWqHdF`
   - **Token Standard:** SPL Token
   - **Decimals:** 6
-  - **Explorer:** [View on Solscan](https://solscan.io/token/)
+  - **Explorer:** [View on Solscan](https://solscan.io/token/DcNnMuFxwhgV4WY1HVSaSEgr92bv2b1vUvEKiNxWqHdF)
 
 ---
 
@@ -22579,6 +22706,26 @@ Choose between mainnet and testnet tokens based on your requirements.
 
 ARIO is the native token of the [ar.io network](https://ar.io), implemented as an [SPL Token](https://spl.solana.com/token) on Solana. It powers the network's decentralized gateway infrastructure, ArNS naming system, and incentive mechanisms. The token uses 6 decimal places (1 ARIO = 1,000,000 mARIO).
 
+## Mainnet Addresses
+
+Use these canonical Solana mainnet addresses when verifying ARIO in wallets, explorers, integrations, or gateway configuration.
+
+### Token
+
+| Item | Address |
+| --- | --- |
+| ARIO SPL Token mint | `DcNnMuFxwhgV4WY1HVSaSEgr92bv2b1vUvEKiNxWqHdF` |
+
+### ar.io Programs
+
+| Program | Program ID |
+| --- | --- |
+| `ario-core` | `73YoECm6NKXpVRoe5f1Q9BcP5DJGPFUjnFy6AxBE5Nvh` |
+| `ario-gar` | `89fNiiwgpFSPHKuqfNUkgYTYjtAJAhyqHjXmgXeppGpf` |
+| `ario-arns` | `2yCUx5edFvUrkibYaUa2ZXWyx9kuJkS8CwyzsgHPWdZZ` |
+| `ario-ant` | `2MWexMHfMhGJwMHv9Qm9YAVCqjUFUJwDJAysW4oCUGk5` |
+| `ario-ant-escrow` | `5HZhe9UqKL5zAsdz81nuuaxV41h8bFhudzxxBigAQndM` |
+
 ## How ARIO Is Used
 
 - **Gateway participation**: Gateway operators stake ARIO to join the network and become eligible for protocol rewards.
@@ -22636,7 +22783,7 @@ ARIO tokens are support by any Solana-compatible wallet - below are some example
     ARIO will appear automatically once you receive tokens. To add manually:
     1. Open your Phantom wallet
     2. Click **"Manage Token List"** or search for tokens
-    3. Search for **"ARIO"** or paste the mint address: ``
+    3. Search for **"ARIO"** or paste the mint address: `DcNnMuFxwhgV4WY1HVSaSEgr92bv2b1vUvEKiNxWqHdF`
     4. Toggle the token on
 
     ### Verify Your Balance
@@ -22654,7 +22801,7 @@ ARIO tokens are support by any Solana-compatible wallet - below are some example
     ### Add ARIO Token
 
     1. Navigate to your token list
-    2. Search for **"ARIO"** or use the mint address: ``
+    2. Search for **"ARIO"** or use the mint address: `DcNnMuFxwhgV4WY1HVSaSEgr92bv2b1vUvEKiNxWqHdF`
     3. Add the token to your portfolio
 
 ## Next Steps
@@ -23764,7 +23911,7 @@ You can download a folder from ArDrive to your local machine with the `download-
 ardrive download-folder -f "47f5bde9-61ba-49c7-b409-1aa4a9e250f6"
 ```
 
-By specifying the `--local-path` option, you can choose the local parent folder into which the onchain folder will be downloaded. When the parameter is omitted, its value defaults to the current working directory (i.e. `./`).
+By specifying the `--local-path` option, you can choose the local parent folder into which the on-chain folder will be downloaded. When the parameter is omitted, its value defaults to the current working directory (i.e. `./`).
 
 ```shell
 ardrive download-folder -f "47f5bde9-61ba-49c7-b409-1aa4a9e250f6" --local-path /my_ardrive_downloads/
@@ -23906,7 +24053,7 @@ Transaction nA1stCdTkuf290k0qsqvmJ78isEC0bwgrAi3D8Cl1LU Upload Progress: 100%
 
 # Rename a Single File (/sdks/(clis)/ardrive-cli/(working-with-files)/rename-a-single-file)
 
-To rename an onchain file you can make use of the `rename-file` command. The required parameters are the file ID and the new name, as well as the owner wallet or seed phrase.
+To rename an on-chain file you can make use of the `rename-file` command. The required parameters are the file ID and the new name, as well as the owner wallet or seed phrase.
 
 ```shell
 ardrive rename-file --file-id "290a3f9a-37b2-4f0f-a899-6fac983833b3" --file-name "My custom file name.txt" --wallet-file "wallet.json"
@@ -24551,62 +24698,137 @@ If, at any time, you need to send AR out of your wallet to another wallet addres
 ardrive send-ar -w /path/to/wallet/file.json --dest-address "HTTn8F92tR32N8wuo-NIDkjmqPknrbl10JWo5MZ9x2k" --ar-amount 2.12345
 ```
 
+# Automatic Retries (/sdks/ar-io-sdk/(advanced)/automatic-retries)
+
+All RPC **read** calls (account fetches, `getProgramAccounts`, etc.)
+automatically retry on transient transport errors with exponential
+back-off. Writes are **not** retried (to avoid double-sends).
+
+Retried errors: HTTP 429/5xx, `fetch failed`, `ECONNRESET`,
+`ETIMEDOUT`, `AbortError` / timeouts. Non-retryable errors (account
+not found, invalid params, deserialization) throw immediately.
+
+Defaults: **6 attempts**, 500 ms base delay, 5 s max delay. Override
+per-call with the exported `withRetry` helper:
+
+```ts
+
+const result = await withRetry(() => rpc.getAccountInfo(addr).send(), {
+  maxAttempts: 3,
+  baseDelayMs: 1000,
+});
+```
+
+# Circuit Breaker (/sdks/ar-io-sdk/(advanced)/circuit-breaker)
+
+The SDK ships an [opossum]-backed circuit breaker that wraps the RPC
+transport. When the primary endpoint starts failing (429 rate-limits,
+5xx errors, network timeouts) the circuit opens and subsequent calls
+route transparently to a fallback RPC until the primary recovers.
+
+```ts
+
+const rpc = createCircuitBreakerRpc({
+  primaryUrl: 'https://my-premium-rpc.example.com',
+  fallbackUrl: 'https://api.mainnet-beta.solana.com',
+});
+
+const ario = ARIO.init({ rpc });
+```
+
+Use `defaultFallbackUrl()` to auto-pick mainnet or devnet based on the
+primary URL:
+
+```ts
+import {
+  createCircuitBreakerRpc,
+  defaultFallbackUrl,
+} from '@ar.io/sdk';
+
+const primaryUrl = 'https://my-premium-rpc.example.com';
+const rpc = createCircuitBreakerRpc({
+  primaryUrl,
+  fallbackUrl: defaultFallbackUrl(primaryUrl), // → mainnet public RPC
+});
+```
+
+Tuning knobs (all optional):
+
+| Option | Default | Description |
+|---|---|---|
+| `timeout` | `10000` | ms before a single request is timed out (`false` to disable) |
+| `errorThresholdPercentage` | `50` | error % at which to open the circuit |
+| `resetTimeout` | `30000` | ms to wait before probing the primary again (half-open) |
+| `volumeThreshold` | `5` | minimum requests in the rolling window before the circuit can trip |
+
+# Generated instruction builders (/sdks/ar-io-sdk/(advanced)/generated-instruction-builders)
+
+For custom transaction building, import Codama-generated typed clients
+from [`@ar.io/solana-contracts`](https://www.npmjs.com/package/@ar.io/solana-contracts):
+
+```ts
+import {
+  getBuyNameInstructionAsync,
+  ARIO_ARNS_PROGRAM_ADDRESS,
+} from '@ar.io/solana-contracts/arns';
+```
+
+# RPC Configuration (/sdks/ar-io-sdk/(advanced)/rpc-configuration)
+
+The SDK accepts any `@solana/kit` RPC client. For read-only usage, only
+`rpc` is required. Write operations additionally need `rpcSubscriptions`
+(WebSocket) for transaction confirmation and a `signer`.
+
+#### Basic (read-only)
+
+```ts
+
+const rpc = createSolanaRpc('https://api.mainnet-beta.solana.com');
+const ario = ARIO.init({ rpc });
+```
+
+#### With writes (signer + WebSocket subscriptions)
+
+```ts
+import {
+  createSolanaRpc,
+  createSolanaRpcSubscriptions,
+  createKeyPairSignerFromBytes,
+} from '@solana/kit';
+
+const rpc = createSolanaRpc('https://api.mainnet-beta.solana.com');
+const rpcSubscriptions = createSolanaRpcSubscriptions(
+  'wss://api.mainnet-beta.solana.com',
+);
+const signer = await createKeyPairSignerFromBytes(/* ... */);
+
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
+```
+
+> **Note:** `rpcSubscriptions` opens a WebSocket connection and is only
+> needed for writes. If your RPC provider doesn't expose a WebSocket
+> endpoint, omit it and use the SDK in read-only mode.
+
+# Solana Networks (/sdks/ar-io-sdk/(advanced)/solana-networks)
+
+| Network | RPC | Programs |
+|---|---|---|
+| Mainnet | `https://api.mainnet-beta.solana.com` (mainnet-beta, default) | Not yet deployed — placeholder IDs in `src/solana/constants.ts` |
+| Devnet | `https://api.devnet.solana.com` | See `src/solana/constants.ts` for current devnet program IDs |
+| Localnet | Surfpool — `https://github.com/solana-foundation/surfpool` | Localnet harness in `solana-ar-io` monorepo |
+
+The migration tooling (snapshot exporter, batch importer, claim app)
+lives in the [`solana-ar-io`](https://github.com/ar-io/solana-ar-io)
+monorepo until cutover.
+
 # ARIO Integrations (/sdks/ar-io-sdk/(ant-contracts)/ario-integrations)
 
-#### releaseName()
-
-Releases a name from the current owner and makes it available for purchase on the ARIO contract. The name must be permanently owned by the releasing wallet. If purchased within the recently returned name period (14 epochs), 50% of the purchase amount will be distributed to the ANT owner at the time of release. If no purchases in the recently returned name period, the name can be reregistered by anyone for the normal fee.
-
-_Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
-
-```typescript
-const { id: txId } = await ant.releaseName({
-  name: 'permalink',
-  arioProcessId: ARIO_MAINNET_PROGRAM_ID, // releases the name owned by the ANT and sends it to recently returned names on the ARIO contract
-});
-```
-
-#### reassignName()
-
-Reassigns a name to a new ANT. This can only be done by the current owner of the ANT.
-
-_Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
-
-```typescript
-const { id: txId } = await ant.reassignName({
-  name: 'ardrive',
-  arioProcessId: ARIO_MAINNET_PROGRAM_ID,
-  antProcessId: NEW_ANT_PROCESS_ID, // the new ANT identifier that will take over ownership of the name
-});
-```
-
-#### approvePrimaryNameRequest()
-
-Approves a primary name request for a given name or address.
-
-_Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
-
-```typescript
-const { id: txId } = await ant.approvePrimaryNameRequest({
-  name: 'arns',
-  address: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3', // must match the request initiator address
-  arioProcessId: ARIO_MAINNET_PROGRAM_ID, // the ARIO program address to use for the request
-});
-```
-
-#### removePrimaryNames()
-
-Removes primary names from the ANT.
-
-_Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
-
-```typescript
-const { id: txId } = await ant.removePrimaryNames({
-  names: ['arns', 'test_arns'], // any primary names associated with a base name controlled by this ANT will be removed
-  arioProcessId: ARIO_MAINNET_PROGRAM_ID,
-  notifyOwners: true, // if true, the owners of the removed names will be notified of the removal
-});
-```
+`releaseName`, `reassignName`, `approvePrimaryNameRequest`, and
+`removePrimaryNames` were AO-only orchestration helpers and have been
+removed. Their on-chain equivalents on Solana live on the `ario-arns`
+program and are exposed through the `ARIO` write client
+(`upgradeRecord`, `setPrimaryName`, etc.) or — for permissionless
+maintenance — through `SolanaARIOWriteable`'s prune helpers.
 
 # Balances (/sdks/ar-io-sdk/(ant-contracts)/balances)
 
@@ -24633,7 +24855,7 @@ Returns the balance of a specific address.
 
 ```typescript
 const balance = await ant.getBalance({
-  address: 'ccp3blG__gKUvG3hsGC2u06aDmqv4CuhuDJGOIg0jw4',
+  address: "ccp3blG__gKUvG3hsGC2u06aDmqv4CuhuDJGOIg0jw4",
 });
 ```
 
@@ -24647,15 +24869,15 @@ const balance = await ant.getBalance({
 
 #### addController()
 
-Adds a new controller to the list of approved controllers on the ANT. Controllers can set records and change the ticker and name of the ANT.
+Adds a new controller to the list of approved controllers on the ANT. Controllers can set records and change the ticker and name of the ANT process.
 
 _Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
 
 ```typescript
 const { id: txId } = await ant.addController(
-  { controller: 'aGzM_yjralacHIUo8_nQXMbh9l1cy0aksiL_x9M359f' },
+  { controller: "aGzM_yjralacHIUo8_nQXMbh9l1cy0aksiL_x9M359f" },
   // optional additional tags
-  { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+  { tags: [{ name: "App-Name", value: "My-Awesome-App" }] },
 );
 ```
 
@@ -24667,9 +24889,9 @@ _Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
 
 ```typescript
 const { id: txId } = await ant.removeController(
-  { controller: 'aGzM_yjralacHIUo8_nQXMbh9l1cy0aksiL_x9M359f' },
+  { controller: "aGzM_yjralacHIUo8_nQXMbh9l1cy0aksiL_x9M359f" },
   // optional additional tags
-  { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+  { tags: [{ name: "App-Name", value: "My-Awesome-App" }] },
 );
 ```
 
@@ -24677,19 +24899,32 @@ const { id: txId } = await ant.removeController(
 
 #### init()
 
-Factory function to that creates a read-only or writeable client. By providing a `signer` additional write APIs that require signing, like `setRecord` and `transfer` are available. By default, a read-only client is returned and no write APIs are available.
+Factory that creates a read-only or writeable ANT client. Providing
+`signer` and `rpcSubscriptions` enables write methods (`setRecord`,
+`transfer`, `addController`, etc.).
 
 ```typescript
-// in a browser environment (Phantom, Solflare, etc.)
-const ant = ANT.init({
-  signer: walletAdapter,
-  processId: 'bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM' // ANT mint address
+import {
+  createSolanaRpc,
+  createSolanaRpcSubscriptions,
+} from '@solana/kit';
+
+const rpc = createSolanaRpc('https://api.mainnet-beta.solana.com');
+
+// Read-only
+const ant = await ANT.init({
+  processId: '\',
+  rpc,
 });
 
-// in a node environment
-const ant = ANT.init({
+// Read + write
+const antWrite = await ANT.init({
+  processId: '\',
+  rpc,
+  rpcSubscriptions: createSolanaRpcSubscriptions(
+    'wss://api.mainnet-beta.solana.com',
+  ),
   signer,
-  processId: 'bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM' // ANT mint address
 });
 ```
 
@@ -24697,57 +24932,57 @@ const ant = ANT.init({
 
 #### setName()
 
-Sets the name of the ANT.
+Sets the name of the ANT process.
 
 _Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
 
 ```typescript
 const { id: txId } = await ant.setName(
-  { name: 'My ANT' },
+  { name: "My ANT" },
   // optional additional tags
-  { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+  { tags: [{ name: "App-Name", value: "My-Awesome-App" }] },
 );
 ```
 
 #### setTicker()
 
-Sets the ticker of the ANT.
+Sets the ticker of the ANT process.
 
 _Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
 
 ```typescript
 const { id: txId } = await ant.setTicker(
-  { ticker: 'ANT-NEW-TICKER' },
+  { ticker: "ANT-NEW-TICKER" },
   // optional tags
-  { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+  { tags: [{ name: "App-Name", value: "My-Awesome-App" }] },
 );
 ```
 
 #### setDescription()
 
-Sets the description of the ANT.
+Sets the description of the ANT process.
 
 _Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
 
 ```typescript
 const { id: txId } = await ant.setDescription(
-  { description: 'A friendly description of this ANT' },
+  { description: "A friendly description of this ANT" },
   // optional tags
-  { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+  { tags: [{ name: "App-Name", value: "My-Awesome-App" }] },
 );
 ```
 
 #### setKeywords()
 
-Sets the keywords of the ANT.
+Sets the keywords of the ANT process.
 
 _Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
 
 ```typescript
 const { id: txId } = await ant.setKeywords(
-  { keywords: ['Game', 'FPS', 'Permaweb'] },
+  { keywords: ["Game", "FPS", "AO"] },
   // optional tags
-  { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+  { tags: [{ name: "App-Name", value: "My-Awesome-App" }] },
 );
 ```
 
@@ -24767,9 +25002,9 @@ _Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
 
 ```typescript
 const { id: txId } = await ant.setLogo(
-  { txId: 'U7RXcpaVShG4u9nIcPVmm2FJSM5Gru9gQCIiRaIPV7f' },
+  { txId: "U7RXcpaVShG4u9nIcPVmm2FJSM5Gru9gQCIiRaIPV7f" },
   // optional tags
-  { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+  { tags: [{ name: "App-Name", value: "My-Awesome-App" }] },
 );
 ```
 
@@ -24783,24 +25018,24 @@ _Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
 
 ```typescript
 // get the ant for the base name
-const arnsRecord = await ario.getArNSRecord({ name: 'ardrive' });
+const arnsRecord = await ario.getArNSRecord({ name: "ardrive" });
 const ant = await ANT.init({ processId: arnsName.processId });
 
 // Basic usage
 const { id: txId } = await ant.setBaseNameRecord({
-  transactionId: '432l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM',
+  transactionId: "432l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM",
   ttlSeconds: 3600,
 });
 
 // With ownership delegation and metadata
 const { id: txId } = await ant.setBaseNameRecord({
-  transactionId: '432l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM',
+  transactionId: "432l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM",
   ttlSeconds: 3600,
-  owner: 'user-wallet-address-123...', // delegate ownership to another address
-  displayName: 'ArDrive', // display name
-  logo: 'logo-tx-id-123...', // logo transaction ID
-  description: 'Decentralized storage application',
-  keywords: ['storage', 'decentralized', 'web3'],
+  owner: "user-wallet-address-123...", // delegate ownership to another address
+  displayName: "ArDrive", // display name
+  logo: "logo-tx-id-123...", // logo transaction ID
+  description: "Decentralized storage application",
+  keywords: ["storage", "decentralized", "web3"],
 });
 
 // ardrive.ar.io will now resolve to the provided transaction id and include metadata
@@ -24815,33 +25050,33 @@ _Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
 > Records, or `undernames` are configured with the `transactionId` - the arweave transaction id the record resolves - and `ttlSeconds`, the Time To Live in the cache of client applications.
 
 ```typescript
-const arnsRecord = await ario.getArNSRecord({ name: 'ardrive' });
+const arnsRecord = await ario.getArNSRecord({ name: "ardrive" });
 const ant = await ANT.init({ processId: arnsName.processId });
 
 // Basic usage
 const { id: txId } = await ant.setUndernameRecord(
   {
-    undername: 'dapp',
-    transactionId: '432l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM',
+    undername: "dapp",
+    transactionId: "432l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM",
     ttlSeconds: 900,
   },
   // optional additional tags
-  { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+  { tags: [{ name: "App-Name", value: "My-Awesome-App" }] },
 );
 
 // With ownership delegation and metadata
 const { id: txId } = await ant.setUndernameRecord(
   {
-    undername: 'alice',
-    transactionId: '432l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM',
+    undername: "alice",
+    transactionId: "432l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM",
     ttlSeconds: 900,
-    owner: 'alice-wallet-address-123...', // delegate ownership to Alice
+    owner: "alice-wallet-address-123...", // delegate ownership to Alice
     displayName: "Alice's Site", // display name
-    logo: 'avatar-tx-id-123...', // avatar/logo transaction ID
-    description: 'Personal portfolio and blog',
-    keywords: ['portfolio', 'personal', 'blog'],
+    logo: "avatar-tx-id-123...", // avatar/logo transaction ID
+    description: "Personal portfolio and blog",
+    keywords: ["portfolio", "personal", "blog"],
   },
-  { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+  { tags: [{ name: "App-Name", value: "My-Awesome-App" }] },
 );
 
 // dapp_ardrive.ar.io will now resolve to the provided transaction id
@@ -24850,15 +25085,15 @@ const { id: txId } = await ant.setUndernameRecord(
 
 #### removeUndernameRecord()
 
-Removes an undername record from the ANT.
+Removes an undername record from the ANT process.
 
 _Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
 
 ```typescript
 const { id: txId } = await ant.removeUndernameRecord(
-  { undername: 'dapp' },
+  { undername: "dapp" },
   // optional additional tags
-  { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+  { tags: [{ name: "App-Name", value: "My-Awesome-App" }] },
 );
 
 // dapp_ardrive.ar.io will no longer resolve to the provided transaction id
@@ -24868,7 +25103,7 @@ const { id: txId } = await ant.removeUndernameRecord(
 
 Deprecated: Use `setBaseNameRecord` or `setUndernameRecord` instead.
 
-Adds or updates a record for the ANT. The `undername` parameter is used to specify the record name. Use `@` for the base name record.
+Adds or updates a record for the ANT process. The `undername` parameter is used to specify the record name. Use `@` for the base name record.
 
 _Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
 
@@ -24890,17 +25125,17 @@ const { id: txId } = await ant.setRecord(
 
 Deprecated: Use `removeUndernameRecord` instead.
 
-Removes a record from the ANT.
+Removes a record from the ANT process.
 
 _Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
 
 ```typescript
-const arnsRecord = await ario.getArNSRecord({ name: 'ardrive' });
+const arnsRecord = await ario.getArNSRecord({ name: "ardrive" });
 const ant = await ANT.init({ processId: arnsName.processId });
 const { id: txId } = await ant.removeRecord(
-  { undername: 'dapp' },
+  { undername: "dapp" },
   // optional additional tags
-  { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+  { tags: [{ name: "App-Name", value: "My-Awesome-App" }] },
 );
 
 // dapp_ardrive.ar.io will no longer resolve to the provided transaction id
@@ -24908,20 +25143,23 @@ const { id: txId } = await ant.removeRecord(
 
 # Spawn (/sdks/ar-io-sdk/(ant-contracts)/spawn)
 
-#### spawn()
+#### ANT.spawn()
 
-Mints a new ANT (Ar.io Name Token) as a Metaplex Core NFT on Solana. This static function creates a new ANT and returns its mint address.
-
-_Note: Requires `signer` to be provided to sign the mint transaction._
+Static factory that mints a new MPL Core asset and initializes the
+`ario-ant` PDAs in a single transaction. Returns
+`{ processId, mint, signature }`.
 
 ```typescript
 
-const mintAddress = await ANT.spawn({
-  signer: signer,
+const { processId, signature } = await ANT.spawn({
+  rpc,
+  rpcSubscriptions,
+  signer,
   state: {
     name: 'My ANT',
     ticker: 'MYANT',
-    description: 'My custom ANT token',
+    description: 'My ANT token',
+    uri: 'ar://\',
   },
 });
 ```
@@ -24929,22 +25167,40 @@ const mintAddress = await ANT.spawn({
 **CLI Usage:**
 
 ```bash
-ar.io spawn-ant --name "My ANT" --ticker "MYANT"
+ar.io spawn-ant \
+  --wallet-file wallet.json \
+  --name "My ANT" \
+  --ticker "MYANT" \
+  --metadata-uri "ar://\"
 ```
 
 **Parameters:**
 
-- `signer: SolanaSigner` - The signer used to authenticate the mint transaction
-- `state?: SpawnANTState` - Optional initial state for the ANT including name, ticker, description, etc.
-- `logger?: Logger` - Optional logger instance
+- `state.name: string` — display name of the ANT
+- `state.ticker?: string` — ticker symbol
+- `state.description?: string` — short description
+- `state.uri: string` — `ar://` URI of the Metaplex Core asset's JSON
+  metadata. Build via `buildAntMetadata` from `@ar.io/sdk` and upload
+  to Arweave (e.g. via `@ardrive/turbo-sdk`).
+- `state.keywords?: string[]`
+- `state.logo?: string` — Arweave TX ID of the logo
+- `state.transactionId?: string` — initial `@` record target
 
-**Returns:** `Promise` - The mint address of the newly created ANT (Metaplex Core NFT)
+**Returns:**
+
+```ts
+{
+  processId: string;  // the MPL Core asset mint pubkey
+  mint: Address;
+  signature: string;  // the Solana tx signature
+}
+```
 
 # State (/sdks/ar-io-sdk/(ant-contracts)/state)
 
 #### getInfo()
 
-Retrieves information for the ANT.
+Retrieves the information of the ANT process.
 
 ```typescript
 const info = await ant.getInfo();
@@ -24954,11 +25210,42 @@ const info = await ant.getInfo();
 
 ```json
 {
-  "name": "ArDrive",
-  "ticker": "ANT-ARDRIVE",
-  "description": "This is the ANT for the ArDrive decentralized web app.",
-  "keywords": ["File-sharing", "Publishing", "dApp"],
-  "owner": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ"
+  "Name": "ArDrive",
+  "Owner": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
+  "Ticker": "ANT-ARDRIVE",
+  "Total-Supply": "1",
+  "Description": "This is the ANT for the ArDrive decentralized web app.",
+  "Keywords": ["File-sharing", "Publishing", "dApp"],
+  "Logo": "Sie_26dvgyok0PZD_-iQAFOhOd5YxDTkczOLoqTTL_A",
+  "Denomination": "0",
+  "Handlers": [
+    "balance",
+    "balances",
+    "totalSupply",
+    "info",
+    "controllers",
+    "record",
+    "records",
+    "state",
+    "transfer",
+    "addController",
+    "removeController",
+    "setRecord",
+    "removeRecord",
+    "setName",
+    "setTicker",
+    "setDescription",
+    "setKeywords",
+    "setLogo",
+    "initializeState",
+    "releaseName",
+    "reassignName",
+    "approvePrimaryName",
+    "removePrimaryNames",
+    "transferRecordOwnership",
+    "_eval",
+    "_default"
+  ]
 }
 ```
 
@@ -24974,30 +25261,38 @@ const handlers = await ant.getHandlers();
 
 ```json
 [
-  "_eval",
-  "_default",
-  "transfer",
   "balance",
   "balances",
   "totalSupply",
   "info",
-  "addController",
-  "removeController",
   "controllers",
-  "setRecord",
-  "removeRecord",
   "record",
   "records",
+  "state",
+  "transfer",
+  "addController",
+  "removeController",
+  "setRecord",
+  "removeRecord",
   "setName",
   "setTicker",
+  "setDescription",
+  "setKeywords",
+  "setLogo",
   "initializeState",
-  "state"
+  "releaseName",
+  "reassignName",
+  "approvePrimaryName",
+  "removePrimaryNames",
+  "transferRecordOwnership",
+  "_eval",
+  "_default"
 ]
 ```
 
 #### getState()
 
-Retrieves the state of the ANT.
+Retrieves the state of the ANT process.
 
 ```typescript
 const state = await ant.getState();
@@ -25007,23 +25302,28 @@ const state = await ant.getState();
 
 ```json
 {
-  "TotalSupply": 1,
-  "Balances": {
-    "98O1_xqDLrBKRfQPWjF5p7xZ4Jx6GM8P5PeJn26xwUY": 1
-  },
+  "Name": "ar.io Foundation",
+  "Ticker": "ANT-AR-IO",
+  "Description": "A friendly description for this ANT.",
+  "Keywords": ["keyword1", "keyword2", "keyword3"],
+  "Denomination": 0,
+  "Owner": "98O1_xqDLrBKRfQPWjF5p7xZ4Jx6GM8P5PeJn26xwUY",
   "Controllers": [],
   "Records": {
     "v1-0-0_whitepaper": {
       "transactionId": "lNjWn3LpyhKC95Kqe-x8X2qgju0j98MhucdDKK85vc4",
-      "ttlSeconds": 900
+      "ttlSeconds": 900,
+      "targetProtocol": 0
     },
     "@": {
       "transactionId": "2rMLb2uHAyEt7jSu6bXtKx8e-jOfIf7E-DOgQnm8EtU",
-      "ttlSeconds": 3600
+      "ttlSeconds": 3600,
+      "targetProtocol": 0
     },
     "alice": {
       "transactionId": "kMk95k_3R8x_7d3wB9tEOiL5v6n8QhR_VnFCh3aeE3f",
       "ttlSeconds": 900,
+      "targetProtocol": 0,
       "owner": "alice-wallet-address-123...",
       "displayName": "Alice's Portfolio",
       "logo": "avatar-tx-id-456...",
@@ -25032,23 +25332,22 @@ const state = await ant.getState();
     },
     "whitepaper": {
       "transactionId": "lNjWn3LpyhKC95Kqe-x8X2qgju0j98MhucdDKK85vc4",
-      "ttlSeconds": 900
+      "ttlSeconds": 900,
+      "targetProtocol": 0
     }
   },
-  "Initialized": true,
-  "Ticker": "ANT-AR-IO",
-  "Description": "A friendly description for this ANT.",
-  "Keywords": ["keyword1", "keyword2", "keyword3"],
+  "Balances": {
+    "98O1_xqDLrBKRfQPWjF5p7xZ4Jx6GM8P5PeJn26xwUY": 1
+  },
   "Logo": "Sie_26dvgyok0PZD_-iQAFOhOd5YxDTkczOLoqTTL_A",
-  "Denomination": 0,
-  "Name": "ar.io Foundation",
-  "Owner": "98O1_xqDLrBKRfQPWjF5p7xZ4Jx6GM8P5PeJn26xwUY"
+  "TotalSupply": 1,
+  "Initialized": true
 }
 ```
 
 #### getOwner()
 
-Returns the owner of the configured ANT.
+Returns the owner of the configured ANT process.
 
 ```typescript
 const owner = await ant.getOwner();
@@ -25090,7 +25389,7 @@ const ticker = await ant.getTicker();
 
 #### getControllers()
 
-Returns the controllers of the configured ANT.
+Returns the controllers of the configured ANT process.
 
 ```typescript
 const controllers = await ant.getControllers();
@@ -25104,7 +25403,7 @@ const controllers = await ant.getControllers();
 
 #### getRecords()
 
-Returns all records on the configured ANT, including the required `@` record that resolve connected ArNS names.
+Returns all records on the configured ANT process, including the required `@` record that resolve connected ArNS names.
 
 ```typescript
 const records = await ant.getRecords();
@@ -25116,24 +25415,32 @@ const records = await ant.getRecords();
 {
   "@": {
     "transactionId": "UyC5P5qKPZaltMmmZAWdakhlDXsBF6qmyrbWYFchRTk",
-    "ttlSeconds": 3600
+    "ttlSeconds": 3600,
+    "targetProtocol": 0,
+    "index": 0
   },
   "alice": {
     "transactionId": "kMk95k_3R8x_7d3wB9tEOiL5v6n8QhR_VnFCh3aeE3f",
     "ttlSeconds": 900,
+    "targetProtocol": 0,
     "owner": "alice-wallet-address-123...",
     "displayName": "Alice's Portfolio",
     "logo": "avatar-tx-id-456...",
     "description": "Personal portfolio and blog",
-    "keywords": ["portfolio", "personal", "blog"]
+    "keywords": ["portfolio", "personal", "blog"],
+    "index": 1
   },
   "zed": {
     "transactionId": "-k7t8xMoB8hW482609Z9F4bTFMC3MnuW8bTvTyT8pFI",
-    "ttlSeconds": 900
+    "ttlSeconds": 900,
+    "targetProtocol": 0,
+    "index": 2
   },
   "ardrive": {
     "transactionId": "-cucucachoodwedwedoiwepodiwpodiwpoidpwoiedp",
-    "ttlSeconds": 900
+    "ttlSeconds": 900,
+    "targetProtocol": 0,
+    "index": 3
   }
 }
 ```
@@ -25143,7 +25450,7 @@ const records = await ant.getRecords();
 Returns a specific record by its undername.
 
 ```typescript
-const record = await ant.getRecord({ undername: 'dapp' });
+const record = await ant.getRecord({ undername: "dapp" });
 ```
 
 **Output:**
@@ -25152,6 +25459,7 @@ const record = await ant.getRecord({ undername: 'dapp' });
 {
   "transactionId": "432l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM",
   "ttlSeconds": 900,
+  "targetProtocol": 0,
   "owner": "alice-wallet-address-123...",
   "displayName": "Alice's Site",
   "logo": "avatar-tx-id-456...",
@@ -25162,48 +25470,10 @@ const record = await ant.getRecord({ undername: 'dapp' });
 
 # Static Methods (/sdks/ar-io-sdk/(ant-contracts)/static-methods)
 
-#### ANT.fork()
-
-Creates a new ANT (Metaplex Core NFT) from an existing one with the same state but potentially a different version. This is used for upgrading ANTs.
-
-```typescript
-const newMintAddress = await ANT.fork({
-  signer: signer,
-  antProcessId: 'existing-ant-mint-address',
-  // Optional: specify a specific module ID, defaults to latest from registry
-  module: 'new-module-id',
-  onSigningProgress: (event, payload) => {
-    console.log(`Fork progress: ${event}`);
-  },
-});
-
-console.log(`Forked ANT to new mint: ${newMintAddress}`);
-```
-
-#### ANT.upgrade()
-
-Static method to upgrade an ANT by forking it to the latest version and reassigning names.
-
-```typescript
-// Upgrade and reassign all affiliated names
-const result = await ANT.upgrade({
-  signer: signer,
-  antProcessId: 'existing-ant-mint-address',
-  reassignAffiliatedNames: true,
-});
-
-// Upgrade and reassign specific names
-const result = await ANT.upgrade({
-  signer: signer,
-  antProcessId: 'existing-ant-mint-address',
-  names: ['ardrive', 'example'],
-  reassignAffiliatedNames: false,
-});
-
-console.log(`Upgraded to process: ${result.forkedProcessId}`);
-console.log(`Successfully reassigned names: ${Object.keys(result.reassignedNames)}`);
-console.log(`Failed reassignments: ${Object.keys(result.failedReassignedNames)}`);
-```
+`ANT.fork()` and the static `ANT.upgrade()` were AO-only (process
+forking + name reassignment). On Solana, schema migration is a
+per-asset CPI exposed as the instance method `ant.upgrade()` documented
+above; new ANTs are created with `ANT.spawn()`.
 
 # Transfer (/sdks/ar-io-sdk/(ant-contracts)/transfer)
 
@@ -25215,9 +25485,9 @@ _Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
 
 ```typescript
 const { id: txId } = await ant.transfer(
-  { target: 'aGzM_yjralacHIUo8_nQXMbh9l1cy0aksiL_x9M359f' },
+  { target: "aGzM_yjralacHIUo8_nQXMbh9l1cy0aksiL_x9M359f" },
   // optional additional tags
-  { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+  { tags: [{ name: "App-Name", value: "My-Awesome-App" }] },
 );
 ```
 
@@ -25239,8 +25509,8 @@ _Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
 
 ```typescript
 const { id: txId } = await ant.transferRecord({
-  undername: 'alice', // the subdomain/record to transfer
-  recipient: 'new-owner-address-123...', // address of the new owner
+  undername: "alice", // the subdomain/record to transfer
+  recipient: "new-owner-address-123...", // address of the new owner
 });
 
 // alice_ardrive.ar.io is now owned by the new owner address
@@ -25262,7 +25532,7 @@ ar.io transfer-record \
 **Checking Record Ownership:**
 
 ```typescript
-const record = await ant.getRecord({ undername: 'alice' });
+const record = await ant.getRecord({ undername: "alice" });
 console.log(`Record owner: ${record.owner}`);
 console.log(`Transaction ID: ${record.transactionId}`);
 ```
@@ -25271,35 +25541,37 @@ console.log(`Transaction ID: ${record.transactionId}`);
 
 ```typescript
 // Alice (record owner) updating her own record
-const aliceAnt = ANT.init({
-  processId: 'ANT_PROCESS_ID',
-  signer: aliceSigner, // Alice's Solana wallet
+const aliceAnt = await ANT.init({
+  processId: 'ANT_MINT_PUBKEY',
+  rpc,
+  rpcSubscriptions,
+  signer: aliceSigner, // Alice's @solana/kit signer
 });
 
 // ✅ CORRECT: Alice includes her own address as owner
 const { id: txId } = await aliceAnt.setUndernameRecord({
-  undername: 'alice',
-  transactionId: 'new-content-tx-id-456...',
+  undername: "alice",
+  transactionId: "new-content-tx-id-456...",
   ttlSeconds: 1800,
-  owner: 'alice-wallet-address-123...', // MUST be Alice's own address
-  displayName: 'Alice Updated Portfolio',
-  description: 'Updated personal portfolio and blog',
+  owner: "alice-wallet-address-123...", // MUST be Alice's own address
+  displayName: "Alice Updated Portfolio",
+  description: "Updated personal portfolio and blog",
 });
 
 // ❌ WRONG: Omitting owner field will renounce ownership
 const badUpdate = await aliceAnt.setUndernameRecord({
-  undername: 'alice',
-  transactionId: 'new-content-tx-id-456...',
+  undername: "alice",
+  transactionId: "new-content-tx-id-456...",
   ttlSeconds: 1800,
   // Missing owner field - this will renounce ownership!
 });
 
 // ❌ WRONG: Setting different owner will transfer ownership
 const badTransfer = await aliceAnt.setUndernameRecord({
-  undername: 'alice',
-  transactionId: 'new-content-tx-id-456...',
+  undername: "alice",
+  transactionId: "new-content-tx-id-456...",
   ttlSeconds: 1800,
-  owner: 'someone-else-address-789...', // This transfers ownership to someone else!
+  owner: "someone-else-address-789...", // This transfers ownership to someone else!
 });
 ```
 
@@ -25309,19 +25581,19 @@ If a record owner updates their record without including the `owner` field, the 
 
 ```typescript
 // Before: alice record is owned by alice-wallet-address-123...
-const recordBefore = await ant.getRecord({ undername: 'alice' });
+const recordBefore = await ant.getRecord({ undername: "alice" });
 console.log(recordBefore.owner); // "alice-wallet-address-123..."
 
 // Alice updates without owner field
 await aliceAnt.setUndernameRecord({
-  undername: 'alice',
-  transactionId: 'new-tx-id...',
+  undername: "alice",
+  transactionId: "new-tx-id...",
   ttlSeconds: 900,
   // No owner field = renounces ownership
 });
 
 // After: record ownership reverts to ANT owner
-const recordAfter = await ant.getRecord({ undername: 'alice' });
+const recordAfter = await ant.getRecord({ undername: "alice" });
 console.log(recordAfter.owner); // undefined (controlled by ANT owner again)
 ```
 
@@ -25329,60 +25601,22 @@ console.log(recordAfter.owner); // undefined (controlled by ANT owner again)
 
 #### upgrade()
 
-Upgrades an ANT to the latest version and optionally reassigns ArNS names. On Solana, this uses the `migrate_ant` instruction with `realloc` to update the ANT's onchain schema. This function checks the version of the existing ANT and performs the necessary migration.
-
-_Note: Requires `signer` to be provided on `ANT.init` to sign the transaction._
+Migrates this ANT's on-chain state to the latest schema version (per-
+ANT data migration on Solana — no process forking, no name
+reassignment). Returns `{ id, needsMigration }`.
 
 ```typescript
-// Upgrade ANT and reassign all affiliated ArNS names to the new process
 const result = await ant.upgrade();
-
-// Upgrade ANT and reassign specific ArNS names to the new process
-const result = await ant.upgrade({
-  names: ['ardrive', 'example'],
-});
-
-// with callbacks
-const result = await ant.upgrade({
-  names: ['ardrive', 'example'],
-  onSigningProgress: (event, payload) => {
-    console.log(`${event}:`, payload);
-    if (event === 'checking-version') {
-      console.log(`Checking version: ${payload.antProcessId}`);
-    }
-    if (event === 'fetching-affiliated-names') {
-      console.log(`Fetching affiliated names: ${payload.arioProcessId}`);
-    }
-    if (event === 'reassigning-name') {
-      console.log(`Reassigning name: ${payload.name}`);
-    }
-    if (event === 'validating-names') {
-      console.log(`Validating names: ${payload.names}`);
-    }
-    // other callback events...
-  },
-});
-
-console.log(`Upgraded to process: ${result.forkedProcessId}`);
-console.log(`Successfully reassigned names: ${result.reassignedNames}`);
-console.log(`Failed to reassign names: ${result.failedReassignedNames}`);
+if (result.needsMigration) {
+  console.log(`Migrated: ${result.id}`);
+}
 ```
-
-**Parameters:**
-
-- `reassignAffiliatedNames?: boolean` - If true, reassigns all names associated with this process to the new forked process (defaults to true when names is empty)
-- `names?: string[]` - Optional array of specific names to reassign (cannot be used with `reassignAffiliatedNames: true`). These names must be affiliated with this ANT on the provided ARIO program.
-- `arioProcessId?: string` - Optional ARIO program address (defaults to mainnet)
-- `skipVersionCheck?: boolean` - Skip checking if ANT is already latest version (defaults to false)
-- `onSigningProgress?: Function` - Optional progress callback for tracking upgrade steps
-
-**Returns:** `Promise, failedReassignedNames: Record }>`
 
 # Versions (/sdks/ar-io-sdk/(ant-contracts)/versions)
 
 #### getModuleId()
 
-Gets the module ID of the current ANT by querying its spawn transaction tags. Results are cached after the first successful fetch.
+Gets the module ID of the current ANT process by querying its spawn transaction tags. Results are cached after the first successful fetch.
 
 ```typescript
 const moduleId = await ant.getModuleId();
@@ -25390,8 +25624,8 @@ console.log(`ANT was spawned with module: ${moduleId}`);
 
 // With custom GraphQL URL and retries
 const moduleId = await ant.getModuleId({
-  graphqlUrl: 'https://turbo-gateway.com/graphql',
-  retries: 5
+  graphqlUrl: "https://turbo-gateway.com/graphql",
+  retries: 5,
 });
 ```
 
@@ -25411,7 +25645,7 @@ console.log(`ANT is running version: ${version}`);
 
 // With custom ANT registry
 const version = await ant.getVersion({
-  antRegistryId: 'custom-ant-registry-id'
+  antRegistryId: "custom-ant-registry-id",
 });
 ```
 
@@ -25428,7 +25662,7 @@ Checks if the current ANT version is the latest according to the ANT registry.
 ```typescript
 const isLatest = await ant.isLatestVersion();
 if (!isLatest) {
-  console.log('ANT can be upgraded to the latest version');
+  console.log("ANT can be upgraded to the latest version");
 }
 ```
 
@@ -25438,105 +25672,49 @@ if (!isLatest) {
 true
 ```
 
-#### getANTVersions
-
-Static method that returns the full array of available ANT versions and the latest version from the ANT registry.
-
-```typescript
-
-// Get all available ANT versions
-const antVersions = ANT.versions;
-const versions = await antVersions.getANTVersions();
-```
-
-Result:
-
-```json
-{
-  [
-    {
-      "moduleId": "FKtQtOOtlcWCW2pXrwWFiCSlnuewMZOHCzhulVkyqBE",
-      "version": "23",
-      "releaseNotes": "Initial release of the ANT module.",
-      "releaseDate": 1700000000000
-    }
-    // ...other versions
-  ],
-}
-```
-
-#### getLatestANTVersion()
-
-Static method that returns the latest ANT version from the ANT registry.
-
-```typescript
-
-// Get the latest ANT version
-
-// Get all available ANT versions
-const antVersions = ANT.versions;
-const versions = await antVersions.getANTVersions();
-const latestVersion = await antVersions.getLatestANTVersion();
-```
-
-Result:
-
-```json
-{
-  "moduleId": "FKtQtOOtlcWCW2pXrwWFiCSlnuewMZOHCzhulVkyqBE",
-  "version": "23",
-  "releaseNotes": "Initial release of the ANT module.",
-  "releaseDate": 1700000000000
-}
-```
-
-# Ar.io Name System (ArNS) (/sdks/ar-io-sdk/(ario-contract)/arweave-name-system-arns)
-
-**Field naming note:** API responses use `processId` to refer to the ANT identifier. On Solana, this is the ANT's Metaplex Core NFT **mint address**.
+# Arweave Name System (ArNS) (/sdks/ar-io-sdk/(ario-contract)/arweave-name-system-arns)
 
 #### resolveArNSName()
 
-Resolves an ArNS name to the underlying data id stored on the name's corresponding ANT.
+Resolves an ArNS name to the underlying data id stored on the names corresponding ANT id.
 
 ##### Resolving a base name
 
 ```typescript
-const ario = ARIO.mainnet();
-const record = await ario.resolveArNSName({ name: 'ardrive' });
+const ario = ARIO.init({ rpc });
+const record = await ario.resolveArNSName({ name: "ardrive" });
 ```
 
 **Output:**
 
 ```json
 {
+  "name": "ardrive",
   "processId": "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM",
   "txId": "kvhEUsIY5bXe0Wu2-YUFz20O078uYFzmQIO-7brv8qw",
   "type": "lease",
-  "recordIndex": 0,
-  "undernameLimit": 100,
-  "owner": "t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3",
-  "name": "ardrive"
+  "ttlSeconds": 3600,
+  "undernameLimit": 100
 }
 ```
 
 ##### Resolving an undername
 
 ```typescript
-const ario = ARIO.mainnet();
-const record = await ario.resolveArNSName({ name: 'logo_ardrive' });
+const ario = ARIO.init({ rpc });
+const record = await ario.resolveArNSName({ name: "logo_ardrive" });
 ```
 
 **Output:**
 
 ```json
 {
+  "name": "ardrive",
   "processId": "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM",
   "txId": "kvhEUsIY5bXe0Wu2-YUFz20O078uYFzmQIO-7brv8qw",
   "type": "lease",
-  "recordIndex": 1,
-  "undernameLimit": 100,
-  "owner": "t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3",
-  "name": "ardrive"
+  "ttlSeconds": 3600,
+  "undernameLimit": 100
 }
 ```
 
@@ -25550,36 +25728,36 @@ _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 - `name` - _required_: the name of the ArNS record to purchase
 - `type` - _required_: the type of ArNS record to purchase
-- `processId` - _optional_: the mint address of an existing ANT (Metaplex Core NFT). If not provided, a new ANT will be minted using the provided `signer`, and the ArNS record will be assigned to it.
+- `processId` - _optional_: the process id of an existing ANT process. If not provided, a new ANT process using the provided `signer` will be spawned, and the ArNS record will be assigned to that process.
 - `years` - _optional_: the duration of the ArNS record in years. If not provided and `type` is `lease`, the record will be leased for 1 year. If not provided and `type` is `permabuy`, the record will be permanently registered.
 - `referrer` - _optional_: track purchase referrals for analytics (e.g. `my-app.com`)
 
 ```typescript
-const ario = ARIO.mainnet({ signer });
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
 const record = await ario.buyRecord(
   {
-    name: 'ardrive',
-    type: 'lease',
+    name: "ardrive",
+    type: "lease",
     years: 1,
-    processId: 'bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM', // optional: assign to existing ANT mint address
-    referrer: 'my-app.com', // optional: track purchase referrals for analytics
+    processId: "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM", // optional: assign to existing ANT process
+    referrer: "my-app.com", // optional: track purchase referrals for analytics
   },
   {
     // optional tags
-    tags: [{ name: 'App-Name', value: 'ArNS-App' }],
+    tags: [{ name: "App-Name", value: "ArNS-App" }],
     onSigningProgress: (step, event) => {
       console.log(`Signing progress: ${step}`);
-      if (step === 'minting-ant') {
-        console.log('Minting ANT:', event);
+      if (step === "spawning-ant") {
+        console.log("Spawning ant:", event);
       }
-      if (step === 'registering-ant') {
-        console.log('Registering ANT:', event);
+      if (step === "registering-ant") {
+        console.log("Registering ant:", event);
       }
-      if (step === 'verifying-state') {
-        console.log('Verifying state:', event);
+      if (step === "verifying-state") {
+        console.log("Verifying state:", event);
       }
-      if (step === 'buying-name') {
-        console.log('Buying name:', event);
+      if (step === "buying-name") {
+        console.log("Buying name:", event);
       }
     },
   },
@@ -25593,15 +25771,15 @@ Upgrades an existing leased ArNS record to a permanent ownership. The record mus
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer });
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
 const record = await ario.upgradeRecord(
   {
-    name: 'ardrive',
-    referrer: 'my-app.com', // optional: track purchase referrals for analytics
+    name: "ardrive",
+    referrer: "my-app.com", // optional: track purchase referrals for analytics
   },
   {
     // optional tags
-    tags: [{ name: 'App-Name', value: 'ArNS-App' }],
+    tags: [{ name: "App-Name", value: "ArNS-App" }],
   },
 );
 ```
@@ -25611,8 +25789,8 @@ const record = await ario.upgradeRecord(
 Retrieves the record info of the specified ArNS name.
 
 ```typescript
-const ario = ARIO.mainnet();
-const record = await ario.getArNSRecord({ name: 'ardrive' });
+const ario = ARIO.init({ rpc });
+const record = await ario.getArNSRecord({ name: "ardrive" });
 ```
 
 **Output:**
@@ -25620,24 +25798,25 @@ const record = await ario.getArNSRecord({ name: 'ardrive' });
 ```json
 {
   "processId": "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM",
-  "endTimestamp": 1752256702026,
   "startTimestamp": 1720720819969,
+  "endTimestamp": 1752256702026,
   "type": "lease",
-  "undernameLimit": 100
+  "undernameLimit": 100,
+  "purchasePrice": 75541282285
 }
 ```
 
 #### getArNSRecords()
 
-Retrieves all registered ArNS records of the ARIO protocol, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last ArNS name from the previous request.
+Retrieves all registered ArNS records of the ARIO process, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last ArNS name from the previous request.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 // get the newest 100 names
 const records = await ario.getArNSRecords({
   limit: 100,
-  sortBy: 'startTimestamp',
-  sortOrder: 'desc',
+  sortBy: "startTimestamp",
+  sortOrder: "desc",
 });
 ```
 
@@ -25649,7 +25828,7 @@ Available `sortBy` options are any of the keys on the record object, e.g. `name`
 {
   "items": [
     {
-      "name": "solana",
+      "name": "ao",
       "processId": "eNey-H9RB9uCdoJUvPULb35qhZVXZcEXv8xds4aHhkQ",
       "purchasePrice": 75541282285,
       "startTimestamp": 1720720621424,
@@ -25685,7 +25864,7 @@ Available `sortBy` options are any of the keys on the record object, e.g. `name`
       "undernameLimit": 100
     },
     {
-      "name": "backward",
+      "name": "fwd",
       "processId": "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM",
       "endTimestamp": 1720720819969,
       "startTimestamp": 1720720220811,
@@ -25696,7 +25875,7 @@ Available `sortBy` options are any of the keys on the record object, e.g. `name`
     // ...95 other records
   ],
   "hasMore": true,
-  "nextCursor": "helloCursor",
+  "nextCursor": "fwdresearch",
   "totalItems": 21740,
   "sortBy": "startTimestamp",
   "sortOrder": "desc"
@@ -25708,12 +25887,12 @@ Available `sortBy` options are any of the keys on the record object, e.g. `name`
 Retrieves all registered ArNS records of the specified address according to the `ANTRegistry` access control list, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last ArNS name from the previous request.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const records = await ario.getArNSRecordsForAddress({
-  address: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
+  address: "t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3",
   limit: 100,
-  sortBy: 'startTimestamp',
-  sortOrder: 'desc',
+  sortBy: "startTimestamp",
+  sortOrder: "desc",
 });
 ```
 
@@ -25750,15 +25929,15 @@ Increases the undername support of a domain up to a maximum of 10k. Domains, by 
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer: signer });
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
 const { id: txId } = await ario.increaseUndernameLimit(
   {
-    name: 'ar-io',
+    name: "ar-io",
     qty: 420,
-    referrer: 'my-app.com', // optional: track purchase referrals for analytics
+    referrer: "my-app.com", // optional: track purchase referrals for analytics
   },
   // optional additional tags
-  { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+  { tags: [{ name: "App-Name", value: "My-Awesome-App" }] },
 );
 ```
 
@@ -25767,15 +25946,15 @@ const { id: txId } = await ario.increaseUndernameLimit(
 Extends the lease of a registered ArNS domain, with an extension of 1-5 years depending on grace period status. Permanently registered domains cannot be extended.
 
 ```typescript
-const ario = ARIO.mainnet({ signer: signer });
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
 const { id: txId } = await ario.extendLease(
   {
-    name: 'ar-io',
+    name: "ar-io",
     years: 1,
-    referrer: 'my-app.com', // optional: track purchase referrals for analytics
+    referrer: "my-app.com", // optional: track purchase referrals for analytics
   },
   // optional additional tags
-  { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+  { tags: [{ name: "App-Name", value: "My-Awesome-App" }] },
 );
 ```
 
@@ -25786,9 +25965,9 @@ Calculates the price in mARIO to perform the interaction in question, eg a 'Buy-
 ```typescript
 const price = await ario
   .getTokenCost({
-    intent: 'Buy-Name',
-    name: 'ar-io',
-    type: 'permabuy',
+    intent: "Buy-Name",
+    name: "ar-io",
+    type: "permabuy",
   })
   .then((p) => new mARIOToken(p).toARIO()); // convert to ARIO for readability
 ```
@@ -25805,11 +25984,11 @@ Calculates the expanded cost details for the interaction in question, e.g a 'Buy
 
 ```typescript
 const costDetails = await ario.getCostDetails({
-  intent: 'Buy-Name',
-  fromAddress: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
-  fundFrom: 'stakes',
-  name: 'ar-io',
-  type: 'permabuy',
+  intent: "Buy-Name",
+  fromAddress: "t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3",
+  fundFrom: "stakes",
+  name: "ar-io",
+  type: "permabuy",
 });
 ```
 
@@ -25817,19 +25996,14 @@ const costDetails = await ario.getCostDetails({
 
 ```json
 {
-  "tokenCost": 2384252273,
-  "fundingPlan": {
-    "address": "t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3",
-    "balance": 0,
-    "stakes": {
-      "Rc80LG6h27Y3p9TN6J5hwDeG5M51cu671YwZpU9uAVE": {
-        "vaults": [],
-        "delegatedStake": 2384252273
-      }
-    },
-    "shortfall": 0
-  },
-  "discounts": []
+  "tokenCost": 1907401818,
+  "discounts": [
+    {
+      "name": "Gateway Operator",
+      "discountTotal": 476850455,
+      "multiplier": 0.8
+    }
+  ]
 }
 ```
 
@@ -25838,7 +26012,7 @@ const costDetails = await ario.getCostDetails({
 Retrieves the current demand factor of the network. The demand factor is a multiplier applied to the cost of ArNS interactions based on the current network demand.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const demandFactor = await ario.getDemandFactor();
 ```
 
@@ -25850,14 +26024,14 @@ const demandFactor = await ario.getDemandFactor();
 
 #### getArNSReturnedNames()
 
-Retrieves all active returned names of the ARIO protocol, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last returned name from the previous request.
+Retrieves all active returned names of the ARIO process, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last returned name from the previous request.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const returnedNames = await ario.getArNSReturnedNames({
   limit: 100,
-  sortBy: 'endTimestamp',
-  sortOrder: 'asc', // return the returned names ending soonest first
+  sortBy: "endTimestamp",
+  sortOrder: "asc", // return the returned names ending soonest first
 });
 ```
 
@@ -25868,21 +26042,15 @@ const returnedNames = await ario.getArNSReturnedNames({
   "items": [
     {
       "name": "permalink",
-      "endTimestamp": 1730985241349,
       "startTimestamp": 1729775641349,
-      "baseFee": 250000000,
-      "demandFactor": 1.05256,
+      "endTimestamp": 1730985241349,
       "initiator": "GaQrvEMKBpkjofgnBi_B3IgIDmY_XYelVLB6GcRGrHc",
-      "settings": {
-        "durationMs": 1209600000,
-        "decayRate": 0.000000000016847809193121693,
-        "scalingExponent": 190,
-        "startPriceMultiplier": 50
-      }
+      "premiumMultiplier": 50
     }
   ],
   "hasMore": false,
   "totalItems": 1,
+  "limit": 100,
   "sortBy": "endTimestamp",
   "sortOrder": "asc"
 }
@@ -25893,8 +26061,8 @@ const returnedNames = await ario.getArNSReturnedNames({
 Retrieves the returned name data for the specified returned name.
 
 ```typescript
-const ario = ARIO.mainnet();
-const returnedName = await ario.getArNSReturnedName({ name: 'permalink' });
+const ario = ARIO.init({ rpc });
+const returnedName = await ario.getArNSReturnedName({ name: "permalink" });
 ```
 
 **Output:**
@@ -25902,50 +26070,18 @@ const returnedName = await ario.getArNSReturnedName({ name: 'permalink' });
 ```json
 {
   "name": "permalink",
-  "endTimestamp": 1730985241349,
   "startTimestamp": 1729775641349,
-  "baseFee": 250000000,
-  "demandFactor": 1.05256,
+  "endTimestamp": 1730985241349,
   "initiator": "GaQrvEMKBpkjofgnBi_B3IgIDmY_XYelVLB6GcRGrHc",
-  "settings": {
-    "durationMs": 1209600000,
-    "decayRate": 0.000000000016847809193121693,
-    "scalingExponent": 190,
-    "startPriceMultiplier": 50
-  }
+  "premiumMultiplier": 50
 }
 ```
 
 # Configuration (/sdks/ar-io-sdk/(ario-contract)/configuration)
 
-**Solana support requires `@ar.io/sdk` version 3.23 or later.** Use the latest SDK version for current protocol interactions.
-
-The ARIO client class exposes APIs relevant to the ar.io protocol. By default, `ARIO.mainnet()` connects to the Solana mainnet cluster. You can provide a custom Solana RPC URL for different environments or infrastructure providers.
-
-### Installation
-
-```bash
-npm install @ar.io/sdk @solana/kit
-```
-
-### Basic Usage
-
-```typescript
-
-// default Solana mainnet connection
-const ario = ARIO.mainnet();
-
-// custom Solana RPC endpoint (recommended for production)
-const ario = ARIO.mainnet({
-  rpcUrl: 'https://your-rpc-provider.com',
-});
-```
-
-The default public Solana RPC (`api.mainnet-beta.solana.com`) is rate-limited and may block certain queries. For production use, configure a dedicated RPC provider such as [Helius](https://helius.dev), [Triton](https://triton.one), or [QuickNode](https://quicknode.com).
-
-### Transaction Fees
-
-All write operations (staking, delegating, registering names, setting records) require a small amount of **SOL** for Solana transaction fees — typically less than 0.01 SOL per transaction.
+`ARIO.init` accepts a `@solana/kit` RPC client plus optional program ID
+overrides for non-mainnet clusters. See [Networks](#networks) above for
+the full shape.
 
 # Epochs (/sdks/ar-io-sdk/(ario-contract)/epochs)
 
@@ -25954,7 +26090,7 @@ All write operations (staking, delegating, registering names, setting records) r
 Returns the current epoch data.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const epoch = await ario.getCurrentEpoch();
 ```
 
@@ -25963,62 +26099,9 @@ const epoch = await ario.getCurrentEpoch();
 ```json
 {
   "epochIndex": 0,
+  "startHeight": 0,
   "startTimestamp": 1720720621424,
   "endTimestamp": 1752256702026,
-  "startHeight": 1350700,
-  "distributionTimestamp": 1711122739,
-  "observations": {
-    "failureSummaries": {
-      "-Tk2DDk8k4zkwtppp_XFKKI5oUgh6IEHygAoN7mD-w8": [
-        "Ie2wEEUDKoU26c7IuckHNn3vMFdNQnMvfPBrFzAb3NA"
-      ]
-    },
-    "reports": {
-      "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs": "B6UUjKWjjEWDBvDSMXWNmymfwvgR9EN27z5FTkEVlX4"
-    }
-  },
-  "prescribedNames": ["ardrive", "ar-io", "arweave", "fwd", "ao"],
-  "prescribedObservers": [
-    {
-      "gatewayAddress": "2Fk8lCmDegPg6jjprl57-UCpKmNgYiKwyhkU4vMNDnE",
-      "observerAddress": "2Fk8lCmDegPg6jjprl57-UCpKmNgYiKwyhkU4vMNDnE",
-      "stake": 10000000000,
-      "start": 1292450,
-      "stakeWeight": 1,
-      "tenureWeight": 0.4494598765432099,
-      "gatewayPerformanceRatio": 1,
-      "observerRewardRatioWeight": 1,
-      "compositeWeight": 0.4494598765432099,
-      "normalizedCompositeWeight": 0.002057032496835938
-    }
-  ],
-  "distributions": {
-    "distributedTimestamp": 1711122739,
-    "totalEligibleRewards": 100000000,
-    "rewards": {
-      "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs": 100000000
-    }
-  }
-}
-```
-
-#### getEpoch()
-
-Returns the epoch data for the specified block height. If no epoch index is provided, the current epoch is used.
-
-```typescript
-const ario = ARIO.mainnet();
-const epoch = await ario.getEpoch({ epochIndex: 0 });
-```
-
-**Output:**
-
-```json
-{
-  "epochIndex": 0,
-  "startTimestamp": 1720720620813,
-  "endTimestamp": 1752256702026,
-  "startHeight": 1350700,
   "distributionTimestamp": 1752256702026,
   "observations": {
     "failureSummaries": {
@@ -26035,11 +26118,13 @@ const epoch = await ario.getEpoch({ epochIndex: 0 });
     {
       "gatewayAddress": "2Fk8lCmDegPg6jjprl57-UCpKmNgYiKwyhkU4vMNDnE",
       "observerAddress": "2Fk8lCmDegPg6jjprl57-UCpKmNgYiKwyhkU4vMNDnE",
-      "stake": 10000000000, // value in mARIO
-      "startTimestamp": 1720720620813,
+      "stake": 10000000000,
+      "startTimestamp": 1720720621424,
       "stakeWeight": 1,
       "tenureWeight": 0.4494598765432099,
       "gatewayPerformanceRatio": 1,
+      "observerPerformanceRatio": 1,
+      "gatewayRewardRatioWeight": 1,
       "observerRewardRatioWeight": 1,
       "compositeWeight": 0.4494598765432099,
       "normalizedCompositeWeight": 0.002057032496835938
@@ -26049,14 +26134,73 @@ const epoch = await ario.getEpoch({ epochIndex: 0 });
     "totalEligibleGateways": 1,
     "totalEligibleRewards": 100000000,
     "totalEligibleObserverReward": 100000000,
-    "totalEligibleGatewayReward": 100000000,
-    "totalDistributedRewards": 100000000,
-    "distributedTimestamp": 1720720621424,
-    "rewards": {
-      "distributed": {
-        "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs": 100000000
-      }
+    "totalEligibleGatewayReward": 100000000
+  },
+  "arnsStats": {
+    "totalReturnedNames": 0,
+    "totalActiveNames": 0,
+    "totalGracePeriodNames": 0,
+    "totalReservedNames": 0
+  }
+}
+```
+
+#### getEpoch()
+
+Returns the epoch data for the specified block height. If no epoch index is provided, the current epoch is used.
+
+```typescript
+const ario = ARIO.init({ rpc });
+const epoch = await ario.getEpoch({ epochIndex: 0 });
+```
+
+**Output:**
+
+```json
+{
+  "epochIndex": 0,
+  "startHeight": 0,
+  "startTimestamp": 1720720620813,
+  "endTimestamp": 1752256702026,
+  "distributionTimestamp": 1752256702026,
+  "observations": {
+    "failureSummaries": {
+      "-Tk2DDk8k4zkwtppp_XFKKI5oUgh6IEHygAoN7mD-w8": [
+        "Ie2wEEUDKoU26c7IuckHNn3vMFdNQnMvfPBrFzAb3NA"
+      ]
+    },
+    "reports": {
+      "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs": "B6UUjKWjjEWDBvDSMXWNmymfwvgR9EN27z5FTkEVlX4"
     }
+  },
+  "prescribedNames": ["ardrive", "ar-io", "arweave", "fwd", "ao"],
+  "prescribedObservers": [
+    {
+      "gatewayAddress": "2Fk8lCmDegPg6jjprl57-UCpKmNgYiKwyhkU4vMNDnE",
+      "observerAddress": "2Fk8lCmDegPg6jjprl57-UCpKmNgYiKwyhkU4vMNDnE",
+      "stake": 10000000000,
+      "startTimestamp": 1720720620813,
+      "stakeWeight": 1,
+      "tenureWeight": 0.4494598765432099,
+      "gatewayPerformanceRatio": 1,
+      "observerPerformanceRatio": 1,
+      "gatewayRewardRatioWeight": 1,
+      "observerRewardRatioWeight": 1,
+      "compositeWeight": 0.4494598765432099,
+      "normalizedCompositeWeight": 0.002057032496835938
+    }
+  ],
+  "distributions": {
+    "totalEligibleGateways": 1,
+    "totalEligibleRewards": 100000000,
+    "totalEligibleObserverReward": 100000000,
+    "totalEligibleGatewayReward": 100000000
+  },
+  "arnsStats": {
+    "totalReturnedNames": 0,
+    "totalActiveNames": 0,
+    "totalGracePeriodNames": 0,
+    "totalReservedNames": 0
   }
 }
 ```
@@ -26066,7 +26210,7 @@ const epoch = await ario.getEpoch({ epochIndex: 0 });
 Returns the eligible epoch rewards for the specified block height. If no epoch index is provided, the current epoch is used.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const rewards = await ario.getEligibleEpochRewards({ epochIndex: 0 });
 ```
 
@@ -26097,7 +26241,7 @@ const rewards = await ario.getEligibleEpochRewards({ epochIndex: 0 });
 Returns the epoch-indexed observation list. If no epoch index is provided, the current epoch is used.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const observations = await ario.getObservations();
 ```
 
@@ -26105,19 +26249,16 @@ const observations = await ario.getObservations();
 
 ```json
 {
-  "0": {
-    "failureSummaries": {
-      "-Tk2DDk8k4zkwtppp_XFKKI5oUgh6IEHygAoN7mD-w8": [
-        "Ie2wEEUDKoU26c7IuckHNn3vMFdNQnMvfPBrFzAb3NA",
-        "Ie2wEEUDKoU26c7IuckHNn3vMFdNQnMvfPBrFzAb3NA"
-      ]
-    },
-    "reports": {
-      "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs": "B6UUjKWjjEWDBvDSMXWNmymfwvgR9EN27z5FTkEVlX4",
-      "Ie2wEEUDKoU26c7IuckHNn3vMFdNQnMvfPBrFzAb3NA": "7tKsiQ2fxv0D8ZVN_QEv29fZ8hwFIgHoEDrpeEG0DIs",
-      "osZP4D9cqeDvbVFBaEfjIxwc1QLIvRxUBRAxDIX9je8": "aatgznEvC_UPcxp1v0uw_RqydhIfKm4wtt1KCpONBB0",
-      "qZ90I67XG68BYIAFVNfm9PUdM7v1XtFTn7u-EOZFAtk": "Bd8SmFK9-ktJRmwIungS8ur6JM-JtpxrvMtjt5JkB1M"
-    }
+  "failureSummaries": {
+    "-Tk2DDk8k4zkwtppp_XFKKI5oUgh6IEHygAoN7mD-w8": [
+      "Ie2wEEUDKoU26c7IuckHNn3vMFdNQnMvfPBrFzAb3NA"
+    ]
+  },
+  "reports": {
+    "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs": "B6UUjKWjjEWDBvDSMXWNmymfwvgR9EN27z5FTkEVlX4",
+    "Ie2wEEUDKoU26c7IuckHNn3vMFdNQnMvfPBrFzAb3NA": "7tKsiQ2fxv0D8ZVN_QEv29fZ8hwFIgHoEDrpeEG0DIs",
+    "osZP4D9cqeDvbVFBaEfjIxwc1QLIvRxUBRAxDIX9je8": "aatgznEvC_UPcxp1v0uw_RqydhIfKm4wtt1KCpONBB0",
+    "qZ90I67XG68BYIAFVNfm9PUdM7v1XtFTn7u-EOZFAtk": "Bd8SmFK9-ktJRmwIungS8ur6JM-JtpxrvMtjt5JkB1M"
   }
 }
 ```
@@ -26127,7 +26268,7 @@ const observations = await ario.getObservations();
 Returns the current rewards distribution information. If no epoch index is provided, the current epoch is used.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const distributions = await ario.getDistributions({ epochIndex: 0 });
 ```
 
@@ -26138,20 +26279,7 @@ const distributions = await ario.getDistributions({ epochIndex: 0 });
   "totalEligibleGateways": 1,
   "totalEligibleRewards": 100000000,
   "totalEligibleObserverReward": 100000000,
-  "totalEligibleGatewayReward": 100000000,
-  "totalDistributedRewards": 100000000,
-  "distributedTimestamp": 1720720621424,
-  "rewards": {
-    "eligible": {
-      "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs": {
-        "operatorReward": 100000000,
-        "delegateRewards": {}
-      }
-    },
-    "distributed": {
-      "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs": 100000000
-    }
-  }
+  "totalEligibleGatewayReward": 100000000
 }
 ```
 
@@ -26162,24 +26290,24 @@ Saves the observations of the current epoch. Requires `signer` to be provided on
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer });
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
 const { id: txId } = await ario.saveObservations(
   {
-    reportTxId: 'fDrr0_J4Iurt7caNST02cMotaz2FIbWQ4Kcj616RHl3',
-    failedGateways: ['t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3'],
+    reportTxId: "fDrr0_J4Iurt7caNST02cMotaz2FIbWQ4Kcj616RHl3",
+    failedGateways: ["t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3"],
   },
   {
-    tags: [{ name: 'App-Name', value: 'My-Awesome-App' }],
+    tags: [{ name: "App-Name", value: "My-Awesome-App" }],
   },
 );
 ```
 
 #### getPrescribedObservers()
 
-Retrieves the prescribed observers of the ARIO protocol. To fetch prescribed observers for a previous epoch set the `epochIndex` to the desired epoch index.
+Retrieves the prescribed observers of the ARIO process. To fetch prescribed observers for a previous epoch set the `epochIndex` to the desired epoch index.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const observers = await ario.getPrescribedObservers({ epochIndex: 0 });
 ```
 
@@ -26190,17 +26318,53 @@ const observers = await ario.getPrescribedObservers({ epochIndex: 0 });
   {
     "gatewayAddress": "BpQlyhREz4lNGS-y3rSS1WxADfxPpAuing9Lgfdrj2U",
     "observerAddress": "2Fk8lCmDegPg6jjprl57-UCpKmNgYiKwyhkU4vMNDnE",
-    "stake": 10000000000, // value in mARIO
-    "start": 1296976,
+    "stake": 10000000000,
+    "startTimestamp": 1720720620813,
     "stakeWeight": 1,
     "tenureWeight": 0.41453703703703704,
     "gatewayPerformanceRatio": 1,
+    "observerPerformanceRatio": 1,
+    "gatewayRewardRatioWeight": 1,
     "observerRewardRatioWeight": 1,
     "compositeWeight": 0.41453703703703704,
     "normalizedCompositeWeight": 0.0018972019546783507
   }
 ]
 ```
+
+#### crankEpochStep()
+
+High-level, permissionless epoch crank. Advances the epoch lifecycle by **one
+step per call** and returns the action it took — run it on a loop (this is what
+the standalone cranker and the observer-embedded cranker do). It owns the whole
+sequence so you don't orchestrate the individual instructions yourself:
+
+`create` → `tally` → `prescribe` → `distribute` → `close` — closing an epoch's
+observation PDAs first (`close_observation`) so `close_epoch` doesn't revert —
+plus an idle-tail of permissionless maintenance: `compound` delegate rewards,
+`update_demand_factor`, and `prune_returned_names`. The close path is
+non-wedging: a cleanup failure never blocks creation of the next epoch.
+
+```typescript
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
+
+// one step
+const result = await ario.crankEpochStep();
+// → { action, epochIndex?, txId?, progress? }
+//   action ∈ create | tally | prescribe | distribute | close
+//          | close_observation | compound | update_demand_factor
+//          | prune_returned_names | idle
+
+// or drive it on an interval
+setInterval(async () => {
+  const r = await ario.crankEpochStep();
+  if (r.action !== 'idle') console.log(r.action, r.epochIndex, r.txId);
+}, 60_000);
+```
+
+All options are optional: `batchSize`, `enableClose`, `epochRetention`,
+`enableCompound`, `compoundMinPendingRewards`, `enableDemandFactorRoll`,
+`enablePrune`, `pruneBatchSize`, `nameRegistryAccount`.
 
 # Gateways (/sdks/ar-io-sdk/(ario-contract)/gateways)
 
@@ -26209,9 +26373,9 @@ const observers = await ario.getPrescribedObservers({ epochIndex: 0 });
 Retrieves a gateway's info by its staking wallet address.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const gateway = await ario.getGateway({
-  address: '-7vXsQZQDk8TMDlpiSLy3CnLi5PDPlAaN2DaynORpck',
+  address: "-7vXsQZQDk8TMDlpiSLy3CnLi5PDPlAaN2DaynORpck",
 });
 ```
 
@@ -26221,8 +26385,14 @@ const gateway = await ario.getGateway({
 {
   "observerAddress": "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs",
   "operatorStake": 250000000000,
+  "totalDelegatedStake": 0,
   "settings": {
-    "fqdn": "turbo-gateway.com",
+    "allowDelegatedStaking": true,
+    "allowedDelegates": [],
+    "autoStake": false,
+    "delegateRewardShareRatio": 10,
+    "minDelegatedStake": 100000000,
+    "fqdn": "ar-io.dev",
     "label": "ar.io Test",
     "note": "Test Gateway operated by PDS for the ar.io ecosystem.",
     "port": 443,
@@ -26230,36 +26400,40 @@ const gateway = await ario.getGateway({
     "protocol": "https"
   },
   "startTimestamp": 1720720620813,
+  "endTimestamp": 0,
   "stats": {
+    "passedConsecutiveEpochs": 30,
     "failedConsecutiveEpochs": 0,
-    "passedEpochCount": 30,
-    "submittedEpochCount": 30,
     "totalEpochCount": 31,
-    "totalEpochsPrescribedCount": 31
+    "passedEpochCount": 30,
+    "failedEpochCount": 1,
+    "observedEpochCount": 30,
+    "prescribedEpochCount": 31
   },
   "status": "joined",
-  "vaults": {},
   "weights": {
-    "compositeWeight": 0.97688888893556,
-    "gatewayPerformanceRatio": 1,
+    "stakeWeight": 5.02400000024,
     "tenureWeight": 0.19444444444444,
+    "gatewayPerformanceRatio": 1,
+    "observerPerformanceRatio": 1,
+    "gatewayRewardRatioWeight": 1,
     "observerRewardRatioWeight": 1,
-    "normalizedCompositeWeight": 0.19247316211083,
-    "stakeWeight": 5.02400000024
+    "compositeWeight": 0.97688888893556,
+    "normalizedCompositeWeight": 0.19247316211083
   }
 }
 ```
 
 #### getGateways()
 
-Retrieves registered gateways of the ARIO protocol, using pagination and sorting by the specified criteria. The `cursor` used for pagination is the last gateway address from the previous request.
+Retrieves registered gateways of the ARIO process, using pagination and sorting by the specified criteria. The `cursor` used for pagination is the last gateway address from the previous request.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const gateways = await ario.getGateways({
   limit: 100,
-  sortOrder: 'desc',
-  sortBy: 'operatorStake',
+  sortOrder: "desc",
+  sortBy: "operatorStake",
 });
 ```
 
@@ -26274,8 +26448,14 @@ Available `sortBy` options are any of the keys on the gateway object, e.g. `oper
       "gatewayAddress": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
       "observerAddress": "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs",
       "operatorStake": 250000000000,
+      "totalDelegatedStake": 0,
       "settings": {
-        "fqdn": "turbo-gateway.com",
+        "allowDelegatedStaking": true,
+        "allowedDelegates": [],
+        "autoStake": false,
+        "delegateRewardShareRatio": 10,
+        "minDelegatedStake": 100000000,
+        "fqdn": "ar-io.dev",
         "label": "ar.io Test",
         "note": "Test Gateway operated by PDS for the ar.io ecosystem.",
         "port": 443,
@@ -26283,28 +26463,33 @@ Available `sortBy` options are any of the keys on the gateway object, e.g. `oper
         "protocol": "https"
       },
       "startTimestamp": 1720720620813,
+      "endTimestamp": 0,
       "stats": {
+        "passedConsecutiveEpochs": 30,
         "failedConsecutiveEpochs": 0,
-        "passedEpochCount": 30,
-        "submittedEpochCount": 30,
         "totalEpochCount": 31,
-        "totalEpochsPrescribedCount": 31
+        "passedEpochCount": 30,
+        "failedEpochCount": 1,
+        "observedEpochCount": 30,
+        "prescribedEpochCount": 31
       },
       "status": "joined",
-      "vaults": {},
       "weights": {
-        "compositeWeight": 0.97688888893556,
-        "gatewayPerformanceRatio": 1,
+        "stakeWeight": 5.02400000024,
         "tenureWeight": 0.19444444444444,
+        "gatewayPerformanceRatio": 1,
+        "observerPerformanceRatio": 1,
+        "gatewayRewardRatioWeight": 1,
         "observerRewardRatioWeight": 1,
-        "normalizedCompositeWeight": 0.19247316211083,
-        "stakeWeight": 5.02400000024
+        "compositeWeight": 0.97688888893556,
+        "normalizedCompositeWeight": 0.19247316211083
       }
     }
   ],
   "hasMore": true,
   "nextCursor": "-4xgjroXENKYhTWqrBo57HQwvDL51mMdfsdsxJy6Y2Z_sA",
   "totalItems": 316,
+  "limit": 100,
   "sortBy": "operatorStake",
   "sortOrder": "desc"
 }
@@ -26315,12 +26500,12 @@ Available `sortBy` options are any of the keys on the gateway object, e.g. `oper
 Retrieves all delegates for a specific gateway, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last delegate address from the previous request.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const delegates = await ario.getGatewayDelegates({
-  address: 'QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ',
+  address: "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
   limit: 3,
-  sortBy: 'startTimestamp',
-  sortOrder: 'desc',
+  sortBy: "startTimestamp",
+  sortOrder: "desc",
 });
 ```
 
@@ -26361,23 +26546,24 @@ Joins a gateway to the ar.io network via its associated wallet.
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer });
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
 const { id: txId } = await ario.joinNetwork(
   {
     qty: new ARIOToken(10_000).toMARIO(), // minimum operator stake allowed
+    autoStake: true, // auto-stake operator rewards to the gateway
     allowDelegatedStaking: true, // allows delegated staking
     minDelegatedStake: new ARIOToken(100).toMARIO(), // minimum delegated stake allowed
     delegateRewardShareRatio: 10, // percentage of rewards to share with delegates (e.g. 10%)
-    label: 'john smith', // min 1, max 64 characters
-    note: 'The example gateway', // max 256 characters
-    properties: 'FH1aVetOoulPGqgYukj0VE0wIhDy90WiQoV3U2PeY44', // Arweave transaction ID containing additional properties of the Gateway
-    observerWallet: '7xKXtR2qpZm8FjvKNsG3kL9p5yMnYhVdEbxQ4oWc2Rn', // Solana pubkey of the observer, must be unique across all gateways
-    fqdn: 'example.com', // fully qualified domain name - note: you must own the domain and set the OBSERVER_WALLET on your gateway to match `observerWallet`
+    label: "john smith", // min 1, max 64 characters
+    note: "The example gateway", // max 256 characters
+    properties: "FH1aVetOoulPGqgYukj0VE0wIhDy90WiQoV3U2PeY44", // Arweave transaction ID containing additional properties of the Gateway
+    observerWallet: "0VE0wIhDy90WiQoV3U2PeY44FH1aVetOoulPGqgYukj", // wallet address of the observer, must match OBSERVER_WALLET on the observer
+    fqdn: "example.com", // fully qualified domain name - note: you must own the domain and set the OBSERVER_WALLET on your gateway to match `observerWallet`
     port: 443, // port number
-    protocol: 'https', // only 'https' is supported
+    protocol: "https", // only 'https' is supported
   },
   // optional additional tags
-  { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+  { tags: [{ name: "App-Name", value: "My-Awesome-App" }] },
 );
 ```
 
@@ -26388,11 +26574,11 @@ Sets the gateway as `leaving` on the ar.io network. Requires `signer` to be prov
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer });
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
 
 const { id: txId } = await ario.leaveNetwork(
   // optional additional tags
-  { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+  { tags: [{ name: "App-Name", value: "My-Awesome-App" }] },
 );
 ```
 
@@ -26403,14 +26589,14 @@ Writes new gateway settings to the callers gateway configuration.
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer });
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
 const { id: txId } = await ario.updateGatewaySettings(
   {
     // any other settings you want to update
     minDelegatedStake: new ARIOToken(100).toMARIO(),
   },
   // optional additional tags
-  { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+  { tags: [{ name: "App-Name", value: "My-Awesome-App" }] },
 );
 ```
 
@@ -26421,14 +26607,14 @@ Increases the callers stake on the target gateway.
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer });
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
 const { id: txId } = await ario.increaseDelegateStake(
   {
-    target: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
+    target: "t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3",
     qty: new ARIOToken(100).toMARIO(),
   },
   // optional additional tags
-  { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+  { tags: [{ name: "App-Name", value: "My-Awesome-App" }] },
 );
 ```
 
@@ -26439,14 +26625,14 @@ Decreases the callers stake on the target gateway. Can instantly decrease stake 
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer });
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
 const { id: txId } = await ario.decreaseDelegateStake(
   {
-    target: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
+    target: "t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3",
     qty: new ARIOToken(100).toMARIO(),
   },
   {
-    tags: [{ name: 'App-Name', value: 'My-Awesome-App' }],
+    tags: [{ name: "App-Name", value: "My-Awesome-App" }],
   },
 );
 ```
@@ -26454,9 +26640,9 @@ const { id: txId } = await ario.decreaseDelegateStake(
 Pay the early withdrawal fee and withdraw instantly.
 
 ```typescript
-const ario = ARIO.mainnet({ signer });
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
 const { id: txId } = await ario.decreaseDelegateStake({
-  target: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
+  target: "t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3",
   qty: new ARIOToken(100).toMARIO(),
   instant: true, // Immediately withdraw this stake and pay the instant withdrawal fee
 });
@@ -26467,13 +26653,13 @@ const { id: txId } = await ario.decreaseDelegateStake({
 Retrieves all active and vaulted stakes across all gateways for a specific address, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last delegationId (concatenated gateway and startTimestamp of the delgation) from the previous request.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const vaults = await ario.getDelegations({
-  address: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
-  cursor: 'QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ_123456789',
+  address: "t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3",
+  cursor: "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ_123456789",
   limit: 2,
-  sortBy: 'startTimestamp',
-  sortOrder: 'asc',
+  sortBy: "startTimestamp",
+  sortOrder: "asc",
 });
 ```
 
@@ -26515,26 +26701,24 @@ Instantly withdraws an existing vault on a gateway. If no `gatewayAddress` is pr
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer });
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
 // removes a delegated vault from a gateway
 const { id: txId } = await ario.instantWithdrawal(
   {
     // gateway address where delegate vault exists
-    gatewayAddress: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
+    gatewayAddress: "t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3",
     // delegated vault id to cancel
-    vaultId: 'fDrr0_J4Iurt7caNST02cMotaz2FIbWQ4Kcj616RHl3',
+    vaultId: "fDrr0_J4Iurt7caNST02cMotaz2FIbWQ4Kcj616RHl3",
   },
   // optional additional tags
   {
-    tags: [{ name: 'App-Name', value: 'My-Awesome-App' }],
+    tags: [{ name: "App-Name", value: "My-Awesome-App" }],
   },
 );
 // removes an operator vault from a gateway
-const { id: txId } = await ario.instantWithdrawal(
-  {
-    vaultId: 'fDrr0_J4Iurt7caNST02cMotaz2FIbWQ4Kcj616RHl3',
-  },
-);
+const { id: txId } = await ario.instantWithdrawal({
+  vaultId: "fDrr0_J4Iurt7caNST02cMotaz2FIbWQ4Kcj616RHl3",
+});
 ```
 
 #### cancelWithdrawal()
@@ -26544,25 +26728,23 @@ Cancels an existing vault on a gateway. The vaulted stake will be returned to th
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer });
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
 // cancels a delegated vault from a gateway
 const { id: txId } = await ario.cancelWithdrawal(
   {
     // gateway address where vault exists
-    gatewayAddress: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
+    gatewayAddress: "t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3",
     // vault id to cancel
-    vaultId: 'fDrr0_J4Iurt7caNST02cMotaz2FIbWQ4Kcj616RHl3',
+    vaultId: "fDrr0_J4Iurt7caNST02cMotaz2FIbWQ4Kcj616RHl3",
   },
   // optional additional tags
-  { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+  { tags: [{ name: "App-Name", value: "My-Awesome-App" }] },
 );
 // cancels an operator vault from a gateway
-const { id: txId } = await ario.cancelWithdrawal(
-  {
-    // operator vault id to cancel
-    vaultId: 'fDrr0_J4Iurt7caNST02cMotaz2FIbWQ4Kcj616RHl3',
-  },
-);
+const { id: txId } = await ario.cancelWithdrawal({
+  // operator vault id to cancel
+  vaultId: "fDrr0_J4Iurt7caNST02cMotaz2FIbWQ4Kcj616RHl3",
+});
 ```
 
 #### getAllowedDelegates()
@@ -26570,9 +26752,9 @@ const { id: txId } = await ario.cancelWithdrawal(
 Retrieves all allowed delegates for a specific address. The `cursor` used for pagination is the last address from the previous request.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const allowedDelegates = await ario.getAllowedDelegates({
-  address: 'QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ',
+  address: "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
 });
 ```
 
@@ -26598,7 +26780,7 @@ const allowedDelegates = await ario.getAllowedDelegates({
 Retrieves all vaults across all gateways for a specific address, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last vaultId from the previous request.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const vaults = await ario.getGatewayVaults({
   address: '"PZ5vIhHf8VY969TxBPQN-rYY9CNFP9ggNsMBqlWUzWM',
 });
@@ -26630,11 +26812,11 @@ const vaults = await ario.getGatewayVaults({
 Retrieves all vaults across all gateways, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last vaultId from the previous request.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const vaults = await ario.getAllGatewayVaults({
   limit: 1,
-  sortBy: 'endTimestamp',
-  sortOrder: 'desc',
+  sortBy: "endTimestamp",
+  sortOrder: "desc",
 });
 ```
 
@@ -26661,6 +26843,54 @@ const vaults = await ario.getAllGatewayVaults({
 }
 ```
 
+#### getWithdrawals()
+
+Returns every pending stake withdrawal owned by `address` — covering both operator-stake decreases (`isDelegate: false`) and delegate-stake decreases (`isDelegate: true`). A withdrawal is claimable when `Date.now() >= endTimestamp`; call `claimWithdrawal({ withdrawalId: item.vaultId })` to release the tokens.
+
+This is the per-owner read needed to drive "you have X claimable withdrawals" UIs without fanning out across every gateway the wallet has interacted with.
+
+```typescript
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
+
+const withdrawals = await ario.getWithdrawals({
+  address: "9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin",
+});
+
+const claimable = withdrawals.items.filter(
+  (w) => Date.now() >= w.endTimestamp,
+);
+```
+
+**Output:**
+
+```json
+{
+  "hasMore": false,
+  "totalItems": 2,
+  "limit": 100,
+  "items": [
+    {
+      "cursorId": "8CSdSjf7gXqQ5p1U2qfdwHzVw9sZRYHJpDpV87dnvb4d",
+      "vaultId": "0",
+      "gatewayAddress": "Bxz7Q2tWfqr9Q5T6cZjUnVxRk9CnHwShfgUaW5fY1Mvr",
+      "balance": 50000000000,
+      "startTimestamp": 1735843635857,
+      "endTimestamp": 1738435635857,
+      "isDelegate": true
+    },
+    {
+      "cursorId": "FmWUz4w7vSdLcz1nN8H1n2KkjJgrQQXR1n4kV3WqJ7Hf",
+      "vaultId": "1",
+      "gatewayAddress": "9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin",
+      "balance": 10000000000,
+      "startTimestamp": 1735843835857,
+      "endTimestamp": 1738435835857,
+      "isDelegate": false
+    }
+  ]
+}
+```
+
 #### increaseOperatorStake()
 
 Increases the callers operator stake. Must be executed with a wallet registered as a gateway operator.
@@ -26668,13 +26898,13 @@ Increases the callers operator stake. Must be executed with a wallet registered 
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer });
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
 const { id: txId } = await ario.increaseOperatorStake(
   {
     qty: new ARIOToken(100).toMARIO(),
   },
   {
-    tags: [{ name: 'App-Name', value: 'My-Awesome-App' }],
+    tags: [{ name: "App-Name", value: "My-Awesome-App" }],
   },
 );
 ```
@@ -26686,13 +26916,13 @@ Decreases the callers operator stake. Must be executed with a wallet registered 
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer });
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
 const { id: txId } = await ario.decreaseOperatorStake(
   {
     qty: new ARIOToken(100).toMARIO(),
   },
   {
-    tags: [{ name: 'App-Name', value: 'My-Awesome-App' }],
+    tags: [{ name: "App-Name", value: "My-Awesome-App" }],
   },
 );
 ```
@@ -26704,13 +26934,13 @@ Redelegates the stake of a specific address to a new gateway. Vault ID may be op
 e.g: If 1000 mARIO is redelegated and the fee rate is 10%, the fee will be 100 mARIO. Resulting in 900 mARIO being redelegated to the new gateway and 100 mARIO being deducted back to the protocol balance.
 
 ```typescript
-const ario = ARIO.mainnet({ signer });
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
 
 const { id: txId } = await ario.redelegateStake({
-  target: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
-  source: 'HwFceQaMQnOBgKDpnFqCqgwKwEU5LBme1oXRuQOWSRA',
+  target: "t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3",
+  source: "HwFceQaMQnOBgKDpnFqCqgwKwEU5LBme1oXRuQOWSRA",
   stakeQty: new ARIOToken(1000).toMARIO(),
-  vaultId: 'fDrr0_J4Iurt7caNST02cMotaz2FIbWQ4Kcj616RHl3',
+  vaultId: "fDrr0_J4Iurt7caNST02cMotaz2FIbWQ4Kcj616RHl3",
 });
 ```
 
@@ -26719,10 +26949,10 @@ const { id: txId } = await ario.redelegateStake({
 Retrieves the fee rate as percentage required to redelegate the stake of a specific address. Fee rate ranges from 0% to 60% based on the number of redelegations since the last fee reset.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 
 const fee = await ario.getRedelegationFee({
-  address: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
+  address: "t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3",
 });
 ```
 
@@ -26740,11 +26970,11 @@ const fee = await ario.getRedelegationFee({
 Retrieves all delegates across all gateways, paginated and sorted by the specified criteria. The `cursor` used for pagination is a `cursorId` derived from delegate address and the gatewayAddress from the previous request. e.g `address_gatewayAddress`.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const delegates = await ario.getAllDelegates({
   limit: 2,
-  sortBy: 'startTimestamp',
-  sortOrder: 'desc',
+  sortBy: "startTimestamp",
+  sortOrder: "desc",
 });
 ```
 
@@ -26783,37 +27013,37 @@ const delegates = await ario.getAllDelegates({
 
 #### init()
 
-Factory function that creates a read-only or writeable client. By providing a `signer`, additional write APIs that require signing (like `joinNetwork` and `delegateStake`) become available. By default, a read-only client is returned.
-
-For write operations, create a signer using `@solana/kit` (install with `npm install @solana/kit`).
-
-```typescript
-
-// read-only client (Solana mainnet)
-const readOnlyClient = ARIO.init();
-```
+Factory function that creates a read-only or writeable ARIO client.
+Providing `signer` plus `rpcSubscriptions` enables write methods
+(`joinNetwork`, `delegateStake`, `buyRecord`, etc.). Without a signer,
+the client is read-only.
 
 ```typescript
+import {
+    createSolanaRpc,
+    createSolanaRpcSubscriptions,
+    createKeyPairSignerFromBytes,
+} from "@solana/kit";
 
-// read-write client for node environments (Solana keypair JSON file)
-const keypairBytes = new Uint8Array(
-  JSON.parse(fs.readFileSync('./solana-keypair.json', 'utf-8')),
+const rpc = createSolanaRpc("https://api.mainnet-beta.solana.com");
+
+// read-only client
+const ario = ARIO.init({ rpc });
+
+// read-write client (needs rpcSubscriptions for sendAndConfirm)
+const rpcSubscriptions = createSolanaRpcSubscriptions(
+    "wss://api.mainnet-beta.solana.com",
 );
-const signer = await createKeyPairSignerFromBytes(keypairBytes);
-const ario = ARIO.init({ signer });
-```
-
-```typescript
-// read-write client for browser environments (Phantom, Solflare, etc.)
-const ario = ARIO.init({ signer: walletAdapter });
+const signer = await createKeyPairSignerFromBytes(/* 64-byte secret key */);
+const arioWrite = ARIO.init({ rpc, rpcSubscriptions, signer });
 ```
 
 #### getInfo()
 
-Retrieves the information of the ARIO protocol.
+Retrieves the information of the ARIO process.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const info = await ario.getInfo();
 ```
 
@@ -26821,15 +27051,28 @@ const info = await ario.getInfo();
 
 ```json
 {
-  "Name": "ARIO",
-  "Ticker": "ARIO",
-  "Owner": "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
-  "Denomination": 6,
-  "Handlers": ["_eval", "_default_"], // full list of handlers, useful for debugging
-  "LastCreatedEpochIndex": 31, // epoch index of the last tick
-  "LastDistributedEpochIndex": 31 // epoch index of the last distribution
+    "Name": "AR.IO",
+    "Ticker": "ARIO",
+    "Logo": "",
+    "Denomination": 6,
+    "Handlers": [],
+    "LastCreatedEpochIndex": 0,
+    "LastDistributedEpochIndex": 0,
+    "totalSupply": 1000000000000000,
+    "protocolBalance": 0,
+    "epochSettings": {
+        "durationMs": 86400000,
+        "prescribedNameCount": 25,
+        "maxObservers": 50
+    }
 }
 ```
+
+> **Note**: `Handlers`, `LastCreatedEpochIndex`, and `LastDistributedEpochIndex`
+> are placeholders on Solana (returned for backwards-compatible field shape
+> with consumer code). `totalSupply` / `protocolBalance` are live reads from
+> the `ArioConfig` PDA; `epochSettings` is live from the `EpochSettings`
+> PDA. See `src/solana/io-readable.ts` for the exact projection.
 
 #### getTokenSupply()
 
@@ -26844,21 +27087,21 @@ Retrieves the total supply of tokens, returned in mARIO. The total supply includ
 - `protocolBalance` - tokens that are held in the protocol's treasury. This is included in the circulating supply.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const supply = await ario.getTokenSupply();
 ```
 
-**Output:**
+  Output
 
 ```json
 {
-  "total": 1000000000000000000,
-  "circulating": 998094653842520,
-  "locked": 0,
-  "withdrawn": 560563387278,
-  "delegated": 1750000000,
-  "staked": 1343032770199,
-  "protocolBalance": 46317263683761
+    "total": 1000000000000000000,
+    "circulating": 998094653842520,
+    "locked": 0,
+    "withdrawn": 560563387278,
+    "delegated": 1750000000,
+    "staked": 1343032770199,
+    "protocolBalance": 46317263683761
 }
 ```
 
@@ -26867,13 +27110,13 @@ const supply = await ario.getTokenSupply();
 Retrieves the balance of the specified wallet address.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 // the balance will be returned in mARIO as a value
 const balance = await ario
-  .getBalance({
-    address: 'QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ',
-  })
-  .then((balance: number) => new mARIOToken(balance).toARIO()); // convert it to ARIO for readability
+    .getBalance({
+        address: "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
+    })
+    .then((balance: number) => new mARIOToken(balance).toARIO()); // convert it to ARIO for readability
 ```
 
 **Output:**
@@ -26884,15 +27127,15 @@ const balance = await ario
 
 #### getBalances()
 
-Retrieves the balances of the ARIO protocol in `mARIO`, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last wallet address from the previous request.
+Retrieves the balances of the ARIO process in `mARIO`, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last wallet address from the previous request.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const balances = await ario.getBalances({
-  cursor: '-4xgjroXENKYhTWqrBo57HQwvDL51mMdfsdsxJy6Y2Z_sA',
-  limit: 100,
-  sortBy: 'balance',
-  sortOrder: 'desc',
+    cursor: "-4xgjroXENKYhTWqrBo57HQwvDL51mMdfsdsxJy6Y2Z_sA",
+    limit: 100,
+    sortBy: "balance",
+    sortOrder: "desc",
 });
 ```
 
@@ -26900,22 +27143,22 @@ const balances = await ario.getBalances({
 
 ```json
 {
-  "items": [
-    {
-      "address": "-4xgjroXENKYhTWqrBo57HQwvDL51mMvSxJy6Y2Z_sA",
-      "balance": 1000000
-    },
-    {
-      "address": "-7vXsQZQDk8TMDlpiSLy3CnLi5PDPlAaN2DaynORpck",
-      "balance": 1000000
-    }
-    // ...98 other balances
-  ],
-  "hasMore": true,
-  "nextCursor": "-7vXsQZQDk8TMDlpiSLy3CnLi5PDPlAaN2DaynORpck",
-  "totalItems": 1789,
-  "sortBy": "balance",
-  "sortOrder": "desc"
+    "items": [
+        {
+            "address": "-4xgjroXENKYhTWqrBo57HQwvDL51mMvSxJy6Y2Z_sA",
+            "balance": 1000000
+        },
+        {
+            "address": "-7vXsQZQDk8TMDlpiSLy3CnLi5PDPlAaN2DaynORpck",
+            "balance": 1000000
+        }
+        // ...98 other balances
+    ],
+    "hasMore": true,
+    "nextCursor": "-7vXsQZQDk8TMDlpiSLy3CnLi5PDPlAaN2DaynORpck",
+    "totalItems": 1789,
+    "sortBy": "balance",
+    "sortOrder": "desc"
 }
 ```
 
@@ -26926,41 +27169,32 @@ Transfers `mARIO` to the designated `target` recipient address. Requires `signer
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({
-  signer: signer,
-});
-const { id: txId } = await ario.transfer(
-  {
-    target: '-5dV7nk7waR8v4STuwPnTck1zFVkQqJh5K9q9Zik4Y5',
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
+const { id: txId } = await ario.transfer({
+    target: "RecipientSolanaPubkeyBase58",
     qty: new ARIOToken(1000).toMARIO(),
-  },
-  // optional additional tags
-  { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
-);
+});
 ```
 
 # Networks (/sdks/ar-io-sdk/(ario-contract)/networks)
 
-The SDK provides program addresses for the mainnet and testnet environments:
-
-- `ARIO_MAINNET_PROGRAM_ID` — Solana mainnet program address (production)
-- `ARIO_TESTNET_PROGRAM_ID` — Solana devnet program address (testing and development)
-
-As of `v3.23` the SDK defaults all API interactions to **Solana mainnet**.
-
-#### Mainnet
+The SDK talks to whatever cluster your `@solana/kit` RPC client points
+at — mainnet-beta by default. For devnet or a local validator, override
+the RPC URL and (on any non-mainnet cluster) the per-program addresses:
 
 ```typescript
 
-const ario = ARIO.mainnet(); // or ARIO.init()
+const ario = ARIO.init({
+    rpc: createSolanaRpc("https://api.devnet.solana.com"),
+    coreProgramId: address("\"),
+    garProgramId: address("\"),
+    arnsProgramId: address("\"),
+    antProgramId: address("\"),
+});
 ```
 
-#### Testnet
-
-```typescript
-
-const testnet = ARIO.testnet();
-```
+On localnet (Surfpool) source program IDs from
+`migration/localnet/out/localnet.env` in the `solana-ar-io` monorepo.
 
 # Primary Names (/sdks/ar-io-sdk/(ario-contract)/primary-names)
 
@@ -26969,12 +27203,12 @@ const testnet = ARIO.testnet();
 Retrieves all primary names paginated and sorted by the specified criteria. The `cursor` used for pagination is the last name from the previous request.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const names = await ario.getPrimaryNames({
-  cursor: 'ao', // this is the last name from the previous request
+  cursor: "ao", // this is the last name from the previous request
   limit: 1,
-  sortBy: 'startTimestamp',
-  sortOrder: 'desc',
+  sortBy: "startTimestamp",
+  sortOrder: "desc",
 });
 ```
 
@@ -26987,12 +27221,13 @@ const names = await ario.getPrimaryNames({
   "totalItems": 100,
   "limit": 1,
   "sortBy": "startTimestamp",
-  "cursor": "arns",
+  "nextCursor": "arns",
   "items": [
     {
+      "name": "arns",
       "owner": "HwFceQaMQnOBgKDpnFqCqgwKwEU5LBme1oXRuQOWSRA",
-      "startTimestamp": 1719356032297,
-      "name": "arns"
+      "processId": "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM",
+      "startTimestamp": 1719356032297
     }
   ]
 }
@@ -27003,13 +27238,13 @@ const names = await ario.getPrimaryNames({
 Retrieves the primary name for a given name or address.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const name = await ario.getPrimaryName({
-  name: 'arns',
+  name: "arns",
 });
 // or
 const name = await ario.getPrimaryName({
-  address: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
+  address: "t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3",
 });
 ```
 
@@ -27017,9 +27252,10 @@ const name = await ario.getPrimaryName({
 
 ```json
 {
+  "name": "arns",
   "owner": "HwFceQaMQnOBgKDpnFqCqgwKwEU5LBme1oXRuQOWSRA",
-  "startTimestamp": 1719356032297,
-  "name": "arns"
+  "processId": "bh9l1cy0aksiL_x9M359faGzM_yjralacHIUo8_nQXM",
+  "startTimestamp": 1719356032297
 }
 ```
 
@@ -27030,8 +27266,8 @@ Sets an ArNS name already owned by the `signer` as their primary name. Note: `si
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer });
-await ario.setPrimaryName({ name: 'my-arns-name' }); // the caller must own the ANT assigned to this name
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
+await ario.setPrimaryName({ name: 'my-arns-name' });
 ```
 
 #### requestPrimaryName()
@@ -27041,9 +27277,9 @@ Requests a primary name for the `signer`'s address. The request must be approved
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer });
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
 const { id: txId } = await ario.requestPrimaryName({
-  name: 'arns',
+  name: "arns",
 });
 ```
 
@@ -27052,9 +27288,9 @@ const { id: txId } = await ario.requestPrimaryName({
 Retrieves the primary name request for a a wallet address.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const request = await ario.getPrimaryNameRequest({
-  initiator: 't4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3',
+  initiator: "t4Xr0_J4Iurt7caNST02cMotaz2FIbWQ4Kbj616RHl3",
 });
 ```
 
@@ -27073,13 +27309,13 @@ const request = await ario.getPrimaryNameRequest({
 
 #### getVault()
 
-Retrieves the locked-balance user vault of the ARIO protocol by the specified wallet address and vault ID.
+Retrieves the locked-balance user vault of the ARIO process by the specified wallet address and vault ID.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const vault = await ario.getVault({
-  address: 'QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ',
-  vaultId: 'vaultIdOne',
+  address: "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
+  vaultId: "vaultIdOne",
 });
 ```
 
@@ -27095,15 +27331,15 @@ const vault = await ario.getVault({
 
 #### getVaults()
 
-Retrieves all locked-balance user vaults of the ARIO protocol, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last wallet address from the previous request.
+Retrieves all locked-balance user vaults of the ARIO process, paginated and sorted by the specified criteria. The `cursor` used for pagination is the last wallet address from the previous request.
 
 ```typescript
-const ario = ARIO.mainnet();
+const ario = ARIO.init({ rpc });
 const vaults = await ario.getVaults({
-  cursor: '0',
+  cursor: "0",
   limit: 100,
-  sortBy: 'balance',
-  sortOrder: 'desc',
+  sortBy: "balance",
+  sortOrder: "desc",
 });
 ```
 
@@ -27143,16 +27379,16 @@ Transfers `mARIO` to the designated `recipient` address and locks the balance fo
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer });
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
 const { id: txId } = await ario.vaultedTransfer(
   {
-    recipient: '-5dV7nk7waR8v4STuwPnTck1zFVkQqJh5K9q9Zik4Y5',
+    recipient: "-5dV7nk7waR8v4STuwPnTck1zFVkQqJh5K9q9Zik4Y5",
     quantity: new ARIOToken(1000).toMARIO(),
     lockLengthMs: 1000 * 60 * 60 * 24 * 365, // 1 year
     revokable: true,
   },
   // optional additional tags
-  { tags: [{ name: 'App-Name', value: 'My-Awesome-App' }] },
+  { tags: [{ name: "App-Name", value: "My-Awesome-App" }] },
 );
 ```
 
@@ -27163,10 +27399,10 @@ Revokes a vaulted transfer by the recipient address and vault ID. Only the sende
 _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 
 ```typescript
-const ario = ARIO.mainnet({ signer });
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
 const { id: txId } = await ario.revokeVault({
-  recipient: '-5dV7nk7waR8v4STuwPnTck1zFVkQqJh5K9q9Zik4Y5',
-  vaultId: 'IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs',
+  recipient: "-5dV7nk7waR8v4STuwPnTck1zFVkQqJh5K9q9Zik4Y5",
+  vaultId: "IPdwa3Mb_9pDD8c2IaJx6aad51Ss-_TfStVwBuhtXMs",
 });
 ```
 
@@ -27175,7 +27411,7 @@ const { id: txId } = await ario.revokeVault({
 Creates a vault for the specified `quantity` of mARIO from the signer's balance and locks it for the specified `lockLengthMs` milliseconds.
 
 ```typescript
-const ario = ARIO.mainnet({ signer });
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
 
 const { id: txId } = await ario.createVault({
   lockLengthMs: 1000 * 60 * 60 * 24 * 365, // 1 year
@@ -27188,10 +27424,10 @@ const { id: txId } = await ario.createVault({
 Extends the lock length of a signer's vault by the specified `extendLengthMs` milliseconds.
 
 ```typescript
-const ario = ARIO.mainnet({ signer });
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
 
 const { id: txId } = await ario.extendVault({
-  vaultId: 'vaultIdOne',
+  vaultId: "vaultIdOne",
   extendLengthMs: 1000 * 60 * 60 * 24 * 365, // 1 year
 });
 ```
@@ -27201,12 +27437,62 @@ const { id: txId } = await ario.extendVault({
 Increases the balance of a signer's vault by the specified `quantity` of mARIO.
 
 ```typescript
-const ario = ARIO.mainnet({ signer });
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
 const { id: txId } = await ario.increaseVault({
-  vaultId: 'vaultIdOne',
+  vaultId: "vaultIdOne",
   quantity: new ARIOToken(1000).toMARIO(),
 });
 ```
+
+# Escrow (/sdks/ar-io-sdk/escrow)
+
+Trustless, multi-protocol escrow for handing an asset to a recipient identified by
+an **Arweave** or **Ethereum** address, claimable once they hold a Solana wallet.
+Backed by the `ario-ant-escrow` program. Two clients:
+
+- `TokenEscrow` — escrow liquid **ARIO** (SPL) or a **time-locked vault**.
+- `ANTEscrow` — escrow an **ANT** (Metaplex Core NFT).
+
+Each supports **deposit → claim → cancel/refund → update-recipient**. Claims work
+three ways: **Arweave-attested** (an off-chain attestor re-signs the canonical
+claim with Ed25519, verified on-chain), **Ethereum** (on-chain `secp256k1_recover`
++ EIP-191), and **vault** (instruction introspection that preserves the remaining
+lock).
+
+```typescript
+
+const escrow = new TokenEscrow({
+  rpc,
+  rpcSubscriptions,
+  signer,
+  programId,
+  coreProgram,
+});
+
+// deposit 50 ARIO to an Ethereum recipient
+await escrow.depositTokens({
+  assetId, // 32-byte client-supplied id
+  amount: 50_000_000n,
+  arioMint,
+  depositorTokenAccount,
+  recipient: { protocol: 'ethereum', publicKey: ethAddress20 },
+});
+
+// the recipient claims (Ethereum path) once they have a Solana wallet
+await escrow.claimTokensEthereum({
+  depositor,
+  assetId,
+  claimant,
+  claimantTokenAccount,
+  escrowTokenAccount,
+  signature, // recipient's EIP-191 signature over canonicalMessageV2(...)
+});
+```
+
+Build the exact bytes a recipient signs with `canonicalMessage` /
+`canonicalMessageV2` — byte-identical to the on-chain program (and the off-chain
+attestor). See the contracts repo's escrow design + protocol spec for the full
+flow and the cross-language canonical-message vectors.
 
 # ar.io SDK (/sdks/ar-io-sdk)
 
@@ -27370,10 +27656,10 @@ The library uses a lightweight console logger by default for both Node.js and we
 ```typescript
 
 // set the log level
-Logger.default.setLogLevel('debug');
+Logger.default.setLogLevel("debug");
 
 // Create a new logger instance with a specific level
-const logger = new Logger({ level: 'debug' });
+const logger = new Logger({ level: "debug" });
 ```
 
 #### Custom Logger Implementation
@@ -27393,55 +27679,10 @@ const customLogger: ILogger = {
   },
 };
 
-// Use custom logger with any class
-const ario = ARIO.mainnet({ logger: customLogger });
-
-// or set it as the default logger in the entire SDK
+// Set it as the default logger across the entire SDK — every class
+// (ARIO, ANT, ANTRegistry, etc.) will route logs through it. `ARIO.init`
+// does not accept a per-instance logger.
 Logger.default = customLogger;
-```
-
-#### Winston Logger (Optional)
-
-For advanced logging features, you can optionally install Winston and use the provided Winston logger adapter:
-
-```bash
-yarn add winston
-```
-
-```typescript
-
-// Create Winston logger with custom configuration
-const winstonLogger = new WinstonLogger({
-  level: 'debug',
-});
-
-// Use with any class that accepts a logger
-const ario = ARIO.mainnet({ logger: winstonLogger });
-
-// or set it as the default logger in the entire SDK
-Logger.default = winstonLogger;
-```
-
-#### Other Popular Loggers
-
-You can easily integrate other popular logging libraries:
-
-```typescript
-// Bunyan example
-
-const bunyanLogger = bunyan.createLogger({ name: 'ar-io-sdk' });
-const adapter: ILogger = {
-  info: (message, ...args) => bunyanLogger.info({ args }, message),
-  warn: (message, ...args) => bunyanLogger.warn({ args }, message),
-  error: (message, ...args) => bunyanLogger.error({ args }, message),
-  debug: (message, ...args) => bunyanLogger.debug({ args }, message),
-  setLogLevel: (level) => bunyanLogger.level(level),
-};
-
-const ario = ARIO.mainnet({ logger: adapter });
-
-// or set it as the default logger in the entire SDK
-Logger.default = adapter;
 ```
 
 # Pagination (/sdks/ar-io-sdk/pagination)
@@ -27482,10 +27723,10 @@ Example:
 ```typescript
 const records = await ario.getArNSRecords({
   filters: {
-    type: 'lease',
+    type: "lease",
     processId: [
-      'ZkgLfyHALs5koxzojpcsEFAKA8fbpzP7l-tbM7wmQNM',
-      'r61rbOjyXx3u644nGl9bkwLWlWmArMEzQgxBo2R-Vu0',
+      "ZkgLfyHALs5koxzojpcsEFAKA8fbpzP7l-tbM7wmQNM",
+      "r61rbOjyXx3u644nGl9bkwLWlWmArMEzQgxBo2R-Vu0",
     ],
   },
 });
@@ -27498,9 +27739,9 @@ In the example above, the query will return ArNS records where:
 
 # Token Conversion (/sdks/ar-io-sdk/token-conversion)
 
-The ARIO protocol stores all values as mARIO (micro-ARIO) to avoid floating-point arithmetic issues. The SDK provides `ARIOToken` and `mARIOToken` classes to handle the conversion between ARIO and mARIO, along with rounding logic for precision.
+The ARIO process stores all values as mARIO (micro-ARIO) to avoid floating-point arithmetic issues. The SDK provides an `ARIOToken` and `mARIOToken` classes to handle the conversion between ARIO and mARIO, along with rounding logic for precision.
 
-**All protocol operations expect values in mARIO. If numbers are provided as inputs, they are assumed to be in raw mARIO values.**
+**All process interactions expect values in mARIO. If numbers are provided as inputs, they are assumed to be in raw mARIO values.**
 
 #### Converting ARIO to mARIO
 
@@ -27982,6 +28223,42 @@ const basePrice = await priceEstimator.getBaseWinstonPriceForByteCount(
 );
 ```
 
+# Entity IDs (/sdks/ardrive-core-js/(core-concepts)/entity-ids)
+
+Use the type-safe entity ID constructors:
+
+```typescript
+
+// Generic entity ID
+const entityId = EID('10108b54a-eb5e-4134-8ae2-a3946a428ec7');
+
+// Specific entity IDs
+const driveId = new DriveID('12345674a-eb5e-4134-8ae2-a3946a428ec7');
+const folderId = new FolderID('47162534a-eb5e-4134-8ae2-a3946a428ec7');
+const fileId = new FileID('98765432a-eb5e-4134-8ae2-a3946a428ec7');
+```
+
+# Entity Types (/sdks/ardrive-core-js/(core-concepts)/entity-types)
+
+ArDrive uses a hierarchical structure:
+
+- **Drives**: Top-level containers (public or private)
+- **Folders**: Organize files within drives
+- **Files**: Individual files stored on Arweave
+
+Each entity has a unique ID (`DriveID`, `FolderID`, `FileID`) and can be either public (unencrypted) or private (encrypted).
+
+# Wallet Management (/sdks/ardrive-core-js/(core-concepts)/wallet-management)
+
+```typescript
+
+// Create wallet from JWK
+const wallet = new JWKWallet(jwkKey);
+
+// Check wallet balance
+const balance = await wallet.getBalance();
+```
+
 # ArDrive Core JS (/sdks/ardrive-core-js)
 
 **For AI and LLM users**: Access the complete ArDrive Core JS documentation in plain text
@@ -28347,6 +28624,31 @@ await turbo.uploadFile({
 });
 ```
 
+#### Raw x402 Data Uploads
+
+Using the x402 protocol, you can also upload raw data to Turbo without signing a data item. This method is ideal for quick agent workflows where the ownership of the data is not required to be tied to a specific wallet. The eventual data item on chain will be signed by Turbo's x402 EVM signer.
+
+```typescript
+const turbo = TurboFactory.authenticated({
+  signer: ethereumSignerWithBaseUSDC,
+  token: 'base-usdc',
+});
+await turbo.uploadRawX402Data({
+  data: myRawData,
+  maxMUSDCAmount: 1_000_000, // Max 1 USDC. Opt out if too expensive
+});
+```
+
+NOTE: For free uploads under 100 KiB, this method of upload currently does not require a signature and can be used with an unauthenticated client.
+
+```ts
+// Unsigned free upload of raw data under 100 KiB
+const turbo = TurboFactory.unauthenticated({ token: 'base-usdc' });
+await turbo.uploadRawX402Data({
+  data: myRawData,
+});
+```
+
 #### uploadFolder()
 
 Signs and uploads a folder of files. For NodeJS, the `folderPath` of the folder to upload is required. For the browser, an array of `files` is required. The `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. The `maxConcurrentUploads` is an optional number that can be used to limit the number of concurrent uploads. The `throwOnFailure` is an optional boolean that can be used to throw an error if any upload fails. The `manifestOptions` is an optional object that can be used to configure the manifest file, including a custom index file, fallback file, or whether to disable manifests altogether. Manifests are enabled by default.
@@ -28489,7 +28791,7 @@ const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
 });
 ```
 
-##### ar.io Network (ARIO) Crypto Top Up
+##### AR.IO Network (ARIO) Crypto Top Up
 
 ```typescript
 const turbo = TurboFactory.authenticated({ signer, token: 'ario' });
@@ -29455,7 +29757,7 @@ function WayfinderImage({ txId }: { txId: string }) {
 
 # Data Retrieval Strategies (/sdks/wayfinder/wayfinder-core/data-retrieval-strategies)
 
-Wayfinder supports multiple data retrieval strategies to fetch transaction data from ar.io gateways. These strategies determine how data is requested and assembled from the underlying storage layer.
+Wayfinder supports multiple data retrieval strategies to fetch transaction data from AR.IO gateways. These strategies determine how data is requested and assembled from the underlying storage layer.
 
 | Strategy                          | Use Case                                    | Requirements                           |
 | --------------------------------- | ------------------------------------------- | -------------------------------------- |
@@ -29475,7 +29777,7 @@ const wayfinder = new Wayfinder({
 
 #### ChunkDataRetrievalStrategy
 
-An advanced strategy that provides the easiest way to load chunks stored on Arweave nodes via the robust chunk API provided by ar.io gateways. This approach is particularly useful for:
+An advanced strategy that provides the easiest way to load chunks stored on Arweave nodes via the robust chunk API provided by AR.IO gateways. This approach is particularly useful for:
 
 - **Direct chunk access**: Efficiently retrieves data directly from the underlying chunk storage layer
 - **Bundled data items**: Seamlessly fetches data items from within ANS-104 bundles using calculated offsets
@@ -29508,7 +29810,7 @@ const wayfinder = new Wayfinder({
 sequenceDiagram
     participant Client
     participant Wayfinder
-    participant Gateway as ar.io Gateway
+    participant Gateway as AR.IO Gateway
     participant Arweave as Arweave Nodes
 
     Client->>Wayfinder: request('ar://data-item-id')
@@ -29662,15 +29964,16 @@ Gateway providers supply the list of gateways for routing. **By default, `create
 
 | Provider                       | Description                                    | Use Case                                |
 | ------------------------------ | ---------------------------------------------- | --------------------------------------- |
-| `NetworkGatewaysProvider`      | Returns gateways from ar.io | Leverage ar.io with quality filtering |
+| `NetworkGatewaysProvider`      | Returns gateways from AR.IO Network | Leverage AR.IO Network with quality filtering |
 | `TrustedPeersGatewaysProvider` | Fetches from trusted gateway's peers | Dynamic gateway discovery (default) |
 | `StaticGatewaysProvider`       | Returns a static list of gateways | Testing or specific gateways |
 | `SimpleCacheGatewaysProvider`  | In-memory caching wrapper | Reduce API calls (used by default) |
 | `LocalStorageGatewaysProvider` | Browser localStorage caching | Persistent caching (used by default in browsers) |
+| `CompositeGatewaysProvider`    | Chains multiple providers with fallback | Maximum resilience with multiple sources |
 
 #### NetworkGatewaysProvider
 
-Returns a list of gateways from the ARIO Network based on onchain [Gateway Address Registry](https://docs.ar.io/learn/gateways/gateway-registry). You can specify onchain metrics for gateways to prioritize the highest quality gateways. This requires installing the `@ar.io/sdk` package and importing the `ARIO` object.
+Returns a list of gateways from the ARIO Network based on on-chain [Gateway Address Registry](https://docs.ar.io/learn/gateways/gateway-registry). You can specify on-chain metrics for gateways to prioritize the highest quality gateways. This requires installing the `@ar.io/sdk` package and importing the `ARIO` object.
 
 ```javascript
 
@@ -29685,12 +29988,52 @@ const gatewayProvider = new NetworkGatewaysProvider({
 
 #### TrustedPeersGatewaysProvider
 
-Fetches a dynamic list of trusted peer gateways from an ar.io gateway's `/ar-io/peers` endpoint. This provider is useful for discovering available gateways from a trusted source.
+Fetches a dynamic list of trusted peer gateways from an AR.IO gateway's `/ar-io/peers` endpoint. This provider is useful for discovering available gateways from a trusted source.
 
 ```javascript
 
 const gatewayProvider = new TrustedPeersGatewaysProvider({
   trustedGateway: 'https://turbo-gateway.com',
+});
+```
+
+#### CompositeGatewaysProvider
+
+Chains multiple gateway providers together, trying each in sequence until one succeeds. This is useful for building resilient gateway discovery with fallbacks.
+
+**How it works:**
+
+1. Tries each provider in the order they're provided
+2. If a provider returns a non-empty list of gateways, those gateways are used
+3. If a provider throws an error or returns an empty list, moves to the next provider
+4. If all providers fail, throws an error
+
+```javascript
+import {
+  CompositeGatewaysProvider,
+  NetworkGatewaysProvider,
+  StaticGatewaysProvider,
+  TrustedPeersGatewaysProvider,
+} from '@ar.io/wayfinder-core';
+
+// Example: Network-first with static fallback
+const gatewayProvider = new CompositeGatewaysProvider({
+  providers: [
+    // Try fetching from AR.IO network first
+    new NetworkGatewaysProvider({
+      ario: ARIO.mainnet(),
+      sortBy: 'operatorStake',
+      limit: 10,
+    }),
+    // Fallback to trusted peers if network fetch fails
+    new TrustedPeersGatewaysProvider({
+      trustedGateway: 'https://turbo-gateway.com',
+    }),
+    // Final fallback to static list
+    new StaticGatewaysProvider({
+      gateways: ['https://turbo-gateway.com', 'https://g8way.io'],
+    }),
+  ],
 });
 ```
 
@@ -29870,7 +30213,7 @@ The `CompositeRoutingStrategy` allows you to chain multiple routing strategies t
 **Common use cases:**
 
 - **Performance + Resilience**: Try fastest ping first, fallback to random if ping fails
-- **Preferred + Network**: Use your own gateway first, fallback to ar.io network selection
+- **Preferred + Network**: Use your own gateway first, fallback to AR.IO network selection
 - **Multi-tier Fallback**: Try premium gateways, then standard gateways, then any available gateway
 
 ```javascript
@@ -29993,7 +30336,7 @@ const wayfinder = new Wayfinder({
   verificationSettings: {
     enabled: true,
     strategy: new HashVerificationStrategy({
-      trustedGateways: [new URL('https://ardrive.net')],
+      trustedGateways: [new URL('https://turbo-gateway.com')],
     }),
   },
 });
@@ -30009,7 +30352,7 @@ const wayfinder = new Wayfinder({
   verificationSettings: {
     enabled: true,
     strategy: new DataRootVerificationStrategy({
-      trustedGateways: [new URL('https://ardrive.net')],
+      trustedGateways: [new URL('https://turbo-gateway.com')],
     }),
   },
 });
@@ -30025,7 +30368,7 @@ const wayfinder = new Wayfinder({
   verificationSettings: {
     enabled: true,
     strategy: new SignatureVerificationStrategy({
-      trustedGateways: [new URL('https://ardrive.net')],
+      trustedGateways: [new URL('https://turbo-gateway.com')],
     }),
   },
 });
@@ -30136,7 +30479,7 @@ function WayfinderData({ txId }: { txId: string }) {
 
 # useWayfinderUrl (/sdks/wayfinder/wayfinder-react/(hooks)/usewayfinderurl)
 
-Get a dynamic URL for an existing `ar://` URL or legacy `arweave.net` URL.
+Get a dynamic URL for an existing `ar://` URL or legacy `arweave.net`/`arweave.dev` URL.
 
 Example:
 
