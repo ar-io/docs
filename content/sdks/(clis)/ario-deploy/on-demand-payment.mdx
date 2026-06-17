@@ -1,0 +1,35 @@
+---
+title: "On-Demand Payment"
+description: "CLI for deploying apps to the permaweb (Arweave) and updating ArNS"
+---
+
+Use on-demand payment to automatically fund uploads with ARIO or Base-ETH tokens when your Turbo balance is insufficient:
+
+Deploy with ARIO on-demand payment:
+
+```bash
+ario-deploy deploy --wallet ./wallet.json --deploy-folder ./dist --on-demand ario --max-token-amount 1.5
+```
+
+Deploy with Base-ETH on-demand payment (using Ethereum signer):
+
+```bash
+ario-deploy deploy --sig-type ethereum --private-key "0x..." --on-demand base-eth --max-token-amount 0.1
+```
+
+**On-Demand Payment Options:**
+
+- `--on-demand`: Token to use for on-demand payment (`ario` or `base-eth`)
+- `--max-token-amount`: Maximum token amount to spend (in native token units, e.g., `1.5` for 1.5 ARIO or `0.1` for 0.1 ETH)
+
+**How it works:**
+
+1. Checks your Turbo balance before upload
+2. If balance is insufficient, converts tokens to Turbo credits on-demand
+3. Automatically adds a 10% buffer (`topUpBufferMultiplier: 1.1`) for reliability
+4. Proceeds with upload once funded
+
+**Token compatibility:**
+
+- **ARIO**: Works with Arweave signer
+- **Base-ETH**: Works with Ethereum signer (Base Network)

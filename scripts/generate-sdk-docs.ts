@@ -82,6 +82,17 @@ const PACKAGES: {
     sourceUrl: "https://github.com/ardriveapp/ardrive-cli",
     icon: "/ecosystem-logos/logo-ardrive.svg",
   },
+  {
+    name: "ario-deploy",
+    readmeUrl:
+      "https://raw.githubusercontent.com/ar-io/ar-io-deploy/refs/heads/main/README.md",
+    dest: path.resolve("content/sdks/(clis)/ario-deploy"),
+    title: "ARIO Deploy",
+    description:
+      "CLI for deploying apps to the permaweb (Arweave) and updating ArNS",
+    sourceUrl: "https://github.com/ar-io/ar-io-deploy",
+    icon: "/brand/ario-white.svg",
+  },
 ];
 
 function sanitizeFilename(title: string): string {
@@ -95,13 +106,15 @@ function escapeContent(content: string): string {
   // Escape content that might be interpreted as JSX
   return (
     content
+      // Remove HTML comments (not valid in MDX)
+      .replace(/<!--[\s\S]*?-->/g, "")
       // Remove h1 headers (# title)
       .replace(/^#\s+[^\n]+\n/gm, "")
       // Convert <details> blocks to normal output blocks with "Output:" prefix
       .replace(
-        /<details>\s*<summary>[^<]*<\/summary>\s*(```[\s\S]*?```)\s*<\/details>/g,
-        (match, codeBlock) => {
-          return `**Output:**\n\n${codeBlock}`;
+        /<details>\s*<summary>[^<]*<\/summary>\s*([\s\S]*?)\s*<\/details>/g,
+        (match, content) => {
+          return `**Output:**\n\n${content.trim()}`;
         }
       )
       // Escape emoji checkmarks and crosses that might be interpreted as JSX
@@ -274,6 +287,8 @@ async function processPackage(pkg: (typeof PACKAGES)[0]) {
     // Structure to hold our pages/folders
     const rootPages: string[] = [];
     const folders: Record<string, string[]> = {};
+    // Track all page slugs to detect collisions across route group folders
+    const usedSlugs = new Set<string>();
 
     for (const h2Section of h2Sections) {
       if (!h2Section.startsWith("## ")) continue;
@@ -348,7 +363,11 @@ async function processPackage(pkg: (typeof PACKAGES)[0]) {
           );
 
           const h3Content = h3Lines.slice(1).join("\n").trim();
-          const h3Filename = sanitizeFilename(cleanH3Title);
+          let h3Filename = sanitizeFilename(cleanH3Title);
+          if (usedSlugs.has(h3Filename)) {
+            h3Filename = `${h2FolderName}-${h3Filename}`;
+          }
+          usedSlugs.add(h3Filename);
           const escapedContent = escapeContent(h3Content);
 
           const pageContent = `---
@@ -384,7 +403,11 @@ ${escapedContent}`;
         rootPages.push(folderName);
       } else {
         // No H3 subsections - create a single page
-        const filename = h2FolderName;
+        let filename = h2FolderName;
+        if (usedSlugs.has(filename)) {
+          filename = `${filename}-2`;
+        }
+        usedSlugs.add(filename);
         const escapedContent = escapeContent(h2ContentBody);
 
         const pageContent = `---

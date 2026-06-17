@@ -1,0 +1,36 @@
+---
+title: "Direct Commands"
+description: "CLI for deploying apps to the permaweb (Arweave) and updating ArNS"
+---
+
+Use flags for faster, scriptable deployments:
+
+```bash
+ario-deploy deploy --wallet ./wallet.json
+
+ario-deploy deploy --use-arns --arns-name my-app --wallet ./wallet.json --arns-wallet ./arns-id.json
+```
+
+Deploy using private key directly:
+
+```bash
+ario-deploy deploy --private-key "$(cat wallet.json)"
+```
+
+Deploy using environment variable:
+
+```bash
+DEPLOY_KEY=$(base64 -i wallet.json) ario-deploy deploy --deploy-folder ./dist
+```
+
+Deploy a specific folder:
+
+```bash
+ario-deploy deploy --wallet ./wallet.json --deploy-folder ./build
+```
+
+Deploy a single file:
+
+```bash
+ario-deploy deploy --wallet ./wallet.json --deploy-file ./path/to/file.txt
+```

@@ -11,21 +11,21 @@ Providing `signer` plus `rpcSubscriptions` enables write methods
 the client is read-only.
 
 ```typescript
-import { ARIO } from "@ar.io/sdk";
+import { ARIO } from '@ar.io/sdk';
 import {
-    createSolanaRpc,
-    createSolanaRpcSubscriptions,
-    createKeyPairSignerFromBytes,
-} from "@solana/kit";
+  createSolanaRpc,
+  createSolanaRpcSubscriptions,
+  createKeyPairSignerFromBytes,
+} from '@solana/kit';
 
-const rpc = createSolanaRpc("https://api.mainnet-beta.solana.com");
+const rpc = createSolanaRpc('https://api.mainnet-beta.solana.com');
 
 // read-only client
 const ario = ARIO.init({ rpc });
 
 // read-write client (needs rpcSubscriptions for sendAndConfirm)
 const rpcSubscriptions = createSolanaRpcSubscriptions(
-    "wss://api.mainnet-beta.solana.com",
+  'wss://api.mainnet-beta.solana.com',
 );
 const signer = await createKeyPairSignerFromBytes(/* 64-byte secret key */);
 const arioWrite = ARIO.init({ rpc, rpcSubscriptions, signer });
@@ -44,20 +44,20 @@ const info = await ario.getInfo();
 
 ```json
 {
-    "Name": "AR.IO",
-    "Ticker": "ARIO",
-    "Logo": "",
-    "Denomination": 6,
-    "Handlers": [],
-    "LastCreatedEpochIndex": 0,
-    "LastDistributedEpochIndex": 0,
-    "totalSupply": 1000000000000000,
-    "protocolBalance": 0,
-    "epochSettings": {
-        "durationMs": 86400000,
-        "prescribedNameCount": 25,
-        "maxObservers": 50
-    }
+  "Name": "AR.IO",
+  "Ticker": "ARIO",
+  "Logo": "",
+  "Denomination": 6,
+  "Handlers": [],
+  "LastCreatedEpochIndex": 0,
+  "LastDistributedEpochIndex": 0,
+  "totalSupply": 1000000000000000,
+  "protocolBalance": 0,
+  "epochSettings": {
+    "durationMs": 86400000,
+    "prescribedNameCount": 25,
+    "maxObservers": 50
+  }
 }
 ```
 
@@ -84,22 +84,19 @@ const ario = ARIO.init({ rpc });
 const supply = await ario.getTokenSupply();
 ```
 
-<details>
-  <summary>Output</summary>
+**Output:**
 
 ```json
 {
-    "total": 1000000000000000000,
-    "circulating": 998094653842520,
-    "locked": 0,
-    "withdrawn": 560563387278,
-    "delegated": 1750000000,
-    "staked": 1343032770199,
-    "protocolBalance": 46317263683761
+  "total": 1000000000000000000,
+  "circulating": 998094653842520,
+  "locked": 0,
+  "withdrawn": 560563387278,
+  "delegated": 1750000000,
+  "staked": 1343032770199,
+  "protocolBalance": 46317263683761
 }
 ```
-
-</details>
 
 #### getBalance()
 
@@ -109,10 +106,10 @@ Retrieves the balance of the specified wallet address.
 const ario = ARIO.init({ rpc });
 // the balance will be returned in mARIO as a value
 const balance = await ario
-    .getBalance({
-        address: "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
-    })
-    .then((balance: number) => new mARIOToken(balance).toARIO()); // convert it to ARIO for readability
+  .getBalance({
+    address: "QGWqtJdLLgm2ehFWiiPzMaoFLD50CnGuzZIPEdoDRGQ",
+  })
+  .then((balance: number) => new mARIOToken(balance).toARIO()); // convert it to ARIO for readability
 ```
 
 **Output:**
@@ -128,10 +125,10 @@ Retrieves the balances of the ARIO process in `mARIO`, paginated and sorted by t
 ```typescript
 const ario = ARIO.init({ rpc });
 const balances = await ario.getBalances({
-    cursor: "-4xgjroXENKYhTWqrBo57HQwvDL51mMdfsdsxJy6Y2Z_sA",
-    limit: 100,
-    sortBy: "balance",
-    sortOrder: "desc",
+  cursor: "-4xgjroXENKYhTWqrBo57HQwvDL51mMdfsdsxJy6Y2Z_sA",
+  limit: 100,
+  sortBy: "balance",
+  sortOrder: "desc",
 });
 ```
 
@@ -139,22 +136,22 @@ const balances = await ario.getBalances({
 
 ```json
 {
-    "items": [
-        {
-            "address": "-4xgjroXENKYhTWqrBo57HQwvDL51mMvSxJy6Y2Z_sA",
-            "balance": 1000000
-        },
-        {
-            "address": "-7vXsQZQDk8TMDlpiSLy3CnLi5PDPlAaN2DaynORpck",
-            "balance": 1000000
-        }
-        // ...98 other balances
-    ],
-    "hasMore": true,
-    "nextCursor": "-7vXsQZQDk8TMDlpiSLy3CnLi5PDPlAaN2DaynORpck",
-    "totalItems": 1789,
-    "sortBy": "balance",
-    "sortOrder": "desc"
+  "items": [
+    {
+      "address": "-4xgjroXENKYhTWqrBo57HQwvDL51mMvSxJy6Y2Z_sA",
+      "balance": 1000000
+    },
+    {
+      "address": "-7vXsQZQDk8TMDlpiSLy3CnLi5PDPlAaN2DaynORpck",
+      "balance": 1000000
+    }
+    // ...98 other balances
+  ],
+  "hasMore": true,
+  "nextCursor": "-7vXsQZQDk8TMDlpiSLy3CnLi5PDPlAaN2DaynORpck",
+  "totalItems": 1789,
+  "sortBy": "balance",
+  "sortOrder": "desc"
 }
 ```
 
@@ -167,7 +164,7 @@ _Note: Requires `signer` to be provided on `ARIO.init` to sign the transaction._
 ```typescript
 const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
 const { id: txId } = await ario.transfer({
-    target: "RecipientSolanaPubkeyBase58",
-    qty: new ARIOToken(1000).toMARIO(),
+  target: 'RecipientSolanaPubkeyBase58',
+  qty: new ARIOToken(1000).toMARIO(),
 });
 ```
