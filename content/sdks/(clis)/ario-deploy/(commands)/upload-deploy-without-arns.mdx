@@ -1,0 +1,13 @@
+---
+title: "Upload/deploy without ArNS"
+description: "CLI for deploying apps to the permaweb (Arweave) and updating ArNS"
+---
+
+`deploy` uploads without updating ArNS by default. You can also use the `upload` command explicitly for the same Turbo upload, dedupe cache, and payment options as deploy, minus ArNS flags:
+
+```bash
+ario-deploy deploy --wallet ./wallet.json --deploy-folder ./dist
+ario-deploy upload --wallet ./wallet.json --deploy-folder ./dist
+ario-deploy upload --wallet ./wallet.json --deploy-file ./dist/index.html
+DEPLOY_KEY=$(base64 -i wallet.json) ario-deploy upload --deploy-folder ./dist
+```

@@ -1,0 +1,84 @@
+---
+title: "CLI in GitHub Actions"
+description: "CLI for deploying apps to the permaweb (Arweave) and updating ArNS"
+---
+
+You can also use the CLI directly in your workflows:
+
+**Basic Workflow:**
+
+```yaml
+name: Deploy to Permaweb
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - run: pnpm install
+
+      - run: pnpm deploy
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+```
+
+**With On-Demand Payment:**
+
+```yaml
+name: Deploy to Permaweb with On-Demand Payment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - run: pnpm install
+      - run: pnpm build
+
+      - name: Deploy with ARIO on-demand
+        run: ario-deploy deploy --arns-name my-app --on-demand ario --max-token-amount 2.0
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }} # upload key (pays for the upload)
+          ARNS_KEY: ${{ secrets.ARNS_KEY }} # Solana ArNS authority key
+
+
+      # Or upload with Ethereum and Base-ETH on-demand payment (upload only; ArNS requires Solana):
+      # - name: Upload with Base-ETH on-demand
+      #   run: |
+      #     ario-deploy upload \
+      #       --sig-type ethereum \
+      #       --on-demand base-eth \
+      #       --max-token-amount 0.2
+      #   env:
+      #     DEPLOY_KEY: ${{ secrets.ETH_PRIVATE_KEY }}
+```

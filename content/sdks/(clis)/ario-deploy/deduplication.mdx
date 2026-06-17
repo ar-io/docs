@@ -1,0 +1,38 @@
+---
+title: "Deduplication"
+description: "CLI for deploying apps to the permaweb (Arweave) and updating ArNS"
+---
+
+By default, ario-deploy caches your deployment log to prevent uploading duplicate (unchanged) files. This saves both time and upload costs by reusing existing data on Arweave.
+
+**How it works:**
+
+1. When you deploy, ario-deploy hashes each file in your build
+2. It checks the local cache for matching hashes from previous uploads
+3. Files that haven't changed are skipped - the existing transaction ID is reused
+4. Only new or modified files are uploaded to Arweave
+5. The cache is stored locally in `.ario-deploy/transaction-cache.json`
+
+**Disable deduplication:**
+
+If you need to force a fresh upload of all files (e.g., for debugging or to ensure a completely new deployment):
+
+```bash
+ario-deploy deploy --wallet ./wallet.json --no-dedupe
+```
+
+**Limit cache size:**
+
+The dedupe cache uses an LRU (Least Recently Used) eviction strategy. By default, it keeps up to 10,000 entries. You can adjust this limit:
+
+```bash
+ario-deploy deploy --wallet ./wallet.json --dedupe-cache-max-entries 1000
+```
+
+**Cache location:**
+
+The cache file is stored at `.ario-deploy/transaction-cache.json` in your project root. You can:
+
+- Add it to `.gitignore` if you don't want to share cache across team members
+- Commit it to share cached transaction IDs with your team (reduces duplicate uploads)
+- Delete it to start fresh: `rm -rf .ario-deploy/`

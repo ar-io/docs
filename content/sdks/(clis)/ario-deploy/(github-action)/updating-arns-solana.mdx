@@ -1,0 +1,17 @@
+---
+title: "Updating ArNS (Solana)"
+description: "CLI for deploying apps to the permaweb (Arweave) and updating ArNS"
+---
+
+ArNS updates run against the Solana ARIO programs. Provide the Solana ArNS authority key via `arns-key` (a base58 Solana secret key); the upload is still paid for by `deploy-key`. Use `cluster` to target `mainnet` (default) or `devnet`, and `rpc-url` for a custom RPC endpoint.
+
+```yaml
+- name: Deploy and update ArNS
+  uses: ar-io/ar-io-deploy@v1
+  with:
+    deploy-key: ${{ secrets.DEPLOY_KEY }} # upload key
+    arns-key: ${{ secrets.ARNS_KEY }} # Solana ArNS authority key
+    arns-name: myapp
+    deploy-folder: ./dist
+    cluster: mainnet
+```
