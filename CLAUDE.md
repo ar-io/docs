@@ -51,7 +51,7 @@ Note: The `postinstall` script runs `fumadocs-mdx` to generate the `.source/` di
 - `content/` - All documentation in MDX format
   - `content/learn/` - Conceptual documentation (ArNS, gateways, token, etc.)
   - `content/build/` - Developer guides (access data, upload, run gateway)
-  - `content/sdks/` - SDK documentation (ar-io-sdk, turbo-sdk, ardrive-cli, wayfinder)
+  - `content/sdks/` - SDK and CLI reference (`(clis)/` for CLIs such as ardrive-cli and ario-deploy; SDKs include ar-io-sdk, turbo-sdk, ardrive-core-js, wayfinder)
   - `content/apis/` - API reference (ar-io-node, turbo services)
 - `content/meta.json` - Root navigation structure
 - Each folder uses `meta.json` to define page order and navigation
@@ -117,5 +117,5 @@ Scripts generate AI-friendly text files from docs:
 
 ## Deployment
 
-- **Production**: Deploys to Arweave via GitHub Actions (`.github/workflows/deploy-to-arweave.yaml`) on pushes to main. Uses permaweb-deploy. Supports manual dispatch with custom ArNS undername.
-- **PR Previews**: `.github/workflows/pr-preview.yaml` deploys previews for PRs that change `content/` or `src/`. Only runs for PRs from the main repo (not forks).
+- **Production**: Deploys to Arweave via GitHub Actions (`.github/workflows/deploy-to-arweave.yaml`) on pushes to main. Uses the [`ar-io/ar-io-deploy`](https://github.com/ar-io/ar-io-deploy) GitHub Action. Supports manual dispatch with custom ArNS undername.
+- **PR Previews**: `.github/workflows/pr-preview.yaml` deploys previews for PRs that change `content/` or `src/`. Uses `ar-io/ar-io-deploy`. Only runs for PRs from the main repo (not forks).

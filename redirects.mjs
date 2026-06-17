@@ -327,7 +327,12 @@ const redirects = [
   },
   {
     source: '/guides/permaweb-deploy',
-    destination: '/build/guides/hosting-unstoppable-apps',
+    destination: '/build/guides/hosting-decentralised-apps/deploying-with-ario-deploy',
+    permanent: true,
+  },
+  {
+    source: '/build/guides/hosting-decentralised-apps/deploying-with-permaweb-deploy',
+    destination: '/build/guides/hosting-decentralised-apps/deploying-with-ario-deploy',
     permanent: true,
   },
   {

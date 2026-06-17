@@ -1,6 +1,6 @@
 # Solana Migration — Documentation Page Status
 
-Updated 2026-06-05. Tracks every content page and its migration status from AO to Solana.
+Updated 2026-06-17. Tracks every content page and its migration status from AO to Solana.
 
 ## Legend
 
@@ -161,10 +161,10 @@ Updated 2026-06-05. Tracks every content page and its migration status from AO t
 | `build/guides/working-with-arns/manage-arns-ui.mdx` | 🔎 NEEDS UPDATING | arns.ar.io UI screenshots and flow need product review |
 | `build/guides/working-with-arns/arns-primary-names.mdx` | ✅ DONE - UPDATED | Primary-name concept plus v3.0.0 fee, uniqueness, and base-owner removal rules |
 | `build/guides/hosting-decentralised-apps/index.mdx` | ✅ DONE - UPDATED | Added end-to-end permanent dApp guide entry |
-| `build/guides/hosting-decentralised-apps/deploying-with-arlink.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Needs review when ArLink is updated for Solana |
-| `build/guides/hosting-decentralised-apps/deploying-with-permaweb-deploy.mdx` | 🔎 NEEDS TECHNICAL REVIEW | CLI ArNS deployment flow should be verified against current tooling |
+| `build/guides/hosting-decentralised-apps/deploying-with-ario-deploy.mdx` | ✅ DONE - UPDATED | Replaces `deploying-with-permaweb-deploy.mdx`; migrated to `@ar.io/deploy` / `ario-deploy` CLI and `ar-io/ar-io-deploy` GitHub Action |
+| `build/guides/hosting-decentralised-apps/deploying-with-arlink.mdx` | 🔎 NEEDS TECHNICAL REVIEW | References updated to `ario-deploy`; needs review when ArLink is updated for Solana |
 | `build/guides/hosting-decentralised-apps/hosting-with-ardrive.mdx` | ✅ DONE - UPDATED | ArDrive upload flow; arns.ar.io already used |
-| `build/guides/hosting-decentralised-apps/using-undernames-for-versioning.mdx` | ✅ DONE - UPDATED | Updated ArNS host examples and fixed copy typo |
+| `build/guides/hosting-decentralised-apps/using-undernames-for-versioning.mdx` | ✅ DONE - UPDATED | Updated for `ario-deploy` CLI commands and ArNS host examples |
 | `build/guides/using-turbo-in-a-browser/index.mdx` | ✅ DONE - NO CHANGE | Turbo browser upload guide is wallet/provider specific |
 | `build/guides/using-turbo-in-a-browser/html.mdx` | ✅ DONE - NO CHANGE | Turbo browser upload guide |
 | `build/guides/using-turbo-in-a-browser/nextjs.mdx` | ✅ DONE - NO CHANGE | Turbo browser upload guide |
@@ -187,9 +187,9 @@ Updated 2026-06-05. Tracks every content page and its migration status from AO t
 
 ---
 
-## SDKs Section
+## SDKs and CLIs Section
 
-> SDK reference pages are generated from upstream READMEs by `npm run generate-sdk-docs`. They are not regenerated automatically by `npm run build`; regenerate all SDK docs before launch because they have likely drifted from upstream. Track generated SDK docs at group level rather than per generated file.
+> SDK reference pages are generated from upstream READMEs by `npm run generate-sdk-docs`. CLI reference pages under `sdks/(clis)/` (e.g. ardrive-cli, ario-deploy) are generated the same way but are **not** SDKs. Neither group is regenerated automatically by `npm run build`; regenerate before launch because they have likely drifted from upstream. Track generated docs at group level rather than per generated file.
 
 | Page | Status | Notes |
 |------|--------|-------|
@@ -219,6 +219,12 @@ Updated 2026-06-05. Tracks every content page and its migration status from AO t
 | Page | Status | Notes |
 |------|--------|-------|
 | Generated ArDrive CLI pages | ✅ DONE - UPDATED | Regenerated from upstream README; not part of ar.io protocol migration |
+
+### sdks/(clis)/ario-deploy/ (~29 pages, CLI)
+
+| Page | Status | Notes |
+|------|--------|-------|
+| Generated ario-deploy CLI reference | ✅ DONE - UPDATED | CLI docs (not an SDK); regenerated from [ar-io-deploy](https://github.com/ar-io/ar-io-deploy) README; replaces permaweb-deploy as the recommended deployment tool |
 
 ### sdks/wayfinder/ (~12 pages)
 
@@ -256,4 +262,5 @@ Updated 2026-06-05. Tracks every content page and its migration status from AO t
 - [x] Regenerate SDK output examples from Solana devnet — generated ar.io SDK pages still need spot-checking for Arweave-format addresses and Solana signer examples
 - [ ] Operator/product review: verify join-network, Solana migration, gateway env defaults, observer `IO_PROCESS_ID`, and RPC guidance against current mainnet release behavior
 - [ ] Update UI screenshots in `purchase-arns-ui.mdx` and `manage-arns-ui.mdx` once Solana UI is live
-- [ ] Run `npm run generate-all-docs` to regenerate LLM text files
+- [x] Run `npm run generate-llm-text` to regenerate `public/llms-full.txt` after ario-deploy guide migration
+- [ ] Run `npm run generate-sdk-llm-texts` if per-SDK `llm.txt` files need refresh

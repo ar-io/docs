@@ -9,7 +9,7 @@ import { Card, Cards } from 'fumadocs-ui/components/card';
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 import { GitBranch, Code, Rocket, Network, Settings, RefreshCw, CheckCircle, Zap, Upload } from 'lucide-react';
 
-In the [previous guide](/build/guides/hosting-decentralised-apps/deploying-with-permaweb-deploy), you deployed your application to your base ArNS name. Now you'll learn how to manage multiple versions and environments using **undernames** - subdomains under your ArNS name.
+In the [previous guide](/build/guides/hosting-decentralised-apps/deploying-with-ario-deploy), you deployed your application to your base ArNS name. Now you'll learn how to manage multiple versions and environments using **undernames** - subdomains under your ArNS name.
 
 ## What You'll Learn
 
@@ -67,10 +67,10 @@ In your `my-permaweb-app` project from the previous guide, update `package.json`
       "scripts": {
         "dev": "next dev",
         "build": "next build",
-        "deploy": "next build && permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out",
-        "deploy:dev": "next build && permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out --undername dev --ttl-seconds 60",
-        "deploy:staging": "next build && permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out --undername staging --ttl-seconds 60",
-        "deploy:prod": "next build && permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out --ttl-seconds 3600"
+        "deploy": "next build && ario-deploy deploy --arns-name your-arns-name --deploy-folder out",
+        "deploy:dev": "next build && ario-deploy deploy --arns-name your-arns-name --deploy-folder out --undername dev --ttl-seconds 60",
+        "deploy:staging": "next build && ario-deploy deploy --arns-name your-arns-name --deploy-folder out --undername staging --ttl-seconds 60",
+        "deploy:prod": "next build && ario-deploy deploy --arns-name your-arns-name --deploy-folder out --ttl-seconds 3600"
       }
     }
     ```
@@ -84,10 +84,10 @@ In your `my-permaweb-app` project from the previous guide, update `package.json`
       "scripts": {
         "dev": "vite",
         "build": "vite build",
-        "deploy": "vite build && permaweb-deploy deploy --arns-name your-arns-name",
-        "deploy:dev": "vite build && permaweb-deploy deploy --arns-name your-arns-name --undername dev --ttl-seconds 60",
-        "deploy:staging": "vite build && permaweb-deploy deploy --arns-name your-arns-name --undername staging --ttl-seconds 60",
-        "deploy:prod": "vite build && permaweb-deploy deploy --arns-name your-arns-name --ttl-seconds 60"
+        "deploy": "vite build && ario-deploy deploy --arns-name your-arns-name",
+        "deploy:dev": "vite build && ario-deploy deploy --arns-name your-arns-name --undername dev --ttl-seconds 60",
+        "deploy:staging": "vite build && ario-deploy deploy --arns-name your-arns-name --undername staging --ttl-seconds 60",
+        "deploy:prod": "vite build && ario-deploy deploy --arns-name your-arns-name --ttl-seconds 60"
       }
     }
     ```
@@ -130,7 +130,7 @@ Create a script that automatically archives based on your `package.json` version
 
     // Deploy to version-specific undername (build already done by npm script)
     execSync(
-      `permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out --undername v${version} --ttl-seconds 3600`,
+      `ario-deploy deploy --arns-name your-arns-name --deploy-folder out --undername v${version} --ttl-seconds 3600`,
       { stdio: 'inherit' }
     );
 
@@ -142,9 +142,9 @@ Create a script that automatically archives based on your `package.json` version
     ```json title="package.json"
     {
       "scripts": {
-        "deploy:dev": "next build && permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out --undername dev --ttl-seconds 60",
-        "deploy:staging": "next build && permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out --undername staging --ttl-seconds 60",
-        "deploy:prod": "next build && permaweb-deploy deploy --arns-name your-arns-name --deploy-folder out --ttl-seconds 3600",
+        "deploy:dev": "next build && ario-deploy deploy --arns-name your-arns-name --deploy-folder out --undername dev --ttl-seconds 60",
+        "deploy:staging": "next build && ario-deploy deploy --arns-name your-arns-name --deploy-folder out --undername staging --ttl-seconds 60",
+        "deploy:prod": "next build && ario-deploy deploy --arns-name your-arns-name --deploy-folder out --ttl-seconds 3600",
         "deploy:archive": "next build && node scripts/deploy-archive.js"
       }
     }
@@ -163,7 +163,7 @@ Create a script that automatically archives based on your `package.json` version
 
     // Deploy to version-specific undername (build already done by npm script)
     execSync(
-      `permaweb-deploy deploy --arns-name your-arns-name --undername v${version} --ttl-seconds 3600`,
+      `ario-deploy deploy --arns-name your-arns-name --undername v${version} --ttl-seconds 3600`,
       { stdio: 'inherit' }
     );
 
@@ -175,9 +175,9 @@ Create a script that automatically archives based on your `package.json` version
     ```json title="package.json"
     {
       "scripts": {
-        "deploy:dev": "vite build && permaweb-deploy deploy --arns-name your-arns-name --undername dev --ttl-seconds 60",
-        "deploy:staging": "vite build && permaweb-deploy deploy --arns-name your-arns-name --undername staging --ttl-seconds 60",
-        "deploy:prod": "vite build && permaweb-deploy deploy --arns-name your-arns-name --ttl-seconds 3600",
+        "deploy:dev": "vite build && ario-deploy deploy --arns-name your-arns-name --undername dev --ttl-seconds 60",
+        "deploy:staging": "vite build && ario-deploy deploy --arns-name your-arns-name --undername staging --ttl-seconds 60",
+        "deploy:prod": "vite build && ario-deploy deploy --arns-name your-arns-name --ttl-seconds 3600",
         "deploy:archive": "vite build && node scripts/deploy-archive.js"
       }
     }
@@ -209,9 +209,9 @@ admin            → Admin panel
 ```json title="package.json"
 {
   "scripts": {
-    "deploy:marketing": "permaweb-deploy deploy --arns-name your-arns-name --deploy-folder ./marketing/dist --ttl-seconds 3600",
-    "deploy:app": "permaweb-deploy deploy --arns-name your-arns-name --undername app --deploy-folder ./app/dist --ttl-seconds 60",
-    "deploy:docs": "permaweb-deploy deploy --arns-name your-arns-name --undername docs --deploy-folder ./docs/dist --ttl-seconds 1800",
+    "deploy:marketing": "ario-deploy deploy --arns-name your-arns-name --deploy-folder ./marketing/dist --ttl-seconds 3600",
+    "deploy:app": "ario-deploy deploy --arns-name your-arns-name --undername app --deploy-folder ./app/dist --ttl-seconds 60",
+    "deploy:docs": "ario-deploy deploy --arns-name your-arns-name --undername docs --deploy-folder ./docs/dist --ttl-seconds 1800",
     "deploy:all": "npm run deploy:marketing && npm run deploy:app && npm run deploy:docs"
   }
 }
@@ -223,7 +223,7 @@ Each component can be deployed independently or all at once with `npm run deploy
 
 ## Automating Environment Deployments
 
-Building on the [GitHub Actions workflow](/build/guides/hosting-decentralised-apps/deploying-with-permaweb-deploy#automating-with-github-actions) from the previous guide, let's create environment-specific workflows that deploy based on branch activity.
+Building on the [GitHub Actions workflow](/build/guides/hosting-decentralised-apps/deploying-with-ario-deploy#automating-with-github-actions) from the previous guide, let's create environment-specific workflows that deploy based on branch activity.
 
 <Tabs items={['Development', 'Staging', 'Production']}>
   <Tab value="Development">
@@ -401,5 +401,5 @@ You now know how to manage multiple environments using ArNS undernames:
 - **GitHub Actions automation** for branch-based deployments
 - **Instant rollbacks** through the ArNS app interface
 
-In our next guides we're explore other tools you can use to host websites on ar.io without needing to configure `permaweb-deploy`.
+In our next guides we'll explore other tools you can use to host websites on ar.io without needing to configure `ario-deploy`.
 
