@@ -1,0 +1,30 @@
+---
+title: "Package.json Scripts"
+description: "CLI for deploying apps to the permaweb (Arweave) and updating ArNS"
+---
+
+Add deployment scripts to your `package.json`:
+
+```json
+{
+  "scripts": {
+    "build": "vite build",
+    "deploy": "pnpm build && ario-deploy deploy --arns-name \<ARNS_NAME\>",
+    "deploy:staging": "pnpm build && ario-deploy deploy --arns-name \<ARNS_NAME\> --undername staging",
+    "deploy:devnet": "pnpm build && ario-deploy deploy --arns-name \<ARNS_NAME\> --cluster devnet",
+    "deploy:on-demand": "pnpm build && ario-deploy deploy --arns-name \<ARNS_NAME\> --on-demand ario --max-token-amount 1.5"
+  }
+}
+```
+
+These read the upload key from `DEPLOY_KEY` and the Solana ArNS authority key from `ARNS_KEY`. Deploy with:
+
+```bash
+DEPLOY_KEY=$(base64 -i wallet.json) ARNS_KEY=\<base58-solana-secret-key\> pnpm deploy
+```
+
+Or with on-demand payment:
+
+```bash
+DEPLOY_KEY=$(base64 -i wallet.json) ARNS_KEY=\<base58-solana-secret-key\> pnpm deploy:on-demand
+```

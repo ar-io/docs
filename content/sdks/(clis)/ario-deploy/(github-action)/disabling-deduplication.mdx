@@ -1,0 +1,28 @@
+---
+title: "Disabling Deduplication"
+description: "CLI for deploying apps to the permaweb (Arweave) and updating ArNS"
+---
+
+By default, the action caches transaction IDs to avoid re-uploading unchanged files. To disable this:
+
+```yaml
+- name: Deploy without dedupe
+  uses: ar-io/ar-io-deploy@v1
+  with:
+    deploy-key: ${{ secrets.DEPLOY_KEY }}
+    deploy-folder: ./dist
+    no-dedupe: 'true'
+```
+
+You can also limit the cache size:
+
+```yaml
+- name: Deploy with limited cache
+  uses: ar-io/ar-io-deploy@v1
+  with:
+    deploy-key: ${{ secrets.DEPLOY_KEY }}
+    deploy-folder: ./dist
+    dedupe-cache-max-entries: '1000'
+```
+
+---

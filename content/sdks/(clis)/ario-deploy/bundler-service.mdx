@@ -1,0 +1,26 @@
+---
+title: "Bundler service"
+description: "CLI for deploying apps to the permaweb (Arweave) and updating ArNS"
+---
+
+Uploads go through a bundler service that accepts signed data items and posts them to Arweave. By default, ario-deploy uses the [Turbo](https://docs.ardrive.io/docs/turbo/) API and ArDrive’s production bundler (`https://upload.ardrive.io`). **`--uploader`** sets the **base URL** of the bundler service to use (scheme + host; typically no path).
+
+| When to use               | Example value                                           |
+| ------------------------- | ------------------------------------------------------- |
+| **Default** (omit flag)   | ArDrive production bundler — same as Turbo CLI defaults |
+| **Arweave bundler**       | `https://turbo.ardrive.io`                              |
+| **Development / staging** | `https://upload.ardrive.dev`                            |
+| **Custom or self-hosted** | Your own base URL if it implements the Turbo API        |
+
+**Examples:**
+
+```bash
+ario-deploy deploy --wallet ./wallet.json --deploy-folder ./dist --uploader https://turbo.ardrive.io
+
+ario-deploy upload --wallet ./wallet.json --deploy-folder ./dist --uploader https://turbo.ardrive.io
+```
+
+**Notes:**
+
+- Turbo billing and signer behavior follow Turbo.
+- Use a **base URL only** (e.g. `https://turbo.ardrive.io`), not a path to a specific file or route.

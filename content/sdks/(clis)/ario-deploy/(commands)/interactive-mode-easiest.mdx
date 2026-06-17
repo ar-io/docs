@@ -1,0 +1,24 @@
+---
+title: "Interactive Mode (Easiest)"
+description: "CLI for deploying apps to the permaweb (Arweave) and updating ArNS"
+---
+
+Run the deploy command without arguments to be guided through all deployment options:
+
+```bash
+ario-deploy deploy
+```
+
+When ArNS details aren't supplied via flags, `deploy` asks whether you want to
+update an ArNS name (defaulting to yes) and, if so, prompts for the details. It
+will guide you through:
+
+- Whether to update an ArNS name (and which one)
+- Wallet method (file, string, or environment variable)
+- What to deploy (folder or file)
+- Advanced options (optional: undername, TTL, Solana cluster)
+
+Pass `--arns-name` (or `--use-arns`) to skip the ArNS confirmation, or use the
+`upload` command for an upload-only run. In a non-interactive environment (CI,
+or no TTY) `deploy` does not prompt — supply everything via flags or
+`DEPLOY_KEY`.
