@@ -6,6 +6,7 @@ const chunkLoadRecoveryScript = `
   var retryWindowMs = 30000;
   var maxReloads = 2;
   var scheduled = false;
+  var fallbackPrefix = "ar-io-docs:chunk-load-recovery=";
 
   function getMessage(value) {
     if (!value) return "";
@@ -30,15 +31,50 @@ const chunkLoadRecoveryScript = `
     return /ChunkLoadError|Failed to load chunk|Loading chunk .* failed|\\/_next\\/static\\/chunks\\/|ERR_ABORTED 502|Bad Gateway/i.test(message);
   }
 
+  function readFallbackState(now) {
+    try {
+      if (typeof window.name !== "string" || window.name.indexOf(fallbackPrefix) !== 0) {
+        return { count: 0, firstSeen: now };
+      }
+
+      var parsed = JSON.parse(window.name.slice(fallbackPrefix.length));
+      if (!parsed || now - parsed.firstSeen > retryWindowMs) {
+        return { count: 0, firstSeen: now };
+      }
+
+      return parsed;
+    } catch (_error) {
+      return { count: 0, firstSeen: now };
+    }
+  }
+
+  function writeFallbackState(state) {
+    try {
+      window.name = fallbackPrefix + JSON.stringify(state);
+      return true;
+    } catch (_error) {
+      return false;
+    }
+  }
+
   function readState(now) {
     try {
       var parsed = JSON.parse(sessionStorage.getItem(storageKey) || "null");
       if (!parsed || now - parsed.firstSeen > retryWindowMs) {
-        return { count: 0, firstSeen: now };
+        return readFallbackState(now);
       }
       return parsed;
     } catch (_error) {
-      return { count: 0, firstSeen: now };
+      return readFallbackState(now);
+    }
+  }
+
+  function writeState(state) {
+    try {
+      sessionStorage.setItem(storageKey, JSON.stringify(state));
+      return true;
+    } catch (_error) {
+      return writeFallbackState(state);
     }
   }
 
@@ -53,9 +89,7 @@ const chunkLoadRecoveryScript = `
 
     state.count += 1;
 
-    try {
-      sessionStorage.setItem(storageKey, JSON.stringify(state));
-    } catch (_error) {}
+    if (!writeState(state)) return;
 
     setTimeout(function () {
       window.location.reload();

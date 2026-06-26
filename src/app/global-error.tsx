@@ -19,9 +19,44 @@ function scheduleReloadForChunkError(error: Error) {
   if (!isChunkLoadError(error)) return;
 
   const storageKey = "ar-io-docs:chunk-load-recovery";
+  const fallbackPrefix = "ar-io-docs:chunk-load-recovery=";
   const retryWindowMs = 30000;
   const maxReloads = 2;
   const now = Date.now();
+  const freshState = { count: 0, firstSeen: now };
+
+  function readFallbackState() {
+    try {
+      if (
+        typeof window.name !== "string" ||
+        !window.name.startsWith(fallbackPrefix)
+      ) {
+        return freshState;
+      }
+
+      const parsed = JSON.parse(window.name.slice(fallbackPrefix.length)) as
+        | { count?: number; firstSeen?: number }
+        | null;
+
+      return parsed && parsed.firstSeen && now - parsed.firstSeen <= retryWindowMs
+        ? {
+            count: parsed.count ?? 0,
+            firstSeen: parsed.firstSeen,
+          }
+        : freshState;
+    } catch {
+      return freshState;
+    }
+  }
+
+  function writeFallbackState(state: { count: number; firstSeen: number }) {
+    try {
+      window.name = `${fallbackPrefix}${JSON.stringify(state)}`;
+      return true;
+    } catch {
+      return false;
+    }
+  }
 
   try {
     const parsed = JSON.parse(sessionStorage.getItem(storageKey) || "null") as
@@ -34,25 +69,27 @@ function scheduleReloadForChunkError(error: Error) {
             count: parsed.count ?? 0,
             firstSeen: parsed.firstSeen,
           }
-        : {
-            count: 0,
-            firstSeen: now,
-          };
+        : readFallbackState();
 
     if (state.count >= maxReloads) return;
 
-    sessionStorage.setItem(
-      storageKey,
-      JSON.stringify({ ...state, count: state.count + 1 }),
-    );
+    const nextState = { ...state, count: state.count + 1 };
+    sessionStorage.setItem(storageKey, JSON.stringify(nextState));
 
     window.setTimeout(() => window.location.reload(), 250);
   } catch {
+    const state = readFallbackState();
+
+    if (state.count >= maxReloads) return;
+    if (!writeFallbackState({ ...state, count: state.count + 1 })) return;
+
     window.setTimeout(() => window.location.reload(), 250);
   }
 }
 
 export default function GlobalError({ error, reset }: GlobalErrorProps) {
+  const isChunkError = isChunkLoadError(error);
+
   useEffect(() => {
     console.error(error);
     scheduleReloadForChunkError(error);
@@ -91,12 +128,12 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
                 margin: "0 0 12px",
               }}
             >
-              The docs hit a temporary loading error.
+              The docs hit a loading error.
             </h1>
             <p style={{ color: "rgba(35, 35, 45, 0.72)", margin: "0 0 24px" }}>
-              This can happen when a gateway returns a transient error while
-              loading an app chunk. Reloading usually routes the request through
-              a healthy response.
+              {isChunkError
+                ? "This can happen when a gateway returns a transient error while loading an app chunk. Reloading usually routes the request through a healthy response."
+                : "Try reloading the docs, or use the button below to retry rendering this page."}
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
               <button
