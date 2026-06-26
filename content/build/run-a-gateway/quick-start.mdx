@@ -114,6 +114,8 @@ Ready to run a gateway with your own domain name and SSL certificates? Follow th
         ARNS_ROOT_HOST=<your-domain>
         AR_IO_WALLET=<your-solana-pubkey>
         OBSERVER_WALLET=<observer-solana-pubkey>
+        OBSERVER_PRIVATE_KEY=<observer-base58-private-key>
+        SOLANA_UPLOAD_PRIVATE_KEY=<observer-base58-private-key>
         ```
 
         <Callout type="info">
@@ -123,8 +125,15 @@ Ready to run a gateway with your own domain name and SSL certificates? Follow th
         **Supply Observer Wallet Keyfile:**
         Save your Solana keypair JSON file as `<Observer-Wallet-Address>.json` in the `wallets` directory.
 
+        If you use a keypair file instead of inline base58 keys, remove `OBSERVER_PRIVATE_KEY` and `SOLANA_UPLOAD_PRIVATE_KEY` from `.env`, then set both paths explicitly:
+
+        ```bash
+        OBSERVER_KEYPAIR_PATH=/app/wallets/<Observer-Wallet-Address>.json
+        SOLANA_UPLOAD_KEYPAIR_PATH=/app/wallets/<Observer-Wallet-Address>.json
+        ```
+
         <Callout type="info" title="Payment For Observer Report Uploads">
-          By default, the Observer will use [Turbo Credits](https://docs.ardrive.io/docs/turbo/credits) to pay for uploading reports to Arweave. This allows reports under 100kb to be uploaded for free, but larger reports will fail if the Observer wallet does not contain Credits. Including `REPORT_DATA_SINK=arweave` in your `.env` file will configure the Observer to use AR tokens instead of Turbo Credits, without any free limit.
+          By default, the Observer will use [Turbo Credits](https://docs.ardrive.io/docs/turbo/credits) to pay for uploading reports to Arweave. This allows reports under 100kb to be uploaded for free, but larger reports will fail if the Observer wallet does not contain Credits. Set `SOLANA_UPLOAD_PRIVATE_KEY` to the same base58 secret as `OBSERVER_PRIVATE_KEY` so Turbo has an explicit upload signer. If logs warn that `TurboReportSink` is not configured, this upload key is usually missing. Including `REPORT_DATA_SINK=arweave` in your `.env` file will configure the Observer to use AR tokens instead of Turbo Credits, without any free limit.
         </Callout>
 
         **Start the Docker container:**
@@ -306,12 +315,21 @@ Ready to run a gateway with your own domain name and SSL certificates? Follow th
         ARNS_ROOT_HOST=<your-domain>
         AR_IO_WALLET=<your-public-wallet-address>
         OBSERVER_WALLET=<hot-wallet-public-address>
+        OBSERVER_PRIVATE_KEY=<observer-base58-private-key>
+        SOLANA_UPLOAD_PRIVATE_KEY=<observer-base58-private-key>
         ```
 
         **Save as `.env`** (select "All Files" as file type)
 
         **Supply Observer Wallet Keyfile:**
         Save your wallet keyfile as `<Observer-Wallet-Address>.json` in the `wallets` directory.
+
+        If you use a keypair file instead of inline base58 keys, remove `OBSERVER_PRIVATE_KEY` and `SOLANA_UPLOAD_PRIVATE_KEY` from `.env`, then set both paths explicitly:
+
+        ```bash
+        OBSERVER_KEYPAIR_PATH=/app/wallets/<Observer-Wallet-Address>.json
+        SOLANA_UPLOAD_KEYPAIR_PATH=/app/wallets/<Observer-Wallet-Address>.json
+        ```
       </Step>
 
       <Step>

@@ -382,6 +382,8 @@ The default public Solana RPC is rate-limited and may block `getProgramAccounts`
 
 The observer uploads report bundles to Turbo. The upload signer is resolved from the first matching env in the [precedence chain](/build/run-a-gateway/manage/solana-migration#upload-signing-precedence). Setting envs from more than one chain group at once is rejected at startup.
 
+If your observer logs warn that `TurboReportSink` is not configured, explicitly set a Solana upload signer. Most operators can use the same base58 secret for both `OBSERVER_PRIVATE_KEY` and `SOLANA_UPLOAD_PRIVATE_KEY`.
+
 | Variable                          | Type   | Default | Description                                                                 |
 | --------------------------------- | ------ | ------- | --------------------------------------------------------------------------- |
 | `ARWEAVE_UPLOAD_KEY_FILE`         | string | -       | Path to an Arweave JWK file. Highest priority for upload signing            |
@@ -391,7 +393,7 @@ The observer uploads report bundles to Turbo. The upload signer is resolved from
 | `SOLANA_UPLOAD_KEYPAIR_PATH`      | string | -       | Path to a separate Solana keypair JSON for uploads. Ignored when any `ARWEAVE_UPLOAD_*` or `ETHEREUM_UPLOAD_*` is set |
 | `SOLANA_UPLOAD_PRIVATE_KEY`       | string | -       | Alternative to above: base58 secret. Mutually exclusive with the file form  |
 
-When none of the above are set, uploads fall back to the observer key, then the operator key.
+When none of the above are set, uploads fall back to the observer key, then the operator key. For production observers, prefer setting `SOLANA_UPLOAD_KEYPAIR_PATH` or `SOLANA_UPLOAD_PRIVATE_KEY` explicitly so report uploads do not depend on fallback behavior.
 
 ### Offset Observation
 

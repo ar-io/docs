@@ -120,7 +120,7 @@ Complete these steps before the cutover date to ensure uninterrupted reward elig
     </Callout>
 
     <Callout type="info" title="Phantom-export keys">
-      If you already have a Phantom-exported base58 secret string for the observer or operator, you can skip the JSON keypair file entirely: set `OBSERVER_PRIVATE_KEY=<base58>` (or `SOLANA_PRIVATE_KEY=<base58>`) instead of the `*_KEYPAIR_PATH` env. Setting both forms for the same role is rejected at startup.
+      If you already have a Phantom-exported base58 secret string for the observer or operator, you can skip the JSON keypair file entirely: set `OBSERVER_PRIVATE_KEY=<base58>` (or `SOLANA_PRIVATE_KEY=<base58>`) instead of the `*_KEYPAIR_PATH` env. When using an inline observer key, also set `SOLANA_UPLOAD_PRIVATE_KEY=<base58>` so observer report uploads to Turbo use the same signer. Setting both forms for the same role is rejected at startup.
     </Callout>
   </Step>
 
@@ -223,7 +223,7 @@ The gateway uses up to four distinct wallet roles. Understanding these helps you
 |---|---|---|---|
 | **Operator** (+ cranker) | `join_network`, `update_gateway_settings`, permissionless cranker instructions | `SOLANA_KEYPAIR_PATH` or `SOLANA_PRIVATE_KEY` | — (required) |
 | **Observer** | `save_observations` transactions | `OBSERVER_KEYPAIR_PATH` or `OBSERVER_PRIVATE_KEY` | Falls back to operator key |
-| **Upload** | Observer report bundles sent to Turbo | See [upload precedence](#upload-signing-precedence) below | Falls back to observer → operator Solana key |
+| **Upload** | Observer report bundles sent to Turbo | See [upload precedence](#upload-signing-precedence) below | Falls back to observer → operator Solana key, but explicit upload env is recommended |
 | **HTTPSIG signer** | RFC 9421 response headers | Uses observer Solana key when set | Auto-generated standalone Ed25519 key |
 
 <Callout type="info">
@@ -247,10 +247,18 @@ These are the five supported wallet setups. **Pattern 1 is the recommended defau
 ```bash
 # One key for operator + observer + uploads
 SOLANA_KEYPAIR_PATH=/app/wallets/operator-keypair.json
+SOLANA_UPLOAD_KEYPAIR_PATH=/app/wallets/operator-keypair.json
 SOLANA_RPC_URL=<your dedicated RPC endpoint>
 AR_IO_WALLET=<your Solana pubkey>
 OBSERVER_WALLET=<your Solana pubkey>
 ENABLE_EPOCH_CRANKING=false   # flip to true when ready
+```
+
+If you use a base58 private key instead of a keypair file, explicitly set the upload key too:
+
+```bash
+OBSERVER_PRIVATE_KEY=<your base58 private key>
+SOLANA_UPLOAD_PRIVATE_KEY=<your base58 private key>
 ```
 
 #### Pattern 2 — Keep existing Arweave JWK for uploads
@@ -275,12 +283,17 @@ The gateway picks the first matching upload signer from this list:
 2. ARWEAVE_UPLOAD_JWK          (inline)   → ArweaveSigner
 3. ETHEREUM_UPLOAD_PRIVATE_KEY_FILE (file) → EthereumSigner
 4. ETHEREUM_UPLOAD_PRIVATE_KEY (inline)    → EthereumSigner
-5. SOLANA_UPLOAD_KEYPAIR_PATH  (explicit)  → SolanaSigner
-6. Fallback: OBSERVER_KEYPAIR_PATH ?? SOLANA_KEYPAIR_PATH → SolanaSigner
+5. SOLANA_UPLOAD_KEYPAIR_PATH  (explicit file)   → SolanaSigner
+6. SOLANA_UPLOAD_PRIVATE_KEY   (explicit inline) → SolanaSigner
+7. Fallback: OBSERVER_KEYPAIR_PATH ?? SOLANA_KEYPAIR_PATH → SolanaSigner
 ```
 
 <Callout type="warn">
 Setting upload envs from more than one chain at once (e.g. `ARWEAVE_UPLOAD_KEY_FILE` **plus** `ETHEREUM_UPLOAD_PRIVATE_KEY`) raises a startup error listing every conflicting env. Pick exactly one upload chain.
+</Callout>
+
+<Callout type="info" title="TurboReportSink not configured">
+If observer logs warn that `TurboReportSink` is not configured, the observer does not have an upload signer for report data. Add `SOLANA_UPLOAD_PRIVATE_KEY=<same base58 key as OBSERVER_PRIVATE_KEY>` or `SOLANA_UPLOAD_KEYPAIR_PATH=<same keypair path as OBSERVER_KEYPAIR_PATH>`, then restart the observer and check the next epoch logs.
 </Callout>
 
 ### Key Formats
