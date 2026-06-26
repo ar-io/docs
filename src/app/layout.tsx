@@ -11,6 +11,7 @@ import {
   AnnouncementBanner,
   type AnnouncementBannerProps,
 } from "@/components/announcement-banner";
+import { ChunkLoadRecoveryScript } from "@/components/chunk-load-recovery";
 import { Plus_Jakarta_Sans } from "next/font/google";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -44,6 +45,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={plusJakartaSans.variable} suppressHydrationWarning>
       <body className="flex flex-col min-h-screen">
+        <ChunkLoadRecoveryScript />
         <Script
           src="https://plausible.io/js/script.js"
           defer
