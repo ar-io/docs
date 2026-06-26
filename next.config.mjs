@@ -8,6 +8,7 @@ const config = {
   // Enable static export only for production builds
   output: process.env.NODE_ENV === "production" ? "export" : "standalone",
   trailingSlash: process.env.NODE_ENV === "production" ? true : false,
+  basePath: process.env.BASE_PATH || "",
   reactStrictMode: true,
   eslint: {
     // Warning: This allows production builds to successfully complete even if
