@@ -1,6 +1,22 @@
-import Script from "next/script";
-
-const chunkLoadRecoveryScript = `
+// Chunk-load recovery: when a gateway returns a transient error (e.g. 502/Bad
+// Gateway) for a Next.js app chunk, the page fails to hydrate. This script
+// installs global error/unhandledrejection listeners that detect such failures
+// and reload a bounded number of times to route around the bad response.
+//
+// It MUST run before any app chunk executes, so it is injected as a real,
+// parser-blocking inline <script> at the top of <head> in every exported HTML
+// file by scripts/inject-chunk-load-recovery.ts (run as a post-build step).
+//
+// It is NOT rendered via React/next/script: under `output: "export"` the RSC
+// renderer serializes any inline <script> into the React Flight payload
+// (__next_f) instead of emitting an executable tag, so it would only run after
+// hydration — which depends on the very chunks this is meant to recover.
+//
+// Validated by tests/chunk-load-recovery.test.mjs (manual, Playwright-driven):
+// it serves the static export, simulates a 502 on a real chunk, and asserts
+// the recovery reloads and recovers. Re-run it after changing this script:
+//   npm run test:chunk-recovery   (see that file for prerequisites)
+export const chunkLoadRecoveryScript = `
 (function () {
   var storageKey = "ar-io-docs:chunk-load-recovery";
   var retryWindowMs = 30000;
@@ -23,7 +39,7 @@ const chunkLoadRecoveryScript = `
   }
 
   function isNextChunkRequest(src) {
-    return typeof src === "string" && /\\/_next\\/static\\/chunks\\/.test(src);
+    return typeof src === "string" && /\\/_next\\/static\\/chunks\\//.test(src);
   }
 
   function isChunkLoadFailure(value) {
@@ -112,16 +128,3 @@ const chunkLoadRecoveryScript = `
   });
 })();
 `;
-
-export function ChunkLoadRecoveryScript() {
-  return (
-    // The chunk loader can fail before React is ready, so this recovery hook
-    // must be installed before the app chunks execute.
-    // eslint-disable-next-line @next/next/no-before-interactive-script-outside-document
-    <Script
-      id="chunk-load-recovery"
-      strategy="beforeInteractive"
-      dangerouslySetInnerHTML={{ __html: chunkLoadRecoveryScript }}
-    />
-  );
-}

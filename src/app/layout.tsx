@@ -11,7 +11,6 @@ import {
   AnnouncementBanner,
   type AnnouncementBannerProps,
 } from "@/components/announcement-banner";
-import { ChunkLoadRecoveryScript } from "@/components/chunk-load-recovery";
 import { Plus_Jakarta_Sans } from "next/font/google";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -45,7 +44,15 @@ export default function Layout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={plusJakartaSans.variable} suppressHydrationWarning>
       <body className="flex flex-col min-h-screen">
-        <ChunkLoadRecoveryScript />
+        {/*
+          The chunk-load recovery script is NOT rendered here. Under
+          `output: "export"` the RSC renderer serializes any inline <script>
+          into the React Flight payload (__next_f) instead of emitting an
+          executable tag, so it would only run after hydration — which depends
+          on the very chunks it is meant to recover. It is injected as a real
+          inline <script> at the top of <head> in every exported HTML file by
+          scripts/inject-chunk-load-recovery.ts (run as a post-build step).
+        */}
         <Script
           src="https://plausible.io/js/script.js"
           defer
