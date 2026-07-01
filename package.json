@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "build": "NODE_ENV=production next build",
+    "build": "NODE_ENV=production next build && tsx scripts/inject-chunk-load-recovery.ts",
     "dev": "next dev --turbo",
     "start": "next start",
     "lint": "eslint src/ content/ --ext .ts,.tsx,.mdx",
@@ -14,6 +14,7 @@
     "generate-sdk-llm-texts": "node scripts/generate-sdk-llm-texts.js",
     "generate-all-docs": "npm run generate-sdk-docs && npm run generate-llm-text && npm run generate-sdk-llm-texts",
     "check-links": "node scripts/check-links.mjs",
+    "test:chunk-recovery": "node tests/chunk-load-recovery.test.mjs",
     "test-arns": "node scripts/test-arns-update.js",
     "test-signer": "node scripts/test-signer-only.js"
   },
