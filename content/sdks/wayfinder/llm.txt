@@ -102,7 +102,7 @@ function WayfinderImage({ txId }: { txId: string }) {
 
 # Data Retrieval Strategies (/wayfinder-core/data-retrieval-strategies)
 
-Wayfinder supports multiple data retrieval strategies to fetch transaction data from ar.io gateways. These strategies determine how data is requested and assembled from the underlying storage layer.
+Wayfinder supports multiple data retrieval strategies to fetch transaction data from AR.IO gateways. These strategies determine how data is requested and assembled from the underlying storage layer.
 
 | Strategy                          | Use Case                                    | Requirements                           |
 | --------------------------------- | ------------------------------------------- | -------------------------------------- |
@@ -122,7 +122,7 @@ const wayfinder = new Wayfinder({
 
 #### ChunkDataRetrievalStrategy
 
-An advanced strategy that provides the easiest way to load chunks stored on Arweave nodes via the robust chunk API provided by ar.io gateways. This approach is particularly useful for:
+An advanced strategy that provides the easiest way to load chunks stored on Arweave nodes via the robust chunk API provided by AR.IO gateways. This approach is particularly useful for:
 
 - **Direct chunk access**: Efficiently retrieves data directly from the underlying chunk storage layer
 - **Bundled data items**: Seamlessly fetches data items from within ANS-104 bundles using calculated offsets
@@ -155,7 +155,7 @@ const wayfinder = new Wayfinder({
 sequenceDiagram
     participant Client
     participant Wayfinder
-    participant Gateway as ar.io Gateway
+    participant Gateway as AR.IO Gateway
     participant Arweave as Arweave Nodes
 
     Client->>Wayfinder: request('ar://data-item-id')
@@ -245,11 +245,11 @@ const redirectUrl = await wayfinder.resolveUrl({
 
 #### Legacy URLs
 
-Given a legacy turbo-gateway.com or turbo-gateway.com URL, the redirect URL will be the same as the original URL, but with the gateway selected by Wayfinder's routing strategy.
+Given a legacy arweave.net or arweave.dev URL, the redirect URL will be the same as the original URL, but with the gateway selected by Wayfinder's routing strategy.
 
 ```javascript
 const redirectUrl = await wayfinder.resolveUrl({
-  originalUrl: 'https://turbo-gateway.com/example-tx-id',
+  originalUrl: 'https://arweave.net/example-tx-id',
 });
 // results in https://\/example-tx-id
 ```
@@ -309,15 +309,16 @@ Gateway providers supply the list of gateways for routing. **By default, `create
 
 | Provider                       | Description                                    | Use Case                                |
 | ------------------------------ | ---------------------------------------------- | --------------------------------------- |
-| `NetworkGatewaysProvider`      | Returns gateways from ar.io | Leverage ar.io with quality filtering |
+| `NetworkGatewaysProvider`      | Returns gateways from AR.IO Network | Leverage AR.IO Network with quality filtering |
 | `TrustedPeersGatewaysProvider` | Fetches from trusted gateway's peers | Dynamic gateway discovery (default) |
 | `StaticGatewaysProvider`       | Returns a static list of gateways | Testing or specific gateways |
 | `SimpleCacheGatewaysProvider`  | In-memory caching wrapper | Reduce API calls (used by default) |
 | `LocalStorageGatewaysProvider` | Browser localStorage caching | Persistent caching (used by default in browsers) |
+| `CompositeGatewaysProvider`    | Chains multiple providers with fallback | Maximum resilience with multiple sources |
 
 #### NetworkGatewaysProvider
 
-Returns a list of gateways from the ARIO Network based on onchain [Gateway Address Registry](https://docs.ar.io/learn/gateways/gateway-registry). You can specify onchain metrics for gateways to prioritize the highest quality gateways. This requires installing the `@ar.io/sdk` package and importing the `ARIO` object.
+Returns a list of gateways from the ARIO Network based on on-chain [Gateway Address Registry](https://docs.ar.io/learn/gateways/gateway-registry). You can specify on-chain metrics for gateways to prioritize the highest quality gateways. This requires installing the `@ar.io/sdk` package and importing the `ARIO` object.
 
 ```javascript
 
@@ -332,12 +333,52 @@ const gatewayProvider = new NetworkGatewaysProvider({
 
 #### TrustedPeersGatewaysProvider
 
-Fetches a dynamic list of trusted peer gateways from an ar.io gateway's `/ar-io/peers` endpoint. This provider is useful for discovering available gateways from a trusted source.
+Fetches a dynamic list of trusted peer gateways from an AR.IO gateway's `/ar-io/peers` endpoint. This provider is useful for discovering available gateways from a trusted source.
 
 ```javascript
 
 const gatewayProvider = new TrustedPeersGatewaysProvider({
   trustedGateway: 'https://turbo-gateway.com',
+});
+```
+
+#### CompositeGatewaysProvider
+
+Chains multiple gateway providers together, trying each in sequence until one succeeds. This is useful for building resilient gateway discovery with fallbacks.
+
+**How it works:**
+
+1. Tries each provider in the order they're provided
+2. If a provider returns a non-empty list of gateways, those gateways are used
+3. If a provider throws an error or returns an empty list, moves to the next provider
+4. If all providers fail, throws an error
+
+```javascript
+import {
+  CompositeGatewaysProvider,
+  NetworkGatewaysProvider,
+  StaticGatewaysProvider,
+  TrustedPeersGatewaysProvider,
+} from '@ar.io/wayfinder-core';
+
+// Example: Network-first with static fallback
+const gatewayProvider = new CompositeGatewaysProvider({
+  providers: [
+    // Try fetching from AR.IO network first
+    new NetworkGatewaysProvider({
+      ario: ARIO.mainnet(),
+      sortBy: 'operatorStake',
+      limit: 10,
+    }),
+    // Fallback to trusted peers if network fetch fails
+    new TrustedPeersGatewaysProvider({
+      trustedGateway: 'https://turbo-gateway.com',
+    }),
+    // Final fallback to static list
+    new StaticGatewaysProvider({
+      gateways: ['https://turbo-gateway.com', 'https://perma.online'],
+    }),
+  ],
 });
 ```
 
@@ -376,7 +417,7 @@ const gatewayProvider = new TrustedPeersGatewaysProvider({
       routingStrategy: createRoutingStrategy({ strategy: 'random' })
       verificationStrategy: createVerificationStrategy({ 
         strategy: 'hash', 
-        trustedGateways: ['https://ardrive.net'] 
+        trustedGateways: ['https://turbo-gateway.com'] 
       })
     });
     ```
@@ -517,7 +558,7 @@ The `CompositeRoutingStrategy` allows you to chain multiple routing strategies t
 **Common use cases:**
 
 - **Performance + Resilience**: Try fastest ping first, fallback to random if ping fails
-- **Preferred + Network**: Use your own gateway first, fallback to ar.io network selection
+- **Preferred + Network**: Use your own gateway first, fallback to AR.IO network selection
 - **Multi-tier Fallback**: Try premium gateways, then standard gateways, then any available gateway
 
 ```javascript
@@ -640,7 +681,7 @@ const wayfinder = new Wayfinder({
   verificationSettings: {
     enabled: true,
     strategy: new HashVerificationStrategy({
-      trustedGateways: [new URL('https://ardrive.net')],
+      trustedGateways: [new URL('https://turbo-gateway.com')],
     }),
   },
 });
@@ -656,7 +697,7 @@ const wayfinder = new Wayfinder({
   verificationSettings: {
     enabled: true,
     strategy: new DataRootVerificationStrategy({
-      trustedGateways: [new URL('https://ardrive.net')],
+      trustedGateways: [new URL('https://turbo-gateway.com')],
     }),
   },
 });
@@ -672,7 +713,7 @@ const wayfinder = new Wayfinder({
   verificationSettings: {
     enabled: true,
     strategy: new SignatureVerificationStrategy({
-      trustedGateways: [new URL('https://ardrive.net')],
+      trustedGateways: [new URL('https://turbo-gateway.com')],
     }),
   },
 });
@@ -783,7 +824,7 @@ function WayfinderData({ txId }: { txId: string }) {
 
 # useWayfinderUrl (/wayfinder-react/(hooks)/usewayfinderurl)
 
-Get a dynamic URL for an existing `ar://` URL or legacy `arweave.net` URL.
+Get a dynamic URL for an existing `ar://` URL or legacy `arweave.net`/`arweave.dev` URL.
 
 Example:
 

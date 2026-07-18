@@ -1,0 +1,126 @@
+---
+title: "Uploading & Credits"
+description: "Upload ANS-104 data items to the ar.io sandbox with the Turbo SDK, use the free tier, and fund upload credits with testnet value."
+keywords:
+  - upload
+  - turbo sdk
+  - free tier
+  - credits
+  - winc
+  - stripe test cards
+  - x402
+---
+
+Uploads go through the sandbox **Turbo bundler**. Data items are **ANS-104** — use the
+[Turbo SDK](/sdks/turbo-sdk) pointed at the sandbox endpoints, or `POST` a signed data item
+directly.
+
+## Uploading with the Turbo SDK
+
+Point the SDK at the sandbox upload and payment services and sign with your **devnet Solana**
+keypair:
+
+```ts
+import { TurboFactory, HexSolanaSigner } from '@ardrive/turbo-sdk';
+import bs58 from 'bs58';
+import fs from 'node:fs';
+
+const signer = new HexSolanaSigner(bs58.encode(secretKey)); // your devnet Solana keypair
+
+const turbo = TurboFactory.authenticated({
+  signer,
+  token: 'solana',
+  gatewayUrl: 'https://api.devnet.solana.com', // Solana RPC — used to VERIFY funding txs, NOT the ar.io gateway
+  uploadServiceConfig:  { url: 'https://upload.services.ar-io.dev' },
+  paymentServiceConfig: { url: 'https://payment.services.ar-io.dev' },
+});
+
+const { id, winc } = await turbo.uploadFile({
+  fileStreamFactory: () => fs.createReadStream(path),
+  fileSizeFactory:   () => size,
+});
+
+// Read the bytes back from the ar.io gateway, not from Turbo:
+// https://ar-io.dev/raw/<id>
+```
+
+<Callout type="warning">
+  **Watch the `gatewayUrl`.** Here it's the **Solana RPC** — how Turbo verifies your funding
+  transactions — *not* `ar-io.dev`. You fetch uploaded data from the
+  [gateway](/build/testnet/accessing-data) separately. Funding with `base-eth` instead? Use
+  `token: 'base-eth'` and an EVM signer.
+</Callout>
+
+### Raw POST
+
+If you've already signed an ANS-104 data item, post the raw bytes:
+
+```http
+POST https://upload.services.ar-io.dev/v1/tx
+Content-Type: application/octet-stream
+
+<raw data item bytes>
+```
+
+A `200` returns `{ id, winc, dataCaches, ... }`. **`winc: "0"` means the upload was free.**
+
+## Limits & responses
+
+- **Hard max size: 10 MiB** per data item. Larger uploads return **`413`**
+  (`Data item is too large…`).
+- **Free tier** (no payment required):
+  - Up to **105 KiB per item** is eligible to be free.
+  - **10 MiB total free per wallet** (lifetime) **and** **10 MiB per IP /24 subnet**
+    (lifetime) — an upload must fit under **both** or it isn't free.
+  - Over the free allowance, or an item too big to be free, returns **`402`**
+    `{ code: "FREE_TIER_EXHAUSTED", topUpUrl, byteCount }` → [top up credits](#getting-credits).
+
+## Getting credits
+
+Credits (Turbo **"winc"**) are what the bundler debits for **paid uploads** and **ArNS
+purchases**. Fund them with **testnet** value only.
+
+**Accepted funding tokens:**
+
+| Token | Network | Notes |
+|---|---|---|
+| `ario` | ARIO staging (Solana devnet) | Mint `6vTw5CysRXQ4ybbHkDUiisHWVsBeMtUzYvJqs2iqHyaN`, 6 decimals — **fee-free** |
+| `solana` | Solana devnet | |
+| `base-eth` | Base Sepolia | |
+
+<Callout type="warning">
+  Mainnet tokens (`arweave`, `ethereum`, `matic`/`pol`, `kyve`) are **rejected** with
+  `Token not supported`. There is no mainnet settlement here.
+</Callout>
+
+### Crypto top-up
+
+Submit your funding transaction to `POST /v1/account/balance/:token`. Get the per-token
+receiving addresses from `GET /v1/info` (the `addresses` map). The transaction is verified on the
+**testnet** RPC for that token, then your balance is credited.
+
+### Stripe (test cards)
+
+The fiat top-up flow runs in **test mode**. Use Stripe test cards — e.g.
+`4242 4242 4242 4242` with any future expiry and CVC. No real money moves.
+
+### x402 (USDC)
+
+The unsigned x402 upload path runs on **Base Sepolia** testnet USDC: `POST /x402/upload/unsigned`,
+then pay the returned `402` quote via an `X-PAYMENT` header. See
+[x402 uploading](/build/upload/x402-uploading-to-turbo) for the full flow.
+
+## Next steps
+
+<Cards>
+  <Card
+    title="Buy an ArNS name"
+    description="Spend credits (or pay directly) to register a devnet name"
+    href="/build/testnet/arns"
+  />
+  <Card
+    title="Access your data"
+    description="Serve, query, and inspect the item you just uploaded"
+    href="/build/testnet/accessing-data"
+  />
+</Cards>

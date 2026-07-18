@@ -1,0 +1,113 @@
+---
+title: "Funds & Faucet"
+description: "Get the testnet tokens you need for the ar.io sandbox: devnet SOL for fees, staging ARIO from the faucet, and optional Base Sepolia ETH."
+keywords:
+  - faucet
+  - devnet SOL
+  - staging ARIO
+  - Base Sepolia
+  - testnet tokens
+---
+
+Everything in the sandbox runs on **testnet value**. Depending on what you're doing you need two
+or three tokens — all free.
+
+| Token | Network | What it's for | Where to get it |
+|---|---|---|---|
+| **SOL** | Solana **devnet** | Transaction fees on every Solana action | `solana airdrop 1 <address> --url devnet` or [faucet.solana.com](https://faucet.solana.com) |
+| **ARIO (staging)** | Solana **devnet** | Buying ArNS names and paying for uploads | The ar.io faucet → [faucet.services.ar-io.dev](https://faucet.services.ar-io.dev) |
+| **Base Sepolia ETH** | Base **Sepolia** | *(optional)* Funding credits with `base-eth` or the x402 path | Any [Base Sepolia faucet](https://docs.base.org/docs/tools/network-faucets/) |
+
+<Callout type="info">
+  You always need a little **devnet SOL** — even after claiming ARIO — because SOL pays the
+  transaction fee for *using* your tokens (funding credits, buying names, etc.).
+</Callout>
+
+## The ARIO faucet
+
+The staging-ARIO faucet lives at
+[**faucet.services.ar-io.dev**](https://faucet.services.ar-io.dev). It's **GitHub-gated** to
+prevent sybil abuse:
+
+<Steps>
+
+<Step>
+### Sign in with GitHub
+
+Your GitHub account must be at least **30 days old**.
+</Step>
+
+<Step>
+### Enter your Solana address
+
+The address you want to receive staging ARIO on.
+</Step>
+
+<Step>
+### Claim
+
+The faucet dispenses **2,500 ARIO per claim** and pays the transfer fee for you.
+</Step>
+
+</Steps>
+
+**Rate limit:** one claim per GitHub account per **8-hour** window.
+
+<Callout type="warning">
+  A wallet that **already holds the maximum (2,500 ARIO)** won't receive more — you'll see
+  `Recipient … already has more than the maximum quantity`. Claim to a fresh address, or spend
+  down first.
+</Callout>
+
+The faucet page also displays the current **Solana devnet program IDs and the ARIO mint**,
+copy-ready — handy if you're accessing the devnet contracts directly with the
+[ar.io SDK](/build/testnet/arns#advanced-buying-directly-with-the-sdk). See the
+[Reference](/build/testnet/reference) for the current values.
+
+Trouble claiming, or your GitHub account didn't pass verification? Ask in the
+[ar.io Discord](https://discord.com/invite/HGG52EtTc2).
+
+## Agents and CI
+
+The faucet's GitHub OAuth consent is a browser flow and **can't be completed headlessly**, so an
+agent or CI job can't claim on its own. The reliable pattern is:
+
+<Steps>
+
+<Step>
+### A human claims once
+
+A person signs in with GitHub and claims **2,500 ARIO** to the wallet address your agent will
+use.
+</Step>
+
+<Step>
+### The agent uses the ARIO
+
+From there, everything is a scriptable API call — uploading, funding credits, and buying/resolving
+ArNS names all work without any browser interaction. Re-claim (again by a human) when the balance
+runs low.
+</Step>
+
+</Steps>
+
+<Tip title="Faucet agent skill">
+  The faucet ships an `ario-testnet-faucet` agent skill documenting the claim API and flow. Pair
+  it with the human-claims-once pattern above so your agent has funds without needing to solve the
+  OAuth gate.
+</Tip>
+
+## Next steps
+
+<Cards>
+  <Card
+    title="Uploading & Credits"
+    description="Spend your tokens: upload data and fund credits"
+    href="/build/testnet/uploading-and-credits"
+  />
+  <Card
+    title="ArNS Names"
+    description="Buy a devnet name with your staging ARIO"
+    href="/build/testnet/arns"
+  />
+</Cards>

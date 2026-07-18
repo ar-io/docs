@@ -1,0 +1,185 @@
+---
+title: "Testnet Sandbox"
+description: "A free, public Solana-devnet sandbox for the full ar.io stack — upload, pay, buy ArNS names, and serve data with no mainnet and no real money."
+keywords:
+  - testnet
+  - devnet
+  - sandbox
+  - solana
+  - faucet
+  - ArNS
+---
+
+The **ar.io Testnet Sandbox** is a free, public environment where you can build against the
+**entire ar.io stack** — uploading, payments, ArNS names, and gateway serving — running on
+**Solana devnet** with a staging ARIO token. It's the fastest way to wire up an integration
+end to end **without spending real money or touching mainnet**.
+
+It's also an ideal target for **AI coding agents and CI**: the services are plain HTTP APIs,
+the tokens are free from a faucet, and nothing you do here can incur real cost or post
+permanent data. See [building with an agent](#building-with-an-agent) below.
+
+<Callout type="warning">
+  **Read this first — the three rules of the sandbox:**
+
+  1. **Data is ephemeral.** Uploads are served and indexed for a short window (**~3 days**),
+     then purged. Nothing here is permanent — don't store anything you need to keep.
+  2. **Never on-chain.** Your data is *never* posted to mainnet Arweave. The gateway serves it
+     optimistically, so it returns `x-ar-io-verified: false` and disappears when purged.
+  3. **Testnet value only.** Fund with testnet tokens or Stripe **test cards**. Real
+     tokens and cards are rejected — and there is no mainnet settlement, so you'd be throwing
+     value away.
+</Callout>
+
+## What you get
+
+<Cards>
+  <Card
+    icon={<Upload />}
+    title="Turbo bundler (upload + payment)"
+    description="Accepts testnet tokens, issues upload credits, and includes a free tier for small items."
+  />
+  <Card
+    icon={<Globe />}
+    title="Gateway (ar-io.dev)"
+    description="Indexes, serves, and GraphQL-queries your uploads, and resolves ArNS names on Solana devnet."
+  />
+  <Card
+    icon={<Network />}
+    title="ArNS on devnet"
+    description="Buy real ArNS names on the devnet registry, paid in staging ARIO, and resolve them at <name>.ar-io.dev."
+  />
+  <Card
+    icon={<CreditCard />}
+    title="Faucets"
+    description="Free devnet SOL, staging ARIO, and Base Sepolia ETH for everything you need to test."
+  />
+</Cards>
+
+## Endpoints
+
+| Service | URL | Health check |
+|---|---|---|
+| Upload API | `https://upload.services.ar-io.dev` | `GET /v1/info` |
+| Payment API | `https://payment.services.ar-io.dev` | `GET /v1/info` |
+| Gateway (serve / resolve / GraphQL) | `https://ar-io.dev` | `GET /ar-io/healthcheck` |
+| ARIO faucet (staging ARIO) | `https://faucet.services.ar-io.dev` | `GET /healthcheck` |
+
+**Network:** primarily Solana **devnet** — staging **ARIO** SPL mint
+`6vTw5CysRXQ4ybbHkDUiisHWVsBeMtUzYvJqs2iqHyaN` (6 decimals). The optional `base-eth` funding
+path and x402 use **Base Sepolia**.
+
+<Callout type="info">
+  These are shared sandbox endpoints, distinct from ArDrive's dev bundler
+  (`*.ardrive.dev`). Point your app at `*.services.ar-io.dev` to exercise the full **ar.io**
+  stack — upload, payment, ArNS, and gateway — together.
+</Callout>
+
+## Quick start
+
+<Steps>
+
+<Step>
+### Get a Solana devnet keypair and a little devnet SOL
+
+SOL covers transaction fees on every Solana action. Airdrop some from
+[faucet.solana.com](https://faucet.solana.com) or `solana airdrop 1 <address> --url devnet`.
+</Step>
+
+<Step>
+### Claim staging ARIO from the faucet
+
+Sign in with GitHub at [faucet.services.ar-io.dev](https://faucet.services.ar-io.dev) and claim
+**2,500 ARIO** to your Solana address. See [Funds & Faucet](/build/testnet/funds-and-faucet).
+</Step>
+
+<Step>
+### Upload a small file for free
+
+Items up to **105 KiB** are eligible for the free tier. Use the Turbo SDK pointed at the
+sandbox, or `POST /v1/tx`. See [Uploading & Credits](/build/testnet/uploading-and-credits).
+</Step>
+
+<Step>
+### Need more? Top up credits with your staging ARIO
+
+Fund upload credits with `ario`, `solana`, or `base-eth`, or Stripe **test cards**. See
+[Uploading & Credits](/build/testnet/uploading-and-credits#getting-credits).
+</Step>
+
+<Step>
+### Buy an ArNS name (≥ 8 characters)
+
+Paid in ARIO credits, provisioned with a custodial ANT so it resolves out of the box. See
+[ArNS Names](/build/testnet/arns).
+</Step>
+
+<Step>
+### Resolve it
+
+Your name is live at `https://<name>.ar-io.dev`. See
+[Accessing Data](/build/testnet/accessing-data).
+</Step>
+
+</Steps>
+
+## What you must NOT do
+
+- **Don't rely on persistence.** Treat every upload as disposable (≤ 3 days).
+- **Don't send mainnet tokens or real cards** to the payment service — they're rejected.
+- **Don't point production apps at these endpoints.** This is a shared, wipeable sandbox with
+  reserved short names and rate limits, not a production plane.
+- **Don't try to defeat the faucet's GitHub gate or the rate limits** — they keep the shared
+  testbed usable for everyone.
+
+## Building with an agent
+
+The sandbox is a natural fit for AI coding assistants and automated tests — free tokens, plain
+HTTP endpoints, and no way to spend real value or write permanent data.
+
+<Tip title="One human step: the faucet">
+  The ARIO faucet is **GitHub-gated** to prevent abuse, and the OAuth consent can't be
+  completed headlessly. The standard pattern is: a **human claims once** to the wallet address
+  your agent will use, then the agent simply **uses** the ARIO. After that, uploading, funding,
+  and buying ArNS names are all scriptable API calls. See
+  [Funds & Faucet → Agents and CI](/build/testnet/funds-and-faucet#agents-and-ci).
+</Tip>
+
+This documentation is also available as machine-readable text (`/llms-full.txt`) and every page
+has an **Open in AI** action, so you can hand the full sandbox reference to your agent in one
+step.
+
+## Next steps
+
+<Cards>
+  <Card
+    title="Funds & Faucet"
+    description="Get devnet SOL, staging ARIO, and Base Sepolia ETH"
+    href="/build/testnet/funds-and-faucet"
+  />
+  <Card
+    title="Uploading & Credits"
+    description="Upload with the Turbo SDK and fund credits with testnet value"
+    href="/build/testnet/uploading-and-credits"
+  />
+  <Card
+    title="ArNS Names"
+    description="Buy and resolve devnet ArNS names paid in staging ARIO"
+    href="/build/testnet/arns"
+  />
+  <Card
+    title="Accessing Data"
+    description="Serve, query, and inspect your uploads through the gateway"
+    href="/build/testnet/accessing-data"
+  />
+  <Card
+    title="Reference"
+    description="Program IDs, the ARIO mint, and the responses you'll see"
+    href="/build/testnet/reference"
+  />
+  <Card
+    title="Get Help"
+    description="Ask in the ar.io Discord"
+    href="https://discord.com/invite/HGG52EtTc2"
+  />
+</Cards>

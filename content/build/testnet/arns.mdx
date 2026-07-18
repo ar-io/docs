@@ -1,0 +1,122 @@
+---
+title: "ArNS Names"
+description: "Buy and resolve real ArNS names on Solana devnet, paid in staging ARIO — through the bundler route or directly with the ar.io SDK."
+keywords:
+  - ArNS
+  - devnet
+  - buy record
+  - ANT
+  - resolve
+  - staging ARIO
+---
+
+The sandbox runs a **devnet ArNS registry**. You can buy **real names** paid in
+**staging-ARIO credits** and resolve them at `https://<name>.ar-io.dev`. New to ArNS? Start with
+the [ArNS overview](/learn/arns).
+
+There are two ways to register: the **bundler route** (simplest — pay with your Turbo credits),
+or **directly with the ar.io SDK** against the devnet programs.
+
+## Buying through the bundler
+
+Buying through the bundler debits your [upload credits](/build/testnet/uploading-and-credits#getting-credits).
+If you don't bring your own ANT, a **custodial ANT** is spawned and linked to you, so the name
+resolves out of the box.
+
+<Steps>
+
+<Step>
+### Check the price
+
+```http
+GET https://payment.services.ar-io.dev/v1/arns/price/buy-record/<name>?type=lease&years=1
+```
+
+Use `type=permabuy` for a permanent registration.
+</Step>
+
+<Step>
+### Buy the name
+
+```http
+POST https://payment.services.ar-io.dev/v1/arns/purchase/buy-record/<name>?type=lease&years=1
+```
+
+A signed request that debits your credits. With provisioning on, a buy **without** your own ANT
+spawns a custodial one and links it to you.
+</Step>
+
+<Step>
+### Poll until it's recorded
+
+```http
+GET https://payment.services.ar-io.dev/v1/arns/purchase/:nonce
+```
+
+`status: recorded` means the purchase settled on Solana devnet.
+</Step>
+
+</Steps>
+
+<Callout type="warning">
+  **Minimum name length: 8 characters — bundler route only.** This is an anti-squat rule on the
+  shared registry; shorter names return `400` (`Name must be at least 8 characters…`). Buying
+  [directly with the SDK](#advanced-buying-directly-with-the-sdk) is not subject to this floor.
+</Callout>
+
+## Advanced: buying directly with the SDK
+
+You can also buy and manage names **directly** against the devnet programs — paying the name price
+in **staging ARIO** and **devnet SOL** yourself — instead of going through the bundler proxy. This
+path is **not** bound by the bundler's 8-character floor (though very short or premium names may
+still be reserved on-chain).
+
+```ts
+import { ARIO } from '@ar.io/sdk';
+
+const ario = ARIO.init({
+  backend: 'solana',
+  programIds: DEVNET_PROGRAM_IDS, // see Reference
+  rpc,
+  signer,
+});
+
+const cost = await ario.getTokenCost({ /* name, type, years */ });
+await ario.buyRecord({ /* name, type, years */ });
+```
+
+The payment mint is read from on-chain config automatically (the staging ARIO mint). For the
+devnet program IDs and the ar.io SDK's devnet configuration, see the
+[Reference](/build/testnet/reference) and the SDK's
+[advanced networks](/sdks/ar-io-sdk/advanced-networks) and
+[networks](/sdks/ar-io-sdk/networks) guides.
+
+## Resolving a name
+
+Once bought, `https://<name>.ar-io.dev` resolves the record, returning `x-arns-*` response
+headers. To point a name at your uploaded data, set its record via the manage routes
+(`/v1/arns/manage/...`) or through your ANT directly.
+
+<Callout type="info">
+  **Names outlive data.** A name keeps resolving because the record lives on the devnet
+  registry — but the **data behind it disappears** after the ~3-day purge. Re-upload and re-point
+  when you need it back.
+</Callout>
+
+See [Accessing Data](/build/testnet/accessing-data#arns-resolution-headers) for the full set of
+ArNS resolution headers.
+
+## Next steps
+
+<Cards>
+  <Card
+    title="Accessing Data"
+    description="Resolve names and inspect the gateway's response headers"
+    href="/build/testnet/accessing-data"
+  />
+  <Card
+    title="Reference"
+    description="Devnet program IDs and the ARIO mint"
+    href="/build/testnet/reference"
+  />
+</Cards>

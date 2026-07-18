@@ -202,10 +202,10 @@ https://<undername>_<name>.<gateway> → undername (UNDERSCORE, not dot)
 
 Examples:
 ```
-https://myapp.turbo-gateway.com          → served by turbo-gateway.com
-https://myapp.turbo-gateway.com            → same content, different gateway
-https://docs_myapp.turbo-gateway.com     → "docs" undername
-https://api_myapp.g8way.io         → "api" undername on g8way.io
+https://myapp.ar.io                → served by the ar.io gateway
+https://myapp.turbo-gateway.com    → same content, different gateway
+https://docs_myapp.ar.io           → "docs" undername
+https://api_myapp.ar.io            → "api" undername
 ```
 
 The `ar://` protocol works with Wayfinder: `ar://myapp`, `ar://docs_myapp`
@@ -223,7 +223,7 @@ Base URL: `https://<gateway>/`
 | GET | `/ar-io/healthcheck` | Health status |
 | GET | `graphql` | GraphQL endpoint for querying transactions |
 
-Public gateways: `turbo-gateway.com`, `turbo-gateway.com`, `ardrive.net`, `g8way.io`
+Public gateways: `turbo-gateway.com`, `perma.online`
 
 ## Key Constants
 
