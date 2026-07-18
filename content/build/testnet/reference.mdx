@@ -1,0 +1,71 @@
+---
+title: "Reference"
+description: "Solana devnet identifiers for the ar.io sandbox — program IDs and the staging ARIO mint — plus a cheat sheet of the responses you'll see."
+keywords:
+  - program ids
+  - devnet
+  - ARIO mint
+  - response codes
+  - reference
+---
+
+## Solana devnet identifiers
+
+For direct access with the [ar.io SDK](/build/testnet/arns#advanced-buying-directly-with-the-sdk)
+(`ARIO.init({ backend: 'solana', programIds })`):
+
+| Program / mint | Address |
+|---|---|
+| `ario_core` | `8Njx9wPkXiNzDCgjwVsJFRjpAEV34gGW3n8DzX3V23m1` |
+| `ario_gar` | `7WsDTrtZBsfKtnP33XkjuqXCY69JE7n4QVYpynqJCFxz` |
+| `ario_arns` | `6EZNezcg4rc5hnh8HG34vGquT3WpW5xXypzPb24uyEpp` |
+| `ario_ant` | `DbHbRwUD1oAn1mrDSqtWtvwGcNrmhWdD2g8L4xmeQ7NX` |
+| **ARIO mint** | `6vTw5CysRXQ4ybbHkDUiisHWVsBeMtUzYvJqs2iqHyaN` (6 decimals) |
+
+<Callout type="warning">
+  **Program IDs rotate.** The staging programs are periodically redeployed, so the program
+  addresses above can change (the ARIO mint is stable). Always verify against the current values
+  shown copy-ready on the [faucet](https://faucet.services.ar-io.dev), or read them from the ar.io
+  SDK's devnet constants — see [advanced networks](/sdks/ar-io-sdk/advanced-networks). If ArNS
+  resolutions return an unexpected `x-arns-ant-program-id`, you're likely on a stale program ID.
+</Callout>
+
+The ar.io SDK also hardcodes the staging ARIO mint as its `DEVNET_ARIO_MINT`, and reads the
+payment mint from on-chain config automatically — so for the direct SDK path you generally only
+need the program IDs.
+
+## Responses you'll see
+
+| Code | Where | Meaning |
+|---|---|---|
+| `200` `winc:"0"` | Upload | Uploaded, free |
+| `402 FREE_TIER_EXHAUSTED` | Upload | Out of free allowance → [top up credits](/build/testnet/uploading-and-credits#getting-credits) |
+| `413` | Upload | Data item over 10 MiB |
+| `400 Token not supported` | Payment | Non-testnet funding token |
+| `400 Name must be at least 8 characters…` | ArNS | Name too short (bundler route only) |
+| `302` → `*.ar-io.dev/<id>` | Gateway | [Sandbox-subdomain redirect](/build/testnet/accessing-data#fetching-your-data) (follow it) |
+| `status: recorded` | ArNS poll | Purchase settled |
+
+## Caveats recap
+
+- **Ephemeral:** data purges after **~3 days**. A name keeps resolving (the record lives on the
+  devnet registry), but the data behind it disappears once purged.
+- **Testnet only:** don't send real tokens or real cards; they're rejected, and there is no
+  mainnet settlement.
+- **Shared and rate-limited:** short ArNS names are reserved, the faucet is gated and
+  rate-limited, and free-tier allowances are per-wallet and per-IP.
+
+## Related
+
+<Cards>
+  <Card
+    title="Testnet Sandbox overview"
+    description="Rules, endpoints, and the end-to-end quick start"
+    href="/build/testnet"
+  />
+  <Card
+    title="ar.io SDK"
+    description="Devnet configuration and the full API reference"
+    href="/sdks/ar-io-sdk"
+  />
+</Cards>

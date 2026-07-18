@@ -1,0 +1,83 @@
+---
+title: "Accessing Data"
+description: "Serve, query, and inspect your sandbox uploads through the ar-io.dev gateway — raw bytes, rendered content, GraphQL, and response headers."
+keywords:
+  - gateway
+  - ar-io.dev
+  - graphql
+  - sandbox subdomain
+  - response headers
+  - x-ar-io-verified
+---
+
+The gateway at [**ar-io.dev**](https://ar-io.dev) indexes your upload optimistically — usually
+within seconds — then serves and queries it.
+
+## Fetching your data
+
+- **Exact bytes:** `GET https://ar-io.dev/raw/<id>` returns the data item's exact bytes,
+  unmodified, with no redirect.
+- **Rendered / path-aware:** `GET https://ar-io.dev/<id>` serves the content and, for
+  **manifests**, resolves paths (e.g. `/<manifest-id>/index.html`). For browser security the
+  gateway **302-redirects** each item to its own **sandbox subdomain** —
+  `https://<base32(id)>.ar-io.dev/<id>` — so each item is isolated on its own origin. Follow
+  redirects (`curl -L`; browsers do it automatically).
+
+## Querying with GraphQL
+
+`POST https://ar-io.dev/graphql` — query your data by id, tags, or owner as soon as it's indexed:
+
+```graphql
+query {
+  transactions(first: 1, owners: ["<your-address>"]) {
+    edges { node { id tags { name value } } }
+  }
+}
+```
+
+## Data response headers
+
+On a data fetch (`/raw/<id>` or the sandbox `/<id>`):
+
+| Header | Meaning |
+|---|---|
+| `x-ar-io-data-id` | The data item id served |
+| `x-ar-io-verified` | **`false`** here — optimistic sandbox data, **not** weave-verified |
+| `x-ar-io-trusted` | `true` — served from the trusted sandbox bundler |
+| `x-ar-io-stable` | `false` — the tx is not in a stable (mainnet) block (it never will be) |
+| `x-ar-io-digest` / `content-digest` / `etag` | sha-256 of the bytes (integrity / caching) |
+| `x-ar-io-hops`, `x-cache` | Gateway hop count; cache HIT/MISS |
+| `x-arweave-owner-address`, `x-arweave-tag-*` | The data item's owner and ANS-104 tag metadata |
+
+<Callout type="info">
+  Seeing **`x-ar-io-verified: false`** is expected and correct on this sandbox — the data isn't
+  on mainnet Arweave. Don't treat it as an error.
+</Callout>
+
+## ArNS resolution headers
+
+On an ArNS resolution (`https://<name>.ar-io.dev`):
+
+| Header | Meaning |
+|---|---|
+| `x-arns-name` / `x-arns-basename` | The resolved name |
+| `x-arns-resolved-id` | The target data id the name points at |
+| `x-arns-record` | The record served (`@` = apex, else the undername) |
+| `x-arns-ttl-seconds` | Resolution TTL (e.g. `3600`) |
+| `x-arns-ant-id` / `x-arns-ant-program-id` | The backing ANT and the **devnet** ANT program |
+| `x-arns-undername-limit`, `x-arns-record-index` | Undername capacity and record index |
+
+## Next steps
+
+<Cards>
+  <Card
+    title="Reference"
+    description="Program IDs, the ARIO mint, and the responses you'll see"
+    href="/build/testnet/reference"
+  />
+  <Card
+    title="Find Data (mainnet)"
+    description="Query and retrieve data on the production network"
+    href="/build/access/find-data"
+  />
+</Cards>
