@@ -1,0 +1,75 @@
+---
+title: "Buying a name"
+description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
+---
+
+`buyArNSName(params)` is the `Buy-Name` convenience wrapper over `purchaseArNSName`. Optionally, `paidBy` delegates the charge to one or more addresses that have shared credits with you.
+
+**`processId` is optional**, and it selects who owns the ANT (Metaplex Core asset) the name resolves to:
+
+- **Omit `processId`** → **Turbo custodial provisioning** (Model A): Turbo spawns and _owns_ the ANT for you. You can take self-custody later via `transferArNSAnt` (see "ANT custody" below).
+- **Supply `processId`** → **user-owned ANT** (Model B): the name points at an ANT you already own; Turbo never takes custody.
+
+```typescript
+// Custodial lease (Model A): omit processId → Turbo owns the ANT
+const receipt = await turbo.buyArNSName({
+  name: 'my-name',
+  type: 'lease',
+  years: 1,
+});
+
+// Lease against your own ANT (Model B) for 1 year
+const receipt = await turbo.buyArNSName({
+  name: 'my-name',
+  type: 'lease',
+  years: 1,
+  processId: 'ant-process-id',
+});
+
+// Permanent buy, charged to a delegated payer
+const receipt = await turbo.buyArNSName({
+  name: 'my-name',
+  type: 'permabuy',
+  processId: 'ant-process-id', // optional — omit for Turbo custodial provisioning
+  paidBy: '\<delegated-payer-address\>', // or an array of addresses
+});
+
+console.log(receipt.nonce); // capture this to poll status / retry idempotently
+```
+
+Full runnable example (buy → poll to terminal):
+
+```typescript
+import { InsufficientCreditsError, TurboFactory } from '@ardrive/turbo-sdk';
+
+const turbo = TurboFactory.authenticated({ privateKey: arweaveJwk });
+
+async function buyName() {
+  try {
+    const { nonce } = await turbo.buyArNSName({
+      name: 'my-name',
+      type: 'lease',
+      years: 1,
+      processId: 'ant-process-id',
+    });
+
+    // Poll until terminal (success => messageId, failure => failedDate)
+    for (;;) {
+      const status = await turbo.getArNSPurchaseStatus({ nonce });
+      if (status.messageId) {
+        console.log('Purchased. ArNS write tx:', status.messageId);
+        return status;
+      }
+      if (status.failedDate) {
+        throw new Error(`Purchase failed at ${status.failedDate}`);
+      }
+      await new Promise((r) => setTimeout(r, 2000));
+    }
+  } catch (err) {
+    if (err instanceof InsufficientCreditsError) {
+      console.error('Not enough Turbo Credits — top up and retry.');
+    }
+    throw err;
+  }
+}
+```

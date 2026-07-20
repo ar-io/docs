@@ -1,0 +1,25 @@
+---
+title: "ANT custody: transfer & manage records"
+description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
+---
+
+Turbo can custody the ANT (Metaplex Core asset) backing your name. These methods let you take self-custody or manage resolution records. Each is authenticated with an **action-bound, single-use signature**: the wallet signs a canonical `arns\n\<action\>\n<fields…>` message plus the UUID nonce, so a captured signature can't be replayed against a different operation.
+
+```typescript
+// Self-custody exit: move the ANT to a Solana pubkey you control
+await turbo.transferArNSAnt({
+  antId: 'ant-id',
+  target: 'your-solana-pubkey',
+});
+
+// Set a resolution record (undername defaults to '@')
+await turbo.setArNSRecord({
+  antId: 'ant-id',
+  undername: 'docs', // omit for the apex '@' record
+  transactionId: 'arweave-tx-id',
+  ttlSeconds: 900,
+});
+
+// Remove a resolution record
+await turbo.removeArNSRecord({ antId: 'ant-id', undername: 'docs' });
+```

@@ -1,0 +1,11 @@
+---
+title: "Dependency note (@solana/codecs)"
+description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
+---
+
+ArNS/ARIO support pulls in `@solana/spl-token`, whose transitive `@solana/spl-token-metadata@0.1.6` imports `getDataEnumCodec` from `@solana/codecs@2.0.0-rc.1`. In `@solana/codecs@3+` that export was renamed to `getDiscriminatedUnionCodec`. If a web app **dedupes** `@solana/codecs` to `6.x` for its whole dependency graph, `spl-token-metadata`'s `getDataEnumCodec` import resolves to a version that no longer exports it, and the build breaks.
+
+There is no single codecs version that satisfies both `spl-token-metadata` (needs the old `getDataEnumCodec`) and `@solana/kit` (needs `5.x`), and `spl-token-metadata` has no release that uses the renamed API — so the fix belongs at the app's dependency-resolution layer, **not** at symbol-aliasing:
+
+- **Recommended:** stop deduping `@solana/codecs` so `@solana/spl-token-metadata` keeps its own nested `2.0.0-rc.1` copy. In Vite, ensure `@solana/codecs` is **not** in `resolve.dedupe`; with pnpm/yarn, allow the nested version (avoid a hoisted-to-`6.x` override for that subtree). This is cleaner than the `getDataEnumCodec → getDiscriminatedUnionCodec` alias plugin some apps use today, and removes the need for that shim.
+- If you must keep a single hoisted codecs copy, a build-time alias mapping `getDataEnumCodec` to `getDiscriminatedUnionCodec` remains the fallback.

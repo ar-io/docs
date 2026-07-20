@@ -1,0 +1,138 @@
+---
+title: "Incremental Drive Synchronization"
+description: "JavaScript/TypeScript SDK for interacting with ArDrive"
+---
+
+ArDrive Core provides efficient incremental synchronization capabilities for tracking changes in drives over time. This feature enables applications to sync only new or modified content rather than fetching entire drive structures repeatedly.
+
+**Note:** The standard `arDriveFactory` creates an ArDrive instance with in-memory sync state caching (5-minute TTL). For persistent storage across sessions, see the [Persistent Storage](#persistent-storage-for-sync-state) section below.
+
+#### Basic Sync Operations
+
+```typescript
+// Important: Requires ArFSDAOIncrementalSync for full functionality
+// The standard arDriveFactory may not support all sync features
+
+// For basic sync with in-memory caching, first create the DAO:
+import { ArFSDAOIncrementalSync } from 'ardrive-core-js';
+
+const arfsDao = new ArFSDAOIncrementalSync(
+  wallet, arweave, false // dryRun
+);
+
+const arDrive = arDriveFactory({ wallet: myWallet, arfsDao });
+
+// Now sync operations will work:
+const syncResult = await arDrive.syncPublicDrive(driveId);
+
+console.log(`Found ${syncResult.entities.length} total entities`);
+console.log(`Added: ${syncResult.changes.added.length}`);
+console.log(`Modified: ${syncResult.changes.modified.length}`);
+console.log(`Unreachable: ${syncResult.changes.unreachable.length}`);
+
+// Sync a private drive with decryption
+const privateSyncResult = await arDrive.syncPrivateDrive(
+  driveId,
+  driveKey
+);
+```
+
+#### Incremental Sync with Previous State
+
+```typescript
+// First sync - gets all entities
+const initialSync = await arDrive.syncPublicDrive(driveId);
+
+// Save the sync state for later
+const syncState = initialSync.newSyncState;
+
+// Later, sync only changes since last sync
+const incrementalSync = await arDrive.syncPublicDrive(driveId, undefined, {
+  syncState: syncState // Pass previous state
+});
+
+// Only new/modified entities since last sync
+console.log(`New entities: ${incrementalSync.changes.added.length}`);
+```
+
+#### Progress Tracking
+
+```typescript
+// Track sync progress for large drives
+const result = await arDrive.syncPublicDrive(driveId, undefined, {
+  onProgress: (processed, total) => {
+    console.log(`Progress: ${processed}/${total} entities`);
+  }
+});
+```
+
+#### Advanced Sync Options
+
+```typescript
+const syncOptions = {
+  // Include all file revisions (not just latest)
+  includeRevisions: true,
+  
+  // Batch size for GraphQL queries (default: 100, max: 100)
+  batchSize: 50,
+  
+  // Stop early after finding N consecutive known entities (optimization)
+  stopAfterKnownCount: 10,
+  
+  // Progress callback
+  onProgress: (processed, total) => {
+    console.log(`Syncing: ${processed}/${total}`);
+  }
+};
+
+const result = await arDrive.syncPublicDrive(driveId, owner, syncOptions);
+```
+
+#### Working with Sync Results
+
+```typescript
+// Sync result structure
+const result = await arDrive.syncPublicDrive(driveId);
+
+// All entities in the drive (files and folders)
+result.entities.forEach(entity => {
+  console.log(`${entity.entityType}: ${entity.name} (${entity.entityId})`);
+});
+
+// Change detection
+result.changes.added.forEach(entity => {
+  console.log(`New: ${entity.name}`);
+});
+
+result.changes.modified.forEach(entity => {
+  console.log(`Modified: ${entity.name} at block ${entity.blockHeight}`);
+});
+
+result.changes.unreachable.forEach(entity => {
+  console.log(`No longer accessible: ${entity.name}`);
+});
+
+// Sync statistics
+console.log(`Processed from cache: ${result.stats.fromCache}`);
+console.log(`Fetched from network: ${result.stats.fromNetwork}`);
+console.log(`Block range: ${result.stats.lowestBlockHeight} - ${result.stats.highestBlockHeight}`);
+```
+
+#### Error Handling
+
+```typescript
+import { IncrementalSyncError } from 'ardrive-core-js';
+
+try {
+  const result = await arDrive.syncPublicDrive(driveId);
+} catch (error) {
+  if (error instanceof IncrementalSyncError) {
+    // Partial results are available even if sync failed
+    console.log(`Sync failed but got ${error.partialResult.entities.length} entities`);
+    console.log(`Error: ${error.message}`);
+    
+    // Can continue from partial state
+    const partialState = error.partialResult.newSyncState;
+  }
+}
+```

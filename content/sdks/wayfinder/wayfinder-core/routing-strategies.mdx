@@ -83,6 +83,11 @@ import {
   NetworkGatewaysProvider,
 } from '@ar.io/wayfinder-core';
 import { ARIO } from '@ar.io/sdk';
+import { createSolanaRpc } from '@solana/kit';
+
+const ario = ARIO.init({
+  rpc: createSolanaRpc('https://api.mainnet-beta.solana.com'),
+});
 
 // Example 1: Performance-first with resilience fallback
 const performanceWayfinder = createWayfinderClient({
@@ -92,7 +97,7 @@ const performanceWayfinder = createWayfinderClient({
       new FastestPingRoutingStrategy({
         timeoutMs: 500,
         gatewaysProvider: new NetworkGatewaysProvider({
-          ario: ARIO.mainnet(),
+          ario,
           sortBy: 'operatorStake',
           limit: 10,
         }),
@@ -100,7 +105,7 @@ const performanceWayfinder = createWayfinderClient({
       // Fallback to random selection (guaranteed to work if gateways exist)
       new RandomRoutingStrategy({
         gatewaysProvider: new NetworkGatewaysProvider({
-          ario: ARIO.mainnet(),
+          ario,
           sortBy: 'operatorStake', 
           limit: 20, // Use more gateways for fallback
         }),
@@ -121,7 +126,7 @@ const preferredWayfinder = createWayfinderClient({
       new FastestPingRoutingStrategy({
         timeoutMs: 1000,
         gatewaysProvider: new NetworkGatewaysProvider({
-          ario: ARIO.mainnet(),
+          ario,
           sortBy: 'operatorStake',
           limit: 5, // Only top 5 gateways
         }),
@@ -129,7 +134,7 @@ const preferredWayfinder = createWayfinderClient({
       // Final fallback: any random gateway from a larger pool
       new RandomRoutingStrategy({
         gatewaysProvider: new NetworkGatewaysProvider({
-          ario: ARIO.mainnet(),
+          ario,
           limit: 50, // Larger pool for maximum availability
         }),
       }),

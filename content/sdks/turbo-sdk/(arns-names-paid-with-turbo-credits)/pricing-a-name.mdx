@@ -1,0 +1,16 @@
+---
+title: "Pricing a name"
+description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
+---
+
+`getArNSPriceForName(params)` returns the cost in both Turbo Credits (`winc`) and `mARIO`. Params are validated client-side per intent (a `ProvidedInputError` is thrown for missing/invalid fields before any request is sent).
+
+```typescript
+const { winc, mARIO } = await turbo.getArNSPriceForName({
+  intent: 'Buy-Name',
+  name: 'my-name',
+  type: 'lease', // 'lease' | 'permabuy'
+  years: 1, // required for leases
+  processId: 'ant-process-id', // the ANT the name resolves to
+});
+```

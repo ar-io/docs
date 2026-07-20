@@ -1,0 +1,24 @@
+---
+title: "Error handling & retries"
+description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
+---
+
+- **`InsufficientCreditsError`** (HTTP `402`) — the wallet (or delegated payer) doesn't hold enough Turbo Credits. Prompt the user to top up, then retry. It exposes `.status === 402` and is exported from the package root.
+- **`ProvidedInputError`** — thrown client-side (before any network call) when required per-intent params are missing/invalid (e.g. a lease `Buy-Name` without `years`, or `Extend-Lease` without a positive `years`).
+- **`FailedRequestError`** — any other non-2xx response; inspect `.status` (e.g. `401`, `503`).
+
+**Idempotency / retry guidance:** the `nonce` is the idempotency key. Capture `response.nonce` up front; if the network drops after the request is sent, re-poll `getArNSPurchaseStatus({ nonce })` rather than blindly re-buying. On a `402`, top up and issue a fresh purchase — the captured nonce still lets you reconcile status.
+
+```typescript
+import { InsufficientCreditsError } from '@ardrive/turbo-sdk';
+
+try {
+  await turbo.buyArNSName({ name, type: 'permabuy', processId });
+} catch (err) {
+  if (err instanceof InsufficientCreditsError) {
+    // surface a top-up flow to the user
+  } else {
+    throw err;
+  }
+}
+```
