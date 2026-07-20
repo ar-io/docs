@@ -1,3 +1,8 @@
+---
+name: ario-developer
+description: Build applications on ar.io and Arweave — permanent storage via Turbo, ArNS naming, gateway data access, and Solana-based protocol operations. Use whenever the user asks about uploading or storing data permanently, registering or resolving ArNS names, ANTs, undernames, Turbo credits, fetching data from ar.io gateways, the @ar.io/sdk, @ardrive/turbo-sdk, or wayfinder — including "deploy my site permanently", "buy a name", "point a name at my upload", or testing against the ar.io testnet sandbox.
+---
+
 # ar.io Developer Skill — AI Agent Reference
 
 This file gives AI coding agents the knowledge to build applications on ar.io and Arweave. It covers the full stack: permanent storage, naming, gateways, and SDKs.
@@ -295,11 +300,51 @@ Actual price = Base Fee x Demand Factor. Use `ario.getTokenCost()` to check live
 `TurboFactory.authenticated({ privateKey, token })` or `TurboFactory.unauthenticated()`
 `upload({ data, dataItemOpts? })`, `uploadFile({ fileStreamFactory, fileSizeFactory, dataItemOpts? })`, `uploadFolder({ folderPath, dataItemOpts?, manifestOptions? })`, `getBalance()`, `getUploadCosts({ bytes: [size] })`, `topUpWithTokens({ tokenAmount })`, `shareCredits({ approvedAddress, approvedWincAmount })`, `revokeCredits({ approvedAddress })`
 
+## Testnet Sandbox (test without spending real value)
+
+Build and test the full stack — upload, payment, ArNS, and gateway — on **Solana devnet** with a
+faucet-funded staging ARIO token. Nothing costs real money and nothing is permanent.
+
+| Service | URL |
+|---|---|
+| Upload API | `https://upload.services.ar-io.dev` |
+| Payment API | `https://payment.services.ar-io.dev` |
+| Gateway (serve / resolve / GraphQL) | `https://ar-io.dev` |
+| ARIO faucet | `https://faucet.services.ar-io.dev` |
+
+Staging ARIO mint: `6vTw5CysRXQ4ybbHkDUiisHWVsBeMtUzYvJqs2iqHyaN` (Solana devnet, 6 decimals).
+
+```typescript
+// Turbo SDK against the sandbox (Solana devnet signer)
+const turbo = TurboFactory.authenticated({
+  signer,
+  token: 'solana',
+  gatewayUrl: 'https://api.devnet.solana.com', // Solana RPC to verify funding txs — NOT the ar.io gateway
+  uploadServiceConfig:  { url: 'https://upload.services.ar-io.dev' },
+  paymentServiceConfig: { url: 'https://payment.services.ar-io.dev' },
+});
+// Read bytes back from the gateway: https://ar-io.dev/raw/<id>
+```
+
+Rules that will bite you:
+- **Data is ephemeral** — purged after ~3 days, never posted to mainnet Arweave.
+- `x-ar-io-verified: false` on sandbox data is **expected**, not an error.
+- Uploads are free up to **105 KiB/item** (10 MiB lifetime per wallet and per IP); max item **10 MiB**.
+- ArNS names bought **through the bundler** must be **≥ 8 characters**; buying directly via
+  `@ar.io/sdk` has no such floor.
+- Only testnet funding tokens are accepted (`ario`, `solana`, `base-eth`); mainnet tokens are rejected.
+- **The faucet needs a human once** — its GitHub OAuth can't be completed headlessly. Have a person
+  claim to the agent's wallet, then everything else is scriptable.
+
+Full guide: https://docs.ar.io/build/testnet
+
 ## Documentation
 
 Full docs: https://docs.ar.io
+- Agent entry points (llms.txt, SKILL.md, per-SDK llm.txt): https://docs.ar.io/build/agents
 - SDK reference: https://docs.ar.io/sdks/ar-io-sdk
 - Turbo SDK: https://docs.ar.io/sdks/turbo-sdk
 - Gateway API: https://docs.ar.io/apis/ar-io-node
 - ArNS guide: https://docs.ar.io/learn/arns
 - Wayfinder: https://docs.ar.io/sdks/wayfinder
+- Testnet sandbox: https://docs.ar.io/build/testnet

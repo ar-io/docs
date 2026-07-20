@@ -3058,6 +3058,114 @@ qj2yubvbk4yjv24syelk24wqivcbaqpbmg7yxfof5mdqlrh4rova
 
 View the full code for generating browser sandbox values [here](https://github.com/ar-io/arweave-gateway/blob/719f43f8d6135adf44c87701e95f58105638710a/src/gateway/middleware/sandbox.ts#L69).
 
+# AI Agents & LLMs (/build/agents)
+
+These docs are built to be consumed by **AI coding agents**, not just read by humans. Everything
+below is a plain-text file you can fetch, paste, or point an agent at — no scraping required.
+
+  **Fastest path:** point your agent at `https://docs.ar.io/llms.txt`.
+  It's a short index that links everything else, following the
+  [llmstxt.org](https://llmstxt.org) convention agents already look for.
+
+## Machine-readable entry points
+
+| File | What it is | Reach for it when |
+|---|---|---|
+| `/llms.txt` | A short **index** of the documentation with links and quick facts | Discovery — the entry point |
+| `/SKILL.md` | A **procedural agent skill**: SDK patterns, code recipes, URL conventions, constants | Generating working code |
+| `/llms-full.txt` | The **entire docs corpus** as one plain-text file (~1.2 MB) | Deep context, or RAG ingestion |
+| `/sdks//llm.txt` | **Per-SDK reference** text (see table below) | Working inside a single SDK |
+
+### `llm.txt` vs `SKILL.md` — what's the difference?
+
+They solve different problems and are meant to be used together:
+
+- **`llms.txt` / `llms-full.txt` / `llm.txt` are *reference*.** They're documentation flattened to
+  plain text so a model has the facts in context. Passive — they describe *what exists*.
+- **`SKILL.md` is *procedural*.** It follows the
+  [Agent Skills](https://code.claude.com/docs/en/skills) convention: task-oriented instructions,
+  known-good code recipes, and constants that teach an agent *how to actually build* on ar.io —
+  which SDK call to make, the correct ArNS URL shape, what to avoid.
+
+A useful rule of thumb: load **`SKILL.md`** when the agent needs to *write code*, and
+**`llms-full.txt`** when it needs to *answer questions* about the wider platform.
+
+## Per-SDK reference text
+
+Each SDK ships its own flattened reference, which is much cheaper to load than the full corpus:
+
+| SDK | Plain text |
+|---|---|
+| ar.io SDK | `/sdks/ar-io-sdk/llm.txt` |
+| Turbo SDK | `/sdks/turbo-sdk/llm.txt` |
+| Wayfinder | `/sdks/wayfinder/llm.txt` |
+| ArDrive Core JS | `/sdks/ardrive-core-js/llm.txt` |
+| CLIs (ArDrive CLI, ARIO Deploy) | `/sdks/(clis)/llm.txt` |
+
+## Give your agent somewhere safe to run
+
+Agents learn fastest by *doing*, but you don't want an agent spending real money or writing
+permanent data while it figures things out. The **[Testnet Sandbox](/build/testnet)** is built for
+exactly this:
+
+- Runs the **full ar.io stack** — upload, payment, ArNS, and gateway — on Solana **devnet**.
+- Funded by a **faucet**, so there's no real value at risk.
+- **Nothing is permanent**: data is purged after ~3 days and never reaches mainnet Arweave.
+
+  **One step needs a human.** The ARIO faucet is GitHub-gated and its OAuth consent can't be
+  completed headlessly. Have a person claim once to the wallet your agent will use — after that,
+  uploading, funding, and buying names are all scriptable. See
+  [Agents and CI](/build/testnet/funds-and-faucet#agents-and-ci).
+
+## Skills and integrations
+
+Several ar.io repositories ship agent tooling:
+
+- **ARIO Deploy** — a Claude Code skill for deploying apps to the permaweb and updating ArNS. See
+  [what the skill does](/sdks/ario-deploy/what-the-skill-does) and
+  [add it to your project](/sdks/ario-deploy/add-the-skill-to-your-project) for setup.
+- **`ar-io-gateway-operator`** — a conformant
+  [Agent Skill](https://code.claude.com/docs/en/skills) for operating an ar.io node: health,
+  indexing lag, ArNS resolution, data retrieval, and common pitfalls. Ships in the
+  [ar-io-node](https://github.com/ar-io/ar-io-node) repo under
+  `.claude/skills/ar-io-gateway-operator/`.
+- **`ario-testnet-faucet`** — the faucet claim API and flow, for agents working against the
+  [Testnet Sandbox](/build/testnet). Ships in the `ar-io-faucet` repo.
+
+  `/SKILL.md` above is itself a conformant Agent Skill — it carries `name` and `description`
+  frontmatter, so you can drop it straight into a project as `.claude/skills/ario/SKILL.md`.
+
+## Tools built into these docs
+
+Every page carries agent-friendly affordances:
+
+- **Open in AI** — send the current page straight to ChatGPT, Claude, Scira, or T3 Chat.
+- **Copy as Markdown** — grab the raw source of any page for pasting into a prompt.
+- **Ask Arie** — an in-docs AI assistant that answers from this documentation with citations.
+
+## Pointing an agent at ar.io
+
+### Load the index
+
+Fetch `https://docs.ar.io/llms.txt`
+so the agent knows what's available and where.
+
+### Load the skill for code generation
+
+Fetch `https://docs.ar.io/SKILL.md`
+for known-good patterns, constants, and URL conventions.
+
+### Narrow to an SDK
+
+Pull the relevant `llm.txt` (table above) instead of the full corpus — smaller context, better
+answers.
+
+### Run against the sandbox
+
+Build and test on the [Testnet Sandbox](/build/testnet) before touching mainnet.
+
+## Related
+
 # Bundler (/build/extensions/bundler)
 
 ## Overview
@@ -10986,6 +11094,11 @@ If you're unfamiliar with Arweave's permanent storage and ar.io we recommend rea
     description="Try the full stack — upload, pay, buy ArNS names, and serve data — free on Solana devnet, no mainnet"
     href="/build/testnet"
   />
+  }
+    title="AI Agents & LLMs"
+    description="Machine-readable docs — llms.txt, SKILL.md, and per-SDK llm.txt — for building with AI coding agents"
+    href="/build/agents"
+  />
 
 ## Developer Resources
 
@@ -17765,9 +17878,9 @@ From there, everything is a scriptable API call — uploading, funding credits, 
 ArNS names all work without any browser interaction. Re-claim (again by a human) when the balance
 runs low.
 
-  The faucet ships an `ario-testnet-faucet` agent skill documenting the claim API and flow. Pair
-  it with the human-claims-once pattern above so your agent has funds without needing to solve the
-  OAuth gate.
+  **Faucet agent skill.** The faucet ships an `ario-testnet-faucet` agent skill documenting the
+  claim API and flow. Pair it with the human-claims-once pattern above so your agent has funds
+  without needing to solve the OAuth gate.
 
 ## Next steps
 
@@ -17824,9 +17937,9 @@ permanent data. See [building with an agent](#building-with-an-agent) below.
 `6vTw5CysRXQ4ybbHkDUiisHWVsBeMtUzYvJqs2iqHyaN` (6 decimals). The optional `base-eth` funding
 path and x402 use **Base Sepolia**.
 
-  These are shared sandbox endpoints, distinct from ArDrive's dev bundler
-  (`*.ardrive.dev`). Point your app at `*.services.ar-io.dev` to exercise the full **ar.io**
-  stack — upload, payment, ArNS, and gateway — together.
+  Point your app at `*.services.ar-io.dev` and `ar-io.dev` to exercise the full **ar.io** stack —
+  upload, payment, ArNS, and gateway — together. These are shared sandbox endpoints, so treat them
+  as a testbed rather than a production plane.
 
 ## Quick start
 
@@ -17874,10 +17987,10 @@ Your name is live at `https://.ar-io.dev`. See
 The sandbox is a natural fit for AI coding assistants and automated tests — free tokens, plain
 HTTP endpoints, and no way to spend real value or write permanent data.
 
-  The ARIO faucet is **GitHub-gated** to prevent abuse, and the OAuth consent can't be
-  completed headlessly. The standard pattern is: a **human claims once** to the wallet address
-  your agent will use, then the agent simply **uses** the ARIO. After that, uploading, funding,
-  and buying ArNS names are all scriptable API calls. See
+  **One human step: the faucet.** The ARIO faucet is **GitHub-gated** to prevent abuse, and the
+  OAuth consent can't be completed headlessly. The standard pattern is: a **human claims once** to
+  the wallet address your agent will use, then the agent simply **uses** the ARIO. After that,
+  uploading, funding, and buying ArNS names are all scriptable API calls. See
   [Funds & Faucet → Agents and CI](/build/testnet/funds-and-faucet#agents-and-ci).
 
 This documentation is also available as machine-readable text (`/llms-full.txt`) and every page
@@ -20791,9 +20904,10 @@ import {
 
 Ar.io is a data infrastructure solution for long-term access. We help enterprises, institutions, and platforms ensure that critical information remains accessible, verifiable, and intact over time — even as systems, providers, technologies, or attacks disrupt the environments around them.
 
-  **For AI and LLM users**: Access the complete documentation in plain text
-  format at [llms-full.txt](/llms-full.txt) for easy consumption by AI agents
-  and language models.
+  **For AI and LLM users**: Start at llms.txt for
+  a machine-readable index, SKILL.md for
+  code-generation recipes, or llms-full.txt for
+  the complete documentation as plain text. See [AI Agents & LLMs](/build/agents) for the full toolkit.
 
 ## Explore the Documentation
 
@@ -28593,6 +28707,11 @@ flow and the cross-language canonical-message vectors.
 
 # ar.io SDK (/sdks/ar-io-sdk)
 
+**For AI and LLM users**: Access the complete ar.io SDK documentation in plain text format at{" "}
+  llm.txt for easy
+  consumption by AI agents and language models. See [AI Agents & LLMs](/build/agents) for the full
+  agent toolkit.
+
 The ar.io SDK provides comprehensive tools for interacting with ar.io and the Arweave ecosystem. Built with TypeScript, it offers type-safe interfaces for ArNS name management, gateway operations, and Solana program interactions. The SDK defaults to the Solana backend as of v3.23.
 
 ## Quick Start
@@ -30537,6 +30656,11 @@ const turbo = TurboFactory.authenticated({
 
 # Turbo SDK (/sdks/turbo-sdk)
 
+**For AI and LLM users**: Access the complete Turbo SDK documentation in plain text format at{" "}
+  llm.txt for easy
+  consumption by AI agents and language models. See [AI Agents & LLMs](/build/agents) for the full
+  agent toolkit.
+
 The Turbo SDK provides a high-level interface for uploading data to Arweave through Turbo's optimized infrastructure. Built with TypeScript, it offers seamless integration with built-in error handling, automatic retries, and transparent pricing.
 
 ## Quick Start
@@ -30751,6 +30875,11 @@ The Turbo CLI provides the following commands to manage Credit Share Approvals:
 - `--use-signer-balance-first`: Use the signer's balance first before using Credit Share Approvals.
 
 # Wayfinder SDK's (/sdks/wayfinder)
+
+**For AI and LLM users**: Access the complete Wayfinder documentation in plain text format at{" "}
+  llm.txt for easy
+  consumption by AI agents and language models. See [AI Agents & LLMs](/build/agents) for the full
+  agent toolkit.
 
 Wayfinder leverages the decentralized ar.io Network to provide robust, censorship-resistant access to data stored on Arweave, removing reliance on centralized gateways. By routing requests through a distributed set of community-operated gateways, Wayfinder ensures high availability, redundancy, and improved performance for users and applications.
 
