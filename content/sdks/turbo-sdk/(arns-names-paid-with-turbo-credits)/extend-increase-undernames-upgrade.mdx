@@ -1,0 +1,19 @@
+---
+title: "Extend, increase undernames, upgrade"
+description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
+---
+
+Each intent has a typed wrapper that enforces its required fields:
+
+```typescript
+// Extend an existing lease by N years
+await turbo.extendArNSLease({ name: 'my-name', years: 2 });
+
+// Increase the undername limit
+await turbo.increaseArNSUndernameLimit({ name: 'my-name', increaseQty: 5 });
+
+// Upgrade a lease to a permanent name
+await turbo.upgradeArNSName({ name: 'my-name' });
+```
+
+All of them return the same `{ nonce, purchaseReceipt, arioWriteResult }` shape as `buyArNSName` and are polled the same way. `purchaseArNSName(params)` is the general form if you prefer to pass `intent` explicitly.

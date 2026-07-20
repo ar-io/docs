@@ -1,0 +1,21 @@
+---
+title: "Purchase lifecycle"
+description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
+---
+
+Every purchase is identified by a client-minted **UUID `nonce`**. The nonce is:
+
+1. **Signed** by your wallet and sent to the bundler (proving intent).
+2. The **idempotency key** for the purchase.
+3. The **status-lookup key** — poll `getArNSPurchaseStatus({ nonce })` until the purchase reaches a terminal state.
+
+`purchaseArNSName` returns the `nonce` on **both** `response.nonce` and `response.purchaseReceipt.nonce`. A purchase is **terminal-success** once its status carries a `messageId` (the Solana transaction id of the on-chain ArNS write) and **terminal-failure** once it carries a `failedDate`.
+
+```
+buyArNSName() ──▶ POST /arns/purchase  ──▶ { nonce, purchaseReceipt, arioWriteResult }
+                                                     │
+                    poll getArNSPurchaseStatus({ nonce })
+                                                     │
+              ┌──────────────────────────────────────┴───────────────────────┐
+        messageId present (success)                                 failedDate present (failure)
+```

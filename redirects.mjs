@@ -439,6 +439,16 @@ const redirects = [
     destination: '/sdks/ar-io-sdk',
     permanent: true,
   },
+  // ArNS SDK page slug changed when the upstream README heading was renamed
+  // "Arweave Name System" -> "ar.io Name System" (ar-io/ar-io-sdk#697).
+  // NOTE: redirects are NOT applied in the production static export
+  // (`output: "export"`), so this only takes effect in dev. The old URL needs a
+  // gateway/CDN-level redirect to be preserved in production.
+  {
+    source: '/sdks/ar-io-sdk/arweave-name-system-arns',
+    destination: '/sdks/ar-io-sdk/ar-io-name-system-arns',
+    permanent: true,
+  },
 ];
 
 export default redirects;

@@ -1,0 +1,164 @@
+---
+title: "Persistent Storage for Sync State"
+description: "JavaScript/TypeScript SDK for interacting with ArDrive"
+---
+
+By default, sync state is only cached in memory for 5 minutes. To maintain sync state across application restarts, ArDrive Core provides storage adapters that automatically persist and restore sync state.
+
+#### Available Storage Adapters
+
+- **MemorySyncStateStore** - In-memory storage (default behavior)
+- **FileSystemSyncStateStore** - Persists to disk (Node.js)
+- **LocalStorageSyncStateStore** - Browser localStorage
+- **IndexedDBSyncStateStore** - Browser IndexedDB for larger datasets
+- **SQLiteSyncStateStore** - SQLite database (optional, see SQLite section below)
+
+#### Quick Start: Persistent Sync (Node.js)
+
+```typescript
+import { 
+  arDriveFactory, 
+  ArFSDAOIncrementalSync,
+  FileSystemSyncStateStore 
+} from 'ardrive-core-js';
+
+// 1. Create persistent storage adapter
+const syncStateStore = new FileSystemSyncStateStore('./.ardrive-cache');
+
+// 2. Create DAO with storage adapter
+const arfsDao = new ArFSDAOIncrementalSync(
+  wallet,
+  arweave,
+  false, // dryRun
+  'MyApp',
+  '1.0.0',
+  undefined, // use default settings for these
+  undefined,
+  undefined,
+  syncStateStore // ← Pass storage adapter here
+);
+
+// 3. Create ArDrive with the DAO
+const arDrive = arDriveFactory({
+  wallet,
+  arfsDao
+});
+
+// 4. Sync operations now persist state automatically
+const result = await arDrive.syncPublicDrive(driveId);
+// State is saved to disk and will be reused on next run
+```
+
+**Important:** The storage adapter must be passed to `ArFSDAOIncrementalSync`, not to `arDriveFactory`.
+
+#### Browser Storage Options
+
+```typescript
+import { LocalStorageSyncStateStore, IndexedDBSyncStateStore } from 'ardrive-core-js';
+
+// Option 1: localStorage (simple, ~5-10MB limit)
+const syncStateStore = new LocalStorageSyncStateStore('ardrive-sync-');
+
+// Option 2: IndexedDB (for larger datasets)
+const syncStateStore = new IndexedDBSyncStateStore('ardrive-sync-db');
+
+// Use with ArFSDAOIncrementalSync same as Node.js example
+const arfsDao = new ArFSDAOIncrementalSync(
+  wallet, arweave, false, 'MyApp', '1.0.0',
+  undefined, undefined, undefined,
+  syncStateStore
+);
+```
+
+#### Working Example
+
+See `examples/persistent-sync-example.js` for a complete working example that demonstrates:
+- Setting up persistent storage
+- Performing initial full sync
+- Simulating app restart
+- Performing incremental sync from saved state
+- Managing stored sync states
+
+#### SQLite Storage (Optional)
+
+The SQLite adapter provides advanced features like statistics, cleanup, and backups. To use it:
+
+1. Install the peer dependency: `yarn add better-sqlite3`
+2. Copy `src/utils/sync_state_store_sqlite.ts.optional` to your project
+3. Import and use like other storage adapters
+
+**Note:** SQLite adapter is not included in the default build to avoid forcing the peer dependency.
+
+#### Storage Management Methods
+
+All storage adapters implement these methods:
+
+```typescript
+// List all drives with cached state
+const driveIds = await syncStateStore.list();
+
+// Load specific drive state
+const state = await syncStateStore.load(driveId);
+
+// Clear specific drive
+await syncStateStore.clear(driveId);
+
+// Clear all cached states
+await syncStateStore.clearAll();
+```
+
+#### Custom Storage Implementation
+
+Create your own storage adapter by implementing the `SyncStateStore` interface:
+
+```typescript
+import { SyncStateStore, DriveSyncState, DriveID } from 'ardrive-core-js';
+
+class CustomSyncStateStore implements SyncStateStore {
+  async save(driveId: DriveID, state: DriveSyncState): Promise\<void\> {
+    // Your storage logic
+  }
+  
+  async load(driveId: DriveID): Promise\<DriveSyncState | undefined\> {
+    // Your retrieval logic
+  }
+  
+  async clear(driveId: DriveID): Promise\<void\> {
+    // Your deletion logic
+  }
+  
+  async list(): Promise<DriveID[]> {
+    // Return all stored drive IDs
+  }
+  
+  async clearAll(): Promise\<void\> {
+    // Clear all stored states
+  }
+}
+```
+
+#### Serialization for External Storage
+
+If you need to store sync state in an external system:
+
+```typescript
+import { serializeSyncState, deserializeSyncState } from 'ardrive-core-js';
+
+// Serialize state for storage
+const result = await arDrive.syncPublicDrive(driveId);
+const serialized = serializeSyncState(result.newSyncState);
+const jsonString = JSON.stringify(serialized);
+
+// Store in your backend
+await myAPI.saveSyncState(driveId, jsonString);
+
+// Later, retrieve and deserialize
+const stored = await myAPI.getSyncState(driveId);
+const parsed = JSON.parse(stored);
+const syncState = deserializeSyncState(parsed);
+
+// Use restored state for incremental sync
+const nextSync = await arDrive.syncPublicDrive(driveId, undefined, {
+  syncState
+});
+```

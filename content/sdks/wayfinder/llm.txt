@@ -1,5 +1,10 @@
 # Wayfinder SDK's (/index)
 
+**For AI and LLM users**: Access the complete Wayfinder documentation in plain text format at{" "}
+  llm.txt for easy
+  consumption by AI agents and language models. See [AI Agents & LLMs](/build/agents) for the full
+  agent toolkit.
+
 Wayfinder leverages the decentralized ar.io Network to provide robust, censorship-resistant access to data stored on Arweave, removing reliance on centralized gateways. By routing requests through a distributed set of community-operated gateways, Wayfinder ensures high availability, redundancy, and improved performance for users and applications.
 
 The `ar://` protocol enables decentralized resolution and access to Arweave data using several flexible URL formats:
@@ -318,12 +323,16 @@ Gateway providers supply the list of gateways for routing. **By default, `create
 
 #### NetworkGatewaysProvider
 
-Returns a list of gateways from the ARIO Network based on on-chain [Gateway Address Registry](https://docs.ar.io/learn/gateways/gateway-registry). You can specify on-chain metrics for gateways to prioritize the highest quality gateways. This requires installing the `@ar.io/sdk` package and importing the `ARIO` object.
+Returns a list of gateways from the ARIO Network based on on-chain [Gateway Address Registry](https://docs.ar.io/learn/gateways/gateway-registry). You can specify on-chain metrics for gateways to prioritize the highest quality gateways. Requires `@ar.io/sdk` and `@solana/kit`.
 
 ```javascript
 
+const ario = ARIO.init({
+  rpc: createSolanaRpc('https://api.mainnet-beta.solana.com'),
+});
+
 const gatewayProvider = new NetworkGatewaysProvider({
-  ario: ARIO.mainnet(),
+  ario,
   sortBy: 'operatorStake',
   sortOrder: 'desc',
   limit: 10,
@@ -361,12 +370,16 @@ import {
   TrustedPeersGatewaysProvider,
 } from '@ar.io/wayfinder-core';
 
+const ario = ARIO.init({
+  rpc: createSolanaRpc('https://api.mainnet-beta.solana.com'),
+});
+
 // Example: Network-first with static fallback
 const gatewayProvider = new CompositeGatewaysProvider({
   providers: [
     // Try fetching from AR.IO network first
     new NetworkGatewaysProvider({
-      ario: ARIO.mainnet(),
+      ario,
       sortBy: 'operatorStake',
       limit: 10,
     }),
@@ -376,7 +389,7 @@ const gatewayProvider = new CompositeGatewaysProvider({
     }),
     // Final fallback to static list
     new StaticGatewaysProvider({
-      gateways: ['https://turbo-gateway.com', 'https://perma.online'],
+      gateways: ['https://turbo-gateway.com', 'https://g8way.io'],
     }),
   ],
 });
@@ -494,6 +507,14 @@ sequenceDiagram
     deactivate Wayfinder
 ```
 
+# Resiliency (/wayfinder-core/resiliency)
+
+Wayfinder includes built-in resiliency features:
+
+- **Gateway retry**: If a gateway returns a 5xx error or a network failure occurs, Wayfinder automatically re-selects a different gateway and retries (up to 3 attempts). Client errors (4xx) are returned immediately without retry.
+- **Fetch timeouts**: All outbound requests include configurable timeouts — 10s for metadata (HEAD, peer list), 30s for data retrieval — to prevent indefinite hangs on slow or dead gateways.
+- **Smart pagination**: `NetworkGatewaysProvider` stops fetching from the on-chain registry once enough gateways pass the filter, avoiding unnecessary RPC calls.
+
 # Routing Strategies (/wayfinder-core/routing-strategies)
 
 Wayfinder supports multiple routing strategies to select target gateways for your requests.
@@ -571,6 +592,10 @@ import {
   NetworkGatewaysProvider,
 } from '@ar.io/wayfinder-core';
 
+const ario = ARIO.init({
+  rpc: createSolanaRpc('https://api.mainnet-beta.solana.com'),
+});
+
 // Example 1: Performance-first with resilience fallback
 const performanceWayfinder = createWayfinderClient({
   routingStrategy: new CompositeRoutingStrategy({
@@ -579,7 +604,7 @@ const performanceWayfinder = createWayfinderClient({
       new FastestPingRoutingStrategy({
         timeoutMs: 500,
         gatewaysProvider: new NetworkGatewaysProvider({
-          ario: ARIO.mainnet(),
+          ario,
           sortBy: 'operatorStake',
           limit: 10,
         }),
@@ -587,7 +612,7 @@ const performanceWayfinder = createWayfinderClient({
       // Fallback to random selection (guaranteed to work if gateways exist)
       new RandomRoutingStrategy({
         gatewaysProvider: new NetworkGatewaysProvider({
-          ario: ARIO.mainnet(),
+          ario,
           sortBy: 'operatorStake', 
           limit: 20, // Use more gateways for fallback
         }),
@@ -608,7 +633,7 @@ const preferredWayfinder = createWayfinderClient({
       new FastestPingRoutingStrategy({
         timeoutMs: 1000,
         gatewaysProvider: new NetworkGatewaysProvider({
-          ario: ARIO.mainnet(),
+          ario,
           sortBy: 'operatorStake',
           limit: 5, // Only top 5 gateways
         }),
@@ -616,7 +641,7 @@ const preferredWayfinder = createWayfinderClient({
       // Final fallback: any random gateway from a larger pool
       new RandomRoutingStrategy({
         gatewaysProvider: new NetworkGatewaysProvider({
-          ario: ARIO.mainnet(),
+          ario,
           limit: 50, // Larger pool for maximum availability
         }),
       }),

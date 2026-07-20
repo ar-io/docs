@@ -1,0 +1,25 @@
+---
+title: "Connecting a signer"
+description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
+---
+
+ArNS purchases are authenticated per wallet. Construct the client with `TurboFactory.authenticated` using any supported identity — the credit balance is keyed to that wallet's native address:
+
+```typescript
+import { TurboFactory } from '@ardrive/turbo-sdk';
+
+// Arweave
+const turbo = TurboFactory.authenticated({ privateKey: arweaveJwk });
+
+// Ethereum
+const turbo = TurboFactory.authenticated({
+  privateKey: ethHexadecimalPrivateKey,
+  token: 'ethereum',
+});
+
+// Solana — request nonces are signed with arbundles' HexSolanaSigner (ed25519)
+const turbo = TurboFactory.authenticated({
+  privateKey: bs58SolanaSecretKey,
+  token: 'solana',
+});
+```
