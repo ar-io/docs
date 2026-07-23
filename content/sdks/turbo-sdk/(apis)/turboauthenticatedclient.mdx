@@ -11,6 +11,20 @@ Issues a signed request to get the credit balance of a wallet measured in AR (me
 const { winc: balance } = await turbo.getBalance();
 ```
 
+#### getFreeStatus()
+
+Returns the wallet's remaining free-tier upload allowance in bytes as `{ bytesRemaining }`, so you can tell up front whether an upload will be free. `bytesRemaining` is `null` for a wallet with an unlimited allowance (an exempt/partner wallet) and `0` when the free tier is disabled on the target Turbo deployment. It is advisory — the authoritative free/charge decision is made at upload time — and is a wallet-side figure (a per-network cap may also apply).
+
+```typescript
+const { bytesRemaining } = await turbo.getFreeStatus();
+```
+
+It is also available on the `TurboUnauthenticatedClient` for any wallet by address:
+
+```typescript
+const { bytesRemaining } = await turbo.getFreeStatus('a-native-address');
+```
+
 #### signer.getNativeAddress()
 
 Returns the [native address][docs/native-address] of the connected signer.
@@ -208,10 +222,10 @@ await turbo.uploadRawX402Data({
 });
 ```
 
-NOTE: For free uploads under 100 KiB, this method of upload currently does not require a signature and can be used with an unauthenticated client.
+NOTE: For free uploads under 105 KiB, this method of upload currently does not require a signature and can be used with an unauthenticated client.
 
 ```ts
-// Unsigned free upload of raw data under 100 KiB
+// Unsigned free upload of raw data under 105 KiB
 const turbo = TurboFactory.unauthenticated({ token: 'base-usdc' });
 await turbo.uploadRawX402Data({
   data: myRawData,

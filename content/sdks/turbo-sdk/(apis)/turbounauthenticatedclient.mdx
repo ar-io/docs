@@ -19,6 +19,14 @@ Returns the list of countries supported by the Turbo Payment Service's top up wo
 const countries = await turbo.getSupportedCountries();
 ```
 
+#### getFreeStatus()
+
+Returns a wallet's remaining free-tier upload allowance in bytes as `{ bytesRemaining }` — `null` for an unlimited (exempt/partner) wallet, `0` when the free tier is disabled. Advisory: the authoritative free/charge decision is made at upload time.
+
+```typescript
+const { bytesRemaining } = await turbo.getFreeStatus('a-native-address');
+```
+
 #### getFiatToAR()
 
 Returns the current raw fiat to AR conversion rate for a specific currency as reported by third-party pricing oracles.
