@@ -91,6 +91,9 @@ const result = await turbo.topUpWithTokens({
 
 // Check balance
 const { winc } = await turbo.getBalance();
+
+// Check remaining free-tier allowance (bytes). null = unlimited, 0 = free tier off.
+const { bytesRemaining } = await turbo.getFreeStatus();
 ```
 
 See the [Turbo SDK documentation](/sdks/turbo-sdk) and [GitHub repository](https://github.com/ardriveapp/turbo-sdk) for complete examples.
@@ -103,6 +106,9 @@ turbo top-up --token base-usdc --amount 1
 
 # Check balance
 turbo balance
+
+# Check remaining free-tier upload allowance
+turbo free-status
 ```
 
 See the [Turbo Node.js CLI documentation](https://github.com/ardriveapp/turbo-sdk/?tab=readme-ov-file#cli) for installation and usage.
@@ -200,7 +206,7 @@ Credits can be shared via the Console App at [console.ar.io](https://console.ar.
 - Turbo top up fees cover the costs of managing infrastructure and, in the case of crypto-based top ups, token liquidity.
 - No additional fees are applied when credits are spent.
 - Credits maintain a 1:1 peg of storage purchasing power as Arweave's data storage rates and token price fluctuate.
-- **Uploads under 100 KiB are completely free and do not require a prior top up.**
+- **Small uploads can be free.** Items up to **105 KiB** are eligible for the free tier, subject to a per-wallet **and** per-subnet lifetime allowance — an upload must fit under both. Check a wallet's remaining free allowance with `turbo.getFreeStatus()` (below).
 
 
 | Currency          | Top Up Fee Percentage |

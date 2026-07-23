@@ -75,6 +75,33 @@ A `200` returns `{ id, winc, dataCaches, ... }`. **`winc: "0"` means the upload 
   - Over the free allowance, or an item too big to be free, returns **`402`**
     `{ code: "FREE_TIER_EXHAUSTED", topUpUrl, byteCount }` → [top up credits](#getting-credits).
 
+### Check your remaining free allowance
+
+Before uploading, check how many free-tier bytes a wallet has left with
+`GET /v1/account/free` — **no signature required**, any wallet by address:
+
+```http
+GET https://payment.services.ar-io.dev/v1/account/free?address=<native-address>
+```
+
+```jsonc
+// bytesRemaining: null = unlimited (exempt wallet); 0 = free tier disabled
+{ "bytesRemaining": 7340032 }
+```
+
+With the [Turbo SDK](/sdks/turbo-sdk):
+
+```ts
+const { bytesRemaining } = await turbo.getFreeStatus();            // your own wallet (authenticated)
+const { bytesRemaining } = await turbo.getFreeStatus('<address>'); // any wallet (unauthenticated)
+```
+
+Or the CLI: `turbo free-status --address <native-address>`.
+
+`bytesRemaining` is a wallet-side figure and advisory — the per-subnet cap and the
+authoritative free/charge decision are applied at upload time. Deployment-wide
+free-tier limits are reported by `GET /v1/info`.
+
 ## Getting credits
 
 Credits (Turbo **"winc"**) are what the bundler debits for **paid uploads** and **ArNS
