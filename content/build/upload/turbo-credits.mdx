@@ -94,6 +94,9 @@ const { winc } = await turbo.getBalance();
 
 // Check remaining free-tier allowance (bytes). null = unlimited, 0 = free tier off.
 const { bytesRemaining } = await turbo.getFreeStatus();
+
+// Review your own top-up history (crypto + fiat), newest first, paginated
+const { payments, hasMore, cursor } = await turbo.getPaymentHistory({ limit: 25 });
 ```
 
 See the [Turbo SDK documentation](/sdks/turbo-sdk) and [GitHub repository](https://github.com/ardriveapp/turbo-sdk) for complete examples.
@@ -109,6 +112,9 @@ turbo balance
 
 # Check remaining free-tier upload allowance
 turbo free-status
+
+# Review your own top-up (payment) history
+turbo payment-history --limit 25
 ```
 
 See the [Turbo Node.js CLI documentation](https://github.com/ardriveapp/turbo-sdk/?tab=readme-ov-file#cli) for installation and usage.
