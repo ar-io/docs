@@ -45,6 +45,53 @@ https://<gateway>/raw/<transaction-id>
 
 This endpoint returns the raw data bytes without resolving manifest paths, useful when you need the exact stored data.
 
+## Providing Bundle Location Hints
+
+An ANS-104 data item is stored inside a bundle whose root transaction is written
+to Arweave. A gateway normally resolves the data item ID to that root transaction
+and the item's byte range automatically. If you already know this location, you
+can include it as request headers to avoid the lookup step:
+
+| Request header | Value |
+| --- | --- |
+| `X-AR-IO-Root-Transaction-Id` | ID of the root Arweave transaction containing the data item |
+| `X-AR-IO-Data-Item-Offset` | Byte offset of the complete data item within the root bundle |
+| `X-AR-IO-Data-Item-Size` | Size of the complete data item in bytes |
+
+For example, when all three values are known:
+
+```bash
+curl --fail --location \
+  --header "X-AR-IO-Root-Transaction-Id: <root-transaction-id>" \
+  --header "X-AR-IO-Data-Item-Offset: <data-item-offset>" \
+  --header "X-AR-IO-Data-Item-Size: <data-item-size>" \
+  --output <output-file> \
+  "https://<gateway>/<data-item-id>"
+```
+
+If only the root transaction ID is known, it can be supplied on its own. The
+gateway will use it to locate the bundle and determine the data item's offset
+and size:
+
+```bash
+curl --fail --location \
+  --header "X-AR-IO-Root-Transaction-Id: <root-transaction-id>" \
+  --output <output-file> \
+  "https://<gateway>/<data-item-id>"
+```
+
+<Callout type="info">
+  Location hints are an optional retrieval optimization, not a different data
+  address. Keep requesting the data item ID in the URL. The gateway validates
+  the resolved data item against that ID and returns an error if the hints do
+  not identify the requested item.
+</Callout>
+
+You can inspect a successful `HEAD` or `GET` response for the same
+`X-AR-IO-Root-Transaction-Id`, `X-AR-IO-Data-Item-Offset`, and
+`X-AR-IO-Data-Item-Size` headers. Save those values when you need to make later
+requests without repeating root-transaction discovery.
+
 <Callout type="info">
   **Learn More:** For complete API documentation and testing, see the [ar.io
   Node Data APIs](/apis/ar-io-node/data).
