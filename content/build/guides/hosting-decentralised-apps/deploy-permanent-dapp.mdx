@@ -1,17 +1,44 @@
 ---
-title: "Deploy a Permanent dApp"
-description: "End-to-end guide to deploying a permanent web application using a Solana wallet — upload, register a name, and go live"
+title: "From Build to Permanent App"
+description: "Deploy a static web app with Turbo, publish it with ArNS, and keep one stable URL across every release"
 ---
 
 import { Rocket, Globe, Upload, Check } from 'lucide-react';
 
-Deploy a permanent web application to Arweave with a human-readable ArNS name — using only your Solana wallet. Your app will be served by the network of decentralized gateways with zero ongoing hosting costs.
+This guide connects the last mile of shipping a web app: turn a static build into a permanent Turbo upload, then publish it at a human-readable ArNS name. You only need a Solana wallet, and the same URL can follow every release even though each upload remains immutable.
+
+## How Turbo and ArNS Fit Together
+
+```text
+Static build folder
+       │
+       ▼
+Turbo uploads files + creates a manifest
+       │
+       ▼
+Permanent manifest transaction ID
+       │
+       ▼
+ArNS record points your name to that ID
+       │
+       ▼
+https://yourname.ar.io
+```
+
+- **Turbo** stores the build files and creates an Arweave manifest that routes paths such as `/`, `/assets/app.js`, and `/about/`.
+- **ArNS** gives that immutable manifest a stable name. On the next release, update the name to the new manifest ID instead of changing the URL you share.
+- **ar.io gateways** resolve the name and serve the manifest's files. The app is also available directly by its transaction ID, independently of ArNS.
+
+<Callout type="info" title="Prefer one command?">
+  [ARIO Deploy](/build/guides/hosting-decentralised-apps/deploying-with-ario-deploy) automates the same upload, manifest, and ArNS update workflow. Continue here if you want to understand and control each SDK operation yourself.
+</Callout>
 
 ## What You'll Build
 
 By the end of this guide, your app will be:
 - **Permanently stored** on Arweave (can never be deleted or modified)
-- **Accessible** at `https://yourname.ar.io` (and every other ar.io gateway)
+- **Addressable by transaction ID** so every deployed version can still be retrieved
+- **Accessible** at `https://yourname.ar.io` (and through other ar.io gateways)
 - **Owned by you** as a Metaplex Core NFT (the ArNS name token)
 
 ## Prerequisites
@@ -201,7 +228,19 @@ Requires `@ar.io/sdk` version 3.23+ for Solana support.
     # Should return 200 OK with your app's index.html
     ```
 
-    Your app is now permanently hosted and accessible through every ar.io gateway in the network.
+    Verify both layers so it is easier to diagnose a problem:
+
+    ```bash
+    # Storage and manifest routing
+    curl -I https://turbo-gateway.com/YOUR_MANIFEST_TX_ID
+
+    # Name resolution
+    curl -I https://my-cool-app.ar.io
+    ```
+
+    If the transaction URL works but the ArNS URL does not, confirm that the root (`@`) record contains the manifest transaction ID and allow for the record's TTL. If neither URL works, check the upload result and make sure the build folder contained an `index.html` file.
+
+    Your app is now permanently hosted and accessible through the ar.io gateway network.
   </Step>
 </Steps>
 
