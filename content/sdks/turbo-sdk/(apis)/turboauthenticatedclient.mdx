@@ -25,9 +25,9 @@ It is also available on the `TurboUnauthenticatedClient` for any wallet by addre
 const { bytesRemaining } = await turbo.getFreeStatus('a-native-address');
 ```
 
-#### getPaymentHistory({ limit, cursor })
+#### getPaymentHistory()
 
-Issues a signed request for the signing wallet's own completed top-up (payment) history — both cryptocurrency and fiat top-ups — merged newest-first and keyset-paginated. It is **self-scoped**: the service reads the wallet from the signature and returns only that wallet's rows, so it is available on the `TurboAuthenticatedClient` only (there is no by-address form). `limit` is the page size (1–100, default 50). To page, pass the previous response's `cursor` while `hasMore` is `true`.
+Issues a signed request for the signing wallet's own completed top-up (payment) history — both cryptocurrency and fiat top-ups — merged newest-first and keyset-paginated. It is **self-scoped**: the service reads the wallet from the signature and returns only that wallet's rows, so it is available on the `TurboAuthenticatedClient` only (there is no by-address form). It accepts `{ limit, cursor }`, where `limit` is the page size (1–100, default 50). To page, pass the previous response's `cursor` while `hasMore` is `true`.
 
 Each item is discriminated by `type`. A `'crypto'` item includes `wincCredited`, `tokenType`, `tokenQuantity`, `usdEquivalent`, `senderAddress`, `transactionId`, and `blockHeight`; a `'fiat'` item includes `wincCredited`, `paymentAmount`, `currencyType`, `paymentProvider`, `receiptId`, and `giftMessage`. Every item has an ISO-8601 UTC `date`. The history covers credit and card top-ups; it is not a full ledger of spends.
 
