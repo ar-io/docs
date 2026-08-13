@@ -3397,7 +3397,7 @@ ClickHouse stores data items exported from SQLite. The more you unbundle, the mo
 The ArDrive snapshot includes all ArDrive-uploaded data items. To match this:
 
 ```bash
-ANS104_UNBUNDLE_FILTER='{ "and": [ { "not": { "or": [ { "tags": [ { "name": "Bundler-App-Name", "value": "Warp" } ] }, { "tags": [ { "name": "Bundler-App-Name", "value": "Redstone" } ] }, { "tags": [ { "name": "Bundler-App-Name", "value": "KYVE" } ] }, { "tags": [ { "name": "Bundler-App-Name", "value": "AO" } ] }, { "attributes": { "owner_address": "-OXcT1sVRSA5eGwt2k6Yuz8-3e3g9WJi5uSE99CWqsBs" } }, { "attributes": { "owner_address": "ZE0N-8P9gXkhtK-07PQu9d8me5tGDxa_i4Mee5RzVYg" } }, { "attributes": { "owner_address": "6DTqSgzXVErOuLhaP0fmAjqF4yzXkvth58asTxP3pNw" } } ] } }, { "tags": [ { "name": "App-Name", "valueStartsWith": "ArDrive" } ] } ] }'
+ANS104_UNBUNDLE_FILTER='{ "and": [ { "not": { "or": [ { "tags": [ { "name": "Bundler-App-Name", "value": "Warp" } ] }, { "tags": [ { "name": "Bundler-App-Name", "value": "Redstone" } ] }, { "tags": [ { "name": "Bundler-App-Name", "value": "AO" } ] }, { "attributes": { "owner_address": "-OXcT1sVRSA5eGwt2k6Yuz8-3e3g9WJi5uSE99CWqsBs" } }, { "attributes": { "owner_address": "ZE0N-8P9gXkhtK-07PQu9d8me5tGDxa_i4Mee5RzVYg" } }, { "attributes": { "owner_address": "6DTqSgzXVErOuLhaP0fmAjqF4yzXkvth58asTxP3pNw" } } ] } }, { "tags": [ { "name": "App-Name", "valueStartsWith": "ArDrive" } ] } ] }'
 ANS104_INDEX_FILTER='{ "tags": [ { "name": "App-Name", "value": "ArDrive-App" } ] }'
 ```
 
@@ -5771,7 +5771,7 @@ Before starting, ensure you have:
 - **Command Line Familiarity** - Basic terminal/shell knowledge
 
   ARIO Deploy uses two separate keys:
-  - **`DEPLOY_KEY`** — pays for the Arweave upload (Arweave, Ethereum, Polygon, KYVE, or Solana wallet)
+  - **`DEPLOY_KEY`** — pays for the Arweave upload (Arweave, Ethereum, Polygon, or Solana wallet)
   - **`ARNS_KEY`** — a Solana key that controls the ArNS name and signs the record update
 
   These can be different wallets. The upload key handles payment; the ArNS key handles name ownership. If you only need to upload without updating an ArNS record, you can use the `ario-deploy upload` command with just a `DEPLOY_KEY`.
@@ -5888,7 +5888,7 @@ For this walkthrough, we'll deploy directly from the command line using inline c
         - `DEPLOY_KEY` — your Arweave JWK wallet (base64-encoded), pays for the upload
         - `ARNS_KEY` — your Solana secret key (base58), signs the ArNS record update
 
-        For EVM wallets (Ethereum, Polygon, Base, KYVE), use your raw private key for the upload. The `ARNS_KEY` is always a base58 Solana secret key:
+        For EVM wallets (Ethereum, Polygon, Base), use your raw private key for the upload. The `ARNS_KEY` is always a base58 Solana secret key:
 
         ```bash title="Terminal"
         DEPLOY_KEY="0x1234567890abcdef..." ARNS_KEY="your-base58-solana-key" npm run deploy
@@ -18120,7 +18120,7 @@ purchases**. Fund them with **testnet** value only.
 | `solana` | Solana devnet | |
 | `base-eth` | Base Sepolia | |
 
-  Mainnet tokens (`arweave`, `ethereum`, `matic`/`pol`, `kyve`) are **rejected** with
+  Mainnet tokens (`arweave`, `ethereum`, `matic`/`pol`) are **rejected** with
   `Token not supported`. There is no mainnet settlement here.
 
 ### Crypto top-up
@@ -18221,17 +18221,6 @@ Learn how to upload data to Arweave using the **Turbo SDK** for a streamlined up
             const turbo = await TurboFactory.authenticated({
               signer,
               token: 'matic', // or 'pol'
-            })
-            ```
-
-            ```typescript
-            
-            // Your KYVE private key (hexadecimal)
-            const privateKey = '0x1234...' // KyvePrivateKey type
-
-            const turbo = await TurboFactory.authenticated({
-              privateKey,
-              token: 'kyve',
             })
             ```
 
@@ -18390,7 +18379,7 @@ Learn how to upload data to Arweave using the **Turbo SDK** for a streamlined up
     [Turbo Credits](/build/upload/turbo-credits) are the payment medium used by the Turbo Upload Service. Each Credit represents a 1:1 conversion from the upload power of the Arweave native token (AR).
 
         - **Fiat Currency**: Credit/debit cards via the [Turbo Top Up App](https://turbo-topup.com/)
-        - **Cryptocurrencies**: AR, ETH, SOL, MATIC, ARIO, USDC, KYVE, ETH (BASE)
+        - **Cryptocurrencies**: AR, ETH, SOL, MATIC, ARIO, USDC, ETH (BASE)
         - **Multiple Wallets**: Ethereum, Solana, and Arweave wallets supported
 
             ```typescript
@@ -18445,20 +18434,6 @@ Learn how to upload data to Arweave using the **Turbo SDK** for a streamlined up
             // Top up with MATIC tokens
             const topUpResult = await turbo.topUpWithTokens({
               tokenAmount: 1.0, // 1.0 MATIC
-            })
-            ```
-
-            ```typescript
-            
-            // Initialize authenticated client
-            const turbo = await TurboFactory.authenticated({
-              privateKey,
-              token: 'kyve',
-            })
-
-            // Top up with KYVE tokens
-            const topUpResult = await turbo.topUpWithTokens({
-              tokenAmount: 100, // 100 KYVE
             })
             ```
 
@@ -19856,7 +19831,6 @@ Top up any address of a [supported wallet type](#supported-wallet-types) by payi
 | Base        | [ARIO](https://basescan.org/token/0x138746adfA52909E5920def027f5a8dc1C7EfFb6), [ETH](https://www.coingecko.com/en/coins/ethereum), [USDC](https://basescan.org/token/0x833589fcd6edb6e08f4c7c32d4f71b54bda02913) |
 | Ethereum    | [ETH](https://www.coingecko.com/en/coins/ethereum), [USDC](https://etherscan.io/token/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48)      |
 | Polygon     | [POL](https://www.coingecko.com/en/coins/polygon), [USDC](https://polygonscan.com/address/0x3c499c542cef5e3811e1192ce70d8cc03d5c3359)      |
-| Cosmos      | [KYVE](https://www.coingecko.com/en/coins/kyve-network)           |
 
 ### Supported Payment Wallets
 
@@ -19926,7 +19900,6 @@ Direct API integration is available at [payment.ardrive.io/api-docs](https://pay
 | **USDC (L1)**                | ✅        | ✅        | ✅        | ✅        | ❌          | ❌   |
 | **USDC (Base)**              | ✅        | ✅        | ✅        | ✅        | ❌          | ✅   |
 | **USDC (Polygon)**           | ✅        | ✅        | ✅        | ✅        | ❌          | ❌   |
-| **KYVE**                     | ✅        | ✅        | ✅        | ❌        | ❌          | ❌   |
 
 ## Just-in-Time Payments
 
@@ -19945,7 +19918,6 @@ JIT payments are available via the Turbo SDK, CLI, or direct HTTP API integratio
 | USDC                   | Polygon  | ✅            |
 | AR                     | Arweave  | ❌            |
 | ETH                    | L1       | ❌            |
-| KYVE                   | Cosmos   | ❌            |
 | Fiat                   | Stripe   | ❌            |
 
 ### x402 Protocol
@@ -20002,7 +19974,6 @@ Credits can be shared via the Console App at [console.ar.io](https://console.ar.
 | Currency          | Top Up Fee Percentage |
 | ----------------- | --------------------- |
 | ARIO (Solana or Base) | NO FEE                |
-| KYVE              | 50%                   |
 | All others        | 35%                 |
 
 ## Getting Started
@@ -25616,7 +25587,7 @@ Set a base58-encoded **Solana** secret key as `ARNS_KEY`, or pass a `solana-keyg
    base64 -i wallet.json | pbcopy
    ```
 
-2. **Ethereum/Polygon/KYVE signers:** Use your raw private key (no encoding needed) as `DEPLOY_KEY`.
+2. **Ethereum/Polygon signers:** Use your raw private key (no encoding needed) as `DEPLOY_KEY`.
 3. **Solana signer:** Use a base58-encoded secret key as `DEPLOY_KEY`, or a `solana-keygen` `id.json` byte-array wallet file via `--wallet`.
 
 # Bundler service (/sdks/(clis)/ario-deploy/bundler-service)
@@ -25739,8 +25710,8 @@ jobs:
 
 Upload key (pays for the upload):
 
-- `--sig-type, -s`: Signer type for the upload key. Choices: `arweave`, `ethereum`, `polygon`, `kyve`, `solana`. Default: `arweave`
-- `--wallet, -w`: Path to the upload wallet file (JWK for Arweave, private key for Ethereum/Polygon/KYVE, `solana-keygen` `id.json` for Solana). Falls back to `DEPLOY_KEY`.
+- `--sig-type, -s`: Signer type for the upload key. Choices: `arweave`, `ethereum`, `polygon`, `solana`. Default: `arweave`
+- `--wallet, -w`: Path to the upload wallet file (JWK for Arweave, private key for Ethereum/Polygon, `solana-keygen` `id.json` for Solana). Falls back to `DEPLOY_KEY`.
 - `--private-key, -k`: Upload private-key string (alternative to `--wallet`). JWK JSON for Arweave, hex for EVM chains, base58 secret key for Solana.
 
 ArNS authority key (controls the name, signs the update — always Solana):
@@ -30286,7 +30257,7 @@ Tops up the connected wallet with Credits by submitting a payment transaction fo
 
 - The `tokenAmount` is the amount of tokens in the token type's smallest unit value (e.g: Winston for arweave token type) to fund the wallet with.
 - The `feeMultiplier` (optional) is the multiplier to apply to the reward for the transaction to modify its chances of being mined. Credits will be added to the wallet balance after the transaction is confirmed on the given blockchain. Defaults to 1.0, meaning no multiplier.
-- The `turboCreditDestinationAddress` (optional) is the native address to credit the funds to. If not provided, the connected wallet's native address will be used. Note: Not available for KYVE token type.
+- The `turboCreditDestinationAddress` (optional) is the native address to credit the funds to. If not provided, the connected wallet's native address will be used.
 
 ##### Arweave (AR) Crypto Top Up
 
@@ -30296,7 +30267,7 @@ const turbo = TurboFactory.authenticated({ signer, token: 'arweave' });
 const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
   tokenAmount: WinstonToTokenAmount(100_000_000), // 0.0001 AR
   feeMultiplier: 1.1, // 10% increase in reward for improved mining chances
-  turboCreditDestinationAddress: '0xabc...123', // Any custom EVM / SOL / AR / KYVE native destination address
+  turboCreditDestinationAddress: '0xabc...123', // Any custom EVM / SOL / AR native destination address
 });
 ```
 
@@ -30384,16 +30355,6 @@ const turbo = TurboFactory.authenticated({ signer, token: 'solana' });
 
 const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
   tokenAmount: SOLToTokenAmount(0.00001), // 0.00001 SOL
-});
-```
-
-##### KYVE Crypto Top Up
-
-```typescript
-const turbo = TurboFactory.authenticated({ signer, token: 'kyve' });
-
-const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
-  tokenAmount: KYVEToTokenAmount(0.00001), // 0.00001 KYVE
 });
 ```
 
@@ -30687,17 +30648,6 @@ const turbo = TurboFactory.unauthenticated({ token: 'pol' });
 const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
   amount: USD(10.0), // $10.00 USD
   owner: publicPolygonAddress,
-});
-```
-
-##### KYVE Fiat Top Up
-
-```typescript
-const turbo = TurboFactory.unauthenticated({ token: 'kyve' });
-
-const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
-  amount: USD(10.0), // $10.00 USD
-  owner: publicKyveAddress,
 });
 ```
 
@@ -31109,27 +31059,6 @@ const turbo = TurboFactory.authenticated({
 const turbo = TurboFactory.authenticated({
   privateKey: ethHexadecimalPrivateKey,
   token: 'pol',
-});
-```
-
-# KYVE (/sdks/turbo-sdk/(signers)/kyve)
-
-#### KYVE Private Key
-
-```typescript
-const turbo = TurboFactory.authenticated({
-  privateKey: kyveHexadecimalPrivateKey,
-  token: 'kyve',
-});
-```
-
-#### KYVE Mnemonic
-
-```typescript
-
-const turbo = TurboFactory.authenticated({
-  privateKey: privateKeyFromKyveMnemonic(mnemonic),
-  token: 'kyve',
 });
 ```
 
