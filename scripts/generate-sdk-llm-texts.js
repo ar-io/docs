@@ -24,7 +24,7 @@ function parseMdxFile(filePath) {
   const content = fs.readFileSync(filePath, "utf8");
 
   // Extract frontmatter
-  const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---\n/);
+  const frontmatterMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/);
   let frontmatter = {};
   let body = content;
 
@@ -33,7 +33,7 @@ function parseMdxFile(filePath) {
 
     // Parse frontmatter (simple YAML parsing)
     const frontmatterText = frontmatterMatch[1];
-    frontmatterText.split("\n").forEach((line) => {
+    frontmatterText.split(/\r?\n/).forEach((line) => {
       const match = line.match(/^(\w+):\s*(.*)$/);
       if (match) {
         const [, key, value] = match;
@@ -51,9 +51,9 @@ function generateUrl(filePath, sdkDir) {
   const url =
     "/" +
     relativePath
+      .replace(/\\/g, "/") // normalize Windows separators before matching on "/"
       .replace(/\.mdx$/, "")
-      .replace(/\/index$/, "")
-      .replace(/\\/g, "/");
+      .replace(/\/index$/, "");
 
   return url === "/" ? "" : url;
 }
@@ -61,8 +61,8 @@ function generateUrl(filePath, sdkDir) {
 // Function to clean up content
 function cleanContent(body) {
   return body
-    .replace(/import\s+.*?from\s+['"][^'"]*['"];?\n/g, "") // Remove imports
-    .replace(/export\s+.*?;?\n/g, "") // Remove exports
+    .replace(/import\s+.*?from\s+['"][^'"]*['"];?\r?\n/g, "") // Remove imports
+    .replace(/export\s+.*?;?\r?\n/g, "") // Remove exports
     .replace(/<[^>]*>/g, "") // Remove JSX tags
     .replace(/\n\s*\n\s*\n/g, "\n\n") // Clean up multiple newlines
     .trim();
