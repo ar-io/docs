@@ -1,0 +1,183 @@
+name: Regenerate Docs (Manual)
+
+# Manual-only. None of the generation scripts run during `yarn build`, so the
+# generated content committed to this repo drifts from its upstream sources
+# until someone regenerates it by hand. This workflow does that on demand and
+# opens a pull request with the result.
+#
+# It never pushes to main directly: a push to main triggers a production
+# Arweave deploy, and content pulled verbatim from external repositories should
+# be reviewed as a diff first.
+#
+# Note: pull requests opened with the default GITHUB_TOKEN do not trigger other
+# workflows, so pr-preview.yaml will not build a preview for these PRs. Push an
+# empty commit to the branch, or close and reopen the PR, if you want one.
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Which generator to run"
+        required: true
+        type: choice
+        default: all
+        options:
+          - all
+          - api-docs
+          - sdk-docs
+          - llm-text
+          - sdk-llm-texts
+      draft:
+        description: "Open the pull request as a draft"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: regenerate-docs
+  cancel-in-progress: false
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22.14.0"
+          cache: "yarn"
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Run generators
+        env:
+          TARGET: ${{ inputs.target }}
+        run: |
+          set -euo pipefail
+
+          # Order matters for "all": the llm text files are derived from the
+          # content that api-docs and sdk-docs produce.
+          if [ "$TARGET" = "all" ] || [ "$TARGET" = "api-docs" ]; then
+            echo "::group::generate-api-docs"
+            yarn generate-api-docs
+            echo "::endgroup::"
+          fi
+
+          if [ "$TARGET" = "all" ] || [ "$TARGET" = "sdk-docs" ]; then
+            echo "::group::generate-sdk-docs"
+            yarn generate-sdk-docs
+            echo "::endgroup::"
+          fi
+
+          if [ "$TARGET" = "all" ] || [ "$TARGET" = "llm-text" ]; then
+            echo "::group::generate-llm-text"
+            yarn generate-llm-text
+            echo "::endgroup::"
+          fi
+
+          if [ "$TARGET" = "all" ] || [ "$TARGET" = "sdk-llm-texts" ]; then
+            echo "::group::generate-sdk-llm-texts"
+            yarn generate-sdk-llm-texts
+            echo "::endgroup::"
+          fi
+
+      - name: Detect drift
+        id: drift
+        run: |
+          set -euo pipefail
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "### No drift detected"
+              echo ""
+              echo "Generated content already matches upstream. No pull request opened."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "### Drift detected"
+              echo ""
+              echo '```'
+              git status --porcelain
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # Commit before building so that `git add -A` only ever captures
+      # generator output, never a side effect of the build.
+      - name: Commit regenerated content
+        if: steps.drift.outputs.changed == 'true'
+        id: commit
+        env:
+          TARGET: ${{ inputs.target }}
+        run: |
+          set -euo pipefail
+
+          BRANCH="chore/regenerate-${TARGET}-${GITHUB_RUN_ID}"
+          echo "branch=${BRANCH}" >> "$GITHUB_OUTPUT"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git checkout -b "$BRANCH"
+          git add -A
+          git commit \
+            -m "chore(docs): regenerate ${TARGET} from upstream" \
+            -m "Ran by ${GITHUB_ACTOR} via the Regenerate Docs (Manual) workflow." \
+            -m "Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+      # Catches the class of failure that broke the Arweave deploy: regenerated
+      # MDX that compiles but blows up at module evaluation.
+      - name: Verify the site still builds
+        if: steps.drift.outputs.changed == 'true'
+        run: yarn build
+
+      - name: Open pull request
+        if: steps.drift.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET: ${{ inputs.target }}
+          DRAFT: ${{ inputs.draft }}
+          BRANCH: ${{ steps.commit.outputs.branch }}
+        run: |
+          set -euo pipefail
+
+          git push origin "$BRANCH"
+
+          {
+            echo "Regenerated \`${TARGET}\` from upstream sources."
+            echo ""
+            echo "Triggered by @${GITHUB_ACTOR} — [workflow run](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})."
+            echo ""
+            echo '```'
+            git diff --stat HEAD~1
+            echo '```'
+            echo ""
+            echo "\`yarn build\` passed on this branch before this PR was opened."
+            echo ""
+            echo "> [!NOTE]"
+            echo "> Review the diff before merging. These files are pulled from external"
+            echo "> repositories, so upstream edits land here verbatim."
+          } > "${RUNNER_TEMP}/pr-body.md"
+
+          DRAFT_FLAG=""
+          if [ "$DRAFT" = "true" ]; then
+            DRAFT_FLAG="--draft"
+          fi
+
+          # shellcheck disable=SC2086
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "chore(docs): regenerate ${TARGET} from upstream" \
+            --body-file "${RUNNER_TEMP}/pr-body.md" \
+            $DRAFT_FLAG
