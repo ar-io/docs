@@ -84,7 +84,12 @@ jobs:
             echo "::endgroup::"
           fi
 
-          if [ "$TARGET" = "all" ] || [ "$TARGET" = "sdk-llm-texts" ]; then
+          # generate-sdk-docs wipes each SDK directory (preserving only
+          # index.mdx), which deletes the committed llm.txt files living there.
+          # Only generate-sdk-llm-texts rewrites them, so always run it after
+          # sdk-docs -- otherwise a sdk-docs run ships a PR whose visible effect
+          # includes deleting three llm.txt files for no reason.
+          if [ "$TARGET" = "all" ] || [ "$TARGET" = "sdk-llm-texts" ] || [ "$TARGET" = "sdk-docs" ]; then
             echo "::group::generate-sdk-llm-texts"
             yarn generate-sdk-llm-texts
             echo "::endgroup::"
@@ -164,9 +169,17 @@ jobs:
             echo ""
             echo "\`yarn build\` passed on this branch before this PR was opened."
             echo ""
-            echo "> [!NOTE]"
-            echo "> Review the diff before merging. These files are pulled from external"
-            echo "> repositories, so upstream edits land here verbatim."
+            echo "> [!WARNING]"
+            echo "> **This can revert deliberate edits.** \`generate-sdk-docs\` deletes each"
+            echo "> SDK directory (keeping only \`index.mdx\`) and rebuilds every page from the"
+            echo "> upstream README, so any hand-edit to a generated page is undone."
+            echo ">"
+            echo "> Worked example: commit 639c4a4b removed KYVE references by hand from"
+            echo "> generated turbo-sdk pages. Regenerating restores every one of them,"
+            echo "> including \`content/sdks/turbo-sdk/(signers)/kyve.mdx\`."
+            echo ">"
+            echo "> Read the diff for content that was intentionally removed before merging."
+            echo "> Edits that need to survive regeneration belong upstream, not here."
           } > "${RUNNER_TEMP}/pr-body.md"
 
           DRAFT_FLAG=""
