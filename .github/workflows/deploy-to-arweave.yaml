@@ -1,20 +1,6 @@
 name: Deploy to Arweave (Production)
 
 on:
-  # Trigger on push to main branch
-  push:
-    branches:
-      - main
-    paths:
-      - "src/**"
-      - "content/**"
-      - "scripts/**"
-      - "next.config.mjs"
-      - "package.json"
-      - "tailwind.config.js"
-      - "tsconfig.json"
-
-  # Allow manual dispatch with custom undername
   workflow_dispatch:
     inputs:
       undername:
@@ -68,5 +54,5 @@ jobs:
           deploy-key: ${{ secrets.DEPLOY_KEY }}
           arns-key: ${{ secrets.ARNS_KEY }}
           arns-name: ${{ secrets.ARNS_NAME }}
-          undername: "${{ github.event_name == 'workflow_dispatch' && inputs.undername || '@' }}"
+          undername: "${{ inputs.undername }}"
           deploy-folder: ./out
