@@ -121,6 +121,6 @@ Scripts generate AI-friendly text files from docs:
 
 ## Deployment
 
-- **Production**: Deploys to Arweave via GitHub Actions (`.github/workflows/deploy-to-arweave.yaml`) on pushes to main. Uses the [`ar-io/ar-io-deploy`](https://github.com/ar-io/ar-io-deploy) GitHub Action. Supports manual dispatch with custom ArNS undername.
+- **Production**: Deploys to Arweave via GitHub Actions (`.github/workflows/deploy-to-arweave.yaml`) on manual dispatch only (`workflow_dispatch`). Uses the [`ar-io/ar-io-deploy`](https://github.com/ar-io/ar-io-deploy) GitHub Action. Requires an ArNS undername input (`@` for the base name).
 - **PR Previews**: `.github/workflows/pr-preview.yaml` deploys previews for PRs that change `content/` or `src/`. Uses `ar-io/ar-io-deploy`. Only runs for PRs from the main repo (not forks).
 - **Doc regeneration**: `.github/workflows/regenerate-docs.yaml` is manual-only (`workflow_dispatch`). Pick a generator (`all`, `api-docs`, `sdk-docs`, `llm-text`, `sdk-llm-texts`); it regenerates, verifies `yarn build`, and opens a PR. None of the generation scripts run during `yarn build`, so generated content drifts from upstream until this is run. PRs it opens do not trigger `pr-preview.yaml` (default `GITHUB_TOKEN` limitation).
