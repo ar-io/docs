@@ -20,6 +20,8 @@ graph LR
     E --> F[close_epoch]
 ```
 
+> _Rent versus rewards:_ Observers pay SOL for both account rent and transaction fees when submitting observations. Closing their completed epoch accounts returns the account rent in SOL, but not the transaction fees. ARIO observer rewards are handled separately by `distribute_epoch`.
+
 ### 1. create_epoch
 
 **Initializes the epoch account and computes the reward rate.**
@@ -66,9 +68,11 @@ graph LR
 
 ### 6. close_epoch
 
-**Reclaims rent from completed epoch accounts.**
+**Closes completed per-observer epoch accounts and returns each account's remaining SOL rent to that observer's wallet.**
 
-- Recovers SOL rent from completed epoch accounts
+This is separate from `distribute_epoch`, which distributes ARIO rewards. `close_epoch` is permissionless, so any cranker may submit it, but the cranker does not receive the rent returned from observer accounts.
+
+- Returns SOL rent from completed observer epoch accounts to their respective observers
 - Keeps onchain state lean over time
 
 ## Timing
