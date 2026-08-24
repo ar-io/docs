@@ -14,3 +14,13 @@ const { winc, mARIO } = await turbo.getArNSPriceForName({
   processId: 'ant-process-id', // the ANT the name resolves to
 });
 ```
+
+<Callout type="info">
+  **Provisioning a name costs a bit more.** Omitting `processId` on a
+  `Buy-Name`/`Buy-Record` (see "Buying a name") has Turbo spawn and own a
+  fresh ANT for you, which carries a small, flat cost-recovery surcharge on
+  top of `winc` — the response includes `antSpawnSurchargeWinc` and a
+  convenience `wincTotalWithAntSpawn` (the two summed) so you don't have to
+  do the arithmetic yourself. Supplying your own `processId` skips this
+  entirely, since no new ANT is spawned.
+</Callout>
