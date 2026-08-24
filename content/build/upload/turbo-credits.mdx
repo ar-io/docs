@@ -9,6 +9,7 @@ import {
   CreditCard,
   FileText,
   FolderOpen,
+  Globe,
   Tag,
   Upload,
   Zap,
@@ -203,12 +204,39 @@ Credits can be shared via the Console App at [console.ar.io](https://console.ar.
 - **Collaboration**: Share credits with project contributors
 - **Educational Programs**: Provide students with controlled access
 
+## Using Credits to Buy ArNS Names
+
+Turbo Credits aren't just for uploads — they're also the payment medium for buying, extending, and upgrading [ArNS](/learn/arns) names, including atomic spawn-and-buy (mint the underlying ANT and register the name in one purchase). This uses the same credit balance as uploads, so no separate top-up is needed if you already hold credits.
+
+```js
+import { TurboFactory } from "@ardrive/turbo-sdk";
+
+const turbo = TurboFactory.authenticated({ signer });
+
+// Get pricing in Turbo Credits (winc) and mARIO before buying
+const { winc, mARIO } = await turbo.getArNSPriceForName({
+  intent: "Buy-Name",
+  name: "my-name",
+  type: "lease",
+  years: 1,
+});
+
+// Purchase the name, paid from your credit balance
+const purchase = await turbo.buyArNSName({
+  name: "my-name",
+  type: "lease",
+  years: 1,
+});
+```
+
+See the dedicated [ArNS Names (paid with Turbo Credits)](/sdks/turbo-sdk/purchase-lifecycle) guide for pricing, the full purchase lifecycle, extending/upgrading names, and ANT custody transfer.
+
 ## Pricing & Fees
 
 - Turbo top up fees cover the costs of managing infrastructure and, in the case of crypto-based top ups, token liquidity.
-- No additional fees are applied when credits are spent.
+- A small flat fee is applied per data item at upload time (currently **$0.00002**, i.e. **$0.02 per 1,000 items**) to cover per-item processing overhead. This is separate from and in addition to the byte-based storage cost; there is no percentage-based fee on spend.
 - Credits maintain a 1:1 peg of storage purchasing power as Arweave's data storage rates and token price fluctuate.
-- **Small uploads can be free.** Items up to **105 KiB** are eligible for the free tier, subject to a per-wallet **and** per-subnet lifetime allowance — an upload must fit under both. Check a wallet's remaining free allowance with `turbo.getFreeStatus()` (below).
+- **Small uploads can be free.** Items up to **105 KiB** are eligible for the free tier, subject to a **10 MiB** lifetime allowance tracked per-wallet **and** per-subnet — an upload must fit under both, and the allowance never resets. Check a wallet's remaining free allowance with `turbo.getFreeStatus()` (below).
 
 
 | Currency          | Top Up Fee Percentage |
@@ -240,6 +268,14 @@ Ready to start using Turbo Credits? Choose your path:
 
   <Card href="/sdks/turbo-sdk" title="Turbo SDK" icon={<Code />}>
     Integrate credit sharing and advanced features
+  </Card>
+
+  <Card
+    href="#using-credits-to-buy-arns-names"
+    title="Buy ArNS Names"
+    icon={<Globe />}
+  >
+    Use credits to buy, extend, and upgrade ArNS names
   </Card>
 
   <Card
