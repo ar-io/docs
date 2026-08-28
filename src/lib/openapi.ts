@@ -1,3 +1,4 @@
+import type { MediaAdapter } from 'fumadocs-openapi';
 import { createOpenAPI } from 'fumadocs-openapi/server';
 import type { ApiPageProps } from 'fumadocs-openapi/ui';
 
@@ -11,17 +12,15 @@ type ServerObject = { url: string; description?: string };
 
 /**
  * Spec URLs exactly as `scripts/generate-api-docs.ts` bakes them into the
- * `document` prop of every generated `<APIPage>`. `getAPIPageProps` looks the
- * incoming `document` string up in the schema map by strict equality, so these
- * must stay byte-identical to the URLs in `openApiMap` — a mismatch silently
- * falls back to fetching the spec unpatched.
+ * `document` prop of every generated `<APIPage>`. The override map below is
+ * keyed by this string, so these must stay byte-identical to the URLs in
+ * `openApiMap` — a mismatch does not error, it silently renders the spec's own
+ * (wrong) servers.
  */
 const AR_IO_NODE_SPEC =
   'https://raw.githubusercontent.com/ar-io/ar-io-node/refs/heads/openapi-update/docs/openapi.yaml';
-const TURBO_UPLOAD_SPEC =
-  'https://raw.githubusercontent.com/ardriveapp/turbo-upload-service/refs/heads/main/docs/openapi.yaml';
-const TURBO_PAYMENT_SPEC =
-  'https://raw.githubusercontent.com/ardriveapp/turbo-payment-service/refs/heads/main/docs/openapi.yaml';
+const TURBO_UPLOAD_SPEC = 'https://upload.ardrive.io/openapi.json';
+const TURBO_PAYMENT_SPEC = 'https://payment.ardrive.io/openapi.json';
 
 /**
  * Base URLs shown in the request examples and used by the API playground.
@@ -70,9 +69,54 @@ const SERVER_OVERRIDES: Record<string, ServerObject[]> = {
   ],
 };
 
-const server = createOpenAPI({
-  input: [AR_IO_NODE_SPEC, TURBO_UPLOAD_SPEC, TURBO_PAYMENT_SPEC],
-});
+/**
+ * Media types the Turbo specs declare that fumadocs has no built-in adapter
+ * for. An unhandled one is a hard build failure — `Media type <x> is not
+ * supported (in <path>)` during prerender — so every type used in a request or
+ * response body has to be registered here.
+ *
+ * Binary bodies are passed through untouched, exactly like the built-in
+ * `application/octet-stream` adapter; text bodies are stringified. Neither
+ * generates a code sample, which is what fumadocs does for opaque bodies.
+ *
+ * If a future spec revision introduces another media type, the build fails and
+ * names it: add it to the matching list below.
+ */
+const BINARY_MEDIA_TYPES = ['application/pdf', 'image/png', 'image/jpeg'];
+const TEXT_MEDIA_TYPES = ['text/plain', 'text/html'];
+
+const mediaAdapters: Record<string, MediaAdapter> = {
+  ...Object.fromEntries(
+    BINARY_MEDIA_TYPES.map((type) => [
+      type,
+      {
+        encode: (data: { body: unknown }) => data.body as BodyInit,
+        generateExample: () => undefined,
+      },
+    ]),
+  ),
+  ...Object.fromEntries(
+    TEXT_MEDIA_TYPES.map((type) => [
+      type,
+      {
+        encode: (data: { body: unknown }) => String(data.body ?? ''),
+        generateExample: () => undefined,
+      },
+    ]),
+  ),
+};
+
+/**
+ * `input` is deliberately left empty so each page resolves its own spec.
+ *
+ * Registering the specs here would make `getSchemas()` fetch them under a
+ * single `Promise.all`, so one unreachable spec fails every API page rather
+ * than just its own — an unrelated ar-io-node page would go down because a
+ * Turbo spec 404'd. With no registered schemas, `getAPIPageProps` falls back
+ * to resolving each `document` on its own, which keeps failures contained to
+ * the pages that actually use the broken spec.
+ */
+const server = createOpenAPI({ mediaAdapters });
 
 /**
  * Swap in the corrected `servers` without touching the cached schema map:

@@ -5,11 +5,290 @@ _openapi:
   toc: []
   structuredData:
     headings: []
-    contents: []
+    contents:
+      - content: >
+          **Two Upload Modes:**
+
+
+          **1. Traditional ANS-104 Upload (Client-Signed)**
+
+
+          Client creates and signs ANS-104 data item before uploading. The
+          service detects ANS-104 format by checking the first 2 bytes
+          (signature type 1-8).
+
+
+          Payment options:
+
+          - Traditional balance (user has pre-loaded credits)
+
+          - x402 payment (include X-PAYMENT header with EIP-3009 authorization)
+
+
+          **2. Raw Data Upload (Server-Signed, x402 Only)**
+
+
+          Simplified flow for AI agents and applications without ANS-104 signing
+          capabilities. Requires RAW_DATA_UPLOADS_ENABLED=true on server.
+
+
+          The service automatically detects raw data (non-ANS-104) and:
+
+          - Returns 402 Payment Required if no X-PAYMENT header provided
+
+          - Creates and signs ANS-104 data item server-side using
+          RAW_DATA_ITEM_JWK wallet
+
+          - Adds attribution tags: Bundler, Upload-Type, Payer-Address,
+          Upload-Timestamp, Content-Type
+
+          - Validates x402 payment against payer's Ethereum address (not the
+          signer)
+
+          - Returns response with both `owner` (server wallet) and `payer`
+          (Ethereum address) fields
+
+
+          Request formats for raw data:
+
+          - Binary upload with X-Tag-* headers for custom tags
+
+          - JSON envelope: `{"data": "<base64>", "contentType": "...", "tags":
+          [...]}`
+
+
+          When using X-PAYMENT header, Content-Length must be present to enable
+          fraud detection.
+      - content: >
+          Uploads a signed ANS-104 data item to the bundler with token-specific
+          handling. Payment can be handled via:
+
+          - Traditional balance (user has pre-loaded credits)
+
+          - x402 payment (include X-PAYMENT header with EIP-3009 authorization)
+
+
+          When using X-PAYMENT header, Content-Length must be present to enable
+          fraud detection.
+      - content: >
+          **x402-Specific Upload Endpoint for Signed Data Items**
+
+
+          This endpoint is identical to `/tx` but explicitly signals x402
+          payment intent. It accepts
+
+          signed ANS-104 data items and processes x402 USDC payments.
+
+
+          **Use Case:** Clients that want to use x402 payments for signed data
+          item uploads.
+
+
+          **Payment Flow:**
+
+          1. Client uploads without X-PAYMENT header → Server returns 402
+          Payment Required
+
+          2. Server response includes x402 payment requirements (USDC amount,
+          recipient, network)
+
+          3. Client creates EIP-3009 authorization and signs with EIP-712
+
+          4. Client retries upload with X-PAYMENT header (base64-encoded JSON)
+
+          5. Server verifies payment signature, settles USDC transfer on-chain
+
+          6. Server accepts upload and returns receipt with x402Payment object
+
+
+          **Requirements:**
+
+          - Content-Type: application/octet-stream
+
+          - Content-Length: Required (for fraud detection with x402 payments)
+
+          - X-PAYMENT: Required for x402 payment authorization (after 402
+          response)
+
+
+          **Supported Networks:**
+
+          - base (Base mainnet) - Default, enabled
+
+          - base-sepolia (Base Sepolia testnet) - Requires
+          X402_BASE_TESTNET_ENABLED=true
+
+          - ethereum-mainnet - Requires X402_ETH_ENABLED=true
+
+          - polygon-mainnet - Requires X402_POLYGON_ENABLED=true
+
+
+          **Note:** This endpoint has the same behavior as `/tx` - the separate
+          path is for clarity
+
+          and allows clients to explicitly signal x402 payment intent.
+      - content: >
+          **Alias of `/x402/upload/signed`.** Identical behavior and handler
+
+          (`dataItemRoute`) — accepts a signed ANS-104 data item and processes
+          an
+
+          x402 USDC payment. Provided as an alternate path for clients that
+          prefer
+
+          the `/x402/data-item/*` naming. See `/x402/upload/signed` for the full
+
+          payment flow, requirements and supported networks.
+      - content: >
+          **x402-Specific Upload Endpoint for Raw Data (Server-Signed)**
+
+
+          This endpoint accepts raw data (images, files, text, etc.) and the
+          bundler creates and signs
+
+          the ANS-104 data item wrapper server-side. Payment is via x402 USDC.
+
+
+          **Use Case:** AI agents, simple apps, and clients that don't want to
+          implement ANS-104 signing.
+
+
+          ---
+
+
+          ## Payment Flow
+
+
+          ```
+
+          1. POST raw data (no X-PAYMENT header)
+             ↓
+          2. Server returns 402 with payment requirements
+             ↓
+          3. Client creates EIP-3009 authorization + EIP-712 signature
+             ↓
+          4. POST raw data WITH X-PAYMENT header
+             ↓
+          5. Server: verify → settle USDC → create data item → store → return
+          receipt
+
+          ```
+
+
+          ---
+
+
+          ## Pricing
+
+
+          **Formula:**
+
+          ```
+
+          estimatedSize = rawDataSize + 512 (signature) + 512 (owner) + 80
+          (headers) + (totalTags × 64)
+
+          winstonCost = arweaveGateway.getPrice(estimatedSize)
+
+          usdcAmount = (winstonCost / 10^12) × arPriceUSD × 10^6 × (1 +
+          feePercent/100)
+
+          ```
+
+
+          **Fee:** Configurable via X402_PRICING_BUFFER_PERCENT (default: 15%)
+
+
+          **Get price quote first:** `GET
+          /v1/price/x402/data/{token}/{byteCount}?tags={n}&contentType={mime}`
+
+
+          ---
+
+
+          ## System Tags (Automatically Added)
+
+
+          | Tag | Description | Example |
+
+          |-----|-------------|---------|
+
+          | Bundler | Service name | "AR.IO Bundler" |
+
+          | Upload-Type | Upload method | "raw-data-x402" |
+
+          | Payer-Address | Ethereum payer | "0x742d35Cc..." |
+
+          | X402-TX-Hash | Blockchain tx | "0x9c31110e..." |
+
+          | X402-Payment-ID | Tracking UUID | "edd4766e-..." |
+
+          | X402-Network | Payment network | "base" |
+
+          | Upload-Timestamp | Unix ms | "1700590909589" |
+
+          | Content-Type | MIME type | "image/png" |
+
+
+          ---
+
+
+          ## Custom Tags
+
+
+          **Via Headers:** `X-Tag-App-Name: MyApp` → `{"name": "App-Name",
+          "value": "MyApp"}`
+
+
+          **Via JSON Envelope:** `{"data": "...", "tags": [{"name": "App-Name",
+          "value": "MyApp"}]}`
+
+
+          Note: Header tag names are converted from kebab-case to Proper-Case.
+
+
+          ---
+
+
+          ## Important Notes
+
+
+          - **Ownership:** The `owner` field is the bundler's server wallet. The
+          payer's address is recorded in the `Payer-Address` tag only.
+
+          - **Server Requirement:** Requires `RAW_DATA_UPLOADS_ENABLED=true` on
+          server
+
+          - **Max Size:** 10 GB
+
+          - **Max Tags:** 100 user tags
+
+
+          ---
+
+
+          ## Supported Networks
+
+
+          | Network | Token | Status | USDC Contract |
+
+          |---------|-------|--------|---------------|
+
+          | Base mainnet | usdc-base | Default |
+          0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 |
+
+          | Base Sepolia | usdc-base-sepolia | Requires env |
+          0x036CbD53842c5426634e7929541eC2318f3dCF7e |
+
+          | Ethereum | usdc-ethereum-mainnet | Requires env |
+          0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 |
+
+          | Polygon | usdc-polygon-mainnet | Requires env |
+          0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359 |
 ---
 
 {/* This file was generated by Fumadocs. Do not edit this file directly. Any changes should be made by running the generation command again. */}
 
 Data item upload endpoints (single and multi-part)
 
-<APIPage document={"https://raw.githubusercontent.com/ardriveapp/turbo-upload-service/refs/heads/main/docs/openapi.yaml"} operations={[{"path":"/tx","method":"post"},{"path":"/x402/data-item/signed","method":"post"},{"path":"/x402/data-item/unsigned","method":"post"},{"path":"/tx/:token","method":"post"},{"path":"/chunks/-1/-1","method":"get"},{"path":"/chunks/:token/:uploadId/-1","method":"get"},{"path":"/chunks/:token/:uploadId/-1","method":"post"},{"path":"/chunks/:token/:uploadId/finalize","method":"post"},{"path":"/chunks/:token/:uploadId/status","method":"get"},{"path":"/chunks/:token/:uploadId/:chunkOffset","method":"post"}]} webhooks={[]} hasHead={true} />
+<APIPage document={"https://upload.ardrive.io/openapi.json"} operations={[{"path":"/tx","method":"post"},{"path":"/tx/:token","method":"post"},{"path":"/x402/upload/signed","method":"post"},{"path":"/x402/data-item/signed","method":"post"},{"path":"/x402/upload/unsigned","method":"post"},{"path":"/chunks/{token}/-1/-1","method":"get"},{"path":"/chunks/:token/:uploadId/-1","method":"get"},{"path":"/chunks/:token/:uploadId/-1","method":"post"},{"path":"/chunks/:token/:uploadId/finalize","method":"post"},{"path":"/chunks/:token/:uploadId/status","method":"get"},{"path":"/chunks/:token/:uploadId/:chunkOffset","method":"post"}]} webhooks={[]} hasHead={true} />
