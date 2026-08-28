@@ -1,0 +1,216 @@
+---
+title: x402
+full: true
+_openapi:
+  toc: []
+  structuredData:
+    headings: []
+    contents:
+      - content: >
+          Returns payment requirements for uploading data of a given size. This
+          is the first step in the x402 payment flow.
+
+
+          **IMPORTANT: Per x402 standard, this endpoint returns 200 OK (not
+          402).**
+
+          The actual 402 Payment Required response happens at the protected
+          resource (upload endpoint at /v1/tx).
+
+
+          **Three-Phase x402 Flow:**
+
+          1. **Price Quote** (this endpoint): Client gets payment requirements →
+          200 OK with requirements
+
+          2. **Upload Attempt**: Client uploads to /v1/tx without payment → 402
+          Payment Required
+
+          3. **Paid Upload**: Client uploads to /v1/tx with X-PAYMENT header →
+          200 OK with receipt
+
+
+          **Content Negotiation:**
+
+          - **API clients** (Accept: application/json): Receive JSON payment
+          requirements for programmatic use
+
+          - **Browser clients** (Accept: text/html): Receive interactive HTML
+          paywall (if X_402_CDP_CLIENT_KEY configured)
+
+
+          **Browser Paywall Features** (when X_402_CDP_CLIENT_KEY environment
+          variable is set):
+
+          - Interactive payment authorization UI with wallet connection
+
+          - MetaMask integration for EIP-712 signature generation
+
+          - Coinbase Onramp widget for purchasing USDC if user lacks funds
+
+          - Automatic base64 encoding of payment authorization
+
+          - Copy-to-clipboard functionality for X-PAYMENT header value
+
+
+          **Pricing Calculation:**
+
+          - Converts byte count → Winston (Arweave storage cost)
+
+          - Adds pricing buffer (default 5%) for volatility protection
+
+          - Converts Winston → USD → USDC (6 decimals)
+
+          - Returns maxAmountRequired in USDC smallest unit
+
+
+          **Supported Networks:** base-sepolia, base-mainnet (configurable via
+          X402_NETWORKS)
+      - content: >
+          Verifies an EIP-3009 payment authorization and settles payment
+          on-chain according to the specified mode.
+
+
+          **This is Phase 2 of the x402 flow** - verifying and settling the
+          payment.
+
+
+          **Process:**
+
+          1. Decode base64 payment header to extract EIP-3009 authorization
+
+          2. Verify EIP-712 signature matches authorization parameters
+
+          3. Check authorization hasn't been used or expired
+
+          4. Call USDC contract's `receiveWithAuthorization()` to settle payment
+
+          5. Convert USDC → Winston (Arweave storage credits)
+
+          6. Apply payment according to mode (payg, topup, or hybrid)
+
+          7. Record transaction in database with payment ID
+
+          8. Return success with transaction hash for verification
+
+
+          **Payment Modes:**
+
+          - **payg** (Pay-as-you-go): Payment reserved for specific upload only
+
+          - **topup**: Entire payment amount credited to user's account balance
+
+          - **hybrid**: Reserve for upload + credit any excess to balance
+          (DEFAULT)
+
+
+          **Security:**
+
+          - EIP-712 signature verification prevents unauthorized transfers
+
+          - Nonce prevents replay attacks
+
+          - validBefore/validAfter enforce time bounds
+
+          - On-chain settlement provides cryptographic proof
+
+
+          **Called by:** Upload service during data item upload when X-PAYMENT
+          header is present
+      - content: >
+          Finalizes an x402 payment after upload completes by comparing declared
+          vs actual byte count.
+
+
+          **This is Phase 3 of the x402 flow** - fraud detection and
+          finalization.
+
+
+          **Called by:** Upload service after data item is fully received and
+          validated.
+
+
+          **Process:**
+
+          1. Retrieve payment record by data item ID
+
+          2. Compare actualByteCount vs declaredByteCount (from X-PAYMENT)
+
+          3. Apply fraud tolerance threshold (default 5%)
+
+          4. Determine status: confirmed, refunded, or fraud_penalty
+
+          5. Issue refund if overpaid (actual < declared)
+
+          6. Keep payment as penalty if underpaid (actual > declared +
+          tolerance)
+
+          7. Update payment record with final status
+
+
+          **Fraud Detection:**
+
+          - **Within tolerance**: Payment confirmed, upload proceeds
+
+          - **Overpayment** (actual < declared - 5%): Refund difference to user
+
+          - **Fraud** (actual > declared + 5%): Keep payment as penalty, reject
+          upload
+
+
+          **Why this matters:**
+
+          Users must provide Content-Length header accurately. If they lie about
+          upload size
+
+          to pay less, the system detects this and penalizes them by keeping the
+          payment.
+
+
+          **Security:** Prevents users from declaring small uploads but
+          uploading large data.
+      - content: >
+          Top up your account balance by purchasing storage credits with USDC
+          via x402.
+
+
+          **This is a pure x402 flow** - the resource being purchased is
+          "storage credits."
+
+
+          **Flow:**
+
+          1. **First request (no X-PAYMENT header):** Returns 402 Payment
+          Required with payment requirements
+
+          2. **Retry with X-PAYMENT header:** Verifies payment, settles USDC,
+          credits balance
+
+
+          **Key Differences from Upload Payment:**
+
+          - No data item involved - just purchasing credits
+
+          - Supports multiple signature types (Arweave, Ethereum, Solana)
+
+          - Entire payment amount converted to credits and added to balance
+
+          - Can be used for any future uploads
+
+
+          **Use Case:** AI agents or users who want to prepay for storage using
+          USDC
+
+
+          **Note:** While x402 currently only supports EVM chains (Base,
+          Ethereum, Polygon),
+
+          this endpoint accepts signatureType for forward compatibility with
+          future payment methods.
+---
+
+{/* This file was generated by Fumadocs. Do not edit this file directly. Any changes should be made by running the generation command again. */}
+
+x402 protocol payment endpoints (EIP-3009 USDC payments)
+
+<APIPage document={"https://payment.ardrive.io/openapi.json"} operations={[{"path":"/x402/price/{signatureType}/{address}","method":"get"},{"path":"/x402/payment/{signatureType}/{address}","method":"post"},{"path":"/x402/finalize","method":"post"},{"path":"/x402/top-up/{signatureType}/{address}","method":"post"}]} webhooks={[]} hasHead={true} />

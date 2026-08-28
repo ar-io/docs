@@ -243,6 +243,51 @@ function escapeContent(content: string): string {
   );
 }
 
+/**
+ * Rewrite repo-relative Markdown links to absolute GitHub URLs.
+ *
+ * READMEs link to sibling files with paths like `./examples/claude-skill/`,
+ * which resolve against the README's location on GitHub but become dead links
+ * once the content is republished under `/sdks/...` on the docs site. The
+ * branch is taken from the `refs/heads/<branch>/` segment of the README URL so
+ * that packages tracking `master` (ardrive-cli) resolve correctly too.
+ *
+ * Absolute URLs, anchors, mailto: and protocol-relative links are left alone.
+ */
+function resolveRelativeLinks(content: string, pkg: (typeof PACKAGES)[0]): string {
+  const branch = pkg.readmeUrl.match(/refs\/heads\/([^/]+)\//)?.[1] ?? "main";
+  const repo = pkg.sourceUrl.replace(/\/+$/, "");
+
+  return content.replace(
+    /(\]\()(\.\.?\/[^)\s]+)(\))/g,
+    (match, open: string, target: string, close: string) => {
+      // Split off any #fragment so it survives on the end of the new URL.
+      const [pathPart, fragment] = target.split(/(?=#)/, 2);
+      const isDirectory = pathPart.endsWith("/");
+
+      // READMEs sit at the repo root, so resolve `.`/`..` against it. A link
+      // that climbs above the root cannot be expressed as a repo URL — leave
+      // those untouched rather than emit a broken one.
+      const segments: string[] = [];
+      for (const segment of pathPart.split("/")) {
+        if (segment === "" || segment === ".") continue;
+        if (segment === "..") {
+          if (segments.length === 0) return match;
+          segments.pop();
+          continue;
+        }
+        segments.push(segment);
+      }
+      if (segments.length === 0) return match;
+
+      // GitHub serves directories under /tree and files under /blob.
+      const kind = isDirectory ? "tree" : "blob";
+      const url = `${repo}/${kind}/${branch}/${segments.join("/")}`;
+      return `${open}${url}${fragment ?? ""}${close}`;
+    }
+  );
+}
+
 async function fetchReadme(url: string): Promise<string> {
   const response = await fetch(url);
   if (!response.ok) {
@@ -277,7 +322,7 @@ async function processPackage(pkg: (typeof PACKAGES)[0]) {
   try {
     // Fetch the README.md from GitHub
     console.log(`Fetching README from: ${pkg.readmeUrl}`);
-    const content = await fetchReadme(pkg.readmeUrl);
+    const content = resolveRelativeLinks(await fetchReadme(pkg.readmeUrl), pkg);
 
     // First split by H2 headers to create folder structure
     const h2Sections = content
