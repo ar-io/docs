@@ -109,12 +109,16 @@ There is no unit test suite. `npm run check-links` is the practical correctness 
 ## OpenAPI Integration
 
 `scripts/generate-api-docs.ts` pulls three specs and writes tag-grouped pages into `content/apis/<service>/`:
-- ar-io-node: `ar-io/ar-io-node` — note this tracks the **`openapi-update`** branch, not `main`
-- turbo upload-service and payment-service (`ardriveapp/turbo-*-service`, `main`)
+- ar-io-node: `ar-io/ar-io-node` on GitHub — note this tracks the **`openapi-update`** branch, not `main`
+- turbo upload-service and payment-service: **the running services' own `/openapi.json`** (`upload.ardrive.io`, `payment.ardrive.io`), not GitHub. The `ardriveapp/turbo-*-service` repos were made private on 2026-08-28 and their specs were years stale (0.1.0 vs the deployed 1.5.0). The service endpoints are public, need no auth, and track what is actually deployed. This is the spec *source* — the base URL shown in examples is `turbo.ardrive.io`, applied as a `servers` override.
 
 The generated MDX only carries the spec URL in `<APIPage document={...}>`; the spec itself is fetched and rendered through `src/lib/openapi.ts`.
 
 **`src/lib/openapi.ts` overrides each spec's `servers` block, and this is load-bearing.** Fumadocs takes the base URL for every request example and the API playground from `servers`, falling back to `[{ url: "/" }]`, and the browser resolves a relative entry against `window.location.origin` — which silently turns every example into a request to `docs.ar.io`. The upstream specs cannot be trusted here: turbo-upload-service ships relative servers, and ar-io-node points at a gateway these docs do not use. The override map is keyed by the exact spec URLs that `generate-api-docs.ts` bakes into the MDX, so **those strings must stay in sync between the two files** — a mismatch does not error, it just silently renders the wrong host.
+
+`src/lib/openapi.ts` also registers **media adapters** for `application/pdf`, `image/png`, `image/jpeg`, `text/plain` and `text/html`. A media type with no adapter is not a warning — it fails the build at prerender with `Media type <x> is not supported (in <path>)`. If a spec revision introduces another one, add it there.
+
+Note `createOpenAPI()` is called with **no `input`** on purpose. Registering specs there makes `getSchemas()` fetch them all under a single `Promise.all`, so one unreachable spec fails *every* API page rather than only its own. With no registered schemas each page resolves its own document and failures stay contained.
 
 Two hazards when regenerating API docs:
 - `npm run generate-api-docs` runs `rm -rf content/api/...`, but the generator writes to `content/apis/...`. The cleanup is a **no-op**, so tag pages deleted upstream linger. Do not "fix" the path naively: `content/apis/*/index.mdx` and every `meta.json` under it are hand-maintained, and a `rm -rf content/apis/turbo` would destroy them.
