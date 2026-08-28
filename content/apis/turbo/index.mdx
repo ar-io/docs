@@ -4,9 +4,26 @@ description: "Upload and payment services for fast, reliable data uploads to Arw
 ---
 
 import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
 import { Upload, CreditCard, Zap, Code } from 'lucide-react';
 
 Turbo provides high-performance upload and payment services for the Arweave network, offering fast, reliable data uploads with instant confirmation and transparent pricing.
+
+## Base URL
+
+Both services are served together from `https://turbo.ardrive.io`, a single consolidated host that amalgamates the upload service (`upload.ardrive.io`) and the payment service (`payment.ardrive.io`).
+
+The two are mounted at different prefixes, which is why the examples on the reference pages differ:
+
+| Service | Base URL | Example |
+| --- | --- | --- |
+| Upload | `https://turbo.ardrive.io` | `GET /price/:token/:byteCount` |
+| Payment | `https://turbo.ardrive.io/v1` | `GET /v1/price/bytes/:byteCount` |
+
+<Callout type="info">
+  Upload endpoints are served at the root, **not** under `/v1` — prefixing them
+  returns a 404. Payment endpoints require the `/v1` prefix.
+</Callout>
 
 ## Services
 
