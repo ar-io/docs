@@ -8,10 +8,6 @@ on:
         required: true
         type: string
 
-# Only `deploy` needs write access, to persist the dedupe cache below.
-permissions:
-  contents: write
-
 # One deploy at a time: two concurrent runs would race both the ArNS update
 # and the dedupe-cache commit.
 concurrency:
@@ -42,9 +38,17 @@ jobs:
     runs-on: ubuntu-latest
     needs: lint
 
+    # Only this job writes: the persist step below commits the dedupe cache.
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          # Full history so the persist step can rebase before pushing; the
+          # default shallow checkout cannot rebase onto origin reliably.
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -89,7 +93,10 @@ jobs:
             exit 0
           fi
 
-          if git diff --quiet -- .ario-deploy/transaction-cache.json; then
+          # `git status --porcelain`, not `git diff`: the file is untracked on the
+          # first deploy and `git diff` reports untracked files as unchanged,
+          # which would skip the very commit that seeds the cache.
+          if [ -z "$(git status --porcelain -- .ario-deploy/transaction-cache.json)" ]; then
             echo "Dedupe cache unchanged."
             exit 0
           fi
