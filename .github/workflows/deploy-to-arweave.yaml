@@ -8,6 +8,16 @@ on:
         required: true
         type: string
 
+# Only `deploy` needs write access, to persist the dedupe cache below.
+permissions:
+  contents: write
+
+# One deploy at a time: two concurrent runs would race both the ArNS update
+# and the dedupe-cache commit.
+concurrency:
+  group: deploy-to-arweave
+  cancel-in-progress: false
+
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -56,3 +66,40 @@ jobs:
           arns-name: ${{ secrets.ARNS_NAME }}
           undername: "${{ inputs.undername }}"
           deploy-folder: ./out
+
+      # ar-io-deploy records which files it has already uploaded, and skips
+      # re-uploading (and re-paying for) them next time. It keeps that record
+      # in the Actions cache under a fixed key, but GitHub evicts caches unused
+      # for 7 days -- and deploys here are manual and infrequent, so the cache
+      # was always cold and every deploy paid to upload the entire site.
+      #
+      # Committing the file keeps it durable. The action's own cache restore is
+      # a no-op on a miss, so the copy from `git checkout` is the one used.
+      #
+      # `continue-on-error` and `if: always()` are deliberate: this is a cost
+      # optimisation and must never turn a successful deploy into a failed run.
+      - name: Persist dedupe cache
+        if: always()
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+
+          if [ ! -f .ario-deploy/transaction-cache.json ]; then
+            echo "No transaction cache produced; nothing to persist."
+            exit 0
+          fi
+
+          if git diff --quiet -- .ario-deploy/transaction-cache.json; then
+            echo "Dedupe cache unchanged."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .ario-deploy/transaction-cache.json
+          git commit -m "chore(deploy): update dedupe cache [skip ci]"
+
+          # Rebase onto whatever landed while the deploy was running rather
+          # than clobbering it; give up quietly if that is not clean.
+          git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || exit 0
+          git push origin "HEAD:${GITHUB_REF_NAME}"

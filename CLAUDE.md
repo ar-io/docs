@@ -32,6 +32,18 @@ There is no unit test suite. `npm run check-links` is the practical correctness 
 
 ## Architecture
 
+### Deterministic output (deploy cost)
+
+`next.config.mjs` sets **`generateBuildId`** to a hash of the bundle inputs (`yarn.lock`, `next.config.mjs`, `source.config.ts`, `src/`). This is a cost control, not a cosmetic choice.
+
+Next defaults to a *random* build id per build and embeds it in every exported HTML file and RSC payload. Two builds of identical source therefore shared almost no bytes — 2,638 of 3,172 files differed — so every Arweave deploy re-uploaded the whole 367 MB site (~$169) instead of only what changed. With the hash, a docs edit leaves the id and every unrelated page untouched: **~90% of output deduplicates**.
+
+Do **not** replace it with a hard-coded constant. The id is what Next uses to detect deployment skew — when an RSC response carries a different id than the running bundle, the client forces a full navigation. A constant disables that permanently; hashing the bundle inputs keeps it working (source/dependency changes still move the id) while making content edits deterministic.
+
+Deduplication only pays off if `ar-io-deploy`'s transaction cache survives between deploys, so the deploy workflow commits `.ario-deploy/transaction-cache.json` back to the repo — GitHub evicts Actions caches after 7 days unused, and deploys here are manual and infrequent.
+
+**Gotcha worth knowing:** Tailwind v4 is configured with a bare `@import "tailwindcss"` and no `@source`, so it auto-scans the project honouring `.gitignore`. A build artifact left in the tree under a name `.gitignore` does not cover (`out-old/`, a copied `out/`) gets scanned, adds classes, and changes the CSS bundle — which then changes every page. If output ever looks non-deterministic, check for stray copies before suspecting the framework. `.ario-deploy/transaction-cache.json` is safe because Tailwind does not scan `.json`.
+
 ### Build Modes
 - **Development** (`npm run dev`): Standalone Next.js server with Turbo, hot reload, no trailing slashes. Redirects from `redirects.mjs` work here.
 - **Production** (`npm run build`): Static export (`output: "export"`) to `out/`, trailing slashes enabled, unoptimized images. ESLint errors are ignored during production builds. Redirects from `redirects.mjs` do **not** work (static export limitation) — they exist for reference and for the dev server only.
@@ -146,6 +158,6 @@ Scripts generate AI-friendly text files from docs:
 
 ## Deployment
 
-- **Production**: Deploys to Arweave via GitHub Actions (`.github/workflows/deploy-to-arweave.yaml`) on manual dispatch only (`workflow_dispatch`). Lints, builds, then uses the [`ar-io/ar-io-deploy`](https://github.com/ar-io/ar-io-deploy) action. Requires an ArNS undername input (`@` for the base name).
+- **Production**: Deploys to Arweave via GitHub Actions (`.github/workflows/deploy-to-arweave.yaml`) on manual dispatch only (`workflow_dispatch`). Lints, builds, then uses the [`ar-io/ar-io-deploy`](https://github.com/ar-io/ar-io-deploy) action. Requires an ArNS undername input (`@` for the base name). Uploads are paid for in Turbo credits from the `DEPLOY_KEY` wallet — a failed deploy is usually an insufficient-credits error at the pre-flight check, not a build problem. The final step commits the dedupe cache back to the branch; it is `continue-on-error` and can never fail an otherwise successful deploy.
 - **Preview**: `.github/workflows/deploy-to-pages.yml` publishes to GitHub Pages, also manual dispatch only. It builds with `BASE_PATH=/ar-io-docs`. There is no automatic per-PR preview.
 - **Doc regeneration**: `.github/workflows/regenerate-docs.yaml` runs **weekly (Mondays 07:00 UTC)** and on manual dispatch. Pick a generator (`all`, `api-docs`, `sdk-docs`, `llm-text`, `sdk-llm-texts`); scheduled runs default to `all`. It regenerates, verifies `yarn build`, and opens a PR rather than pushing to `main` — and only when output actually changed. None of the generation scripts run during `yarn build`, so without the weekly run generated content drifts silently. Read its diffs carefully — regeneration reverts hand-edits to generated pages.
