@@ -12,14 +12,42 @@ _openapi:
 
           range requests, and returns various informational headers about data
           verification and caching status.
+
+
+          For ANS-104 data items, offset headers are returned to help navigate
+          bundle hierarchies:
+
+          - Root offset headers (X-AR-IO-Root-Data-Item-Offset,
+          X-AR-IO-Root-Data-Offset) provide byte offsets from the start of the
+          root L1 transaction
+
+          - Parent offset headers provide byte offsets from the start of the
+          immediate parent bundle's payload
+
+          - Offset relationships: rootDataItemOffset = rootParentOffset +
+          offset, rootDataOffset = rootParentOffset + dataOffset
       - content: >
           Get the headers for a specified transaction or data item without the
           content.
 
           Returns the same headers as the GET request.
-      - content: >-
+      - content: >
           Get the raw content of a specified transaction without manifest
-          resolution
+          resolution.
+
+
+          For ANS-104 data items, offset headers are returned to help navigate
+          bundle hierarchies:
+
+          - Root offset headers (X-AR-IO-Root-Data-Item-Offset,
+          X-AR-IO-Root-Data-Offset) provide byte offsets from the start of the
+          root L1 transaction
+
+          - Parent offset headers provide byte offsets from the start of the
+          immediate parent bundle's payload
+
+          - Offset relationships: rootDataItemOffset = rootParentOffset +
+          offset, rootDataOffset = rootParentOffset + dataOffset
       - content: Get the headers for raw transaction data without manifest resolution
 ---
 
@@ -30,4 +58,4 @@ range requests, caching, and verification status. These endpoints serve as the p
 data from the Permaweb.
 
 
-<APIPage document={"https://raw.githubusercontent.com/ar-io/ar-io-node/refs/heads/openapi-update/docs/openapi.yaml"} operations={[{"path":"/{txId}","method":"get"},{"path":"/{txId}","method":"head"},{"path":"/raw/{txId}","method":"get"},{"path":"/raw/{txId}","method":"head"}]} webhooks={[]} hasHead={true} />
+<APIPage document={"https://raw.githubusercontent.com/ar-io/ar-io-node/refs/heads/main/docs/openapi.yaml"} operations={[{"path":"/{txId}","method":"get"},{"path":"/{txId}","method":"head"},{"path":"/raw/{txId}","method":"get"},{"path":"/raw/{txId}","method":"head"}]} webhooks={[]} hasHead={true} />

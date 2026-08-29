@@ -1,14 +1,7 @@
-import type { MediaAdapter } from 'fumadocs-openapi';
+import { compile } from '@fumari/json-schema-to-typescript';
+import type { MediaAdapter, MethodInformation, ServerObject } from 'fumadocs-openapi';
 import { createOpenAPI } from 'fumadocs-openapi/server';
 import type { ApiPageProps } from 'fumadocs-openapi/ui';
-
-/**
- * The OpenAPI `Server Object` shape, declared locally on purpose: fumadocs
- * re-exports a `ServerObject` type, but it is built on `openapi-types`, which
- * is not installed here (it is an unshipped transitive type-only dependency),
- * so the re-export collapses to `never[]` and cannot be used.
- */
-type ServerObject = { url: string; description?: string };
 
 /**
  * Spec URLs exactly as `scripts/generate-api-docs.ts` bakes them into the
@@ -18,7 +11,7 @@ type ServerObject = { url: string; description?: string };
  * (wrong) servers.
  */
 const AR_IO_NODE_SPEC =
-  'https://raw.githubusercontent.com/ar-io/ar-io-node/refs/heads/openapi-update/docs/openapi.yaml';
+  'https://raw.githubusercontent.com/ar-io/ar-io-node/refs/heads/main/docs/openapi.yaml';
 const TURBO_UPLOAD_SPEC = 'https://upload.ardrive.io/openapi.json';
 const TURBO_PAYMENT_SPEC = 'https://payment.ardrive.io/openapi.json';
 
@@ -107,6 +100,50 @@ const mediaAdapters: Record<string, MediaAdapter> = {
 };
 
 /**
+ * Generate the TypeScript type for one response.
+ *
+ * Fumadocs' built-in version is broken: `getTypescriptSchema` compiles
+ * `processed.bundled` — the *entire* OpenAPI document — rather than the
+ * response schema. On the ar-io-node spec that does not throw, it just emits a
+ * meaningless `interface Response { [k: string]: unknown }` on every operation,
+ * next to a schema panel showing the real type. On the richer Turbo specs the
+ * same call throws, producing ~121 `Failed to generate typescript schema`
+ * warnings per build and no type at all.
+ *
+ * Passing our own implementation also bypasses that default entirely: fumadocs
+ * only falls back to it when this option is `undefined`.
+ *
+ * Returning an empty string is how you say "no type here" — the renderer skips
+ * the panel on a falsy value.
+ */
+async function generateTypeScriptSchema(
+  operation: MethodInformation,
+  statusCode: string,
+): Promise<string> {
+  const content = operation.responses?.[statusCode]?.content;
+  if (!content) return '';
+
+  // Prefer JSON; otherwise take whichever media type the response declares
+  // first, matching how the renderer picks the default tab.
+  const media = content['application/json'] ?? Object.values(content)[0];
+  const schema = media?.schema;
+  if (!schema || typeof schema !== 'object') return '';
+
+  try {
+    return await compile(structuredClone(schema) as Parameters<typeof compile>[0], 'Response', {
+      $refOptions: false,
+      bannerComment: '',
+      additionalProperties: false,
+      enableConstEnums: false,
+    });
+  } catch {
+    // A schema the compiler cannot express is not worth failing a build over;
+    // the schema panel beside it still renders the real shape.
+    return '';
+  }
+}
+
+/**
  * `input` is deliberately left empty so each page resolves its own spec.
  *
  * Registering the specs here would make `getSchemas()` fetch them under a
@@ -116,7 +153,7 @@ const mediaAdapters: Record<string, MediaAdapter> = {
  * to resolving each `document` on its own, which keeps failures contained to
  * the pages that actually use the broken spec.
  */
-const server = createOpenAPI({ mediaAdapters });
+const server = createOpenAPI({ mediaAdapters, generateTypeScriptSchema });
 
 /**
  * Swap in the corrected `servers` without touching the cached schema map:
@@ -131,10 +168,13 @@ function withServers(
   // this guard is only here to narrow the union it is typed with.
   if (typeof document === 'string') return document;
 
+  // `Object.assign` rather than object spread: `dereferenced` and `bundled`
+  // are unions of the OpenAPI 3.0 and 3.1 document types, and spreading a union
+  // widens it into something no longer assignable back to `ProcessedDocument`.
   return Promise.resolve(document).then((processed) => ({
     ...processed,
-    dereferenced: { ...processed.dereferenced, servers },
-    bundled: { ...processed.bundled, servers },
+    dereferenced: Object.assign({}, processed.dereferenced, { servers }),
+    bundled: Object.assign({}, processed.bundled, { servers }),
   }));
 }
 
