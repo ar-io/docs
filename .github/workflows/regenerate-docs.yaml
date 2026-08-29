@@ -14,6 +14,13 @@ name: Regenerate Docs (Manual)
 # empty commit to the branch, or close and reopen the PR, if you want one.
 
 on:
+  # Weekly drift check. Generation is otherwise manual-only, which is how the
+  # ar-io-node reference sat 11 months behind its spec without anyone noticing.
+  # The job opens a PR only when output actually changes, so a quiet week costs
+  # one no-op run.
+  schedule:
+    - cron: "0 7 * * 1" # Mondays 07:00 UTC
+
   workflow_dispatch:
     inputs:
       target:
@@ -60,7 +67,7 @@ jobs:
 
       - name: Run generators
         env:
-          TARGET: ${{ inputs.target }}
+          TARGET: ${{ inputs.target || 'all' }}
         run: |
           set -euo pipefail
 
@@ -123,7 +130,7 @@ jobs:
         if: steps.drift.outputs.changed == 'true'
         id: commit
         env:
-          TARGET: ${{ inputs.target }}
+          TARGET: ${{ inputs.target || 'all' }}
         run: |
           set -euo pipefail
 
@@ -150,7 +157,7 @@ jobs:
         if: steps.drift.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TARGET: ${{ inputs.target }}
+          TARGET: ${{ inputs.target || 'all' }}
           DRAFT: ${{ inputs.draft }}
           BRANCH: ${{ steps.commit.outputs.branch }}
         run: |
