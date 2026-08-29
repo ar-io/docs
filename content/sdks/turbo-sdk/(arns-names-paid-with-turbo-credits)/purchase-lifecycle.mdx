@@ -1,21 +1,94 @@
 ---
-title: "Purchase lifecycle"
+title: "Action lifecycle"
 description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
 ---
 
-Every purchase is identified by a client-minted **UUID `nonce`**. The nonce is:
-
-1. **Signed** by your wallet and sent to the bundler (proving intent).
-2. The **idempotency key** for the purchase.
-3. The **status-lookup key** — poll `getArNSPurchaseStatus({ nonce })` until the purchase reaches a terminal state.
-
-`purchaseArNSName` returns the `nonce` on **both** `response.nonce` and `response.purchaseReceipt.nonce`. A purchase is **terminal-success** once its status carries a `messageId` (the Solana transaction id of the on-chain ArNS write) and **terminal-failure** once it carries a `failedDate`.
+Every ArNS operation paid for with Turbo Credits — buying, extending, upgrading, managing records, changing controllers, transferring — is an **action**, and every action goes through one endpoint:
 
 ```
-buyArNSName() ──▶ POST /arns/purchase  ──▶ { nonce, purchaseReceipt, arioWriteResult }
-                                                     │
-                    poll getArNSPurchaseStatus({ nonce })
-                                                     │
-              ┌──────────────────────────────────────┴───────────────────────┐
-        messageId present (success)                                 failedDate present (failure)
+POST /v1/arns/actions/{action}      create an action
+POST /v1/arns/actions/{nonce}/sign  return the signed transaction
+GET  /v1/arns/actions/{nonce}       status
+```
+
+<Callout type="info">
+  **Availability.** The actions API is live on the ar.io testnet bundler
+  (`payment.services.ar-io.dev`) and is rolling out to production. Until it
+  lands there, production still serves the older per-operation routes. The
+  `@ardrive/turbo-sdk` ArNS helpers are published on the **alpha** channel
+  only (`npm i @ardrive/turbo-sdk@alpha`); typed wrappers for actions are not
+  released yet, so the flows below are shown as HTTP requests.
+</Callout>
+
+## An action has one of two shapes
+
+The response tells you which — you never choose it:
+
+```jsonc
+// Turbo already held the authority. Nothing left to do.
+{ "nonce": "…", "action": "set-record", "status": "completed",
+  "antId": "…", "messageId": "…" }
+
+// Only the ANT's owner can authorize this.
+{ "nonce": "…", "action": "buy-name", "status": "awaiting-signature",
+  "transaction": "<base64, already signed by Turbo as fee payer>",
+  "lastValidBlockHeight": "…", "expiresAt": "…" }
+```
+
+So a client branches on `status`, never on which action it asked for:
+
+```typescript
+let res = await post(`/v1/arns/actions/${action}`, params);
+
+if (res.status === 'awaiting-signature') {
+  res = await post(`/v1/arns/actions/${res.nonce}/sign`, {
+    transaction: await wallet.signTransaction(res.transaction),
+  });
+}
+// res.status === 'completed', res.messageId is the on-chain write
+```
+
+That is the same handful of lines for buying a name, transferring it, and revoking Turbo's access.
+
+<Callout type="info">
+  **Sign the bytes Turbo returned — never rebuild the transaction.** Turbo has
+  already signed it as fee payer, and that signature covers exactly the bytes
+  in the response. A reconstructed message will not match and will be rejected.
+</Callout>
+
+## Why the shape is not fixed per action
+
+`set-record` completes in one call while Turbo is a controller of your ANT, and requires your signature the moment you revoke us. The caller cannot know which is true; the server can, and it degrades gracefully instead of erroring.
+
+## Which actions need your signature
+
+| Action | Costs credits | Your signature |
+|---|---|---|
+| `buy-name` | yes | **once**, at mint |
+| `extend-lease` | yes | no |
+| `upgrade-name` | yes | no |
+| `increase-undername-limit` | yes | no |
+| `set-record` | no | only if Turbo is not a controller |
+| `remove-record` | no | only if Turbo is not a controller |
+| `add-controller` | no | yes |
+| `remove-controller` | no | yes |
+| `transfer` | no | yes |
+
+`buy-name` is the only action that *always* needs a signature, because minting the ANT is the one instruction in the whole lifecycle that requires the owner's key. You sign once, at purchase, and never again for the life of the name — unless you exercise ownership by changing controllers or transferring it.
+
+Only the four purchase actions debit credits. Record, controller and transfer actions are free: Turbo sponsors the Solana fees and rent.
+
+## The nonce
+
+Every action is identified by a **UUID `nonce`** returned on the create call. It is the idempotency key, the argument to `/sign`, and the status-lookup key.
+
+An action is **terminal-success** once its status carries a `messageId`, and **terminal-failure** once it carries a `failedDate`.
+
+```
+POST /v1/arns/actions/buy-name ──▶ { nonce, status: 'awaiting-signature', transaction }
+                                        │
+                       sign the bytes, POST …/{nonce}/sign
+                                        │
+       ┌────────────────────────────────┴────────────────────────────┐
+  messageId present (success)                        failedDate present (failure)
 ```

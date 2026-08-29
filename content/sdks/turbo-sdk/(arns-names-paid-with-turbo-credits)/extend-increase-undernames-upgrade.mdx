@@ -3,17 +3,19 @@ title: "Extend, increase undernames, upgrade"
 description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
 ---
 
-Each intent has a typed wrapper that enforces its required fields:
+These three actions change a name you already hold. All are paid in Turbo Credits, and **none of them needs your signature** — the underlying ArNS instructions have no owner check, so Turbo can act alone once your credits cover it. Each returns `completed` in a single call.
 
 ```typescript
 // Extend an existing lease by N years
-await turbo.extendArNSLease({ name: 'my-name', years: 2 });
+await post('/v1/arns/actions/extend-lease', { name: 'my-name', years: 2 });
 
-// Increase the undername limit
-await turbo.increaseArNSUndernameLimit({ name: 'my-name', increaseQty: 5 });
+// Raise the undername limit
+await post('/v1/arns/actions/increase-undername-limit', { name: 'my-name', increaseQty: 5 });
 
 // Upgrade a lease to a permanent name
-await turbo.upgradeArNSName({ name: 'my-name' });
+await post('/v1/arns/actions/upgrade-name', { name: 'my-name' });
 ```
 
-All of them return the same `{ nonce, purchaseReceipt, arioWriteResult }` shape as `buyArNSName` and are polled the same way. `purchaseArNSName(params)` is the general form if you prefer to pass `intent` explicitly.
+Each responds with the standard envelope — `{ nonce, status: 'completed', messageId }` — and is polled the same way as any other action.
+
+Price these the same way you price a purchase, with `intent` set to `Extend-Lease`, `Increase-Undername-Limit` or `Upgrade-Name`. None of them mints an ANT, so none carries the ANT-spawn surcharge.

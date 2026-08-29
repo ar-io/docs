@@ -206,30 +206,34 @@ Credits can be shared via the Console App at [console.ar.io](https://console.ar.
 
 ## Using Credits to Buy ArNS Names
 
-Turbo Credits aren't just for uploads — they're also the payment medium for buying, extending, and upgrading [ArNS](/learn/arns) names, including atomic spawn-and-buy (mint the underlying ANT and register the name in one purchase). This uses the same credit balance as uploads, so no separate top-up is needed if you already hold credits.
+Turbo Credits aren't just for uploads — they're also the payment medium for buying, extending and upgrading [ArNS](/learn/arns) names. This draws on the same credit balance as uploads, so no separate top-up is needed if you already hold credits.
+
+Buying a name mints the ANT (a Solana asset) that the name resolves to and registers the name against it, in one purchase. **You own that ANT from the moment it exists** — Turbo pays the Solana fees and rent but never takes custody, and your Solana balance can stay at zero throughout.
+
+Every ArNS operation goes through one endpoint, and the response tells you whether it is already done or needs your signature:
 
 ```js
-import { TurboFactory } from "@ardrive/turbo-sdk";
+// Price it first — quote wincTotalWithAntSpawn, not winc alone
+const price = await get('/v1/arns/price/buy-name/my-name?type=lease&years=1');
 
-const turbo = TurboFactory.authenticated({ signer });
-
-// Get pricing in Turbo Credits (winc) and mARIO before buying
-const { winc, mARIO } = await turbo.getArNSPriceForName({
-  intent: "Buy-Name",
-  name: "my-name",
-  type: "lease",
+// Create the action. `ownerAddress` is the Solana address that will own the ANT.
+let res = await post('/v1/arns/actions/buy-name', {
+  name: 'my-name',
+  type: 'lease',
   years: 1,
+  ownerAddress: solanaPublicKey,
 });
 
-// Purchase the name, paid from your credit balance
-const purchase = await turbo.buyArNSName({
-  name: "my-name",
-  type: "lease",
-  years: 1,
-});
+// Buying is the one action that always needs the owner's signature.
+if (res.status === 'awaiting-signature') {
+  res = await post(`/v1/arns/actions/${res.nonce}/sign`, {
+    transaction: await wallet.signTransaction(res.transaction),
+  });
+}
+// res.messageId is the on-chain write
 ```
 
-See the dedicated [ArNS Names (paid with Turbo Credits)](/sdks/turbo-sdk/purchase-lifecycle) guide for pricing, the full purchase lifecycle, extending/upgrading names, and ANT custody transfer.
+Extending, upgrading and adding undernames need no signature at all. See the dedicated [ArNS Names (paid with Turbo Credits)](/sdks/turbo-sdk/purchase-lifecycle) guide for the full action lifecycle, pricing, record management and transfers.
 
 ## Pricing & Fees
 

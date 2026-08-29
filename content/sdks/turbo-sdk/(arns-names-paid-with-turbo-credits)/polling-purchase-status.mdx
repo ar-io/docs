@@ -1,12 +1,28 @@
 ---
-title: "Polling purchase status"
+title: "Checking action status"
 description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
 ---
 
-`getArNSPurchaseStatus({ nonce })` is available on both the authenticated and unauthenticated clients:
+Every action's status is readable by its `nonce`:
+
+```
+GET /v1/arns/actions/{nonce}
+```
 
 ```typescript
-const status = await turbo.getArNSPurchaseStatus({ nonce });
+const status = await get(`/v1/arns/actions/${nonce}`);
 // status.messageId  -> present on terminal success (Solana ArNS write tx id)
 // status.failedDate -> present on terminal failure
 ```
+
+The route is open by nonce — the nonce is the capability — so it works from an unauthenticated client, which makes it usable from a status page or a callback handler that never holds the payer's key.
+
+Receipts written before the actions API are still readable at `GET /v1/arns/purchase/{nonce}`, which continues to serve historical purchases.
+
+<Callout type="info">
+  **Poll rather than re-send.** The `nonce` is the idempotency key. If a
+  response is lost in flight, read the status back before issuing a new
+  action — re-sending a purchase risks paying twice for the same name.
+</Callout>
+
+To list the names a wallet has bought, use `GET /v1/arns/my-names/{address}`. That is receipt history, not a live ownership check: a name that has since been transferred away still appears. Verify present control on-chain using the `antId` it returns.

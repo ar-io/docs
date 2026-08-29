@@ -3,24 +3,36 @@ title: "Pricing a name"
 description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
 ---
 
-`getArNSPriceForName(params)` returns the cost in both Turbo Credits (`winc`) and `mARIO`. Params are validated client-side per intent (a `ProvidedInputError` is thrown for missing/invalid fields before any request is sent).
+Prices are quoted in both Turbo Credits (`winc`) and `mARIO` before you commit to anything:
 
-```typescript
-const { winc, mARIO } = await turbo.getArNSPriceForName({
-  intent: 'Buy-Name',
-  name: 'my-name',
-  type: 'lease', // 'lease' | 'permabuy'
-  years: 1, // required for leases
-  processId: 'ant-process-id', // the ANT the name resolves to
-});
+```
+GET /v1/arns/price/{intent}/{name}?type=lease&years=1
 ```
 
+```typescript
+const { winc, mARIO, antSpawnSurchargeWinc, wincTotalWithAntSpawn } =
+  await get(`/v1/arns/price/buy-name/my-name?type=lease&years=1`);
+```
+
+The `@ardrive/turbo-sdk` alpha wraps this as `getArNSPriceForName({ intent, name, type, years })`, which validates params per intent and throws a `ProvidedInputError` before any request is sent.
+
 <Callout type="info">
-  **Provisioning a name costs a bit more.** Omitting `processId` on a
-  `Buy-Name`/`Buy-Record` (see "Buying a name") has Turbo spawn and own a
-  fresh ANT for you, which carries a small, flat cost-recovery surcharge on
-  top of `winc` — the response includes `antSpawnSurchargeWinc` and a
-  convenience `wincTotalWithAntSpawn` (the two summed) so you don't have to
-  do the arithmetic yourself. Supplying your own `processId` skips this
-  entirely, since no new ANT is spawned.
+  **Buying a name costs a bit more than the name.** Every purchase mints a
+  fresh ANT for you on Solana, and Turbo fronts that account's rent. A small,
+  flat cost-recovery surcharge covers it: the response carries
+  `antSpawnSurchargeWinc` alongside `winc`, plus a convenience
+  `wincTotalWithAntSpawn` (the two summed) so you don't have to do the
+  arithmetic. **Quote the total** — a client that shows only `winc` will
+  under-quote the purchase.
 </Callout>
+
+Only `buy-name` mints an ANT, so only `buy-name` carries the surcharge. Pricing an `Extend-Lease`, `Increase-Undername-Limit` or `Upgrade-Name` returns `winc` and `mARIO` alone.
+
+## Fiat estimates
+
+Add a `currency` query param to the price route and the response gains a `fiatEstimate`. Mind which field you quote:
+
+- `fiatEstimate.paymentAmount` is the **bare** price, excluding the surcharge.
+- `fiatEstimate.paymentAmountWithAntSpawn` is the **total**, and is the figure to show a customer buying a name.
+
+`GET /v1/arns/quote/{method}/{address}/{currency}/{intent}/{name}` is the checkout-oriented route for topping up and buying in one step. Its `paymentAmount` is the real charge and already includes the surcharge.
