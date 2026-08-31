@@ -183,9 +183,13 @@ Unix-Time: "<seconds since unix epoch>"
 
 A JSON data object must also be uploaded with every ArFS Snapshot entity. This data contains all ArFS Drive, Folder, and File metadata changes within the associated drive, as well as any previous Snapshots. The Snapshot Data contains an array `txSnapshots`. Each item includes both the GQL and ArFS metadata details of each transaction made for the associated drive, within the snapshot's start and end period.
 
-A `tsSnapshot` contains a `gqlNode` object which uses the same GQL tags interface returned by the Arweave Gateway. It includes all of the important `block`, `owner`, `tags`, and `bundledIn` information needed by ArFS clients. It also contains a `dataJson` object which stores the correlated Data JSON for that ArFS entity.
+Each `txSnapshot` has exactly two fields, `gqlNode` and `jsonMetadata`, as siblings.
 
-For private drives, the `dataJson` object contains the JSON-string-escaped encrypted text of the associated file or folder. This encrypted text uses the file's existing `Cipher` and `Cipher-IV`. This ensures clients can decrypt this information quickly using the existing ArFS privacy protocols.
+`gqlNode` uses the same GQL tags interface returned by the Arweave Gateway. It includes all of the important `block`, `owner`, `tags`, and `bundledIn` information needed by ArFS clients.
+
+`jsonMetadata` is a **string**, not an object: the correlated Data JSON for that ArFS entity, serialized and escaped. It is `null` for an entry recorded for its GQL node alone, with no metadata body — a client must handle that rather than assume a string is always present.
+
+For private drives, `jsonMetadata` contains the JSON-string-escaped encrypted text of the associated file or folder. This encrypted text uses the file's existing `Cipher` and `Cipher-IV`. This ensures clients can decrypt this information quickly using the existing ArFS privacy protocols.
 
 ```json
 {
@@ -242,7 +246,7 @@ For private drives, the `dataJson` object contains the JSON-string-escaped encry
           }
         ]
       },
-      "dataJson": "{\"name\":\"november\",\"rootFolderId\":\"71dfc1cb-5368-4323-972a-e9dd0b1c63a0\", \"isHidden\":false}"
+      "jsonMetadata": "{\"name\":\"november\",\"rootFolderId\":\"71dfc1cb-5368-4323-972a-e9dd0b1c63a0\", \"isHidden\":false}"
     }
   ]
 }

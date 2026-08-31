@@ -376,8 +376,10 @@ const redirects = [
     permanent: true,
   },
   {
+    // The Crossmint guide was removed as outdated in f3e1c09b; point its old
+    // URL at the surviving NFT guide rather than a 404.
     source: '/guides/example-apps/crossmint-app',
-    destination: '/build/guides/crossmint-nft-minting-app',
+    destination: '/build/guides/storing-nfts',
     permanent: true,
   },
   {
