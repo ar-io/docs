@@ -92,13 +92,27 @@ if (res.status === 'awaiting-signature') {
 Only the four purchase actions debit credits. Record, controller and transfer actions are free: Turbo sponsors the Solana fees and rent.
 
 <Callout type="warn">
-  **Not everything is sponsored.** `primary-name`, `release-name`, `reassign`
-  and ANT metadata (name, description, keywords, logo) have **no action** —
-  they stay on the direct-signer path via
-  [`@ar.io/sdk`](https://github.com/ar-io/ar-io-sdk) and the user pays their
-  own SOL. Setting a primary name is common, so scope the claim in your UI to
-  the nine actions above rather than promising a name can be managed forever
-  without SOL.
+  **Sponsorship covers these nine actions and nothing else.** Turbo pays the
+  Solana fees and rent only for the operations listed above. Everything else
+  in the ArNS and ANT programs stays on the direct-signer path via
+  [`@ar.io/sdk`](https://github.com/ar-io/ar-io-sdk), where the user signs and
+  **pays their own SOL**. That includes, at minimum:
+
+  - **Buying a returned name** (`BuyReturnedName`) — the auction path. Turbo
+    can *price* an auction but cannot buy one for you.
+  - **Claiming a reserved name** (`ClaimReservedName`).
+  - **Primary names** — the whole `RequestPrimaryName` /
+    `RequestAndSetPrimaryName` / `RemovePrimaryName` flow, which lives in the
+    ario core program rather than ArNS.
+  - **Releasing or reassigning a name** (`ReleaseName`, `ReassignName`).
+  - **ANT metadata**: name, ticker, description, keywords, logo.
+  - **Per-record metadata** (`SetRecordMetadata`, `RemoveRecordMetadata`) and
+    `TransferRecord` — distinct from the `set-record` / `remove-record`
+    actions above, which Turbo does sponsor.
+
+  Buying a name and setting a primary name are both common, so scope the claim
+  in your UI to the sponsored actions rather than promising a name can be
+  managed end to end without SOL.
 </Callout>
 
 ## The nonce
