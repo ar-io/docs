@@ -39,7 +39,31 @@ Against the HTTP API directly, this is the `x-signature` / `x-public-key` / `x-n
 
 ## The ANT owner
 
-ANTs are Metaplex Core assets on Solana, so the owner is always a Solana address — even when you pay in Arweave or Ethereum credits. Pass it as `ownerAddress`.
+ANTs are Metaplex Core assets on Solana, so the owner is always a Solana
+address — even when you pay in Arweave or Ethereum credits. Pass it as an
+`ArNSOwnerSigner`.
+
+```typescript
+import { solanaOwnerSigner } from '@ardrive/turbo-sdk';
+
+// Servers, scripts and tests
+const owner = solanaOwnerSigner(bs58SolanaSecretKey);
+```
+
+A browser wallet — Phantom, Solflare, or an app's embedded wallet — should
+implement the interface directly rather than exposing a secret key:
+
+```typescript
+const owner = {
+  getAddress: () => wallet.publicKey.toBase58(),
+  signTransaction: async (txBase64) => {
+    const tx = VersionedTransaction.deserialize(Buffer.from(txBase64, 'base64'));
+    const signed = await wallet.signTransaction(tx);
+    return Buffer.from(signed.serialize()).toString('base64');
+  },
+  signMessage: (message) => wallet.signMessage(message),
+};
+```
 
 <Callout type="info">
   **The owner needs a key, not a balance.** Turbo is the fee payer on every

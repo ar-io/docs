@@ -12,12 +12,10 @@ GET  /v1/arns/actions/{nonce}       status
 ```
 
 <Callout type="info">
-  **Availability.** The actions API is live on the ar.io testnet bundler
-  (`payment.services.ar-io.dev`) and is rolling out to production. Until it
-  lands there, production still serves the older per-operation routes. The
-  `@ardrive/turbo-sdk` ArNS helpers are published on the **alpha** channel
-  only (`npm i @ardrive/turbo-sdk@alpha`); typed wrappers for actions are not
-  released yet, so the flows below are shown as HTTP requests.
+  **Availability.** Use `@ardrive/turbo-sdk@1.42.0-alpha.10` or newer — the
+  actions API is published on the **alpha** channel
+  (`npm i @ardrive/turbo-sdk@alpha`). Earlier releases call routes that no
+  longer exist and return `404`.
 </Callout>
 
 ## An action has one of two shapes
@@ -35,20 +33,35 @@ The response tells you which — you never choose it:
   "lastValidBlockHeight": "…", "expiresAt": "…" }
 ```
 
-So a client branches on `status`, never on which action it asked for:
+**The SDK handles this for you.** Each action is one call, and the branch is
+internal:
 
 ```typescript
-let res = await post(`/v1/arns/actions/${action}`, params);
+import { TurboFactory, solanaOwnerSigner } from '@ardrive/turbo-sdk';
+
+const turbo = TurboFactory.authenticated({ privateKey: payerKey });
+const { antId, messageId } = await turbo.buyArNSName({
+  name: 'my-name',
+  owner,                 // an ArNSOwnerSigner — see "Connecting a signer"
+  type: 'lease',
+  years: 1,
+});
+```
+
+If you drive the HTTP surface directly instead, the branch is yours to handle,
+and it is the same handful of lines for every action:
+
+```typescript
+let res = await turbo.createArNSAction(action, params);
 
 if (res.status === 'awaiting-signature') {
-  res = await post(`/v1/arns/actions/${res.nonce}/sign`, {
-    transaction: await wallet.signTransaction(res.transaction),
-  });
+  res = await turbo.signArNSAction(
+    res.nonce,
+    await owner.signTransaction(res.transaction),
+  );
 }
 // res.status === 'completed', res.messageId is the on-chain write
 ```
-
-That is the same handful of lines for buying a name, transferring it, and revoking Turbo's access.
 
 <Callout type="info">
   **Sign the bytes Turbo returned — never rebuild the transaction.** Turbo has
@@ -77,6 +90,16 @@ That is the same handful of lines for buying a name, transferring it, and revoki
 `buy-name` is the only action that *always* needs a signature, because minting the ANT is the one instruction in the whole lifecycle that requires the owner's key. You sign once, at purchase, and never again for the life of the name — unless you exercise ownership by changing controllers or transferring it.
 
 Only the four purchase actions debit credits. Record, controller and transfer actions are free: Turbo sponsors the Solana fees and rent.
+
+<Callout type="warn">
+  **Not everything is sponsored.** `primary-name`, `release-name`, `reassign`
+  and ANT metadata (name, description, keywords, logo) have **no action** —
+  they stay on the direct-signer path via
+  [`@ar.io/sdk`](https://github.com/ar-io/ar-io-sdk) and the user pays their
+  own SOL. Setting a primary name is common, so scope the claim in your UI to
+  the nine actions above rather than promising a name can be managed forever
+  without SOL.
+</Callout>
 
 ## The nonce
 

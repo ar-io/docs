@@ -10,11 +10,21 @@ GET /v1/arns/price/{intent}/{name}?type=lease&years=1
 ```
 
 ```typescript
-const { winc, mARIO, antSpawnSurchargeWinc, wincTotalWithAntSpawn } =
-  await get(`/v1/arns/price/buy-name/my-name?type=lease&years=1`);
+const price = await turbo.getArNSPriceForName({
+  intent: 'Buy-Name',
+  name: 'my-name',
+  type: 'lease',
+  years: 1,
+});
+
+price.wincTotal; // <- charge or display THIS
+price.winc;      // the name ONLY, excluding the ANT spawn surcharge
 ```
 
-The `@ardrive/turbo-sdk` alpha wraps this as `getArNSPriceForName({ intent, name, type, years })`, which validates params per intent and throws a `ProvidedInputError` before any request is sent.
+`wincTotal` is added by the SDK precisely so the correct field is the obvious
+one: it resolves to `wincTotalWithAntSpawn` when a surcharge applies and to
+`winc` when none does. Params are validated per intent, so a malformed request
+throws a `ProvidedInputError` before any network call.
 
 <Callout type="info">
   **Buying a name costs a bit more than the name.** Every purchase mints a

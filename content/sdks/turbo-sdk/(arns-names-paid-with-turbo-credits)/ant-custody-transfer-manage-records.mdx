@@ -11,15 +11,15 @@ You own your ANT outright, so everything on this page is you exercising that own
 
 ```typescript
 // Point the apex '@' record at some data
-await post('/v1/arns/actions/set-record', {
+await turbo.setArNSRecord({
   antId,
-  ownerAddress: solanaPublicKey,
+  owner,
   transactionId: arweaveTxId,
-  undername: '@',      // omit for the apex record
-  ttlSeconds: 900,
+  undername: '@',      // defaults to '@'
+  ttlSeconds: 900,     // defaults to 3600
 });
 
-await post('/v1/arns/actions/remove-record', { antId, ownerAddress, undername: 'docs' });
+await turbo.removeArNSRecord({ antId, owner, undername: 'docs' });
 ```
 
 These are the two actions whose shape depends on state. **While Turbo is a controller of your ANT, they return `completed` immediately** — Turbo already holds the authority to write. If you have not added Turbo as a controller, or you revoked it, the same call returns `awaiting-signature` and you sign it yourself. Handle both; do not assume one.
@@ -37,7 +37,9 @@ The payer's signed request uses the usual `x-signature` / `x-public-key` / `x-no
 | `x-owner-nonce` | single-use nonce |
 | `x-owner-signature-type` | signature scheme |
 
-The signature is bound to the exact action and its fields, and the nonce is consumed on use — so a signature captured from one request cannot authorize a different one, or replay the same one to revert a record to an older value. Legitimate retries use a fresh nonce.
+The SDK builds this proof for you from the typed params, so the canonical
+message cannot drift from what the bundler verifies. The signature is bound to
+the exact action and its fields, and the nonce is consumed on use — so a signature captured from one request cannot authorize a different one, or replay the same one to revert a record to an older value. Legitimate retries use a fresh nonce.
 
 Turbo then checks that the signer is the ANT's **current on-chain owner**. Ownership is read from the chain rather than from a table Turbo maintains, which is why this works for an ANT Turbo has never held.
 
@@ -47,10 +49,10 @@ A controller may write records but may not transfer or sell the ANT. Adding Turb
 
 ```typescript
 // Let Turbo manage records for you. Omit `target` for Turbo's own signer.
-await post('/v1/arns/actions/add-controller', { antId, ownerAddress });
+await turbo.addArNSController({ antId, owner });
 
 // Revoke it. Always free, always available.
-await post('/v1/arns/actions/remove-controller', { antId, ownerAddress });
+await turbo.removeArNSController({ antId, owner });
 ```
 
 Both require your signature, because changing an ANT's access control is an owner-only instruction.
@@ -67,11 +69,7 @@ Both require your signature, because changing an ANT's access control is an owne
 Hands the ANT to a new owner. This is a real change of ownership: after it lands, your key no longer controls the name.
 
 ```typescript
-await post('/v1/arns/actions/transfer', {
-  antId,
-  ownerAddress: currentSolanaPublicKey,
-  target: newSolanaPublicKey,
-});
+await turbo.transferArNSAnt({ antId, owner, target: newSolanaPublicKey });
 ```
 
 Owner-signed, and sponsored by Turbo like the rest.

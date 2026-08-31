@@ -210,28 +210,33 @@ Turbo Credits aren't just for uploads — they're also the payment medium for bu
 
 Buying a name mints the ANT (a Solana asset) that the name resolves to and registers the name against it, in one purchase. **You own that ANT from the moment it exists** — Turbo pays the Solana fees and rent but never takes custody, and your Solana balance can stay at zero throughout.
 
-Every ArNS operation goes through one endpoint, and the response tells you whether it is already done or needs your signature:
+Buying is the one action that needs the owner's signature — once, ever:
 
 ```js
-// Price it first — quote wincTotalWithAntSpawn, not winc alone
-const price = await get('/v1/arns/price/buy-name/my-name?type=lease&years=1');
+import { TurboFactory, solanaOwnerSigner } from "@ardrive/turbo-sdk";
 
-// Create the action. `ownerAddress` is the Solana address that will own the ANT.
-let res = await post('/v1/arns/actions/buy-name', {
-  name: 'my-name',
-  type: 'lease',
+const turbo = TurboFactory.authenticated({ privateKey: payerKey });
+
+// The Solana wallet that will own the ANT. It signs once and never needs SOL.
+const owner = solanaOwnerSigner(bs58SolanaSecretKey);
+
+// Price it first — quote wincTotal, not winc
+const price = await turbo.getArNSPriceForName({
+  intent: "Buy-Name",
+  name: "my-name",
+  type: "lease",
   years: 1,
-  ownerAddress: solanaPublicKey,
 });
 
-// Buying is the one action that always needs the owner's signature.
-if (res.status === 'awaiting-signature') {
-  res = await post(`/v1/arns/actions/${res.nonce}/sign`, {
-    transaction: await wallet.signTransaction(res.transaction),
-  });
-}
-// res.messageId is the on-chain write
+const { antId, messageId } = await turbo.buyArNSName({
+  name: "my-name",
+  owner,
+  type: "lease",
+  years: 1,
+});
 ```
+
+Requires `@ardrive/turbo-sdk@1.42.0-alpha.10` or newer.
 
 Extending, upgrading and adding undernames need no signature at all. See the dedicated [ArNS Names (paid with Turbo Credits)](/sdks/turbo-sdk/purchase-lifecycle) guide for the full action lifecycle, pricing, record management and transfers.
 

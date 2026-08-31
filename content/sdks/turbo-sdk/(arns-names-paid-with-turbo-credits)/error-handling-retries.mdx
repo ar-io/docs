@@ -21,18 +21,27 @@ Distinguish the two failures that look alike:
 - **The action exists but you lost the response** — poll it to a terminal state. If it is `awaiting-signature` and unexpired, resume by signing and calling `/sign`.
 
 ```typescript
+import { InsufficientCreditsError } from '@ardrive/turbo-sdk';
+
 try {
-  const created = await post('/v1/arns/actions/buy-name', {
-    name, type: 'permabuy', ownerAddress,
+  await turbo.buyArNSName({
+    name,
+    owner,
+    type: 'permabuy',
+    // Persist the nonce before the wallet prompt — it is the only handle on
+    // an action that has already been charged.
+    onNonce: (nonce) => persist(nonce),
   });
-  // persist created.nonce before signing — it is the only handle on this action
 } catch (err) {
-  if (err.status === 402) {
-    // surface a top-up flow to the user
+  if (err instanceof InsufficientCreditsError) {
+    // surface a top-up flow, then create a FRESH action
   } else {
     throw err;
   }
 }
+
+// Lost the response? Read it back rather than re-creating:
+const status = await turbo.getArNSActionStatus(nonce);
 ```
 
 <Callout type="info">

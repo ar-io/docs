@@ -7,13 +7,13 @@ These three actions change a name you already hold. All are paid in Turbo Credit
 
 ```typescript
 // Extend an existing lease by N years
-await post('/v1/arns/actions/extend-lease', { name: 'my-name', years: 2 });
+await turbo.extendArNSLease({ name: 'my-name', years: 2 });
 
 // Raise the undername limit
-await post('/v1/arns/actions/increase-undername-limit', { name: 'my-name', increaseQty: 5 });
+await turbo.increaseArNSUndernameLimit({ name: 'my-name', increaseQty: 5 });
 
 // Upgrade a lease to a permanent name
-await post('/v1/arns/actions/upgrade-name', { name: 'my-name' });
+await turbo.upgradeArNSName({ name: 'my-name' });
 ```
 
 Each responds with the standard envelope — `{ nonce, status: 'completed', messageId }` — and is polled the same way as any other action.

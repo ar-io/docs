@@ -12,25 +12,27 @@ Buying a name mints the ANT (a Metaplex Core asset on Solana) that the name reso
 `buy-name` is the only action that always requires your signature. Minting the ANT is the single instruction in the ArNS lifecycle that needs the owner's key, so you sign once, at purchase, and never again for the life of the name.
 
 ```typescript
-// 1. Create the action. `ownerAddress` is the Solana address that will own
-//    the ANT — not the wallet paying in credits, though they may differ.
-const created = await post('/v1/arns/actions/buy-name', {
+import { TurboFactory, solanaOwnerSigner } from '@ardrive/turbo-sdk';
+
+const turbo = TurboFactory.authenticated({ privateKey: payerKey });
+
+// `owner` is the Solana wallet that will OWN the ANT. It signs once, here,
+// and never needs SOL — Turbo pays the fee and the rent.
+const owner = solanaOwnerSigner(bs58SolanaSecretKey);
+
+const { antId, messageId } = await turbo.buyArNSName({
   name: 'my-name',
-  type: 'lease',        // or 'permabuy'
-  years: 1,             // required for leases
-  ownerAddress: solanaPublicKey,
+  owner,
+  type: 'lease',          // or 'permabuy'
+  years: 1,               // leases only
+  // Fires BEFORE the wallet prompt. Credits are already debited by then, so
+  // persist this: it is how you resume rather than paying twice.
+  onNonce: (nonce) => persist(nonce),
 });
-// → { nonce, status: 'awaiting-signature', transaction, antId, expiresAt }
-
-// 2. Sign the bytes Turbo returned. Turbo has already signed as fee payer.
-const signed = await wallet.signTransaction(created.transaction);
-
-// 3. Hand them back. Turbo submits, bootstraps your ACL, and buys the name.
-const done = await post(`/v1/arns/actions/${created.nonce}/sign`, {
-  transaction: signed,
-});
-// → { status: 'completed', antId, messageId }
 ```
+
+The SDK creates the action, sees `awaiting-signature`, has `owner` sign the
+transaction Turbo prepared, submits it, and returns once the write is on chain.
 
 <Callout type="info">
   **Two identities, deliberately kept apart.** The wallet that pays is your
