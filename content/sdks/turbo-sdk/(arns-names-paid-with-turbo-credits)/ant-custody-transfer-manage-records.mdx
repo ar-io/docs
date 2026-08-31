@@ -43,6 +43,44 @@ the exact action and its fields, and the nonce is consumed on use — so a signa
 
 Turbo then checks that the signer is the ANT's **current on-chain owner**. Ownership is read from the chain rather than from a table Turbo maintains, which is why this works for an ANT Turbo has never held.
 
+## Record metadata
+
+A record carries its own display name, logo, description and keywords —
+separate from the ANT's own metadata, which is **not** sponsored.
+
+```typescript
+await turbo.setArNSRecordMetadata({
+  antId,
+  owner,
+  undername: '@',
+  displayName: 'My Blog',
+  recordDescription: 'notes and links',
+  recordKeywords: ['arweave', 'ar-io'],
+});
+
+await turbo.removeArNSRecordMetadata({ antId, owner, undername: 'docs' });
+```
+
+<Callout type="info">
+  **Fields are tri-state.** Omit a field to leave it unchanged; pass `null` to
+  clear it. The two are bound distinctly in the owner proof, so a signature
+  authorizing "clear the description" does not also authorize "set it to empty
+  string".
+</Callout>
+
+## Moving a single record
+
+`transferArNSRecord` hands **one record** to another address. It is not
+`transferArNSAnt`, which hands over the whole ANT and every record on it —
+confusing the two gives away far more than intended.
+
+```typescript
+await turbo.transferArNSRecord({ antId, owner, undername: 'docs', target });
+```
+
+Both of these follow the same two-shape rules as `setArNSRecord`: Turbo-alone
+while it is a controller, owner-signed once you revoke it.
+
 ## Controllers
 
 A controller may write records but may not transfer or sell the ANT. Adding Turbo as one is what makes `set-record` a single call.
