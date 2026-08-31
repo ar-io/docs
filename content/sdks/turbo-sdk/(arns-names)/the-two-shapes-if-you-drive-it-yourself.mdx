@@ -1,0 +1,24 @@
+---
+title: "The two shapes, if you drive it yourself"
+description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
+---
+
+Every action returns one of two shapes, and **the server picks which**:
+
+```typescript
+let res = await turbo.createArNSAction('buy-name', { name, ownerAddress });
+if (res.status === 'awaiting-signature') {
+  res = await turbo.signArNSAction(
+    res.nonce,
+    await owner.signTransaction(res.transaction),
+  );
+}
+// res.status === 'completed'; res.messageId is the on-chain write
+```
+
+Branch on `status`, never on which action you called: `setArNSRecord` completes
+alone while Turbo is a controller and flips to `awaiting-signature` the moment
+you revoke Turbo. It degrades instead of breaking.
+
+**Sign the exact bytes returned.** Turbo has already signed as fee payer;
+rebuilding the transaction invalidates that signature.
