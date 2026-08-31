@@ -1,0 +1,16 @@
+---
+title: "Nonces, retries and refunds"
+description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
+---
+
+Credits are debited when the action is **created**, not when it is signed. So:
+
+- **Persist the nonce before prompting for a signature** — use `onNonce`.
+- **Never re-create an action to retry.** That debits again. Poll instead:
+  `await turbo.getArNSActionStatus(nonce)`.
+- **An abandoned action refunds itself** — don't build a refund flow.
+- Replaying `signArNSAction` on a completed action returns
+  `{ alreadyCompleted: true }` rather than buying twice.
+
+`InsufficientCreditsError` (HTTP 402) is thrown when the balance is short;
+prompt a top-up, then create a **fresh** action.

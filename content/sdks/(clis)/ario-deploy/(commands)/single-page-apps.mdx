@@ -1,0 +1,36 @@
+---
+title: "Single-page apps"
+description: "CLI for deploying apps to the permaweb (Arweave) and updating ArNS"
+---
+
+An Arweave path manifest maps each path to a transaction, and a gateway returns
+404 for any path the manifest does not list. That is correct for static files
+but wrong for a single-page app, whose routes are not files — `/settings` is
+invented by the router and exists nowhere on disk. Without a fallback the root
+loads and every deep link 404s.
+
+Manifests have a `fallback` for exactly this, and `ario-deploy` sets it
+automatically when the build emits a `404.html`:
+
+```bash
+ario-deploy deploy --deploy-folder ./dist
+```
+
+Most SPA builds do not emit one. Either copy your entry point before deploying:
+
+```bash
+cp dist/index.html dist/404.html
+```
+
+…or name the fallback directly:
+
+```bash
+ario-deploy deploy --deploy-folder ./dist --fallback-file index.html
+```
+
+The file must exist in the deploy folder; a path that is not there fails before
+anything is uploaded, so a typo costs nothing.
+
+> Deep links can appear broken for up to a minute after a redeploy while
+> gateways serve cached 404s from the previous manifest. Confirm with a
+> cache-busting query string (`/settings?x=1`) before assuming the deploy failed.

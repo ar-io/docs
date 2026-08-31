@@ -1,0 +1,51 @@
+---
+title: "The nine sponsored actions"
+description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
+---
+
+```typescript
+const turbo = TurboFactory.authenticated({ privateKey: jwk });
+
+// Buy — the ONE signature in the whole lifecycle.
+const { antId, messageId } = await turbo.buyArNSName({
+  name: 'my-name',
+  owner,
+  type: 'lease', // or 'permabuy'
+  years: 1, // leases only
+  onNonce: (nonce) => persist(nonce), // fires BEFORE the wallet prompt
+});
+
+// Lifecycle — no signature at all.
+await turbo.extendArNSLease({ name: 'my-name', years: 2 });
+await turbo.upgradeArNSName({ name: 'my-name' });
+await turbo.increaseArNSUndernameLimit({ name: 'my-name', increaseQty: 5 });
+
+// Records — free, and handled whichever shape the server picks.
+await turbo.setArNSRecord({
+  antId,
+  owner,
+  transactionId,
+  undername: '@',
+  ttlSeconds: 900,
+});
+await turbo.removeArNSRecord({ antId, owner, undername: 'docs' });
+
+// Controllers and transfer — owner-signed, free.
+await turbo.addArNSController({ antId, owner }); // omit target => Turbo
+await turbo.removeArNSController({ antId, owner }); // the revoke
+await turbo.transferArNSAnt({ antId, owner, target: newOwnerAddress });
+```
+
+| Action                                                               | Costs credits | Owner signature             |
+| -------------------------------------------------------------------- | ------------- | --------------------------- |
+| `buyArNSName`                                                        | yes           | **always**, once            |
+| `extendArNSLease` / `upgradeArNSName` / `increaseArNSUndernameLimit` | yes           | no                          |
+| `setArNSRecord` / `removeArNSRecord`                                 | no            | only after you revoke Turbo |
+| `addArNSController` / `removeArNSController` / `transferArNSAnt`     | no            | yes                         |
+
+Only the four purchase actions debit credits. Records, controllers and transfer
+are free — Turbo sponsors the SOL.
+
+`buyArNSName` grants Turbo controller rights **inside the same transaction you
+sign**, which is why `setArNSRecord` needs no transaction signature afterwards.
+Revoking is always available and always free.
