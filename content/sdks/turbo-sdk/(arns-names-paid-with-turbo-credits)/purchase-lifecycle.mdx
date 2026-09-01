@@ -81,18 +81,25 @@ if (res.status === 'awaiting-signature') {
 | `extend-lease` | yes | no |
 | `upgrade-name` | yes | no |
 | `increase-undername-limit` | yes | no |
-| `set-record` | no | only if Turbo is not a controller |
-| `remove-record` | no | only if Turbo is not a controller |
-| `add-controller` | no | yes |
-| `remove-controller` | no | yes |
-| `transfer` | no | yes |
-| `set-record-metadata` | no | only if Turbo is not a controller |
-| `remove-record-metadata` | no | only if Turbo is not a controller |
-| `transfer-record` | no | only if Turbo is not a controller |
+| `set-record` | yes | only if Turbo is not a controller |
+| `remove-record` | yes | only if Turbo is not a controller |
+| `add-controller` | yes | yes |
+| `remove-controller` | yes | yes |
+| `transfer` | yes | yes |
+| `set-record-metadata` | yes | only if Turbo is not a controller |
+| `remove-record-metadata` | yes | only if Turbo is not a controller |
+| `transfer-record` | yes | only if Turbo is not a controller |
 
 `buy-name` is the only action that *always* needs a signature, because minting the ANT is the one instruction in the whole lifecycle that requires the owner's key. You sign once, at purchase, and never again for the life of the name — unless you exercise ownership by changing controllers or transferring it.
 
-Only the four purchase actions debit credits. Record, metadata, controller and transfer actions are free: Turbo sponsors the Solana fees and rent.
+**Every action debits credits.** The four purchase actions pay for the name
+itself; the other eight carry a small margin covering the Solana fees and rent
+Turbo fronts on your behalf.
+
+Record, controller and transfer actions used to be free. That changed — a
+zero-cost action could be turned into value through the refund path. What is
+unchanged, and is the point, is that **you never need SOL**: you pay in Turbo
+Credits and Turbo pays the chain.
 
 <Callout type="warn">
   **Sponsorship covers these twelve actions and nothing else.** Turbo pays the
