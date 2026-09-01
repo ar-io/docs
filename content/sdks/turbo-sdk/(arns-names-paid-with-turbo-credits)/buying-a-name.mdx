@@ -35,6 +35,14 @@ The SDK creates the action, sees `awaiting-signature`, has `owner` sign the
 transaction Turbo prepared, submits it, and returns once the write is on chain.
 
 <Callout type="info">
+  **Turbo becomes a controller in this same transaction.** The
+  `add-controller(Turbo)` instruction rides along with the mint, in the one
+  signature you already gave — there's no separate step. That's why
+  `set-record` and the rest complete in a single call immediately after
+  buying, with no signature of their own.
+</Callout>
+
+<Callout type="info">
   **Two identities, deliberately kept apart.** The wallet that pays is your
   Turbo identity (Arweave, Ethereum or Solana — whichever holds the credits),
   authenticated with the usual signed-request headers. The wallet that owns the
@@ -54,6 +62,6 @@ The price is quoted in Turbo Credits (winc) and mARIO before you buy — see [Pr
 
 The name is live and yours. From here:
 
-- Point it at data with [`set-record`](/sdks/turbo-sdk/ant-custody-transfer-manage-records).
-- Let Turbo manage records on your behalf by adding it as a controller — and revoke that at any time, for free.
+- Point it at data with [`set-record`](/sdks/turbo-sdk/ant-custody-transfer-manage-records) — Turbo is already a controller, so this needs no signature yet.
+- Revoke Turbo's controller rights at any time (a small credit margin, never SOL) if you want every write to require your own signature instead.
 - [Extend, upgrade or add undernames](/sdks/turbo-sdk/extend-increase-undernames-upgrade) with no further signature.

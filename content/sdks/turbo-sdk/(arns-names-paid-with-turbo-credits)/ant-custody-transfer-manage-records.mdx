@@ -24,7 +24,7 @@ await turbo.setArNSRecord({
 await turbo.removeArNSRecord({ antId, owner, undername: 'docs' });
 ```
 
-These are the two actions whose shape depends on state. **While Turbo is a controller of your ANT, they return `completed` immediately** — Turbo already holds the authority to write. If you have not added Turbo as a controller, or you revoked it, the same call returns `awaiting-signature` and you sign it yourself. Handle both; do not assume one.
+These are the two actions whose shape depends on state. **While Turbo is a controller of your ANT — the default from the moment you bought it — they return `completed` immediately.** Once you revoke Turbo (see "Controllers" below), the same call instead returns `awaiting-signature` and you sign it yourself. Handle both; do not assume one.
 
 ### Proving you own the ANT
 
@@ -85,13 +85,17 @@ while it is a controller, owner-signed once you revoke it.
 
 ## Controllers
 
-A controller may write records but may not transfer or sell the ANT. Adding Turbo as one is what makes `set-record` a single call.
+A controller may write records but may not transfer or sell the ANT. **Turbo already is one from the moment you buy** — the grant rides in the same transaction as the mint (see "Buying a name"), which is what makes `set-record` a single call with no signature of its own.
 
 ```typescript
-// Let Turbo manage records for you. Omit `target` for Turbo's own signer.
+// Re-grant it after a revoke, or add a DIFFERENT address as controller.
+// Omit `target` for Turbo's own signer. Not needed after a fresh buy —
+// Turbo already has it.
 await turbo.addArNSController({ antId, owner });
 
-// Revoke it. Always free, always available.
+// Revoke it. Always available — costs the same small credit margin as
+// adding one, never any SOL. After this, set-record etc. degrade to
+// needing your signature instead of completing alone.
 await turbo.removeArNSController({ antId, owner });
 ```
 
