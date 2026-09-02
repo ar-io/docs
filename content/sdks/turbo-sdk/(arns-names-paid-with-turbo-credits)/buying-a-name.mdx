@@ -3,73 +3,88 @@ title: "Buying a name"
 description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
 ---
 
-`buyArNSName(params)` is the `Buy-Name` convenience wrapper over `purchaseArNSName`. Optionally, `paidBy` delegates the charge to one or more addresses that have shared credits with you.
+Buying a name mints the ANT (a Metaplex Core asset on Solana) that the name resolves to, and registers the name against it — paid for with Turbo Credits.
 
-**`processId` is optional**, and it selects who owns the ANT (Metaplex Core asset) the name resolves to:
+**You own the ANT from the moment it exists.** Turbo pays the Solana fees and rent and never takes custody, so there is no later "claim" or "transfer out" step to remember.
 
-- **Omit `processId`** → **Turbo custodial provisioning** (Model A): Turbo spawns and _owns_ the ANT for you. You can take self-custody later via `transferArNSAnt` (see "ANT custody" below).
-- **Supply `processId`** → **user-owned ANT** (Model B): the name points at an ANT you already own; Turbo never takes custody.
+## The one signature
 
-```typescript
-// Custodial lease (Model A): omit processId → Turbo owns the ANT
-const receipt = await turbo.buyArNSName({
-  name: 'my-name',
-  type: 'lease',
-  years: 1,
-});
-
-// Lease against your own ANT (Model B) for 1 year
-const receipt = await turbo.buyArNSName({
-  name: 'my-name',
-  type: 'lease',
-  years: 1,
-  processId: 'ant-process-id',
-});
-
-// Permanent buy, charged to a delegated payer
-const receipt = await turbo.buyArNSName({
-  name: 'my-name',
-  type: 'permabuy',
-  processId: 'ant-process-id', // optional — omit for Turbo custodial provisioning
-  paidBy: '\<delegated-payer-address\>', // or an array of addresses
-});
-
-console.log(receipt.nonce); // capture this to poll status / retry idempotently
-```
-
-Full runnable example (buy → poll to terminal):
+`buy-name` is the only action that always requires your signature. Minting the ANT is the single instruction in the ArNS lifecycle that needs the owner's key, so you sign once, at purchase, and never again for the life of the name.
 
 ```typescript
-import { InsufficientCreditsError, TurboFactory } from '@ardrive/turbo-sdk';
+import { TurboFactory, solanaOwnerSigner } from '@ardrive/turbo-sdk';
 
-const turbo = TurboFactory.authenticated({ privateKey: arweaveJwk });
+const turbo = TurboFactory.authenticated({ privateKey: payerKey });
 
-async function buyName() {
-  try {
-    const { nonce } = await turbo.buyArNSName({
-      name: 'my-name',
-      type: 'lease',
-      years: 1,
-      processId: 'ant-process-id',
-    });
+// `owner` is the Solana wallet that will OWN the ANT. It signs once, here,
+// and never needs SOL — Turbo pays the fee and the rent.
+const owner = solanaOwnerSigner(bs58SolanaSecretKey);
 
-    // Poll until terminal (success => messageId, failure => failedDate)
-    for (;;) {
-      const status = await turbo.getArNSPurchaseStatus({ nonce });
-      if (status.messageId) {
-        console.log('Purchased. ArNS write tx:', status.messageId);
-        return status;
-      }
-      if (status.failedDate) {
-        throw new Error(`Purchase failed at ${status.failedDate}`);
-      }
-      await new Promise((r) => setTimeout(r, 2000));
-    }
-  } catch (err) {
-    if (err instanceof InsufficientCreditsError) {
-      console.error('Not enough Turbo Credits — top up and retry.');
-    }
-    throw err;
-  }
-}
+const { antId, messageId } = await turbo.buyArNSName({
+  name: 'my-name',
+  owner,
+  type: 'lease',          // or 'permabuy'
+  years: 1,               // leases only
+  // Fires BEFORE the wallet prompt. Credits are already debited by then, so
+  // persist this: it is how you resume rather than paying twice.
+  onNonce: (nonce) => persist(nonce),
+});
 ```
+
+The SDK creates the action, sees `awaiting-signature`, has `owner` sign the
+transaction Turbo prepared, submits it, and returns once the write is on chain.
+
+<Callout type="info">
+  **Turbo becomes a controller in this same transaction.** The
+  `add-controller(Turbo)` instruction rides along with the mint, in the one
+  signature you already gave — there's no separate step. That's why
+  `set-record` and the rest complete in a single call immediately after
+  buying, with no signature of their own.
+</Callout>
+
+<Callout type="info">
+  **Two identities, deliberately kept apart.** The wallet that pays is your
+  Turbo identity (Arweave, Ethereum or Solana — whichever holds the credits),
+  authenticated with the usual signed-request headers. The wallet that owns the
+  ANT is a **Solana** address you pass as `ownerAddress`. They are allowed to be
+  different: one team can pay for a name another team owns.
+</Callout>
+
+## Let someone else's credits pay
+
+ArNS actions accept the same `paidBy` used for uploads (see
+[Turbo Credit Sharing](/sdks/turbo-sdk/turbo-credit-sharing)): an array of
+wallet addresses that have shared credits with your signer. Pass it alongside
+the rest of the params and Turbo draws on the approval instead of your own
+balance:
+
+```typescript
+const { antId, messageId } = await turbo.buyArNSName({
+  name: 'my-name',
+  owner,
+  type: 'lease',
+  years: 1,
+  paidBy: [sponsorWalletAddress],
+  onNonce: (nonce) => persist(nonce),
+});
+```
+
+This is orthogonal to the owner/payer split above — `paidBy` only changes
+whose credit balance is debited, never who ends up owning the ANT. It works
+the same way on every other ArNS action, not just `buy-name`.
+
+## You need a Solana address, not Solana funds
+
+The owner signs one transaction but never pays for it — Turbo is the fee payer, and the customer's SOL balance can be zero throughout. What you need is a Solana keypair to sign with, not a funded one.
+
+## Cost
+
+The price is quoted in Turbo Credits (winc) and mARIO before you buy — see [Pricing a name](/sdks/turbo-sdk/pricing-a-name). Because every buy mints a fresh ANT, every buy carries the flat ANT-spawn surcharge that recovers the Solana rent Turbo fronts.
+
+## After the purchase
+
+The name is live and yours. From here:
+
+- Point it at data with [`set-record`](/sdks/turbo-sdk/ant-custody-transfer-manage-records) — Turbo is already a controller, so this needs no signature yet.
+- Revoke Turbo's controller rights at any time (a small credit margin, never SOL) if you want every write to require your own signature instead.
+- [Extend, upgrade or add undernames](/sdks/turbo-sdk/extend-increase-undernames-upgrade) with no further signature.

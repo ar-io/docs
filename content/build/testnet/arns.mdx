@@ -19,44 +19,40 @@ or **directly with the ar.io SDK** against the devnet programs.
 
 ## Buying through the bundler
 
-Buying through the bundler debits your [upload credits](/build/testnet/uploading-and-credits#getting-credits).
-If you don't bring your own ANT, a **custodial ANT** is spawned and linked to you, so the name
-resolves out of the box.
+Buying through the bundler debits your [upload credits](/build/testnet/uploading-and-credits#getting-credits),
+and (like mainnet) **Turbo takes custody of nothing** — the ANT (Metaplex Core asset) backing the
+name is minted straight to a Solana key you control. Use the [Turbo SDK](/sdks/turbo-sdk) rather
+than hand-rolling the raw HTTP calls: buying needs your **owner** key to sign the ANT-creation
+transaction Turbo prepares, and the SDK drives that signature exchange for you.
 
-<Steps>
+```ts
+import { HexSolanaSigner, solanaOwnerSigner, TurboFactory } from '@ardrive/turbo-sdk';
+import bs58 from 'bs58';
 
-<Step>
-### Check the price
+const secretKeyBase58 = bs58.encode(secretKey); // your devnet Solana keypair
 
-```http
-GET https://payment.services.ar-io.dev/v1/arns/price/buy-record/<name>?type=lease&years=1
+const turbo = TurboFactory.authenticated({
+  signer: new HexSolanaSigner(secretKeyBase58), // the payer — spends your upload credits
+  token: 'solana',
+  paymentServiceConfig: { url: 'https://payment.services.ar-io.dev' },
+});
+
+// The owner can be the same wallet as the payer, or a different one you control.
+const owner = solanaOwnerSigner(secretKeyBase58);
+
+const { antId, messageId } = await turbo.buyArNSName({
+  name: '<name>',
+  owner,
+  type: 'lease', // or 'permabuy'
+  years: 1, // leases only
+});
 ```
 
-Use `type=permabuy` for a permanent registration.
-</Step>
-
-<Step>
-### Buy the name
+Check the price first with `turbo.getArNSPriceForName({ intent: 'Buy-Name', name, type: 'lease', years: 1 })`, or hit the same route directly:
 
 ```http
-POST https://payment.services.ar-io.dev/v1/arns/purchase/buy-record/<name>?type=lease&years=1
+GET https://payment.services.ar-io.dev/v1/arns/price/buy-name/<name>?type=lease&years=1
 ```
-
-A signed request that debits your credits. With provisioning on, a buy **without** your own ANT
-spawns a custodial one and links it to you.
-</Step>
-
-<Step>
-### Poll until it's recorded
-
-```http
-GET https://payment.services.ar-io.dev/v1/arns/purchase/:nonce
-```
-
-`status: recorded` means the purchase settled on Solana devnet.
-</Step>
-
-</Steps>
 
 <Callout type="warning">
   **Minimum name length: 8 characters — bundler route only.** This is an anti-squat rule on the
@@ -94,8 +90,10 @@ devnet program IDs and the ar.io SDK's devnet configuration, see the
 ## Resolving a name
 
 Once bought, `https://<name>.ar-io.dev` resolves the record, returning `x-arns-*` response
-headers. To point a name at your uploaded data, set its record via the manage routes
-(`/v1/arns/manage/...`) or through your ANT directly.
+headers. To point a name at your uploaded data, set its record with `turbo.setArNSRecord({ antId, owner, transactionId, undername, ttlSeconds })`
+(same sponsored, credits-charged bundler route as buying — see
+[managing an ANT](/sdks/turbo-sdk/ant-custody-transfer-manage-records)),
+or through your ANT directly with the ar.io SDK.
 
 <Callout type="info">
   **Names outlive data.** A name keeps resolving because the record lives on the devnet

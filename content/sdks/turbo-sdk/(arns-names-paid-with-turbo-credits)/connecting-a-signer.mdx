@@ -3,7 +3,18 @@ title: "Connecting a signer"
 description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
 ---
 
-ArNS purchases are authenticated per wallet. Construct the client with `TurboFactory.authenticated` using any supported identity — the credit balance is keyed to that wallet's native address:
+ArNS actions involve **two identities**, and conflating them is the most common integration mistake.
+
+| | Who it is | What it does |
+|---|---|---|
+| **Payer** | your Turbo identity — Arweave, Ethereum or Solana | holds the credits; authenticates the request |
+| **ANT owner** | a **Solana** address you pass as `ownerAddress` | owns the name; signs owner-only instructions |
+
+They may be the same wallet, and they may not: one account can pay for a name another account owns.
+
+## The payer
+
+Requests are authenticated per wallet with a signed request, and the credit balance is keyed to that wallet's native address:
 
 ```typescript
 import { TurboFactory } from '@ardrive/turbo-sdk';
@@ -23,3 +34,42 @@ const turbo = TurboFactory.authenticated({
   token: 'solana',
 });
 ```
+
+Against the HTTP API directly, this is the `x-signature` / `x-public-key` / `x-nonce` / `x-signature-type` header set.
+
+## The ANT owner
+
+ANTs are Metaplex Core assets on Solana, so the owner is always a Solana
+address — even when you pay in Arweave or Ethereum credits. Pass it as an
+`ArNSOwnerSigner`.
+
+```typescript
+import { solanaOwnerSigner } from '@ardrive/turbo-sdk';
+
+// Servers, scripts and tests
+const owner = solanaOwnerSigner(bs58SolanaSecretKey);
+```
+
+A browser wallet — Phantom, Solflare, or an app's embedded wallet — should
+implement the interface directly rather than exposing a secret key:
+
+```typescript
+const owner = {
+  getAddress: () => wallet.publicKey.toBase58(),
+  signTransaction: async (txBase64) => {
+    const tx = VersionedTransaction.deserialize(Buffer.from(txBase64, 'base64'));
+    const signed = await wallet.signTransaction(tx);
+    return Buffer.from(signed.serialize()).toString('base64');
+  },
+  signMessage: (message) => wallet.signMessage(message),
+};
+```
+
+<Callout type="info">
+  **The owner needs a key, not a balance.** Turbo is the fee payer on every
+  sponsored action, so the owner's SOL balance can be zero throughout — at
+  purchase and for the entire life of the name. What you need is a Solana
+  keypair to sign with.
+</Callout>
+
+Record actions additionally carry the owner's proof in a parallel `x-owner-*` header set, because two signatures from two different keys cannot share one set of headers. See [Records, controllers & transfer](/sdks/turbo-sdk/ant-custody-transfer-manage-records).

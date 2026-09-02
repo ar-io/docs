@@ -3,22 +3,49 @@ title: "Error handling & retries"
 description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
 ---
 
-- **`InsufficientCreditsError`** (HTTP `402`) — the wallet (or delegated payer) doesn't hold enough Turbo Credits. Prompt the user to top up, then retry. It exposes `.status === 402` and is exported from the package root.
-- **`ProvidedInputError`** — thrown client-side (before any network call) when required per-intent params are missing/invalid (e.g. a lease `Buy-Name` without `years`, or `Extend-Lease` without a positive `years`).
-- **`FailedRequestError`** — any other non-2xx response; inspect `.status` (e.g. `401`, `503`).
+## Responses to expect
 
-**Idempotency / retry guidance:** the `nonce` is the idempotency key. Capture `response.nonce` up front; if the network drops after the request is sent, re-poll `getArNSPurchaseStatus({ nonce })` rather than blindly re-buying. On a `402`, top up and issue a fresh purchase — the captured nonce still lets you reconcile status.
+- **`402`** — the wallet (or delegated payer) doesn't hold enough Turbo Credits. Prompt a top-up, then create a fresh action. In the SDK this surfaces as `InsufficientCreditsError`, exported from the package root with `.status === 402`.
+- **`400`** — the request is malformed or the chain rejected it: a missing per-intent field, a malformed Solana address, a name that fails validation, an out-of-range TTL, or an on-chain program error such as attempting to remove the apex record. These are terminal — retrying the same request unchanged will fail the same way.
+- **`401`** — the signed request is missing or invalid, or, on a record action, the owner proof did not come from the ANT's current on-chain owner.
+- **`409` / expiry** — a prepared transaction was not signed in time. Prepared transactions carry `expiresAt` and `lastValidBlockHeight`; past those, create a new action rather than submitting stale bytes.
+- **`503`** — Turbo could not reach the chain. Safe to retry with the same nonce.
+
+## Retry guidance
+
+The `nonce` is the idempotency key. **Capture it from the create response before doing anything else.** If the network drops mid-flight, read `GET /v1/arns/actions/{nonce}` rather than re-issuing the action — a blind retry of a purchase risks paying twice for the same name.
+
+Distinguish the two failures that look alike:
+
+- **The action was never created** — nothing was charged; create it again.
+- **The action exists but you lost the response** — poll it to a terminal state. If it is `awaiting-signature` and unexpired, resume by signing and calling `/sign`.
 
 ```typescript
 import { InsufficientCreditsError } from '@ardrive/turbo-sdk';
 
 try {
-  await turbo.buyArNSName({ name, type: 'permabuy', processId });
+  await turbo.buyArNSName({
+    name,
+    owner,
+    type: 'permabuy',
+    // Persist the nonce before the wallet prompt — it is the only handle on
+    // an action that has already been charged.
+    onNonce: (nonce) => persist(nonce),
+  });
 } catch (err) {
   if (err instanceof InsufficientCreditsError) {
-    // surface a top-up flow to the user
+    // surface a top-up flow, then create a FRESH action
   } else {
     throw err;
   }
 }
+
+// Lost the response? Read it back rather than re-creating:
+const status = await turbo.getArNSActionStatus(nonce);
 ```
+
+<Callout type="info">
+  **Sign the exact bytes Turbo returned.** Turbo's fee-payer signature covers
+  the transaction as sent. Rebuilding or re-serializing the message
+  invalidates it, and `/sign` will reject the result.
+</Callout>
