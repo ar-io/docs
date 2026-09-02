@@ -50,6 +50,29 @@ transaction Turbo prepared, submits it, and returns once the write is on chain.
   different: one team can pay for a name another team owns.
 </Callout>
 
+## Let someone else's credits pay
+
+ArNS actions accept the same `paidBy` used for uploads (see
+[Turbo Credit Sharing](/sdks/turbo-sdk/turbo-credit-sharing)): an array of
+wallet addresses that have shared credits with your signer. Pass it alongside
+the rest of the params and Turbo draws on the approval instead of your own
+balance:
+
+```typescript
+const { antId, messageId } = await turbo.buyArNSName({
+  name: 'my-name',
+  owner,
+  type: 'lease',
+  years: 1,
+  paidBy: [sponsorWalletAddress],
+  onNonce: (nonce) => persist(nonce),
+});
+```
+
+This is orthogonal to the owner/payer split above — `paidBy` only changes
+whose credit balance is debited, never who ends up owning the ANT. It works
+the same way on every other ArNS action, not just `buy-name`.
+
 ## You need a Solana address, not Solana funds
 
 The owner signs one transaction but never pays for it — Turbo is the fee payer, and the customer's SOL balance can be zero throughout. What you need is a Solana keypair to sign with, not a funded one.
