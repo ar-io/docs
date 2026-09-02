@@ -1,0 +1,35 @@
+---
+title: "You need a Solana key, not Solana funds"
+description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
+---
+
+An ANT is a Metaplex Core asset on Solana, so the owner is always a Solana
+address — even when you pay with Arweave or Ethereum credits. But the owner
+never pays: Turbo is the fee payer on every sponsored action, so **the owner's
+SOL balance can stay at zero for the life of the name**.
+
+Supply the owner as an `ArNSOwnerSigner`:
+
+```typescript
+import { solanaOwnerSigner } from '@ardrive/turbo-sdk';
+
+// From a secret key (servers, scripts, tests)
+const owner = solanaOwnerSigner(bs58SolanaSecretKey);
+```
+
+A browser wallet (Phantom, Solflare, or an app's embedded wallet) should
+implement the interface directly rather than exposing a secret key:
+
+```typescript
+const owner = {
+  getAddress: () => wallet.publicKey.toBase58(),
+  signTransaction: async (txBase64) => {
+    const tx = VersionedTransaction.deserialize(
+      Buffer.from(txBase64, 'base64'),
+    );
+    const signed = await wallet.signTransaction(tx);
+    return Buffer.from(signed.serialize()).toString('base64');
+  },
+  signMessage: (message) => wallet.signMessage(message),
+};
+```

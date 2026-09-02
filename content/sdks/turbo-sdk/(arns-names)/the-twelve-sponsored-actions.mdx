@@ -1,0 +1,94 @@
+---
+title: "The twelve sponsored actions"
+description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
+---
+
+```typescript
+const turbo = TurboFactory.authenticated({ privateKey: jwk });
+
+// Buy — the ONE signature in the whole lifecycle. Grants Turbo controller
+// rights in this SAME transaction, which is why everything below needs no
+// signature of its own until you revoke it.
+const { antId, messageId } = await turbo.buyArNSName({
+  name: 'my-name',
+  owner,
+  type: 'lease', // or 'permabuy'
+  years: 1, // leases only
+  onNonce: (nonce) => persist(nonce), // fires BEFORE the wallet prompt
+});
+
+// Lifecycle — no signature at all, spends ARIO.
+await turbo.extendArNSLease({ name: 'my-name', years: 2 });
+await turbo.upgradeArNSName({ name: 'my-name' });
+await turbo.increaseArNSUndernameLimit({ name: 'my-name', increaseQty: 5 });
+
+// Records — a small flat/derived credits margin recovers the sponsored SOL
+// rent. Handled whichever shape the server picks.
+await turbo.setArNSRecord({
+  antId,
+  owner,
+  transactionId,
+  undername: '@',
+  ttlSeconds: 900,
+});
+await turbo.removeArNSRecord({ antId, owner, undername: 'docs' });
+
+// Record metadata — display name, logo, description, keywords. Same margin,
+// same shape rules as setArNSRecord. `null` clears a field; omit to leave it.
+await turbo.setArNSRecordMetadata({
+  antId,
+  owner,
+  undername: '@',
+  displayName: 'My Docs',
+  recordDescription: null, // clear it
+});
+await turbo.removeArNSRecordMetadata({ antId, owner, undername: 'docs' });
+
+// Hand ONE record to another address — distinct from transferring the ANT.
+await turbo.transferArNSRecord({
+  antId,
+  owner,
+  undername: 'docs',
+  target: newOwnerAddress,
+});
+
+// Controllers and transfer — owner-signed, same flat/derived margin.
+// addArNSController is for RE-granting after a revoke, or granting some
+// OTHER address — Turbo already has it from the buy above.
+await turbo.addArNSController({ antId, owner }); // omit target => Turbo
+await turbo.removeArNSController({ antId, owner }); // the revoke
+await turbo.transferArNSAnt({ antId, owner, target: newOwnerAddress });
+```
+
+| Action                                                                                                             | Costs credits                        | Owner signature             |
+| ------------------------------------------------------------------------------------------------------------------ | ------------------------------------ | --------------------------- |
+| `buyArNSName`                                                                                                      | yes — ARIO purchase + ANT spawn rent | **always**, once            |
+| `extendArNSLease` / `upgradeArNSName` / `increaseArNSUndernameLimit`                                               | yes — ARIO purchase                  | no                          |
+| `setArNSRecord` / `removeArNSRecord` / `setArNSRecordMetadata` / `removeArNSRecordMetadata` / `transferArNSRecord` | yes — small flat/derived margin      | only after you revoke Turbo |
+| `addArNSController` / `removeArNSController` / `transferArNSAnt`                                                   | yes — small flat/derived margin      | yes                         |
+
+Every action costs credits — gas sponsorship was never meant to be _free_
+sponsorship. The four purchase actions charge the ARIO cost (plus, for
+`buyArNSName`, a rent-derived surcharge for the ANT it mints); the other eight
+charge a small margin that recovers the Solana rent/fees Turbo fronts on your
+behalf, computed the same `max(rent-derived, flat floor)` way as the ANT spawn
+surcharge. Preview it before you pay:
+
+```typescript
+const { wincQty } = await turbo.getArNSActionPrice('remove-controller');
+```
+
+`getArNSActionPrice` covers the eight non-purchase actions, by their route
+name (`set-record`, `remove-record`, `set-record-metadata`,
+`remove-record-metadata`, `transfer-record`, `add-controller`,
+`remove-controller`, `transfer`) — use `getArNSPriceForName` for the four
+purchase actions instead, since their cost is dominated by the ARIO purchase,
+not this margin.
+
+`buyArNSName` grants Turbo controller rights **inside the same transaction you
+sign** — the `add-controller(Turbo)` instruction rides along with the mint, so
+there is no separate step. That's why `setArNSRecord` and the rest complete in
+a single call immediately after buying, with no signature of their own.
+`addArNSController` is for re-granting after a revoke, or adding a different
+controller — not something you call after a fresh buy. Revoking is always
+available — but, like every other action here, not free of credits.

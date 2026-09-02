@@ -1388,7 +1388,7 @@ Claude will build your project, detect the output folder, and run the deploy wit
 4. **Runs the deployment** with appropriate flags
 5. **Reports results** — transaction ID, Arweave URL, ArNS URL
 
-See [`examples/claude-skill/`](./examples/claude-skill/) for the full skill file and customization options.
+See [`examples/claude-skill/`](https://github.com/ar-io/ar-io-deploy/tree/main/examples/claude-skill) for the full skill file and customization options.
 
 ---
 
@@ -1459,6 +1459,11 @@ Deploy a single file:
 ario-deploy deploy --wallet ./wallet.json --deploy-file ./path/to/file.txt
 ```
 
+`--deploy-file` overrides `--deploy-folder`, and the file is uploaded as one
+transaction with **no manifest** — an ArNS name pointed at it resolves straight
+to that file, served with its own content type. Useful for a PDF, a dataset, or
+a single page. Manifest-only options such as `--fallback-file` do not apply.
+
 # Interactive Mode (Easiest) (/ario-deploy/(commands)/interactive-mode-easiest)
 
 Run the deploy command without arguments to be guided through all deployment options:
@@ -1480,6 +1485,40 @@ Pass `--arns-name` (or `--use-arns`) to skip the ArNS confirmation, or use the
 `upload` command for an upload-only run. In a non-interactive environment (CI,
 or no TTY) `deploy` does not prompt — supply everything via flags or
 `DEPLOY_KEY`.
+
+# Single-page apps (/ario-deploy/(commands)/single-page-apps)
+
+An Arweave path manifest maps each path to a transaction, and a gateway returns
+404 for any path the manifest does not list. That is correct for static files
+but wrong for a single-page app, whose routes are not files — `/settings` is
+invented by the router and exists nowhere on disk. Without a fallback the root
+loads and every deep link 404s.
+
+Manifests have a `fallback` for exactly this, and `ario-deploy` sets it
+automatically when the build emits a `404.html`:
+
+```bash
+ario-deploy deploy --deploy-folder ./dist
+```
+
+Most SPA builds do not emit one. Either copy your entry point before deploying:
+
+```bash
+cp dist/index.html dist/404.html
+```
+
+…or name the fallback directly:
+
+```bash
+ario-deploy deploy --deploy-folder ./dist --fallback-file index.html
+```
+
+The file must exist in the deploy folder; a path that is not there fails before
+anything is uploaded, so a typo costs nothing.
+
+> Deep links can appear broken for up to a minute after a redeploy while
+> gateways serve cached 404s from the previous manifest. Confirm with a
+> cache-busting query string (`/settings?x=1`) before assuming the deploy failed.
 
 # Upload/deploy without ArNS (/ario-deploy/(commands)/upload-deploy-without-arns)
 
@@ -1771,7 +1810,8 @@ jobs:
 - `--cluster, -p`: Solana cluster for ArNS updates. Choices: `mainnet`, `devnet`. Default: `mainnet`
 - `--rpc-url`: Optional Solana RPC URL override for ArNS updates
 - `--deploy-folder, -d`: Folder to deploy. Default: `./dist`
-- `--deploy-file, -f`: Deploy a single file instead of a folder
+- `--deploy-file, -f`: Deploy a single file instead of a folder (no manifest is created)
+- `--fallback-file`: Path, relative to the deploy folder, served for routes the manifest does not list. Defaults to `404.html` when the build emits one. See [Single-page apps](#single-page-apps).
 - `--undername, -u`: ANT undername to update. Default: `@`
 - `--ttl-seconds, -t`: TTL in seconds for the ANT record (60-86400). Default: `60`
 
@@ -1846,7 +1886,7 @@ The cache file is stored at `.ario-deploy/transaction-cache.json` in your projec
 - **Optional ArNS Updates:** Updates ArNS records via ANT with new transaction IDs
 - **Automated Workflow:** Integrates with GitHub Actions for continuous deployment
 - **Git Hash Tagging:** In CI (GitHub Actions), tags uploaded data items with the deploying commit SHA
-- **404 Fallback Detection:** Automatically detects and sets 404.html as fallback
+- **404 Fallback Detection:** Automatically sets `404.html` as the manifest fallback when present, so deep links into a single-page app resolve instead of 404ing. Override with `--fallback-file \` — an SPA that only builds `index.html` can point at that instead.
 - **Network Support:** ArNS updates run against the Solana ARIO programs on `mainnet` or `devnet`, with an optional custom RPC URL
 - **Flexible Deployment:** Supports deploying a folder or a single file
 - **Modern CLI:** Built with oclif for a robust command-line experience
@@ -1932,3 +1972,6 @@ DEPLOY_KEY=$(base64 -i wallet.json) ARNS_KEY=\ pnpm deploy:on-demand
 - **Upload timeouts:** Files have a timeout for upload. Large files may fail and require optimization
 - **Insufficient Turbo Credits:** Use `--on-demand` with `--max-token-amount` to automatically fund uploads when balance is low
 - **On-demand payment fails:** Ensure your wallet has sufficient tokens (ARIO or Base-ETH) and the token type matches your signer (`ario` with Arweave, `base-eth` with Ethereum)
+- **Deep links 404 but the homepage loads:** The manifest has no `fallback`. Emit a `404.html` or pass `--fallback-file index.html` — see [Single-page apps](#single-page-apps)
+- **Deep links still 404 right after a redeploy:** Gateways cache the previous manifest's 404s for around a minute. Retry with a cache-busting query string before assuming the deploy failed
+- **Error: "Fallback file not found in folder":** `--fallback-file` takes a path relative to the deploy folder, e.g. `index.html`, not `./dist/index.html`

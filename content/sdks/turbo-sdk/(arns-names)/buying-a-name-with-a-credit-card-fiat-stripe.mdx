@@ -1,0 +1,23 @@
+---
+title: "Buying a name with a credit card (fiat / Stripe)"
+description: "SDK for interacting with Turbo, a fast and efficient data upload service for Arweave"
+---
+
+`getArNSFiatPurchaseQuote` prices a purchase in fiat and returns a Stripe
+payment session, so a user can buy a name without holding credits first.
+
+```typescript
+const quote = await turbo.getArNSFiatPurchaseQuote({
+  name: 'my-name',
+  intent: 'Buy-Name',
+  type: 'lease',
+  years: 1,
+  currency: 'usd',
+});
+```
+
+Its `paymentAmount` is the real charge and **already includes** the ANT spawn
+surcharge. (On the `getArNSPriceForName` fiat estimate the split is the other
+way round: `fiatEstimate.paymentAmount` is the base and
+`fiatEstimate.paymentAmountWithAntSpawn` is the total.) Throws
+`FiatPaymentsDisabledError` when the service has Stripe switched off.
