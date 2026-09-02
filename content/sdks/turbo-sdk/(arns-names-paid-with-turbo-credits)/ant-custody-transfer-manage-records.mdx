@@ -7,6 +7,25 @@ You own your ANT outright, so everything on this page is you exercising that
 ownership. Each action costs a small amount of Turbo Credits — a margin
 covering the Solana fees and rent Turbo fronts — but **never any SOL**.
 
+### Preview the cost before you pay
+
+Every action on this page has its own route name (`set-record`, `remove-record`,
+`set-record-metadata`, `remove-record-metadata`, `transfer-record`,
+`add-controller`, `remove-controller`, `transfer`). Preview what creating one
+will actually debit, without creating it:
+
+```typescript
+const { wincQty } = await turbo.getArNSActionPrice('remove-controller');
+```
+
+No signature required — it reads the exact same pricing the create call
+charges, so a quote here can't drift from what you're actually billed. This
+covers only the eight actions on this page; use
+[`getArNSPriceForName`](/sdks/turbo-sdk/pricing-a-name) instead for the four
+purchase actions (`buy-name`, `extend-lease`, `upgrade-name`,
+`increase-undername-limit`), since their cost is dominated by the ARIO
+purchase itself, not this margin.
+
 ## Resolution records
 
 `set-record` points a name (or an undername) at an Arweave transaction; `remove-record` deletes one.
