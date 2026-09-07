@@ -24,11 +24,14 @@ implement the interface directly rather than exposing a secret key:
 const owner = {
   getAddress: () => wallet.publicKey.toBase58(),
   signTransaction: async (txBase64) => {
+    // atob/btoa rather than Buffer: browsers do not provide Buffer unless the
+    // app polyfills it. The spread is safe here because a Solana transaction
+    // is capped at 1232 bytes.
     const tx = VersionedTransaction.deserialize(
-      Buffer.from(txBase64, 'base64'),
+      Uint8Array.from(atob(txBase64), (c) => c.charCodeAt(0)),
     );
     const signed = await wallet.signTransaction(tx);
-    return Buffer.from(signed.serialize()).toString('base64');
+    return btoa(String.fromCharCode(...signed.serialize()));
   },
   signMessage: (message) => wallet.signMessage(message),
 };
