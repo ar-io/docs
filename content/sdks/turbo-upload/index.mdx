@@ -14,7 +14,7 @@ import { Steps, Step } from "fumadocs-ui/components/steps";
   agent toolkit.
 </Callout>
 
-`turbo-upload` signs ANS-104 data items with an Arweave JWK and uploads them to Turbo. That is all it does, and it has no dependencies.
+`turbo-upload` signs ANS-104 data items with an Arweave JWK or a Solana key and uploads them to Turbo. That is all it does, and it has no dependencies.
 
 ## Which One To Use
 
@@ -22,7 +22,7 @@ import { Steps, Step } from "fumadocs-ui/components/steps";
 
 | | [Turbo SDK](/sdks/turbo-sdk) | turbo-upload |
 |---|---|---|
-| Keys | Arweave, Solana, Ethereum, KYVE, Polygon | Arweave JWK only |
+| Keys | Arweave, Solana, Ethereum, KYVE, Polygon | Arweave JWK or Solana key |
 | Runs in | Node and the browser | Node only |
 | Does | upload, payments, credits, folders, CLI, ArNS | sign and upload |
 | Installed on its own | 784 lockfile entries, 895 MB | 1 entry, 460 KB |
@@ -60,6 +60,23 @@ The two share no state, so having both installed is fine.
 </Steps>
 
 Read it back from any gateway at `<gateway>/<id>`, so retrieval never depends on the service you uploaded through. [Wayfinder](/sdks/wayfinder) handles gateway choice and verification for you.
+
+## Solana Keys
+
+```javascript
+import { TurboUpload } from "@ardrive/turbo-upload";
+
+const client = TurboUpload.production({
+  jwk: process.env.SOLANA_SECRET_KEY,
+  token: "solana",
+});
+```
+
+Takes any form a Solana user holds: a base58 secret key as Phantom exports it, the JSON array `solana-keygen` writes, raw 64 bytes, or a bare 32-byte seed. `client.address` is the base58 Solana address.
+
+This is **ANS-104 signature type 4**, the same type the Turbo SDK uses for `token: "solana"`, so both produce identical ids for identical content.
+
+A 64-byte key carries its own public key, and that half is checked rather than trusted. A key whose halves disagree is refused when the client is constructed, because signing with one produces items nothing can verify and you find out after paying.
 
 ## What Gets Written Wrong
 
