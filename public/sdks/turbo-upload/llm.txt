@@ -5,25 +5,24 @@
   consumption by AI agents and language models. See [AI Agents & LLMs](/build/agents) for the full
   agent toolkit.
 
-`turbo-upload` signs ANS-104 data items with an Arweave JWK and uploads them to Turbo. It does that and nothing else, and it has no dependencies.
+`turbo-upload` signs ANS-104 data items with an Arweave JWK and uploads them to Turbo. That is all it does, and it has no dependencies.
 
-## Which one do I want
+## Which One To Use
 
-**Start with the [Turbo SDK](/sdks/turbo-sdk).** It is the full client and it is the right choice for most things. Reach for `turbo-upload` when you are adding uploads to a server that already exists, and the size of a new dependency decides whether your change gets merged.
+**Start with the [Turbo SDK](/sdks/turbo-sdk).** It is the full client and the right choice for most things. Reach for `turbo-upload` when the size of a new dependency decides whether your change gets merged.
 
 | | [Turbo SDK](/sdks/turbo-sdk) | turbo-upload |
 |---|---|---|
-| Reach for it when | you are building on Turbo | you are adding Turbo to something else |
 | Keys | Arweave, Solana, Ethereum, KYVE, Polygon | Arweave JWK only |
 | Runs in | Node and the browser | Node only |
 | Does | upload, payments, credits, folders, CLI, ArNS | sign and upload |
 | Installed on its own | 784 lockfile entries, 895 MB | 1 entry, 460 KB |
 
-Measured on 2026-09-10 against `@ardrive/turbo-sdk@1.43.0` and `@ardrive/turbo-upload@0.2.0`, with `npm install` into an empty project. Re-run it rather than trusting the table.
+Measured on 2026-09-10 against `@ardrive/turbo-sdk@1.43.0` and `@ardrive/turbo-upload@0.2.0`, installing each into an empty project. Re-run it rather than trusting the table.
 
-They share no state, so having both installed is fine. Nothing in `turbo-upload` replaces the SDK, and the SDK does everything it does.
+The two share no state, so having both installed is fine.
 
-## Quick start
+## Quick Start
 
     ### Install
 
@@ -36,8 +35,8 @@ They share no state, so having both installed is fine. Nothing in `turbo-upload`
     ```javascript
     const { TurboUpload } = require("@ardrive/turbo-upload");
 
-    // .testnet() costs nothing and nothing it writes is permanent.
-    // .production() is mainnet: permanent, public, and paid for from this wallet.
+    // .testnet() is free and nothing it writes is permanent.
+    // .production() is mainnet: permanent, public, paid from this wallet.
     const client = TurboUpload.testnet({ jwk: JSON.parse(process.env.ARWEAVE_JWK) });
 
     const { id, winc } = await client.upload({
@@ -46,108 +45,34 @@ They share no state, so having both installed is fine. Nothing in `turbo-upload`
     });
     ```
 
-`id` is the base64url string. `winc` is what it cost, and is `"0"` inside the free tier.
+Read it back from any gateway at `/`, so retrieval never depends on the service you uploaded through. [Wayfinder](/sdks/wayfinder) handles gateway choice and verification for you.
 
-## Reading it back
+## What Gets Written Wrong
 
-An id is not a URL. Any gateway on the ar.io network serves the item at `/`, so nothing about retrieval depends on the service you uploaded through.
+The rest of the API behaves as you would expect. These do not.
 
-```javascript
-const { PRODUCTION } = require("@ardrive/turbo-upload");
-const res = await fetch(`${PRODUCTION.gatewayUrl}/${id}`, { redirect: "follow" });
-```
-
-Gateways differ in what they have indexed, and a busy one rate limits, so a reader that matters should try more than one. [Wayfinder](/sdks/wayfinder) does this properly, including verification.
-
-## Four things that get written wrong
-
-Everything else in the API is ordinary. These are not.
-
-### Signing twice charges twice
-
-RSA-PSS draws a fresh random salt per signature, so signing the same payload twice produces different bytes and a different id. `upload()` signs internally, so calling it after `sign()` signs again, and the id you recorded is not the id that landed.
-
-```javascript
-const item = client.sign({ data, tags });
-await db.record(item.idB64Url);   // idB64Url is the string; item.id is a Buffer
-await client.uploadSigned(item);  // same bytes, same id
-```
-
-### `target` and `anchor` have opposite conventions
-
-They are adjacent 32-byte fields. `target` is a **base64url string** that decodes to 32 bytes. `anchor` is **32 raw bytes**, and a string passed to it is used as raw UTF-8 rather than decoded. A 43-character base64url anchor throws.
-
-### An unrecognised option is an error
-
-As of `0.2.0`, every options object rejects keys it does not know, on every method. The error names the correct key. Before that they were ignored, which is why the check exists: a misspelled `uploadUrl` left the client pointed at production.
-
-### Production is the default
-
-A bare `new TurboUpload({ jwk })` talks to mainnet. Use `TurboUpload.testnet({ jwk })` for anything that is not meant to last forever.
+- **Signing twice charges twice.** RSA-PSS uses a fresh random salt each time, so the same payload signed twice has a different id. `upload()` signs internally, so `sign()` then `upload()` charges for two items. Use `sign()` then `uploadSigned(item)`, and record `item.idB64Url`, which is the string form.
+- **`target` and `anchor` look alike and are not.** Adjacent 32-byte fields: `target` is base64url that decodes to 32 bytes, `anchor` is 32 raw bytes. A 43-character base64url anchor throws.
+- **Production is the default.** A bare `new TurboUpload({ jwk })` writes to mainnet, permanently, paid.
+- **An unrecognised option throws** rather than being ignored, and the error names the key you meant.
 
   Do not spread `PRODUCTION` or `TESTNET` into the constructor. Those records also carry `name` and
-  `gatewayUrl`, which are not constructor options and are rejected. Use `TurboUpload.production()`
-  and `TurboUpload.testnet()`.
-
-## Timeouts compose
-
-`timeoutMs` applies to each HTTP request, and `retry` runs up to `retries` more of them, so one `upload()` can take about four minutes with the defaults. There is no total-deadline option, because the right bound belongs to the caller.
-
-```javascript
-const signal = AbortSignal.any([shutdownSignal, AbortSignal.timeout(20_000)]);
-await client.upload({ data, tags, signal });
-```
-
-Lowering `timeoutMs` shortens each attempt, not the call.
-
-## Errors
-
-Every error extends `TurboError`, so one `catch` covers all of them.
-
-| Class | Catch it to | Read off it |
-|---|---|---|
-| `TurboPaymentError` | tell "cannot pay" from a transient failure. Retrying never helps | `status`, `body` |
-| `TurboVerificationError` | detect an id that is not the one you signed. Never swallow this | `expectedId`, `receivedId` |
-| `TurboTimeoutError` | tell a slow endpoint from a broken one | `endpoint`, `timeoutMs` |
-| `TurboNetworkError` | retry a connection-level failure | `endpoint`, `cause` |
-| `TurboHTTPError` | handle any other non-2xx | `status`, `endpoint`, `body` |
-| `TurboKeyError` | report a bad or missing JWK at startup | message |
-| `TurboConfigError` | report a bad option at startup | message |
-| `TurboValidationError` | report bad arguments to a call | message |
-
-A payment failure is a standing condition rather than a blip. An integration that treats `TurboPaymentError` like a `503` goes quiet while reporting healthy, which for anything archival is the worst available outcome.
-
-## Testing without spending anything
-
-The constructor validates eagerly, so a placeholder key fails. Generate a throwaway, once per suite, because RSA-4096 keygen takes tens of milliseconds:
-
-```javascript
-const { generateKeyPairSync } = require("node:crypto");
-const jwk = generateKeyPairSync("rsa", { modulusLength: 4096 })
-  .privateKey.export({ format: "jwk" });
-```
-
-Inject a stub with `new TurboUpload({ jwk, fetch: myStub })`. `uploadSigned` checks the returned id against the one it computed, so a stub returning a fixed id fails with `TurboVerificationError` rather than the thing under test. Return the id of what was actually posted.
-
-Testnet uploads are free and real, which is usually a better test than a stub.
+  `gatewayUrl`, which are not constructor options. Use `TurboUpload.production()` and
+  `TurboUpload.testnet()`.
 
 ## Endpoints
-
-Exported as named constants so nobody has to guess a hostname.
 
 | | upload | payment | gateway |
 |---|---|---|---|
 | `PRODUCTION` | `https://upload.ardrive.io` | `https://payment.ardrive.io` | `https://turbo-gateway.com` |
 | `TESTNET` | `https://upload.services.ar-io.dev` | `https://payment.services.ar-io.dev` | `https://ar-io.dev` |
 
-  The testnet hostnames contain `.services.`. Without it, `upload.ar-io.dev` resolves and serves an
-  HTML page on every path including `/v1/tx`, so a wrong hostname returns a `200` with an HTML body
-  instead of an obvious failure.
+Exported as constants, so nothing needs a hostname typed by hand. Note the `.services.` in the testnet hosts: `upload.ar-io.dev` resolves and serves HTML on every path, so a wrong hostname returns `200` with an HTML body instead of failing.
 
 ## Requirements
 
-Node 18.17 or later, tested on 18.17, 18, 20, 22 and 24. Server-side only: there is no browser build, and a JWK does not belong in a browser.
+Node 18.17 or later, tested on 18.17, 18, 20, 22 and 24. Server-side only, because a raw Arweave key does not belong in a browser. Published with npm provenance.
 
-Published with npm provenance, so the tarball can be verified against the commit and workflow that built it.
+Every error extends `TurboError`. Catch `TurboPaymentError` separately: it means the wallet cannot pay, and retrying never helps.
 
-## Next steps
+## Next Steps
