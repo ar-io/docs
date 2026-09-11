@@ -1,0 +1,77 @@
+# turbo-upload (/index)
+
+**For AI and LLM users**: Access the complete turbo-upload documentation in plain text format at{" "}
+  llm.txt for easy
+  consumption by AI agents and language models. See [AI Agents & LLMs](/build/agents) for the full
+  agent toolkit.
+
+`turbo-upload` signs ANS-104 data items with an Arweave JWK and uploads them to Turbo. That is all it does, and it has no dependencies.
+
+## Which One To Use
+
+**Start with the [Turbo SDK](/sdks/turbo-sdk).** It is the full client and the right choice for most things. Reach for `turbo-upload` when the size of a new dependency decides whether your change gets merged.
+
+| | [Turbo SDK](/sdks/turbo-sdk) | turbo-upload |
+|---|---|---|
+| Keys | Arweave, Solana, Ethereum, KYVE, Polygon | Arweave JWK only |
+| Runs in | Node and the browser | Node only |
+| Does | upload, payments, credits, folders, CLI, ArNS | sign and upload |
+| Installed on its own | 784 lockfile entries, 895 MB | 1 entry, 460 KB |
+
+Measured on 2026-09-10 against `@ardrive/turbo-sdk@1.43.0` and `@ardrive/turbo-upload@0.2.0`, installing each into an empty project. Re-run it rather than trusting the table.
+
+The two share no state, so having both installed is fine.
+
+## Quick Start
+
+    ### Install
+
+    ```npm
+    npm install @ardrive/turbo-upload
+    ```
+
+    ### Upload
+
+    ```javascript
+    
+    // .testnet() is free and nothing it writes is permanent.
+    // .production() is mainnet: permanent, public, paid from this wallet.
+    const client = TurboUpload.testnet({ jwk: JSON.parse(process.env.ARWEAVE_JWK) });
+
+    const { id, winc } = await client.upload({
+      data: Buffer.from("hello permanence"),
+      tags: [{ name: "Content-Type", value: "text/plain" }],
+    });
+    ```
+
+Read it back from any gateway at `/`, so retrieval never depends on the service you uploaded through. [Wayfinder](/sdks/wayfinder) handles gateway choice and verification for you.
+
+## What Gets Written Wrong
+
+The rest of the API behaves as you would expect. These do not.
+
+- **Signing twice charges twice.** RSA-PSS uses a fresh random salt each time, so the same payload signed twice has a different id. `upload()` signs internally, so `sign()` then `upload()` charges for two items. Use `sign()` then `uploadSigned(item)`, and record `item.idB64Url`, which is the string form.
+- **`target` and `anchor` look alike and are not.** Adjacent 32-byte fields: `target` is base64url that decodes to 32 bytes, `anchor` is 32 raw bytes. A 43-character base64url anchor throws.
+- **Production is the default.** A bare `new TurboUpload({ jwk })` writes to mainnet, permanently, paid.
+- **An unrecognised option throws** rather than being ignored, and the error names the key you meant.
+
+  Do not spread `PRODUCTION` or `TESTNET` into the constructor. Those records also carry `name` and
+  `gatewayUrl`, which are not constructor options. Use `TurboUpload.production()` and
+  `TurboUpload.testnet()`.
+
+## Endpoints
+
+| | upload | payment | gateway |
+|---|---|---|---|
+| `PRODUCTION` | `https://upload.ardrive.io` | `https://payment.ardrive.io` | `https://turbo-gateway.com` |
+| `TESTNET` | `https://upload.services.ar-io.dev` | `https://payment.services.ar-io.dev` | `https://ar-io.dev` |
+
+Exported as constants. Import `PRODUCTION` or `TESTNET` rather than typing a hostname: a near-miss on a testnet host can resolve to something that answers `200` with HTML, which fails much less obviously than a bad hostname should.
+
+## Requirements
+
+Node 18.17 or later, tested on 18.17, 18, 20, 22 and 24. Server-side only, because a raw Arweave key does not belong in a browser. Published with npm provenance.
+
+Every error extends `TurboError`. Catch `TurboPaymentError` separately: it means the wallet cannot pay, and retrying never helps.
+
+## Next Steps
