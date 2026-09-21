@@ -242,18 +242,24 @@ Extending, upgrading and adding undernames need no signature at all. See the ded
 
 ## Pricing & Fees
 
-- **The top-up fee is inclusive — it comes out of what you pay rather than being added on top.** A $100 top up buys $100 of credits minus the fee, so at 35% you receive credits worth $65. Spending credits carries no percentage fee; the fee applies only on the way in.
-- **ARIO top ups pay no fee at all.** ARIO converts to credits at its market value, so money spent in ARIO buys roughly 1.5x the storage of the same amount paid any other way.
-- Turbo top up fees cover the costs of managing infrastructure and, in the case of crypto-based top ups, token liquidity.
-- A small flat fee is applied per data item at upload time (currently **$0.00002**, i.e. **$0.02 per 1,000 items**) to cover per-item processing overhead. This is separate from and in addition to the byte-based storage cost.
-- Credits maintain a 1:1 peg of storage purchasing power as Arweave's data storage rates and token price fluctuate.
-- **Small uploads can be free.** Items up to **105 KiB** are eligible for the free tier, subject to a **10 MiB** lifetime allowance tracked per-wallet **and** per-subnet — an upload must fit under both, and the allowance never resets. Check a wallet's remaining free allowance with `turbo.getFreeStatus()` (below).
+Three charges, and nothing else: the **storage rate** for the bytes, a **per-item fee** for each item uploaded, and the **infrastructure fee** taken out of each top up. The [ar.io Console](https://console.ar.io/settings) shows all three live, with the same names.
 
+### Infrastructure fee
 
-| Currency       | Top Up Fee              |
+**It is taken out of what you pay, not added on top.** A $100 top up buys credits worth $65 at 35%, rather than costing $135. It covers the costs of managing infrastructure and, for crypto top ups, token liquidity. Spending credits carries no percentage fee — this one applies on the way in.
+
+| Currency       | Infrastructure fee      |
 | -------------- | ----------------------- |
 | ARIO (Solana)  | No fee                  |
 | All others     | 35% of the amount paid  |
+
+**ARIO top ups pay no fee at all.** ARIO converts to credits at its market value, so money spent in ARIO buys roughly 1.5x the storage of the same amount paid any other way.
+
+### Storage rate and per-item fee
+
+- The **storage rate** is priced per byte and quoted per GiB. Credits maintain a 1:1 peg of storage purchasing power as Arweave's data storage rates and token price fluctuate.
+- The **per-item fee** is a flat charge for each data item — one per file — on top of the byte cost, covering per-item processing overhead. It is pegged in dollars at **$0.00002 per item**, i.e. **$0.02 per 1,000**, valued at AR's market price. The credits figure moves as AR does, so read it live from `perDataItemFeeWinc` in [`/v1/rates`](https://payment.ardrive.io/v1/rates) — which is what the Console displays, and what every cost estimate there adds per file.
+- **Small uploads can be free.** Items up to **105 KiB** are eligible for the free tier, subject to a **10 MiB** lifetime allowance tracked per-wallet **and** per-subnet — an upload must fit under both, and the allowance never resets. Check a wallet's remaining free allowance with `turbo.getFreeStatus()` (below).
 
 
 ## Getting Started
