@@ -31,7 +31,7 @@ const PACKAGES: {
     dest: path.resolve("content/sdks/turbo-sdk"),
     title: "Turbo SDK",
     description:
-      "TypeScript SDK for Turbo, the upload and payment service for Arweave",
+      "TypeScript SDK for Turbo, the upload and payment service behind ar.io and ArDrive",
     sourceUrl: "https://github.com/ardriveapp/turbo-sdk",
     icon: "/ecosystem-logos/logo-turbo.svg",
   },
