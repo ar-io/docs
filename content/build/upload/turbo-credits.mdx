@@ -15,7 +15,7 @@ import {
   Zap,
 } from "lucide-react";
 
-Data storage on Arweave is paid for in Arweave's native [AR](https://www.coingecko.com/en/coins/arweave) token — divisible to the "Winston" (10¹² per AR). Turbo makes paying for data storage on Arweave faster and even simpler via Turbo Credits.
+Data storage on Arweave is paid for in Arweave's native [AR](https://www.coingecko.com/en/coins/arweave) token, divisible to the "Winston" (10¹² per AR). Turbo makes paying for data storage on Arweave faster and even simpler via Turbo Credits.
 
 ## What are Turbo Credits?
 
@@ -132,7 +132,7 @@ Direct API integration is available at [payment.ardrive.io/api-docs](https://pay
 | **ETH (Base)**               | ✅        | ✅        | ✅        | ✅        | ❌          | ❌   |
 | **SOL**                      | ✅        | ✅        | ✅        | ✅        | ❌          | ❌   |
 | **POL**                      | ✅        | ✅        | ✅        | ✅        | ❌          | ❌   |
-| **ARIO (Solana)**            | ✅        | ✅        | ✅        | ❌        | ❌          | ❌   |
+| **ARIO (Solana)**            | ✅        | ✅        | ✅        | ✅        | ❌          | ❌   |
 | **USDC (L1)**                | ✅        | ✅        | ✅        | ✅        | ❌          | ❌   |
 | **USDC (Base)**              | ✅        | ✅        | ✅        | ✅        | ❌          | ✅   |
 
@@ -202,11 +202,11 @@ Credits can be shared via the Console App at [console.ar.io/share](https://conso
 
 ## Using Credits to Buy ArNS Names
 
-Turbo Credits aren't just for uploads — they're also the payment medium for buying, extending and upgrading [ArNS](/learn/arns) names. This draws on the same credit balance as uploads, so no separate top-up is needed if you already hold credits.
+Turbo Credits are not only for uploads: they are also the payment medium for buying, extending and upgrading [ArNS](/learn/arns) names. This draws on the same credit balance as uploads, so no separate top-up is needed if you already hold credits.
 
-Buying a name mints the ANT (a Solana asset) that the name resolves to and registers the name against it, in one purchase. **You own that ANT from the moment it exists** — Turbo pays the Solana fees and rent but never takes custody, and your Solana balance can stay at zero throughout.
+Buying a name mints the ANT (a Solana asset) that the name resolves to and registers the name against it, in one purchase. **You own that ANT from the moment it exists.** Turbo pays the Solana fees and rent but never takes custody, and your Solana balance can stay at zero throughout.
 
-Buying is the one action that needs the owner's signature — once, ever:
+Buying is the one action that needs the owner's signature, once, ever:
 
 ```js
 import { TurboFactory, solanaOwnerSigner } from "@ardrive/turbo-sdk";
@@ -216,7 +216,7 @@ const turbo = TurboFactory.authenticated({ privateKey: payerKey });
 // The Solana wallet that will own the ANT. It signs once and never needs SOL.
 const owner = solanaOwnerSigner(bs58SolanaSecretKey);
 
-// Price it first — quote wincTotal, not winc
+// Price it first: quote wincTotal, not winc
 const price = await turbo.getArNSPriceForName({
   intent: "Buy-Name",
   name: "my-name",
@@ -242,7 +242,7 @@ Three charges, and nothing else: the **storage rate** for the bytes, a **per-ite
 
 ### Infrastructure fee
 
-**It is taken out of what you pay, not added on top.** A $100 top up buys credits worth $65 at 35%, rather than costing $135. It covers the costs of managing infrastructure and, for crypto top ups, token liquidity. Spending credits carries no percentage fee — this one applies on the way in.
+**It is taken out of what you pay, not added on top.** A $100 top up buys credits worth $65 at 35%, rather than costing $135. It covers the costs of managing infrastructure and, for crypto top ups, token liquidity. Spending credits carries no percentage fee: this one applies on the way in.
 
 | Currency       | Infrastructure fee      |
 | -------------- | ----------------------- |
@@ -254,8 +254,8 @@ Three charges, and nothing else: the **storage rate** for the bytes, a **per-ite
 ### Storage rate and per-item fee
 
 - The **storage rate** is priced per byte and quoted per GiB. Credits maintain a 1:1 peg of storage purchasing power as Arweave's data storage rates and token price fluctuate.
-- The **per-item fee** is a flat charge for each data item — one per file — on top of the byte cost, covering per-item processing overhead. It is pegged in dollars at **$0.00002 per item**, i.e. **$0.02 per 1,000**, valued at AR's market price. The credits figure moves as AR does, so read it live from `perDataItemFeeWinc` in [`/v1/rates`](https://payment.ardrive.io/v1/rates) — which is what the Console displays, and what every cost estimate there adds per file.
-- **Small uploads can be free.** Items up to **105 KiB** are eligible for the free tier, subject to a **10 MiB** lifetime allowance tracked per-wallet **and** per-subnet — an upload must fit under both, and the allowance never resets. Check a wallet's remaining free allowance with `turbo.getFreeStatus()` (below).
+- The **per-item fee** is a flat charge for each data item, one per file, on top of the byte cost, covering per-item processing overhead. It is pegged in dollars at **$0.00002 per item**, i.e. **$0.02 per 1,000**, valued at AR's market price. The credits figure moves as AR does, so read it live from `perDataItemFeeWinc` in [`/v1/rates`](https://payment.ardrive.io/v1/rates), which is what the Console displays, and what every cost estimate there adds per file.
+- **Small uploads can be free.** Items up to **105 KiB** are eligible for the free tier, subject to a **10 MiB** lifetime allowance tracked per-wallet **and** per-subnet. An upload must fit under both, and the allowance never resets. Check a wallet's remaining free allowance with `turbo.getFreeStatus()` (below).
 
 
 ## Getting Started
