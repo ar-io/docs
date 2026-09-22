@@ -48,7 +48,9 @@ const { id, winc } = await turbo.uploadFile({
   **Watch the `gatewayUrl`.** Here it's the **Solana RPC** — how Turbo verifies your funding
   transactions — *not* `ar-io.dev`. You fetch uploaded data from the
   [gateway](/build/testnet/accessing-data) separately. Funding with `base-eth` instead? Use
-  `token: 'base-eth'` and an EVM signer.
+  `token: 'base-eth'` and an EVM signer. Funding with USDC on Solana? Use
+  `token: 'solana-usdc'` with the *same* Solana signer — you just need devnet USDC
+  alongside a little devnet SOL for the transaction fee.
 </Callout>
 
 ### Raw POST
@@ -113,11 +115,22 @@ purchases**. Fund them with **testnet** value only.
 |---|---|---|
 | `ario` | ARIO staging (Solana devnet) | Mint `6vTw5CysRXQ4ybbHkDUiisHWVsBeMtUzYvJqs2iqHyaN`, 6 decimals — **fee-free** |
 | `solana` | Solana devnet | |
+| `solana-usdc` | Solana devnet | Circle devnet USDC, mint `4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU`, 6 decimals — priced 1:1 in USD |
 | `base-eth` | Base Sepolia | |
+| `base-usdc` | Base Sepolia | Testnet USDC contract |
+| `ethereum` | Ethereum Sepolia | Verification is network-agnostic and this deployment points at **Sepolia**, so only Sepolia ETH can be credited |
+| `usdc` | Ethereum Sepolia | Testnet USDC contract |
 
 <Callout type="warning">
-  Mainnet tokens (`arweave`, `ethereum`, `matic`/`pol`) are **rejected** with
-  `Token not supported`. There is no mainnet settlement here.
+  `arweave`, `matic`/`pol` and `kyve` are **rejected** with `Token not supported` —
+  they settle on mainnet, and there is no mainnet settlement here. Note that
+  `ethereum` and `usdc` above are *accepted*: the sandbox pins them to Sepolia
+  RPCs and testnet contracts, so no mainnet value is ever involved.
+</Callout>
+
+<Callout type="info">
+  `GET /v1/info`'s `addresses` map advertises exactly the tokens this deployment
+  accepts, so it is the authoritative list if the table above ever drifts.
 </Callout>
 
 ### Crypto top-up
