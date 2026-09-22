@@ -139,7 +139,7 @@ const uploadResult = await turbo.uploadFile({
 
 ##### Using fileStreamFactory` and `fileSizeFactory`
 
-Note: The provided `fileStreamFactory` should produce a NEW file data stream each time it is invoked. The `fileSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload.
+Note: The provided `fileStreamFactory` should produce a NEW file data stream each time it is invoked. The SDK calls it again for every retry, and a stream can be read only once. In the browser, pass `() => file.stream()` rather than a stream you created ahead of time; a factory that returns one stream instance fails on the first retry. The `fileSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload.
 
 ```typescript
 const filePath = path.join(__dirname, './my-unsigned-file.txt');
@@ -194,7 +194,7 @@ Note: On demand API currently only available for $ARIO (`ario`), $SOL (`solana`)
 
 ```typescript
 const turbo = TurboFactory.authenticated({
-  signer: arweaveSignerWithARIO,
+  privateKey: bs58.encode(secretKey), // a Solana key holding $ARIO
   token: 'ario',
 });
 await turbo.upload({
@@ -210,6 +210,14 @@ await turbo.upload({
 
 Another method of uploading files is via the x402 protocol. This method is optimized for agent workflows and allows for direct uploads to Arweave gateways that support the x402 protocol using an EVM wallet and base-usdc token type.
 
+> **Note:** x402 uploads need the optional peer dependency `x402-fetch`, which keeps its dependency tree out of installs that pay with credits:
+>
+> ```shell
+> npm install x402-fetch
+> ```
+>
+> Without it, credit-paid uploads and the x402 price routes work as usual, and an x402 upload fails before signing with a message naming this install. Browser consumers of the prebuilt bundle resolve `x402-fetch` themselves, through their bundler or an import map, because the bundle leaves it external.
+
 ```typescript
 const turbo = TurboFactory.authenticated({
   signer: ethereumSignerWithBaseUSDC,
@@ -220,6 +228,49 @@ await turbo.uploadFile({
   fundingMode: new X402Funding({ maxMUSDCAmount: 1_000_000 }), // Max 1 USDC. Opt out if too expensive
 });
 ```
+
+Large items are uploaded in chunks and paid for when the upload is created, so
+the payload is never sent just to discover its price. Smaller items go in a
+single request, which is buffered in memory so its length can be declared — the
+service prices an x402 upload from `Content-Length`, and a streamed body has
+none. The service URL must be HTTPS: an x402 authorization is a bearer
+credential, so the SDK refuses to send one over cleartext. Loopback is the
+exception — `localhost`, `127.0.0.1` and `::1` are allowed over plain HTTP, so
+local development against a bundler on your own machine still works.
+
+#### Pricing an x402 Upload Before Sending It
+
+`getX402PriceForDataItem` prices a signed data item from its byte count, so you
+can learn the cost without transmitting the payload. Without it the only way to
+get a price is to POST the data and read the 402 challenge.
+
+```typescript
+const turbo = TurboFactory.unauthenticated({ token: 'base-usdc' });
+
+const quote = await turbo.getX402PriceForDataItem({
+  byteCount: signedDataItemByteCount, // the SIGNED item, not the payload inside it
+});
+console.log(quote.usdcAmount); // amount to pay, in USDC's smallest unit
+```
+
+`getX402PriceForRawData` prices raw data that Turbo will wrap into a data item
+itself, and reports the wrapping overhead — a data item is larger than its
+payload by its header, signature and tags, which a caller cannot compute.
+
+```typescript
+const quote = await turbo.getX402PriceForRawData({
+  byteCount: myRawData.byteLength,
+  tagCount: 3, // tags you intend to attach; they change the overhead
+  contentType: 'image/png',
+});
+console.log(quote.overhead, quote.estimatedDataItemSize);
+```
+
+Both take an optional `network`, defaulting to `base`. **This is the x402
+network, not the SDK token type**: the route builds its token as
+`usdc-{network}`, so `base-usdc` is accepted on mainnet only because the
+network there is literally `base`. Against a testnet service, pass
+`network: 'base-sepolia'`.
 
 #### Raw x402 Data Uploads
 
@@ -369,6 +420,8 @@ const { manifest, fileResponses, manifestResponse } = await turbo.uploadFolder({
 ```
 
 ##### Incremental Folder Uploads
+
+A runnable version of everything below is in [`examples/folder-index`](examples/folder-index/index.mjs): it deploys the same folder three times and prints what each run uploaded and reused.
 
 An Arweave upload is permanent, so paying twice for byte identical files buys
 nothing. Pass a `folderIndex` and `uploadFolder` hashes every file, asks the
@@ -561,7 +614,7 @@ Tops up the connected wallet with Credits by submitting a payment transaction fo
 
 - The `tokenAmount` is the amount of tokens in the token type's smallest unit value (e.g: Winston for arweave token type) to fund the wallet with.
 - The `feeMultiplier` (optional) is the multiplier to apply to the reward for the transaction to modify its chances of being mined. Credits will be added to the wallet balance after the transaction is confirmed on the given blockchain. Defaults to 1.0, meaning no multiplier.
-- The `turboCreditDestinationAddress` (optional) is the native address to credit the funds to. If not provided, the connected wallet's native address will be used. Note: Not available for KYVE token type.
+- The `turboCreditDestinationAddress` (optional) is the native address to credit the funds to. If not provided, the connected wallet's native address will be used.
 
 ##### Arweave (AR) Crypto Top Up
 
@@ -571,14 +624,19 @@ const turbo = TurboFactory.authenticated({ signer, token: 'arweave' });
 const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
   tokenAmount: WinstonToTokenAmount(100_000_000), // 0.0001 AR
   feeMultiplier: 1.1, // 10% increase in reward for improved mining chances
-  turboCreditDestinationAddress: '0xabc...123', // Any custom EVM / SOL / AR / KYVE native destination address
+  turboCreditDestinationAddress: '0xabc...123', // Any custom EVM / SOL / AR native destination address
 });
 ```
 
 ##### AR.IO Network (ARIO) Crypto Top Up
 
+$ARIO is an SPL token on Solana, so pay with a Solana key. Without a `turboCreditDestinationAddress`, the credits go to the account of that key's base58 public key: the same account `getBalance()` reads and uploads signed by that key pay from.
+
 ```typescript
-const turbo = TurboFactory.authenticated({ signer, token: 'ario' });
+const turbo = TurboFactory.authenticated({
+  privateKey: bs58.encode(secretKey),
+  token: 'ario',
+});
 
 const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
   tokenAmount: ARIOToTokenAmount(100), // 100 $ARIO
@@ -651,16 +709,6 @@ const turbo = TurboFactory.authenticated({ signer, token: 'solana' });
 
 const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
   tokenAmount: SOLToTokenAmount(0.00001), // 0.00001 SOL
-});
-```
-
-##### KYVE Crypto Top Up
-
-```typescript
-const turbo = TurboFactory.authenticated({ signer, token: 'kyve' });
-
-const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
-  tokenAmount: KYVEToTokenAmount(0.00001), // 0.00001 KYVE
 });
 ```
 
@@ -957,17 +1005,6 @@ const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
 });
 ```
 
-##### KYVE Fiat Top Up
-
-```typescript
-const turbo = TurboFactory.unauthenticated({ token: 'kyve' });
-
-const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
-  amount: USD(10.0), // $10.00 USD
-  owner: publicKyveAddress,
-});
-```
-
 #### submitFundTransaction()
 
 Submits the transaction ID of a funding transaction to Turbo Payment Service for top up processing. The `txId` is the transaction ID of the transaction to be submitted.
@@ -1125,6 +1162,59 @@ await turbo.transferArNSAnt({ antId, owner, target: newOwnerAddress });
 | `extendArNSLease` / `upgradeArNSName` / `increaseArNSUndernameLimit`                                               | yes — ARIO purchase                  | no                          |
 | `setArNSRecord` / `removeArNSRecord` / `setArNSRecordMetadata` / `removeArNSRecordMetadata` / `transferArNSRecord` | yes — small flat/derived margin      | only after you revoke Turbo |
 | `addArNSController` / `removeArNSController` / `transferArNSAnt`                                                   | yes — small flat/derived margin      | yes                         |
+
+#### Point the name at your content while you buy it
+
+Pass `antState` and the ANT's opening record is written by the
+`ario_ant::initialize` that runs inside the transaction you already sign — free
+and atomic. No second action, no second signature, no second debit. Without it a
+fresh name resolves to the AR.IO logo, which is the on-chain default.
+
+```typescript
+await turbo.buyArNSName({
+  name: 'my-name',
+  owner,
+  type: 'permabuy',
+  antState: {
+    transactionId: '\', // the root `@` target
+    targetProtocol: 0, // 0 = Arweave (default), 1 = IPFS CID
+    ticker: 'MYSITE',
+  },
+});
+```
+
+`antState` is accepted on `buyArNSName` only — the service rejects it on every
+other action. Note it is nested: a **top-level** `transactionId` on a buy is a
+400 by design, because that spelling means the set-record target and silently
+accepting it would point the name at the logo while the caller believed
+otherwise.
+
+**Mind the size budget.** The sponsored mint is ONE Solana transaction against
+the 1232-byte packet limit, shared with Turbo's fee-payer transfer and an
+`add_controller` grant. At a worst-case 51-character name only ~71 bytes are
+spare:
+
+| Fields                                      | Cost      | Fits?  |
+| ------------------------------------------- | --------- | ------ |
+| `transactionId` + `targetProtocol`          | ~1 byte   | always |
+| `ticker` (16) + `logo` (43)                 | ~65 bytes | yes    |
+| `description` (512), or a full keyword list | —         | **no** |
+
+The budget is dynamic — a shorter name buys headroom — so this SDK imposes no
+client-side cap. The server measures the real transaction and returns a 400
+naming Solana's 1232-byte limit _before_ you are handed anything to sign, with
+the credit debit refunded inline. That error is deterministic: do not retry it,
+and surface the server's message rather than replacing it, because it names
+which fields to drop.
+
+Field limits, all rejected at the service edge before any debit: `description`
+≤ 512 characters, `keywords` ≤ 16 entries, and `logo` (plus `transactionId`
+when `targetProtocol` is 0 or unset) must be 43-character Arweave ids. When
+`targetProtocol` is 1 the target is an IPFS CID and is not shape-checked as an
+Arweave id.
+
+See [`ARNS_ACTIONS_API.md#buy-name-takes-the-ants-opening-state](https://github.com/ar-io/ar-io-bundler/blob/main/docs/architecture/ARNS_ACTIONS_API.md#buy-name-takes-the-ants-opening-state)
+in `ar-io/ar-io-bundler` for the measured byte table.
 
 Every action costs credits — gas sponsorship was never meant to be _free_
 sponsorship. The four purchase actions charge the ARIO cost (plus, for
@@ -1402,27 +1492,6 @@ const turbo = TurboFactory.authenticated({
 });
 ```
 
-# KYVE (/(signers)/kyve)
-
-#### KYVE Private Key
-
-```typescript
-const turbo = TurboFactory.authenticated({
-  privateKey: kyveHexadecimalPrivateKey,
-  token: 'kyve',
-});
-```
-
-#### KYVE Mnemonic
-
-```typescript
-
-const turbo = TurboFactory.authenticated({
-  privateKey: privateKeyFromKyveMnemonic(mnemonic),
-  token: 'kyve',
-});
-```
-
 # Solana (/(signers)/solana)
 
 #### HexSolanaSigner
@@ -1449,6 +1518,28 @@ const turbo = TurboFactory.authenticated({
   token: 'solana',
 });
 ```
+
+# Dependency advisories (/dependency-advisories)
+
+A clean install reports advisories from transitive dependencies, none from this package's own code. The list moves as those dependencies publish, so run `npm audit` for the current one.
+
+Three critical advisories come from `elliptic`, which reaches the tree through `@dha-team/arbundles` and its ethers v5 dependencies, along with a high advisory in `secp256k1`. Both clear with a package manager override, measured as three criticals to zero:
+
+```json
+{
+  "overrides": {
+    "elliptic": "6.6.1",
+    "secp256k1": "5.0.1"
+  }
+}
+```
+
+Yarn reads the same pinning under `resolutions`.
+
+Two notes on what the remaining advisories mean here:
+
+- The one `ws` copy inside an advisory range, `7.4.6`, sits under `@ethersproject/providers`. Its WebSocket provider is never instantiated by this SDK.
+- `npm audit fix --force` offers to downgrade this package to 1.13.0. That is npm giving up inside the version ranges, not a fix.
 
 # Turbo SDK (/index)
 
