@@ -3,6 +3,14 @@ title: "Glossary"
 description: "Key terms and definitions for the ar.io ecosystem"
 ---
 
+## ANS-104 Data Item
+
+A file packaged for bundled upload. Turbo signs your file as a data item and packs many of them into a single Arweave transaction. Each data item keeps its own id, so you can fetch it from any gateway exactly like a transaction.
+
+## ar.io
+
+The open network that makes permanent data usable: gateways serve and index it, ArNS gives it human readable names, and wayfinder verifies it. Anyone can run a gateway and join.
+
 ## Ar.io Name System (ArNS)
 
 A decentralized naming system in the ar.io network that maps human-readable names to Arweave transaction IDs and application/content routes.
@@ -10,6 +18,22 @@ A decentralized naming system in the ar.io network that maps human-readable name
 ## Ar.io Name Token (ANT)
 
 An NFT on Solana associated with a registered ArNS name. ANT ownership controls name-level configuration such as records, undernames, and transfer operations.
+
+## ArDrive
+
+The app for storing and sharing files permanently, built on Turbo. ArDrive is the product for people who want a drive; these docs are for building your own upload and access paths.
+
+## ARIO
+
+The native token of the ar.io network, an SPL Token on Solana with 6 decimals (1 ARIO = 1,000,000 mARIO). It is used to stake and reward gateways, and to register and extend ArNS names. See [the ARIO token](/learn/token).
+
+## Arweave
+
+The storage layer underneath everything here. You pay once and the data persists, replicated across many nodes. Arweave stores the data; ar.io makes it fast to find, read and name.
+
+## Bundling
+
+Packing many data items into one Arweave transaction. Bundling is what makes small uploads cheap and quick to confirm, and it is what Turbo does with every upload it accepts.
 
 ## CPI (Cross-Program Invocation)
 
@@ -22,6 +46,10 @@ A permissionless actor (bot or user) that submits transactions to drive lazy pro
 ## Epoch Pipeline
 
 The 6-step process for observation, reward calculation, and distribution each epoch: create_epoch → tally_weights → prescribe_epoch → save_observations → distribute_epoch → close_epoch.
+
+## Gateway
+
+An ar.io node that serves Arweave data over HTTP: it retrieves, caches and indexes data, resolves ArNS names, and exposes standard interfaces for the permaweb. Anyone can run one. Turbo is a managed gateway that also accepts paid uploads. See [Gateways](/learn/gateways).
 
 ## Gateway Address Registry (GAR)
 
@@ -51,6 +79,10 @@ A data indexing strategy where new data is immediately made available for querie
 
 Deterministic Solana account addresses derived from a program ID and a set of seeds. The ar.io protocol uses PDAs extensively — for gateways, delegations, withdrawals, vaults, ArNS records, ANT configs, and more.
 
+## Permaweb
+
+The permanent web of files, applications and identities built on Arweave, served through ar.io gateways and addressed by transaction id or ArNS name.
+
 ## Program ID
 
 The unique onchain address of a deployed Solana program. Ar.io protocol interactions target specific program IDs for instructions and state access.
@@ -71,9 +103,21 @@ Solana Program Library token standard. ARIO is implemented as an SPL Token on So
 
 A signed unit of interaction with Solana containing one or more instructions. Instructions in a transaction are processed atomically: all succeed, or the transaction fails without applying state changes.
 
+## Turbo
+
+ar.io's managed gateway stack, run by the team behind ar.io and ArDrive. It serves permanent data like any [ar.io gateway](/learn/gateways) and adds paid uploads: it bundles your files into ANS-104 data items, issues the credits you pay with, and posts the data permanently to Arweave. See [Getting Started with Turbo](/build/upload/bundling-services).
+
+## Turbo Credits
+
+Prepaid upload balance, bought with a card or crypto and spent on uploads and ArNS names. Priced in [Winston Credits](#winston-credits-winc) and non-transferable. See [Paying for Uploads](/build/upload/turbo-credits).
+
 ## Vault
 
 A protocol-level token lock with a start time, optional end time, and token balance. Vaults are used to hold ARIO over time and may be revocable depending on how they were created.
+
+## Wayfinder
+
+A client library that chooses an ar.io gateway for each request and verifies that what comes back matches what was stored, so an app does not have to trust a single gateway. See [Wayfinder](/learn/wayfinder).
 
 ## Winston
 
