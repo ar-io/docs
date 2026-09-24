@@ -5,7 +5,7 @@ description: "Explore the technical architecture of the ar.io Solana programs an
 
 ## Ar.io Protocol Architecture
 
-The ar.io protocol operates through four Solana programs (3+1) that work together via cross-program invocation (CPI). This architecture organizes protocol responsibilities into a coordinated set of programs with clear boundaries.
+The ar.io protocol operates through five Solana programs that work together via cross-program invocation (CPI). This architecture organizes protocol responsibilities into a coordinated set of programs with clear boundaries.
 
 For the deployed Solana mainnet program IDs and ARIO token mint, see [Mainnet Addresses](/learn/token#mainnet-addresses).
 
@@ -102,6 +102,16 @@ ANTs are [Metaplex Core](https://developers.metaplex.com/core) NFTs that represe
 - **Controllers**: Controllers can manage records without holding the NFT itself.
 - **Lazy Reconciliation**: When an ANT is transferred via a marketplace (outside the ar.io protocol), controllers are cleared on the next write operation, ensuring the new owner has full control.
 
+### ario-ant-escrow
+
+A trustless escrow that hands an ANT, liquid ARIO, or a time-locked vault to a recipient identified by an Arweave or Ethereum address, claimable once the recipient holds a Solana wallet. No off-chain authority or oracle decides a claim:
+
+- **ANT escrow**: Holds a Metaplex Core ANT NFT in a per-mint PDA until the named recipient claims it.
+- **Token and vault escrow**: Escrows liquid ARIO or a time-locked vault the same way, in a PDA per depositor and asset id.
+- **Claims**: An Arweave claim is attested off-chain, re-signed with Ed25519, then verified onchain; an Ethereum claim is verified onchain with `secp256k1_recover` and EIP-191; a vault claim uses instruction introspection that preserves the remaining lock.
+
+See the [Escrow SDK reference](/sdks/ar-io-sdk/escrow).
+
 ## State Model
 
 All protocol state is stored in Solana accounts using Program Derived Addresses (PDAs):
@@ -124,6 +134,8 @@ All protocol state is stored in Solana accounts using Program Derived Addresses 
 | AntConfig | ario-ant | `["ant_config", mint]` | ANT metadata and settings |
 | AntControllers | ario-ant | `["ant_controllers", mint]` | Controller list (max 10) |
 | AntRecord | ario-ant | `["ant_record", mint, undername_hash]` | DNS-like routing record |
+| EscrowAnt | ario-ant-escrow | `["escrow_ant", ant_mint]` | ANT held in escrow for a claimant |
+| EscrowToken | ario-ant-escrow | `["escrow_token" or "escrow_vault", depositor, asset_id]` | ARIO or vault held in escrow for a claimant |
 
 ## Security Model
 
