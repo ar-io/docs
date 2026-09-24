@@ -630,6 +630,32 @@ location / {
 }
 ```
 
+## Index Sharing
+
+If your gateway [shares indexes](/build/run-a-gateway/manage/index-sharing), give `/ar-io/indexes` its own location block, **uncached**. The gateway already marks each response correctly (errors are `no-store`, and files are `private` when you meter them), but an `/ar-io/` block with its own `proxy_cache_valid` or stale-serving rules could otherwise keep a publication a subscriber should not see. Band files are 7 to 30 MB, so turn off buffering too:
+
+```nginx
+# Longer prefix than any /ar-io/ block, so it wins.
+location ^~ /ar-io/indexes {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+    proxy_cache off;
+    proxy_buffering off;
+}
+```
+
+<Callout type="warning">
+  **More than one node?** Only the node that holds your observer key signs
+  publications. Point this block's `proxy_pass` at that node on every node, so
+  subscribers never reach one that doesn't publish. turbo-gateway.com runs
+  this block on both of its nodes.
+</Callout>
+
 ## TTL Summary
 
 | Route | Cache Zone | 200 TTL | 404 TTL | Notes |
