@@ -9,7 +9,7 @@ A file packaged for bundled upload. Turbo signs your file as a data item and pac
 
 ## ar.io
 
-The open network that makes permanent data usable: gateways serve and index it, ArNS gives it human readable names, and wayfinder verifies it. Anyone can run a gateway and join.
+A permanent cloud network: independent gateways serve, index and verify permanent data, and ArNS gives it names. Anyone can run a gateway and join.
 
 ## Ar.io Name System (ArNS)
 
@@ -31,6 +31,10 @@ The native token of the ar.io network, an SPL Token on Solana with 6 decimals (1
 
 The storage layer underneath everything here. You pay once and the data persists, replicated across many nodes. Arweave stores the data; ar.io makes it fast to find, read and name.
 
+## Bundle
+
+An Arweave transaction, or a data item, whose data holds a set of other data items packed in the ANS-104 format. A bundle contains data items; it is not one of them. See [Bundling](#bundling).
+
 ## Bundling
 
 Packing many data items into one Arweave transaction. Bundling is what makes small uploads cheap and quick to confirm, and it is what Turbo does with every upload it accepts.
@@ -42,6 +46,10 @@ The mechanism by which Solana programs call into each other. The ar.io architect
 ## Cranker
 
 A permissionless actor (bot or user) that submits transactions to drive lazy protocol operations, including the epoch pipeline and other state advancement tasks. Any participant can crank if protocol conditions are met.
+
+## Data Item ID
+
+The id of a [data item](#ans-104-data-item), assigned when it is signed. A gateway can look up a data item by its data item id alone and resolve it to the root transaction that contains it.
 
 ## Epoch Pipeline
 
@@ -95,6 +103,10 @@ A protocol-controlled ARIO token pool that accumulates relevant inflows (for exa
 
 A cryptographic key that can be shared publicly and is used to verify digital signatures or encrypt data. In the ar.io context, Solana public keys (Ed25519, base58-encoded) are used to identify wallet addresses and verify transactions.
 
+## Root Transaction
+
+The Arweave transaction that contains a data item, found by walking up through every bundle around it. A gateway resolves a data item's root transaction to serve and locate it.
+
 ## SPL Token
 
 Solana Program Library token standard. ARIO is implemented as an SPL Token on Solana, making it compatible with the full Solana wallet and DeFi ecosystem.
@@ -109,7 +121,7 @@ An ar.io gateway run by the ArDrive team. It serves permanent data like any [ar.
 
 ## Turbo Credits
 
-Prepaid upload balance, bought with a card or crypto and spent on uploads and ArNS names. Priced in [Winston Credits](#winston-credits-winc) and non-transferable. See [Paying for Uploads](/build/upload/turbo-credits).
+Prepaid upload balance, bought with a card or crypto and spent on uploads and ArNS names. Priced in [winc](#winc) and non-transferable. See [Paying for Uploads](/build/upload/turbo-credits).
 
 ## Vault
 
@@ -123,6 +135,6 @@ A client library that chooses an ar.io gateway for each request and verifies tha
 
 Winston is the smallest unit of Arweave's native AR token. One AR equals 10^12 Winston.
 
-## Winston Credits (winc)
+## winc
 
-Winston Credits (`winc`) are the unit used by Turbo to represent upload purchasing power. In Turbo contexts, receipt and balance fields often return values in `winc`.
+The unit Turbo Credits are counted in, as it appears in the Turbo API. Receipt and balance fields return amounts in `winc`. Not to be confused with Winston, the smallest unit of AR.
