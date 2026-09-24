@@ -1,0 +1,145 @@
+---
+title: "Reading Shared Indexes"
+description: "Verify a gateway's signed index publication and use its bands from any client, without trusting the server you fetched them from"
+---
+
+import { Step, Steps } from "fumadocs-ui/components/steps";
+import { Callout } from "fumadocs-ui/components/callout";
+
+Gateways that take part in [Index Sharing](/learn/gateways/index-sharing) publish signed indexes that locate data items inside their bundles. Gateways use them automatically, but nothing about them is gateway-only: any client can fetch a publication, verify it, and look up an ID itself. This page shows how.
+
+## The publication
+
+A publishing gateway serves one JSON document at `/ar-io/indexes`:
+
+```json
+{
+  "version": 1,
+  "publisher": "34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7h5",
+  "sequence": 12,
+  "issuedAt": "2026-10-01T12:00:00.000Z",
+  "expiresAt": "2026-10-02T12:00:00.000Z",
+  "indexes": [
+    {
+      "name": "root-tx-index",
+      "kind": "cdb64-root-tx",
+      "bands": [
+        {
+          "id": "b1-h1950000-tip-20260917",
+          "heightRange": [1950000, null],
+          "files": [
+            { "name": "manifest.json", "size": 41233, "sha256": "…" },
+            { "name": "00.cdb", "size": 7012345, "sha256": "…" }
+          ]
+        }
+      ]
+    }
+  ],
+  "signature": { "alg": "ed25519", "keyId": "34LYv…", "sig": "…" }
+}
+```
+
+`publisher` is the gateway's wallet, and `signature.keyId` its observer address. The document may carry fields not shown here, and later versions may add more. Keep them: the signature covers them.
+
+## Verify it
+
+<Steps>
+<Step>
+### Get the publisher's registered observer address
+
+Look up the publisher's wallet in the gateway registry: with the [ar.io SDK](/sdks/ar-io-sdk), or from any gateway's `/ar-io/peers`. The publication must be signed by that gateway's `observerAddress`. A signature from any other key proves only that somebody signed something.
+
+</Step>
+
+<Step>
+### Check the signature
+
+The signed message is the prefix `ar-io-index-publication/v1` and a newline, followed by the [RFC 8785](https://www.rfc-editor.org/rfc/rfc8785) canonical JSON of the document with `signature` removed. This works in Node.js 20+ and current browsers:
+
+```javascript
+import { canonicalize } from "json-canonicalize";
+
+const B58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+function base58Decode(s) {
+  let n = 0n;
+  for (const c of s) n = n * 58n + BigInt(B58.indexOf(c));
+  const bytes = [];
+  while (n > 0n) {
+    bytes.unshift(Number(n % 256n));
+    n /= 256n;
+  }
+  for (const c of s) {
+    if (c !== "1") break;
+    bytes.unshift(0);
+  }
+  return new Uint8Array(bytes);
+}
+
+async function verifyPublication(doc, observerAddress) {
+  const { signature, ...unsigned } = doc;
+  if (signature?.alg !== "ed25519") throw new Error("unknown algorithm");
+  if (signature.keyId !== observerAddress) throw new Error("not the registered key");
+
+  const key = await crypto.subtle.importKey(
+    "raw",
+    base58Decode(signature.keyId),
+    { name: "Ed25519" },
+    false,
+    ["verify"],
+  );
+  const message = new TextEncoder().encode(
+    "ar-io-index-publication/v1\n" + canonicalize(unsigned),
+  );
+  const sig = Uint8Array.from(atob(signature.sig), (c) => c.charCodeAt(0));
+  return crypto.subtle.verify("Ed25519", key, sig, message);
+}
+
+const doc = await fetch("https://turbo-gateway.com/ar-io/indexes").then((r) => r.json());
+console.log(await verifyPublication(doc, "<observerAddress from the registry>"));
+```
+
+<Callout type="warning">
+  Use a real RFC 8785 library. A key-sorted `JSON.stringify` gives different
+  bytes for some numbers and keys, and the signature will not verify.
+</Callout>
+
+</Step>
+
+<Step>
+### Check it is current
+
+Remember the highest `sequence` you have accepted from each publisher, and refuse a lower one: a cache or mirror could serve an older document. If `expiresAt` has passed, the publisher has stopped signing; its bands are still valid, but nothing newer is coming.
+
+</Step>
+</Steps>
+
+## Fetch a band file
+
+Fetch files by their SHA-256. The address can't change meaning, so it is safe to cache and can come from any server that has the file:
+
+```javascript
+async function fetchFile(gateway, file) {
+  const res = await fetch(`${gateway}/ar-io/indexes/blob/${file.sha256}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  const hex = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  if (bytes.length !== file.size || hex !== file.sha256) throw new Error("file does not match");
+  return bytes;
+}
+```
+
+Range requests are supported, which is how a large file resumes. A `503` with `Retry-After` means the publisher is part way through replacing a band: fetch the publication again after the delay.
+
+## Look up one ID
+
+A `cdb64-root-tx` band is a [partitioned CDB64 index](/build/run-a-gateway/manage/cdb64#partitioned-indexes). To find the root transaction of one data item:
+
+1. Fetch and check the band's `manifest.json`.
+2. Pick the partition for the ID's first byte: the manifest lists partitions by two-character hex prefix.
+3. Fetch and check that one partition, a few megabytes.
+4. Look the 32-byte ID up in it. The value is MessagePack, holding the root transaction ID and, when known, the item's byte offsets.
+
+Bands overlap only where they agree, so search them newest first and stop at the first match.
+
+The [reference client](https://github.com/ar-io/ar-io-node/blob/main/docs/index-publication.md#reference-client) does all of this in about 150 lines of Python, with the CDB64 reader and MessagePack decoder written out.

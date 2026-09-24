@@ -1,0 +1,266 @@
+---
+title: "Index Sharing"
+description: "Subscribe to another gateway's root transaction indexes, or publish your own, so your gateway finds data items in milliseconds instead of asking the network"
+---
+
+import { Step, Steps } from "fumadocs-ui/components/steps";
+import { Callout } from "fumadocs-ui/components/callout";
+import { Tabs, Tab } from "fumadocs-ui/components/tabs";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { BookOpen, Search, Settings, Zap } from "lucide-react";
+
+To serve a data item, your gateway first has to find which Arweave transaction holds it, and where inside that transaction it sits. [CDB64 indexes](/build/run-a-gateway/manage/cdb64) answer that locally. **Index Sharing** keeps those indexes fresh by letting gateways share them: one gateway publishes its indexes, others subscribe, and every file is signed and checked before it is used.
+
+For how it works and why it can be trusted, see [Index Sharing](/learn/gateways/index-sharing) in Learn.
+
+<Callout type="info">
+  **Release Requirement**: Index Sharing is available from gateway Release 84.
+  Both your gateway and the publisher you subscribe to must be on Release 84
+  or later.
+</Callout>
+
+## Subscribe to a publisher
+
+Subscribing is what most operators want: your gateway downloads a publisher's index bands, verifies them, and answers lookups from them.
+
+### Prerequisites
+
+- A running ar.io gateway on Release 84 or later
+- About 25 GB of free disk for the bands (the set turbo-gateway.com publishes is about 20 GB)
+
+<Steps>
+<Step>
+### Choose a publisher
+
+A publisher is identified by its **gateway wallet**, not its URL. Your gateway looks the wallet up in the gateway registry to learn where to fetch from and which key must have signed.
+
+turbo-gateway.com publishes a root transaction index spanning block 0 to the chain tip, with offsets. It covers the bundles turbo-gateway.com has indexed, so it is densest for recent data:
+
+```text
+34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7h5
+```
+
+</Step>
+
+<Step>
+### Configure your gateway
+
+Add these to your `.env` file:
+
+```bash
+# Subscribe to turbo-gateway.com's root transaction index
+INDEX_SWARM_SUBSCRIBE='[{"publisher":"34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7h5","name":"root-tx-index"}]'
+
+# Cap the disk the downloaded bands may use (25 GiB)
+INDEX_SWARM_MAX_DISK_BYTES=26843545600
+
+# Load the downloaded bands first, then the indexes shipped with the gateway
+CDB64_ROOT_TX_INDEX_SOURCES=data/indexes/installed/root-tx-index,resources/cdb64-root-tx-index-non-ao-non-redstone-with-content-type-to-height-1820000,resources/cdb64-root-tx-index-non-ao-non-redstone-without-content-type-to-height-1820000,resources/cdb64-root-tx-index-ao-to-height-1820000
+
+# Ask the local index right after the local database
+ROOT_TX_LOOKUP_ORDER=db,cdb,gateways,graphql
+```
+
+The last line matters most. By default, `cdb` is asked last, after every network source, so your gateway would barely use the bands it downloaded.
+
+</Step>
+
+<Step>
+### Restart the gateway and start the sidecar
+
+Index Sharing runs in a small sidecar, `index-swarm`, next to your gateway. Restart the gateway so it reads the new settings, then start the sidecar:
+
+```bash
+docker compose up -d --no-deps core
+docker compose --profile index-swarm up -d index-swarm
+```
+
+Name the services as shown. A bare `docker compose up` would also recreate your observer and other services.
+
+</Step>
+
+<Step>
+### Check that bands are installing
+
+```bash
+docker compose logs -f index-swarm | grep -i "installed a band"
+```
+
+Bands install newest first, because most lookups are for recent data. Your gateway starts using each band as soon as it lands; no restart needed.
+
+</Step>
+</Steps>
+
+<Callout type="warning">
+  **The first download can take hours.** Publishers meter their index files
+  with the same rate limits and [x402 payments](/build/run-a-gateway/manage/x402-setup)
+  as any data. At turbo-gateway.com's default limits, the full 20 GB set takes
+  several hours. Downloads resume where they stopped, so nothing is lost if
+  your gateway restarts part way through.
+</Callout>
+
+## Publish your indexes
+
+Any registered gateway can publish. Other gateways then find it in the registry and subscribe by its wallet.
+
+### Prerequisites
+
+- A gateway **registered** in the gateway registry, reachable at its registered URL, on Release 84 or later
+- Its registered **observer key**, which signs what it publishes
+- Index bands to offer: [partitioned CDB64 indexes](/build/run-a-gateway/manage/cdb64#partitioned-indexes)
+
+<Steps>
+<Step>
+### Put your bands in place
+
+Each band is one partitioned CDB64 index in its own directory:
+
+```text
+data/indexes/published/root-tx-index/<band>/manifest.json
+```
+
+Build a band under a name ending in `.tmp`, then rename it into place, so it is never published half-written. Give each band a `heightRange` in its manifest, so subscribers can install the newest heights first:
+
+```bash
+m=data/indexes/published/root-tx-index/band-tip.tmp/manifest.json
+jq '.metadata = ((.metadata // {}) + {heightRange: [1950000, null]})' "$m" > "$m.new" && mv "$m.new" "$m"
+mv data/indexes/published/root-tx-index/band-tip.tmp data/indexes/published/root-tx-index/band-tip
+```
+
+</Step>
+
+<Step>
+### Configure the sidecar
+
+```bash
+# What to publish
+INDEX_SWARM_PUBLISH='[{"name":"root-tx-index","kind":"cdb64-root-tx"}]'
+
+# Your gateway's wallet
+AR_IO_WALLET=<your gateway wallet>
+```
+
+The sidecar signs with your observer key. Set **one** of these, not both:
+
+<Tabs items={["Private key", "Keypair file"]}>
+<Tab value="Private key">
+```bash
+OBSERVER_PRIVATE_KEY=<base58 observer private key>
+```
+</Tab>
+<Tab value="Keypair file">
+```bash
+# Host path of the observer keypair file; only this file is mounted
+INDEX_SWARM_OBSERVER_KEYPAIR_FILE=/path/to/observer-keypair.json
+```
+</Tab>
+</Tabs>
+
+<Callout type="warning">
+  Don't use your observer key in a wallet that signs messages for dApps. The
+  sidecar's signatures can't be confused with Solana transactions, but a
+  wallet asked to sign an arbitrary message could produce one.
+</Callout>
+
+</Step>
+
+<Step>
+### Start the sidecar
+
+```bash
+docker compose --profile index-swarm up -d index-swarm
+```
+
+The first scan reads and hashes every file once, which takes a few minutes for tens of gigabytes.
+
+</Step>
+
+<Step>
+### Check what you publish
+
+```bash
+curl -s https://<your-gateway>/ar-io/indexes | jq '{sequence, publisher, bands: [.indexes[].bands[].id]}'
+curl -s https://<your-gateway>/ar-io/info | jq .indexes
+```
+
+</Step>
+</Steps>
+
+To replace a band, publish the new one under a fresh id with `"supersedes": "<old band id>"` in its manifest's `metadata`. The old band is withdrawn and removed after a grace period, and subscribers switch over without ever losing a lookup.
+
+## Behind NGINX
+
+Most gateways run NGINX in front, and many cache. The index routes are built to be correct through a cache without special configuration: errors are never cacheable, and when your gateway meters, the files it serves are marked `private`. Two things are still worth setting:
+
+- Forward the client IP with `X-Forwarded-For`, as the [quick start](/build/run-a-gateway/quick-start) configuration does, so each subscriber gets its own rate limit.
+- **If you run more than one node**, send `/ar-io/indexes` to the node that holds the observer key. Only that node signs.
+
+See [Advanced NGINX Caching](/build/run-a-gateway/manage/nginx-caching#index-sharing) for a complete location block.
+
+## Monitoring
+
+The sidecar serves metrics on port `9101` inside its container. The ones worth watching:
+
+| Metric | What it tells you |
+| --- | --- |
+| `index_subscription_manifest_age_seconds` | How old each publisher's latest document is. **Alarm if it climbs past a day**: the publisher has gone quiet. |
+| `index_swarm_installed_bands` | How many bands are live |
+| `index_subscription_total{result}` | Outcomes of each poll. `signature_failed` should always be zero |
+| `index_publish_total{result}` | On a publisher: `published`, `unchanged` or `failed` |
+
+On the gateway, `indexes_requests_total{route,status}` shows who is downloading from you, including `402` and `429` from your rate limits.
+
+## Troubleshooting
+
+**Nothing installs, and the logs show `402` or `429`.** The publisher is rate-limiting you. It is expected on a first download: each poll picks up where the last stopped. Ask the publisher to raise your limits, or wait.
+
+**Bands installed, but lookups still go to the network.** Check `ROOT_TX_LOOKUP_ORDER` puts `cdb` right after `db`, and that `CDB64_ROOT_TX_INDEX_SOURCES` starts with `data/indexes/installed/root-tx-index`. Both need a gateway restart.
+
+**`Publication was signed by an unregistered key`.** The document you fetched was not signed by the observer key registered for that wallet. Check the publisher's registry record; if it just changed keys, it can take up to an hour to reach your gateway's registry view.
+
+**`Set OBSERVER_KEYPAIR_PATH or OBSERVER_PRIVATE_KEY, not both`.** On a publisher, `OBSERVER_PRIVATE_KEY` and `INDEX_SWARM_OBSERVER_KEYPAIR_FILE` are both set. Keep one.
+
+**`Gateway is too old to load installed index bands`.** Upgrade the gateway to Release 84 or later. The sidecar notices the upgrade by itself.
+
+## Turning it off
+
+```bash
+docker compose --profile index-swarm stop index-swarm
+```
+
+Bands already installed keep serving. To remove them, restore your previous `CDB64_ROOT_TX_INDEX_SOURCES`, restart the gateway, then delete `data/indexes/installed/`.
+
+## Related
+
+<Cards>
+  <Card
+    title="Index Sharing, explained"
+    href="/learn/gateways/index-sharing"
+    icon={<BookOpen className="w-6 h-6" />}
+  >
+    How publications are signed and verified, and why a subscriber doesn't
+    have to trust the publisher's server.
+  </Card>
+  <Card
+    title="CDB64 Root TX Index"
+    href="/build/run-a-gateway/manage/cdb64"
+    icon={<Search className="w-6 h-6" />}
+  >
+    The index format your gateway loads, and building your own bands.
+  </Card>
+  <Card
+    title="Environment Variables"
+    href="/build/run-a-gateway/manage/environment-variables#index-sharing"
+    icon={<Settings className="w-6 h-6" />}
+  >
+    Every Index Sharing setting.
+  </Card>
+  <Card
+    title="Reading Shared Indexes"
+    href="/build/advanced/index-publications"
+    icon={<Zap className="w-6 h-6" />}
+  >
+    For client and app developers: verify a publication and look up an ID
+    without a gateway's help.
+  </Card>
+</Cards>
