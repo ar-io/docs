@@ -40,21 +40,35 @@ graph TD
         CTRL[Controllers]
     end
 
+    subgraph ESCROW["ario-ant-escrow"]
+        direction TB
+        ANT_ESC[ANT Escrow]
+        TOKEN_ESC[Token / Vault Escrow]
+        CLAIMS[Arweave + Ethereum Claims]
+    end
+
     CORE --> GAR
     CORE --> ARNS
     ARNS --> ANT
     ARNS -.->|gateway data| GAR
+    ESCROW -->|cpi: transfer/update ANT| MPL[Metaplex Core]
 
     classDef coreProgram fill:#e3f2fd
     classDef garProgram fill:#e8f5e8
     classDef arnsProgram fill:#fff3e0
     classDef antProgram fill:#f3e5f5
+    classDef escrowProgram fill:#fce4ec
+    classDef externalProgram fill:#eeeeee,stroke-dasharray: 5 5
 
     class BAL,VAULTS,PRIMARY coreProgram
     class GW_REG,STAKING,EPOCHS garProgram
     class NAME_REG,DEMAND,PRICING arnsProgram
     class NFT,RECORDS,CTRL antProgram
+    class ANT_ESC,TOKEN_ESC,CLAIMS escrowProgram
+    class MPL externalProgram
 ```
+
+`ario-ant-escrow` has no arrow to `ario-core`, `ario-gar`, or `ario-arns` above, and that is deliberate, not an omission: current `main` shows no CPI between them. Its only onchain call out is `invoke`/`invoke_signed` into Metaplex Core (`mpl_core_cpi.rs`, called from `deposit.rs`, `claim_arweave_attested.rs`, `claim_ethereum.rs`, `cancel.rs`, and `admin_purge_unclaimed.rs`) to move the escrowed ANT. It also calls `CpiContext`/`token::transfer` into the standard SPL Token program for liquid ARIO and vault transfers (`deposit_tokens.rs`, `deposit_vault.rs`, and their cancel/claim counterparts); that edge is not drawn, matching how this diagram never draws `ario-core`'s own SPL Token calls as a separate node either. Arweave claims are checked by instruction introspection of a sibling `Ed25519Program` instruction, and Ethereum claims by the `secp256k1_recover` syscall: neither is a CPI, so neither gets an edge.
 
 ## Programs
 
