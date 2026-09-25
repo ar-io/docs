@@ -5,7 +5,7 @@ description: "Explore the technical architecture of the ar.io Solana programs an
 
 ## Ar.io Protocol Architecture
 
-The ar.io protocol operates through four Solana programs (3+1) that work together via cross-program invocation (CPI). This architecture organizes protocol responsibilities into a coordinated set of programs with clear boundaries.
+The ar.io protocol operates through five Solana programs that work together via cross-program invocation (CPI). This architecture organizes protocol responsibilities into a coordinated set of programs with clear boundaries.
 
 For the deployed Solana mainnet program IDs and ARIO token mint, see [Mainnet Addresses](/learn/token#mainnet-addresses).
 
@@ -40,21 +40,35 @@ graph TD
         CTRL[Controllers]
     end
 
+    subgraph ESCROW["ario-ant-escrow"]
+        direction TB
+        ANT_ESC[ANT Escrow]
+        TOKEN_ESC[Token / Vault Escrow]
+        CLAIMS[Arweave + Ethereum Claims]
+    end
+
     CORE --> GAR
     CORE --> ARNS
     ARNS --> ANT
     ARNS -.->|gateway data| GAR
+    ESCROW -->|cpi: transfer/update ANT| MPL[Metaplex Core]
 
     classDef coreProgram fill:#e3f2fd
     classDef garProgram fill:#e8f5e8
     classDef arnsProgram fill:#fff3e0
     classDef antProgram fill:#f3e5f5
+    classDef escrowProgram fill:#fce4ec
+    classDef externalProgram fill:#eeeeee,stroke-dasharray: 5 5
 
     class BAL,VAULTS,PRIMARY coreProgram
     class GW_REG,STAKING,EPOCHS garProgram
     class NAME_REG,DEMAND,PRICING arnsProgram
     class NFT,RECORDS,CTRL antProgram
+    class ANT_ESC,TOKEN_ESC,CLAIMS escrowProgram
+    class MPL externalProgram
 ```
+
+`ario-ant-escrow` has no arrow to `ario-core`, `ario-gar`, or `ario-arns` above, and that is deliberate, not an omission: current `main` shows no CPI between them. Its only onchain call out is `invoke`/`invoke_signed` into Metaplex Core (`mpl_core_cpi.rs`, called from `deposit.rs`, `claim_arweave_attested.rs`, `claim_ethereum.rs`, `cancel.rs`, and `admin_purge_unclaimed.rs`) to move the escrowed ANT. It also calls `CpiContext`/`token::transfer` into the standard SPL Token program for liquid ARIO and vault transfers (`deposit_tokens.rs`, `deposit_vault.rs`, and their cancel/claim counterparts); that edge is not drawn, matching how this diagram never draws `ario-core`'s own SPL Token calls as a separate node either. Arweave claims are checked by instruction introspection of a sibling `Ed25519Program` instruction, and Ethereum claims by the `secp256k1_recover` syscall: neither is a CPI, so neither gets an edge.
 
 ## Programs
 
@@ -102,6 +116,16 @@ ANTs are [Metaplex Core](https://developers.metaplex.com/core) NFTs that represe
 - **Controllers**: Controllers can manage records without holding the NFT itself.
 - **Lazy Reconciliation**: When an ANT is transferred via a marketplace (outside the ar.io protocol), controllers are cleared on the next write operation, ensuring the new owner has full control.
 
+### ario-ant-escrow
+
+A trustless escrow that hands an ANT, liquid ARIO, or a time-locked vault to a recipient identified by an Arweave or Ethereum address, claimable once the recipient holds a Solana wallet. No off-chain authority or oracle decides a claim:
+
+- **ANT escrow**: Holds a Metaplex Core ANT NFT in a per-mint PDA until the named recipient claims it.
+- **Token and vault escrow**: Escrows liquid ARIO or a time-locked vault the same way, in a PDA per depositor and asset id.
+- **Claims**: An Arweave claim is attested off-chain, re-signed with Ed25519, then verified onchain; an Ethereum claim is verified onchain with `secp256k1_recover` and EIP-191; a vault claim uses instruction introspection that preserves the remaining lock.
+
+See the [Escrow SDK reference](/sdks/ar-io-sdk/escrow).
+
 ## State Model
 
 All protocol state is stored in Solana accounts using Program Derived Addresses (PDAs):
@@ -124,6 +148,8 @@ All protocol state is stored in Solana accounts using Program Derived Addresses 
 | AntConfig | ario-ant | `["ant_config", mint]` | ANT metadata and settings |
 | AntControllers | ario-ant | `["ant_controllers", mint]` | Controller list (max 10) |
 | AntRecord | ario-ant | `["ant_record", mint, undername_hash]` | DNS-like routing record |
+| EscrowAnt | ario-ant-escrow | `["escrow_ant", ant_mint]` | ANT held in escrow for a claimant |
+| EscrowToken | ario-ant-escrow | `["escrow_token" or "escrow_vault", depositor, asset_id]` | ARIO or vault held in escrow for a claimant |
 
 ## Security Model
 
