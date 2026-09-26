@@ -1,0 +1,155 @@
+---
+title: "Delegate gateway management"
+description: "Authorize an operations address to update your gateway's metadata and claim the ArNS gateway operator discount, so your operator wallet can stay offline."
+---
+
+An operations address is a second Solana address that you, the gateway operator, authorize to handle routine gateway tasks. It can update your gateway's metadata and claim the ArNS gateway operator discount. It can't touch your stake, your delegation settings, or who manages the gateway.
+
+Use one to keep your operator wallet offline. The operator wallet controls your stake, so it's the key you least want on a server or in a script.
+
+## What an operations address can do
+
+The following table shows which wallet can sign each gateway action:
+
+| Action | Operator wallet | Operations address |
+|---|---|---|
+| Update metadata: label, FQDN, port, protocol, properties, note | Yes | Yes |
+| Claim the ArNS gateway operator discount | Yes | Yes |
+| Change stake or delegation settings, or leave the network | Yes | No |
+| Change the observer address | Yes | No |
+| Set or revoke the operations address | Yes | No |
+
+A gateway has one operations address at a time. Until you set one, the operations address is your operator address, so nothing changes until you choose to delegate.
+
+<Callout type="warn">
+Anyone who holds the operations keypair can change your gateway's metadata, including its FQDN, until you revoke it. Store the operations keypair as carefully as any other key that can change what your gateway advertises.
+</Callout>
+
+## Before you begin
+
+You need the following:
+
+- A joined gateway. A gateway that's leaving the network can't change its operations address.
+- The ar.io CLI, version 4.4.0 or later: `npm install -g @ar.io/sdk`.
+- Your gateway's operator keypair file.
+- The [Solana CLI](https://solana.com/docs/intro/installation), to create a keypair for the operations address.
+
+## Set an operations address
+
+<Steps>
+  <Step>
+    ### Create a keypair for the operations address
+
+    ```bash
+    solana-keygen new --outfile operations-keypair.json
+    solana-keygen pubkey operations-keypair.json
+    ```
+
+    The second command prints the operations address. You need it in step 3.
+  </Step>
+
+  <Step>
+    ### Fund the operations address
+
+    Send a small amount of SOL to the operations address. It pays the transaction fee for every change it signs, and 0.01 SOL covers many metadata updates.
+  </Step>
+
+  <Step>
+    ### Authorize the operations address
+
+    Sign with your operator keypair:
+
+    ```bash
+    ar.io update-operations-address \
+      --operations-address OPERATIONS_ADDRESS \
+      --wallet-file OPERATOR_KEYPAIR_FILE
+    ```
+
+    Replace the following:
+
+    - `OPERATIONS_ADDRESS`: the address that step 1 printed.
+    - `OPERATOR_KEYPAIR_FILE`: the path to your operator keypair file.
+
+    The CLI shows the gateway and the operations address, and asks you to confirm.
+  </Step>
+
+  <Step>
+    ### Check the result
+
+    ```bash
+    ar.io get-gateway --address OPERATOR_ADDRESS
+    ```
+
+    Replace `OPERATOR_ADDRESS` with your gateway's operator address. The `operationsAddress` field shows the address you authorized.
+  </Step>
+</Steps>
+
+## Update gateway metadata with the operations address
+
+To update metadata, sign with the operations keypair and name your gateway by its operator address:
+
+```bash
+ar.io update-gateway-metadata \
+  --gateway-address OPERATOR_ADDRESS \
+  --fqdn GATEWAY_FQDN \
+  --wallet-file OPERATIONS_KEYPAIR_FILE
+```
+
+Replace the following:
+
+- `OPERATOR_ADDRESS`: your gateway's operator address. The signer isn't the operator, so this tells the network which gateway to update.
+- `GATEWAY_FQDN`: the domain your gateway serves, such as `turbo-gateway.com`.
+- `OPERATIONS_KEYPAIR_FILE`: the path to the operations keypair file.
+
+The command also accepts `--label`, `--port`, `--protocol`, `--properties`, and `--note`. Include only the fields you want to change.
+
+## Claim the ArNS gateway operator discount
+
+When the operations address pays for an ArNS purchase, add `--discount-gateway-address` with your operator address. To check the price first:
+
+```bash
+ar.io get-cost-details \
+  --intent Extend-Lease \
+  --name ARNS_NAME \
+  --years 1 \
+  --address OPERATIONS_ADDRESS \
+  --discount-gateway-address OPERATOR_ADDRESS
+```
+
+To make the purchase:
+
+```bash
+ar.io extend-lease \
+  --name ARNS_NAME \
+  --years 1 \
+  --discount-gateway-address OPERATOR_ADDRESS \
+  --wallet-file OPERATIONS_KEYPAIR_FILE
+```
+
+Replace `ARNS_NAME` with the name you're extending. The same flag works with `buy-record`, `increase-undername-limit`, and `upgrade-record`.
+
+The discount applies only when your gateway qualifies. For the rules, see [Gateway operator ArNS discount](/learn/arns/pricing-model#gateway-operator-arns-discount). If you name a gateway that doesn't qualify, the CLI stops and prints the reason instead of charging full price.
+
+## Revoke or replace the operations address
+
+To revoke, set the operations address back to your operator address:
+
+```bash
+ar.io update-operations-address \
+  --operations-address OPERATOR_ADDRESS \
+  --wallet-file OPERATOR_KEYPAIR_FILE
+```
+
+To replace it, run the command with a different operations address. Either change takes effect with its transaction, and the network refuses the previous operations address from then on.
+
+## Troubleshooting
+
+The following table lists the errors the CLI prints for an operations address, and what each one means:
+
+| Error contains | Cause | Fix |
+|---|---|---|
+| `is neither the operator nor the operations address of gateway` | The signing keypair isn't authorized for that gateway. The operations address was revoked or replaced, `--gateway-address` names another gateway, or `--wallet-file` points at the wrong keypair. | Run `ar.io get-gateway --address OPERATOR_ADDRESS` and compare `operationsAddress` with the signing address. |
+| `does not qualify for the operator discount` | The gateway fails a discount rule. The rest of the message names the rule. | Check the gateway against the [discount rules](/learn/arns/pricing-model#gateway-operator-arns-discount), or make the purchase without `--discount-gateway-address`. |
+| `No gateway found for operator` | `--discount-gateway-address` isn't a gateway's operator address. | Use the operator address, not the operations address. |
+
+For the SDK methods behind these commands, see [Gateways in the ar.io SDK reference](/sdks/ar-io-sdk/gateways).
