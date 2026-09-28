@@ -28,6 +28,15 @@ Once registered, a gateway can become eligible for network incentives, delegatio
 
 The registry has a maximum capacity of **3,000 gateways**. Each gateway requires a **20,000 ARIO** minimum network-join stake, and each gateway can have up to **10,000** unique delegated stakers.
 
+## Leaving the Registry
+
+A registered gateway is always in one of three states: **joined**, **leaving**, or **gone**.
+
+A gateway operator can leave voluntarily, and a gateway removed through [pruning](/learn/oip/pruning) leaves the same way:
+
+1. **Leaving**: The gateway stops being eligible for new rewards and enters a leave window of at least 90 days, during which any delegated stake on it still has to be withdrawn.
+2. **Gone**: Once the leave window has expired and all delegated stake has been claimed, a permissionless instruction closes the gateway's registry entry and frees its slot. A gone gateway has no registry entry left; its operator has to register again to rejoin.
+
 ## What the Registry Enables
 
 ### Discovery
@@ -57,6 +66,7 @@ The registry is the set of gateways that OIP can observe and evaluate. Registere
 - Registered gateways can participate in OIP, receive delegations, and become eligible for rewards.
 - Apps can use registry data to discover, filter, and route through gateways.
 - Poorly performing gateways can be pruned from the network after sustained failure.
+- A gateway moves from joined to leaving to gone as it exits the registry, freeing its slot once it is gone.
 
 ## Explore the Gateway Ecosystem
 
