@@ -186,7 +186,7 @@ Explore the REST APIs available in the ar.io ecosystem. Our services are built w
   />
   }
     title="Turbo"
-    description="Upload and payment services providing fast, reliable data uploads to Arweave with instant confirmation and transparent pricing."
+    description="Turbo, an ar.io gateway run by the ArDrive team: these APIs bundle your files and issue the credits you pay with."
     href="/apis/turbo"
   />
 
@@ -202,7 +202,7 @@ The ar.io Gateway serves as the primary interface for accessing Arweave data thr
 
 ## Turbo APIs
 
-Turbo provides high-performance upload services for the Arweave network with additional features:
+Turbo is an ar.io gateway run by the ArDrive team. Its upload and payment APIs offer:
 
 - **Data Upload** - Fast, reliable uploads with instant confirmation
 - **Payment Processing** - Transparent pricing and payment management
@@ -252,7 +252,7 @@ For SDK alternatives to these REST APIs, visit our [SDK documentation](/sdks).
 
 # Turbo APIs (/apis/turbo)
 
-Turbo provides high-performance upload and payment services for the Arweave network, offering fast, reliable data uploads with instant confirmation and transparent pricing.
+Turbo is an ar.io gateway run by the ArDrive team: it serves permanent data like any ar.io gateway, and adds paid uploads. These APIs are the HTTP interface to the upload and payment half.
 
 ## Base URL
 
@@ -1650,11 +1650,13 @@ Each ArFS entity follows a specific lifecycle pattern:
 3. Upload new transaction
 4. Client processes both versions and uses latest
 
-### Deletion
+### Hiding
 
 1. Mark entity as hidden (`isHidden: true`)
 2. Upload new transaction
 3. Entity remains in history but hidden from UI
+
+Nothing is deleted: because Arweave transactions are immutable, hiding an entity is reversible. Every prior revision stays on Arweave, and the entity reappears if a later revision sets `isHidden: false`.
 
 ## Data Integrity
 
@@ -7699,7 +7701,7 @@ This guide is targeted at developers. If you're not a developer we strongly reco
 
 ## Uploading Your First NFT
 
-Let's walk through uploading a complete NFT with its metadata using Turbo, ar.io's fast upload service.
+Let's walk through uploading a complete NFT with its metadata using Turbo, an ar.io gateway run by the ArDrive team.
 
 This guide assumes you're in a node.js environment and using an Arweave wallet, we support uploads in the browser and many other wallet types (EVM, SVM) and payment tokens (ETH, USDC, POL etc.).
 
@@ -9192,6 +9194,7 @@ This guide demonstrates how to configure the `@ardrive/turbo-sdk` in a Next.js a
     - `"polygon-usdc"` - USDC on Polygon Network
     - `"matic"` or `"pol"` - MATIC/POL on Polygon Network
     - `"solana"` - SOL on Solana
+    - `"solana-usdc"` - USDC on Solana
 
     Your private key must match the blockchain you select. For example, if using `"base-usdc"`, use an Ethereum-compatible private key.
 
@@ -11234,7 +11237,7 @@ If you're unfamiliar with Arweave's permanent storage and ar.io we recommend rea
 
   }
     title="Turbo SDK Reference"
-    description="Fast upload service SDK with payment processing and instant confirmation"
+    description="TypeScript SDK for Turbo, an ar.io gateway run by the ArDrive team"
     href="/sdks/turbo-sdk"
   />
   
@@ -11584,33 +11587,35 @@ Your gateway is now part of ar.io! Here are some next steps to maximize your par
 
 When your gateway receives a request for a data item (content inside an ANS-104 bundle), it needs to find the root Arweave transaction containing that data. The CDB64 index provides O(1) lookups for this mapping, enabling instant resolution of historical data items.
 
-  **Default Behavior**: As of Release 67, CDB64 is enabled by default with no configuration required. The gateway ships with a pre-built index covering approximately 964 million data items.
+  **Default Behavior**: As of Release 67, CDB64 is enabled by default with no configuration required. As of release r70, the gateway ships three pre-built indexes by default, covering close to 3.8 billion data items combined.
 
 ## How It Works
 
 The gateway checks multiple sources when resolving a data item ID to its root transaction. The order is controlled by `ROOT_TX_LOOKUP_ORDER`:
 
 1. **db** - Your local SQLite database (fastest, but requires locally parsing ANS-104 bundles to index discovered items)
-2. **gateways** - HEAD requests to other AR.IO gateways
-3. **cdb** - CDB64 file-based index (O(1) lookup from local files or cached remote data)
-4. **graphql** - GraphQL queries to trusted gateways
+2. **gateways** - HEAD requests to other ar.io gateways
+3. **graphql** - GraphQL queries to trusted gateways
+4. **hyperbeam** - A HyperBEAM endpoint's `/raw/{id}/offset`, resolved to a root transaction against your local database
+5. **cdb** - CDB64 file-based index (O(1) lookup from local files or cached remote data)
 
 The default configuration tries each source in order until a match is found:
 
 ```bash
-ROOT_TX_LOOKUP_ORDER=db,gateways,cdb,graphql
+ROOT_TX_LOOKUP_ORDER=db,gateways,graphql,hyperbeam,cdb
 ```
 
 ## Default Coverage
 
-The shipped CDB64 index covers:
+The gateway ships three CDB64 indexes by default:
 
-- Non-AO data items (excludes `Bundler-App-Name: AO`)
-- Non-Redstone data items
-- Data items with content types
-- Block heights 0 through 1,820,000
+- A non-AO index covering data items with content types (approximately 964 million data items)
+- A non-AO index covering data items without content types (approximately 1.2 billion data items)
+- An AO index (approximately 1.6 billion data items)
 
-This means most historical ArDrive, Akord, and similar application data can be resolved via the CDB64 index. The default shipped index stores partition data on Arweave, so network requests are made to fetch CDB data (with intelligent byte-range caching). For zero network latency, you can download the CDB files locally.
+The two non-AO indexes exclude Redstone data items. All three cover block heights 0 through 1,820,000.
+
+This means most historical ArDrive, Akord, AO, and similar application data can be resolved via the CDB64 index. The default shipped indexes store partition data on Arweave, so network requests are made to fetch CDB data (with intelligent byte-range caching). For zero network latency, you can download the CDB files locally.
 
 ## Configuration Options
 
@@ -11619,12 +11624,12 @@ This means most historical ArDrive, Akord, and similar application data can be r
 If you want to disable CDB64 lookups (not recommended), remove `cdb` from the lookup order:
 
 ```bash
-ROOT_TX_LOOKUP_ORDER=db,gateways,graphql
+ROOT_TX_LOOKUP_ORDER=db,gateways,graphql,hyperbeam
 ```
 
 ### Using Custom Index Sources
 
-You can configure custom CDB64 index sources to supplement or replace the default index:
+You can configure custom CDB64 index sources to supplement or replace the default indexes:
 
     ```bash
     CDB64_ROOT_TX_INDEX_SOURCES=/path/to/custom-index.cdb
@@ -11662,8 +11667,8 @@ CDB64_REMOTE_CACHE_TTL_MS=300000        # Cache TTL (5 minutes)
 CDB64_REMOTE_REQUEST_TIMEOUT_MS=30000   # Request timeout
 CDB64_REMOTE_MAX_CONCURRENT_REQUESTS=4  # Max concurrent HTTP requests
 
-# Retrieval order for fetching CDB files from Arweave
-CDB64_REMOTE_RETRIEVAL_ORDER=gateways,chunks
+# Retrieval order for fetching CDB files from Arweave (default: chunks)
+CDB64_REMOTE_RETRIEVAL_ORDER=chunks
 ```
 
 ### File Watching
@@ -11768,9 +11773,9 @@ The resulting manifest can be shared with other gateway operators or uploaded to
 
 ### Missing data items in index
 
-The default shipped index excludes AO and Redstone data. For these, you'll need to:
+The default shipped indexes exclude Redstone data. For these, you'll need to:
 - Generate a custom index covering the desired data
-- Rely on other lookup sources (db, gateways, graphql)
+- Rely on other lookup sources (db, gateways, graphql, hyperbeam)
 
 For the complete list of CDB64 environment variables, see [Environment Variables Reference](/build/run-a-gateway/manage/environment-variables#cdb64-root-transaction-index).
 
@@ -11996,14 +12001,14 @@ If `OBSERVER_KEYPAIR_PATH` or `OBSERVER_PRIVATE_KEY` is set, the observer's Ed25
 
 ### CDB64 Root Transaction Index
 
-The CDB64 index provides O(1) constant-time lookups for resolving data item IDs to their root Arweave transactions. As of Release 67, a pre-built index is enabled by default covering ~964 million records.
+The CDB64 index provides O(1) constant-time lookups for resolving data item IDs to their root Arweave transactions. As of release r70, the gateway ships three pre-built indexes by default, covering close to 3.8 billion data items combined. See [CDB64 Root TX Index](/build/run-a-gateway/manage/cdb64) for the coverage breakdown.
 
-| Variable                              | Type    | Default                   | Description                                                                                                      |
-| ------------------------------------- | ------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `ROOT_TX_LOOKUP_ORDER`                | string  | `db,gateways,cdb,graphql` | Comma-separated list of root TX lookup sources. Options: db, cdb, gateways, turbo, graphql                       |
+| Variable                              | Type    | Default                            | Description                                                                                                      |
+| ------------------------------------- | ------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `ROOT_TX_LOOKUP_ORDER`                | string  | `db,gateways,graphql,hyperbeam,cdb` | Comma-separated list of root TX lookup sources. Options: db, peers, gateways, graphql, hyperbeam, cdb, turbo      |
 | `CDB64_ROOT_TX_INDEX_SOURCES`         | string  | shipped manifest          | Comma-separated list of CDB64 sources: local paths, directories, HTTP URLs, Arweave TX IDs, or bundle data items |
 | `CDB64_ROOT_TX_INDEX_WATCH`           | boolean | `true`                    | Enable file watching for local CDB64 directories. New files auto-load without restart                            |
-| `CDB64_REMOTE_RETRIEVAL_ORDER`        | string  | `gateways,chunks`         | Data sources for fetching remote CDB64 files. Options: gateways, chunks, tx-data                                 |
+| `CDB64_REMOTE_RETRIEVAL_ORDER`        | string  | `chunks`                  | Data sources for fetching remote CDB64 files. Options: gateways, chunks, tx-data                                 |
 | `CDB64_REMOTE_CACHE_MAX_REGIONS`      | number  | `100`                     | Maximum byte-range regions to cache per remote source                                                            |
 | `CDB64_REMOTE_CACHE_TTL_MS`           | number  | `300000`                  | TTL for cached byte-range regions (5 minutes)                                                                    |
 | `CDB64_REMOTE_REQUEST_TIMEOUT_MS`     | number  | `30000`                   | Request timeout for remote CDB64 sources                                                                         |
@@ -12090,7 +12095,7 @@ For detailed configuration and usage, see [CDB64 Root TX Index](/build/run-a-gat
 
 ### ar.io
 
-The gateway talks to four Solana programs that together implement the ar.io protocol (see [protocol architecture](/learn/protocol-architecture)). Each program ID is configured independently, so the same image can run against mainnet, staging-devnet, or a local devnet. Canonical mainnet IDs are listed in the [Token](/learn/token#mainnet-addresses) docs. To confirm which set a running gateway is using, `GET /ar-io/info` returns the resolved `programIds` object.
+The ar.io protocol runs on five Solana programs (see [protocol architecture](/learn/protocol-architecture)), and the gateway talks to four of them: `ario-core`, `ario-gar`, `ario-arns`, and `ario-ant`. The fifth, `ario-ant-escrow`, has no gateway-side program ID below because a gateway never calls it; it is a wallet-to-wallet escrow, not something a gateway needs to resolve. Each program ID below is configured independently, so the same image can run against mainnet, staging-devnet, or a local devnet. Canonical mainnet IDs are listed in the [Token](/learn/token#mainnet-addresses) docs. To confirm which set a running gateway is using, `GET /ar-io/info` returns the resolved `programIds` object.
 
 | Variable                   | Type   | Default                              | Description                                                                                                          |
 | -------------------------- | ------ | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
@@ -13464,6 +13469,9 @@ Master the advanced features and configurations of your ar.io Gateway. These com
 }>
   Step-by-step guide to safely upgrade your ar.io Gateway to the latest version without losing data or progress.
 
+}>
+  Authorize an operations address to update your gateway's metadata and claim the ArNS gateway operator discount, so your operator wallet can stay offline.
+
 ## Monitoring & Analytics
 
   }
@@ -13477,7 +13485,7 @@ Master the advanced features and configurations of your ar.io Gateway. These com
   Configure advanced filters to efficiently process and index only the data you need, optimizing performance and resource usage.
 
 }>
-  Configure the CDB64 index for O(1) data item lookups. Enabled by default with ~964 million records for instant historical data resolution.
+  Configure the CDB64 index for O(1) data item lookups. Three indexes are enabled by default, covering close to 3.8 billion records, for instant historical data resolution.
 
 }
 >
@@ -14272,6 +14280,147 @@ If `keys_zone` is too small for the number of cached items, NGINX silently evict
   />
   }
   />
+
+# Delegate gateway management (/build/run-a-gateway/manage/operations-address)
+
+An operations address is a second Solana address that you, the gateway operator, authorize to handle routine gateway tasks. It can update your gateway's metadata and claim the ArNS gateway operator discount. It can't touch your stake, your delegation settings, or who manages the gateway.
+
+Use one to keep your operator wallet offline. The operator wallet controls your stake, so it's the key you least want on a server or in a script.
+
+## What an operations address can do
+
+The following table shows which wallet can sign each gateway action:
+
+| Action | Operator wallet | Operations address |
+|---|---|---|
+| Update metadata: label, FQDN, port, protocol, properties, note | Yes | Yes |
+| Claim the ArNS gateway operator discount | Yes | Yes |
+| Change stake or delegation settings, or leave the network | Yes | No |
+| Change the observer address | Yes | No |
+| Set or revoke the operations address | Yes | No |
+
+A gateway has one operations address at a time. Until you set one, the operations address is your operator address, so nothing changes until you choose to delegate.
+
+Anyone who holds the operations keypair can change your gateway's metadata, including its FQDN, until you revoke it. Store the operations keypair as carefully as any other key that can change what your gateway advertises.
+
+## Before you begin
+
+You need the following:
+
+- A joined gateway. A gateway that's leaving the network can't change its operations address.
+- The ar.io CLI, version 4.4.0 or later: `npm install -g @ar.io/sdk`.
+- Your gateway's operator keypair file.
+- The [Solana CLI](https://solana.com/docs/intro/installation), to create a keypair for the operations address.
+
+## Set an operations address
+
+    ### Create a keypair for the operations address
+
+    ```bash
+    solana-keygen new --outfile operations-keypair.json
+    solana-keygen pubkey operations-keypair.json
+    ```
+
+    The second command prints the operations address. You need it in step 3.
+
+    ### Fund the operations address
+
+    Send a small amount of SOL to the operations address. It pays the transaction fee for every change it signs, and 0.01 SOL covers many metadata updates.
+
+    ### Authorize the operations address
+
+    Sign with your operator keypair:
+
+    ```bash
+    ar.io update-operations-address \
+      --operations-address OPERATIONS_ADDRESS \
+      --wallet-file OPERATOR_KEYPAIR_FILE
+    ```
+
+    Replace the following:
+
+    - `OPERATIONS_ADDRESS`: the address that step 1 printed.
+    - `OPERATOR_KEYPAIR_FILE`: the path to your operator keypair file.
+
+    The CLI shows the gateway and the operations address, and asks you to confirm.
+
+    ### Check the result
+
+    ```bash
+    ar.io get-gateway --address OPERATOR_ADDRESS
+    ```
+
+    Replace `OPERATOR_ADDRESS` with your gateway's operator address. The `operationsAddress` field shows the address you authorized.
+
+## Update gateway metadata with the operations address
+
+To update metadata, sign with the operations keypair and name your gateway by its operator address:
+
+```bash
+ar.io update-gateway-metadata \
+  --gateway-address OPERATOR_ADDRESS \
+  --fqdn GATEWAY_FQDN \
+  --wallet-file OPERATIONS_KEYPAIR_FILE
+```
+
+Replace the following:
+
+- `OPERATOR_ADDRESS`: your gateway's operator address. The signer isn't the operator, so this tells the network which gateway to update.
+- `GATEWAY_FQDN`: the domain your gateway serves, such as `turbo-gateway.com`.
+- `OPERATIONS_KEYPAIR_FILE`: the path to the operations keypair file.
+
+The command also accepts `--label`, `--port`, `--protocol`, `--properties`, and `--note`. Include only the fields you want to change.
+
+## Claim the ArNS gateway operator discount
+
+When the operations address pays for an ArNS purchase, add `--discount-gateway-address` with your operator address. To check the price first:
+
+```bash
+ar.io get-cost-details \
+  --intent Extend-Lease \
+  --name ARNS_NAME \
+  --years 1 \
+  --address OPERATIONS_ADDRESS \
+  --discount-gateway-address OPERATOR_ADDRESS
+```
+
+To make the purchase:
+
+```bash
+ar.io extend-lease \
+  --name ARNS_NAME \
+  --years 1 \
+  --discount-gateway-address OPERATOR_ADDRESS \
+  --wallet-file OPERATIONS_KEYPAIR_FILE
+```
+
+Replace `ARNS_NAME` with the name you're extending. The same flag works with `buy-record`, `increase-undername-limit`, and `upgrade-record`.
+
+The discount applies only when your gateway qualifies. For the rules, see [Gateway operator ArNS discount](/learn/arns/pricing-model#gateway-operator-arns-discount). If you name a gateway that doesn't qualify, the CLI stops and prints the reason instead of charging full price.
+
+## Revoke or replace the operations address
+
+To revoke, set the operations address back to your operator address:
+
+```bash
+ar.io update-operations-address \
+  --operations-address OPERATOR_ADDRESS \
+  --wallet-file OPERATOR_KEYPAIR_FILE
+```
+
+To replace it, run the command with a different operations address. Either change takes effect with its transaction, and the network refuses the previous operations address from then on.
+
+## Troubleshooting
+
+The following table lists the errors the CLI prints for an operations address, and what each one means:
+
+| Error contains | Cause | Fix |
+|---|---|---|
+| `is neither the operator nor the operations address of gateway` | The signing keypair isn't authorized for that gateway. The operations address was revoked or replaced, `--gateway-address` names another gateway, or `--wallet-file` points at the wrong keypair. | Run `ar.io get-gateway --address OPERATOR_ADDRESS` and compare `operationsAddress` with the signing address. |
+| `does not qualify for the operator discount` | The gateway fails a discount rule. The rest of the message names the rule. | Check the gateway against the [discount rules](/learn/arns/pricing-model#gateway-operator-arns-discount), or make the purchase without `--discount-gateway-address`. |
+| `No gateway found for operator` | `--discount-gateway-address` isn't a gateway's operator address. | Use the operator address, not the operations address. |
+
+For the SDK methods behind these commands, see [Gateways in the ar.io SDK reference](/sdks/ar-io-sdk/gateways).
 
 # Setting Apex Domain Content (/build/run-a-gateway/manage/setting-apex-domain)
 
@@ -17962,6 +18111,7 @@ or three tokens — all free.
 | **SOL** | Solana **devnet** | Transaction fees on every Solana action | `solana airdrop 1  --url devnet` or [faucet.solana.com](https://faucet.solana.com) |
 | **ARIO (staging)** | Solana **devnet** | Buying ArNS names and paying for uploads | The ar.io faucet → [faucet.services.ar-io.dev](https://faucet.services.ar-io.dev) |
 | **Base Sepolia ETH** | Base **Sepolia** | *(optional)* Funding credits with `base-eth` or the x402 path | Any [Base Sepolia faucet](https://docs.base.org/docs/tools/network-faucets/) |
+| **USDC (devnet)** | Solana **devnet** | *(optional)* Funding credits with `solana-usdc` | [faucet.circle.com](https://faucet.circle.com) — choose **Solana Devnet**; 20 USDC per address every 2 hours |
 
   You always need a little **devnet SOL** — even after claiming ARIO — because SOL pays the
   transaction fee for *using* your tokens (funding credits, buying names, etc.).
@@ -18070,8 +18220,9 @@ permanent data. See [building with an agent](#building-with-an-agent) below.
 | ARIO faucet (staging ARIO) | `https://faucet.services.ar-io.dev` | `GET /healthcheck` |
 
 **Network:** primarily Solana **devnet** — staging **ARIO** SPL mint
-`6vTw5CysRXQ4ybbHkDUiisHWVsBeMtUzYvJqs2iqHyaN` (6 decimals). The optional `base-eth` funding
-path and x402 use **Base Sepolia**.
+`6vTw5CysRXQ4ybbHkDUiisHWVsBeMtUzYvJqs2iqHyaN` (6 decimals), and Circle's devnet **USDC**
+mint `4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU` for the `solana-usdc` funding path. The
+optional `base-eth` funding path and x402 use **Base Sepolia**.
 
   Point your app at `*.services.ar-io.dev` and `ar-io.dev` to exercise the full **ar.io** stack —
   upload, payment, ArNS, and gateway — together. These are shared sandbox endpoints, so treat them
@@ -18096,7 +18247,8 @@ sandbox, or `POST /v1/tx`. See [Uploading & Credits](/build/testnet/uploading-an
 
 ### Need more? Top up credits with your staging ARIO
 
-Fund upload credits with `ario`, `solana`, or `base-eth`, or Stripe **test cards**. See
+Fund upload credits with `ario`, `solana`, `solana-usdc`, or `base-eth`, or Stripe
+**test cards**. See
 [Uploading & Credits](/build/testnet/uploading-and-credits#getting-credits).
 
 ### Buy an ArNS name (≥ 8 characters)
@@ -18218,7 +18370,9 @@ const { id, winc } = await turbo.uploadFile({
   **Watch the `gatewayUrl`.** Here it's the **Solana RPC** — how Turbo verifies your funding
   transactions — *not* `ar-io.dev`. You fetch uploaded data from the
   [gateway](/build/testnet/accessing-data) separately. Funding with `base-eth` instead? Use
-  `token: 'base-eth'` and an EVM signer.
+  `token: 'base-eth'` and an EVM signer. Funding with USDC on Solana? Use
+  `token: 'solana-usdc'` with the *same* Solana signer — you just need devnet USDC
+  alongside a little devnet SOL for the transaction fee.
 
 ### Raw POST
 
@@ -18281,10 +18435,19 @@ purchases**. Fund them with **testnet** value only.
 |---|---|---|
 | `ario` | ARIO staging (Solana devnet) | Mint `6vTw5CysRXQ4ybbHkDUiisHWVsBeMtUzYvJqs2iqHyaN`, 6 decimals — **fee-free** |
 | `solana` | Solana devnet | |
+| `solana-usdc` | Solana devnet | Circle devnet USDC, mint `4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU`, 6 decimals — priced 1:1 in USD |
 | `base-eth` | Base Sepolia | |
+| `base-usdc` | Base Sepolia | Testnet USDC contract |
+| `ethereum` | Ethereum Sepolia | Verification is network-agnostic and this deployment points at **Sepolia**, so only Sepolia ETH can be credited |
+| `usdc` | Ethereum Sepolia | Testnet USDC contract |
 
-  Mainnet tokens (`arweave`, `ethereum`, `matic`/`pol`) are **rejected** with
-  `Token not supported`. There is no mainnet settlement here.
+  `arweave`, `matic`/`pol` and `kyve` are **rejected** with `Token not supported` —
+  they settle on mainnet, and there is no mainnet settlement here. Note that
+  `ethereum` and `usdc` above are *accepted*: the sandbox pins them to Sepolia
+  RPCs and testnet contracts, so no mainnet value is ever involved.
+
+  `GET /v1/info`'s `addresses` map advertises exactly the tokens this deployment
+  accepts, so it is the authoritative list if the table above ever drifts.
 
 ### Crypto top-up
 
@@ -18869,7 +19032,7 @@ Learn how to upload data to Arweave using the **Turbo SDK** for a streamlined up
       bytes: [file.size],
     });
 
-    console.log(`Upload cost: ${costs[0].winc} Winston Credits`);
+    console.log(`Upload cost: ${costs[0].winc} winc`);
     console.log(`USD cost: $${costs[0].usd}`);
     ```
 
@@ -18878,7 +19041,7 @@ Learn how to upload data to Arweave using the **Turbo SDK** for a streamlined up
     ```typescript
     // Get current balance
     const balance = await turbo.getBalance();
-    console.log(`Available credits: ${balance.controlledWinc} Winston Credits`);
+    console.log(`Available credits: ${balance.controlledWinc} winc`);
     ```
 
     ### Upload with Progress Tracking
@@ -18961,15 +19124,19 @@ Learn how to upload data to Arweave using the **Turbo SDK** for a streamlined up
 
 # Getting Started with Turbo (/build/upload/bundling-services)
 
-Upload data to Arweave using Turbo, a managed gateway service designed for reliability, scale, and ease of use. Turbo handles the infrastructure so you can focus on shipping.
+Upload data using Turbo, an ar.io gateway run by the ArDrive team. Turbo handles the infrastructure so you can focus on shipping.
 
 ## What is Turbo?
 
-Turbo is a managed ar.io gateway service that simplifies uploading data to Arweave. It abstracts away funding, performance tuning, and operational complexity, giving teams a fast, dependable path to permanent storage.
+Turbo is an ar.io gateway run by the ArDrive team. It serves permanent data like any ar.io gateway, and it adds paid uploads: it bundles your files into ANS-104 data items, issues the credits you pay with, and posts the data permanently to Arweave.
+
+**How the pieces fit.** [ar.io](/learn) is the network: gateways serve and index permanent data, ArNS names it, and anyone can run a gateway. Turbo is one of those gateways, at `turbo-gateway.com`, run by the ArDrive team with uploads and payments attached. [ArDrive](https://app.ardrive.io) is the app built on it. Arweave is the storage layer underneath, where the data ends up.
+
+So the part that makes Turbo different from a gateway you run yourself is not reading, which it does the same way: it is that Turbo accepts paid uploads, and carries the funding, performance tuning and operational complexity that come with them.
 
 Turbo supports flexible payment options, including fiat and major cryptocurrencies, and is built to handle high-throughput workloads with consistent performance. Whether you’re prototyping or running production systems, Turbo provides a reliable upload layer backed by enterprise-grade infrastructure.
 
-If you’re looking for a managed gateway service tailored to your use case — including custom limits, performance, or integration support — book a call to learn how we can get one set up for you: [Contact Us!](https://ar.io/contact)
+If you’re looking for a managed upload service tailored to your use case — including custom limits, performance, or integration support — book a call to learn how we can get one set up for you: [Contact Us!](https://ar.io/contact)
 
 ## Get Started
 
@@ -19023,7 +19190,7 @@ const fundResult = await turbo.topUpWithTokens({
 
 ```js
 const balance = await turbo.getBalance();
-console.log(`Balance: ${balance.winc} Winston Credits`);
+console.log(`Balance: ${balance.winc} winc`);
 ```
 
 ### Upload Your Data
@@ -19290,7 +19457,7 @@ There are multiple ways to upload data to Arweave. Each has its own attributes a
           Recommended
 
     }
-    description="Production-ready bundling service with enterprise features • Pay with credit cards, AR, ETH, SOL, MATIC • Free uploads under 105 KiB • Automatic retry & confirmation"
+    description="An ar.io gateway run by the ArDrive team: it serves data like any gateway, and adds paid uploads • Pay with credit cards, AR, ETH, SOL, MATIC • Free uploads under 105 KiB • Automatic retry & confirmation"
     href="/build/upload/bundling-services"
     icon={}
   />
@@ -19331,6 +19498,11 @@ const uploadResult = await turbo.uploadFile({
 });
 // Your file is now permanently stored!
 ```
+
+Adding uploads to a server that already exists, where a new dependency has to
+get past a review? [`turbo-upload`](/sdks/turbo-upload) does the signing and
+uploading with no dependencies and nothing else. The Turbo SDK is the right
+choice everywhere else.
 
 ## Organize Your Data
 
@@ -19603,7 +19775,7 @@ This makes HTML more readable and ensures links remain valid even if the hosting
 
 # Receipts (/build/upload/receipts)
 
-Turbo upload receipts provide a durable record of what was uploaded, who uploaded it, and what upload cost was assessed in Winston Credits (`winc`). They are useful for provenance, compliance, incident response, and operational debugging.
+Turbo upload receipts provide a durable record of what was uploaded, who uploaded it, and what upload cost was assessed in Turbo Credits (`winc`). They are useful for provenance, compliance, incident response, and operational debugging.
 
 ## What Are Turbo Receipts?
 
@@ -19651,7 +19823,7 @@ Regardless of flow, store receipt timestamps and your own sequence metadata so o
 | ----- | ------- | ----- |
 | `id` | Data item transaction ID | Primary key to join with your app records |
 | `owner` | Normalized address that signed/owns the data item | Useful for audit and policy checks |
-| `winc` | Upload cost measured in Winston Credits | Useful for billing and reporting. See [Paying for Uploads](/build/upload/turbo-credits) for unit and payment context |
+| `winc` | Upload cost measured in Turbo Credits | Useful for billing and reporting. See [Paying for Uploads](/build/upload/turbo-credits) for unit and payment context |
 | `dataCaches` | Caches that accepted the data item | Operational visibility for upload path |
 | `fastFinalityIndexes` | Fast finality indexes that accepted the data item | Useful for observability |
 | `timestamp` | Receipt creation time in milliseconds | Core field for chronology, ordering, and evidence of event time |
@@ -19704,7 +19876,7 @@ console.log("Stored Turbo receipt:", {
 
 ## Why Receipts Matter Across ar.io Use Cases
 
-| AR.IO Use Case | Receipt Value |
+| ar.io Use Case | Receipt Value |
 | -------------- | ------------- |
 | [File Storage](https://ar.io/use-cases/file-storage/) | Map internal file objects to immutable upload IDs and timestamped upload events |
 | [Websites & Apps](https://ar.io/use-cases/sites-and-apps/) | Track deployment artifacts and ordering of publish history over time |
@@ -19956,7 +20128,7 @@ import {
   Zap,
 } from "lucide-react";
 
-Data storage on Arweave is paid for in Arweave's native [AR](https://www.coingecko.com/en/coins/arweave) token — divisible to the "Winston" (10¹² per AR). Turbo makes paying for data storage on Arweave faster and even simpler via Turbo Credits.
+Data storage on Arweave is paid for in Arweave's native [AR](https://www.coingecko.com/en/coins/arweave) token, divisible to the "Winston" (10¹² per AR). Turbo makes paying for data storage on Arweave faster and even simpler via Turbo Credits.
 
 ## What are Turbo Credits?
 
@@ -19991,10 +20163,12 @@ Top up any address of a [supported wallet type](#supported-wallet-types) by payi
 | Network     | Tokens         |
 | ----------- | -------------- |
 | Arweave     | [AR](https://www.coingecko.com/en/coins/arweave)             |
-| Solana      | [ARIO](https://www.coingecko.com/en/coins/ar-io-network), [SOL](https://www.coingecko.com/en/coins/solana) |
-| Base        | [ARIO](https://basescan.org/token/0x138746adfA52909E5920def027f5a8dc1C7EfFb6), [ETH](https://www.coingecko.com/en/coins/ethereum), [USDC](https://basescan.org/token/0x833589fcd6edb6e08f4c7c32d4f71b54bda02913) |
+| Solana      | [ARIO](https://www.coingecko.com/en/coins/ar-io-network), [SOL](https://www.coingecko.com/en/coins/solana), [USDC](https://solscan.io/token/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v) |
+| Base        | [ETH](https://www.coingecko.com/en/coins/ethereum), [USDC](https://basescan.org/token/0x833589fcd6edb6e08f4c7c32d4f71b54bda02913) |
 | Ethereum    | [ETH](https://www.coingecko.com/en/coins/ethereum), [USDC](https://etherscan.io/token/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48)      |
-| Polygon     | [POL](https://www.coingecko.com/en/coins/polygon), [USDC](https://polygonscan.com/address/0x3c499c542cef5e3811e1192ce70d8cc03d5c3359)      |
+| Polygon     | [POL](https://www.coingecko.com/en/coins/polygon)      |
+
+ARIO is the one entry that differs by interface. The SDK, CLI and API accept it as a credit top up. In the ar.io Console it pays for ArNS names directly, which never touches credits, and the Console's top up screen offers only the tokens the connected wallet can fund credits with (`availableTokensForWallet`), which does not include ARIO.
 
 ### Supported Payment Wallets
 
@@ -20070,11 +20244,10 @@ Direct API integration is available at [payment.ardrive.io/api-docs](https://pay
 | **ETH (Base)**               | ✅        | ✅        | ✅        | ✅        | ❌          | ❌   |
 | **SOL**                      | ✅        | ✅        | ✅        | ✅        | ❌          | ❌   |
 | **POL**                      | ✅        | ✅        | ✅        | ✅        | ❌          | ❌   |
-| **ARIO (Solana)**            | ✅        | ✅        | ✅        | ✅        | ❌          | ❌   |
-| **ARIO (Base)**              | ✅        | ✅        | ✅        | ✅        | ❌          | ❌   |
+| **ARIO (Solana)**            | ✅        | ✅        | ✅        | names only  | ❌          | ❌   |
 | **USDC (L1)**                | ✅        | ✅        | ✅        | ✅        | ❌          | ❌   |
 | **USDC (Base)**              | ✅        | ✅        | ✅        | ✅        | ❌          | ✅   |
-| **USDC (Polygon)**           | ✅        | ✅        | ✅        | ✅        | ❌          | ❌   |
+| **USDC (Solana)**            | ✅        | ✅        | ✅        | ✅        | ❌          | ❌   |
 
 ## Just-in-Time Payments
 
@@ -20085,12 +20258,11 @@ JIT payments are available via the Turbo SDK, CLI, or direct HTTP API integratio
 | Token / Currency       | Network  | JIT Supported |
 | ---------------------- | -------- | ------------- |
 | ARIO                   | Solana   | ✅            |
-| ARIO                   | Base     | ✅            |
 | SOL                    | Solana   | ✅            |
+| USDC                   | Solana   | ✅            |
 | ETH                    | Base     | ✅            |
 | USDC                   | Base     | ✅            |
 | POL                    | Polygon  | ✅            |
-| USDC                   | Polygon  | ✅            |
 | AR                     | Arweave  | ❌            |
 | ETH                    | L1       | ❌            |
 | Fiat                   | Stripe   | ❌            |
@@ -20141,11 +20313,11 @@ Credits can be shared via the Console App at [console.ar.io/share](https://conso
 
 ## Using Credits to Buy ArNS Names
 
-Turbo Credits aren't just for uploads — they're also the payment medium for buying, extending and upgrading [ArNS](/learn/arns) names. This draws on the same credit balance as uploads, so no separate top-up is needed if you already hold credits.
+Turbo Credits are not only for uploads: they are also the payment medium for buying, extending and upgrading [ArNS](/learn/arns) names. This draws on the same credit balance as uploads, so no separate top-up is needed if you already hold credits.
 
-Buying a name mints the ANT (a Solana asset) that the name resolves to and registers the name against it, in one purchase. **You own that ANT from the moment it exists** — Turbo pays the Solana fees and rent but never takes custody, and your Solana balance can stay at zero throughout.
+Buying a name mints the ANT (a Solana asset) that the name resolves to and registers the name against it, in one purchase. **You own that ANT from the moment it exists.** Turbo pays the Solana fees and rent but never takes custody, and your Solana balance can stay at zero throughout.
 
-Buying is the one action that needs the owner's signature — once, ever:
+Buying is the one action that needs the owner's signature, once, ever:
 
 ```js
 
@@ -20154,7 +20326,7 @@ const turbo = TurboFactory.authenticated({ privateKey: payerKey });
 // The Solana wallet that will own the ANT. It signs once and never needs SOL.
 const owner = solanaOwnerSigner(bs58SolanaSecretKey);
 
-// Price it first — quote wincTotal, not winc
+// Price it first: quote wincTotal, not winc
 const price = await turbo.getArNSPriceForName({
   intent: "Buy-Name",
   name: "my-name",
@@ -20176,15 +20348,24 @@ Extending, upgrading and adding undernames need no signature at all. See the ded
 
 ## Pricing & Fees
 
-- Turbo top up fees cover the costs of managing infrastructure and, in the case of crypto-based top ups, token liquidity.
-- A small flat fee is applied per data item at upload time (currently **$0.00002**, i.e. **$0.02 per 1,000 items**) to cover per-item processing overhead. This is separate from and in addition to the byte-based storage cost; there is no percentage-based fee on spend.
-- Credits maintain a 1:1 peg of storage purchasing power as Arweave's data storage rates and token price fluctuate.
-- **Small uploads can be free.** Items up to **105 KiB** are eligible for the free tier, subject to a **10 MiB** lifetime allowance tracked per-wallet **and** per-subnet — an upload must fit under both, and the allowance never resets. Check a wallet's remaining free allowance with `turbo.getFreeStatus()` (below).
+Three charges, and nothing else: the **storage rate** for the bytes, a **per-item fee** for each item uploaded, and the **infrastructure fee** taken out of each top up. The [ar.io Console](https://console.ar.io/settings) shows all three live, with the same names.
 
-| Currency          | Top Up Fee Percentage |
-| ----------------- | --------------------- |
-| ARIO (Solana or Base) | NO FEE                |
-| All others        | 35%                 |
+### Infrastructure fee
+
+**It is taken out of what you pay, not added on top.** A $100 top up buys credits worth $65 at 35%, rather than costing $135. It covers the costs of managing infrastructure and, for crypto top ups, token liquidity. Spending credits carries no percentage fee: this one applies on the way in.
+
+| Currency       | Infrastructure fee      |
+| -------------- | ----------------------- |
+| ARIO (Solana)  | 25% of the amount paid  |
+| All others     | 35% of the amount paid  |
+
+**ARIO top ups carry a lower fee: 25% rather than 35%.** You keep 75% of an ARIO payment as credits against 65% for everything else, so the same money spent in ARIO buys about 15% more storage.
+
+### Storage rate and per-item fee
+
+- The **storage rate** is priced per byte and quoted per GiB. Credits maintain a 1:1 peg of storage purchasing power as Arweave's data storage rates and token price fluctuate.
+- The **per-item fee** is a flat charge for each data item, one per file, on top of the byte cost, covering per-item processing overhead. It is pegged in dollars at **$0.00002 per item**, i.e. **$0.02 per 1,000**, valued at AR's market price. The credits figure moves as AR does, so read it live from `perDataItemFeeWinc` in [`/v1/rates`](https://payment.ardrive.io/v1/rates), which is what the Console displays, and what every cost estimate there adds per file.
+- **Small uploads can be free.** Items up to **105 KiB** are eligible for the free tier, subject to a **10 MiB** lifetime allowance tracked per-wallet **and** per-subnet. An upload must fit under both, and the allowance never resets. Check a wallet's remaining free allowance with `turbo.getFreeStatus()` (below).
 
 ## Getting Started
 
@@ -20911,6 +21092,14 @@ After training proofs are anchored, continue to [Model and Decision Proofs](/bui
 
 # Glossary (/glossary)
 
+## ANS-104 Data Item
+
+A file packaged for bundled upload. Turbo signs your file as a data item and packs many of them into a single Arweave transaction. Each data item keeps its own id, so you can fetch it from any gateway exactly like a transaction.
+
+## ar.io
+
+A permanent cloud network: independent gateways serve, index and verify permanent data, and ArNS gives it names. Anyone can run a gateway and join.
+
 ## Ar.io Name System (ArNS)
 
 A decentralized naming system in the ar.io network that maps human-readable names to Arweave transaction IDs and application/content routes.
@@ -20918,6 +21107,26 @@ A decentralized naming system in the ar.io network that maps human-readable name
 ## Ar.io Name Token (ANT)
 
 An NFT on Solana associated with a registered ArNS name. ANT ownership controls name-level configuration such as records, undernames, and transfer operations.
+
+## ArDrive
+
+The app for storing and sharing files permanently, built on Turbo. ArDrive is the product for people who want a drive; these docs are for building your own upload and access paths.
+
+## ARIO
+
+The native token of the ar.io network, an SPL Token on Solana with 6 decimals (1 ARIO = 1,000,000 mARIO). It is used to stake and reward gateways, and to register and extend ArNS names. See [the ARIO token](/learn/token).
+
+## Arweave
+
+The storage layer underneath everything here. You pay once and the data persists, replicated across many nodes. Arweave stores the data; ar.io makes it fast to find, read and name.
+
+## Bundle
+
+An Arweave transaction, or a data item, whose data holds a set of other data items packed in the ANS-104 format. A bundle contains data items; it is not one of them. See [Bundling](#bundling).
+
+## Bundling
+
+Packing many data items into one Arweave transaction. Bundling is what makes small uploads cheap and quick to confirm, and it is what Turbo does with every upload it accepts.
 
 ## CPI (Cross-Program Invocation)
 
@@ -20927,9 +21136,17 @@ The mechanism by which Solana programs call into each other. The ar.io architect
 
 A permissionless actor (bot or user) that submits transactions to drive lazy protocol operations, including the epoch pipeline and other state advancement tasks. Any participant can crank if protocol conditions are met.
 
+## Data Item ID
+
+The id of a [data item](#ans-104-data-item), assigned when it is signed. A gateway can look up a data item by its data item id alone and resolve it to the root transaction that contains it.
+
 ## Epoch Pipeline
 
 The 6-step process for observation, reward calculation, and distribution each epoch: create_epoch → tally_weights → prescribe_epoch → save_observations → distribute_epoch → close_epoch.
+
+## Gateway
+
+An ar.io node that serves Arweave data over HTTP: it retrieves, caches and indexes data, resolves ArNS names, and exposes standard interfaces for the permaweb. Anyone can run one. Turbo is an ar.io gateway run by the ArDrive team, and it also accepts paid uploads. See [Gateways](/learn/gateways).
 
 ## Gateway Address Registry (GAR)
 
@@ -20951,6 +21168,10 @@ A standardized address format that ensures consistent representation across diff
 
 A gateway selected to evaluate peer gateways during an epoch. Observers test assigned ArNS resolutions and submit reports used by the protocol for performance evaluation and rewards.
 
+## Operations Address
+
+A second Solana address that a gateway operator authorizes to update the gateway's metadata and claim the ArNS gateway operator discount. It can't change stake, delegation settings, the observer address, or the operations address itself. See [Delegate gateway management](/build/run-a-gateway/manage/operations-address).
+
 ## Optimistic Indexing
 
 A data indexing strategy where new data is immediately made available for queries while verification processes continue in the background. This approach improves performance while maintaining data integrity through eventual consistency.
@@ -20958,6 +21179,10 @@ A data indexing strategy where new data is immediately made available for querie
 ## PDA (Program Derived Address)
 
 Deterministic Solana account addresses derived from a program ID and a set of seeds. The ar.io protocol uses PDAs extensively — for gateways, delegations, withdrawals, vaults, ArNS records, ANT configs, and more.
+
+## Permaweb
+
+The permanent web of files, applications and identities built on Arweave, served through ar.io gateways and addressed by transaction id or ArNS name.
 
 ## Program ID
 
@@ -20971,6 +21196,10 @@ A protocol-controlled ARIO token pool that accumulates relevant inflows (for exa
 
 A cryptographic key that can be shared publicly and is used to verify digital signatures or encrypt data. In the ar.io context, Solana public keys (Ed25519, base58-encoded) are used to identify wallet addresses and verify transactions.
 
+## Root Transaction
+
+The Arweave transaction that contains a data item, found by walking up through every bundle around it. A gateway resolves a data item's root transaction to serve and locate it.
+
 ## SPL Token
 
 Solana Program Library token standard. ARIO is implemented as an SPL Token on Solana, making it compatible with the full Solana wallet and DeFi ecosystem.
@@ -20979,17 +21208,29 @@ Solana Program Library token standard. ARIO is implemented as an SPL Token on So
 
 A signed unit of interaction with Solana containing one or more instructions. Instructions in a transaction are processed atomically: all succeed, or the transaction fails without applying state changes.
 
+## Turbo
+
+An ar.io gateway run by the ArDrive team. It serves permanent data like any [ar.io gateway](/learn/gateways) and adds paid uploads: it bundles your files into ANS-104 data items, issues the credits you pay with, and posts the data permanently to Arweave. See [Getting Started with Turbo](/build/upload/bundling-services).
+
+## Turbo Credits
+
+Prepaid upload balance, bought with a card or crypto and spent on uploads and ArNS names. Priced in [winc](#winc) and non-transferable. See [Paying for Uploads](/build/upload/turbo-credits).
+
 ## Vault
 
 A protocol-level token lock with a start time, optional end time, and token balance. Vaults are used to hold ARIO over time and may be revocable depending on how they were created.
 
+## Wayfinder
+
+A client library that chooses an ar.io gateway for each request and verifies that what comes back matches what was stored, so an app does not have to trust a single gateway. See [Wayfinder](/learn/wayfinder).
+
+## winc
+
+The unit Turbo Credits are counted in, as it appears in the Turbo API. Receipt and balance fields return amounts in `winc`. Not to be confused with Winston, the smallest unit of AR.
+
 ## Winston
 
 Winston is the smallest unit of Arweave's native AR token. One AR equals 10^12 Winston.
-
-## Winston Credits (winc)
-
-Winston Credits (`winc`) are the unit used by Turbo to represent upload purchasing power. In Turbo contexts, receipt and balance fields often return values in `winc`.
 
 # What are Bundles? (/learn/(introduction)/ans-104-bundles)
 
@@ -21164,7 +21405,7 @@ Connect with developers, gateway operators, and the ar.io team. Get help, share 
 
 ## Ar.io Protocol Architecture
 
-The ar.io protocol operates through four Solana programs (3+1) that work together via cross-program invocation (CPI). This architecture organizes protocol responsibilities into a coordinated set of programs with clear boundaries.
+The ar.io protocol operates through five Solana programs that work together via cross-program invocation (CPI). This architecture organizes protocol responsibilities into a coordinated set of programs with clear boundaries.
 
 For the deployed Solana mainnet program IDs and ARIO token mint, see [Mainnet Addresses](/learn/token#mainnet-addresses).
 
@@ -21199,21 +21440,35 @@ graph TD
         CTRL[Controllers]
     end
 
+    subgraph ESCROW["ario-ant-escrow"]
+        direction TB
+        ANT_ESC[ANT Escrow]
+        TOKEN_ESC[Token / Vault Escrow]
+        CLAIMS[Arweave + Ethereum Claims]
+    end
+
     CORE --> GAR
     CORE --> ARNS
     ARNS --> ANT
     ARNS -.->|gateway data| GAR
+    ESCROW -->|cpi: transfer/update ANT| MPL[Metaplex Core]
 
     classDef coreProgram fill:#e3f2fd
     classDef garProgram fill:#e8f5e8
     classDef arnsProgram fill:#fff3e0
     classDef antProgram fill:#f3e5f5
+    classDef escrowProgram fill:#fce4ec
+    classDef externalProgram fill:#eeeeee,stroke-dasharray: 5 5
 
     class BAL,VAULTS,PRIMARY coreProgram
     class GW_REG,STAKING,EPOCHS garProgram
     class NAME_REG,DEMAND,PRICING arnsProgram
     class NFT,RECORDS,CTRL antProgram
+    class ANT_ESC,TOKEN_ESC,CLAIMS escrowProgram
+    class MPL externalProgram
 ```
+
+`ario-ant-escrow` has no arrow to `ario-core`, `ario-gar`, or `ario-arns` above, and that is deliberate, not an omission: current `main` shows no CPI between them. Its only onchain call out is `invoke`/`invoke_signed` into Metaplex Core (`mpl_core_cpi.rs`, called from `deposit.rs`, `claim_arweave_attested.rs`, `claim_ethereum.rs`, `cancel.rs`, and `admin_purge_unclaimed.rs`) to move the escrowed ANT. It also calls `CpiContext`/`token::transfer` into the standard SPL Token program for liquid ARIO and vault transfers (`deposit_tokens.rs`, `deposit_vault.rs`, and their cancel/claim counterparts); that edge is not drawn, matching how this diagram never draws `ario-core`'s own SPL Token calls as a separate node either. Arweave claims are checked by instruction introspection of a sibling `Ed25519Program` instruction, and Ethereum claims by the `secp256k1_recover` syscall: neither is a CPI, so neither gets an edge.
 
 ## Programs
 
@@ -21261,6 +21516,16 @@ ANTs are [Metaplex Core](https://developers.metaplex.com/core) NFTs that represe
 - **Controllers**: Controllers can manage records without holding the NFT itself.
 - **Lazy Reconciliation**: When an ANT is transferred via a marketplace (outside the ar.io protocol), controllers are cleared on the next write operation, ensuring the new owner has full control.
 
+### ario-ant-escrow
+
+A trustless escrow that hands an ANT, liquid ARIO, or a time-locked vault to a recipient identified by an Arweave or Ethereum address, claimable once the recipient holds a Solana wallet. No off-chain authority or oracle decides a claim:
+
+- **ANT escrow**: Holds a Metaplex Core ANT NFT in a per-mint PDA until the named recipient claims it.
+- **Token and vault escrow**: Escrows liquid ARIO or a time-locked vault the same way, in a PDA per depositor and asset id.
+- **Claims**: An Arweave claim is attested off-chain, re-signed with Ed25519, then verified onchain; an Ethereum claim is verified onchain with `secp256k1_recover` and EIP-191; a vault claim uses instruction introspection that preserves the remaining lock.
+
+See the [Escrow SDK reference](/sdks/ar-io-sdk/escrow).
+
 ## State Model
 
 All protocol state is stored in Solana accounts using Program Derived Addresses (PDAs):
@@ -21283,6 +21548,8 @@ All protocol state is stored in Solana accounts using Program Derived Addresses 
 | AntConfig | ario-ant | `["ant_config", mint]` | ANT metadata and settings |
 | AntControllers | ario-ant | `["ant_controllers", mint]` | Controller list (max 10) |
 | AntRecord | ario-ant | `["ant_record", mint, undername_hash]` | DNS-like routing record |
+| EscrowAnt | ario-ant-escrow | `["escrow_ant", ant_mint]` | ANT held in escrow for a claimant |
+| EscrowToken | ario-ant-escrow | `["escrow_token" or "escrow_vault", depositor, asset_id]` | ARIO or vault held in escrow for a claimant |
 
 ## Security Model
 
@@ -21562,7 +21829,7 @@ Arweave can practically store unlimited data, from small files to entire digital
 
 - **Layer 1 Transactions**: Data is stored as 256 KiB chunks on the blockweave, replicated across many nodes. As more nodes join with standard hardware, storage capacity grows limitlessly.
 
-- **Bundling with [ar.io](https://ar.io) and Turbo**: Bundling packs multiple files into one transaction, reducing costs and congestion. Ar.io and Turbo (a Layer 2 tool) optimize this, enabling fast, cheap uploads of large datasets like websites.
+- **Bundling with [ar.io](https://ar.io) and Turbo**: Bundling packs multiple files into one transaction, reducing costs and congestion. Ar.io and Turbo optimize this, enabling fast, cheap uploads of large datasets like websites. Turbo is an ar.io gateway run by the ArDrive team, and it bundles your files before posting them to Arweave.
 
 ## What Arweave doesn't solve well? Access
 
@@ -21858,7 +22125,7 @@ For more detail, see [Returned Names](/learn/arns/returned-names).
 
 Gateway operators who demonstrate consistent, healthy participation in the network may be eligible for discounted ArNS interactions. This creates another incentive for gateways to provide reliable service while supporting ArNS usage.
 
-Discount eligibility requires a **Gateway Performance Ratio Weight (GPRW) of 0.9** and a **Tenure Weight (TW) of 1.0**. Eligible operators receive a **20% discount** on new ArNS name registrations, lease extensions, lease upgrades, and undername purchases.
+Discount eligibility requires a **Gateway Performance Ratio Weight (GPRW) of 0.9** and a **Tenure Weight (TW) of 1.0**. Eligible operators receive a **20% discount** on new ArNS name registrations, lease extensions, lease upgrades, and undername purchases. A gateway's [operations address](/build/run-a-gateway/manage/operations-address) can claim the same discount on the gateway's behalf.
 
 ## Next Steps
 
@@ -22402,6 +22669,15 @@ Once registered, a gateway can become eligible for network incentives, delegatio
 
 The registry has a maximum capacity of **3,000 gateways**. Each gateway requires a **20,000 ARIO** minimum network-join stake, and each gateway can have up to **10,000** unique delegated stakers.
 
+## Leaving the Registry
+
+A registered gateway is always in one of three states: **joined**, **leaving**, or **gone**.
+
+A gateway operator can leave voluntarily, and a gateway removed through [pruning](/learn/oip/pruning) leaves the same way:
+
+1. **Leaving**: The gateway stops being eligible for new rewards and enters a leave window of at least 90 days, during which any delegated stake on it still has to be withdrawn.
+2. **Gone**: Once the leave window has expired and all delegated stake has been claimed, a permissionless instruction closes the gateway's registry entry and frees its slot. A gone gateway has no registry entry left; its operator has to register again to rejoin.
+
 ## What the Registry Enables
 
 ### Discovery
@@ -22431,6 +22707,7 @@ The registry is the set of gateways that OIP can observe and evaluate. Registere
 - Registered gateways can participate in OIP, receive delegations, and become eligible for rewards.
 - Apps can use registry data to discover, filter, and route through gateways.
 - Poorly performing gateways can be pruned from the network after sustained failure.
+- A gateway moves from joined to leaving to gone as it exits the registry, freeing its slot once it is gone.
 
 ## Explore the Gateway Ecosystem
 
@@ -27507,6 +27784,8 @@ Calculates the expanded cost details for the interaction in question, e.g a 'Buy
 
 On Solana, the result also includes a `gasEstimate` — the total SOL (in lamports) the wallet needs to execute the intent: transaction fees (quoted from recent on-chain prioritization fees) plus rent-exempt deposits for the accounts the flow creates. For `Buy-Name` that covers both transactions (ANT spawn + buy) and the rent for the spawned asset/PDAs and the ArNS record; first-time buyers with no ACL accounts yet are quoted the ACL bootstrap rent as well (pass `fromAddress` so that check can be made). The fee side is a conservative upper bound: the write path tightens the compute-unit limit from a pre-send simulation, so the landed fee is usually lower.
 
+**Gateway operator discount (Solana).** ArNS purchases (`Buy-Name`, `Extend-Lease`, `Increase-Undername-Limit`, `Upgrade-Name`) are 20% cheaper when the payer is a gateway's operator — or, once the gateway is migrated, its operations address — and that gateway is joined, has run for at least 180 days, and passes at least 90% of epochs. Primary-name fees are never discounted. The quote and the purchase methods (`buyRecord`, `buyReturnedName`, `extendLease`, `increaseUndernameLimit`, `upgradeRecord`) apply the same rule: by default they use the payer's own gateway and add the discount only when it qualifies (the program rejects a purchase whose discount gateway does not qualify). An operations address names the gateway with `discountGatewayAddress` (its operator address); naming a gateway that does not qualify is an error. CLI: `--discount-gateway-address`.
+
 ```typescript
 const costDetails = await ario.getCostDetails({
   intent: "Buy-Name",
@@ -28087,7 +28366,6 @@ const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
 const { id: txId } = await ario.joinNetwork(
   {
     qty: new ARIOToken(10_000).toMARIO(), // minimum operator stake allowed
-    autoStake: true, // auto-stake operator rewards to the gateway
     allowDelegatedStaking: true, // allows delegated staking
     minDelegatedStake: new ARIOToken(100).toMARIO(), // minimum delegated stake allowed
     delegateRewardShareRatio: 10, // percentage of rewards to share with delegates (e.g. 10%)
@@ -28135,6 +28413,65 @@ const { id: txId } = await ario.updateGatewaySettings(
   // optional additional tags
   { tags: [{ name: "App-Name", value: "My-Awesome-App" }] },
 );
+```
+
+#### updateOperationsAddress()
+
+Authorises a second address to update the caller's gateway metadata (see `updateGatewayMetadata`) and to spend the gateway's ArNS discount. Staking, delegation settings and the operations address itself stay operator-only. Pass the operator's own address to revoke a delegation.
+
+A gateway that has not yet been migrated to schema 1.2.0 cannot hold an operations address; in that case `migrate_gateway` is added to the same transaction automatically.
+
+_Note: Solana-only, so it is on `SolanaARIOWriteable` rather than the cross-backend `ARIOWrite` type. Must be signed by the gateway operator._
+
+```typescript
+
+const ario = new SolanaARIOWriteable({ rpc, rpcSubscriptions, signer });
+const { id: txId } = await ario.updateOperationsAddress({
+  operationsAddress: "DeLegateAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+});
+```
+
+#### updateGatewayMetadata()
+
+Updates a gateway's `label`, `fqdn`, `port`, `protocol`, `properties` and/or `note`. Can be signed by the gateway operator, or by its operations address — in which case pass the operator as `gatewayAddress`. An operations address is only honoured once the gateway is at schema 1.2.0.
+
+_Note: Solana-only (`SolanaARIOWriteable`)._
+
+```typescript
+// signed by the gateway's operations address
+const ario = new SolanaARIOWriteable({ rpc, rpcSubscriptions, signer });
+const { id: txId } = await ario.updateGatewayMetadata({
+  gatewayAddress: "GatewayAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+  fqdn: "gateway.example.com",
+  port: 443,
+});
+```
+
+When reading gateways, `operationsAddress` is only present for gateways at schema 1.2.0 or later; below that the program ignores the field and only the operator can act.
+
+#### migrateGateway() / `migrateGateways({ gatewayAddresses?, batchSize? })`
+
+Migrates Gateway accounts to schema 1.2.0 (ADR-0030). Permissionless — the signer pays a small rent top-up (32 bytes per gateway). `migrateGateways` with no `gatewayAddresses` migrates every gateway still below 1.2.0 (see `getUnmigratedGatewayAddresses()`), 8 per transaction by default, and stops at the first failed batch.
+
+_Note: Solana-only (`SolanaARIOWriteable`)._
+
+```typescript
+const ario = new SolanaARIOWriteable({ rpc, rpcSubscriptions, signer });
+const pending = await ario.getUnmigratedGatewayAddresses();
+const { migrated, signatures } = await ario.migrateGateways();
+```
+
+#### transferEpochSettingsAuthority()
+
+Hands `EpochSettings.authority` — the key for epoch admin instructions — to a new address, such as a multisig (ADR-0031). Must be signed by the current authority.
+
+_Note: Solana-only (`SolanaARIOWriteable`)._
+
+```typescript
+const ario = new SolanaARIOWriteable({ rpc, rpcSubscriptions, signer });
+const { id: txId } = await ario.transferEpochSettingsAuthority({
+  newAuthority: "MuLtisigAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+});
 ```
 
 #### increaseDelegateStake()
@@ -30241,7 +30578,7 @@ Build powerful applications with our comprehensive suite of SDKs designed for th
 
   }
     title="Upload data with the Turbo SDK"
-    description="High-performance data upload service for Arweave with instant confirmation and transparent pricing"
+    description="TypeScript SDK for Turbo, an ar.io gateway run by the ArDrive team"
     href="/sdks/turbo-sdk"
   />
   }
@@ -30259,11 +30596,12 @@ Build powerful applications with our comprehensive suite of SDKs designed for th
 
 Each SDK serves a specific purpose in the ar.io ecosystem:
 
-- **Turbo SDK** - For applications that need fast, reliable data uploads to Arweave
-- **ar.io SDK** - For interacting with ar.io Solana programs and services  
+- **Turbo SDK** - The client for Turbo, an ar.io gateway run by the ArDrive team
+- **turbo-upload** - The same uploads with no dependencies, for adding Turbo to a server that already exists
+- **ar.io SDK** - For ArNS names, ANT contracts and gateway data on the ar.io network  
 - **Wayfinder SDK** - For decentralized data access with built-in verification and gateway routing
 
-All SDKs are available for both Node.js and browser environments, with TypeScript support included.
+All of them ship TypeScript types. Every one runs in both Node.js and the browser except `turbo-upload`, which is server-side only: it signs with a raw Arweave key, and that does not belong in a browser.
 
 ## Next Steps
 
@@ -30408,7 +30746,7 @@ const uploadResult = await turbo.uploadFile({
 
 ##### Using fileStreamFactory` and `fileSizeFactory`
 
-Note: The provided `fileStreamFactory` should produce a NEW file data stream each time it is invoked. The `fileSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload.
+Note: The provided `fileStreamFactory` should produce a NEW file data stream each time it is invoked. The SDK calls it again for every retry, and a stream can be read only once. In the browser, pass `() => file.stream()` rather than a stream you created ahead of time; a factory that returns one stream instance fails on the first retry. The `fileSizeFactory` is a function that returns the size of the file. The `signal` is an optional [AbortSignal] that can be used to cancel the upload or timeout the request. `dataItemOpts` is an optional object that can be used to configure tags, target, and anchor for the data item upload.
 
 ```typescript
 const filePath = path.join(__dirname, './my-unsigned-file.txt');
@@ -30459,11 +30797,11 @@ With the upload methods, you can choose to Top Up with selected crypto token on 
 
 This is done by providing the `OnDemandFunding` class to the `fundingMode` parameter on upload methods. The `maxTokenAmount` (optional) is the maximum amount of tokens in the token type's smallest unit value (e.g: Winston for arweave token type) to fund the wallet with. The `topUpBufferMultiplier` (optional) is the multiplier to apply to the estimated top-up amount to avoid underpayment during on-demand top-ups due to price fluctuations on longer uploads. Defaults to 1.1, meaning a 10% buffer.
 
-Note: On demand API currently only available for $ARIO (`ario`), $SOL (`solana`), $ETH on Base Network (`base-eth`) and $USDC on Base Network (`base-usdc`) token types.
+Note: On demand API currently only available for $ARIO (`ario`), $SOL (`solana`), $ETH on Base Network (`base-eth`), $USDC on Base Network (`base-usdc`) and $USDC on Solana (`solana-usdc`) token types.
 
 ```typescript
 const turbo = TurboFactory.authenticated({
-  signer: arweaveSignerWithARIO,
+  privateKey: bs58.encode(secretKey), // a Solana key holding $ARIO
   token: 'ario',
 });
 await turbo.upload({
@@ -30479,6 +30817,14 @@ await turbo.upload({
 
 Another method of uploading files is via the x402 protocol. This method is optimized for agent workflows and allows for direct uploads to Arweave gateways that support the x402 protocol using an EVM wallet and base-usdc token type.
 
+> **Note:** x402 uploads need the optional peer dependency `x402-fetch`, which keeps its dependency tree out of installs that pay with credits:
+>
+> ```shell
+> npm install x402-fetch
+> ```
+>
+> Without it, credit-paid uploads and the x402 price routes work as usual, and an x402 upload fails before signing with a message naming this install. Browser consumers of the prebuilt bundle resolve `x402-fetch` themselves, through their bundler or an import map, because the bundle leaves it external.
+
 ```typescript
 const turbo = TurboFactory.authenticated({
   signer: ethereumSignerWithBaseUSDC,
@@ -30489,6 +30835,49 @@ await turbo.uploadFile({
   fundingMode: new X402Funding({ maxMUSDCAmount: 1_000_000 }), // Max 1 USDC. Opt out if too expensive
 });
 ```
+
+Large items are uploaded in chunks and paid for when the upload is created, so
+the payload is never sent just to discover its price. Smaller items go in a
+single request, which is buffered in memory so its length can be declared — the
+service prices an x402 upload from `Content-Length`, and a streamed body has
+none. The service URL must be HTTPS: an x402 authorization is a bearer
+credential, so the SDK refuses to send one over cleartext. Loopback is the
+exception — `localhost`, `127.0.0.1` and `::1` are allowed over plain HTTP, so
+local development against a bundler on your own machine still works.
+
+#### Pricing an x402 Upload Before Sending It
+
+`getX402PriceForDataItem` prices a signed data item from its byte count, so you
+can learn the cost without transmitting the payload. Without it the only way to
+get a price is to POST the data and read the 402 challenge.
+
+```typescript
+const turbo = TurboFactory.unauthenticated({ token: 'base-usdc' });
+
+const quote = await turbo.getX402PriceForDataItem({
+  byteCount: signedDataItemByteCount, // the SIGNED item, not the payload inside it
+});
+console.log(quote.usdcAmount); // amount to pay, in USDC's smallest unit
+```
+
+`getX402PriceForRawData` prices raw data that Turbo will wrap into a data item
+itself, and reports the wrapping overhead — a data item is larger than its
+payload by its header, signature and tags, which a caller cannot compute.
+
+```typescript
+const quote = await turbo.getX402PriceForRawData({
+  byteCount: myRawData.byteLength,
+  tagCount: 3, // tags you intend to attach; they change the overhead
+  contentType: 'image/png',
+});
+console.log(quote.overhead, quote.estimatedDataItemSize);
+```
+
+Both take an optional `network`, defaulting to `base`. **This is the x402
+network, not the SDK token type**: the route builds its token as
+`usdc-{network}`, so `base-usdc` is accepted on mainnet only because the
+network there is literally `base`. Against a testnet service, pass
+`network: 'base-sepolia'`.
 
 #### Raw x402 Data Uploads
 
@@ -30638,6 +31027,8 @@ const { manifest, fileResponses, manifestResponse } = await turbo.uploadFolder({
 ```
 
 ##### Incremental Folder Uploads
+
+A runnable version of everything below is in [`examples/folder-index`](examples/folder-index/index.mjs): it deploys the same folder three times and prints what each run uploaded and reused.
 
 An Arweave upload is permanent, so paying twice for byte identical files buys
 nothing. Pass a `folderIndex` and `uploadFolder` hashes every file, asks the
@@ -30830,7 +31221,7 @@ Tops up the connected wallet with Credits by submitting a payment transaction fo
 
 - The `tokenAmount` is the amount of tokens in the token type's smallest unit value (e.g: Winston for arweave token type) to fund the wallet with.
 - The `feeMultiplier` (optional) is the multiplier to apply to the reward for the transaction to modify its chances of being mined. Credits will be added to the wallet balance after the transaction is confirmed on the given blockchain. Defaults to 1.0, meaning no multiplier.
-- The `turboCreditDestinationAddress` (optional) is the native address to credit the funds to. If not provided, the connected wallet's native address will be used. Note: Not available for KYVE token type.
+- The `turboCreditDestinationAddress` (optional) is the native address to credit the funds to. If not provided, the connected wallet's native address will be used.
 
 ##### Arweave (AR) Crypto Top Up
 
@@ -30840,14 +31231,19 @@ const turbo = TurboFactory.authenticated({ signer, token: 'arweave' });
 const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
   tokenAmount: WinstonToTokenAmount(100_000_000), // 0.0001 AR
   feeMultiplier: 1.1, // 10% increase in reward for improved mining chances
-  turboCreditDestinationAddress: '0xabc...123', // Any custom EVM / SOL / AR / KYVE native destination address
+  turboCreditDestinationAddress: '0xabc...123', // Any custom EVM / SOL / AR native destination address
 });
 ```
 
 ##### AR.IO Network (ARIO) Crypto Top Up
 
+$ARIO is an SPL token on Solana, so pay with a Solana key. Without a `turboCreditDestinationAddress`, the credits go to the account of that key's base58 public key: the same account `getBalance()` reads and uploads signed by that key pay from.
+
 ```typescript
-const turbo = TurboFactory.authenticated({ signer, token: 'ario' });
+const turbo = TurboFactory.authenticated({
+  privateKey: bs58.encode(secretKey),
+  token: 'ario',
+});
 
 const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
   tokenAmount: ARIOToTokenAmount(100), // 100 $ARIO
@@ -30880,6 +31276,36 @@ const { winc, status, id, ...fundResult } = await TurboFactory.authenticated({
   token: 'polygon-usdc',
 }).topUpWithTokens({
   tokenAmount: USDCToTokenAmount(1), // 1 USDC
+});
+
+// USDC (SPL) on Solana — signed with a SOLANA wallet, not an EVM one. The
+// payment is an SPL transfer into Turbo's associated token account, so the
+// payer just needs USDC plus a little SOL for fees.
+const { winc, status, id, ...fundResult } = await TurboFactory.authenticated({
+  privateKey: bs58.encode(secretKey),
+  token: 'solana-usdc',
+}).topUpWithTokens({
+  tokenAmount: USDCToTokenAmount(1), // 1 USDC
+});
+```
+
+The mint for `solana-usdc` is chosen from the RPC you point at: a `gatewayUrl`
+whose host contains `devnet` uses Circle's devnet USDC, otherwise mainnet USDC.
+That is a heuristic — if you use a **private or paid devnet RPC** whose hostname
+does not say `devnet`, name the mint explicitly, or you will sign a transfer of
+the wrong mint:
+
+```typescript
+
+const gatewayUrl = 'https://my-rpc.example.com/\';
+const turbo = TurboFactory.authenticated({
+  privateKey: bs58.encode(secretKey),
+  token: 'solana-usdc',
+  gatewayUrl,
+  tokenTools: new SolanaUsdcToken({
+    gatewayUrl,
+    mintAddress: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU', // devnet USDC
+  }),
 });
 ```
 
@@ -30920,16 +31346,6 @@ const turbo = TurboFactory.authenticated({ signer, token: 'solana' });
 
 const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
   tokenAmount: SOLToTokenAmount(0.00001), // 0.00001 SOL
-});
-```
-
-##### KYVE Crypto Top Up
-
-```typescript
-const turbo = TurboFactory.authenticated({ signer, token: 'kyve' });
-
-const { winc, status, id, ...fundResult } = await turbo.topUpWithTokens({
-  tokenAmount: KYVEToTokenAmount(0.00001), // 0.00001 KYVE
 });
 ```
 
@@ -31226,17 +31642,6 @@ const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
 });
 ```
 
-##### KYVE Fiat Top Up
-
-```typescript
-const turbo = TurboFactory.unauthenticated({ token: 'kyve' });
-
-const { url, winc, paymentAmount } = await turbo.createCheckoutSession({
-  amount: USD(10.0), // $10.00 USD
-  owner: publicKyveAddress,
-});
-```
-
 #### submitFundTransaction()
 
 Submits the transaction ID of a funding transaction to Turbo Payment Service for top up processing. The `txId` is the transaction ID of the transaction to be submitted.
@@ -31394,6 +31799,59 @@ await turbo.transferArNSAnt({ antId, owner, target: newOwnerAddress });
 | `extendArNSLease` / `upgradeArNSName` / `increaseArNSUndernameLimit`                                               | yes — ARIO purchase                  | no                          |
 | `setArNSRecord` / `removeArNSRecord` / `setArNSRecordMetadata` / `removeArNSRecordMetadata` / `transferArNSRecord` | yes — small flat/derived margin      | only after you revoke Turbo |
 | `addArNSController` / `removeArNSController` / `transferArNSAnt`                                                   | yes — small flat/derived margin      | yes                         |
+
+#### Point the name at your content while you buy it
+
+Pass `antState` and the ANT's opening record is written by the
+`ario_ant::initialize` that runs inside the transaction you already sign — free
+and atomic. No second action, no second signature, no second debit. Without it a
+fresh name resolves to the AR.IO logo, which is the on-chain default.
+
+```typescript
+await turbo.buyArNSName({
+  name: 'my-name',
+  owner,
+  type: 'permabuy',
+  antState: {
+    transactionId: '\', // the root `@` target
+    targetProtocol: 0, // 0 = Arweave (default), 1 = IPFS CID
+    ticker: 'MYSITE',
+  },
+});
+```
+
+`antState` is accepted on `buyArNSName` only — the service rejects it on every
+other action. Note it is nested: a **top-level** `transactionId` on a buy is a
+400 by design, because that spelling means the set-record target and silently
+accepting it would point the name at the logo while the caller believed
+otherwise.
+
+**Mind the size budget.** The sponsored mint is ONE Solana transaction against
+the 1232-byte packet limit, shared with Turbo's fee-payer transfer and an
+`add_controller` grant. At a worst-case 51-character name only ~71 bytes are
+spare:
+
+| Fields                                      | Cost      | Fits?  |
+| ------------------------------------------- | --------- | ------ |
+| `transactionId` + `targetProtocol`          | ~1 byte   | always |
+| `ticker` (16) + `logo` (43)                 | ~65 bytes | yes    |
+| `description` (512), or a full keyword list | —         | **no** |
+
+The budget is dynamic — a shorter name buys headroom — so this SDK imposes no
+client-side cap. The server measures the real transaction and returns a 400
+naming Solana's 1232-byte limit _before_ you are handed anything to sign, with
+the credit debit refunded inline. That error is deterministic: do not retry it,
+and surface the server's message rather than replacing it, because it names
+which fields to drop.
+
+Field limits, all rejected at the service edge before any debit: `description`
+≤ 512 characters, `keywords` ≤ 16 entries, and `logo` (plus `transactionId`
+when `targetProtocol` is 0 or unset) must be 43-character Arweave ids. When
+`targetProtocol` is 1 the target is an IPFS CID and is not shape-checked as an
+Arweave id.
+
+See [`ARNS_ACTIONS_API.md#buy-name-takes-the-ants-opening-state](https://github.com/ar-io/ar-io-bundler/blob/main/docs/architecture/ARNS_ACTIONS_API.md#buy-name-takes-the-ants-opening-state)
+in `ar-io/ar-io-bundler` for the measured byte table.
 
 Every action costs credits — gas sponsorship was never meant to be _free_
 sponsorship. The four purchase actions charge the ARIO cost (plus, for
@@ -31671,27 +32129,6 @@ const turbo = TurboFactory.authenticated({
 });
 ```
 
-# KYVE (/sdks/turbo-sdk/(signers)/kyve)
-
-#### KYVE Private Key
-
-```typescript
-const turbo = TurboFactory.authenticated({
-  privateKey: kyveHexadecimalPrivateKey,
-  token: 'kyve',
-});
-```
-
-#### KYVE Mnemonic
-
-```typescript
-
-const turbo = TurboFactory.authenticated({
-  privateKey: privateKeyFromKyveMnemonic(mnemonic),
-  token: 'kyve',
-});
-```
-
 # Solana (/sdks/turbo-sdk/(signers)/solana)
 
 #### HexSolanaSigner
@@ -31718,6 +32155,28 @@ const turbo = TurboFactory.authenticated({
   token: 'solana',
 });
 ```
+
+# Dependency advisories (/sdks/turbo-sdk/dependency-advisories)
+
+A clean install reports advisories from transitive dependencies, none from this package's own code. The list moves as those dependencies publish, so run `npm audit` for the current one.
+
+Three critical advisories come from `elliptic`, which reaches the tree through `@dha-team/arbundles` and its ethers v5 dependencies, along with a high advisory in `secp256k1`. Both clear with a package manager override, measured as three criticals to zero:
+
+```json
+{
+  "overrides": {
+    "elliptic": "6.6.1",
+    "secp256k1": "5.0.1"
+  }
+}
+```
+
+Yarn reads the same pinning under `resolutions`.
+
+Two notes on what the remaining advisories mean here:
+
+- The one `ws` copy inside an advisory range, `7.4.6`, sits under `@ethersproject/providers`. Its WebSocket provider is never instantiated by this SDK.
+- `npm audit fix --force` offers to downgrade this package to 1.13.0. That is npm giving up inside the version ranges, not a fix.
 
 # Turbo SDK (/sdks/turbo-sdk)
 
@@ -31938,6 +32397,100 @@ The Turbo CLI provides the following commands to manage Credit Share Approvals:
 - `paidBy: --paid-by `: Upload commands now accept '--paid-by', an array of wallet addresses that have provided credit share approvals to the user from which to pay, in the order provided and as necessary, for the upload.
 - `--ignore-approvals`: Ignore all Credit Share Approvals and only use the signer's balance.
 - `--use-signer-balance-first`: Use the signer's balance first before using Credit Share Approvals.
+
+# turbo-upload (/sdks/turbo-upload)
+
+**For AI and LLM users**: Access the complete turbo-upload documentation in plain text format at{" "}
+  llm.txt for easy
+  consumption by AI agents and language models. See [AI Agents & LLMs](/build/agents) for the full
+  agent toolkit.
+
+`turbo-upload` signs ANS-104 data items with an Arweave JWK or a Solana key and uploads them to Turbo. That is all it does, and it has no dependencies.
+
+## Which One To Use
+
+**Start with the [Turbo SDK](/sdks/turbo-sdk).** It is the full client and the right choice for most things. Reach for `turbo-upload` when the size of a new dependency decides whether your change gets merged.
+
+| | [Turbo SDK](/sdks/turbo-sdk) | turbo-upload |
+|---|---|---|
+| Keys | Arweave, Solana, Ethereum, KYVE, Polygon | Arweave JWK or Solana key |
+| Runs in | Node and the browser | Node only |
+| Does | upload, payments, credits, folders, CLI, ArNS | sign and upload |
+| Installed on its own | 784 lockfile entries, 895 MB | 1 entry, 460 KB |
+
+Measured on 2026-09-11 against `@ardrive/turbo-sdk@1.43.0` and `@ardrive/turbo-upload@0.3.0`, installing each into an empty project. Re-run it rather than trusting the table.
+
+The two share no state, so having both installed is fine.
+
+## Quick Start
+
+    ### Install
+
+    ```npm
+    npm install @ardrive/turbo-upload
+    ```
+
+    ### Upload
+
+    ```javascript
+    
+    // .testnet() is free and nothing it writes is permanent.
+    // .production() is mainnet: permanent, public, paid from this wallet.
+    const client = TurboUpload.testnet({ jwk: JSON.parse(process.env.ARWEAVE_JWK) });
+
+    const { id, winc } = await client.upload({
+      data: Buffer.from("hello permanence"),
+      tags: [{ name: "Content-Type", value: "text/plain" }],
+    });
+    ```
+
+Read it back from any gateway at `/`, so retrieval never depends on the service you uploaded through. [Wayfinder](/sdks/wayfinder) handles gateway choice and verification for you.
+
+## Solana Keys
+
+```javascript
+
+const client = TurboUpload.production({
+  jwk: process.env.SOLANA_SECRET_KEY,
+  token: "solana",
+});
+```
+
+Takes any form a Solana user holds: a base58 secret key as Phantom exports it, the JSON array `solana-keygen` writes, raw 64 bytes, or a bare 32-byte seed. `client.address` is the base58 Solana address.
+
+This is **ANS-104 signature type 4**, the same type the Turbo SDK uses for `token: "solana"`, so both produce identical ids for identical content.
+
+A 64-byte key carries its own public key, and that half is checked rather than trusted. A key whose halves disagree is refused when the client is constructed, because signing with one produces items nothing can verify and you find out after paying.
+
+## What Gets Written Wrong
+
+The rest of the API behaves as you would expect. These do not.
+
+- **Signing twice charges twice.** RSA-PSS uses a fresh random salt each time, so the same payload signed twice has a different id. `upload()` signs internally, so `sign()` then `upload()` charges for two items. Use `sign()` then `uploadSigned(item)`, and record `item.idB64Url`, which is the string form.
+- **`target` and `anchor` look alike and are not.** Adjacent 32-byte fields: `target` is base64url that decodes to 32 bytes, `anchor` is 32 raw bytes. A 43-character base64url anchor throws.
+- **Production is the default.** A bare `new TurboUpload({ jwk })` writes to mainnet, permanently, paid.
+- **An unrecognised option throws** rather than being ignored, and the error names the key you meant.
+
+  Do not spread `PRODUCTION` or `TESTNET` into the constructor. Those records also carry `name` and
+  `gatewayUrl`, which are not constructor options. Use `TurboUpload.production()` and
+  `TurboUpload.testnet()`.
+
+## Endpoints
+
+| | upload | payment | gateway |
+|---|---|---|---|
+| `PRODUCTION` | `https://upload.ardrive.io` | `https://payment.ardrive.io` | `https://turbo-gateway.com` |
+| `TESTNET` | `https://upload.services.ar-io.dev` | `https://payment.services.ar-io.dev` | `https://ar-io.dev` |
+
+Exported as constants. Import `PRODUCTION` or `TESTNET` rather than typing a hostname: a near-miss on a testnet host can resolve to something that answers `200` with HTML, which fails much less obviously than a bad hostname should.
+
+## Requirements
+
+Node 18.17 or later, tested on 18.17, 18, 20, 22 and 24. Server-side only, because a raw Arweave key does not belong in a browser. Published with npm provenance.
+
+Every error extends `TurboError`. Catch `TurboPaymentError` separately: it means the wallet cannot pay, and retrying never helps.
+
+## Next Steps
 
 # Wayfinder SDK's (/sdks/wayfinder)
 
