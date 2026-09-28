@@ -363,7 +363,8 @@ The default public Solana RPC is rate-limited and may block `getProgramAccounts`
 | `RATE_LIMITER_IP_REFILL_PER_SEC`          | number  | `20`      | IP bucket refill rate per second    |
 | `RATE_LIMITER_RESOURCE_TOKENS_PER_BUCKET` | number  | `1000000` | Resource bucket token capacity      |
 | `RATE_LIMITER_RESOURCE_REFILL_PER_SEC`    | number  | `100`     | Resource bucket refill rate         |
-| `RATE_LIMITER_IPS_AND_CIDRS_ALLOWLIST`    | string  | -         | Comma-separated IP/CIDR allowlist   |
+| `RATE_LIMITER_IPS_AND_CIDRS_ALLOWLIST`    | string  | -         | Comma-separated IP/CIDR allowlist, exempt from rate limits and x402. Matched against the client address only |
+| `TRUSTED_PROXIES`                         | string  | loopback, private, CGNAT and link-local ranges | Proxies (IPs/CIDRs) whose `X-Forwarded-For` and `X-Real-IP` are believed when working out the client address. Add a CDN's or public load balancer's ranges when one is in front; `none` trusts no proxy. See [x402 setup](/build/run-a-gateway/manage/x402-setup) |
 | `RATE_LIMITER_ARNS_ALLOWLIST`             | string  | -         | Comma-separated ArNS allowlist      |
 
 ### x402 Payment Protocol

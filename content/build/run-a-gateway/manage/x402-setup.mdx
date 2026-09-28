@@ -310,6 +310,34 @@ RATE_LIMITER_IPS_AND_CIDRS_ALLOWLIST=192.168.1.100,10.0.0.50
 RATE_LIMITER_ARNS_ALLOWLIST=trusted-app,premium-service
 ```
 
+An allowlisted client skips both rate limits and payment. Only the client's own address counts, never other addresses in its request headers.
+
+</Step>
+
+<Step>
+### Tell the Gateway Which Proxies to Trust
+
+Rate limits, payment credit and the IP allowlist all use the client's address. A client can write anything in `X-Forwarded-For`, so the gateway believes that header (and `X-Real-IP`) only from proxies in `TRUSTED_PROXIES`. Behind one, the client is the nearest `X-Forwarded-For` address that is not itself a trusted proxy, reading from the right: the address the proxy recorded, never one the client wrote.
+
+The default trusts loopback, private, carrier-grade NAT and link-local addresses. That covers Envoy on the Docker network and NGINX or an internal load balancer on the same host or private network, so most gateways need to change nothing.
+
+<Callout type="warning">
+  **Release Requirement**: `TRUSTED_PROXIES` arrives with Release 84. Upgrade the Envoy image together with core: from that release Envoy appends the address that connected to it, so a client reaching port 3000 directly cannot choose its address.
+</Callout>
+
+Change it when something in front is on a public address:
+
+```bash
+# Behind a CDN (Cloudflare, say) or an internet-facing load balancer: add its
+# published ranges, keeping the defaults if NGINX sits in between
+TRUSTED_PROXIES=127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,100.64.0.0/10,169.254.0.0/16,::1/128,fc00::/7,fe80::/10,<the CDN's ranges>
+
+# Nothing in front at all: believe no proxy header
+TRUSTED_PROXIES=none
+```
+
+Without the CDN's ranges, the CDN's own address is taken as every visitor's, and they all share one rate-limit bucket. A proxy on another public host needs its address added the same way. A malformed entry stops the gateway at startup.
+
 </Step>
 
 <Step>
