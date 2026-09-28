@@ -129,7 +129,33 @@ async function fetchFile(gateway, file) {
 }
 ```
 
-Range requests are supported, which is how a large file resumes. A `503` with `Retry-After` means the publisher is part way through replacing a band: fetch the publication again after the delay.
+Range requests are supported, which is how a large file resumes. Peers seeding a band over BitTorrent are not metered; see [Bands as torrents](#bands-as-torrents). A `503` with `Retry-After` means the publisher is part way through replacing a band: fetch the publication again after the delay.
+
+## Bands as torrents
+
+A publisher that runs a torrent engine adds an optional `torrent` entry to each band it seeds:
+
+```json
+"torrent": {
+  "infohashV1": "<40 hex characters>",
+  "infohashV2": "<64 hex characters>",
+  "magnet": "magnet:?xt=urn:btih:…",
+  "torrentUrl": "/ar-io/indexes/torrents/<infohashV1>.torrent"
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `infohashV1` | The v1 infohash, 40 hex characters |
+| `infohashV2` | The v2 infohash, 64 hex characters. Torrents are hybrid v1 + v2 |
+| `magnet` | A magnet link for the torrent |
+| `torrentUrl` | Where the `.torrent` file is served. On an ar.io gateway it is addressed by the v1 infohash, so a band rebuilt under the same id gets a new URL |
+
+The entry is absent when the publisher runs no engine; the HTTP routes always work. The torrent route can answer `404` until the publisher has built a band's torrent, which is normal.
+
+**The torrent name** is derived from content, not the band id: the first 16 hex characters of the SHA-256 over one line per file, `<name>\0<size>\0<sha256 hex>\n`, with files in bytewise name order. So publishers of the same bytes share one infohash and one swarm. It is also the `<torrent name>` in the WebSeed route, `/ar-io/indexes/webseed/<torrent name>/<file>`, which serves band files to torrent clients and is metered like the blob route.
+
+**Only the info dictionary is signed.** The infohashes cover the torrent's info dictionary (file names, sizes and piece hashes) and nothing else. Trackers and WebSeeds in a `.torrent` file are outside it and unsigned. The gateway's own subscriber checks a `.torrent` against the signed infohashes, checks that its file list is exactly the band's signed files and sizes (plus BEP 47 pad files), drops every WebSeed it names, and hashes every downloaded file against its signed SHA-256, as over HTTP. A client of its own should do the same.
 
 ## Look up one ID
 

@@ -656,6 +656,29 @@ location ^~ /ar-io/indexes {
   this block on both of its nodes.
 </Callout>
 
+### Torrent routes
+
+A gateway that publishes over BitTorrent serves two more routes. Both live under `/ar-io/indexes`, so the block above already covers them, and so do any pin or cache rules you have for that prefix:
+
+| Route | What it serves | `Cache-Control` on success |
+| --- | --- | --- |
+| `/ar-io/indexes/torrents/<v1 infohash>.torrent` | A band's `.torrent` file. Not metered | `public, max-age=86400` |
+| `/ar-io/indexes/webseed/<torrent name>/<file>` | A band file for torrent clients (the WebSeed). Metered like the blob route | As the blob route: `private` when metered, else `public`, `max-age=31536000, immutable` |
+
+Errors from both are `no-store`, as for every index route.
+
+The tracker is not a gateway route: it runs in the sidecar, on its own port (6969). To serve it through NGINX or a load balancer instead of directly, route `/announce` to the signing node's tracker port, uncached, forward the client address, and list the proxy in `INDEX_SWARM_TRACKER_TRUSTED_PROXIES`:
+
+```nginx
+location = /announce {
+    proxy_pass http://<signing node>:6969;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_cache off;
+}
+```
+
+See [Publishing from a fleet](/build/run-a-gateway/manage/index-sharing#publishing-from-a-fleet).
+
 ## TTL Summary
 
 | Route | Cache Zone | 200 TTL | 404 TTL | Notes |
@@ -674,6 +697,7 @@ location ^~ /ar-io/indexes {
 | `/wallet/`, `/price/` | api_cache | 30s | 15s | Volatile data |
 | `/` (catch-all) | dynamic | 300s | 30s | ArNS or API cache |
 | `/graphql`, `/tx` POST, `/chunk` POST | none | - | - | Never cached |
+| `/ar-io/indexes` | none | - | - | [Index Sharing](#index-sharing); the gateway sets `Cache-Control` |
 
 ## Content Moderation & Cache Purging
 

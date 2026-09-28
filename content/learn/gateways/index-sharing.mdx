@@ -1,6 +1,6 @@
 ---
 title: "Index Sharing"
-description: "How ar.io gateways share signed, verifiable indexes that locate data items inside their bundles, so every gateway can find data quickly"
+description: "How ar.io gateways share signed, verifiable indexes that locate data items inside their bundles, over HTTP or BitTorrent, so every gateway can find data quickly"
 ---
 
 import { Card, Cards } from "fumadocs-ui/components/card";
@@ -52,11 +52,53 @@ A server in between, whether a mirror, a CDN or a cache, can delay or withhold f
 
 Each band file can be fetched by its SHA-256 (`/ar-io/indexes/blob/<sha256>`). The address can never change meaning, so those responses are safe for any cache to keep, and the same file can come from any server that has it.
 
+## Bands over BitTorrent
+
+Because every file is checked against the signed publication, it doesn't matter who delivers the bytes. That makes peer-to-peer delivery safe, and gateways that run the optional torrent engine move bands over **BitTorrent**. Without the engine, everything moves over HTTP as shown above.
+
+### How a band moves
+
+```mermaid
+flowchart LR
+    A[Signed publication] --> B[Fetch from peers]
+    B -- peers stall --> C[Add the publisher's WebSeed]
+    B -- fails or times out --> D[Fetch over HTTP]
+    C -- fails or times out --> D
+    B --> E[Re-hash every file, install, seed]
+    C --> E
+    D --> E
+```
+
+1. **Peers first.** A publisher offers each band as a torrent and seeds it. A subscriber downloads the band from whichever gateways already hold it. Peers are not metered by anyone.
+2. **The WebSeed, only when peers stall.** If nothing arrives for a while, the subscriber also turns on the publisher's **WebSeed**, an HTTP address that serves the same bytes to a torrent client. It is the publisher's metered tier, so it is used only when peers are not delivering.
+3. **HTTP as the fallback.** If the engine is down, errors, or makes no progress for too long, the band is fetched over HTTP instead, in the same poll.
+4. **Every subscriber seeds.** Once a band is installed, the subscriber seeds it too, however it arrived. The more gateways subscribe, the less any one publisher has to upload.
+
+Seeding costs the seeder upload bandwidth, so every node bounds it: by default 10 MB/s and 100 GB a day.
+
+### Publishers of the same bytes share one swarm
+
+A band's torrent is built only from its files: their names, sizes and digests. Nothing about the publisher goes in, not even the band's id. So two gateways publishing the same bytes produce the same torrent, with the same **infohash** (the torrent's identifier), and their subscribers all join one swarm.
+
+### What a subscriber trusts
+
+A torrent file has two parts. The **info dictionary** describes the files and the hash of every piece; the infohash is its hash. Everything else, such as the list of trackers and WebSeeds, is outside the infohash and unsigned. So a subscriber:
+
+1. Takes the infohashes from the signed publication, and refuses a `.torrent` that doesn't match them.
+2. Checks the torrent lists exactly the band's signed files and sizes, and nothing else.
+3. Trusts only the info dictionary. It drops every WebSeed from the file, keeps only trackers on public hosts, and adds the publisher's WebSeed itself when needed.
+4. Re-hashes every file against the signed SHA-256 before installing it, exactly as over HTTP.
+
+The engine itself is kept away from the gateway. Its peers and trackers are chosen by other gateways, so it runs on its own Docker network, shared only with the sidecar, and refuses private, loopback and link-local addresses. It can't reach the gateway, the observer or anything else on the node's network. It can write only its own download directory; the bands the gateway serves are mounted read-only.
+
+A publisher runs a **closed tracker**, which helps peers find each other. It answers only for the bands the publisher offers at that moment and refuses every other torrent, so it can't be used as a free tracker for anything else. Peers also find one another without it, through the BitTorrent DHT and peer exchange.
+
 ## What Index Sharing is not
 
 - **It doesn't replace data verification.** An index says where an item lives; the gateway still [verifies the data itself](/learn/gateways/data-verification) when it serves it.
 - **It isn't storage.** Bands are indexes, about 20 GB for the whole chain, not the data they point to.
 - **It isn't one provider.** Any registered gateway can publish. turbo-gateway.com publishes a root transaction index today, and subscribers can follow more than one publisher.
+- **BitTorrent isn't required.** It is an optional transport. A gateway without the torrent engine publishes and subscribes over HTTP.
 
 ## Where to next
 
@@ -66,7 +108,7 @@ Each band file can be fetched by its SHA-256 (`/ar-io/indexes/blob/<sha256>`). T
     href="/build/run-a-gateway/manage/index-sharing"
     icon={<Server className="w-6 h-6" />}
   >
-    Subscribe your gateway to a publisher, or publish your own indexes.
+    Subscribe your gateway to a publisher, or publish your own indexes, over HTTP or BitTorrent.
   </Card>
   <Card
     title="Reading shared indexes"

@@ -69,7 +69,7 @@ One piece of a shared index, covering a range of block heights. Older bands rare
 
 ## Index Sharing
 
-How ar.io gateways share the indexes that locate data items inside their bundles. A gateway publishes a document signed with its registered observer key, listing its index bands and every file's SHA-256; other gateways and clients verify it and use the bands without trusting the server they fetched them from. See [Index Sharing](/learn/gateways/index-sharing).
+How ar.io gateways share the indexes that locate data items inside their bundles. A gateway publishes a document signed with its registered observer key, listing its index bands and every file's SHA-256; other gateways and clients verify it and use the bands without trusting the server or peer they fetched them from, over HTTP or BitTorrent. See [Index Sharing](/learn/gateways/index-sharing).
 
 ## Metaplex Core
 
@@ -123,6 +123,10 @@ The Arweave transaction that contains a data item, found by walking up through e
 
 Solana Program Library token standard. ARIO is implemented as an SPL Token on Solana, making it compatible with the full Solana wallet and DeFi ecosystem.
 
+## Torrent Name
+
+The name inside an index band's torrent, derived from the band's content rather than its id: the first 16 hex characters of the SHA-256 over each file's name, size and digest. Publishers of the same bytes therefore share one infohash and one swarm, and the [WebSeed](#webseed) address `<torrent name>/<file>` cannot change meaning. See [Index Sharing](/learn/gateways/index-sharing).
+
 ## Transaction (Solana)
 
 A signed unit of interaction with Solana containing one or more instructions. Instructions in a transaction are processed atomically: all succeed, or the transaction fails without applying state changes.
@@ -142,6 +146,10 @@ A protocol-level token lock with a start time, optional end time, and token bala
 ## Wayfinder
 
 A client library that chooses an ar.io gateway for each request and verifies that what comes back matches what was stored, so an app does not have to trust a single gateway. See [Wayfinder](/learn/wayfinder).
+
+## WebSeed
+
+An HTTP address (BEP 19) that serves the same bytes as a torrent swarm, so a download completes even with no peers. On a gateway it is `/ar-io/indexes/webseed/`, rate limited and x402-priced while the swarm itself is free. Index torrents do not list it: subscribers add a publisher's WebSeed themselves, and only when peers stall. See [Index Sharing](/learn/gateways/index-sharing).
 
 ## winc
 

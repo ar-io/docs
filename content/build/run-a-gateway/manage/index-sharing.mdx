@@ -1,6 +1,6 @@
 ---
 title: "Index Sharing"
-description: "Subscribe to another gateway's root transaction indexes, or publish your own, so your gateway finds data items in milliseconds instead of asking the network"
+description: "Subscribe to another gateway's root transaction indexes, or publish your own, over HTTP or BitTorrent, so your gateway finds data items in milliseconds instead of asking the network"
 ---
 
 import { Step, Steps } from "fumadocs-ui/components/steps";
@@ -9,7 +9,7 @@ import { Tabs, Tab } from "fumadocs-ui/components/tabs";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { BookOpen, Search, Settings, Zap } from "lucide-react";
 
-To serve a data item, your gateway first has to find which Arweave transaction holds it, and where inside that transaction it sits. [CDB64 indexes](/build/run-a-gateway/manage/cdb64) answer that locally. **Index Sharing** keeps those indexes fresh by letting gateways share them: one gateway publishes its indexes, others subscribe, and every file is signed and checked before it is used.
+To serve a data item, your gateway first has to find which Arweave transaction holds it, and where inside that transaction it sits. [CDB64 indexes](/build/run-a-gateway/manage/cdb64) answer that locally. **Index Sharing** keeps those indexes fresh by letting gateways share them: one gateway publishes its indexes, others subscribe, and every file is signed and checked before it is used. Bands move over HTTP, and, with the optional torrent engine, peer to peer over BitTorrent.
 
 For how it works and why it can be trusted, see [Index Sharing](/learn/gateways/index-sharing) in Learn.
 
@@ -19,14 +19,20 @@ For how it works and why it can be trusted, see [Index Sharing](/learn/gateways/
   or later.
 </Callout>
 
+Two scripts in the gateway repository do the work, run from the gateway's directory (where `.env` and `docker-compose.yaml` are). They need only Docker, since they run in the core image:
+
+- `./tools/index-swarm-setup` edits `.env` and, with `--restart`, restarts what the changes need.
+- `./tools/index-swarm-status` checks that everything works and says how to fix what doesn't.
+
 ## Subscribe to a publisher
 
 Subscribing is what most operators want: your gateway downloads a publisher's index bands, verifies them, and answers lookups from them.
 
 ### Prerequisites
 
-- A running ar.io gateway on Release 84 or later
+- A running ar.io gateway on Release 84 or later, with Docker
 - About 25 GB of free disk for the bands (the set turbo-gateway.com publishes is about 20 GB)
+- For BitTorrent: port 6881, TCP and UDP, open to the internet
 
 <Steps>
 <Step>
@@ -43,60 +49,47 @@ turbo-gateway.com publishes a root transaction index spanning block 0 to the cha
 </Step>
 
 <Step>
-### Configure your gateway
+### Run the setup script
 
-Add these to your `.env` file:
+See what it would change first, then run it for real:
 
 ```bash
-# Subscribe to turbo-gateway.com's root transaction index
-INDEX_SWARM_SUBSCRIBE='[{"publisher":"34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7h5","name":"root-tx-index"}]'
-
-# Cap the disk the downloaded bands may use (25 GiB)
-INDEX_SWARM_MAX_DISK_BYTES=26843545600
-
-# Load the downloaded bands first, then the indexes shipped with the gateway
-CDB64_ROOT_TX_INDEX_SOURCES=data/indexes/installed/root-tx-index,resources/cdb64-root-tx-index-non-ao-non-redstone-with-content-type-to-height-1820000,resources/cdb64-root-tx-index-non-ao-non-redstone-without-content-type-to-height-1820000,resources/cdb64-root-tx-index-ao-to-height-1820000
-
-# Ask the local index right after the local database
-ROOT_TX_LOOKUP_ORDER=db,cdb,gateways,graphql
+./tools/index-swarm-setup --subscribe 34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7h5 --torrent --dry-run
+./tools/index-swarm-setup --subscribe 34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7h5 --torrent --restart
 ```
 
-The last line matters most. By default, `cdb` is asked last, after every network source, so your gateway would barely use the bands it downloaded.
+This subscribes to the publisher's root transaction index, points your gateway at the installed bands, puts `cdb` right after `db` in the lookup order, generates the torrent engine's password, and restarts only what needs it, by service name. Leave out `--torrent` to move bands over HTTP only.
 
 </Step>
 
 <Step>
-### Restart the gateway and start the sidecar
+### Open the peer port
 
-Index Sharing runs in a small sidecar, `index-swarm`, next to your gateway. Restart the gateway so it reads the new settings, then start the sidecar:
-
-```bash
-docker compose up -d --no-deps core
-docker compose --profile index-swarm up -d index-swarm
-```
-
-Name the services as shown. A bare `docker compose up` would also recreate your observer and other services.
+With `--torrent`, open port **6881, TCP and UDP**, to the internet. Peers connect in on it. See [Firewalls and Docker ports](#firewalls-and-docker-ports) before relying on a host firewall.
 
 </Step>
 
 <Step>
-### Check that bands are installing
+### Check it
 
 ```bash
-docker compose logs -f index-swarm | grep -i "installed a band"
+./tools/index-swarm-status
 ```
 
-Bands install newest first, because most lookups are for recent data. Your gateway starts using each band as soon as it lands; no restart needed.
+Each line says `ok`, `WARN` or `FAIL`, and every problem comes with the fix. When it says `All good`, your gateway is answering root transaction lookups from the installed bands.
 
 </Step>
 </Steps>
 
+Bands arrive newest heights first, because most lookups are for recent data. A first pull of a full index takes minutes to hours. After that, new bands from the publisher install, and replace the ones they supersede, by themselves; the gateway loads each within 30 seconds, without a restart.
+
 <Callout type="warning">
-  **The first download can take hours.** Publishers meter their index files
-  with the same rate limits and [x402 payments](/build/run-a-gateway/manage/x402-setup)
-  as any data. At turbo-gateway.com's default limits, the full 20 GB set takes
-  several hours. Downloads resume where they stopped, so nothing is lost if
-  your gateway restarts part way through.
+  **The first download can take hours over HTTP.** Publishers meter their
+  index files with the same rate limits and
+  [x402 payments](/build/run-a-gateway/manage/x402-setup) as any data. With
+  BitTorrent, bands come from peers first, and peers are not metered; the
+  publisher's HTTP routes are the fallback. Downloads resume where they
+  stopped, so nothing is lost if your gateway restarts part way through.
 </Callout>
 
 ## Publish your indexes
@@ -105,9 +98,10 @@ Any registered gateway can publish. Other gateways then find it in the registry 
 
 ### Prerequisites
 
-- A gateway **registered** in the gateway registry, reachable at its registered URL, on Release 84 or later
+- A gateway **registered** in the gateway registry, reachable at its registered URL, on Release 84 or later. The routes that serve bands live in the gateway, not the sidecar
 - Its registered **observer key**, which signs what it publishes
 - Index bands to offer: [partitioned CDB64 indexes](/build/run-a-gateway/manage/cdb64#partitioned-indexes)
+- For BitTorrent: ports 6881 (TCP and UDP) and 6969 (TCP) open to the internet, and this node's public IP
 
 <Steps>
 <Step>
@@ -130,17 +124,15 @@ mv data/indexes/published/root-tx-index/band-tip.tmp data/indexes/published/root
 </Step>
 
 <Step>
-### Configure the sidecar
+### Set the signing key
+
+Set your gateway's wallet:
 
 ```bash
-# What to publish
-INDEX_SWARM_PUBLISH='[{"name":"root-tx-index","kind":"cdb64-root-tx"}]'
-
-# Your gateway's wallet
 AR_IO_WALLET=<your gateway wallet>
 ```
 
-The sidecar signs with your observer key. Set **one** of these, not both:
+The sidecar signs with your registered observer key. Set **one** of these, not both:
 
 <Tabs items={["Private key", "Keypair file"]}>
 <Tab value="Private key">
@@ -156,6 +148,8 @@ INDEX_SWARM_OBSERVER_KEYPAIR_FILE=/path/to/observer-keypair.json
 </Tab>
 </Tabs>
 
+The setup script refuses to publish, and writes nothing, until the key and `AR_IO_WALLET` are set.
+
 <Callout type="warning">
   Don't use your observer key in a wallet that signs messages for dApps. The
   sidecar's signatures can't be confused with Solana transactions, but a
@@ -165,13 +159,20 @@ INDEX_SWARM_OBSERVER_KEYPAIR_FILE=/path/to/observer-keypair.json
 </Step>
 
 <Step>
-### Start the sidecar
+### Run the setup script
 
 ```bash
-docker compose --profile index-swarm up -d index-swarm
+./tools/index-swarm-setup --publish --torrent --public-host <this node's public IP> --restart
 ```
 
-The first scan reads and hashes every file once, which takes a few minutes for tens of gigabytes.
+`--public-host` is where peers reach this node's torrent engine and its tracker. The first scan reads and hashes every file once, which takes a few minutes for tens of gigabytes.
+
+</Step>
+
+<Step>
+### Open the ports
+
+With `--torrent`, open **6881 (TCP and UDP)** for peers and **6969 (TCP)** for the tracker, to the internet.
 
 </Step>
 
@@ -179,6 +180,7 @@ The first scan reads and hashes every file once, which takes a few minutes for t
 ### Check what you publish
 
 ```bash
+./tools/index-swarm-status
 curl -s https://<your-gateway>/ar-io/indexes | jq '{sequence, publisher, bands: [.indexes[].bands[].id]}'
 curl -s https://<your-gateway>/ar-io/info | jq .indexes
 ```
@@ -186,7 +188,102 @@ curl -s https://<your-gateway>/ar-io/info | jq .indexes
 </Step>
 </Steps>
 
-To replace a band, publish the new one under a fresh id with `"supersedes": "<old band id>"` in its manifest's `metadata`. The old band is withdrawn and removed after a grace period, and subscribers switch over without ever losing a lookup.
+A gateway can do both: pass `--subscribe` and `--publish` together.
+
+To replace a band, publish the new one under a fresh id with `"supersedes": "<old band id>"` in its manifest's `metadata`. The old band is withdrawn and removed after a grace period. Subscribers keep serving the old band until the new one has installed, so they never lose a lookup.
+
+If you run more than one node behind a load balancer, read [Publishing from a fleet](#publishing-from-a-fleet) before anyone subscribes.
+
+## The setup and status scripts
+
+### `index-swarm-setup`
+
+The script edits `.env` and nothing else, unless given `--restart`.
+
+| Flag | Effect |
+| --- | --- |
+| `--subscribe <wallet>` | Adds the publisher to `INDEX_SWARM_SUBSCRIBE`. Repeatable; existing entries are kept. Sets `INDEX_SWARM_MAX_DISK_BYTES` to 25 GiB if unset. Puts `data/indexes/installed/root-tx-index` first in `CDB64_ROOT_TX_INDEX_SOURCES`, keeping what was there (or, if unset, the shipped default), and moves `cdb` right after `db` in `ROOT_TX_LOOKUP_ORDER` (if unset: `db,cdb,gateways,graphql`) |
+| `--publish` | Adds `root-tx-index` to `INDEX_SWARM_PUBLISH`. Refuses, writing nothing, without a registered key or `AR_IO_WALLET`. With `--torrent` and a public host, sets `INDEX_SWARM_TRACKERS` to this node's tracker |
+| `--torrent` | Generates `INDEX_SWARM_ENGINE_AUTH` if unset (`swarm:` and 48 random hex characters; never printed) |
+| `--public-host <addr>` | Sets `INDEX_SWARM_ENGINE_PUBLIC_HOST` |
+| `--engine-port <n>` | Sets `INDEX_SWARM_ENGINE_PORT` (default 6881) |
+| `--max-disk-gib <n>` | Sets `INDEX_SWARM_MAX_DISK_BYTES` |
+| `--no-gateway` | Leaves `CDB64_ROOT_TX_INDEX_SOURCES` and `ROOT_TX_LOOKUP_ORDER` alone |
+| `--dry-run` | Shows the changes and writes nothing |
+| `--restart` | Then recreates what needs it: the gateway only when those two settings differ from what it runs with, then the sidecar (and the engine, with torrents), by service name, with the compose files the running gateway was started with |
+| `--env-file <path>` | A file other than `.env`, relative to the gateway's directory |
+
+It is idempotent: a second run changes only what is missing, so it is also how to add a publisher or turn on torrents later. It never replaces a value it cannot parse or a password it did not write; it stops and says what to fix. Before writing, it copies `.env` to `.env.bak-index-swarm-<time>`, readable only by its owner, since it holds secrets. It warns when an explicit `ROOT_TX_LOOKUP_ORDER` keeps `hyperbeam`, which is a dead endpoint unless the `hb` profile runs, but does not remove it.
+
+`INDEX_SWARM_ENGINE_AUTH` alone turns the torrent engine on: with a password set, `INDEX_SWARM_ENGINE_URL` defaults to the engine in the compose file. Set the URL only for an engine you run some other way.
+
+### `index-swarm-status`
+
+The status script is read-only. It runs inside the sidecar, so it sees exactly what the sidecar sees, and checks:
+
+- that the sidecar is up and the gateway's release is new enough
+- per publisher: the sequence accepted and its age, any `signature_failed`, `replayed` or `verify_failed`, and failed downloads
+- installed bands and their size; that the gateway reads the installed directory, has every band loaded, and sends lookups to them
+- publishing: the document served, its expiry, and how many bands seed
+- the torrent engine: that it answers, whether any peer has connected in (so a closed port shows), and the day's upload against the budget
+
+It exits `1` when a check fails, so it can run from cron or a health script.
+
+## Doing it by hand
+
+What the setup script writes, if you would rather edit `.env` yourself:
+
+```bash
+INDEX_SWARM_SUBSCRIBE='[{"publisher":"34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7h5","name":"root-tx-index"}]'
+INDEX_SWARM_MAX_DISK_BYTES=26843545600   # 25 GiB; size it to what the publisher offers
+CDB64_ROOT_TX_INDEX_SOURCES=data/indexes/installed/root-tx-index,resources/cdb64-root-tx-index-non-ao-non-redstone-with-content-type-to-height-1820000,resources/cdb64-root-tx-index-non-ao-non-redstone-without-content-type-to-height-1820000,resources/cdb64-root-tx-index-ao-to-height-1820000
+ROOT_TX_LOOKUP_ORDER=db,cdb,gateways,graphql
+INDEX_SWARM_ENGINE_AUTH=swarm:<generated>   # only for BitTorrent: at least 16 characters, e.g. openssl rand -hex 24
+```
+
+The installed bands go **first** in `CDB64_ROOT_TX_INDEX_SOURCES`, so a fresh band answers before the older shipped indexes. The three `resources/` entries are the shipped default; keep them to go on searching them, or leave them off, since each lookup against them fetches from Arweave and a subscribed set that covers the whole chain makes them redundant.
+
+`ROOT_TX_LOOKUP_ORDER` matters most. By default, `cdb` is asked last, after every network source, so your gateway would barely use the bands it downloaded. Drop `hyperbeam` unless you run the `hb` profile.
+
+Then restart by service name, with the same `-f` files your gateway was started with:
+
+```bash
+docker compose up -d --no-deps core
+docker compose --profile index-swarm --profile index-swarm-torrent \
+  up -d --no-deps index-swarm-engine-init index-swarm-engine index-swarm
+```
+
+Without BitTorrent, leave out the `index-swarm-torrent` profile and the two engine services. Name the services as shown: a bare `docker compose up` also starts or recreates every default service, including your observer.
+
+## Firewalls and Docker ports
+
+The torrent engine publishes only its peer port, `INDEX_SWARM_ENGINE_PORT` (6881, TCP and UDP). A publisher also publishes the tracker port, `INDEX_SWARM_TRACKER_PORT` (6969, TCP). The engine's Web API is never published.
+
+Ports that Docker publishes are forwarded before the host's `INPUT` chain sees them, so a host firewall such as ufw neither blocks nor protects them. Open them wherever traffic reaches the host (a cloud security group or router, for example). To restrict them on the host, filter in the `DOCKER-USER` chain.
+
+## Bounding upload
+
+Seeding is free to peers but not to you: every byte is your upload, and a peer can fetch the bands again and again. Every node that runs the engine seeds, subscribers included, so two limits apply to every node, with defaults:
+
+| Variable | Default | Effect |
+| --- | --- | --- |
+| `INDEX_SWARM_UPLOAD_LIMIT_BYTES_PER_SEC` | `10000000` (10 MB/s) | Caps the engine's upload rate. `0` is unlimited |
+| `INDEX_SWARM_UPLOAD_DAILY_LIMIT_BYTES` | `100000000000` (100 GB) | Caps upload per UTC day. Once spent, seeding is throttled to 1 KiB/s until the next UTC day. Downloads and the HTTP routes are unaffected. `0` is no budget |
+
+A large publisher should raise both. The engine's memory also grows with the bytes it seeds: it maps the files, and mapped pages count against a container memory limit.
+
+## Publishing from a fleet
+
+A large gateway is often several nodes behind an HTTP load balancer, and only one of them holds the observer key and signs. For BitTorrent:
+
+1. **One node publishes and seeds.** The signing node, the one `/ar-io/indexes` is sent to, runs the engine and the tracker. The other nodes need neither.
+2. **The peer port reaches that node directly.** BitTorrent is not HTTP, so the load balancer can't carry it. Publish `INDEX_SWARM_ENGINE_PORT` (TCP and UDP) on the node's own public address, open it, and set `INDEX_SWARM_ENGINE_PUBLIC_HOST` (`--public-host`) to that address. Otherwise the tracker lists the engine under the host of its tracker URL, which for a fleet is the load balancer.
+3. **The tracker, one of two ways:**
+   - Directly: publish `INDEX_SWARM_TRACKER_PORT` on the same address and announce to `http://<that address>:6969/announce` in `INDEX_SWARM_TRACKERS`.
+   - Through the load balancer: route `/announce` to the signing node's tracker port, uncached, with `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`, and list the proxies' addresses in `INDEX_SWARM_TRACKER_TRUSTED_PROXIES`. Otherwise every peer appears at the proxy's address, the tracker's per-address limits throttle them together, and it hands out an address nobody can connect to.
+4. **The `.torrent` and WebSeed routes** are under `/ar-io/indexes`, so the [NGINX block](#behind-nginx) for that prefix already covers them.
+
+Subscribers behind NAT still work: they reach the publisher's engine, and a reachable subscriber can be reached back.
 
 ## Behind NGINX
 
@@ -195,26 +292,36 @@ Most gateways run NGINX in front, and many cache. The index routes are built to 
 - Forward the client IP with `X-Forwarded-For`, as the [quick start](/build/run-a-gateway/quick-start) configuration does, so each subscriber gets its own rate limit.
 - **If you run more than one node**, send `/ar-io/indexes` to the node that holds the observer key. Only that node signs.
 
-See [Advanced NGINX Caching](/build/run-a-gateway/manage/nginx-caching#index-sharing) for a complete location block.
+The torrent routes, `/ar-io/indexes/torrents/` and `/ar-io/indexes/webseed/`, sit under the same prefix, so the same rules cover them. See [Advanced NGINX Caching](/build/run-a-gateway/manage/nginx-caching#index-sharing) for a complete location block.
 
 ## Monitoring
 
-The sidecar serves metrics on port `9101` inside its container. The ones worth watching:
+`./tools/index-swarm-status` covers the day-to-day checks. The sidecar also serves Prometheus metrics on port `9101` inside its container. The ones worth watching:
 
 | Metric | What it tells you |
 | --- | --- |
 | `index_subscription_manifest_age_seconds` | How old each publisher's latest document is. **Alarm if it climbs past a day**: the publisher has gone quiet. |
 | `index_swarm_installed_bands` | How many bands are live |
-| `index_subscription_total{result}` | Outcomes of each poll. `signature_failed` should always be zero |
+| `index_subscription_total{result}` | Outcomes of each poll. `signature_failed` should always be zero. `transport_fallback` means a torrent was not used and the band came over HTTP |
+| `index_subscription_bytes_total{transport}` | Bytes fetched over `http` or `torrent`: how much the swarm carries |
+| `index_swarm_engine_available` | `1` while the torrent engine answers. Absent when none is configured |
+| `index_swarm_upload_today_bytes`, `index_swarm_upload_throttled` | Seeding today against the daily budget; `1` means it is spent and seeding is throttled until the next UTC day |
 | `index_publish_total{result}` | On a publisher: `published`, `unchanged` or `failed` |
+| `index_publish_seeding_bands` | On a publisher: bands handed to the engine. Below `index_publish_bands` means some are offered over HTTP only |
 
-On the gateway, `indexes_requests_total{route,status}` shows who is downloading from you, including `402` and `429` from your rate limits.
+On the gateway, `indexes_requests_total{route,status}` shows who is downloading from you, by route (`publication`, `file`, `blob`, `torrent`, `webseed`), including `402` and `429` from your rate limits.
 
 ## Troubleshooting
 
-**Nothing installs, and the logs show `402` or `429`.** The publisher is rate-limiting you. It is expected on a first download: each poll picks up where the last stopped. Ask the publisher to raise your limits, or wait.
+Run `./tools/index-swarm-status` first: it names most problems and their fix.
 
-**Bands installed, but lookups still go to the network.** Check `ROOT_TX_LOOKUP_ORDER` puts `cdb` right after `db`, and that `CDB64_ROOT_TX_INDEX_SOURCES` starts with `data/indexes/installed/root-tx-index`. Both need a gateway restart.
+**Nothing installs, and the logs show `402` or `429`.** The publisher is rate-limiting you. It is expected on a first download over HTTP: each poll picks up where the last stopped. Turn on BitTorrent, ask the publisher to raise your limits, or wait.
+
+**Bands installed, but lookups still go to the network.** Check `ROOT_TX_LOOKUP_ORDER` puts `cdb` right after `db`, and that `CDB64_ROOT_TX_INDEX_SOURCES` starts with `data/indexes/installed/root-tx-index`. Both need a gateway restart; `./tools/index-swarm-setup --restart` does it.
+
+**No peer has connected in.** Port 6881 is closed somewhere between the internet and the engine. Bands still arrive over HTTP, and you still download from peers, but nobody can download from you.
+
+**The engine refuses the sidecar.** Check `INDEX_SWARM_ENGINE_AUTH`. The sidecar does not retry a failed login, because the engine bans an address after five.
 
 **`Publication was signed by an unregistered key`.** The document you fetched was not signed by the observer key registered for that wallet. Check the publisher's registry record; if it just changed keys, it can take up to an hour to reach your gateway's registry view.
 
@@ -224,11 +331,17 @@ On the gateway, `indexes_requests_total{route,status}` shows who is downloading 
 
 ## Turning it off
 
+Stopping the sidecar changes nothing your gateway serves: installed bands stay loaded, and published bands stay served from the last document written.
+
 ```bash
 docker compose --profile index-swarm stop index-swarm
+docker compose --profile index-swarm rm -f index-swarm
 ```
 
-Bands already installed keep serving. To remove them, restore your previous `CDB64_ROOT_TX_INDEX_SOURCES`, restart the gateway, then delete `data/indexes/installed/`.
+With the torrent engine, also stop and remove `index-swarm-engine` and `index-swarm-engine-init` (profile `index-swarm-torrent`), then delete `data/indexes/swarm/`, `data/indexes/torrents/` and `data/index-swarm-engine/`. Remove `INDEX_SWARM_ENGINE_AUTH` from `.env` too: while it is set, the sidecar expects the engine and warns that it is not answering.
+
+- **On a subscriber**, restore your previous `CDB64_ROOT_TX_INDEX_SOURCES` and restart the gateway, then delete `data/indexes/installed/`. In that order, so the gateway is no longer holding the files open.
+- **On a publisher**, delete `data/indexes/published/publication.json`. The gateway stops serving the routes on its next request, without a restart. The band directories can then go too.
 
 ## Related
 
@@ -238,8 +351,8 @@ Bands already installed keep serving. To remove them, restore your previous `CDB
     href="/learn/gateways/index-sharing"
     icon={<BookOpen className="w-6 h-6" />}
   >
-    How publications are signed and verified, and why a subscriber doesn't
-    have to trust the publisher's server.
+    How bands move between gateways, and why a subscriber doesn't have to
+    trust the publisher's server or its peers.
   </Card>
   <Card
     title="CDB64 Root TX Index"
