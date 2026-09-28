@@ -259,7 +259,7 @@ Without BitTorrent, leave out the `index-swarm-torrent` profile and the two engi
 
 The torrent engine publishes only its peer port, `INDEX_SWARM_ENGINE_PORT` (6881, TCP and UDP). A publisher also publishes the tracker port, `INDEX_SWARM_TRACKER_PORT` (6969, TCP). The engine's Web API is never published.
 
-Ports that Docker publishes are forwarded before the host's `INPUT` chain sees them, so a host firewall such as ufw neither blocks nor protects them. Open them wherever traffic reaches the host (a cloud security group or router, for example). To restrict them on the host, filter in the `DOCKER-USER` chain.
+Ports that Docker publishes are forwarded before the host's `INPUT` chain sees them, so a host firewall such as ufw neither blocks nor protects them. Open them wherever traffic reaches the host (a cloud security group or router, for example). To restrict them on the host, filter where Docker forwards: with Docker's default iptables backend, in the `DOCKER-USER` chain; with its nftables backend, which has no `DOCKER-USER`, in a chain of your own table on the `forward` hook, at a priority before Docker's.
 
 ## Bounding upload
 
@@ -277,7 +277,7 @@ A large publisher should raise both. The engine's memory also grows with the byt
 A large gateway is often several nodes behind an HTTP load balancer, and only one of them holds the observer key and signs. For BitTorrent:
 
 1. **One node publishes and seeds.** The signing node, the one `/ar-io/indexes` is sent to, runs the engine and the tracker. The other nodes need neither.
-2. **The peer port reaches that node directly.** BitTorrent is not HTTP, so the load balancer can't carry it. Publish `INDEX_SWARM_ENGINE_PORT` (TCP and UDP) on the node's own public address, make sure the internet reaches it there (Docker-published ports bypass the host firewall; restrict them in `DOCKER-USER`), and set `INDEX_SWARM_ENGINE_PUBLIC_HOST` (`--public-host`) to that address. Otherwise the tracker lists the engine under the host of its tracker URL, which for a fleet is the load balancer.
+2. **The peer port reaches that node directly.** BitTorrent is not HTTP, so the load balancer can't carry it. Publish `INDEX_SWARM_ENGINE_PORT` (TCP and UDP) on the node's own public address, make sure the internet reaches it there (Docker-published ports bypass the host firewall; see [Firewalls and Docker ports](#firewalls-and-docker-ports) to restrict them), and set `INDEX_SWARM_ENGINE_PUBLIC_HOST` (`--public-host`) to that address. Otherwise the tracker lists the engine under the host of its tracker URL, which for a fleet is the load balancer.
 3. **The tracker, one of two ways:**
    - Directly: publish `INDEX_SWARM_TRACKER_PORT` on the same address and announce to `http://<that address>:6969/announce` in `INDEX_SWARM_TRACKERS`.
    - Through the load balancer: route `/announce` to the signing node's tracker port, uncached, with `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`, and list the proxies' addresses in `INDEX_SWARM_TRACKER_TRUSTED_PROXIES`. Otherwise every peer appears at the proxy's address, the tracker's per-address limits throttle them together, and it hands out an address nobody can connect to.
