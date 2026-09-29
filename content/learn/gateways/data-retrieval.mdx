@@ -15,30 +15,30 @@ When a gateway needs to serve data, it follows a hierarchical retrieval pattern,
 graph TD
     REQUEST[Data Request] --> CACHE{Local Cache?}
     CACHE -->|Hit| SERVE[Serve Data]
-    CACHE -->|Miss| SOURCES[Try Data Sources]
-    
-    SOURCES --> TRUSTED[Trusted Gateways]
-    SOURCES --> NETWORK[ar.io]
-    SOURCES --> CHUNKS[Chunk Assembly]
-    SOURCES --> ARWEAVE[Arweave Nodes]
-    
+    CACHE -->|Miss| TRUSTED[Trusted Gateways]
+
+    TRUSTED -->|Fail| NETWORK[ar.io]
+    NETWORK -->|Fail| LOCATE[Locate the item:<br/>root transaction and offset]
+    LOCATE --> CHUNKS[Chunk Assembly]
+    CHUNKS -->|Fail| ARWEAVE[Arweave Nodes]
+
+    LOOKUP[(Root TX lookup<br/>local DB · CDB64 indexes<br/>peers · GraphQL)] -.-> LOCATE
+
     TRUSTED -->|Success| VALIDATE
     NETWORK -->|Success| VALIDATE
     CHUNKS -->|Success| VALIDATE
     ARWEAVE -->|Success| VALIDATE
-    
-    TRUSTED -->|Fail| NETWORK
-    NETWORK -->|Fail| CHUNKS
-    CHUNKS -->|Fail| ARWEAVE
-    
+
     VALIDATE{Valid?} -->|Yes| STORE[Cache & Serve]
     VALIDATE -->|No| NEXT[Try Next Source]
-    
+
     classDef source fill:#2563eb,stroke:#1d4ed8,stroke-width:2px,color:#fff
     classDef process fill:#16a34a,stroke:#15803d,stroke-width:2px,color:#fff
-    
+    classDef database fill:#3b82f6,stroke:#1d4ed8,stroke-width:2px,color:#fff
+
     class TRUSTED,NETWORK,CHUNKS,ARWEAVE source
-    class VALIDATE,SERVE,STORE process
+    class VALIDATE,SERVE,STORE,LOCATE process
+    class LOOKUP database
 ```
 
 ## Data Sources
@@ -62,6 +62,7 @@ Ar.io gateways can retrieve data from multiple sources, each with different char
 - **Benefits**: Data integrity guarantee, no intermediary trust required
 - **Process**: Fetches individual chunks efficiently and assembles them into complete data
 - **Optimization**: Uses offset awareness for faster chunk retrieval
+- **Locating**: A data item sits inside a bundle, so the gateway first looks up which transaction holds it and at what offset. Its own database answers for what it has indexed; [CDB64 indexes](/build/run-a-gateway/manage/cdb64), kept current by [Index Sharing](/learn/gateways/index-sharing), answer locally for the rest; peers and GraphQL are asked otherwise
 
 ### 4. TX Data
 - **Purpose**: Direct access to transaction data from Arweave nodes
