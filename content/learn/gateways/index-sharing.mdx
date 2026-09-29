@@ -10,6 +10,8 @@ Most data on Arweave today is uploaded as **data items**, packed many at a time 
 
 **Index Sharing** lets gateways share the answer. A gateway that has built a good index publishes it; other gateways download it and answer lookups in milliseconds. Because every piece is signed and hashed, a gateway can use another gateway's index without trusting that gateway's server.
 
+For an operator, that means data items resolve from local disk instead of a round trip to other gateways or GraphQL, and the answer often includes the item's byte offsets, which lets the gateway fetch and verify just that item. It is optional and off by default: a gateway turns it on with one command, for about 20 GB of disk.
+
 ## How it works
 
 ```mermaid
@@ -56,6 +58,10 @@ Each band file can be fetched by its SHA-256 (`/ar-io/indexes/blob/<sha256>`). T
 
 Because every file is checked against the signed publication, it doesn't matter who delivers the bytes. That makes peer-to-peer delivery safe, and gateways that run the optional torrent engine move bands over **BitTorrent**. Without the engine, everything moves over HTTP as shown above.
 
+### Why BitTorrent
+
+Over HTTP, every subscriber downloads every band from the publisher, so the publisher's upload grows with each gateway that subscribes, and publishers meter those downloads like any data. Over BitTorrent, subscribers also serve each other. A new band reaches the network once from the publisher and then spreads between peers, so the publisher's cost stays roughly flat as more gateways subscribe, and subscribers download from peers without a meter. That is what lets a large index be shared across the network without one gateway carrying all of it.
+
 ### How a band moves
 
 ```mermaid
@@ -74,7 +80,7 @@ flowchart LR
 3. **HTTP as the fallback.** If the engine is down, errors, or makes no progress for too long, the band is fetched over HTTP instead, in the same poll.
 4. **Every subscriber seeds.** Once a band is installed, the subscriber seeds it too, however it arrived. The more gateways subscribe, the less any one publisher has to upload.
 
-Seeding costs the seeder upload bandwidth, so every node bounds it: by default 10 MB/s and 100 GB a day.
+Seeding is part of turning the engine on, and it costs the seeder upload bandwidth, so every node bounds it: by default 10 MB/s and 100 GB a day. A gateway that would rather not upload at all subscribes over HTTP only.
 
 ### Publishers of the same bytes share one swarm
 
@@ -89,14 +95,15 @@ A torrent file has two parts. The **info dictionary** describes the files and th
 3. Trusts only the info dictionary. It drops every WebSeed from the file, keeps only trackers on public hosts, and adds the publisher's WebSeed itself when needed.
 4. Re-hashes every file against the signed SHA-256 before installing it, exactly as over HTTP.
 
-The engine itself is kept away from the gateway. Its peers and trackers are chosen by other gateways, so it runs on its own Docker network, shared only with the sidecar, and refuses private, loopback and link-local addresses. It can't reach the gateway, the observer or anything else on the node's network. It can write only its own download directory; the bands the gateway serves are mounted read-only.
+The engine itself is kept away from the gateway. Its peers and trackers are chosen by other gateways, so it runs on its own Docker network, shared only with the sidecar, and refuses private, loopback, link-local and carrier-grade NAT addresses. It can't reach the gateway, the observer or anything else on the node's network. It can write only its own download and configuration directories; the bands the gateway serves are mounted read-only.
 
 A publisher runs a **closed tracker**, which helps peers find each other. It answers only for the bands the publisher offers at that moment and refuses every other torrent, so it can't be used as a free tracker for anything else. Peers also find one another without it, through the BitTorrent DHT and peer exchange.
 
 ## What Index Sharing is not
 
 - **It doesn't replace data verification.** An index says where an item lives; the gateway still [verifies the data itself](/learn/gateways/data-verification) when it serves it.
-- **It isn't storage.** Bands are indexes, about 20 GB for the whole chain, not the data they point to.
+- **It isn't storage.** Bands are indexes, not the data they point to: about 20 GB for the index turbo-gateway.com publishes today.
+- **It isn't complete.** An index answers only for the bundles its publisher indexed, and the band at the chain tip is rebuilt periodically (daily at turbo-gateway.com), so the newest items aren't in it yet. A miss costs nothing: the gateway falls back to its usual lookup.
 - **It isn't one provider.** Any registered gateway can publish. turbo-gateway.com publishes a root transaction index today, and subscribers can follow more than one publisher.
 - **BitTorrent isn't required.** It is an optional transport. A gateway without the torrent engine publishes and subscribes over HTTP.
 

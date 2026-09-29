@@ -101,12 +101,12 @@ Settings for the `index-swarm` sidecar, which subscribes to other gateways' inde
 
 | Variable | Type | Default | Description |
 | --- | --- | --- | --- |
-| `INDEX_SWARM_SUBSCRIBE` | JSON | unset | Publishers to subscribe to, by gateway wallet: `[{"publisher":"<wallet>","name":"root-tx-index"}]`. An optional `url` fetches from that address instead of the publisher's registered one, for a fleet node subscribing to its own publisher internally; the signature is still checked against the registered key |
+| `INDEX_SWARM_SUBSCRIBE` | JSON | unset | Publishers to subscribe to, by gateway wallet: `[{"publisher":"<wallet>","name":"root-tx-index"}]`. `name` is optional; leaving it out takes all of that publisher's indexes. An optional `url` fetches from that address instead of the publisher's registered one, for a fleet node subscribing to its own publisher internally; the signature is still checked against the registered key |
 | `INDEX_SWARM_PUBLISH` | JSON | unset | Indexes this gateway publishes: `[{"name":"root-tx-index","kind":"cdb64-root-tx"}]` |
-| `INDEX_SWARM_MAX_DISK_BYTES` | number | unset | Disk the installed bands and downloads in progress may use. A band that would exceed it is skipped |
+| `INDEX_SWARM_MAX_DISK_BYTES` | number | unset | Ceiling on installed bands (retired ones until swept), downloads in `incoming/`, and every torrent download at its full size from when it starts (a band that may come over the swarm counts twice). The copy a band replaces isn't counted. A band that would exceed it is skipped (`skipped_disk_budget`) |
 | `INDEX_SWARM_OBSERVER_KEYPAIR_FILE` | string | unset | Publishers only: host path of the observer keypair file. Set this or `OBSERVER_PRIVATE_KEY`, not both |
 | `INDEX_SWARM_TRUSTED_PUBLISHERS` | string | unset | Comma-separated wallets. When set, only these publishers are accepted |
-| `INDEX_SWARM_ALLOWED_FILE_ORIGINS` | string | unset | Other servers (`https://host`) a publisher may send band files from, such as its CDN. Anything else is refused |
+| `INDEX_SWARM_ALLOWED_FILE_ORIGINS` | string | unset | Other servers (`http(s)://host[:port]`) a publisher may send band files from, such as its CDN. Anything else is refused |
 | `INDEX_SWARM_POLL_INTERVAL_SECONDS` | number | `300` | How often each publisher is checked for new bands |
 | `INDEX_SWARM_DOWNLOAD_RATE_LIMIT_BYTES_PER_SEC` | number | unset | Cap on download speed, shared across all files of a band |
 | `INDEX_SWARM_DOWNLOAD_STALL_TIMEOUT_SECONDS` | number | `60` | Give up on a download that receives nothing for this long; it resumes next poll |
@@ -364,7 +364,7 @@ The default public Solana RPC is rate-limited and may block `getProgramAccounts`
 | `RATE_LIMITER_RESOURCE_TOKENS_PER_BUCKET` | number  | `1000000` | Resource bucket token capacity      |
 | `RATE_LIMITER_RESOURCE_REFILL_PER_SEC`    | number  | `100`     | Resource bucket refill rate         |
 | `RATE_LIMITER_IPS_AND_CIDRS_ALLOWLIST`    | string  | -         | Comma-separated IP/CIDR allowlist, exempt from rate limits and x402. Matched against the client address only |
-| `TRUSTED_PROXIES`                         | string  | loopback, private, CGNAT and link-local ranges | Proxies (IPs/CIDRs) whose `X-Forwarded-For` and `X-Real-IP` are believed when working out the client address. Add a CDN's or public load balancer's ranges when one is in front; `none` trusts no proxy. See [x402 setup](/build/run-a-gateway/manage/x402-setup) |
+| `TRUSTED_PROXIES`                         | string  | loopback, private, CGNAT and link-local ranges | Proxies (IPs/CIDRs) whose `X-Forwarded-For` and `X-Real-IP` are believed when working out the client address. Add a CDN's or public load balancer's ranges when one is in front; `none` trusts no proxy, only for a core that clients reach directly, with no Envoy in front. See [x402 setup](/build/run-a-gateway/manage/x402-setup) |
 | `RATE_LIMITER_ARNS_ALLOWLIST`             | string  | -         | Comma-separated ArNS allowlist      |
 
 ### x402 Payment Protocol

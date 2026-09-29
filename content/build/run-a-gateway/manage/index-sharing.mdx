@@ -24,14 +24,27 @@ Two scripts in the gateway repository do the work, run from the gateway's direct
 - `./tools/index-swarm-setup` edits `.env` and, with `--restart`, restarts what the changes need.
 - `./tools/index-swarm-status` checks that everything works and says how to fix what doesn't.
 
+## HTTP or BitTorrent?
+
+Decide this first; you can change it later by running the setup script again.
+
+| | HTTP only | With BitTorrent (`--torrent`) |
+| --- | --- | --- |
+| First download | From the publisher's HTTP routes, through its rate limits and x402. Can take hours | From peers first, unmetered; the publisher's HTTP routes are the fallback |
+| Ports to open | None | 6881, TCP and UDP |
+| You upload | Nothing | You seed what you install to other gateways, capped at 10 MB/s and 100 GB a day by default |
+| Extra memory | About 60 MB (the sidecar) | About 250 MB (the sidecar and the torrent engine), plus the files it seeds mapped into memory: the kernel can reclaim those pages, but they count against a container memory limit |
+
+BitTorrent is the better default when you can open a port: your first pull is faster and free, and each gateway that seeds makes the next one's faster. Choose HTTP only if you can't open a port or don't want to upload.
+
 ## Subscribe to a publisher
 
 Subscribing is what most operators want: your gateway downloads a publisher's index bands, verifies them, and answers lookups from them.
 
 ### Prerequisites
 
-- A running ar.io gateway on Release 84 or later, with Docker
-- About 25 GB of free disk for the bands (the set turbo-gateway.com publishes is about 20 GB)
+- A running ar.io gateway on Release 84 or later, with Docker, and a checkout of the gateway repository at that release (the scripts live in `tools/`)
+- About 27 GB (25 GiB) of free disk for the bands (the set turbo-gateway.com publishes is about 21 GB). This is on top of what your gateway already uses, and it doesn't change the gateway's minimum requirements
 - For BitTorrent: port 6881, TCP and UDP, open to the internet
 
 <Steps>
@@ -45,6 +58,8 @@ turbo-gateway.com publishes a root transaction index spanning block 0 to the cha
 ```text
 34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7h5
 ```
+
+To see whether another gateway publishes, check its `/ar-io/info` for an `indexes` entry (`curl -s https://<gateway>/ar-io/info | jq .indexes`), and take its wallet from the registry.
 
 </Step>
 
@@ -83,6 +98,10 @@ Each line says `ok`, `WARN` or `FAIL`, and every problem comes with the fix. Whe
 
 Bands arrive newest heights first, because most lookups are for recent data. A first pull of a full index takes minutes to hours. After that, new bands from the publisher install, and replace the ones they supersede, by themselves; the gateway loads each within 30 seconds, without a restart.
 
+### What to expect
+
+The status script's `CDB64 lookups ... found X of Y` line shows how many root transaction lookups the installed bands answered. Don't expect every lookup to hit. A publisher's index covers the bundles it indexed, densest for recent data, and the tip band is rebuilt periodically, so the newest items aren't in it yet. A miss costs nothing: your gateway falls back to its usual lookup order. Following more than one publisher widens coverage.
+
 <Callout type="warning">
   **The first download can take hours over HTTP.** Publishers meter their
   index files with the same rate limits and
@@ -95,6 +114,8 @@ Bands arrive newest heights first, because most lookups are for recent data. A f
 ## Publish your indexes
 
 Any registered gateway can publish. Other gateways then find it in the registry and subscribe by its wallet.
+
+Publishing is for gateways that already build root transaction indexes. The sidecar publishes the bands you put in place; it doesn't build them, and there is no automatic export yet. turbo-gateway.com, for example, builds its bands from its own database and rebuilds the tip band daily.
 
 ### Prerequisites
 
@@ -112,6 +133,15 @@ Each band is one partitioned CDB64 index in its own directory:
 ```text
 data/indexes/published/root-tx-index/<band>/manifest.json
 ```
+
+For example, from what your gateway has indexed in its local database (see [Generating Custom Indexes](/build/run-a-gateway/manage/cdb64#generating-custom-indexes) for other sources):
+
+```bash
+./tools/export-sqlite-to-cdb64 --partitioned \
+  --output-dir data/indexes/published/root-tx-index/band-tip.tmp
+```
+
+This tool runs on the host, so unlike the setup scripts it needs Node.js 20 and `yarn install` in the checkout.
 
 Build a band under a name ending in `.tmp`, then rename it into place, so it is never published half-written. Give each band a `heightRange` in its manifest, so subscribers can install the newest heights first:
 
@@ -205,9 +235,9 @@ The script edits `.env` and nothing else, unless given `--restart`.
 | `--subscribe <wallet>` | Adds the publisher to `INDEX_SWARM_SUBSCRIBE`. Repeatable; existing entries are kept. Sets `INDEX_SWARM_MAX_DISK_BYTES` to 25 GiB if unset. Puts `data/indexes/installed/root-tx-index` first in `CDB64_ROOT_TX_INDEX_SOURCES`, keeping what was there (or, if unset, the shipped default), and moves `cdb` right after `db` in `ROOT_TX_LOOKUP_ORDER` (if unset: `db,cdb,gateways,graphql`) |
 | `--publish` | Adds `root-tx-index` to `INDEX_SWARM_PUBLISH`. Refuses, writing nothing, without a registered key or `AR_IO_WALLET`. With `--torrent` and a public host, sets `INDEX_SWARM_TRACKERS` to this node's tracker |
 | `--torrent` | Generates `INDEX_SWARM_ENGINE_AUTH` if unset (`swarm:` and 48 random hex characters; never printed) |
-| `--public-host <addr>` | Sets `INDEX_SWARM_ENGINE_PUBLIC_HOST` |
-| `--engine-port <n>` | Sets `INDEX_SWARM_ENGINE_PORT` (default 6881) |
-| `--max-disk-gib <n>` | Sets `INDEX_SWARM_MAX_DISK_BYTES` |
+| `--public-host <addr>` | With `--torrent`: sets `INDEX_SWARM_ENGINE_PUBLIC_HOST` |
+| `--engine-port <n>` | With `--torrent`: sets `INDEX_SWARM_ENGINE_PORT` (default 6881) |
+| `--max-disk-gib <n>` | With `--subscribe`: sets `INDEX_SWARM_MAX_DISK_BYTES` |
 | `--no-gateway` | Leaves `CDB64_ROOT_TX_INDEX_SOURCES` and `ROOT_TX_LOOKUP_ORDER` alone |
 | `--dry-run` | Shows the changes and writes nothing |
 | `--restart` | Then recreates what needs it: the gateway only when those two settings differ from what it runs with, then the sidecar (and the engine, with torrents), by service name, with the compose files the running gateway was started with |
@@ -257,7 +287,7 @@ Without BitTorrent, leave out the `index-swarm-torrent` profile and the two engi
 
 ## Firewalls and Docker ports
 
-The torrent engine publishes only its peer port, `INDEX_SWARM_ENGINE_PORT` (6881, TCP and UDP). A publisher also publishes the tracker port, `INDEX_SWARM_TRACKER_PORT` (6969, TCP). The engine's Web API is never published.
+The torrent engine publishes only its peer port, `INDEX_SWARM_ENGINE_PORT` (6881, TCP and UDP). The sidecar also publishes the tracker port, `INDEX_SWARM_TRACKER_PORT` (6969, TCP), on every node, but only a node that publishes torrents listens on it; a subscriber needn't open it. The engine's Web API is never published.
 
 Ports that Docker publishes are forwarded before the host's `INPUT` chain sees them, so a host firewall such as ufw neither blocks nor protects them. Open them wherever traffic reaches the host (a cloud security group or router, for example). To restrict them on the host, filter where Docker forwards: with Docker's default iptables backend, in the `DOCKER-USER` chain; with its nftables backend, which has no `DOCKER-USER`, in a chain of your own table on the `forward` hook, at a priority before Docker's.
 
