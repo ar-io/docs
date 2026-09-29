@@ -9,54 +9,64 @@ Ar.io gateways are data access layers built on top of Arweave. They make permane
 
 ```mermaid
 graph TB
+    CLIENTS[Apps, browsers and agents]
+
     subgraph Gateway ["ar.io Gateway"]
-        ENVOY[Envoy Proxy<br/>Load Balancer & Routing]
-        
-        API[Core Service<br/>Gateway API]
-        
-        subgraph "Data Layer"
-            DB1[(Chain Index<br/>SQLite)]
-            DB2[(Bundle Index<br/>SQLite)]
-            DB3[(Data Index<br/>SQLite)]
-            DB4[(Config & Metadata<br/>SQLite)]
-            REDIS[(Redis Cache<br/>High-Speed Layer)]
+        ENVOY[Envoy Proxy<br/>Routing]
+
+        subgraph Services ["Services"]
+            API[Core Service<br/>Gateway API and workers]
+            OBS[Observer<br/>Network checks]
+            SIDE[Index sidecar<br/>Optional: shares indexes]
+            ENG[Torrent engine<br/>Optional]
         end
-        
-        subgraph "Storage Layer"
-            FS[File System Storage<br/>Local Cache]
+
+        subgraph Local ["Data and Storage Layer"]
+            SQL[(SQLite<br/>core · data · bundles<br/>moderation · chunks)]
+            REDIS[(Redis<br/>Chain and ArNS cache)]
+            CH[(ClickHouse<br/>Optional GraphQL history)]
+            FS[Chunks, headers and<br/>contiguous data]
+            CDB[CDB64 indexes<br/>Root transaction lookups]
         end
     end
-    
+
     subgraph External ["External Network"]
-        MEMPOOLS[Mempools<br/>Transaction Pool]
-        ARWEAVE[(Arweave Nodes<br/>Blockchain Network)]
-        MEMPOOLS --> ARWEAVE
+        ARWEAVE[(Arweave nodes)]
+        PEERS[Other ar.io gateways]
+        NETWORK[ar.io network<br/>Registry and observations]
     end
 
+    CLIENTS --> ENVOY
     ENVOY --> API
+    SIDE --> ENG
 
-    API <--> DB1
-    API <--> DB2
-    API <--> DB3
-    API <--> DB4
-    API <--> REDIS
-    
-    API <--> FS
+    API --> SQL
+    API --> REDIS
+    API --> CH
+    API --> FS
+    API --> CDB
+    SIDE -->|installs| CDB
 
-    API <--> ARWEAVE
-    API <--> MEMPOOLS
+    API -->|blocks, chunks, data| ARWEAVE
+    API -->|data| PEERS
+    OBS -->|checks| PEERS
+    OBS -->|reports| NETWORK
+    SIDE -->|signed indexes| PEERS
+    ENG -->|BitTorrent| PEERS
 
     classDef database fill:#3b82f6,stroke:#1d4ed8,stroke-width:2px,color:#fff
     classDef service fill:#10b981,stroke:#059669,stroke-width:2px,color:#fff
     classDef proxy fill:#f59e0b,stroke:#d97706,stroke-width:2px,color:#fff
     classDef external fill:#8b5cf6,stroke:#7c3aed,stroke-width:2px,color:#fff
     classDef storage fill:#ef4444,stroke:#dc2626,stroke-width:2px,color:#fff
-    
-    class DB1,DB2,DB3,DB4,REDIS database
-    class API service
+    classDef optional fill:#10b981,stroke:#059669,stroke-width:2px,color:#fff,stroke-dasharray: 5 5
+
+    class SQL,REDIS,CH database
+    class API,OBS service
+    class SIDE,ENG optional
     class ENVOY proxy
-    class ARWEAVE,MEMPOOLS external
-    class FS storage
+    class CLIENTS,PEERS,ARWEAVE,NETWORK external
+    class FS,CDB storage
 ```
 
 ## Core Technology Stack
@@ -69,13 +79,16 @@ Ar.io gateways are built using modern, scalable technologies designed for high-p
 - **Event-driven architecture**: Enables efficient handling of concurrent operations
 
 ### Data Storage
-- **SQLite**: Four specialized databases handle different aspects of gateway operations:
-  - Chain data indexing
-  - Bundle transaction processing  
-  - Data item management
-  - Configuration and metadata
-- **Redis**: High-speed caching layer for frequently accessed data
-- **File system storage**: Local caching for frequently accessed data
+- **SQLite**: Five databases handle different aspects of gateway operations:
+  - `core`: Arweave blocks and transactions
+  - `data`: content hashes and cache metadata
+  - `bundles`: ANS-104 data items
+  - `moderation`: blocked content
+  - `chunks`: chunk metadata
+- **Redis**: Cache for chain data and ArNS resolutions
+- **ClickHouse** (optional): Columnar store for GraphQL queries over long stable history
+- **File system storage**: Cached chunks, transaction headers and contiguous data
+- **CDB64 indexes**: Read-only files that map a data item to the transaction that holds it, kept current by [Index Sharing](/learn/gateways/index-sharing) when it is enabled
 
 ### Processing Model
 - **Worker-based concurrency**: Specialized workers handle different background tasks

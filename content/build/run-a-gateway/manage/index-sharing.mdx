@@ -37,6 +37,45 @@ Decide this first; you can change it later by running the setup script again.
 
 BitTorrent is the better default when you can open a port: your first pull is faster and free, and each gateway that seeds makes the next one's faster. Choose HTTP only if you can't open a port or don't want to upload.
 
+What runs on your gateway once it is set up. The torrent engine, dashed, is there only with `--torrent`; the tracker only answers when you publish:
+
+```mermaid
+graph LR
+    NET[Clients and<br/>other gateways]
+    PEERS[BitTorrent peers]
+
+    subgraph Host ["Your gateway"]
+        ENVOY[Envoy :3000]
+        CORE[Core Service]
+        SIDE[Index sidecar<br/>publisher · subscriber<br/>tracker :6969]
+        ENG[Torrent engine :6881<br/>Optional]
+        DIR[data/indexes]
+    end
+
+    NET -->|/ar-io/indexes| ENVOY
+    ENVOY --> CORE
+    CORE -->|reads| DIR
+    SIDE -->|publishes, installs| DIR
+    SIDE -->|registry| CORE
+    SIDE -->|HTTP downloads| NET
+    SIDE --> ENG
+    ENG -->|writes swarm/ only| DIR
+    ENG <-->|pieces| PEERS
+    PEERS -->|announce| SIDE
+
+    classDef service fill:#10b981,stroke:#059669,stroke-width:2px,color:#fff
+    classDef proxy fill:#f59e0b,stroke:#d97706,stroke-width:2px,color:#fff
+    classDef external fill:#8b5cf6,stroke:#7c3aed,stroke-width:2px,color:#fff
+    classDef storage fill:#ef4444,stroke:#dc2626,stroke-width:2px,color:#fff
+    classDef optional fill:#10b981,stroke:#059669,stroke-width:2px,color:#fff,stroke-dasharray: 5 5
+
+    class CORE,SIDE service
+    class ENG optional
+    class ENVOY proxy
+    class NET,PEERS external
+    class DIR storage
+```
+
 ## Subscribe to a publisher
 
 Subscribing is what most operators want: your gateway downloads a publisher's index bands, verifies them, and answers lookups from them.
@@ -304,7 +343,44 @@ A large publisher should raise both. The engine's memory also grows with the byt
 
 ## Publishing from a fleet
 
-A large gateway is often several nodes behind an HTTP load balancer, and only one of them holds the observer key and signs. For BitTorrent:
+A large gateway is often several nodes behind an HTTP load balancer, and only one of them holds the observer key and signs.
+
+```mermaid
+graph LR
+    CLIENTS[HTTP clients]
+    PEERS[Subscribers and peers]
+
+    subgraph Fleet ["Your fleet"]
+        LB[Load balancer<br/>and cache]
+        subgraph Signer ["Signing node"]
+            C1[Core Service]
+            S1[Index sidecar<br/>publisher · tracker]
+            E1[Torrent engine :6881]
+        end
+        subgraph Other ["Other nodes"]
+            C2[Core Service]
+            S2[Index sidecar<br/>subscriber, HTTP only]
+        end
+    end
+
+    CLIENTS --> LB
+    PEERS -->|/ar-io/indexes| LB
+    LB -->|/ar-io/indexes| C1
+    LB -->|everything else| C2
+    S2 -->|url: signing node :4000,<br/>allowlisted| C1
+    PEERS <-->|pieces, to the node's<br/>own public address| E1
+    PEERS -->|announce| S1
+
+    classDef service fill:#10b981,stroke:#059669,stroke-width:2px,color:#fff
+    classDef proxy fill:#f59e0b,stroke:#d97706,stroke-width:2px,color:#fff
+    classDef external fill:#8b5cf6,stroke:#7c3aed,stroke-width:2px,color:#fff
+
+    class C1,C2,S1,S2,E1 service
+    class LB proxy
+    class CLIENTS,PEERS external
+```
+
+For BitTorrent:
 
 1. **One node publishes and seeds.** The signing node, the one `/ar-io/indexes` is sent to, runs the engine and the tracker. The other nodes need neither.
 2. **The peer port reaches that node directly.** BitTorrent is not HTTP, so the load balancer can't carry it. Publish `INDEX_SWARM_ENGINE_PORT` (TCP and UDP) on the node's own public address, make sure the internet reaches it there (Docker-published ports bypass the host firewall; see [Firewalls and Docker ports](#firewalls-and-docker-ports) to restrict them), and set `INDEX_SWARM_ENGINE_PUBLIC_HOST` (`--public-host`) to that address. Otherwise the tracker lists the engine under the host of its tracker URL, which for a fleet is the load balancer.

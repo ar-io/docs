@@ -70,9 +70,15 @@ flowchart LR
     B -- peers stall --> C[Add the publisher's WebSeed]
     B -- fails or times out --> D[Fetch over HTTP]
     C -- fails or times out --> D
-    B --> E[Re-hash every file, install, seed]
-    C --> E
-    D --> E
+    B -- done --> E[Re-hash every file, install, seed]
+    C -- done --> E
+    D -- done --> E
+
+    classDef source fill:#2563eb,stroke:#1d4ed8,stroke-width:2px,color:#fff
+    classDef process fill:#16a34a,stroke:#15803d,stroke-width:2px,color:#fff
+
+    class B,C,D source
+    class E process
 ```
 
 1. **Peers first.** A publisher offers each band as a torrent and seeds it. A subscriber downloads the band from whichever gateways already hold it. Peers are not metered by anyone.
