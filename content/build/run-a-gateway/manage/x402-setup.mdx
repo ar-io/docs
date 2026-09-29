@@ -332,8 +332,9 @@ Change it when something in front is on a public address:
 # published ranges, keeping the defaults if NGINX sits in between
 TRUSTED_PROXIES=127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,100.64.0.0/10,169.254.0.0/16,::1/128,fc00::/7,fe80::/10,<the CDN's ranges>
 
-# Only when clients reach core directly, with no Envoy or NGINX in front
-# (never the case in the standard compose setup): believe no proxy header
+# Only when clients reach core directly, with no Envoy or NGINX in front.
+# Every request through Envoy (the standard path, port 3000) would otherwise
+# carry Envoy's address and share one bucket
 TRUSTED_PROXIES=none
 ```
 
