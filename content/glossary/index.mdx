@@ -67,9 +67,17 @@ The protocol-level registry of joined gateways and their metadata. GAR powers ga
 
 One piece of a shared index, covering a range of block heights. Older bands rarely change; the band at the chain tip is rebuilt as new data arrives. A gateway installs the bands it needs and replaces one without pausing lookups. See [Index Sharing](/learn/gateways/index-sharing).
 
+## Index Publication
+
+The signed document an Index Sharing publisher serves at `/ar-io/indexes`. It lists every index band and every file's size and SHA-256, and is signed with the gateway's registered observer key, so a subscriber can check it against the Gateway Address Registry. See [Reading Shared Indexes](/build/advanced/index-publications).
+
 ## Index Sharing
 
-How ar.io gateways share the indexes that locate data items inside their bundles. A gateway publishes a document signed with its registered observer key, listing its index bands and every file's SHA-256; other gateways and clients verify it and use the bands without trusting the server or peer they fetched them from, over HTTP or BitTorrent. See [Index Sharing](/learn/gateways/index-sharing).
+How ar.io gateways share the indexes that locate data items inside their bundles. A gateway publishes an [index publication](#index-publication) signed with its registered observer key, listing its index bands and every file's SHA-256; other gateways and clients verify it and use the bands without trusting the server or peer they fetched them from, over HTTP or BitTorrent. See [Index Sharing](/learn/gateways/index-sharing).
+
+## Infohash
+
+A torrent's identifier: the hash of its list of files and the hashes of their pieces. Index publications sign each band's infohashes, so a subscriber can reject any torrent that doesn't match. Publishers of the same bytes produce the same infohash and share one swarm. See [Index Sharing](/learn/gateways/index-sharing).
 
 ## Metaplex Core
 
@@ -85,7 +93,7 @@ A standardized address format that ensures consistent representation across diff
 
 ## Observer
 
-A gateway selected to evaluate peer gateways during an epoch. Observers test assigned ArNS resolutions and submit reports used by the protocol for performance evaluation and rewards.
+A gateway selected to evaluate peer gateways during an epoch. Observers test assigned ArNS resolutions and submit reports used by the protocol for performance evaluation and rewards. A gateway's observer key also signs its [Index Sharing](#index-sharing) publications.
 
 ## Operations Address
 
@@ -122,10 +130,6 @@ The Arweave transaction that contains a data item, found by walking up through e
 ## SPL Token
 
 Solana Program Library token standard. ARIO is implemented as an SPL Token on Solana, making it compatible with the full Solana wallet and DeFi ecosystem.
-
-## Torrent Name
-
-The name inside an index band's torrent, derived from the band's content rather than its id: the first 16 hex characters of the SHA-256 over each file's name, size and digest. Publishers of the same bytes therefore share one infohash and one swarm, and the [WebSeed](#webseed) address `<torrent name>/<file>` cannot change meaning. See [Index Sharing](/learn/gateways/index-sharing).
 
 ## Transaction (Solana)
 

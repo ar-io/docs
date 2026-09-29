@@ -6,11 +6,11 @@ description: "Verify a gateway's signed index publication and use its bands from
 import { Step, Steps } from "fumadocs-ui/components/steps";
 import { Callout } from "fumadocs-ui/components/callout";
 
-Gateways that take part in [Index Sharing](/learn/gateways/index-sharing) publish signed indexes that locate data items inside their bundles. Gateways use them automatically, but nothing about them is gateway-only: any client can fetch a publication, verify it, and look up an ID itself. This page shows how.
+Gateways that take part in [Index Sharing](/learn/gateways/index-sharing) publish signed indexes that locate data items inside their bundles. Gateways use them automatically, but nothing about them is gateway-only: any client can fetch a publication, verify it, and look up an ID itself. This page shows how. To have your own gateway subscribe or publish, see [Index Sharing](/build/run-a-gateway/manage/index-sharing).
 
-## The publication
+## The Publication
 
-A publishing gateway serves one JSON document at `/ar-io/indexes`:
+A publishing gateway serves one JSON publication at `/ar-io/indexes`:
 
 ```json
 {
@@ -39,22 +39,22 @@ A publishing gateway serves one JSON document at `/ar-io/indexes`:
 }
 ```
 
-`publisher` is the gateway's wallet, and `signature.keyId` its observer address. The document may carry fields not shown here, and later versions may add more. Keep them: the signature covers them.
+`publisher` is the gateway's wallet, `signature.keyId` its observer address, and `signature.sig` a base64 Ed25519 signature. The publication may carry fields not shown here, and later versions may add more. Keep them: the signature covers them.
 
-## Verify it
+## Verify It
 
 <Steps>
 <Step>
-### Get the publisher's registered observer address
+### Get the Publisher's Registered Observer Address
 
 Look up the publisher's wallet in the gateway registry: with the [ar.io SDK](/sdks/ar-io-sdk), or from any gateway's `/ar-io/peers`. The publication must be signed by that gateway's `observerAddress`. A signature from any other key proves only that somebody signed something.
 
 </Step>
 
 <Step>
-### Check the signature
+### Check the Signature
 
-The signed message is the prefix `ar-io-index-publication/v1` and a newline, followed by the [RFC 8785](https://www.rfc-editor.org/rfc/rfc8785) canonical JSON of the document with `signature` removed. This works in Node.js 20+ and current browsers:
+The signed message is the prefix `ar-io-index-publication/v1` and a newline, followed by the [RFC 8785](https://www.rfc-editor.org/rfc/rfc8785) canonical JSON of the publication with `signature` removed. This works in Node.js 20+ and current browsers, with one dependency (`npm install json-canonicalize`):
 
 ```javascript
 import { canonicalize } from "json-canonicalize";
@@ -106,14 +106,14 @@ console.log(await verifyPublication(doc, "<observerAddress from the registry>"))
 </Step>
 
 <Step>
-### Check it is current
+### Check It Is Current
 
-Remember the highest `sequence` you have accepted from each publisher, and refuse a lower one: a cache or mirror could serve an older document. If `expiresAt` has passed, the publisher has stopped signing; its bands are still valid, but nothing newer is coming.
+Remember the highest `sequence` you have accepted from each publisher, and refuse a lower one: a cache or mirror could serve an older publication. If `expiresAt` has passed, the publisher has stopped signing; its bands are still valid, but nothing newer is coming.
 
 </Step>
 </Steps>
 
-## Fetch a band file
+## Fetch a Band File
 
 Fetch files by their SHA-256. The address can't change meaning, so it is safe to cache and can come from any server that has the file:
 
@@ -131,7 +131,7 @@ async function fetchFile(gateway, file) {
 
 Range requests are supported, which is how a large file resumes. Peers seeding a band over BitTorrent are not metered; see [Bands as torrents](#bands-as-torrents). A `503` with `Retry-After` means the publisher is part way through replacing a band: fetch the publication again after the delay.
 
-## Bands as torrents
+## Bands as Torrents
 
 A publisher that runs a torrent engine adds an optional `torrent` entry to each band it seeds:
 
@@ -157,11 +157,11 @@ The entry is absent when the publisher runs no engine; the HTTP routes always wo
 
 **Only the info dictionary is signed.** The infohashes cover the torrent's info dictionary (file names, sizes and piece hashes) and nothing else. Trackers and WebSeeds in a `.torrent` file are outside it and unsigned. The gateway's own subscriber checks a `.torrent` against the signed infohashes, checks that its file list is exactly the band's signed files and sizes (plus BEP 47 pad files), drops every WebSeed it names, and hashes every downloaded file against its signed SHA-256, as over HTTP. A client of its own should do the same.
 
-### Pull a whole index with any BitTorrent client
+### Pull a Whole Index with Any BitTorrent Client
 
 To mirror a publisher's full index, for a pipeline or an agent, use the `magnet` link or the `.torrent` file with any BitTorrent client. Peers aren't metered, so this is the cheapest way to take everything. Before using a `.torrent`, check its infohash matches the signed `infohashV1`, since the file itself is unsigned. After the download, check every file's size and SHA-256 against the signed publication, exactly as for an HTTP fetch: the infohash protects the pieces, but only the publication says these are the right files. Seed it afterwards if you can; that is what keeps the swarm fast.
 
-## Look up one ID
+## Look Up One ID
 
 A `cdb64-root-tx` band is a [partitioned CDB64 index](/build/run-a-gateway/manage/cdb64#partitioned-indexes). To find the root transaction of one data item:
 
