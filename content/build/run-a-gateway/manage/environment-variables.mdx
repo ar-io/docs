@@ -83,8 +83,8 @@ The CDB64 index provides O(1) constant-time lookups for resolving data item IDs 
 
 | Variable                              | Type    | Default                            | Description                                                                                                      |
 | ------------------------------------- | ------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `ROOT_TX_LOOKUP_ORDER`                | string  | `db,gateways,graphql,hyperbeam,cdb` | Comma-separated list of root TX lookup sources. Options: db, peers, gateways, graphql, hyperbeam, cdb, turbo      |
-| `CDB64_ROOT_TX_INDEX_SOURCES`         | string  | shipped manifest          | Comma-separated list of CDB64 sources: local paths, directories, HTTP URLs, Arweave TX IDs, or bundle data items |
+| `ROOT_TX_LOOKUP_ORDER`                | string  | `db,gateways,graphql,hyperbeam,cdb` | Comma-separated list of root TX lookup sources. Options: db, peers, gateways, graphql, hyperbeam, cdb, turbo. With local indexes (such as [Index Sharing](/build/run-a-gateway/manage/index-sharing) bands), put `cdb` right after `db` |
+| `CDB64_ROOT_TX_INDEX_SOURCES`         | string  | the three shipped `resources/` indexes | Comma-separated list of CDB64 sources: local paths, directories (including a directory of bands), HTTP URLs, Arweave TX IDs, or bundle data items. When you add a source, write out the shipped ones too if you want to keep them |
 | `CDB64_ROOT_TX_INDEX_WATCH`           | boolean | `true`                    | Enable file watching for local CDB64 directories. New files auto-load without restart                            |
 | `CDB64_REMOTE_RETRIEVAL_ORDER`        | string  | `chunks`                  | Data sources for fetching remote CDB64 files. Options: gateways, chunks, tx-data                                 |
 | `CDB64_REMOTE_CACHE_MAX_REGIONS`      | number  | `100`                     | Maximum byte-range regions to cache per remote source                                                            |
@@ -94,6 +94,63 @@ The CDB64 index provides O(1) constant-time lookups for resolving data item IDs 
 | `CDB64_REMOTE_SEMAPHORE_TIMEOUT_MS`   | number  | `5000`                    | Maximum wait time for a request slot before failing                                                              |
 
 For detailed configuration and usage, see [CDB64 Root TX Index](/build/run-a-gateway/manage/cdb64).
+
+### Index Sharing
+
+Settings for the `index-swarm` sidecar, which subscribes to other gateways' indexes and publishes your own. Available from Release 84. See [Index Sharing](/build/run-a-gateway/manage/index-sharing).
+
+| Variable | Type | Default | Description |
+| --- | --- | --- | --- |
+| `INDEX_SWARM_SUBSCRIBE` | JSON | unset | Publishers to subscribe to, by gateway wallet: `[{"publisher":"<wallet>","name":"root-tx-index"}]`. `name` is optional; leaving it out takes all of that publisher's indexes. An optional `url` fetches from that address instead of the publisher's registered one, for a fleet node subscribing to its own publisher internally; the signature is still checked against the registered key |
+| `INDEX_SWARM_PUBLISH` | JSON | unset | Indexes this gateway publishes: `[{"name":"root-tx-index","kind":"cdb64-root-tx"}]` |
+| `INDEX_SWARM_MAX_DISK_BYTES` | number | unset | Ceiling on installed bands (retired ones until swept), downloads in `incoming/`, and every torrent download at its full size from when it starts (a band that may come over the swarm counts twice). The copy a band replaces isn't counted. A band that would exceed it is skipped (`skipped_disk_budget`) |
+| `INDEX_SWARM_OBSERVER_KEYPAIR_FILE` | string | unset | Publishers only: host path of the observer keypair file. Set this or `OBSERVER_PRIVATE_KEY`, not both |
+| `INDEX_SWARM_TRUSTED_PUBLISHERS` | string | unset | Comma-separated wallets. When set, only these publishers are accepted |
+| `INDEX_SWARM_ALLOWED_FILE_ORIGINS` | string | unset | Other servers (`http(s)://host[:port]`) a publisher may send band files from, such as its CDN. Anything else is refused |
+| `INDEX_SWARM_POLL_INTERVAL_SECONDS` | number | `300` | How often each publisher is checked for new bands |
+| `INDEX_SWARM_DOWNLOAD_RATE_LIMIT_BYTES_PER_SEC` | number | unset | Cap on download speed, shared across all files of a band |
+| `INDEX_SWARM_DOWNLOAD_STALL_TIMEOUT_SECONDS` | number | `60` | Give up on a download that receives nothing for this long; it resumes next poll |
+| `INDEX_SWARM_DATA_PATH` | string | `./data/indexes` | Host directory for published, downloading and installed bands |
+| `INDEX_SWARM_PUBLISH_TTL_SECONDS` | number | `86400` | How long a publication is valid. It is renewed at half this |
+| `INDEX_SWARM_PUBLISH_SCAN_INTERVAL_SECONDS` | number | `60` | How often the publisher looks for new or changed bands. Only bands whose files changed are re-hashed |
+| `INDEX_SWARM_SUPERSEDE_GRACE_SECONDS` | number | `300` | How long a retired band's files stay on disk after it stops being served |
+| `INDEX_SWARM_MANIFEST_FETCH_TIMEOUT_MS` | number | `30000` | Give up on a publisher that has not answered in this long |
+| `INDEX_SWARM_DOWNLOAD_CONCURRENCY` | number | `4` | Parallel file downloads within one band |
+| `INDEX_SWARM_REGISTRY_CACHE_TTL_SECONDS` | number | `300` | How long one read of the gateway's `/ar-io/peers`, where the sidecar gets registry records, is reused. The sidecar makes no RPC calls of its own |
+| `INDEX_SWARM_DATA_DIR` | string | `data/indexes` | The index directory as the sidecar sees it, inside its container. Compose fixes it; to move the directory on the host, set `INDEX_SWARM_DATA_PATH` instead |
+| `INDEX_SWARM_CORE_URL` | string | `http://core:4000` | Where the sidecar reaches the gateway for its release check |
+| `INDEX_SWARM_MIN_CORE_RELEASE` | number | `84` | Gateway release needed to load installed bands. Below it the subscriber installs nothing until the gateway is upgraded |
+| `INDEX_SWARM_METRICS_PORT` | number | `9101` | Port for the sidecar's `/metrics` and `/healthz`, inside its container |
+| `INDEX_SWARM_METRICS_HOST` | string | `0.0.0.0` | Bind address for metrics, inside the container. Nothing reaches the host unless the port is mapped |
+| `INDEX_SWARM_SHUTDOWN_TIMEOUT_MS` | number | `10000` | How long to let work finish on shutdown before exiting anyway |
+| `INDEX_SWARM_LOG_LEVEL` | string | `info` | Sidecar log level |
+| `INDEX_SWARM_LOG_FORMAT` | string | `simple` | Sidecar log format (`simple` or `json`) |
+| `INDEX_SWARM_LOG_MAX_SIZE` | string | `50m` | Docker log rotation size for the sidecar |
+| `INDEX_SWARM_LOG_MAX_FILE` | number | `3` | Docker log rotation file count for the sidecar |
+
+#### BitTorrent
+
+Settings for the optional torrent engine (compose profile `index-swarm-torrent`). Setting `INDEX_SWARM_ENGINE_AUTH` turns it on; `./tools/index-swarm-setup --torrent` generates it. See [Index Sharing](/build/run-a-gateway/manage/index-sharing#bounding-upload).
+
+| Variable | Type | Default | Description |
+| --- | --- | --- | --- |
+| `INDEX_SWARM_ENGINE_AUTH` | string | unset | `user:password` for the engine's Web API, for example `swarm:<generated>`. The password must be at least 16 characters. Required by the compose engine, and on its own turns the engine on. Failed logins are not retried: the engine bans an address after five |
+| `INDEX_SWARM_ENGINE_URL` | string | `http://index-swarm-engine:8080` with `INDEX_SWARM_ENGINE_AUTH`, else unset | The engine's Web API. Set it only for an engine run outside the compose profile. Use the host and port the engine listens on, or it answers every call with a 401 |
+| `INDEX_SWARM_ENGINE_PORT` | number | `6881` | Peer port, published on the host over TCP and UDP. Open it to inbound peers. Keep it below Linux's ephemeral range (32768–60999) |
+| `INDEX_SWARM_ENGINE_PUBLIC_HOST` | string | host of the first `INDEX_SWARM_TRACKERS` URL | The host or IP peers reach this node's engine on. The tracker lists this node's engine under it. Set it when the tracker is behind a load balancer that does not forward the peer port |
+| `INDEX_SWARM_UPLOAD_LIMIT_BYTES_PER_SEC` | number | `10000000` | Cap on upload to peers (10 MB/s). `0` is unlimited |
+| `INDEX_SWARM_UPLOAD_DAILY_LIMIT_BYTES` | number | `100000000000` | Most the engine may upload in a UTC day (100 GB). Once spent, seeding is throttled to 1 KiB/s until the next day. Downloads and HTTP are unaffected. `0` is no budget |
+| `INDEX_SWARM_TORRENT_TIMEOUT_SECONDS` | number | `3600` | How long a torrent may go without progress before the subscriber abandons it and fetches the band over HTTP |
+| `INDEX_SWARM_WEBSEED_AFTER_SECONDS` | number | `120` | How long a torrent may make no progress before the subscriber turns on the publisher's WebSeed |
+| `INDEX_SWARM_TRACKERS` | string | unset | Comma-separated announce URLs written into every torrent this node publishes; normally its own tracker, `http://<public host>:6969/announce`. Publishers that want byte-identical `.torrent` files use the same list |
+| `INDEX_SWARM_TRACKER_PORT` | number | `6969` | Port the closed tracker listens on, published on the host. The tracker runs only on a node that publishes torrents |
+| `INDEX_SWARM_TRACKER_TRUSTED_PROXIES` | string | unset | Comma-separated IPs or CIDRs of proxies in front of the tracker whose `X-Forwarded-For` it believes. Set it when the tracker is served through a load balancer or NGINX |
+| `INDEX_SWARM_ALLOWED_TRACKERS` | string | unset | Tracker URLs, exactly as written, that a subscriber hands its engine even though their host is private: your own tracker on a LAN. Only useful with `INDEX_SWARM_ENGINE_BLOCK_PRIVATE=false` |
+| `INDEX_SWARM_ENGINE_BLOCK_PRIVATE` | boolean | `true` | Have the engine refuse peers, trackers and WebSeeds on private, loopback, link-local and carrier-grade NAT addresses. Set `false` only when the swarm runs on a private network, such as between gateways on one LAN |
+| `INDEX_SWARM_ENGINE_NETWORK_NAME` | string | `ar-io-index-swarm-engine` | Docker network the engine runs on, shared only with the sidecar |
+| `INDEX_SWARM_ENGINE_UID` / `INDEX_SWARM_ENGINE_GID` | number | `1000` | User and group the engine runs as. Set the same values for the sidecar and the engine |
+| `INDEX_SWARM_ENGINE_CONFIG_PATH` | string | `./data/index-swarm-engine` | Host directory for the engine's configuration and resume data |
+| `INDEX_SWARM_ENGINE_CONFIG_DIR` | string | `/config` | Where `index-swarm-engine-init` writes the engine's configuration, inside its container. Set it only when running the init outside compose |
 
 ### Indexing & Synchronization
 
@@ -306,7 +363,8 @@ The default public Solana RPC is rate-limited and may block `getProgramAccounts`
 | `RATE_LIMITER_IP_REFILL_PER_SEC`          | number  | `20`      | IP bucket refill rate per second    |
 | `RATE_LIMITER_RESOURCE_TOKENS_PER_BUCKET` | number  | `1000000` | Resource bucket token capacity      |
 | `RATE_LIMITER_RESOURCE_REFILL_PER_SEC`    | number  | `100`     | Resource bucket refill rate         |
-| `RATE_LIMITER_IPS_AND_CIDRS_ALLOWLIST`    | string  | -         | Comma-separated IP/CIDR allowlist   |
+| `RATE_LIMITER_IPS_AND_CIDRS_ALLOWLIST`    | string  | -         | Comma-separated IP/CIDR allowlist, exempt from rate limits and x402. Matched against the client address only |
+| `TRUSTED_PROXIES`                         | string  | loopback, private, CGNAT and link-local ranges | Proxies (IPs/CIDRs) whose `X-Forwarded-For` and `X-Real-IP` are believed when working out the client address. Add a CDN's or public load balancer's ranges when one is in front; `none` trusts no proxy, only for a core that clients reach directly, with no Envoy in front. See [x402 setup](/build/run-a-gateway/manage/x402-setup) |
 | `RATE_LIMITER_ARNS_ALLOWLIST`             | string  | -         | Comma-separated ArNS allowlist      |
 
 ### x402 Payment Protocol
