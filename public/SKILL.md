@@ -226,6 +226,7 @@ Base URL: `https://<gateway>/`
 | GET | `/ar-io/resolver/{name}` | Resolve an ArNS name |
 | GET | `/ar-io/info` | Gateway info (wallet, release, config) |
 | GET | `/ar-io/healthcheck` | Health status |
+| GET | `/ar-io/indexes` | Signed index publication: shared index bands, with file digests and BitTorrent magnet links, on gateways that publish. Verify before use: /build/advanced/index-publications |
 | GET | `graphql` | GraphQL endpoint for querying transactions |
 
 Public gateways: `turbo-gateway.com`, `perma.online`
