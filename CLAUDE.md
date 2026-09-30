@@ -12,7 +12,7 @@ The ar.io protocol runs on **Solana** (plus Arweave for storage). Content was mi
 
 ```bash
 npm run dev              # Start dev server (Turbo, standalone mode, no trailing slashes)
-npm run build            # Production build → static export to out/, then injects chunk-load recovery
+npm run build            # Production build → static export to out/, then injects chunk-load recovery and strips unused RSC segment files
 npm run lint             # ESLint (src/ and content/, .ts/.tsx/.mdx)
 npx tsc --noEmit         # TypeScript type checking
 npm run check-links      # Validate internal links across all content/ MDX
@@ -49,6 +49,8 @@ The build id is not the only source of churn. Two others were found by diffing t
 If a deploy uploads more than it should, diff the manifests: `ar-io-deploy` logs `(N/M files cached, K uploaded)`, and `https://turbo-gateway.com/raw/<manifest-tx>` returns each deploy's path→tx map.
 
 The sidebar tree is serialized into every page (the layout sits inside the catch-all route). Given the whole site's tree, it was ~100 KB of every page and any navigation change — a new page, a renamed title, a `meta.json` edit — rewrote every page. `sidebarTreeFor()` in `src/lib/source.ts` hands each page only its own section (Learn, Build, SDKs, ...) in full, other sections as tab stubs, no `fallback`, and no build-time `$ref` paths, so a nav change rewrites only its own section. Pages outside every section (e.g. those no `meta.json` lists) still get the full tree.
+
+**RSC segment files are deleted after export** (`scripts/strip-rsc-segments.ts`). Next writes each page's React Server Components payload as `index.txt` plus several `__next.*.txt` segment files (`__next._full.txt` is a byte-for-byte copy of `index.txt`). Only `index.txt` is ever requested -- client-side navigation fetches it; the segment files serve Next's per-segment prefetch cache, and this site issues no prefetches -- so the segments were ~88 MB of dead weight in every deploy. Deleting `index.txt` as well would halve the export again but turn every click into a full page load; Next falls back to that whenever a payload is missing or is not Flight data (the gateway's 404 fallback is HTML). When testing navigation, wait for hydration before clicking: an unhydrated link is a plain `<a>` and always does a full load, which looks exactly like broken client-side navigation.
 
 Known remaining per-deploy churn: the Orama search index (`api/search`, ~14 MB) changes on any content edit because its document ids are sequential, and a few `apis/ar-io-node` pages vary between builds because React emits their async RSC rows in completion order. `ar-io-deploy`'s pre-flight credit check prices the whole folder, ignoring the cache, so the wallet must hold enough for a full upload even when the real cost is small.
 
