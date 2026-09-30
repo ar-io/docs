@@ -234,7 +234,7 @@ For this walkthrough, we'll deploy directly from the command line using inline c
     ✔ Turbo initialized
     ✔ Upload planned: 12 of 48 files to upload (1.2 MiB), 36 cached, 0 duplicates
     ✔ Turbo credits check passed
-    ✔ Folder uploaded: abc123def456ghi789jkl012mno345pqr678stu901v (36/48 files cached, 12 uploaded)
+    ✔ Folder uploaded: abc123def456ghi789jkl012mno345pqr678stu901v (36/48 files cached, 12 uploaded) (files cached for future uploads)
     ✔ ANT record updated
 
     Deployment Successful!
@@ -257,8 +257,8 @@ For this walkthrough, we'll deploy directly from the command line using inline c
 Arweave storage is paid per byte, once. Three features keep redeploys cheap:
 
 - **Deduplication (on by default).** ario-deploy hashes every file and keeps a local cache (`.ario-deploy/transaction-cache.json`) of what it has already uploaded. Unchanged files reuse their existing transaction instead of being uploaded again, and files that are identical to another file in the same deploy are uploaded once. The credit check prices only what will actually be uploaded.
-- **Incremental uploads (opt-in).** `--incremental` tags each file with its content hash, and later deploys look your wallet's past uploads up on chain. A machine with no local cache, such as a fresh CI runner, still pays only for the files that changed. Uploads take a few minutes (typically about five) to become findable, so a redeploy seconds after the last one may upload some files again.
-- **Compression (opt-in).** `--compress gzip` compresses each file before upload and tags it with `Content-Encoding`, so gateways serve it with that header and browsers decompress it transparently. HTML, JavaScript, CSS and JSON typically shrink 5-8x; images, fonts and other already-compressed formats are uploaded as-is.
+- **Incremental uploads (opt-in).** `--incremental` tags each file with its content hash, and later deploys look your wallet's past uploads up on chain. A machine with no local cache, such as a fresh CI runner, still pays only for the files that changed. Uploads take a few minutes (about 5-7 in our measurements) to become findable, so a redeploy seconds after the last one may upload some files again.
+- **Compression (opt-in).** `--compress gzip` compresses each file before upload and tags it with `Content-Encoding`, so gateways serve it with that header and browsers decompress it transparently. HTML, JavaScript, CSS and JSON typically shrink 5-8x; already-compressed formats (JPEG, PNG, GIF, WebP, AVIF, WOFF/WOFF2, MP3, MP4, WebM, and archives) are uploaded as-is.
 
 ```json title="package.json"
 {
@@ -458,7 +458,8 @@ The simplest way to automate deployments is with the official [`ar-io/ar-io-depl
               deploy-key: ${{ secrets.DEPLOY_KEY }}
               arns-key: ${{ secrets.ARNS_KEY }}
               arns-name: ${{ secrets.ARNS_NAME }}
-              # Optional (see Reducing Upload Costs):
+              # Optional (see Reducing Upload Costs). incremental needs v1.2.0+ and
+              # compress v1.1.0+; pin that version, since the floating v1 tag may lag.
               # incremental: 'true'
               # compress: gzip
               # compress-exclude: 'llms*.txt,*.md'
