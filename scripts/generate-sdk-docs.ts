@@ -252,40 +252,61 @@ function escapeContent(content: string): string {
  * branch is taken from the `refs/heads/<branch>/` segment of the README URL so
  * that packages tracking `master` (ardrive-cli) resolve correctly too.
  *
+ * Links without a `./` prefix (`examples/folder-index/index.mjs`) are rewritten
+ * too, but only when they look like a path -- containing a `/` or ending in a
+ * file extension -- so a bare word is not mistaken for one. Fenced code blocks
+ * are skipped entirely: `handlers[type](event)` is code, not a link.
+ *
  * Absolute URLs, anchors, mailto: and protocol-relative links are left alone.
  */
 function resolveRelativeLinks(content: string, pkg: (typeof PACKAGES)[0]): string {
   const branch = pkg.readmeUrl.match(/refs\/heads\/([^/]+)\//)?.[1] ?? "main";
   const repo = pkg.sourceUrl.replace(/\/+$/, "");
 
-  return content.replace(
-    /(\]\()(\.\.?\/[^)\s]+)(\))/g,
-    (match, open: string, target: string, close: string) => {
-      // Split off any #fragment so it survives on the end of the new URL.
-      const [pathPart, fragment] = target.split(/(?=#)/, 2);
-      const isDirectory = pathPart.endsWith("/");
+  const isRepoPath = (target: string): boolean => {
+    if (/^(#|\/|[a-z][a-z0-9+.-]*:)/i.test(target)) return false;
+    if (/^\.\.?\//.test(target)) return true;
+    const pathPart = target.split("#")[0];
+    return pathPart.includes("/") || /\.[a-z0-9]+$/i.test(pathPart);
+  };
 
-      // READMEs sit at the repo root, so resolve `.`/`..` against it. A link
-      // that climbs above the root cannot be expressed as a repo URL — leave
-      // those untouched rather than emit a broken one.
-      const segments: string[] = [];
-      for (const segment of pathPart.split("/")) {
-        if (segment === "" || segment === ".") continue;
-        if (segment === "..") {
-          if (segments.length === 0) return match;
-          segments.pop();
-          continue;
+  const rewriteLinks = (text: string): string =>
+    text.replace(
+      /(\]\()([^)\s]+)(\))/g,
+      (match, open: string, target: string, close: string) => {
+        if (!isRepoPath(target)) return match;
+
+        // Split off any #fragment so it survives on the end of the new URL.
+        const [pathPart, fragment] = target.split(/(?=#)/, 2);
+        const isDirectory = pathPart.endsWith("/");
+
+        // READMEs sit at the repo root, so resolve `.`/`..` against it. A link
+        // that climbs above the root cannot be expressed as a repo URL — leave
+        // those untouched rather than emit a broken one.
+        const segments: string[] = [];
+        for (const segment of pathPart.split("/")) {
+          if (segment === "" || segment === ".") continue;
+          if (segment === "..") {
+            if (segments.length === 0) return match;
+            segments.pop();
+            continue;
+          }
+          segments.push(segment);
         }
-        segments.push(segment);
-      }
-      if (segments.length === 0) return match;
+        if (segments.length === 0) return match;
 
-      // GitHub serves directories under /tree and files under /blob.
-      const kind = isDirectory ? "tree" : "blob";
-      const url = `${repo}/${kind}/${branch}/${segments.join("/")}`;
-      return `${open}${url}${fragment ?? ""}${close}`;
-    }
-  );
+        // GitHub serves directories under /tree and files under /blob.
+        const kind = isDirectory ? "tree" : "blob";
+        const url = `${repo}/${kind}/${branch}/${segments.join("/")}`;
+        return `${open}${url}${fragment ?? ""}${close}`;
+      }
+    );
+
+  // Odd-indexed parts are fenced code blocks; leave them untouched.
+  return content
+    .split(/(^```[\s\S]*?^```[^\n]*$)/m)
+    .map((part, i) => (i % 2 === 1 ? part : rewriteLinks(part)))
+    .join("");
 }
 
 async function fetchReadme(url: string): Promise<string> {
