@@ -1,6 +1,6 @@
 import { DocsLayout } from "fumadocs-ui/layouts/docs";
 import { baseOptions } from "@/lib/layout.shared";
-import { source } from "@/lib/source";
+import { sidebarTreeFor } from "@/lib/source";
 
 export default async function Layout({ 
   children,
@@ -15,7 +15,7 @@ export default async function Layout({
   
   return (
     <DocsLayout
-      tree={source.pageTree}
+      tree={sidebarTreeFor(pathname)}
       {...baseOptions(pathname)}
       sidebar={{
         defaultOpenLevel: 1,

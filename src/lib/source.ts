@@ -105,3 +105,104 @@ export const source = loader({
     }
   },
 });
+
+/**
+ * Drop `$ref` (each node's source-file path) from a page-tree node.
+ *
+ * `$ref` is build-time bookkeeping for `source.getNodePage()`/`getNodeMeta()`;
+ * the UI never reads it. But the layout serializes the whole tree into every
+ * exported page, so these paths cost ~22 KB per page across ~2,700 files, and
+ * every Arweave deploy pays to upload whatever changes there.
+ */
+function withoutRefs<T extends PageTree.Node | PageTree.Root>(node: T): T {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { $ref, ...rest } = node as T & { $ref?: unknown };
+  const out = { ...rest } as T;
+  if ("children" in out) {
+    (out as PageTree.Folder).children = out.children.map(withoutRefs);
+  }
+  if ("index" in out && out.index) {
+    (out as PageTree.Folder).index = withoutRefs(out.index);
+  }
+  if ("fallback" in out && out.fallback) {
+    (out as PageTree.Root).fallback = withoutRefs(out.fallback);
+  }
+  return out;
+}
+
+const sidebarTree = withoutRefs(source.pageTree);
+
+/** First URL of a folder, in the order Fumadocs uses for a sidebar tab's link. */
+function firstPage(folder: PageTree.Folder): PageTree.Item | undefined {
+  if (folder.index) return folder.index;
+  for (const child of folder.children) {
+    if (child.type === "page" && !child.external) return child;
+    if (child.type === "folder") {
+      const page = firstPage(child);
+      if (page) return page;
+    }
+  }
+}
+
+function containsUrl(
+  folder: Pick<PageTree.Folder, "index" | "children">,
+  url: string,
+): boolean {
+  if (folder.index?.url === url) return true;
+  return folder.children.some((child) =>
+    child.type === "page"
+      ? child.url === url
+      : child.type === "folder" && containsUrl(child, url),
+  );
+}
+
+/**
+ * A section reduced to what its sidebar tab needs: name, icon, description
+ * and first URL (Fumadocs links the tab to its first page).
+ */
+function tabStub(folder: PageTree.Folder): PageTree.Folder {
+  const first = firstPage(folder);
+  return {
+    ...folder,
+    $id: `${folder.$id}:stub`,
+    index: first === folder.index ? folder.index : undefined,
+    children: first && first !== folder.index ? [first] : [],
+  };
+}
+
+/**
+ * The page tree for the sidebar of the page at `pathname`: its own section
+ * (Learn, Build, SDKs, ...) in full, every other section as a tab stub.
+ *
+ * The sidebar only ever shows the active section, but the layout serializes
+ * whatever tree it is given into every exported page. Handing it the whole
+ * site meant ~100 KB of navigation in each of ~2,700 files, and any nav
+ * change anywhere -- a new page, a renamed title -- rewrote every page and
+ * re-uploaded the whole site to Arweave. Scoped like this, a nav change only
+ * touches its own section.
+ *
+ * `fallback` (pages no `meta.json` lists) is dropped too: Fumadocs only
+ * consults it for pages that are in it, and those get the whole tree.
+ *
+ * Each result gets its own `$id`: Fumadocs' TreeContextProvider memoizes on
+ * `tree.$id`, so a shared id would keep the previous section's sidebar after
+ * client-side navigation into another section.
+ */
+export function sidebarTreeFor(pathname: string): PageTree.Root {
+  const active = sidebarTree.children.find(
+    (node): node is PageTree.Folder =>
+      node.type === "folder" && !!node.root && containsUrl(node, pathname),
+  );
+  if (!active) return sidebarTree;
+
+  return {
+    ...sidebarTree,
+    $id: `${sidebarTree.$id}:${active.$id}`,
+    children: sidebarTree.children.map((node) =>
+      node === active || node.type !== "folder" || !node.root
+        ? node
+        : tabStub(node),
+    ),
+    fallback: undefined,
+  };
+}

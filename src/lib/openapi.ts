@@ -153,7 +153,18 @@ async function generateTypeScriptSchema(
  * to resolving each `document` on its own, which keeps failures contained to
  * the pages that actually use the broken spec.
  */
-const server = createOpenAPI({ mediaAdapters, generateTypeScriptSchema });
+const server = createOpenAPI({
+  mediaAdapters,
+  generateTypeScriptSchema,
+  // Same reason as `tokenizeTimeLimit` in source.config.ts: Shiki's default
+  // 500ms per-line limit fires at random under build load and leaves lines
+  // uncoloured, so these pages differed between builds of identical specs.
+  // The type requires `themes`; these are Fumadocs' defaults, unchanged.
+  shikiOptions: {
+    themes: { light: 'github-light', dark: 'github-dark' },
+    tokenizeTimeLimit: 0,
+  },
+});
 
 /**
  * Swap in the corrected `servers` without touching the cached schema map:
