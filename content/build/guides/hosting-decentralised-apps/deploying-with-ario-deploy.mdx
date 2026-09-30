@@ -254,20 +254,23 @@ For this walkthrough, we'll deploy directly from the command line using inline c
 
 ## Reducing Upload Costs
 
-Arweave storage is paid per byte, once. Two features keep redeploys cheap:
+Arweave storage is paid per byte, once. Three features keep redeploys cheap:
 
 - **Deduplication (on by default).** ario-deploy hashes every file and keeps a local cache (`.ario-deploy/transaction-cache.json`) of what it has already uploaded. Unchanged files reuse their existing transaction instead of being uploaded again, and files that are identical to another file in the same deploy are uploaded once. The credit check prices only what will actually be uploaded.
+- **Incremental uploads (opt-in).** `--incremental` tags each file with its content hash, and later deploys look your wallet's past uploads up on chain. A machine with no local cache, such as a fresh CI runner, still pays only for the files that changed. Uploads take a few minutes (typically about five) to become findable, so a redeploy seconds after the last one may upload some files again.
 - **Compression (opt-in).** `--compress gzip` compresses each file before upload and tags it with `Content-Encoding`, so gateways serve it with that header and browsers decompress it transparently. HTML, JavaScript, CSS and JSON typically shrink 5-8x; images, fonts and other already-compressed formats are uploaded as-is.
 
 ```json title="package.json"
 {
   "scripts": {
-    "deploy": "next build && ario-deploy deploy --arns-name your-arns-name --deploy-folder out --compress gzip --compress-exclude \"llms*.txt,*.md\""
+    "deploy": "next build && ario-deploy deploy --arns-name your-arns-name --deploy-folder out --incremental --compress gzip --compress-exclude \"llms*.txt,*.md\""
   }
 }
 ```
 
 `--compress-exclude` keeps files uncompressed that tools fetch with plain HTTP clients such as `curl`, which do not decode gzip unless asked to.
+
+Measured on a 1,229-file static docs site with both flags: a redeploy from a fresh CI runner with no local cache found 1,228 files on chain and uploaded one (2.5 MiB), where the first deploy uploaded 33 MiB. Turning compression or incremental uploads on for the first time uploads each file once more, because those uploads are tracked separately.
 
 <Callout type="warn" title="Check a compressed deploy before relying on it">
   Right after a deploy, a gateway may serve a file before it has indexed that file's tags. The gateway must still send `Content-Encoding` in that case. The ar.io and Turbo gateways do; other operators' gateways do once they run an ar-io-node release with that fix, and until then may serve the compressed bytes without the header, which renders as garbage. Deploy to a test undername first (`--undername staging`) and load a few pages before pointing your main name at it.
@@ -406,8 +409,8 @@ The on-demand approach is ideal for:
 
 The simplest way to automate deployments is with the official [`ar-io/ar-io-deploy`](https://github.com/ar-io/ar-io-deploy) GitHub Action. It handles node setup, dedup caching, and PR preview comments automatically.
 
-<Callout type="info" title="Keep the dedupe cache between infrequent deploys">
-  The action stores the dedupe cache in the GitHub Actions cache, which GitHub evicts after 7 days without use. If you deploy less often than that, the next deploy re-uploads every file. To avoid it, persist `.ario-deploy/transaction-cache.json` yourself, for example by committing it to a dedicated branch after each deploy and restoring it before the next.
+<Callout type="info" title="Use incremental uploads in CI">
+  The action stores the dedupe cache in the GitHub Actions cache, which GitHub evicts after 7 days without use, so an infrequent deploy can start with no cache and re-upload every file. Set `incremental: 'true'` and the action finds your wallet's past uploads on chain instead, so only the files that changed are uploaded, whatever the cache holds.
 </Callout>
 
 <Steps>
@@ -455,7 +458,8 @@ The simplest way to automate deployments is with the official [`ar-io/ar-io-depl
               deploy-key: ${{ secrets.DEPLOY_KEY }}
               arns-key: ${{ secrets.ARNS_KEY }}
               arns-name: ${{ secrets.ARNS_NAME }}
-              # Optional: upload gzip-compressed (see Reducing Upload Costs)
+              # Optional (see Reducing Upload Costs):
+              # incremental: 'true'
               # compress: gzip
               # compress-exclude: 'llms*.txt,*.md'
     ```
@@ -534,7 +538,7 @@ You now know how to deploy permanent web applications using ario-deploy:
 - **Two-key model** with separate upload (`DEPLOY_KEY`) and ArNS authority (`ARNS_KEY`) keys
 - **Flexible wallet options** supporting Arweave, EVM, and Solana wallets
 - **Payment methods** including pre-funded Turbo Credits and on-demand topups with ARIO or Base-ETH
-- **Lower upload costs** through automatic deduplication and optional gzip compression
+- **Lower upload costs** through automatic deduplication, optional incremental uploads, and optional gzip compression
 - **Command-line deployment** with inline wallet credentials for quick deployments
 - **GitHub Actions automation** with the official `ar-io/ar-io-deploy` action for production deploys and PR previews
 
