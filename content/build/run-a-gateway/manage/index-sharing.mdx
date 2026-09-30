@@ -31,11 +31,11 @@ Decide this first; you can change it later by running the setup script again.
 | | HTTP only | With BitTorrent (`--torrent`) |
 | --- | --- | --- |
 | First download | From the publisher's HTTP routes, through its rate limits and x402. Can take hours | From peers first, unmetered; the publisher's HTTP routes are the fallback |
-| Ports to open | None | 6881, TCP and UDP |
+| Ports to open | None | None required. Opening 6881, TCP and UDP, is recommended: it lets peers connect to you |
 | You upload | Nothing | You seed what you install to other gateways, capped at 10 MB/s and 100 GB a day by default |
 | Extra memory | About 60 MB (the sidecar) | About 250 MB (the sidecar and the torrent engine), plus the files it seeds mapped into memory: the kernel can reclaim those pages, but they count against a container memory limit |
 
-BitTorrent is the better default when you can open a port: your first pull is faster and free, and each gateway that seeds makes the next one's faster. Choose HTTP only if you can't open a port or don't want to upload.
+BitTorrent is the better default: your first pull is faster and free, and each gateway that seeds makes the next one's faster. It works behind NAT or a closed port too, because your gateway connects out to the publisher and to other peers; an open port adds the peers that can only be reached, not reach you. Choose HTTP only if you don't want to upload. [Network and Disk](#network-and-disk) has the details.
 
 What runs on your gateway once it is set up. The torrent engine, dashed, is there only with `--torrent`; the tracker only answers when you publish:
 
@@ -83,8 +83,8 @@ Subscribing is what most operators want: your gateway downloads a publisher's in
 ### Prerequisites
 
 - A running ar.io gateway on Release 84 or later, with Docker, and a checkout of the gateway repository at that release (the scripts live in `tools/`)
-- About 27 GB (25 GiB) of free disk for the bands (the set turbo-gateway.com publishes is about 21 GB). This is on top of what your gateway already uses, and it doesn't change the gateway's minimum requirements
-- For BitTorrent: port 6881, TCP and UDP, open to the internet
+- 50 GiB of free disk on the filesystem that holds `data/indexes`, the budget the setup script sets. The bands turbo-gateway.com publishes take about 21 GB once installed; the rest is room for a band to be on disk twice while it arrives and for a new band beside the one it replaces. This is on top of what your gateway already uses, and it doesn't change the gateway's minimum requirements. See [Network and Disk](#network-and-disk)
+- For BitTorrent: port 6881, TCP and UDP, open to the internet is recommended, not required
 
 <Steps>
 <Step>
@@ -119,7 +119,7 @@ This subscribes to the publisher's root transaction index, points your gateway a
 <Step>
 ### Open the Peer Port
 
-With `--torrent`, open port **6881, TCP and UDP**, to the internet. Peers connect in on it. See [Firewalls and Docker ports](#firewalls-and-docker-ports) before relying on a host firewall.
+With `--torrent`, open port **6881, TCP and UDP**, to the internet if you can. Peers connect in on it. It isn't required: without it, your gateway still downloads from peers and seeds to the peers it connects to. Behind a home router, forward the port yourself; the engine doesn't use UPnP. See [Firewalls and Docker ports](#firewalls-and-docker-ports) before relying on a host firewall.
 
 </Step>
 
@@ -271,12 +271,12 @@ The script edits `.env` and nothing else, unless given `--restart`.
 
 | Flag | Effect |
 | --- | --- |
-| `--subscribe <wallet>` | Adds the publisher to `INDEX_SWARM_SUBSCRIBE`. Repeatable; existing entries are kept. Sets `INDEX_SWARM_MAX_DISK_BYTES` to 25 GiB if unset. Puts `data/indexes/installed/root-tx-index` first in `CDB64_ROOT_TX_INDEX_SOURCES`, keeping what was there (or, if unset, the shipped default), and moves `cdb` right after `db` in `ROOT_TX_LOOKUP_ORDER` (if unset: `db,cdb,gateways,graphql`) |
+| `--subscribe <wallet>` | Adds the publisher to `INDEX_SWARM_SUBSCRIBE`. Repeatable; existing entries are kept. Sets `INDEX_SWARM_MAX_DISK_BYTES` to 50 GiB if unset. Puts `data/indexes/installed/root-tx-index` first in `CDB64_ROOT_TX_INDEX_SOURCES`, keeping what was there (or, if unset, the shipped default), and moves `cdb` right after `db` in `ROOT_TX_LOOKUP_ORDER` (if unset: `db,cdb,gateways,graphql`) |
 | `--publish` | Adds `root-tx-index` to `INDEX_SWARM_PUBLISH`. Refuses, writing nothing, without a registered key or `AR_IO_WALLET`. With `--torrent` and a public host, sets `INDEX_SWARM_TRACKERS` to this node's tracker |
 | `--torrent` | Generates `INDEX_SWARM_ENGINE_AUTH` if unset (`swarm:` and 48 random hex characters; never printed) |
 | `--public-host <addr>` | With `--torrent`: sets `INDEX_SWARM_ENGINE_PUBLIC_HOST` |
 | `--engine-port <n>` | With `--torrent`: sets `INDEX_SWARM_ENGINE_PORT` (default 6881) |
-| `--max-disk-gib <n>` | With `--subscribe`: sets `INDEX_SWARM_MAX_DISK_BYTES` |
+| `--max-disk-gib <n>` | Sets `INDEX_SWARM_MAX_DISK_BYTES`. Works on its own too, to change an existing subscriber's budget |
 | `--no-gateway` | Leaves `CDB64_ROOT_TX_INDEX_SOURCES` and `ROOT_TX_LOOKUP_ORDER` alone |
 | `--dry-run` | Shows the changes and writes nothing |
 | `--restart` | Then recreates what needs it: the gateway only when those two settings differ from what it runs with, then the sidecar (and the engine, with torrents), by service name, with the compose files the running gateway was started with |
@@ -304,7 +304,7 @@ What the setup script writes, if you would rather edit `.env` yourself:
 
 ```bash
 INDEX_SWARM_SUBSCRIBE='[{"publisher":"34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7h5","name":"root-tx-index"}]'
-INDEX_SWARM_MAX_DISK_BYTES=26843545600   # 25 GiB; size it to what the publisher offers
+INDEX_SWARM_MAX_DISK_BYTES=53687091200   # 50 GiB; about twice what the publisher offers
 CDB64_ROOT_TX_INDEX_SOURCES=data/indexes/installed/root-tx-index,resources/cdb64-root-tx-index-non-ao-non-redstone-with-content-type-to-height-1820000,resources/cdb64-root-tx-index-non-ao-non-redstone-without-content-type-to-height-1820000,resources/cdb64-root-tx-index-ao-to-height-1820000
 ROOT_TX_LOOKUP_ORDER=db,cdb,gateways,graphql
 INDEX_SWARM_ENGINE_AUTH=swarm:<generated>   # only for BitTorrent: at least 16 characters, e.g. openssl rand -hex 24
@@ -324,6 +324,32 @@ docker compose --profile index-swarm --profile index-swarm-torrent \
 
 Without BitTorrent, leave out the `index-swarm-torrent` profile and the two engine services. Name the services as shown: a bare `docker compose up` also starts or recreates every default service, including your observer.
 
+## Network and Disk
+
+### Ports
+
+| Port | Who needs it open | What for |
+| --- | --- | --- |
+| Your gateway's HTTP port (via Envoy or NGINX) | Publishers | Serving `/ar-io/indexes`, the band files and the `.torrent` files. Nothing new: it is the port your gateway already serves on |
+| 6881, TCP and UDP (`INDEX_SWARM_ENGINE_PORT`) | Publishers; recommended for subscribers | Peers connecting to your torrent engine. A publisher needs it, since subscribers must reach its engine. A subscriber works without it, but only peers it connects to can download from it |
+| 6969, TCP (`INDEX_SWARM_TRACKER_PORT`) | Publishers of torrents | The closed tracker, where peers find each other. Published on every node, but only a publisher listens |
+
+Outbound, the sidecar needs HTTPS to each publisher's gateway, and the torrent engine needs to reach peers anywhere on the internet on any port. If your host filters outbound traffic, allow both.
+
+Both 6881 and 6969 are published on the host whenever the sidecar runs, HTTP only included, so the sidecar won't start if another program already holds either. Move them with `--engine-port` and `INDEX_SWARM_TRACKER_PORT`. Keep the engine port below 32768: Linux uses 32768–60999 for outgoing connections, and one of those can hold the port when the engine restarts.
+
+Some hosting providers restrict BitTorrent traffic in their terms of service. Check yours before turning the engine on.
+
+### Disk
+
+- **The budget is a ceiling, not a reservation.** `INDEX_SWARM_MAX_DISK_BYTES` stops the sidecar taking more than that, but nothing sets the space aside, so keep at least the budget free on the filesystem. It counts installed bands, downloads in progress and every torrent download twice (the download and the copy that installs), so with that much free, the budget is reached before the disk fills. A band that would go over is skipped, and `index-swarm-status` says so.
+- **One filesystem.** Everything under `data/indexes` must be on one filesystem: an install is a rename and a publisher seeds from hard links. To put it on another disk, move the whole directory and set `INDEX_SWARM_DATA_PATH`; the gateway mounts the same path.
+- **SSD or spinning disk.** An installed band answers a lookup in about 2 ms on SSD and tens of milliseconds on a busy spinning disk, still far faster than asking the network. Before installing, the sidecar reads each band once to check it, about a minute for a 7 GB band on a spinning disk. If the same disk also serves your gateway's data, cap the download rate with `INDEX_SWARM_DOWNLOAD_RATE_LIMIT_BYTES_PER_SEC`.
+
+### Bandwidth
+
+A first pull of the index turbo-gateway.com publishes is about 21 GB. After that, the tip band is rebuilt daily and the next band every few days. Upload is bounded by the [upload limits](#bounding-upload): at the defaults, up to 100 GB a day, about 3 TB a month. On a host that charges for bandwidth, lower them.
+
 ## Firewalls and Docker Ports
 
 The torrent engine publishes only its peer port, `INDEX_SWARM_ENGINE_PORT` (6881, TCP and UDP). The sidecar also publishes the tracker port, `INDEX_SWARM_TRACKER_PORT` (6969, TCP), on every node, but only a node that publishes torrents listens on it; a subscriber needn't open it. The engine's Web API is never published.
@@ -342,6 +368,25 @@ Seeding is free to peers but not to you: every byte is your upload, and a peer c
 | `INDEX_SWARM_UPLOAD_DAILY_LIMIT_BYTES` | `100000000000` (100 GB) | Caps upload per UTC day. Once spent, seeding is throttled to 1 KiB/s until the next UTC day. Downloads and the HTTP routes are unaffected. `0` is no budget |
 
 A large publisher should raise both. The engine's memory also grows with the bytes it seeds: it maps the files, and mapped pages count against a container memory limit.
+
+## Tuning the Torrent Engine
+
+The defaults suit most gateways. These are the settings worth changing, all in `.env`, applied by restarting the sidecar and engine:
+
+| Variable | Default | When to change it |
+| --- | --- | --- |
+| `INDEX_SWARM_ENGINE_PORT` | `6881` | Another program holds the port, or your network throttles it. Also `--engine-port` |
+| `INDEX_SWARM_UPLOAD_LIMIT_BYTES_PER_SEC`, `INDEX_SWARM_UPLOAD_DAILY_LIMIT_BYTES` | 10 MB/s, 100 GB | Lower them on metered bandwidth; raise them on a publisher. See [Bounding Upload](#bounding-upload) |
+| `INDEX_SWARM_DOWNLOAD_RATE_LIMIT_BYTES_PER_SEC` | no cap | A spinning disk that also serves your gateway |
+| `INDEX_SWARM_DOWNLOAD_CONCURRENCY` | `4` | Files fetched at once within one band. Lower it on a slow disk or link |
+| `INDEX_SWARM_WEBSEED_AFTER_SECONDS` | `120` | How long a torrent may stall before the publisher's WebSeed is added. The WebSeed is metered like the HTTP routes |
+| `INDEX_SWARM_TORRENT_TIMEOUT_SECONDS` | `3600` | How long a torrent may go without progress before the band is fetched over HTTP instead |
+| `INDEX_SWARM_MAX_DISK_BYTES` | 50 GiB (set by the setup script) | Subscribing to more publishers or to larger indexes. Also `--max-disk-gib` |
+| `INDEX_SWARM_ENGINE_PUBLIC_HOST` | host of the tracker URL | A publisher whose engine is reached at a different address from its tracker, such as behind a load balancer |
+
+### Sharing Between Your Own Gateways
+
+If you run several gateways on one private network, they can seed bands to each other over it instead of each pulling from the internet. By default the engine refuses private addresses, so that other gateways can't use it to reach your network. For a private swarm, set `INDEX_SWARM_ENGINE_BLOCK_PRIVATE=false` on each node and list your own tracker's announce URL in `INDEX_SWARM_ALLOWED_TRACKERS`. Do this only on a network you control.
 
 ## Publishing from a Fleet
 
@@ -442,7 +487,9 @@ Run `./tools/index-swarm-status` first: it names most problems and their fix.
 
 **Bands installed, but lookups still go to the network.** Check `ROOT_TX_LOOKUP_ORDER` puts `cdb` right after `db`, and that `CDB64_ROOT_TX_INDEX_SOURCES` starts with `data/indexes/installed/root-tx-index`. Both need a gateway restart; `./tools/index-swarm-setup --restart` does it.
 
-**No peer has connected in.** Port 6881 is closed somewhere between the internet and the engine. Bands still arrive over HTTP, and you still download from peers, but nobody can download from you.
+**No peer has connected in.** Port 6881 is closed somewhere between the internet and the engine. Bands still arrive, from peers and over HTTP, and the peers you connect to can download from you, but peers that can't reach you can't. Open or forward the port if you can; for a subscriber it is optional.
+
+**`Bind for 0.0.0.0:6969 failed: port is already allocated`** (or `6881`). Another program on the host holds the port. Move the engine with `--engine-port`, or the tracker with `INDEX_SWARM_TRACKER_PORT`, and restart.
 
 **The engine refuses the sidecar.** Check `INDEX_SWARM_ENGINE_AUTH`. The sidecar does not retry a failed login, because the engine bans an address after five.
 
