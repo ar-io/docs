@@ -66,6 +66,19 @@ const config = {
   basePath: process.env.BASE_PATH || "",
   reactStrictMode: true,
   generateBuildId: async () => bundleInputsHash(),
+  experimental: {
+    // Turbopack's default production ids ('deterministic') are module-path
+    // hashes truncated to a small number. Two of our modules collide, and
+    // which one gets bumped varies between CI runs: the Shiki `tsv` loader
+    // flipped between 825913 and 841727 on consecutive deploys of the same
+    // bundle inputs. The new id renames its chunk, the chunks that reference
+    // it rename in turn, and every page that loads them changes -- about
+    // 2,000 files re-uploaded to Arweave for a one-line docs edit.
+    //
+    // Named ids are the module paths themselves, so nothing can collide.
+    // Cost: ~3% larger output, paid once, not per deploy.
+    turbopackModuleIds: "named",
+  },
   eslint: {
     // Warning: This allows production builds to successfully complete even if
     // your project has ESLint errors.

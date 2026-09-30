@@ -40,7 +40,17 @@ Next defaults to a *random* build id per build and embeds it in every exported H
 
 Do **not** replace it with a hard-coded constant. The id is what Next uses to detect deployment skew — when an RSC response carries a different id than the running bundle, the client forces a full navigation. A constant disables that permanently; hashing the bundle inputs keeps it working (source/dependency changes still move the id) while making content edits deterministic.
 
-Deduplication only pays off if `ar-io-deploy`'s transaction cache survives between deploys, so the deploy workflow commits `.ario-deploy/transaction-cache.json` back to the repo — GitHub evicts Actions caches after 7 days unused, and deploys here are manual and infrequent.
+Deduplication only pays off if `ar-io-deploy`'s transaction cache survives between deploys, so the deploy workflow persists `.ario-deploy/transaction-cache.json` to a dedicated unprotected `deploy-cache` branch (and restores it before deploying) — GitHub evicts Actions caches after 7 days unused, and deploys here are manual and infrequent.
+
+The build id is not the only source of churn. Two others were found by diffing the Arweave manifests of consecutive deploys, and each is pinned down in config:
+- **Turbopack module ids** (`experimental.turbopackModuleIds: "named"` in `next.config.mjs`). The default production ids are truncated hashes; two modules collided and the winner varied between CI runs (it does not reproduce locally). One flipped id renames a handful of chunks, and since every page references chunk filenames, every page changed — ~2,000 of ~3,500 files re-uploaded for a one-line edit.
+- **Shiki's per-line tokenize time limit** (`tokenizeTimeLimit: 0` in `source.config.ts`). Under build load it fires at random and emits the line uncoloured, so ~40 pages with code blocks differed between builds of identical source.
+
+If a deploy uploads more than it should, diff the manifests: `ar-io-deploy` logs `(N/M files cached, K uploaded)`, and `https://turbo-gateway.com/raw/<manifest-tx>` returns each deploy's path→tx map.
+
+The sidebar tree is serialized into every page (the layout sits inside the catch-all route). Given the whole site's tree, it was ~100 KB of every page and any navigation change — a new page, a renamed title, a `meta.json` edit — rewrote every page. `sidebarTreeFor()` in `src/lib/source.ts` hands each page only its own section (Learn, Build, SDKs, ...) in full, other sections as tab stubs, no `fallback`, and no build-time `$ref` paths, so a nav change rewrites only its own section. Pages outside every section (e.g. those no `meta.json` lists) still get the full tree.
+
+Known remaining per-deploy churn: the Orama search index (`api/search`, ~14 MB) changes on any content edit because its document ids are sequential, and a few `apis/ar-io-node` pages vary between builds because React emits their async RSC rows in completion order. `ar-io-deploy`'s pre-flight credit check prices the whole folder, ignoring the cache, so the wallet must hold enough for a full upload even when the real cost is small.
 
 **Gotcha worth knowing:** Tailwind v4 is configured with a bare `@import "tailwindcss"` and no `@source`, so it auto-scans the project honouring `.gitignore`. A build artifact left in the tree under a name `.gitignore` does not cover (`out-old/`, a copied `out/`) gets scanned, adds classes, and changes the CSS bundle — which then changes every page. If output ever looks non-deterministic, check for stray copies before suspecting the framework. `.ario-deploy/transaction-cache.json` is safe because Tailwind does not scan `.json`.
 
