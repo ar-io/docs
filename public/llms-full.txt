@@ -13933,7 +13933,7 @@ Without BitTorrent, leave out the `index-swarm-torrent` profile and the two engi
 | --- | --- | --- |
 | Your gateway's HTTP port (via Envoy or NGINX) | Publishers | Serving `/ar-io/indexes`, the band files and the `.torrent` files. Nothing new: it is the port your gateway already serves on |
 | 6881, TCP and UDP (`INDEX_SWARM_ENGINE_PORT`) | Publishers; recommended for subscribers | Peers connecting to your torrent engine. A publisher needs it, since subscribers must reach its engine. A subscriber works without it, but only peers it connects to can download from it |
-| 6969, TCP (`INDEX_SWARM_TRACKER_PORT`) | Publishers of torrents | The closed tracker, where peers find each other. Published on every node, but only a publisher listens |
+| 6969, TCP (`INDEX_SWARM_TRACKER_PORT`) | Publishers whose torrents announce to it directly, as the setup script configures | The closed tracker, where peers find each other. Not needed when `/announce` goes through a load balancer (see [Publishing from a Fleet](#publishing-from-a-fleet)). Published on every node, but only a publisher listens |
 
 Outbound, the sidecar needs HTTPS to each publisher's gateway, and the torrent engine needs to reach peers anywhere on the internet on any port. If your host filters outbound traffic, allow both.
 
