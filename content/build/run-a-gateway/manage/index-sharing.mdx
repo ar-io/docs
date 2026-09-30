@@ -430,6 +430,7 @@ The torrent routes, `/ar-io/indexes/torrents/` and `/ar-io/indexes/webseed/`, si
 | `index_swarm_upload_today_bytes`, `index_swarm_upload_throttled` | Seeding today against the daily budget; `1` means it is spent and seeding is throttled until the next UTC day |
 | `index_publish_total{result}` | On a publisher: `published`, `unchanged` or `failed` |
 | `index_publish_seeding_bands` | On a publisher: bands handed to the engine. Below `index_publish_bands` means some are offered over HTTP only |
+| `index_swarm_tracker_seeding_hosts`, `index_swarm_tracker_seeders` | On a publisher running the tracker: who shares your index. Seeding hosts are the other hosts seeding at least one of your bands, roughly how many gateways share it; seeders are the peers holding a whole band, per band. Both are as peers report them, and peers found only through DHT or peer exchange aren't counted. From Release 85 |
 
 On the gateway, `indexes_requests_total{route,status}` shows who is downloading from you, by route (`publication`, `file`, `blob`, `torrent`, `webseed`), including `402` and `429` from your rate limits.
 
