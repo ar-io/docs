@@ -7,6 +7,12 @@ on:
         description: "ArNS undername for deployment (use @ for base name)"
         required: true
         type: string
+      compress:
+        description: "Compress files with gzip (Content-Encoding). Choose none to deploy uncompressed."
+        required: false
+        type: choice
+        options: [gzip, none]
+        default: gzip
 
 # One deploy at a time: two concurrent runs would race both the ArNS update
 # and the dedupe-cache commit.
@@ -72,14 +78,33 @@ jobs:
             > .ario-deploy/transaction-cache.json 2>/dev/null || \
             rm -f .ario-deploy/transaction-cache.json
 
+      # Pinned to the release with compression (ar-io/ar-io-deploy#27) and
+      # incremental uploads (#28); the floating v1 tag is moved by hand and
+      # may lag behind it.
+      #
+      # incremental: every file is tagged with its content hash, and each
+      # deploy looks this wallet's past uploads up on chain (turbo-gateway.com
+      # GraphQL), so a runner with no dedupe cache still pays only for files
+      # that changed. The restored cache above stays as a fast first layer.
+      #
+      # gzip cuts what each upload costs roughly 7x: every file is compressed
+      # and tagged Content-Encoding, and gateways serve it with that header --
+      # including right after upload, before the item is indexed (fixed on the
+      # ar.io/Turbo gateways 2026-09-30; other operators need the ar-io-node
+      # release with #964/#966). llm*.txt and *.md stay uncompressed: tools
+      # fetch them with plain HTTP clients such as curl, which do not decode
+      # gzip unless asked to.
       - name: Deploy to Arweave
-        uses: ar-io/ar-io-deploy@v1
+        uses: ar-io/ar-io-deploy@v1.2.0
         with:
           deploy-key: ${{ secrets.DEPLOY_KEY }}
           arns-key: ${{ secrets.ARNS_KEY }}
           arns-name: ${{ secrets.ARNS_NAME }}
           undername: "${{ inputs.undername }}"
           deploy-folder: ./out
+          compress: ${{ inputs.compress }}
+          compress-exclude: "llm*.txt,*.md"
+          incremental: "true"
 
       # ar-io-deploy records which files it has already uploaded, and skips
       # re-uploading (and re-paying for) them next time. It keeps that record
