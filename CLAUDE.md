@@ -161,6 +161,7 @@ One hazard remains: generated pages are overwritten wholesale. Corrections that 
 - Every other page under `content/sdks/<pkg>/` is generated; edits there are reverted on the next regeneration. Fix the upstream README, or fix the transform in `generate-sdk-docs.ts`.
 - `resolveRelativeLinks()` rewrites repo-relative README links (`./examples/foo/`) into absolute GitHub URLs, since they would otherwise resolve against the docs site and 404.
 - Regenerating also deletes the committed `llm.txt` files that live in those directories, which is why `generate-sdk-llm-texts` must run after `generate-sdk-docs`.
+- `content/sdks/meta.json` (the SDKs section's own nav) is hand-curated and only created when missing; it lists pages the generator does not produce (`index`, `turbo-upload`). An earlier version rewrote it every run and silently dropped those from the sidebar.
 
 ## LLM Text Generation
 

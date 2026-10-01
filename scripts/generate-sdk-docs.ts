@@ -260,7 +260,12 @@ function escapeContent(content: string): string {
  * Absolute URLs, anchors, mailto: and protocol-relative links are left alone.
  */
 function resolveRelativeLinks(content: string, pkg: (typeof PACKAGES)[0]): string {
-  const branch = pkg.readmeUrl.match(/refs\/heads\/([^/]+)\//)?.[1] ?? "main";
+  // raw.githubusercontent.com/<owner>/<repo>/refs/heads/<branch>/README.md, or the
+  // short form raw.githubusercontent.com/<owner>/<repo>/<branch>/README.md.
+  const branch =
+    pkg.readmeUrl.match(/refs\/heads\/([^/]+)\//)?.[1] ??
+    pkg.readmeUrl.match(/raw\.githubusercontent\.com\/[^/]+\/[^/]+\/([^/]+)\//)?.[1] ??
+    "main";
   const repo = pkg.sourceUrl.replace(/\/+$/, "");
 
   const isRepoPath = (target: string): boolean => {
@@ -532,16 +537,23 @@ async function main() {
   }
   console.log("SDK documentation generated successfully!");
 
-  // Create top-level SDKs meta.json
+  /*
+   * The top-level SDKs meta.json is hand-curated: it lists pages this script
+   * does not generate (the section's own index, turbo-upload), so it is only
+   * written when missing. Rewriting it every run silently dropped those pages
+   * from the sidebar on each weekly regeneration.
+   */
   const sdksMetaPath = path.resolve("content/sdks/meta.json");
   const sdksMeta = {
     title: "SDKs and CLIs",
     icon: "Package",
     pages: [
+      "index",
       "---SDKs---",
       "ardrive-core-js",
       "ar-io-sdk",
       "turbo-sdk",
+      "turbo-upload",
       "wayfinder",
       "---CLIs---",
       "...(clis)",
@@ -550,8 +562,14 @@ async function main() {
     defaultOpen: false,
   };
 
-  await fs.writeFile(sdksMetaPath, JSON.stringify(sdksMeta, null, 2));
-  console.log("Created top-level SDKs meta.json");
+  try {
+    await fs.access(sdksMetaPath);
+    console.log("Kept the existing top-level SDKs meta.json");
+  } catch {
+    await fs.writeFile(sdksMetaPath, `${JSON.stringify(sdksMeta, null, 2)}
+`);
+    console.log("Created top-level SDKs meta.json");
+  }
   console.log("SDK documentation generated successfully!");
 }
 

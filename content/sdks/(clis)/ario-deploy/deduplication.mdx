@@ -10,12 +10,15 @@ By default, ario-deploy caches your deployment log to prevent uploading duplicat
 1. When you deploy, ario-deploy hashes each file in your build
 2. It checks the local cache for matching hashes from previous uploads
 3. Files that haven't changed are skipped - the existing transaction ID is reused
-4. Only new or modified files are uploaded to Arweave
-5. The cache is stored locally in `.ario-deploy/transaction-cache.json`
+4. Files identical to another file in the same deploy are uploaded once and share its transaction (static exports often write the same payload under several names)
+5. Only new or modified files are uploaded to Arweave
+6. The cache is stored locally in `.ario-deploy/transaction-cache.json`
+
+The Turbo credit check runs after this planning step, so it prices only what will actually be uploaded, not the whole folder.
 
 **Disable deduplication:**
 
-If you need to force a fresh upload of all files (e.g., for debugging or to ensure a completely new deployment):
+If you need to force a fresh upload of all files (e.g., for debugging or to ensure a completely new deployment). Files that are identical within the same deploy are still uploaded once and share a transaction, since that reuses nothing from earlier deploys:
 
 ```bash
 ario-deploy deploy --wallet ./wallet.json --no-dedupe

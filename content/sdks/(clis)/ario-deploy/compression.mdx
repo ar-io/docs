@@ -1,0 +1,27 @@
+---
+title: "Compression"
+description: "CLI for deploying apps to the permaweb (Arweave) and updating ArNS"
+---
+
+Arweave storage is priced per byte, and HTML, JavaScript, CSS and JSON typically shrink 5-8x when compressed (a 169 MB static docs site uploads as 22 MiB). `--compress` compresses each file before upload and tags it with `Content-Encoding`; gateways return that header, and browsers decompress transparently.
+
+```bash
+ario-deploy deploy --wallet ./wallet.json --deploy-folder ./out --compress gzip
+```
+
+In the GitHub Action (`compress` needs v1.1.0 or later; pin the version, since the floating `v1` tag is moved by hand and may lag):
+
+```yaml
+- uses: ar-io/ar-io-deploy@v1.1.0
+  with:
+    deploy-key: ${{ secrets.DEPLOY_KEY }}
+    deploy-folder: ./dist
+    compress: gzip
+    compress-exclude: 'llms*.txt,*.md'
+```
+
+- **Prefer `gzip`.** Gateways send the encoded bytes to every client, whether or not it asked for compression. Every browser and HTTP library understands gzip; `br` was ~17% smaller than gzip on a static docs site, but some non-browser clients cannot decode it.
+- **Formats that are already compressed** are uploaded as-is: already-compressed formats (JPEG, PNG, GIF, WebP, AVIF, HEIC, WOFF/WOFF2, MP3, M4A, Ogg/Opus, MP4, WebM, and zip/gz/br/bz2/xz/zst/7z/rar archives). Other images and fonts (`.svg`, `.ico`, `.ttf`, `.otf`) are compressed. Every other file is compressed, even a tiny one gzip makes a few bytes larger, so its tags always match how it was planned.
+- **Exclude files meant for non-browser clients** with `--compress-exclude`, e.g. text files that tools fetch with `curl`: `--compress-exclude "llms*.txt,*.md"`. A pattern without `/` matches the file name in any directory.
+- **Gateways must label items they have not indexed yet.** Right after a deploy, a gateway may serve a data item before it has indexed the item's tags. An ar-io-node without the fix for that (ar-io-node #964/#966) sends the gzip bytes with no Content-Encoding` header, and browsers render garbage until the item is indexed -- or indefinitely, on a gateway that never indexes the bundle. The ar.io and Turbo gateways (`turbo-gateway.com`, `ardrive.net`, and those serving `*.ar.io`) have the fix; other operators get it by upgrading. Deploy to a test undername first and load it through each gateway that matters, including through Wayfinder, which may pick any gateway.
+- **Deduplication still works**, including `--incremental`. Compressed uploads are cached (and found on chain) under their own key, so turning compression on re-uploads each file once, and later deploys skip unchanged files as usual.

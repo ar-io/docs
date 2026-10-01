@@ -8,7 +8,8 @@ description: "CLI for deploying apps to the permaweb (Arweave) and updating ArNS
 - **Arweave Manifest v0.2.0:** Creates manifests with fallback support for SPAs
 - **Optional ArNS Updates:** Updates ArNS records via ANT with new transaction IDs
 - **Automated Workflow:** Integrates with GitHub Actions for continuous deployment
-- **Git Hash Tagging:** In CI (GitHub Actions), tags uploaded data items with the deploying commit SHA
+- **Git Hash Tagging:** In CI (GitHub Actions), tags uploaded data items with the deploying commit SHA. Under `--incremental` the tag moves to the manifest only — see [Incremental uploads](#incremental-uploads) for why a per-deploy tag on a file cannot be allowed.
+- **Incremental Uploads (opt-in):** `--incremental` pays only for the files that actually changed, recovering the rest from your own past uploads even on a machine with no local cache. See [Incremental uploads](#incremental-uploads).
 - **404 Fallback Detection:** Automatically sets `404.html` as the manifest fallback when present, so deep links into a single-page app resolve instead of 404ing. Override with `--fallback-file \<path\>` — an SPA that only builds `index.html` can point at that instead.
 - **Network Support:** ArNS updates run against the Solana ARIO programs on `mainnet` or `devnet`, with an optional custom RPC URL
 - **Flexible Deployment:** Supports deploying a folder or a single file
