@@ -1,0 +1,17 @@
+---
+title: "Incremental Uploads"
+description: "CLI for deploying apps to the permaweb (Arweave) and updating ArNS"
+---
+
+A CI job runs from a fresh checkout, so the restored transaction cache is often missing or stale — and then every redeploy pays for the whole bundle again. `incremental: 'true'` recovers those transaction ids from your wallet's own past uploads on chain, so only the files that actually changed are paid for. See [Incremental uploads](#incremental-uploads). Requires v1.2.0 or later; pin the version, since the floating v1` tag may lag.
+
+```yaml
+- name: Deploy only what changed
+  uses: ar-io/ar-io-deploy@v1.2.0
+  with:
+    deploy-key: ${{ secrets.DEPLOY_KEY }}
+    deploy-folder: ./dist
+    incremental: 'true'
+```
+
+---
