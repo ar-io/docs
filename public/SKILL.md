@@ -9,7 +9,7 @@ This file gives AI coding agents the knowledge to build applications on ar.io an
 
 ## What ar.io Is
 
-ar.io is the access and naming layer for Arweave (permanent storage). Protocol execution runs on Solana. You use it to:
+ar.io is a permanent cloud network: independent gateways serve, index and verify permanent data, and ArNS gives it names. Protocol execution runs on Solana. You use it to:
 
 - **Store data permanently** on Arweave (pay once, stored forever)
 - **Name things** with ArNS (human-readable URLs like `myapp.turbo-gateway.com`)
