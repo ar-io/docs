@@ -69,11 +69,17 @@ still be reserved on-chain).
 
 ```ts
 import { ARIO } from '@ar.io/sdk';
+import { DEVNET_PROGRAM_IDS, DEVNET_RPC_URL } from '@ar.io/sdk/solana';
+import { createSolanaRpc, createSolanaRpcSubscriptions } from '@solana/kit';
 
 const ario = ARIO.init({
   backend: 'solana',
-  programIds: DEVNET_PROGRAM_IDS, // see Reference
-  rpc,
+  rpc: createSolanaRpc(DEVNET_RPC_URL),
+  rpcSubscriptions: createSolanaRpcSubscriptions(DEVNET_RPC_URL.replace(/^https/, 'wss')), // writes need this
+  coreProgramId: DEVNET_PROGRAM_IDS.core, // pass each program id; there is no `programIds` option
+  garProgramId: DEVNET_PROGRAM_IDS.gar,
+  arnsProgramId: DEVNET_PROGRAM_IDS.arns,
+  antProgramId: DEVNET_PROGRAM_IDS.ant,
   signer,
 });
 
