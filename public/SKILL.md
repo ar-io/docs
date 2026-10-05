@@ -87,7 +87,7 @@ console.log('TX:', result.id);
 // Access: https://turbo-gateway.com/${result.id}
 ```
 
-Files under 100 KiB upload free. Larger files paid with SOL via just-in-time funding.
+Files up to 105 KiB upload free, within a 10 MiB lifetime allowance per wallet. Larger files paid with SOL via just-in-time funding.
 
 ### Upload a folder (website deployment)
 
@@ -247,7 +247,7 @@ Public gateways: `turbo-gateway.com`, `perma.online`
 | Lease grace period | 2 weeks |
 | Epoch duration | 24 hours |
 | Solana TX fees | < 0.01 SOL per operation |
-| Free upload limit | 100 KiB via Turbo |
+| Free upload limit | 105 KiB per item via Turbo, 10 MiB lifetime per wallet |
 
 ### ArNS Pricing (Genesis Base Fees)
 
@@ -280,7 +280,7 @@ Actual price = Base Fee x Demand Factor. Use `ario.getTokenCost()` to check live
 - **`processId` in API responses** refers to the ANT's Metaplex Core NFT mint address (legacy field name)
 - **Do NOT use `@solana/web3.js`** — it is deprecated. Use `@solana/kit`
 - **Turbo and ar.io SDK use different signer formats** — Turbo takes `privateKey` as base58 string with `token: 'solana'`; ar.io SDK takes a `@solana/kit` KeyPairSigner
-- **Files < 100 KiB upload free** via Turbo — no payment needed
+- **Files up to 105 KiB upload free** via Turbo, within a 10 MiB lifetime allowance per wallet: no payment needed
 - **ArNS names are NOT case-sensitive** — always lowercase at submission
 
 ## Full API Method Reference
