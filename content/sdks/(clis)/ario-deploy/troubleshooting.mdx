@@ -9,7 +9,9 @@ description: "CLI for deploying apps to the permaweb (Arweave) and updating ArNS
 - **Error: "ArNS name does not exist":** Verify the ArNS name is correct and exists in the specified network
 - **Upload timeouts:** Files have a timeout for upload. Large files may fail and require optimization
 - **Insufficient Turbo Credits:** Use `--on-demand` with `--max-token-amount` to automatically fund uploads when balance is low
-- **On-demand payment fails:** Ensure your wallet has sufficient tokens (ARIO or Base-ETH) and the token type matches your signer (`ario` with Arweave, `base-eth` with Ethereum)
+- **On-demand payment fails:** Ensure the upload wallet holds the token, and that the token matches the key: `ario`, `solana` or `solana-usdc` with `--sig-type solana`; `base-eth` or `base-usdc` with an Ethereum or Polygon key
+- **"Insufficient Turbo credits" on the sandbox with valid sandbox credits:** Use `--dev`, or pass `--payment-url https://payment.services.ar-io.dev` with a custom `--uploader`, so the balance is read from the sandbox
+- **Credits shared with you are not used:** They are used automatically unless `--ignore-approvals` is set; with `--paid-by`, only the listed wallets count
 - **Deep links 404 but the homepage loads:** The manifest has no `fallback`. Emit a `404.html` or pass `--fallback-file index.html` — see [Single-page apps](#single-page-apps)
 - **Deep links still 404 right after a redeploy:** Gateways cache the previous manifest's 404s for around a minute. Retry with a cache-busting query string before assuming the deploy failed
 - **Error: "Fallback file not found in folder":** `--fallback-file` takes a path relative to the deploy folder, e.g. `index.html`, not `./dist/index.html`

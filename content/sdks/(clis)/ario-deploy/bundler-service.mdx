@@ -3,24 +3,18 @@ title: "Bundler service"
 description: "CLI for deploying apps to the permaweb (Arweave) and updating ArNS"
 ---
 
-Uploads go through a bundler service that accepts signed data items and posts them to Arweave. By default, ario-deploy uses the [Turbo](https://docs.ardrive.io/docs/turbo/) API and ArDrive’s production bundler (`https://upload.ardrive.io`). **`--uploader`** sets the **base URL** of the bundler service to use (scheme + host; typically no path).
+Uploads go through Turbo: an upload service that accepts signed data items, and a payment service that answers balance, price and top-up questions. The two belong to the same network, and ario-deploy configures them together.
 
-| When to use               | Example value                                           |
-| ------------------------- | ------------------------------------------------------- |
-| **Default** (omit flag)   | ArDrive production bundler — same as Turbo CLI defaults |
-| **Arweave bundler**       | `https://turbo.ardrive.io`                              |
-| **Development / staging** | `https://upload.services.ar-io.dev`                     |
-| **Custom or self-hosted** | Your own base URL if it implements the Turbo API        |
+| When to use                        | Flags                                                              |
+| ---------------------------------- | ------------------------------------------------------------------ |
+| **Default** (production)           | none: `https://upload.ardrive.io` and `https://payment.ardrive.io` |
+| **Development sandbox**            | `--dev`                                                            |
+| **Custom or self-hosted services** | `--uploader \<url\>` and `--payment-url \<url\>`                       |
 
-**Examples:**
+`--dev` selects both sandbox services (`https://upload.services.ar-io.dev` and `https://payment.services.ar-io.dev`) and testnet RPCs for `--on-demand`. Passing the sandbox URL to `--uploader` alone does the same. A custom `--uploader` without `--payment-url` keeps the production payment service and prints a warning, since balance checks and top-ups go there.
 
 ```bash
-ario-deploy deploy --wallet ./wallet.json --deploy-folder ./dist --uploader https://turbo.ardrive.io
-
-ario-deploy upload --wallet ./wallet.json --deploy-folder ./dist --uploader https://turbo.ardrive.io
+ario-deploy upload --wallet ./wallet.json --deploy-folder ./dist --dev
 ```
 
-**Notes:**
-
-- Turbo billing and signer behavior follow Turbo.
-- Use a **base URL only** (e.g. `https://turbo.ardrive.io`), not a path to a specific file or route.
+The free upload limit is read from the upload service, so it follows the network: 105 KiB per item in production, 5 MiB in the sandbox.
