@@ -30,7 +30,7 @@ jobs:
         run: npm run build
 
       - name: Deploy Preview
-        uses: ar-io/ar-io-deploy@v1.0.0
+        uses: ar-io/ar-io-deploy@v2.0.0
         with:
           deploy-key: ${{ secrets.DEPLOY_KEY }}
           arns-key: ${{ secrets.ARNS_KEY }}
@@ -42,6 +42,8 @@ jobs:
 
 When `preview` is enabled, the action will:
 
-- Auto-generate an undername like `pr-123` from the PR number
-- Post a comment on the PR with the preview URL
+- Auto-generate an undername like `myapp-repo-pr-123` from the repository name and PR number
+- Post a comment on the PR with the preview URL (the token needs `pull-requests: write`)
 - Update the comment on subsequent pushes instead of creating new ones
+
+Preview undernames are not removed when the PR closes; each costs one of the ArNS name's undername slots until you remove it. The action skips every step on a `closed` event, so subscribing to it costs nothing.

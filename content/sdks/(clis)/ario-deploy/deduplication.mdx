@@ -11,8 +11,12 @@ By default, ario-deploy caches your deployment log to prevent uploading duplicat
 2. It checks the local cache for matching hashes from previous uploads
 3. Files that haven't changed are skipped - the existing transaction ID is reused
 4. Files identical to another file in the same deploy are uploaded once and share its transaction (static exports often write the same payload under several names)
-5. Only new or modified files are uploaded to Arweave
-6. The cache is stored locally in `.ario-deploy/transaction-cache.json`
+5. Only new or modified files are uploaded to Arweave, and each id is written to the cache the moment it lands, so a deploy that fails or is interrupted part-way does not pay for those files again
+6. The cache is stored locally in `.ario-deploy/transaction-cache.json`, with a separate file per Turbo network (`--dev` uploads never stand in for production ones)
+
+Entries are keyed on the file's content and content type (plus encoding when compressed), so byte-identical files served as different types are never confused. Caches written by 1.x, keyed on the hash alone, are still honoured, except for empty files, whose hash says nothing about their type.
+
+Symlinks inside the deploy folder are followed only while they point inside it; a link to a file outside the folder stops the deploy, since uploading it would publish that file permanently.
 
 The Turbo credit check runs after this planning step, so it prices only what will actually be uploaded, not the whole folder.
 
@@ -34,7 +38,7 @@ ario-deploy deploy --wallet ./wallet.json --dedupe-cache-max-entries 1000
 
 **Cache location:**
 
-The cache file is stored at `.ario-deploy/transaction-cache.json` in your project root. You can:
+The cache files are stored in `.ario-deploy/` in your project root. You can:
 
 - Add it to `.gitignore` if you don't want to share cache across team members
 - Commit it to share cached transaction IDs with your team (reduces duplicate uploads)

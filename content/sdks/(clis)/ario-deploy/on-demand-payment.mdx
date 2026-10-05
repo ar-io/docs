@@ -3,33 +3,27 @@ title: "On-Demand Payment"
 description: "CLI for deploying apps to the permaweb (Arweave) and updating ArNS"
 ---
 
-Use on-demand payment to automatically fund uploads with ARIO or Base-ETH tokens when your Turbo balance is insufficient:
+With `--on-demand`, a deploy whose credits cannot cover the upload buys what it is short, once, before the first file uploads. `--max-token-amount` is required and caps that purchase for the whole deploy.
 
-Deploy with ARIO on-demand payment:
+The token has to be one your upload key can pay with:
+
+| Upload key (`--sig-type`) | `--on-demand` tokens                  |
+| ------------------------- | ------------------------------------- |
+| `solana`                  | `ario`, `solana`, `solana-usdc`       |
+| `ethereum`, `polygon`     | `base-eth`, `base-usdc`               |
+| `arweave`                 | none: top up Turbo credits in advance |
 
 ```bash
-ario-deploy deploy --wallet ./wallet.json --deploy-folder ./dist --on-demand ario --max-token-amount 1.5
-```
+ario-deploy deploy --sig-type solana --wallet ./id.json --deploy-folder ./dist --on-demand ario --max-token-amount 1.5
 
-Deploy with Base-ETH on-demand payment (using Ethereum signer):
-
-```bash
 ario-deploy deploy --sig-type ethereum --private-key "0x..." --on-demand base-eth --max-token-amount 0.1
 ```
 
-**On-Demand Payment Options:**
-
-- `--on-demand`: Token to use for on-demand payment (`ario` or `base-eth`)
-- `--max-token-amount`: Maximum token amount to spend (in native token units, e.g., `1.5` for 1.5 ARIO or `0.1` for 0.1 ETH)
-
 **How it works:**
 
-1. Checks your Turbo balance before upload
-2. If balance is insufficient, converts tokens to Turbo credits on-demand
-3. Automatically adds a 10% buffer (`topUpBufferMultiplier: 1.1`) for reliability
-4. Proceeds with upload once funded
+1. Each file the deploy will actually upload is priced through Turbo. A file within the upload service's free size limit is free only while your wallet's free-tier allowance lasts, so once that is spent small files are priced too.
+2. If the credits you can spend (see [Shared credits](#shared-credits)) cover it, nothing is bought.
+3. Otherwise the shortfall plus a 10% buffer is converted at Turbo's quoted rate. If that exceeds `--max-token-amount`, the deploy stops before paying anything.
+4. The top-up is paid once, and the deploy waits up to two minutes for Turbo to credit it before uploading anything.
 
-**Token compatibility:**
-
-- **ARIO**: Works with Arweave signer
-- **Base-ETH**: Works with Ethereum signer (Base Network)
+If Turbo has not credited the top-up by then, the deploy stops without uploading and records the transfer in `.ario-deploy/`. Re-run once it confirms: the next run waits for that transfer instead of buying another. A transfer the payment service rejects is reported as such, and nothing is uploaded.

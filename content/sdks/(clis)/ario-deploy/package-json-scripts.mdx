@@ -12,7 +12,7 @@ Add deployment scripts to your `package.json`:
     "deploy": "pnpm build && ario-deploy deploy --arns-name \<ARNS_NAME\>",
     "deploy:staging": "pnpm build && ario-deploy deploy --arns-name \<ARNS_NAME\> --undername staging",
     "deploy:devnet": "pnpm build && ario-deploy deploy --arns-name \<ARNS_NAME\> --cluster devnet",
-    "deploy:on-demand": "pnpm build && ario-deploy deploy --arns-name \<ARNS_NAME\> --on-demand ario --max-token-amount 1.5"
+    "deploy:on-demand": "pnpm build && ario-deploy deploy --arns-name \<ARNS_NAME\> --sig-type solana --on-demand ario --max-token-amount 1.5"
   }
 }
 ```
@@ -20,11 +20,11 @@ Add deployment scripts to your `package.json`:
 These read the upload key from `DEPLOY_KEY` and the Solana ArNS authority key from `ARNS_KEY`. Deploy with:
 
 ```bash
-DEPLOY_KEY=$(base64 -i wallet.json) ARNS_KEY=\<base58-solana-secret-key\> pnpm deploy
+DEPLOY_KEY=$(base64 -i wallet.json) ARNS_KEY=\<base58-solana-secret-key\> pnpm run deploy
 ```
 
-Or with on-demand payment:
+Or with on-demand payment in ARIO, which needs a Solana upload key (here the same key does both jobs):
 
 ```bash
-DEPLOY_KEY=$(base64 -i wallet.json) ARNS_KEY=\<base58-solana-secret-key\> pnpm deploy:on-demand
+DEPLOY_KEY=\<base58-solana-secret-key\> ARNS_KEY=\<base58-solana-secret-key\> pnpm deploy:on-demand
 ```
