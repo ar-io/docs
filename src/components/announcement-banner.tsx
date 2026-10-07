@@ -95,6 +95,7 @@ export function AnnouncementBanner({
         {action ? (
           <Link
             href={action.href}
+            prefetch={false}
             target={action.external ? "_blank" : undefined}
             rel={action.external ? "noreferrer" : undefined}
             className="hidden items-center rounded-full bg-white/20 px-3 py-1 font-semibold text-white transition hover:bg-white/30 sm:inline-flex"
@@ -106,6 +107,7 @@ export function AnnouncementBanner({
           {action ? (
             <Link
               href={action.href}
+              prefetch={false}
               target={action.external ? "_blank" : undefined}
               rel={action.external ? "noreferrer" : undefined}
               className="inline-flex items-center rounded-full bg-white/20 px-4 py-1.5 font-semibold text-white transition hover:bg-white/30"
