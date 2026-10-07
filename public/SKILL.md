@@ -71,6 +71,14 @@ const turbo = TurboFactory.authenticated({
 
 ## Common Recipes
 
+### Choose the upload path first
+
+- **105 KiB or less per item: free.** Any signer, no credits, no payment call. `turbo.upload(...)` or a signed data item posted to `/v1/tx` returns `winc: "0"`. The allowance is 10 MiB per wallet for life.
+- **Larger, paying from a Solana wallet (or ETH, ARIO):** `token: 'solana'`, then `topUpWithTokens` or just-in-time funding on the upload. The recipes below use this path.
+- **Larger, paying with USDC on Base:** x402, `token: 'base-usdc'`, the `/v1/x402/...` endpoints. See https://docs.ar.io/build/upload/x402-uploading-to-turbo
+
+A `402` from an x402 endpoint means that endpoint wants USDC. It does not mean the free tier is used up: the free tier reports that as `402 FREE_TIER_EXHAUSTED` on `/v1/tx`. Do not switch to x402 to upload something small.
+
 ### Upload a file to Arweave
 
 ```typescript
@@ -334,6 +342,8 @@ Rules that will bite you:
 - ArNS names bought **through the bundler** must be **≥ 8 characters**; buying directly via
   `@ar.io/sdk` has no such floor.
 - Only testnet funding tokens are accepted (`ario`, `solana`, `base-eth`); mainnet tokens are rejected.
+- **The sandbox needs no USDC.** Its x402 endpoints answer `402` asking for Base Sepolia USDC; that is the x402 path, not the free tier. Upload with the devnet Solana signer through `upload` or `/v1/tx` and a small item is free.
+- **Stay on the sandbox hosts.** `upload.ardrive.io`, `turbo.ardrive.io` and `upload.services.ar.io` are mainnet. Other bundlers that accept devnet SOL do not land data on the ar.io sandbox gateway or under its ArNS names.
 - **The faucet needs a human once** — its GitHub OAuth can't be completed headlessly. Have a person
   claim to the agent's wallet, then everything else is scriptable.
 
