@@ -176,7 +176,7 @@ The [reference client](https://github.com/ar-io/ar-io-node/blob/develop/docs/ind
 
 ## Query a Parquet Dataset
 
-A `cdb64-root-tx` band answers one question quickly: where is this ID. A `parquet-l1` band answers a different kind: how many, how large, which, over the whole chain. It holds Arweave's base layer as [Apache Parquet](https://parquet.apache.org/), partitioned into bands by block height, so any engine that reads Parquet can query it. No gateway of your own, no import, and no API to learn.
+A `cdb64-root-tx` band answers one question quickly: where is this ID. A `parquet-l1` band answers a different kind: how many, how large, which, over the whole chain. It holds Arweave's base layer as [Apache Parquet](https://parquet.apache.org/), partitioned into bands by block height, so any engine that reads Parquet can query it. No band files to download, no import into a database, and no API to learn. The examples use DuckDB, which installs its own `httpfs` and `json` extensions on first use.
 
 ### See What a Gateway Publishes
 
@@ -283,10 +283,14 @@ The first two cost the same because a selective filter still reads 24 footers an
 
 <Callout type="warning">
   This depends on range requests working end to end. A reverse proxy with a
-  cache zone in front of a gateway silently answers a range request with the
-  whole file, which turns a 4 MB query into hundreds of megabytes. If a gateway
-  behaves that way, its operator needs
+  cache zone in front of a gateway can answer a range request with the whole
+  file instead, which turns a 4 MB query into hundreds of megabytes. It happens
+  when the gateway meters its byte routes, because the responses are then
+  `private`, nothing can be cached, and the proxy has no stored object to
+  answer a range from. If a gateway behaves that way, its operator needs
   [the uncached location block](/build/run-a-gateway/manage/nginx-caching#index-sharing).
+  Check with `curl -s -o /dev/null -w '%{http_code} %{size_download}' -r 0-99 <url>`,
+  which should print `206 100`.
 </Callout>
 
 ### Verify Before You Trust It
