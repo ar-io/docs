@@ -173,3 +173,151 @@ A `cdb64-root-tx` band is a [partitioned CDB64 index](/build/run-a-gateway/manag
 Bands may overlap. A publisher should never have two bands disagree about an item, since an item has one location, so search them newest first and stop at the first match.
 
 The [reference client](https://github.com/ar-io/ar-io-node/blob/develop/docs/index-publication.md#reference-client) does all of this in about 130 lines of Python, with the CDB64 reader and MessagePack decoder written out.
+
+## Query a Parquet Dataset
+
+A `cdb64-root-tx` band answers one question quickly: where is this ID. A `parquet-l1` band answers a different kind: how many, how large, which, over the whole chain. It holds Arweave's base layer as [Apache Parquet](https://parquet.apache.org/), partitioned into bands by block height, so any engine that reads Parquet can query it. No band files to download, no import into a database, and no API to learn. The examples use DuckDB, which installs its own `httpfs` and `json` extensions on first use.
+
+### See What a Gateway Publishes
+
+Not every gateway publishes every dataset. `parquet-l1` is opt-in, so check first:
+
+```bash
+curl -s https://turbo-gateway.com/ar-io/indexes \
+  | jq '.indexes[] | {name, kind, bands: (.bands | length)}'
+```
+
+```json
+{ "name": "root-tx-index", "kind": "cdb64-root-tx", "bands": 5 }
+{ "name": "parquet-l1", "kind": "parquet-l1", "bands": 24 }
+```
+
+`name` is the dataset you want; `kind` tells you how to read it. They are not the same thing, and for `root-tx-index` they differ.
+
+### The Tables
+
+Each band directory holds one Parquet file per table, plus a `band.json` with the band's heights, row counts and a schema version:
+
+| File | One row per | Key columns |
+| --- | --- | --- |
+| `blocks.parquet` | block | `height`, `indep_hash`, `previous_block`, `block_size`, `weave_size`, `tx_root`, `hash_list_merkle` |
+| `transactions.parquet` | transaction | `id`, `height`, `data_size`, `data_root`, `owner_address`, `target`, `quantity`, `reward`, `content_type`, `format`, `offset` |
+| `tags.parquet` | tag | `id`, `height`, `tag_index`, `tag_name`, `tag_value` |
+| `block_transactions.parquet` | transaction in a block | `height`, `id`, `block_transaction_index` |
+| `wallets.parquet` | wallet | `address`, `public_modulus` |
+
+IDs, addresses, hashes and tag names and values are stored as raw bytes (`BLOB`), not text. Base64url is a presentation format, so convert when you want to read one.
+
+<Callout type="info">
+  `parquet-l1` is the **base layer only**: Arweave transactions, not the data
+  items bundled inside them. For items inside bundles, use
+  [`root-tx-index`](#look-up-one-id) or the gateway's GraphQL.
+</Callout>
+
+### Query It in Place, Downloading Nothing
+
+The byte routes serve HTTP range requests, and Parquet is designed to be read that way: the reader fetches the footer, decides which row groups it needs, and fetches only those. So a query against a dataset on a gateway moves a small fraction of it.
+
+This is a complete script. [DuckDB](https://duckdb.org/) is the only dependency, and it reads the publication itself to find the bands:
+
+```sql
+INSTALL httpfs; LOAD httpfs; INSTALL json; LOAD json;
+
+SET VARIABLE gateway = 'https://turbo-gateway.com';
+
+SET VARIABLE txs = (
+  SELECT list(getvariable('gateway') || '/ar-io/indexes/parquet-l1/' || b.id || '/transactions.parquet')
+  FROM (SELECT unnest(ix.bands) AS b
+        FROM (SELECT unnest(indexes) AS ix
+              FROM read_json(getvariable('gateway') || '/ar-io/indexes'))
+        WHERE ix.name = 'parquet-l1')
+);
+
+SELECT count(*) AS transactions
+FROM read_parquet(getvariable('txs'))
+WHERE height BETWEEN 1500000 AND 1500099;
+```
+
+Swap the last statement for whatever you want to ask. The largest transactions ever posted to the base layer, with their IDs converted back to base64url:
+
+```sql
+SELECT
+  rtrim(replace(replace(to_base64(id), '+', '-'), '/', '_'), '=') AS tx_id,
+  height,
+  round(data_size / power(2, 30), 1) AS gib
+FROM read_parquet(getvariable('txs'))
+ORDER BY data_size DESC
+LIMIT 3;
+```
+
+```
+┌─────────────────────────────────────────────┬─────────┬───────┐
+│                    tx_id                    │ height  │  gib  │
+├─────────────────────────────────────────────┼─────────┼───────┤
+│ oWRzBr3KHhULAL-s5ULeXac1mb_WQOX5uFBRea16iRI │ 1992471 │ 621.9 │
+│ 7vg2832WFsisEcBr1oBQ8ldc4EGOkjQdwW46hDvJsOs │ 1989512 │ 159.6 │
+│ SFUs16XzaWFhWvWOR55hb-5X081r2LeWWAHq4HWUt00 │ 1372669 │  33.7 │
+└─────────────────────────────────────────────┴─────────┴───────┘
+```
+
+Tags and content types work the same way. Both columns are bytes, so cast them:
+
+```sql
+SELECT CAST(tag_name AS VARCHAR) AS tag, count(*) AS n
+FROM read_parquet(getvariable('gateway') || '/ar-io/indexes/parquet-l1/<band-id>/tags.parquet')
+GROUP BY 1 ORDER BY n DESC LIMIT 5;
+```
+
+### What Actually Crosses the Network
+
+Worth understanding before you point a pipeline at a gateway, because the cost depends on the query rather than on the dataset. Measured against a 24-band dataset covering heights 0 to 2,016,168, whose `transactions.parquet` files total 5.51 GB on the server:
+
+| Query | Bytes fetched | Time |
+| --- | --- | --- |
+| `count(*)` over the dataset | 4.1 MB | 0.1 s |
+| `count(*)` for one 100-block window | 4.1 MB | 0.1 s |
+| `sum(data_size)` over the dataset | 165 MB | 0.9 s |
+| Downloading `transactions.parquet` in full | 5.51 GB | minutes |
+
+The first two cost the same because a selective filter still reads 24 footers and then one row group: that is predicate pushdown working. The third is larger because an aggregate over a whole column has to read that column. Filtering on `height` is the cheapest filter, since bands are partitioned by it and row groups are ordered within a band.
+
+<Callout type="warning">
+  This depends on range requests working end to end. A reverse proxy with a
+  cache zone in front of a gateway can answer a range request with the whole
+  file instead, which turns a 4 MB query into hundreds of megabytes. It happens
+  when the gateway meters its byte routes, because the responses are then
+  `private`, nothing can be cached, and the proxy has no stored object to
+  answer a range from. If a gateway behaves that way, its operator needs
+  [the uncached location block](/build/run-a-gateway/manage/nginx-caching#index-sharing).
+  Check with `curl -s -o /dev/null -w '%{http_code} %{size_download}' -r 0-99 <url>`,
+  which should print `206 100`.
+</Callout>
+
+### Verify Before You Trust It
+
+Querying over HTTP means trusting the server for the bytes it streams you. If the answer matters, [verify the publication](#verify-it) first, then fetch the band files you need [by digest](#fetch-a-band-file) and query them locally. Two things make this cheaper than it sounds:
+
+- Every band file has a signed SHA-256 in the publication, so a local copy is checkable.
+- `Repr-Digest` is co-signable, so even a `206` carries a signature over the digest of the whole file it came from. A client can confirm which file it is reading bytes out of without fetching all of it.
+
+A `parquet-l1` dataset is also checkable against Arweave itself, independently of the publisher: block linkage, `hash_list_merkle`, `tx_root` and weave accounting can all be recomputed from the rows. `ar-io-node index-l1-verify --bands-dir` does exactly that over a local copy.
+
+### Metering
+
+The publication and `.torrent` files are free. The byte routes are metered like data, so an analytical client is a paying or allowlisted client, with a free allowance first. An accidental full-file download can spend that allowance in one request and the next range request returns `402`; that is metering, not a fault. For sustained or heavy work, take the whole dataset [over BitTorrent](#pull-a-whole-index-with-any-bittorrent-client), which is not metered, and query it locally:
+
+```sql
+SELECT count(*) FROM read_parquet('parquet-l1/*/transactions.parquet')
+WHERE height BETWEEN 1000000 AND 1000100;
+```
+
+### This or GraphQL?
+
+Both read a gateway's index, and they are good at opposite things.
+
+| Use | When |
+| --- | --- |
+| **GraphQL** | Looking up specific items by ID, owner, recipient or tag; anything that includes data items inside bundles; anything near the chain tip; a browser or a small client with no query engine |
+| **`parquet-l1`** | Counting, summing, grouping or joining over the whole base layer; bulk export with no pagination; reproducible analysis on a pinned, verifiable snapshot; anything where you do not want a gateway in the query path |
+
+GraphQL cannot aggregate: there is no `count` or `sum`, and a large result has to be paged. Parquet has no index on `id`, so a point lookup means a scan, and a published band set lags the tip by its publishing cadence. Reach for GraphQL to find things and `parquet-l1` to measure them.
