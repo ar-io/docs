@@ -1,0 +1,117 @@
+---
+title: "Buying and managing an ArNS name in ar.io Console"
+description: "Register, renew, and manage an ArNS name and its records in the ar.io Console"
+---
+
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Steps, Step } from "fumadocs-ui/components/steps";
+import { Settings, Code } from "lucide-react";
+
+The [ar.io Console](https://console.ar.io) registers ArNS names and manages them alongside uploads, deploys and credits. This guide describes Console 4.11.0. To use the standalone ArNS app instead, see [Purchasing an ArNS name using arns.ar.io](/build/guides/working-with-arns/purchase-arns-ui).
+
+## Before you start
+
+An ArNS name is owned by a **Solana wallet**. The Console gets one for you in one of these ways:
+
+- **Sign in with a Solana wallet**, such as Phantom, Solflare, or the Solana account in MetaMask. That wallet owns your names.
+- **Sign in with email.** The Console creates a Solana wallet for your account.
+- **Sign in with an Arweave or Ethereum wallet, then link a Solana wallet.** Your signed-in wallet stays your account and pays with its credits; the linked Solana wallet owns the names and approves changes to them. Link one from the Account page, or when the checkout asks.
+
+**Credits are spent from the account you signed in with**, not from the wallet that owns the name. On an Arweave or Ethereum session, top up the signed-in account, not the linked Solana wallet.
+
+## Register a name
+
+<Steps>
+ <Step>
+  Go to [console.ar.io/arns](https://console.ar.io/arns) and search for the name you want. If it is available, choose a **lease** of 1 to 5 years or a **permanent** registration.
+ </Step>
+
+ <Step>
+  Choose how to pay:
+
+  - **Credits**: paid from your credit balance.
+  - **Card**: paid by card through Stripe.
+  - **Crypto**: a token your signed-in wallet can send, such as SOL or USDC on Solana. The token buys credits, and the credits pay for the name.
+  - **ARIO**: pays the ArNS registry directly, with no Turbo infrastructure fee, and is marked "Best price" when it is the cheapest route for that name.
+
+  With credits, a card, or a token other than ARIO, Turbo pays the Solana network costs. **Paying with ARIO is a transaction from your own wallet, so that wallet needs a little SOL** for Solana account rent and the network fee. The checkout shows the amount before you pay.
+ </Step>
+
+ <Step>
+  Approve the purchase in your wallet. The name appears under [My domains](https://console.ar.io/my-domains).
+ </Step>
+</Steps>
+
+### If a purchase does not finish
+
+If you close the wallet prompt, approve too late, or leave the page mid-purchase, My domains shows what happened to that attempt and its credits: when they return to your balance, or that they are already back, with a **Try again** button. The notice appears in the browser where you started the purchase, for 30 minutes.
+
+## Manage a name
+
+Open a name from [My domains](https://console.ar.io/my-domains), or go to `console.ar.io/domains/NAME`. Replace NAME with the name. Each section of the page has its own actions:
+
+| Section | Actions |
+| --- | --- |
+| Overview | **Renew or upgrade** a lease: extend it, make it permanent, or add undername slots. A permanent name has **Add undername slots** |
+| Details | **Edit** the name's nickname, ticker, logo, description, and keywords |
+| Ownership | **Transfer** the name to another wallet, **Reassign** it to a different name token, or **Release** a permanent name back to the registry |
+| Controllers | **Manage** the wallets allowed to edit its records |
+| Records | **Add record**, edit a record with its pencil, or remove it |
+
+The header also has **Set as primary**, which makes the name your primary name, and **Visit**, which opens it.
+
+Transfer, Reassign, and Release are available only to the owner, and each asks you to confirm before it goes ahead. A transfer cannot be undone.
+
+### Edit records
+
+The Records table lists the root record (`@`, the name itself) and every undername. Undernames use an underscore: `UNDERNAME_NAME.ar.io`. Select a record's name to open what it serves.
+
+<Steps>
+ <Step>
+  To change where the name points, select the pencil on the `@` row. To add an undername, select **Add record**.
+ </Step>
+
+ <Step>
+  Enter the target transaction ID and a TTL, then save. The change shows in the table as soon as it is saved, while the page confirms it against the chain.
+ </Step>
+</Steps>
+
+### Who pays for a change
+
+Record changes, transfers, and controller changes have a small cost, paid one of two ways:
+
+- **If the wallet that owns the name holds enough SOL**, it signs the change and pays the Solana network fee, usually a fraction of a cent. **Pay with credits instead** switches to credits when both would work.
+- **Otherwise, credits pay**, and Turbo pays the Solana fee. A wallet with no SOL, such as a new email account, always uses credits.
+
+The cost is shown before you confirm. IPFS targets and record priority are always signed by the owning wallet and need a little SOL; the editor says so before you save.
+
+**Controllers** can edit records, but cannot transfer, reassign, release, or change controllers. A controller always signs and pays the Solana fee from their own wallet.
+
+Renewing, upgrading, and adding undername slots are paid like a purchase: with credits, a card, a token, or ARIO.
+
+## Assign a name to an upload, deploy or capture
+
+After you upload a file, deploy a site, or capture a page in the Console, you can point one of your names at it. When the name is assigned, the success message has **Visit**, which opens the name, and **Manage NAME**, which opens the name's page.
+
+## Gateway operators
+
+A gateway's operator wallet, and its operations wallet, get a 20% discount on ArNS purchases, renewals, upgrades, and undername slots **when paying with ARIO**. The checkout shows the discount as its own line. With credits, a card, or another token, Turbo pays the registry, and the discount does not apply.
+
+## Next steps
+
+<Cards>
+  <Card
+    href="/build/upload/turbo-credits"
+    title="Turbo Credits"
+    icon={<Settings />}
+  >
+    Buy credits, and see which tokens and wallets can pay.
+  </Card>
+  <Card
+    href="/build/guides/working-with-arns/set-arns-records-programmatically"
+    title="Set ArNS records programmatically"
+    icon={<Code />}
+  >
+    Update records from code with the ar.io SDK.
+  </Card>
+</Cards>
