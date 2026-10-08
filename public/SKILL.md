@@ -73,7 +73,7 @@ const turbo = TurboFactory.authenticated({
 
 ### Choose the upload path first
 
-- **105 KiB or less per item: free.** Any signer, no credits, no payment call. `turbo.upload(...)` or a signed data item posted to `/v1/tx` returns `winc: "0"`. The allowance is 10 MiB per wallet for life.
+- **Small items are free.** On mainnet that is 105 KiB or less per item, within 10 MiB per wallet for life; on the sandbox it is 5 MiB per item within 100 MiB. Any signer, no credits, no payment call: `turbo.upload(...)` or a signed data item posted to `/v1/tx` returns `winc: "0"`. `GET /info` on the upload host reports the current limits.
 - **Larger, paying from a Solana wallet (or ETH, ARIO):** `token: 'solana'`, then `topUpWithTokens` or just-in-time funding on the upload. The recipes below use this path.
 - **Larger, paying with USDC on Base:** x402, `token: 'base-usdc'`, the `/v1/x402/...` endpoints. See https://docs.ar.io/build/upload/x402-uploading-to-turbo
 
@@ -338,11 +338,11 @@ const turbo = TurboFactory.authenticated({
 Rules that will bite you:
 - **Data is ephemeral** — purged after ~3 days, never posted to mainnet Arweave.
 - `x-ar-io-verified: false` on sandbox data is **expected**, not an error.
-- Uploads are free up to **105 KiB/item** (10 MiB lifetime per wallet and per IP); max item **10 MiB**.
+- Uploads are free up to **5 MiB per item** (100 MiB lifetime per wallet and per IP), far more than mainnet's 105 KiB; max item **10 MiB**. `GET https://upload.services.ar-io.dev/info` reports the current limits.
 - ArNS names bought **through the bundler** must be **≥ 8 characters**; buying directly via
   `@ar.io/sdk` has no such floor.
 - Only testnet funding tokens are accepted (`ario`, `solana`, `base-eth`); mainnet tokens are rejected.
-- **The sandbox needs no USDC.** Its x402 endpoints answer `402` asking for Base Sepolia USDC; that is the x402 path, not the free tier. Upload with the devnet Solana signer through `upload` or `/v1/tx` and a small item is free.
+- **The sandbox needs no USDC.** Its x402 endpoints answer `402` asking for Base Sepolia USDC; that is the x402 path, not the free tier. Upload with the devnet Solana signer through `upload` or `/v1/tx` and an item under 5 MiB is free.
 - **Stay on the sandbox hosts.** `upload.ardrive.io`, `turbo.ardrive.io` and `upload.services.ar.io` are mainnet. Other bundlers that accept devnet SOL do not land data on the ar.io sandbox gateway or under its ArNS names.
 - **The faucet needs a human once** — its GitHub OAuth can't be completed headlessly. Have a person
   claim to the agent's wallet, then everything else is scriptable.
