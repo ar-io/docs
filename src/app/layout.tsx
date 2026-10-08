@@ -1,6 +1,6 @@
 import "@/app/global.css";
 import "katex/dist/katex.css";
-import { RootProvider } from "fumadocs-ui/provider";
+import { RootProvider } from "@/components/provider";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Script from "next/script";

@@ -5,6 +5,8 @@ keywords:
   - upload
   - turbo sdk
   - free tier
+  - arweave devnet
+  - upload to arweave from solana devnet
   - credits
   - winc
   - stripe test cards
@@ -14,6 +16,13 @@ keywords:
 Uploads go through the sandbox **Turbo bundler**. Data items are **ANS-104** — use the
 [Turbo SDK](/sdks/turbo-sdk) pointed at the sandbox endpoints, or `POST` a signed data item
 directly.
+
+<Callout type="info">
+  **5 MiB or less? It is free, and the first example below is all you need.** No credits, no
+  faucet, no USDC. The sandbox's x402 endpoints answer `402` asking for Base Sepolia USDC: that
+  is the x402 path for paying in USDC, not a sign that the free tier is used up. Pay with
+  credits or x402 only for items over the free size.
+</Callout>
 
 ## Uploading with the Turbo SDK
 
@@ -70,10 +79,11 @@ A `200` returns `{ id, winc, dataCaches, ... }`. **`winc: "0"` means the upload 
 
 - **Hard max size: 10 MiB** per data item. Larger uploads return **`413`**
   (`Data item is too large…`).
-- **Free tier** (no payment required):
-  - Up to **105 KiB per item** is eligible to be free.
-  - **10 MiB total free per wallet** (lifetime) **and** **10 MiB per IP /24 subnet**
-    (lifetime) — an upload must fit under **both** or it isn't free.
+- **Free tier** (no payment required), far larger than mainnet's 105 KiB:
+  - Up to **5 MiB per item** is eligible to be free.
+  - **100 MiB total free per wallet** (lifetime) **and** **100 MiB per IP /24 subnet**
+    (lifetime): an upload must fit under **both** or it isn't free.
+  - `GET https://upload.services.ar-io.dev/info` reports the current limits as `freeTier`.
   - Over the free allowance, or an item too big to be free, returns **`402`**
     `{ code: "FREE_TIER_EXHAUSTED", topUpUrl, byteCount }` → [top up credits](#getting-credits).
 
