@@ -111,7 +111,7 @@ Both must be true. A gateway then serves your file, byte for byte, under this id
 
 | You see | It means | Do |
 |---|---|---|
-| `402` with `code: "FREE_TIER_EXHAUSTED"` | The wallet's free bytes are used up or the item is over the free size | Stop. [Top up credits](/build/upload/turbo-credits), or pay just in time, then retry once |
+| `402` with the header `X-Free-Tier-Exhausted: true` (the body is an x402 payment offer, or `code: "FREE_TIER_EXHAUSTED"`) | The free bytes for this wallet or this IP range are used up, or the item is over the free size | Stop. [Top up credits](/build/upload/turbo-credits), or pay just in time, then retry once |
 | `402` naming a network and USDC | You posted to an x402 endpoint, which only takes USDC | Wrong path. Use `uploadFile` or `/v1/tx` as above |
 | `413` | The item is over the service's maximum item size (10 MiB on the sandbox) | Stop. Split the data into smaller items and tie them together with a [manifest](/build/upload/manifests) |
 | `404` from the gateway after your retry limit | The gateway has not indexed the item | Stop and report the `id`. Try `turbo-gateway.com`, which serves Turbo uploads first |
