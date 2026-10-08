@@ -116,12 +116,15 @@ console.log('Manifest:', manifestResponse.id);
 
 ### Deploy a website from the command line
 
-For a static site, `@ar.io/deploy` (the `ario-deploy` CLI) does the folder upload, the path manifest and an optional ArNS update in one command:
+For a static site, `@ar.io/deploy` (the `ario-deploy` CLI) does the folder upload, the path manifest and an optional ArNS update in one command. If there is no wallet yet, `keygen` makes one outside the project and prints the command to run next:
 
 ```bash
-npx @ar.io/deploy upload --sig-type solana --wallet ./id.json --deploy-folder ./dist --compress gzip
+npx @ar.io/deploy keygen
+npx @ar.io/deploy upload --sig-type solana --wallet ~/.ario-deploy/wallets/<address>.json --deploy-folder ./dist --compress gzip
 ```
 
+- **Never put the wallet inside the folder you deploy.** Everything in that folder is published permanently. The CLI refuses to upload its own wallet and any file that looks like a private key, but keep wallets out of project folders anyway.
+- The wallet file is the only copy. Back it up, and never paste its contents anywhere.
 - `upload` never touches ArNS; use `deploy --arns-name <name>` to point a name at the result.
 - `--compress gzip` shrinks HTML, CSS and JavaScript before upload, so more files fit under the free 105 KiB.
 - The result prints the manifest id; the site is at `https://turbo-gateway.com/<manifest id>`.
