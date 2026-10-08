@@ -73,11 +73,11 @@ const turbo = TurboFactory.authenticated({
 
 ### Choose the upload path first
 
-- **Small items are free.** On mainnet that is 105 KiB or less per item, within 10 MiB per wallet for life; on the sandbox it is 5 MiB per item within 100 MiB. Any signer, no credits, no payment call: `turbo.upload(...)` or a signed data item posted to `/v1/tx` returns `winc: "0"`. `GET /info` on the upload host reports the current limits.
+- **Small items are free.** On mainnet that is 105 KiB or less per item, within 10 MiB per wallet and 10 MiB per IP range, for life; on the sandbox it is 5 MiB per item within 100 MiB. Any signer, no credits, no payment call: `turbo.upload(...)` or a signed data item posted to `/v1/tx` returns `winc: "0"`. `GET /info` on the upload host reports the current limits.
 - **Larger, paying from a Solana wallet (or ETH, ARIO):** `token: 'solana'`, then `topUpWithTokens` or just-in-time funding on the upload. The recipes below use this path.
 - **Larger, paying with USDC on Base:** x402, `token: 'base-usdc'`, the `/v1/x402/...` endpoints. See https://docs.ar.io/build/upload/x402-uploading-to-turbo
 
-A `402` from an x402 endpoint means that endpoint wants USDC. It does not mean the free tier is used up: the free tier reports that as `402 FREE_TIER_EXHAUSTED` on `/v1/tx`. Do not switch to x402 to upload something small.
+When the free allowance is used up, `/v1/tx` answers `402` with the header `X-Free-Tier-Exhausted: true`. The body is usually an x402 payment offer (`{x402Version, accepts: [...]}`); where x402 is not offered it is `{code: "FREE_TIER_EXHAUSTED", topUpUrl}`. Either way the free path is closed for that wallet or IP range: add Turbo credits, or pay the x402 offer. A `402` from an `/x402/` route without that header only means the route wants USDC: for a small upload, use `/v1/tx` instead.
 
 ### Upload a file to Arweave
 
@@ -95,7 +95,7 @@ console.log('TX:', result.id);
 // Access: https://turbo-gateway.com/${result.id}
 ```
 
-Files up to 105 KiB upload free, within a 10 MiB lifetime allowance per wallet. Larger files paid with SOL via just-in-time funding.
+Files up to 105 KiB upload free, within a 10 MiB lifetime allowance per wallet and another per IP range. Larger files paid with SOL via just-in-time funding.
 
 ### Upload a folder (website deployment)
 
@@ -113,6 +113,19 @@ const { manifestResponse } = await turbo.uploadFolder({
 console.log('Manifest:', manifestResponse.id);
 // Access: https://turbo-gateway.com/${manifestResponse.id}
 ```
+
+### Deploy a website from the command line
+
+For a static site, `@ar.io/deploy` (the `ario-deploy` CLI) does the folder upload, the path manifest and an optional ArNS update in one command:
+
+```bash
+npx @ar.io/deploy upload --sig-type solana --wallet ./id.json --deploy-folder ./dist --compress gzip
+```
+
+- `upload` never touches ArNS; use `deploy --arns-name <name>` to point a name at the result.
+- `--compress gzip` shrinks HTML, CSS and JavaScript before upload, so more files fit under the free 105 KiB.
+- The result prints the manifest id; the site is at `https://turbo-gateway.com/<manifest id>`.
+- `--dev` uploads to the sandbox, which is for testing and is not permanent. Do not use it to get past a `402`.
 
 ### Register an ArNS name
 
@@ -255,7 +268,7 @@ Public gateways: `turbo-gateway.com`, `perma.online`
 | Lease grace period | 2 weeks |
 | Epoch duration | 24 hours |
 | Solana TX fees | < 0.01 SOL per operation |
-| Free upload limit | 105 KiB per item via Turbo, 10 MiB lifetime per wallet |
+| Free upload limit | 105 KiB per item via Turbo, 10 MiB lifetime per wallet and per IP range |
 
 ### ArNS Pricing (Genesis Base Fees)
 
@@ -288,7 +301,7 @@ Actual price = Base Fee x Demand Factor. Use `ario.getTokenCost()` to check live
 - **`processId` in API responses** refers to the ANT's Metaplex Core NFT mint address (legacy field name)
 - **Do NOT use `@solana/web3.js`** — it is deprecated. Use `@solana/kit`
 - **Turbo and ar.io SDK use different signer formats** — Turbo takes `privateKey` as base58 string with `token: 'solana'`; ar.io SDK takes a `@solana/kit` KeyPairSigner
-- **Files up to 105 KiB upload free** via Turbo, within a 10 MiB lifetime allowance per wallet: no payment needed
+- **Files up to 105 KiB upload free** via Turbo, within a 10 MiB lifetime allowance per wallet and another per IP range: no payment needed
 - **ArNS names are NOT case-sensitive** — always lowercase at submission
 
 ## Full API Method Reference
