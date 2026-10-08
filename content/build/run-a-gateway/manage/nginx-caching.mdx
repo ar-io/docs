@@ -632,7 +632,26 @@ location / {
 
 ## Index Sharing
 
-If your gateway [shares indexes](/build/run-a-gateway/manage/index-sharing), give `/ar-io/indexes` its own location block, **uncached**. The gateway already marks each response correctly (errors are `no-store`, and files are `private` when you meter them), but an `/ar-io/` block with its own `proxy_cache_valid` or stale-serving rules could otherwise keep a publication a subscriber should not see. Band files are 7 to 30 MB, so turn off buffering too:
+If your gateway [shares indexes](/build/run-a-gateway/manage/index-sharing), give `/ar-io/indexes` its own location block, **uncached**. There are two reasons, and the second is easy to miss.
+
+The gateway already marks each response correctly (errors are `no-store`, and files are `private` when you meter them), but an `/ar-io/` block with its own `proxy_cache_valid` or stale-serving rules could otherwise keep a publication a subscriber should not see.
+
+**A cache zone on this prefix also breaks range requests.** When a location has a cache zone, NGINX strips the client's `Range` from the upstream request and fetches the whole object so it can store it, and it does that before it has seen any `Cache-Control`. So no response header prevents it, `proxy_buffering off` on its own does not fix it, and a `proxy_cache_bypass` keyed on `$upstream_http_cache_control` cannot help either, because that variable is empty when the bypass is evaluated. Only `proxy_cache off` works.
+
+What the client sees depends on whether the response was cacheable, so the symptom differs between gateways:
+
+| Your gateway's `Cache-Control` for a file by name | Through a cache zone |
+| --- | --- |
+| `public, no-cache` (you do not meter) | NGINX stores it and answers from cache, so the client does get a `206` |
+| `private, no-cache` (you meter) | Nothing can be stored, so NGINX has no cached object to answer a range from and returns `200` with the whole body, on **every** request |
+
+Measured against a controlled 5 MB upstream: a cacheable response answered a 100-byte range with `206` and 100 bytes, while an uncacheable one returned `200` and all 5,000,000 bytes, twice, never caching. On a metering gateway serving a 541 MB band file the same request returned all 541,753,181 bytes, and the next one returned `402` because that transfer had spent the allowance.
+
+**A cache zone is wrong even on the branch that returns `206`.** The whole file still crosses from your gateway on the first range request, so the latency and the egress are paid either way, and band files reach 1.35 GB in a zone sized for small objects. If you meter, it is worse than wrong: it breaks [BitTorrent WebSeeds](#torrent-routes) and [querying a dataset in place](/build/advanced/index-publications#query-a-parquet-dataset), and it fails quietly, because a `200` carrying more bytes than were asked for looks like success to anything that does not check the status code.
+
+Keep the prefix without a trailing slash, as below. NGINX answers a request for a `proxy_pass` location whose prefix ends in `/` with a `301` to the slashed form, and `/ar-io/indexes` is the publication every subscriber polls. HTTPSig signs `@path`, so a redirect moves the signed path.
+
+Band sizes depend on the index: a `cdb64-root-tx` partition is 7 to 30 MB, while a `parquet-l1` band reaches 1.35 GB with a single table file over 500 MB. Turn off buffering so a large file streams instead of being staged:
 
 ```nginx
 # Longer prefix than any /ar-io/ block, so it wins.
@@ -646,8 +665,21 @@ location ^~ /ar-io/indexes {
 
     proxy_cache off;
     proxy_buffering off;
+    proxy_max_temp_file_size 0;
+    proxy_read_timeout 300s;
 }
 ```
+
+Check it after reloading, at every layer that serves the gateway:
+
+```bash
+BAND=/ar-io/indexes/parquet-l1/<band-id>/transactions.parquet
+for u in http://localhost:4000 http://localhost:3000 https://<your-gateway>; do
+  echo "$u -> $(curl -s -o /dev/null -w '%{http_code} %{size_download}' -r 0-99 "$u$BAND")"
+done
+```
+
+Every layer should print `206 100`. The gateway and Envoy are always correct, so a layer that prints `200` and the full size is the one to fix. Two things that cost time here: a TLS listener and an internal cache listener often live in **different files**, so fixing one can leave the other broken; and `nginx -s reload` retires old workers gracefully, so a request made immediately after a reload can still be answered by the old configuration. Re-test a few seconds later before concluding a change did not work.
 
 <Callout type="warning">
   **More than one node?** Only the node that holds your observer key signs
