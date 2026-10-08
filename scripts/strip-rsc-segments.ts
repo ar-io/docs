@@ -4,20 +4,26 @@
  * `__next._full.txt`, a byte-for-byte copy of `index.txt`).
  *
  * Why: they are never requested. Next's per-segment prefetch cache is what
- * reads them, and this site issues no prefetches; client-side navigation
- * fetches only the page's `index.txt` (checked on the live site: one
- * `index.txt` request per click, no `__next.*` requests). Yet they are ~88 MB
- * of a ~260 MB export, and every Arweave deploy pays to upload the ones that
- * change with a page.
+ * reads them, and prefetching is switched off site-wide (the Link handed to
+ * Fumadocs in src/components/provider.tsx); client-side navigation fetches
+ * only the page's `index.txt`. Yet they are ~75 MB of the export, and every
+ * Arweave deploy pays to upload the ones that change with a page.
+ *
+ * Do not re-enable prefetching on the strength of keeping these files: on
+ * Next 16 the export writes the page segment as `__next.<seg>/__PAGE__.txt`
+ * while the client requests `__next.<seg>.__PAGE__.txt`, and with the
+ * payloads kept, prefetched navigations rendered blank pages.
  *
  * `index.txt` is kept: it is what makes navigation client-side. Removing it
  * too would halve the export again at the cost of a full page load per click
  * -- Next falls back to one (`doMpaNavigation`) whenever a payload is missing
  * or is not Flight data, e.g. the gateway's 404 fallback page.
  *
- * Should a Next upgrade start prefetching, a missing segment is a cache miss,
- * not an error: in export mode a response the Flight client cannot decode is
- * treated as one (segment-cache/cache.js, fetchPrefetchResponse).
+ * A link that does prefetch (any `next/link` without `prefetch={false}`)
+ * does not break, but it is not free: each miss is a HEAD plus segment GETs
+ * that the gateway answers with a 200 HTML page, retried ~10s later. Before
+ * prefetching was switched off that was 30+ requests a click over HTTP/1.1,
+ * and real navigations queued behind them for seconds.
  *
  * Only files that look like Flight data are removed.
  */
