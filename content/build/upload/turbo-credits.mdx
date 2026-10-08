@@ -59,7 +59,7 @@ Top up any address of a [supported wallet type](#supported-wallet-types) by payi
 | Ethereum    | [ETH](https://www.coingecko.com/en/coins/ethereum), [USDC](https://etherscan.io/token/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48)      |
 | Polygon     | [POL](https://www.coingecko.com/en/coins/polygon)      |
 
-ARIO is the one entry that differs by interface. The SDK, CLI and API accept it as a credit top up. In the ar.io Console it pays for ArNS names directly, which never touches credits, and the Console's top up screen offers only the tokens the connected wallet can fund credits with (`availableTokensForWallet`), which does not include ARIO.
+ARIO has a lower cap per top up in the ar.io Console than other tokens. When you sign in with a Solana wallet, Buy Credits offers ARIO (from Console 4.10.0), up to $100 per top up at the day's ARIO rate (from 4.11.0). In the Console's name checkout, ARIO also pays for an ArNS name directly, which never touches credits.
 
 ### Supported Payment Wallets
 
@@ -67,7 +67,7 @@ ARIO is the one entry that differs by interface. The SDK, CLI and API accept it 
 | ------------ | -------------- | ------------------------------------------------------ |
 | Arweave      | RSA            | JWK Keyfile, [Wander](https://www.wander.app/), [Beacon](https://getbeaconapp.com/) |
 | EVM          | ECDSA (secp256k1) | JSON Keystore File, [MetaMask](https://metamask.io/), [Rainbow](https://rainbow.me/), [Brave](https://brave.com/wallet/), [WalletConnect](https://walletconnect.com/), [Privy](https://www.privy.io/) |
-| Solana       | ED25519        | JSON Keypair File, [Phantom](https://phantom.com/), [Solflare](https://www.solflare.com/) |
+| Solana       | ED25519        | JSON Keypair File, [Phantom](https://phantom.com/), [Solflare](https://www.solflare.com/), [MetaMask](https://metamask.io/) (its Solana account) |
 
 ### Purchasing Interfaces
 
@@ -136,7 +136,7 @@ Direct API integration is available at [payment.ardrive.io/api-docs](https://pay
 | **ETH (Base)**               | ✅        | ✅        | ✅        | ✅        | ❌          | ❌   |
 | **SOL**                      | ✅        | ✅        | ✅        | ✅        | ❌          | ❌   |
 | **POL**                      | ✅        | ✅        | ✅        | ✅        | ❌          | ❌   |
-| **ARIO (Solana)**            | ✅        | ✅        | ✅        | names only  | ❌          | ❌   |
+| **ARIO (Solana)**            | ✅        | ✅        | ✅        | ✅ (Solana sign-in, up to $100 per top up) | ❌          | ❌   |
 | **USDC (L1)**                | ✅        | ✅        | ✅        | ✅        | ❌          | ❌   |
 | **USDC (Base)**              | ✅        | ✅        | ✅        | ✅        | ❌          | ✅   |
 | **USDC (Solana)**            | ✅        | ✅        | ✅        | ✅        | ❌          | ❌   |
@@ -248,14 +248,12 @@ Three charges, and nothing else: the **storage rate** for the bytes, a **per-ite
 
 ### Infrastructure fee
 
-**It is taken out of what you pay, not added on top.** A $100 top up buys credits worth $65 at 35%, rather than costing $135. It covers the costs of managing infrastructure and, for crypto top ups, token liquidity. Spending credits carries no percentage fee: this one applies on the way in.
+**It is taken out of what you pay, not added on top.** At a 35% fee, for example, a $100 top up buys credits worth $65, rather than costing $135. It covers the costs of managing infrastructure and, for crypto top ups, token liquidity. Spending credits carries no percentage fee: this one applies on the way in.
 
-| Currency       | Infrastructure fee      |
-| -------------- | ----------------------- |
-| ARIO (Solana)  | 25% of the amount paid  |
-| All others     | 35% of the amount paid  |
+**Turbo sets the fee for each currency, and it can change.** Read it live rather than from these docs:
 
-**ARIO top ups carry a lower fee: 25% rather than 35%.** You keep 75% of an ARIO payment as credits against 65% for everything else, so the same money spent in ARIO buys about 15% more storage.
+- The [ar.io Console Settings page](https://console.ar.io/settings) shows the fee on card top ups.
+- Every top up quote from the payment service, `GET /v1/price/:currency/:amount`, lists the fee it applied in its `fees` array.
 
 ### Storage rate and per-item fee
 
