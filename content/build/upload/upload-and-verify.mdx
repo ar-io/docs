@@ -67,7 +67,7 @@ The response is the receipt. Expect this shape:
   "version": "0.2.0",
   "deadlineHeight": 1234567,
   "public": "<the service's public key>",
-  "signature": "<the service's signature over id, version, deadlineHeight and timestamp>"
+  "signature": "<the service's signature>"
 }
 ```
 
@@ -90,14 +90,14 @@ Expect `200` with these headers:
 | `x-ar-io-data-id` | The id the gateway served, which must equal the one you asked for |
 | `content-digest` | `sha-256=:<base64>:`, the hash of the bytes the gateway served |
 | `x-ar-io-digest` | The same hash, base64url |
-| `x-ar-io-verified` | `true` once the gateway has verified the item against the chain; `false` is normal for a fresh upload, and always the case on the sandbox |
+| `x-ar-io-verified` | `true` once the gateway has verified the item against the chain; `false` is normal for a fresh upload |
 | `x-ar-io-stable` | `true` once the item is in a block old enough to be considered final |
 
 A gateway that has not seen the item yet returns `404`. Turbo's own gateway normally serves a new upload at once; other gateways serve it once they have indexed it. Retry a `404` with a pause between attempts, up to a limit you choose, and treat anything other than `200` or `404` as a stop.
 
 ## Step 3: Compare
 
-Hash the local file and the fetched bytes with SHA-256 and compare. Then compare your hash with `x-ar-io-digest`, which tells you the gateway served what it holds rather than something altered on the way.
+Hash the local file and the fetched bytes with SHA-256 and compare. That comparison is the proof: the bytes this gateway serves under the id are your file. `x-ar-io-digest` is the gateway's own hash of the item it holds. Comparing it as well catches a gateway that sent something other than what it indexed, but it arrives in the same response as the bytes, so it is a consistency check, not independent evidence.
 
 ```ts
 const want = crypto.createHash("sha256").update(fs.readFileSync(path)).digest();
@@ -105,7 +105,7 @@ const got = crypto.createHash("sha256").update(Buffer.from(await response.arrayB
 const match = got.equals(want) && response.headers.get("x-ar-io-digest") === want.toString("base64url");
 ```
 
-Both must be true. The file is on the network and a gateway serves it byte for byte.
+Both must be true. A gateway then serves your file, byte for byte, under this id. Whether the gateway has also verified the item against the chain is what `x-ar-io-verified` reports, and it lags the upload.
 
 ## When to stop
 
@@ -113,7 +113,7 @@ Both must be true. The file is on the network and a gateway serves it byte for b
 |---|---|---|
 | `402` with `code: "FREE_TIER_EXHAUSTED"` | The wallet's free bytes are used up or the item is over the free size | Stop. [Top up credits](/build/upload/turbo-credits), or pay just in time, then retry once |
 | `402` naming a network and USDC | You posted to an x402 endpoint, which only takes USDC | Wrong path. Use `uploadFile` or `/v1/tx` as above |
-| `413` | The item is over the hard maximum, 10 MiB on both services | Stop. Split the data or use a [multipart upload](/build/upload/advanced-uploading-with-turbo) |
+| `413` | The item is over the service's maximum item size (10 MiB on the sandbox) | Stop. Split the data into smaller items and tie them together with a [manifest](/build/upload/manifests) |
 | `404` from the gateway after your retry limit | The gateway has not indexed the item | Stop and report the `id`. Try `turbo-gateway.com`, which serves Turbo uploads first |
 | Hashes differ | The bytes served are not the file | Stop. Do not retry blindly; report both hashes and the `id` |
 | `x-ar-io-verified: false` | The gateway has not verified the item yet | Not a failure. Verification follows indexing |
