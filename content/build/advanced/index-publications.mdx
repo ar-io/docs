@@ -292,6 +292,54 @@ FROM read_parquet(getvariable('gateway') || '/ar-io/indexes/parquet-l1/<band-id>
 GROUP BY 1 ORDER BY n DESC LIMIT 5;
 ```
 
+### Find One Transaction
+
+Point lookups are what a scan is bad at: finding one ID means reading every band's `id` column. The [lookup files](#lookup-files) turn it into two small reads, first the height from `lookup_tx_id`, then the rows at that height. This is a complete script:
+
+```sql
+INSTALL httpfs; LOAD httpfs; INSTALL json; LOAD json;
+
+SET VARIABLE gateway = 'https://vilenarios.com';
+SET VARIABLE tx = 'dwXPQC8J1u2M8nr5uP-rDgi5JVvpQ5MrjMNRjleUyzk';
+
+-- Every band's file prefix and layout, from the publication.
+CREATE TEMP TABLE bands AS
+  SELECT getvariable('gateway') || '/ar-io/indexes/parquet-l1/' || b.id || '/' AS dir,
+         b.metadata.schema AS schema
+  FROM (SELECT unnest(ix.bands) AS b
+        FROM (SELECT unnest(indexes) AS ix
+              FROM read_json(getvariable('gateway') || '/ar-io/indexes'))
+        WHERE ix.name = 'parquet-l1');
+SET VARIABLE lookups = (SELECT list(dir || 'lookup_tx_id.parquet') FROM bands WHERE schema = 'l1-3');
+SET VARIABLE txs = (SELECT list(dir || 'transactions.parquet') FROM bands);
+
+-- The ID as bytes, and its key: the first 8 bytes as an unsigned integer.
+SET VARIABLE id = from_base64(rpad(replace(replace(getvariable('tx'), '-', '+'), '_', '/'), 44, '='));
+SET VARIABLE id8 = ('0x' || left(hex(getvariable('id')), 16))::UBIGINT;
+
+-- 1. The lookup files give the height (a key can match more than one).
+SET VARIABLE heights = (
+  SELECT list(DISTINCT height) FROM read_parquet(getvariable('lookups'))
+  WHERE id8 = getvariable('id8')
+);
+
+-- 2. The transaction, from the rows at those heights.
+SELECT height, data_size, CAST(content_type AS VARCHAR) AS content_type
+FROM read_parquet(getvariable('txs'))
+WHERE height BETWEEN list_min(getvariable('heights')) AND list_max(getvariable('heights'))
+  AND id = getvariable('id');
+```
+
+```
+┌─────────┬───────────┬──────────────┐
+│ height  │ data_size │ content_type │
+├─────────┼───────────┼──────────────┤
+│ 1150000 │  36739084 │ NULL         │
+└─────────┴───────────┴──────────────┘
+```
+
+The last step matches the full ID, not the key, so two IDs that share a key can't be confused. The `height` filter is what keeps it cheap: each band's footer rules out every row group but the one or two holding that height. A band published before layout `l1-3` has no lookup files, so a transaction in it is found only by a scan, as in the examples above.
+
 ### What Actually Crosses the Network
 
 Worth understanding before you point a pipeline at a gateway, because the cost depends on the query rather than on the dataset. Measured against a 24-band dataset covering heights 0 to 2,016,168, whose `transactions.parquet` files total 5.51 GB on the server:
