@@ -120,7 +120,7 @@ For a static site, `@ar.io/deploy` (the `ario-deploy` CLI) does the folder uploa
 
 ```bash
 npx @ar.io/deploy keygen
-npx @ar.io/deploy upload --sig-type solana --wallet ~/.ario-deploy/wallets/<address>.json --deploy-folder ./dist --compress gzip
+npx @ar.io/deploy upload --sig-type solana --wallet ~/.ar.io/wallets/<address>.json --deploy-folder ./dist --compress gzip
 ```
 
 - **Never put the wallet inside the folder you deploy.** Everything in that folder is published permanently. The CLI refuses to upload its own wallet and any file that looks like a private key, but keep wallets out of project folders anyway.
