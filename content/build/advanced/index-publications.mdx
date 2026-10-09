@@ -338,6 +338,13 @@ WHERE height BETWEEN list_min(getvariable('heights')) AND list_max(getvariable('
 └─────────┴───────────┴──────────────┘
 ```
 
+Measured against a gateway publishing the whole chain at `l1-3` (24 bands, heights 0 to 2,017,885):
+
+| Finding one transaction | Bytes fetched | Time |
+| --- | --- | --- |
+| With the lookup files (the script above) | 12.9 MB | 0.7 s |
+| Scanning `id` across every band | 2.6 GB | 26 s |
+
 The last step matches the full ID, not the key, so two IDs that share a key can't be confused. The `height` filter is what keeps it cheap: each band's footer rules out every row group but the one or two holding that height. A band published before layout `l1-3` has no lookup files, so a transaction in it is found only by a scan, as in the examples above.
 
 ### What Actually Crosses the Network
