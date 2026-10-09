@@ -1,0 +1,322 @@
+---
+title: "Give an Agent a Budget"
+description: "Let a script or an agent upload on your credits without holding your key: a credit share with a cap and an expiry, or x402 with a per-upload cap, and what the agent sees when the budget runs out"
+keywords:
+  - agent
+  - budget
+  - credit sharing
+  - paidBy
+  - x402
+  - spending cap
+---
+
+An agent that uploads for you needs a way to pay that you can cap, watch and cut off, and it must never hold your key. Turbo gives you two ways to do that. Pick one before you hand anything over.
+
+| | Credit share | x402 |
+|---|---|---|
+| Who holds the funds | You, as Turbo credits. The agent spends against an approval | The agent, in USDC on Base |
+| The cap | An amount of credits per approval | An amount of USDC per upload, plus whatever the wallet holds |
+| Expiry | A number of seconds you set | None. The wallet balance is the limit |
+| Cutting it off | Revoke the approval at any time; unused credits return to you | Move the USDC out of the wallet |
+| What the agent holds | Its own keypair, with no balance | Its own keypair and the USDC |
+| Where it is documented | this page, and [Turbo Credit Sharing](/sdks/turbo-sdk/turbo-credit-sharing) | [x402 Uploading To Turbo](/build/upload/x402-uploading-to-turbo) |
+
+A credit share is the tighter control: a cap, a clock and a revoke, with the credits staying in your Turbo account. x402 caps each upload but not the total, and has no revoke: it is for an agent that already holds USDC or that pays many services the same way. The rest of this page is the credit-share workflow, with a short x402 section at the end.
+
+Items within the [free tier](/build/upload/upload-and-verify#before-you-start) upload free whichever path the agent uses, and do not draw on the budget.
+
+## Before you start
+
+- **Your wallet holds credits.** Buy them with any supported wallet; see [Paying for Uploads](/build/upload/turbo-credits).
+- **The agent has its own keypair.** Generate one for it. It never needs a balance of its own, and it never sees your key. The agent needs two things from you: its own key, and your wallet address.
+- **Node.js 18+** and `npm install @ardrive/turbo-sdk bs58` on both sides.
+
+The examples use Solana keypairs. On the testnet sandbox, use devnet keypairs and the sandbox service URLs from [Upload and Verify](/build/upload/upload-and-verify#before-you-start).
+
+## Part 1: Fund the agent
+
+### Step 1: Decide the cap
+
+Price the work first. `getUploadCosts` returns the credit price (`winc`) for a size, so price the largest upload the agent will make, multiply by how many, and add a margin: the signed item is a little larger than the file, so the charge runs a little over the quote.
+
+```ts
+const [{ winc: perUpload }] = await turbo.getUploadCosts({ bytes: [6 * 1024 * 1024] });
+const cap = BigInt(perUpload) * 10n * 12n / 10n; // ten uploads of 6 MiB, plus 20%
+```
+
+The cap is the most the agent can ever spend from this approval. Setting it to what the task needs, not to what you hold, is the control.
+
+### Step 2: Create the approval
+
+```ts
+const approval = await turbo.shareCredits({
+  approvedAddress: agentAddress,
+  approvedWincAmount: cap.toString(),
+  expiresBySeconds: 60 * 60 * 24, // one day
+});
+```
+
+The response is the approval:
+
+```json
+{
+  "approvalDataItemId": "<the signed data item that created the approval>",
+  "payingAddress": "<your address>",
+  "approvedAddress": "<the agent's address>",
+  "approvedWincAmount": "<the cap>",
+  "usedWincAmount": "0",
+  "creationDate": "<ISO timestamp>",
+  "expirationDate": "<ISO timestamp, or absent when there is no expiry>"
+}
+```
+
+While the approval lives, the shared amount leaves the balance you can spend (`winc` on `getBalance`) and stays in the balance you control (`controlledWinc`). It comes back to `winc` when you revoke the approval or it expires. Set an expiry even when you expect to revoke by hand: an agent that stalls with an open approval is otherwise a cap that never closes.
+
+### Step 3: Watch it
+
+`getCreditShareApprovals` returns every approval an address has given and every one it has received. `usedWincAmount` on a given approval is what the agent has spent so far.
+
+```ts
+const { givenApprovals } = await turbo.getCreditShareApprovals({ userAddress: myAddress });
+for (const a of givenApprovals) {
+  console.log(a.approvedAddress, a.usedWincAmount, "of", a.approvedWincAmount, "expires", a.expirationDate);
+}
+```
+
+### Step 4: Cut it off
+
+Revoking removes every approval you have given to that address, at once, and returns the unused credits to you.
+
+```ts
+await turbo.revokeCredits({ revokedAddress: agentAddress });
+```
+
+The agent's next paid upload against your address fails, unless Turbo already holds the same bytes (see [Upload](#upload)). There is no partial revoke: to lower a cap, revoke and share again with the new amount.
+
+## Part 2: Upload as the agent
+
+The agent signs with its own key and names the funder in `paidBy`. Turbo uses the approval for the upload before it looks at the agent's own balance, which is zero.
+
+### Check the budget first
+
+```ts
+const size = fs.statSync(path).size;
+const { receivedApprovals } = await turbo.getBalance();
+const [{ winc: price }] = await turbo.getUploadCosts({ bytes: [size] });
+const remaining = receivedApprovals
+  .filter((a) => a.payingAddress === funderAddress)
+  .reduce((sum, a) => sum + BigInt(a.approvedWincAmount) - BigInt(a.usedWincAmount), 0n);
+if (BigInt(price) > remaining) throw new Error("stop: this upload is over the remaining budget");
+```
+
+`remaining` is what is left on the approvals this funder has given the agent. `effectiveBalance` on the same response is the agent's own credits plus what is left on every approval it holds, from any funder.
+
+The check is deliberately strict. `getUploadCosts` returns the list price even for an item small enough to be free, so the check can stop an upload that would have cost nothing. That is the safe direction: an agent that stops reports, and an agent that guesses spends.
+
+### Upload
+
+```ts
+const receipt = await turbo.uploadFile({
+  fileStreamFactory: () => fs.createReadStream(path),
+  fileSizeFactory: () => size,
+  dataItemOpts: {
+    tags: [{ name: "Content-Type", value: "application/octet-stream" }],
+    paidBy: [funderAddress],
+  },
+});
+```
+
+The receipt is the same as for any upload, and `winc` on it is what the approval was charged. Verify the bytes the way [Upload and Verify](/build/upload/upload-and-verify#step-2-fetch-the-bytes-back) does; nothing about verification changes because someone else paid.
+
+Uploading the same bytes twice returns the first item's id with `winc: "0"`: Turbo keeps one copy and charges nothing for the second request.
+
+`paidBy` takes a list. With more than one funder, Turbo draws on the approvals in the order you give them.
+
+## When to stop
+
+| You see | It means | Do |
+|---|---|---|
+| `price` over `remaining` before the upload | The next upload does not fit what is left on the approval | Stop and report what is left. Do not retry with a smaller file unless that is the task |
+| `402` on an upload with `paidBy` set | The approval cannot pay for this item: it is spent, expired, revoked or was never created for this key, and the item is over the free size | Stop and report the funder's address and the receipt ids so far. Do not pay the x402 offer in the body and do not top up the agent's own balance. The funder decides whether to share more |
+| `402` on an upload without `paidBy` | The agent's own balance is zero, which is by design | Set `paidBy`. Do not pay the x402 offer in the body |
+| `receivedApprovals` is empty | No approval exists for this key, or it has expired or been revoked | Stop. Check the agent is using the address the funder approved |
+| `winc: "0"` on the receipt for a small item | The item fit the free tier | Not a problem. The budget was not touched |
+| The id of an earlier upload, with `winc: "0"` | The same bytes were uploaded before | Not a problem. Use the id |
+
+The `402` arrives the same way whichever of those is the cause, and the same way as for an exhausted free tier, so the response alone does not say whether the budget is spent or never existed. Recorded on the sandbox for a 6 MiB item posted to `/v1/tx` with `x-paid-by` set and no approval left (status 402, headers abridged):
+
+```
+Content-Type: application/json; charset=utf-8
+X-Free-Tier-Exhausted: true
+X-Payment-Required: x402-1
+
+{"x402Version":1,"accepts":[{"scheme":"exact","network":"base-sepolia","maxAmountRequired":"440164","resource":"https://upload.services.ar-io.dev/v1/tx", ...}]}
+```
+
+The SDK throws on it with `status` set to `402` and the body in the message; the headers are not on the error. To tell the cases apart, read `receivedApprovals`: a spent approval is still listed, with less left (`approvedWincAmount` minus `usedWincAmount`) than the item's price; an expired or revoked one is not listed.
+
+The x402 offer in that body is payable by anyone holding USDC on Base, and an agent with x402 tooling can pay it without asking. A credit-share agent must treat it as a stop, never as an invitation.
+
+## Part 3: x402 per upload
+
+Give the agent a wallet with USDC on Base and let it pay for each upload as it goes. x402 also needs `npm install x402-fetch`; without it the upload fails before anything is signed. The cap is per upload:
+
+```ts
+import { TurboFactory, X402Funding } from "@ardrive/turbo-sdk";
+const turbo = TurboFactory.authenticated({ privateKey, token: "base-usdc" });
+await turbo.upload({
+  data,
+  fundingMode: new X402Funding({ maxMUSDCAmount: 1_000_000 }), // at most 1 USDC for this upload
+});
+```
+
+`maxMUSDCAmount` is in millionths of a USDC, so `1_000_000` is 1 USDC. When the quoted price is over it, the x402 client the SDK uses throws `Payment amount exceeds maximum allowed` and pays nothing, which is the stop condition. Without `maxMUSDCAmount` that client caps each payment at 0.1 USDC. There is no expiry and no revoke: the wallet's balance is the budget, so fund it with what the task needs and no more. The endpoints, the unsigned variant and the ecosystem tooling are on [x402 Uploading To Turbo](/build/upload/x402-uploading-to-turbo).
+
+## Full scripts
+
+Two files, one per side. Both run against mainnet by default and against the sandbox with `SANDBOX=1`.
+
+`fund-agent.mjs`, run by you:
+
+```js
+// Share a capped, expiring credit budget with an agent's address, list it, or revoke it.
+// Usage: KEYFILE=./funder.json node fund-agent.mjs share <agentAddress> <bytesPerUpload> <uploads>
+//        KEYFILE=./funder.json node fund-agent.mjs list
+//        KEYFILE=./funder.json node fund-agent.mjs revoke <agentAddress>
+import fs from "node:fs";
+import { TurboFactory, HexSolanaSigner } from "@ardrive/turbo-sdk";
+import bs58 from "bs58";
+
+const sandbox = process.env.SANDBOX === "1";
+const secretKey = Uint8Array.from(JSON.parse(fs.readFileSync(process.env.KEYFILE, "utf8")));
+const turbo = TurboFactory.authenticated({
+  signer: new HexSolanaSigner(bs58.encode(secretKey)),
+  token: "solana",
+  ...(sandbox && {
+    gatewayUrl: "https://api.devnet.solana.com",
+    uploadServiceConfig: { url: "https://upload.services.ar-io.dev" },
+    paymentServiceConfig: { url: "https://payment.services.ar-io.dev" },
+  }),
+});
+
+const myAddress = bs58.encode(secretKey.subarray(32));
+const [action, agentAddress, bytes, uploads] = process.argv.slice(2);
+
+if (action === "share") {
+  const [{ winc: perUpload }] = await turbo.getUploadCosts({ bytes: [Number(bytes)] });
+  const cap = (BigInt(perUpload) * BigInt(uploads) * 12n) / 10n; // plus 20% for fees
+  const { winc } = await turbo.getBalance();
+  if (cap > BigInt(winc)) throw new Error(`stop: cap ${cap} is over the ${winc} winc you can spend`);
+  const approval = await turbo.shareCredits({
+    approvedAddress: agentAddress,
+    approvedWincAmount: cap.toString(),
+    expiresBySeconds: 60 * 60 * 24,
+  });
+  console.log(JSON.stringify(approval, null, 2));
+} else if (action === "list") {
+  const { givenApprovals } = await turbo.getCreditShareApprovals({ userAddress: myAddress });
+  console.log(JSON.stringify(givenApprovals, null, 2));
+} else if (action === "revoke") {
+  const revoked = await turbo.revokeCredits({ revokedAddress: agentAddress });
+  console.log(JSON.stringify(revoked, null, 2));
+} else {
+  throw new Error("usage: share <agentAddress> <bytesPerUpload> <uploads> | list | revoke <agentAddress>");
+}
+```
+
+`agent-upload.mjs`, run by the agent:
+
+```js
+// Upload one file on a funder's credit share. Stops before the upload when its list price is over what is left.
+// Usage: KEYFILE=./agent.json FUNDER=<funderAddress> node agent-upload.mjs ./file.bin
+import fs from "node:fs";
+import { TurboFactory, HexSolanaSigner } from "@ardrive/turbo-sdk";
+import bs58 from "bs58";
+
+const sandbox = process.env.SANDBOX === "1";
+const path = process.argv[2];
+const funder = process.env.FUNDER;
+if (!path || !funder) throw new Error("give the file as the first argument and the funder's address in FUNDER");
+
+const secretKey = Uint8Array.from(JSON.parse(fs.readFileSync(process.env.KEYFILE, "utf8")));
+const turbo = TurboFactory.authenticated({
+  signer: new HexSolanaSigner(bs58.encode(secretKey)),
+  token: "solana",
+  ...(sandbox && {
+    gatewayUrl: "https://api.devnet.solana.com",
+    uploadServiceConfig: { url: "https://upload.services.ar-io.dev" },
+    paymentServiceConfig: { url: "https://payment.services.ar-io.dev" },
+  }),
+});
+
+// 1. Budget check. The agent's own balance is zero by design; the approval is what pays.
+const size = fs.statSync(path).size;
+const [{ winc: price }] = await turbo.getUploadCosts({ bytes: [size] });
+const { receivedApprovals } = await turbo.getBalance();
+const remaining = receivedApprovals
+  .filter((a) => a.payingAddress === funder)
+  .reduce((sum, a) => sum + BigInt(a.approvedWincAmount) - BigInt(a.usedWincAmount), 0n);
+console.log(JSON.stringify({ size, price, remaining: remaining.toString() }));
+if (BigInt(price) > remaining) {
+  throw new Error("stop: over the remaining budget; report what is left and wait for the funder");
+}
+
+// 2. Upload against the approval. Keep the receipt.
+let receipt;
+try {
+  receipt = await turbo.uploadFile({
+    fileStreamFactory: () => fs.createReadStream(path),
+    fileSizeFactory: () => size,
+    dataItemOpts: {
+      tags: [{ name: "Content-Type", value: "application/octet-stream" }],
+      paidBy: [funder],
+    },
+  });
+} catch (e) {
+  if (e.status === 402) {
+    throw new Error("stop: the approval cannot pay for this item; do not pay the x402 offer; report to the funder");
+  }
+  throw e;
+}
+fs.writeFileSync(`${path}.receipt.json`, JSON.stringify(receipt, null, 2));
+console.log(JSON.stringify({ id: receipt.id, winc: receipt.winc, paidBy: funder }));
+```
+
+Recorded on the sandbox on 2026-10-09 with these two scripts and `SANDBOX=1`, sharing enough for one upload of 5,347,738 bytes (a little over the sandbox's 5 MiB free size) and uploading three files of that size:
+
+```
+$ node fund-agent.mjs share <agent> 5347738 1
+{ "approvedWincAmount": "83100467793", "usedWincAmount": "0", "expirationDate": "2026-10-10T04:16:13.438Z", ... }
+
+$ node agent-upload.mjs ./a.bin
+{"size":5347738,"price":"69250389828","remaining":"83100467793"}
+{"id":"W5_xhak5tI9HKRqr6u376ZBZaAq0HYef0UPbRmSGCww","winc":"69252409803","paidBy":"<funder>"}
+
+$ node agent-upload.mjs ./b.bin
+{"size":5347738,"price":"69250389828","remaining":"13848057990"}
+Error: stop: over the remaining budget; report what is left and wait for the funder
+
+$ node fund-agent.mjs list
+[ { "approvedWincAmount": "83100467793", "usedWincAmount": "69252409803", ... } ]
+
+$ node fund-agent.mjs revoke <agent>
+[ { "usedWincAmount": "69252409803", "inactiveReason": "revoked", ... } ]
+
+$ node agent-upload.mjs ./c.bin
+{"size":5347738,"price":"69250389828","remaining":"0"}
+Error: stop: over the remaining budget; report what is left and wait for the funder
+```
+
+The second and third uploads never reached the service: the budget check stopped them. The charge on the first ran 2,019,975 winc over the quote, which is what the 20% margin is for.
+
+Separate checks on the same day, with the same calls:
+
+- **An expired approval drops off and its credits come back.** An approval set to expire in 60 seconds was gone from the agent's `receivedApprovals` 75 seconds later, and the funder's `winc` was back to its value before the share.
+- **A free-size item does not touch the approval.** A 1 KiB item uploaded with `paidBy` returned `winc: "0"` and left `usedWincAmount` at `0`.
+- **A spent approval answers `402`.** With the budget check removed, a second 6 MiB upload against a used approval returned the `402` shown under [When to stop](#when-to-stop), and so did an upload after the revoke.
+
+## Next steps
+
+- [Upload and Verify](/build/upload/upload-and-verify): prove the agent's upload is what it says it is.
+- [Turbo Credit Sharing](/sdks/turbo-sdk/turbo-credit-sharing): the CLI commands, `--paid-by`, and the rules on re-sharing.
+- [Paying for Uploads](/build/upload/turbo-credits): buying credits and just-in-time payment for the funder's side.
