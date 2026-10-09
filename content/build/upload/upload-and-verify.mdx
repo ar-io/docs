@@ -111,8 +111,8 @@ Both must be true. A gateway then serves your file, byte for byte, under this id
 
 | You see | It means | Do |
 |---|---|---|
-| `402` with the header `X-Free-Tier-Exhausted: true` (the body is an x402 payment offer, or `code: "FREE_TIER_EXHAUSTED"`) | The free bytes for this wallet or this IP range are used up, or the item is over the free size | Stop. [Top up credits](/build/upload/turbo-credits), or pay just in time, then retry once. If you uploaded with `paidBy` on someone else's credits, stop and report instead: see [Give an Agent a Budget](/build/upload/give-an-agent-a-budget#when-to-stop) |
-| `402` naming a network and USDC, without the `X-Free-Tier-Exhausted` header (raw HTTP only: the SDK's error carries no headers) | You posted to an x402 endpoint, which only takes USDC | Wrong path. Use `uploadFile` or `/v1/tx` as above |
+| `402` with the header `X-Free-Tier-Exhausted: true` (the body is an x402 payment offer, or `code: "FREE_TIER_EXHAUSTED"`) | The free bytes for this wallet or this IP range are used up, or the item is over the free size | Stop. [Top up credits](/build/upload/turbo-credits), or pay just in time, then retry once. If you uploaded with `paidBy` on someone else's credits, stop and report instead, and do not pay the x402 offer in the body: see [Give an Agent a Budget](/build/upload/give-an-agent-a-budget#when-to-stop) |
+| `402` naming a network and USDC, without the `X-Free-Tier-Exhausted` header (raw HTTP only: the SDK's error carries no headers, so an SDK error on an upload with `paidBy` set belongs to the row above) | You posted to an x402 endpoint, which only takes USDC | Wrong path. Use `uploadFile` or `/v1/tx` as above |
 | `413` | The item is over the service's maximum item size (10 MiB on the sandbox) | Stop. Split the data into smaller items and tie them together with a [manifest](/build/upload/manifests) |
 | `404` from the gateway after your retry limit | The gateway has not indexed the item | Stop and report the `id`. Try `turbo-gateway.com`, which serves Turbo uploads first |
 | Hashes differ | The bytes served are not the file | Stop. Do not retry blindly; report both hashes and the `id` |

@@ -159,7 +159,7 @@ The x402 offer in that body is payable by anyone holding USDC on Base, and an ag
 
 ## Part 3: x402 per upload
 
-Give the agent a wallet with USDC on Base and let it pay for each upload as it goes. The cap is per upload:
+Give the agent a wallet with USDC on Base and let it pay for each upload as it goes. x402 also needs `npm install x402-fetch`; without it the upload fails before anything is signed. The cap is per upload:
 
 ```ts
 import { TurboFactory, X402Funding } from "@ardrive/turbo-sdk";
@@ -170,7 +170,7 @@ await turbo.upload({
 });
 ```
 
-`maxMUSDCAmount` is in millionths of a USDC, so `1_000_000` is 1 USDC. When the quoted price is over it, the x402 client the SDK uses throws `Payment amount exceeds maximum allowed` and pays nothing, which is the stop condition. There is no expiry and no revoke: the wallet's balance is the budget, so fund it with what the task needs and no more. The endpoints, the unsigned variant and the ecosystem tooling are on [x402 Uploading To Turbo](/build/upload/x402-uploading-to-turbo).
+`maxMUSDCAmount` is in millionths of a USDC, so `1_000_000` is 1 USDC. When the quoted price is over it, the x402 client the SDK uses throws `Payment amount exceeds maximum allowed` and pays nothing, which is the stop condition. Without `maxMUSDCAmount` that client caps each payment at 0.1 USDC. There is no expiry and no revoke: the wallet's balance is the budget, so fund it with what the task needs and no more. The endpoints, the unsigned variant and the ecosystem tooling are on [x402 Uploading To Turbo](/build/upload/x402-uploading-to-turbo).
 
 ## Full scripts
 
