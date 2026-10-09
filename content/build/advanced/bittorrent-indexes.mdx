@@ -15,7 +15,7 @@ Gateways that publish [shared indexes](/learn/gateways/index-sharing) offer each
 
 ## What You Need
 
-- **Disk.** About 21 GB for all five bands turbo-gateway.com publishes, or 8 MB to try the tip band. aria2 needs up to 1 GB more per band while it downloads (see [below](#download-with-aria2)).
+- **Disk.** About 21 GB for all five bands turbo-gateway.com publishes, or 8 MB to try the tip band. aria2 needs room for pad files beside each band while it downloads: up to 64 MB with 256 KiB pieces, or up to 1 GB from a publisher still on 4 MiB pieces (see [below](#download-with-aria2)).
 - **Network.** Nothing to open to download: your client connects out to the peers. To seed well, forward or open your client's listening port, so that peers can connect to you as well. Some networks and hosting providers block or restrict BitTorrent traffic.
 
 ## Find the Torrents
@@ -63,7 +63,7 @@ The client first fetches the torrent's metadata from peers and checks it against
 
 - **Name.** The torrent is named with 16 hex characters, such as `6cd021a690e25fac` for `b0`, not with the band id. The name is derived from the band's files, so two gateways publishing the same bytes share one swarm. It is also the name of the folder the files are saved in.
 - **Info hash.** The **General** tab shows *Info Hash v1* and *Info Hash v2*. These should match the band's `infohashV1` and `infohashV2`. The torrents are hybrid v1 and v2, so any current client can join.
-- **Size.** qBittorrent can show a size far larger than the band. `b0` showed about 1 GB, but only 8 MB lands on disk. The difference is BEP 47 pad files, which line each file up with a piece boundary and are never written. The folder holds only the band's real files: `manifest.json` and 256 partitions, `00.cdb` to `ff.cdb`.
+- **Size.** qBittorrent can show a size larger than the band. The difference is BEP 47 pad files, which line each file up with a piece boundary and are never written. Each file pads to the torrent's piece size, so a band of 257 files shows up to 64 MB more than it is with 256 KiB pieces (gateways from Release 85 build these), or up to 1 GB more with the 4 MiB pieces of earlier releases: `b0` showed about 1 GB, while 8 MB landed on disk. The folder holds only the band's real files: `manifest.json` and 256 partitions, `00.cdb` to `ff.cdb`.
 - **Trackers.** The **Trackers** tab lists the publisher's tracker as *Working*. It only answers for the publisher's own bands. Peers are also found through the DHT and peer exchange.
 
 </Step>
@@ -93,7 +93,7 @@ ece690|OK  |       0B/s|[MEMORY][METADATA]6cd021a690e25fac
 710e97|OK  |    12MiB/s|/data/6cd021a690e25fac/00.cdb (513more)
 ```
 
-Unlike qBittorrent, aria2 (1.37) writes the pad files, into a hidden `.pad/` folder inside the download. Each pads a file up to the next 4 MiB piece boundary, so a band's 257 files can add up to 1 GB. For `b0` that was 958 MB of zeros beside 7.9 MB of band. Delete it once the download is done:
+Unlike qBittorrent, aria2 (1.37) writes the pad files, into a hidden `.pad/` folder inside the download. Each pads a file up to the next piece boundary, so a band's 257 files can add up to 64 MB with 256 KiB pieces, or up to 1 GB with 4 MiB pieces: for `b0` from a 4 MiB publisher that was 958 MB of zeros beside 7.9 MB of band. Delete it once the download is done:
 
 ```bash
 rm -r 6cd021a690e25fac/.pad

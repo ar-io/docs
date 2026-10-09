@@ -208,6 +208,30 @@ Each band directory holds one Parquet file per table, plus a `band.json` with th
 
 IDs, addresses, hashes and tag names and values are stored as raw bytes (`BLOB`), not text. Base64url is a presentation format, so convert when you want to read one.
 
+### Lookup Files
+
+From layout `l1-3` (the `schema` in a band's publication `metadata`, and in its `band.json`), a band also holds three lookup files. Parquet has no index, so finding one transaction otherwise means scanning every band's `id` column. A lookup file is derived from the band's tables and sorted by a key, in row groups of 16,384 rows; Parquet keeps each row group's min and max, so a reader holding a key reads the footer and then the one or two row groups that can hold it.
+
+| File | One row per | Columns |
+| --- | --- | --- |
+| `lookup_tx_id.parquet` | transaction | `id8`, `height` |
+| `lookup_wallet.parquet` | transaction an address signed (`role` 0) or received (`role` 1) | `addr8`, `role`, `height`, `data_size` |
+| `lookup_tag.parquet` | distinct tag name and value | `name8`, `val8`, `name`, `value`, `txs`, `first_height`, `last_height` |
+
+The keys are unsigned 64-bit integers made one of two ways, which any client can reproduce:
+
+- **`prefix64`**: the first 8 bytes, big-endian, zero-padded on the right if shorter. For IDs and addresses. In DuckDB: `('0x' || rpad(left(hex(x), 16), 16, '0'))::UBIGINT`.
+- **`sha256_64`**: `prefix64` of the value's SHA-256. For tag names and values. In DuckDB: `('0x' || left(sha256(x), 16))::UBIGINT`.
+
+| Encoding | Input | Output |
+| --- | --- | --- |
+| `prefix64` | the 32 bytes of ID `O048e9pT5nX1CPrMjGC1y1dWdtd3AChFX27hoRsVIdA` | `0x3b4e3c7bda53e675` |
+| `prefix64` | the single byte `0xab` | `0xab00000000000000` |
+| `sha256_64` | `App-Name` | `0xbf6cc2a967f23a82` |
+| `sha256_64` | `ArDrive-App` | `0xa2c30101e8045f65` |
+
+A key is a pointer: two values can share one, so always finish in the table the key points into, as the examples below do. `data_size` and `txs` are carried so a wallet's bytes stored and a tag's count need no table read. A lookup file is listed and signed in the publication like any band file, and `ar-io-node index-l1-verify --bands-dir` checks that it holds exactly what its band's tables give.
+
 <Callout type="info">
   `parquet-l1` is the **base layer only**: Arweave transactions, not the data
   items bundled inside them. For items inside bundles, use
@@ -267,6 +291,61 @@ SELECT CAST(tag_name AS VARCHAR) AS tag, count(*) AS n
 FROM read_parquet(getvariable('gateway') || '/ar-io/indexes/parquet-l1/<band-id>/tags.parquet')
 GROUP BY 1 ORDER BY n DESC LIMIT 5;
 ```
+
+### Find One Transaction
+
+Point lookups are what a scan is bad at: finding one ID means reading every band's `id` column. The [lookup files](#lookup-files) turn it into two small reads, first the height from `lookup_tx_id`, then the rows at that height. This is a complete script:
+
+```sql
+INSTALL httpfs; LOAD httpfs; INSTALL json; LOAD json;
+
+SET VARIABLE gateway = 'https://vilenarios.com';
+SET VARIABLE tx = 'dwXPQC8J1u2M8nr5uP-rDgi5JVvpQ5MrjMNRjleUyzk';
+
+-- Every band's file prefix and layout, from the publication.
+CREATE TEMP TABLE bands AS
+  SELECT getvariable('gateway') || '/ar-io/indexes/parquet-l1/' || b.id || '/' AS dir,
+         b.metadata.schema AS schema
+  FROM (SELECT unnest(ix.bands) AS b
+        FROM (SELECT unnest(indexes) AS ix
+              FROM read_json(getvariable('gateway') || '/ar-io/indexes'))
+        WHERE ix.name = 'parquet-l1');
+SET VARIABLE lookups = (SELECT list(dir || 'lookup_tx_id.parquet') FROM bands WHERE schema = 'l1-3');
+SET VARIABLE txs = (SELECT list(dir || 'transactions.parquet') FROM bands);
+
+-- The ID as bytes, and its key: the first 8 bytes as an unsigned integer.
+SET VARIABLE id = from_base64(rpad(replace(replace(getvariable('tx'), '-', '+'), '_', '/'), 44, '='));
+SET VARIABLE id8 = ('0x' || left(hex(getvariable('id')), 16))::UBIGINT;
+
+-- 1. The lookup files give the height (a key can match more than one).
+SET VARIABLE heights = (
+  SELECT list(DISTINCT height) FROM read_parquet(getvariable('lookups'))
+  WHERE id8 = getvariable('id8')
+);
+
+-- 2. The transaction, from the rows at those heights.
+SELECT height, data_size, CAST(content_type AS VARCHAR) AS content_type
+FROM read_parquet(getvariable('txs'))
+WHERE height BETWEEN list_min(getvariable('heights')) AND list_max(getvariable('heights'))
+  AND id = getvariable('id');
+```
+
+```
+┌─────────┬───────────┬──────────────┐
+│ height  │ data_size │ content_type │
+├─────────┼───────────┼──────────────┤
+│ 1150000 │  36739084 │ NULL         │
+└─────────┴───────────┴──────────────┘
+```
+
+Measured against a gateway publishing the whole chain at `l1-3` (24 bands, heights 0 to 2,017,885):
+
+| Finding one transaction | Bytes fetched | Time |
+| --- | --- | --- |
+| With the lookup files (the script above) | 12.9 MB | 0.7 s |
+| Scanning `id` across every band | 2.6 GB | 26 s |
+
+The last step matches the full ID, not the key, so two IDs that share a key can't be confused. The `height` filter is what keeps it cheap: each band's footer rules out every row group but the one or two holding that height. A band published before layout `l1-3` has no lookup files, so a transaction in it is found only by a scan, as in the examples above.
 
 ### What Actually Crosses the Network
 
