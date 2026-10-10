@@ -1,13 +1,14 @@
 ---
 title: "Importing SQLite Database Snapshots"
-description: "Learn how to import SQLite database snapshots to quickly bootstrap your ar.io Gateway and reduce synchronization time."
+description: "Bootstrap your ar.io gateway's index from a SQLite snapshot or, from Release 85, from published L1 bands, instead of indexing the chain block by block."
 ---
 
 ## Overview
 
-One of the challenges of running an ar.io Gateway is the initial synchronization time as your gateway builds its local index of the Arweave network. This process can take days or even weeks, depending on your hardware and the amount of data you want to index. To accelerate this process, you can import a pre-synchronized SQLite database snapshot that contains transaction and data item records already indexed.
+A new gateway builds its index of the Arweave network block by block. That can take days or weeks, depending on your hardware and on how much data you index. You can skip most of it in one of two ways:
 
-This guide will walk you through the process of importing a database snapshot into your ar.io Gateway.
+- [Import a SQLite snapshot](#import-a-sqlite-snapshot). The 2025-04-23 snapshot holds transactions and the data items uploaded through ArDrive products, including Turbo, up to block 1645229.
+- [Bootstrap from L1 bands](#bootstrap-from-l1-bands) (Release 85). Your gateway imports the Arweave base layer (blocks, transactions, tags and owners) from signed bands that another gateway publishes, up to the current tip. Data items are not included.
 
 <Callout type="info">
   Looking to resolve data items faster without a full database? [Index
@@ -23,75 +24,20 @@ Unless otherwise specified, all commands should be run from the root directory o
 
 </Callout>
 
-## Quick Start
+## Import a SQLite Snapshot
+
+SQLite snapshots are large and hard to update in steps, so ar.io distributes them over BitTorrent.
+
+<Callout type="warning" title="IMPORTANT">
+  Importing a snapshot deletes your existing database and replaces it with the
+  snapshot.
+</Callout>
 
 <Steps>
 <Step>
-### Download Database Snapshot
+### Install a Torrent Client
 
-Download the latest database snapshot using BitTorrent:
-
-```bash
-transmission-cli "magnet:?xt=urn:btih:62ca6e05248e6df59fac9e38252e9c71951294ed&dn=2025-04-23-sqlite.tar.gz&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=http%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&tr=udp%3A%2F%2Fp4p.arenabg.com%3A1337%2Fannounce&tr=https%3A%2F%2Ftracker.bt4g.com%3A443%2Fannounce"
-```
-
-This downloads a 42.8GB snapshot current to April 23, 2025.
-
-</Step>
-
-<Step>
-### Extract the Snapshot
-
-Extract the downloaded tarball:
-
-```bash
-tar -xzf 2025-04-23-sqlite.tar.gz
-```
-
-This creates a directory with the extracted database files.
-
-</Step>
-
-<Step>
-### Import the Snapshot
-
-Replace your existing database with the snapshot:
-
-```bash
-# Stop the gateway
-docker compose down
-
-# Backup existing database (optional)
-mkdir sqlite-backup
-mv data/sqlite/* sqlite-backup/
-
-# Remove old database
-rm data/sqlite/*
-
-# Import new snapshot
-mv 2025-04-23-sqlite/* data/sqlite/
-
-# Start the gateway
-docker compose up -d
-```
-
-</Step>
-</Steps>
-
-## Detailed Instructions
-
-<Tabs items={['Download Methods', 'Extraction Process', 'Import Process', 'Verification']}>
-<Tab value="Download Methods">
-
-### Obtaining a Database Snapshot
-
-SQLite database snapshots are very large and not easy to incrementally update. For these reasons, ar.io is distributing them using BitTorrent.
-
-<Steps>
-<Step>
-### Install Torrent Client
-
-Install a BitTorrent client. We recommend [transmission-cli](https://github.com/transmission/transmission):
+Any BitTorrent client works. For example, [transmission-cli](https://github.com/transmission/transmission):
 
 ```bash
 # Ubuntu/Debian
@@ -107,191 +53,151 @@ brew install transmission-cli
 </Step>
 
 <Step>
-### Download Snapshot
-
-Download the latest snapshot using the magnet link:
+### Download the Snapshot
 
 ```bash
 transmission-cli "magnet:?xt=urn:btih:62ca6e05248e6df59fac9e38252e9c71951294ed&dn=2025-04-23-sqlite.tar.gz&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=http%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce&tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&tr=udp%3A%2F%2Ftracker.torrent.eu.org%3A451%2Fannounce&tr=udp%3A%2F%2Fp4p.arenabg.com%3A1337%2Fannounce&tr=https%3A%2F%2Ftracker.bt4g.com%3A443%2Fannounce"
 ```
 
-This will download a snapshot, current to April 23, 2025, of an unbundled data set that includes all data items uploaded via an ArDrive product, including Turbo. The file will be named `2025-04-23-sqlite.tar.gz` and be approximately 42.8GB in size.
+This downloads `2025-04-23-sqlite.tar.gz`, about 42.8 GB. Check that it arrived whole with `ls -lh 2025-04-23-sqlite.tar.gz`.
 
-</Step>
-
-<Step>
-### Consider Seeding
-
-<Callout type="info" title="Seeding Recommendation">
-  While continuing to seed the torrent after download is not required, it is
-  highly recommended to help ensure the continued availability of the snapshot
-  for others, as well as the integrity of the data. Seeding this file should not
-  cause any issues with your internet service provider.
-</Callout>
-
-</Step>
-</Steps>
-
-</Tab>
-
-<Tab value="Extraction Process">
-
-### Extracting the Database Snapshot
-
-Once the file has downloaded, you can extract it using the following command.
-
-<Steps>
-<Step>
-### Verify Download
-
-Check that the file downloaded completely:
-
-```bash
-ls -lh 2025-04-23-sqlite.tar.gz
-# Should show approximately 42.8GB
-```
+Seeding the torrent after the download is not required, but it keeps the snapshot available for other operators.
 
 </Step>
 
 <Step>
 ### Extract the Archive
 
-Extract the tarball:
-
 ```bash
 tar -xzf 2025-04-23-sqlite.tar.gz
-```
-
-Be sure to replace the filename with the actual filename of the snapshot you are using, if not using the example above.
-
-</Step>
-
-<Step>
-### Verify Extraction
-
-Check that the extraction was successful:
-
-```bash
 ls -la 2025-04-23-sqlite/
-# Should show SQLite database files
 ```
 
-This will extract the file into a directory matching the filename, minus the `.tar.gz` extension.
+This creates a directory named after the file, without `.tar.gz`, that holds the SQLite database files. If you use a different snapshot, replace the file name.
 
 </Step>
-</Steps>
 
-</Tab>
-
-<Tab value="Import Process">
-
-### Importing the Database Snapshot
-
-Once you have an extracted database snapshot, you can import it into your ar.io gateway by replacing the existing SQLite database files.
-
-<Callout type="warning" title="IMPORTANT">
-  Importing a database snapshot will delete your existing database and replace
-  it with the snapshot you are importing.
-</Callout>
-
-<Steps>
 <Step>
 ### Stop the Gateway
-
-Stop your ar.io gateway:
 
 ```bash
 docker compose down
 ```
 
+If you start your gateway with your own `-f` files, pass the same ones to every `docker compose` command on this page.
+
 </Step>
 
 <Step>
-### Backup Existing Database
+### Replace the Database
 
-(Optional) Backup your existing SQLite database files:
+Back up your existing database (optional), then move the snapshot into `data/sqlite`:
 
 ```bash
 mkdir sqlite-backup
 mv data/sqlite/* sqlite-backup/
-```
-
-</Step>
-
-<Step>
-### Remove Old Database
-
-Delete the existing SQLite database files:
-
-```bash
-rm data/sqlite/*
-```
-
-</Step>
-
-<Step>
-### Import New Snapshot
-
-Move the snapshot files into the `data/sqlite` directory:
-
-```bash
 mv 2025-04-23-sqlite/* data/sqlite/
 ```
 
-Be sure to replace `2025-04-23-sqlite` with the actual directory name of the extracted snapshot you are using.
+If you skip the backup, delete the old files with `rm data/sqlite/*` before the last command.
 
 </Step>
 
 <Step>
 ### Start the Gateway
 
-Start your ar.io gateway:
-
 ```bash
 docker compose up -d
 ```
 
 </Step>
+
+<Step>
+### Verify the Import
+
+Watch the gateway logs for the block height being imported:
+
+```bash
+docker compose logs -f core
+```
+
+The 2025-04-23 snapshot was taken at block `1645229`. If the import worked, the gateway imports blocks from 1645230 upward. The [Grafana extension](/build/extensions/grafana) also shows the last block imported.
+
+</Step>
 </Steps>
 
-</Tab>
+## Bootstrap from L1 Bands
 
-<Tab value="Verification">
+<Callout type="info">
+  **Release Requirement**: L1 bands, and the `ar-io-node` CLI that imports
+  them, arrive in gateway Release 85, which is not released yet. Your gateway
+  and the publisher you subscribe to must both run it.
+</Callout>
 
-### Verifying the Import
+An L1 band (`parquet-l1`) holds the Arweave base layer for a range of block heights, as Parquet files: blocks, transactions, tags and owners. Gateways that publish them sign every file, and your gateway checks each one before it installs the band. `index-l1-import` then fills your gateway's `core.db` from the installed bands, so it starts near the tip instead of at block 0.
 
-The simplest way to verify the import is to check the gateway logs to see what block number is being imported.
+L1 bands carry no data items. Your gateway still unbundles the bundles your filters select, and it does that for imported history only if you also set `BACKFILL_BUNDLE_RECORDS`.
+
+### Prerequisites
+
+- A gateway on Release 85. The core service migrates its database when it starts, and the import refuses a `core.db` that has not been migrated
+- A `core.db` with no unstable blocks near the tip (the `new_*` tables). The import refuses one that holds them, so run it on a new gateway before its block importer has indexed the tip
+- Room on disk: about 15 GB for the bands, and about 120 GB for a `core.db` that covers the whole chain. The import refuses to start without the space it needs
+- Time: a full chain takes many hours. The import logs its progress once a minute
 
 <Steps>
 <Step>
-### Check Gateway Logs
+### Subscribe to L1 Bands
 
-View the gateway logs to see the current block height:
+L1 bands arrive through [Index Sharing](/build/run-a-gateway/manage/index-sharing). A subscription takes them only when it names them, so add `parquet-l1` to the `name` list in `INDEX_SWARM_SUBSCRIBE`:
 
 ```bash
-docker compose logs -f gateway
+INDEX_SWARM_SUBSCRIBE='[{"publisher":"34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7h5","name":["root-tx-index","parquet-l1"]}]'
 ```
 
-Look for messages indicating the current block being processed.
+Then recreate the `index-swarm` sidecar and wait until `./tools/index-swarm-status` shows the bands installed under `data/indexes/installed/parquet-l1`.
 
 </Step>
 
 <Step>
-### Verify Block Height
+### Stop the Gateway
 
-The 2025-04-23 snapshot was taken at block `1645229`, so the gateway will start importing blocks after this height if the snapshot was imported successfully.
+The import refuses a `core.db` that another process is writing to. Stop only the core service, with the same `-f` files your gateway was started with:
 
-You should see logs showing blocks being processed starting from block 1645230 or higher.
+```bash
+docker compose stop core
+```
 
 </Step>
 
 <Step>
-### Use Grafana (Optional)
+### Import the Bands
 
-You can also use the [Grafana Extension](/build/extensions/grafana) to view the last block imported in a more human readable format.
+Run it from the gateway's directory. The tool runs in the core image, so the host needs only Docker:
+
+```bash
+./tools/ar-io-node index-l1-import \
+  --bands-dir data/indexes/installed/parquet-l1 \
+  --core-db data/sqlite/core.db \
+  --cache-mib 8192
+```
+
+Bands import in height order, lowest first. `--cache-mib` sets SQLite's page cache for the run (default 1024 MiB); give it what your machine can spare, since a larger cache keeps a long import fast. An interrupted run is safe: run the command again and it carries on from the last band that landed. `--max-bands` splits the work across several runs.
+
+If your gateway started above block 0 (`START_HEIGHT`), add `--from 0 --to <height below what it holds>` to fill in the history underneath. Check that the result's `holes` field is absent or empty before you start the gateway.
+
+</Step>
+
+<Step>
+### Start the Gateway
+
+```bash
+docker compose up -d --no-deps core
+```
+
+The block importer continues from the highest height imported.
 
 </Step>
 </Steps>
 
-</Tab>
-</Tabs>
+To check a set of bands, or your gateway's own `core.db`, against the chain, use `./tools/ar-io-node index-l1-verify`. Every option, and the JSON each command prints, is in the [`ar-io-node` CLI reference](https://github.com/ar-io/ar-io-node/blob/develop/docs/cli.md#index-l1-import).

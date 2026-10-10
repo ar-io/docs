@@ -3,11 +3,11 @@ title: "Upgrading your Gateway"
 description: "Step-by-step guide to upgrading your ar.io Gateway to the latest version safely without losing data or progress"
 ---
 
-To ensure the optimal performance and security of your ar.io Gateway, it's essential to regularly upgrade to the latest version. Notably, indexed data resides separate from Docker. As a result, neither upgrading the Gateway nor pruning Docker will erase your data or progress. Here's how you can perform the upgrade:
+Upgrade your ar.io gateway to each new release to get its fixes and security updates. Indexed data lives outside Docker, so neither upgrading the gateway nor pruning Docker erases your data or progress.
 
 ## Prerequisites
 
-- Your Gateway should have been cloned using git. If you haven't, follow the [installation instructions](/build/run-a-gateway/join-the-network).
+- Your Gateway should have been cloned using git. If you haven't, follow the [installation instructions](/build/run-a-gateway/quick-start).
 
 ## Checking your Release Number
 
@@ -17,78 +17,7 @@ If the release number displayed includes `-pre` it means that your gateway is us
 
 Announcements will be made in our [discord server](https://discord.com/invite/HGG52EtTc2) showing each new release.
 
-## Quick Start
-
-<Steps>
-<Step>
-### Pull Latest Changes
-
-Navigate to your cloned repository directory and execute:
-
-```bash
-git pull
-```
-
-</Step>
-
-<Step>
-### Shut Down Docker
-
-Stop your gateway:
-
-<Tabs items={['Linux', 'Windows']}>
-<Tab value="Linux">
-
-```bash
-sudo docker compose down -v
-```
-
-</Tab>
-
-<Tab value="Windows">
-
-```bash
-docker compose down -v
-```
-
-</Tab>
-</Tabs>
-
-</Step>
-
-<Step>
-### Restart Gateway
-
-Start your gateway with the new version:
-
-<Tabs items={['Linux', 'Windows']}>
-<Tab value="Linux">
-
-```bash
-sudo docker compose up -d
-```
-
-</Tab>
-
-<Tab value="Windows">
-
-```bash
-docker compose up -d
-```
-
-<Callout type="info" title="Release #3 Note">
-  Effective with Release #3, it is no longer required to include the `--build`
-  flag when starting your gateway. Docker will automatically build using the
-  image specified in the `docker-compose.yaml` file.
-</Callout>
-
-</Tab>
-</Tabs>
-
-</Step>
-</Steps>
-
-## Detailed Upgrade Process
+## Upgrade Process
 
 <Tabs items={['Complete Steps', 'Optional Pruning', 'Environment Variables']}>
 <Tab value="Complete Steps">
@@ -159,17 +88,13 @@ sudo docker compose up -d
 docker compose up -d
 ```
 
-<Callout type="info" title="Release #3 Note">
-  Effective with Release #3, it is no longer required to include the `--build`
-  flag when starting your gateway. Docker will automatically build using the
-  image specified in the `docker-compose.yaml` file.
-</Callout>
-
 </Tab>
 </Tabs>
 
 </Step>
 </Steps>
+
+You don't need the `--build` flag: Docker uses the image named in `docker-compose.yaml`.
 
 </Tab>
 

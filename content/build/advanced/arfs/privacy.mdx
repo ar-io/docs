@@ -5,7 +5,7 @@ description: "Secure your data with ArFS private drives and encryption"
 
 The Arweave blockweave is inherently public. But with apps that use ArFS, like ArDrive, your private data never leaves your computer without using military grade (and [quantum resistant](https://blog.boot.dev/cryptography/is-aes-256-quantum-resistant/#:~:text=Symmetric%20encryption%2C%20or%20more%20specifically,key%20sizes%20are%20large%20enough)) encryption. This privacy layer is applied at the Drive level, and users determine whether a Drive is public or private when they first create it. Private drives must follow the ArFS privacy model.
 
-With ArDrive specifically, every file within a Private Drive is symmetrically encrypted using [AES-256-GCM](https://iopscience.iop.org/article/10.1088/1742-6596/1019/1/012008/pdf) (for small files and metadata transactions) or [AES-256-CTR](https://xilinx.github.io/Vitis_Libraries/security/2020.1/guide_L1/internals/ctr.html) (for large files, over 100MiB). Every Private drive has a master "Drive Key" which uses a combination of the user's Arweave wallet signature, a user defined drive password, and a unique drive identifier ([uuidv4](https://en.wikipedia.org/wiki/Universally_unique_identifier)). Each file has its own "File Key" derived from the "Drive Key". This allows for single files to be shared without exposing access to the other files within the Drive.
+With ArDrive specifically, every file within a Private Drive is symmetrically encrypted using [AES-256-GCM](https://iopscience.iop.org/article/10.1088/1742-6596/1019/1/012008/pdf) (for small files and metadata transactions) or [AES-256-CTR](https://xilinx.github.io/Vitis_Libraries/security/2020.1/guide_L1/internals/ctr.html) (for large files, over 100MiB). Every Private drive has a top-level "Drive Key" which uses a combination of the user's Arweave wallet signature, a user defined drive password, and a unique drive identifier ([uuidv4](https://en.wikipedia.org/wiki/Universally_unique_identifier)). Each file has its own "File Key" derived from the "Drive Key". This allows for single files to be shared without exposing access to the other files within the Drive.
 
 Once a file is encrypted and stored on Arweave, it is locked forever and can only be decrypted using its file key.
 
@@ -56,7 +56,7 @@ Drives can store either public or private data. This is indicated by the `Drive-
 Drive-Privacy: "<public | private>"
 ```
 
-If a Drive entity is private, an additional tag `Drive-Auth-Mode` must also be used to indicate how the Drive Key is derived. ArDrive clients currently leverage a secure password along with the Arweave Wallet private key signature to derive the global Drive Key.
+If a Drive entity is private, an additional tag `Drive-Auth-Mode` must also be used to indicate how the Drive Key is derived. ArDrive clients currently use a secure password along with the Arweave Wallet private key signature to derive the global Drive Key.
 
 ```
 Drive-Auth-Mode?: 'password'
@@ -64,7 +64,7 @@ Drive-Auth-Mode?: 'password'
 
 On every encrypted Drive Entity, a `Cipher` tag must be specified, along with the public parameters for decrypting the data. This is done by specifying the parameter with a `Cipher-*` tag. eg. `Cipher-IV`. If the parameter is byte data, it must be encoded as Base64 in the tag.
 
-ArDrive clients currently leverage AES256-GCM for all symmetric encryption, which requires a Cipher Initialization Vector consisting of 12 random bytes.
+ArDrive clients currently use AES256-GCM for all symmetric encryption, which requires a Cipher Initialization Vector consisting of 12 random bytes.
 
 ```
 Cipher?: "AES256-GCM"
@@ -77,7 +77,7 @@ Private Drive Entities and their corresponding Root Folder Entities will both us
 
 ## Private Files
 
-When a file is uploaded to a private drive, it by default also becomes private and leverages the same drive keys used for its parent drive. Each unique file in a drive will get its own set of file keys based off of that file's unique `FileId`. If a single file gets a new version, its `File-Id` will be reused, effectively leveraging the same File Key for all versions in that file's history.
+When a file is uploaded to a private drive, it by default also becomes private and uses the same drive keys used for its parent drive. Each unique file in a drive will get its own set of file keys based off of that file's unique `FileId`. If a single file gets a new version, its `File-Id` will be reused, so the same File Key is used for all versions in that file's history.
 
 These file keys can be shared by the drive's owner as needed.
 
