@@ -1710,7 +1710,25 @@ Set a base58-encoded **Solana** secret key as `ARNS_KEY`, or pass a `solana-keyg
    ```
 
 2. **Ethereum/Polygon signers:** Use your raw private key (no encoding needed) as `DEPLOY_KEY`.
-3. **Solana signer:** Use a base58-encoded secret key as `DEPLOY_KEY`, or a `solana-keygen` `id.json` byte-array wallet file via `--wallet`.
+3. **Solana signer:** Use a base58-encoded secret key as `DEPLOY_KEY`, or a `solana-keygen` `id.json` byte-array wallet file via `--wallet`. To make a new one, run `ario-deploy keygen`.
+
+#### Create a wallet with keygen`
+
+```bash
+ario-deploy keygen                      # writes ~/.ar.io/wallets/\.json
+ario-deploy keygen --out ~/wallets/my-wallet.json
+```
+
+`keygen` writes a new Solana key in `solana-keygen` `id.json` format. By default the file goes in `~/.ar.io/wallets/`, a folder in your home directory outside any project, named after the wallet's address. It prints the file path, the public address, the wallet's free upload allowance and the exact `deploy` command to run next. It never prints the secret key, and it never overwrites an existing file. Add `--dev` to look up the allowance on the Turbo sandbox.
+
+Who can read the file:
+
+- **Linux and macOS:** the file has mode `0600` and the wallets folder `0700`, so only your account can read them.
+- **Windows:** `keygen` removes inherited permissions with `icacls` and grants access to your account only. When that fails it prints a warning, and other accounts on the computer might be able to read the file.
+
+**Never put the wallet inside the folder you deploy.** An upload is permanent and public, and anyone who reads the file controls the wallet. `deploy` and `upload` refuse to publish any key they were given, including `DEPLOY_KEY` and `ARNS_KEY`, and any file that can be proved to be a private key (see [Files that are never uploaded](#files-that-are-never-uploaded)). --out` accepts any path, but `keygen` warns when the path is inside the current folder. When the file is inside a git repository, `keygen` adds it to the repository's `.gitignore` and then asks git to confirm that it is ignored and not tracked. If git does not confirm both, it prints a warning instead.
+
+Back up the wallet file. It is the only copy, anyone who has it controls the wallet, and nobody can recover it for you. Never paste its contents anywhere.
 
 # Bundler service (/ario-deploy/bundler-service)
 
@@ -1729,6 +1747,8 @@ ario-deploy upload --wallet ./wallet.json --deploy-folder ./dist --dev
 ```
 
 The free upload limit is read from the upload service, so it follows the network: 105 KiB per item in production, 5 MiB in the sandbox.
+
+**A `--dev` upload is not permanent.** It goes to the Turbo sandbox for testing, production gateways do not serve it, and the result output says so. Never switch to `--dev` to get past an error on production: the URL it prints does not work as a permanent site.
 
 # CLI in GitHub Actions (/ario-deploy/cli-in-github-actions)
 
@@ -1898,6 +1918,31 @@ Entries are keyed on the file's content and content type (plus encoding when com
 
 Symlinks inside the deploy folder are followed only while they point inside it; a link to a file outside the folder stops the deploy, since uploading it would publish that file permanently.
 
+#### Files that are never uploaded
+
+The check is built to stop a key from being published by accident. It cannot promise to find a key that someone disguises on purpose (reversed, split across files, or in an encoding of their own), so keep keys outside the project folder.
+
+Before any request is made, `deploy` and `upload` list the files once, read every one of them and refuse to publish a private key. Only the files that were checked are uploaded. The error names the file and never prints the key. There is no flag to override this.
+
+**Keys the run holds.** Every key the command was given (`--wallet`, `--arns-wallet`, `--private-key`, `--arns-private-key`, `DEPLOY_KEY` and `ARNS_KEY`, whichever are set) is searched for in every file and every file name. The search covers:
+
+- the key's raw bytes, hex in any case (also as `0x0c, 0x22`, `\x0c\x22` or `0c:22`), a decimal byte list such as `[12, 34, ...]`, base58, and base64 or base64url at any alignment
+- an Arweave key's private JWK fields, the base64 JWK that `DEPLOY_KEY` holds, and each key file base64-encoded, as in a `data:` URI
+- text with spaces, line breaks, string concatenation, `\u`, `\x` and percent escapes removed, UTF-16 text, every string of a JSON file, and printable text inside binary files
+
+Gzip, brotli (`.br`), zip and tar files are opened and searched, including archives inside archives up to three levels deep. A compressed file is refused as one that could not be checked when it expands to more than 1 GiB, is nested deeper, is damaged or encrypted, or is a 7z, RAR, xz, bzip2, Zstandard or cabinet archive. The run also stops when a wallet file, or a hard link or symlink to one, is inside the deploy folder or is the `--deploy-file`.
+
+**Keys the run does not hold.** The run also stops on what can be proved to be a private key, in files and inside the archives above:
+
+- an environment file: `.env`, `.env.local`, `.env.example`, `prod.env`, in any case (scripts and pages such as `env.js` are not refused for their name)
+- a PEM private key block (`-----BEGIN PRIVATE KEY-----` and the RSA, EC, DSA, OPENSSH and ENCRYPTED forms); public keys and certificates are not refused
+- a Solana keypair written as a byte array, base58 or hex, checked by deriving its public half from its seed
+- an object with a private exponent `d` and an RSA-sized modulus `n` (2048 bits or more) together, as JSON, inside a string or base64-encoded
+
+What is not detected for a key the run does not hold: a 32-byte seed or an Ethereum key on its own in any form (it cannot be told from a hash), brotli data without a `.br` name, and keys inside compressed parts of other formats, such as PNG text chunks or PDF streams.
+
+`.git` folders are left out of folder uploads, with a one-line note.
+
 The Turbo credit check runs after this planning step, so it prices only what will actually be uploaded, not the whole folder.
 
 **Disable deduplication:**
@@ -1948,6 +1993,19 @@ The cache files are stored in `.ario-deploy/` in your project root. You can:
 - **Flexible Deployment:** Supports deploying a folder or a single file
 - **Modern CLI:** Built with oclif for a robust command-line experience
 - **TypeScript:** Fully typed for better developer experience
+
+# Free tier (/ario-deploy/free-tier)
+
+Turbo uploads small files for free. The limits are:
+
+- **105 KiB per file** (per data item). A larger file is billed.
+- **10 MiB over the lifetime of a wallet**, and **10 MiB over the lifetime of an IP range**. Turbo meters both, and an upload is free only while both have allowance left.
+
+`ario-deploy` can check the wallet's allowance before it uploads. It cannot check the IP range, so a deploy can pass the credit check ("within this wallet's free tier") and still be refused at upload time with HTTP 402 when other people on the same network have used the range's allowance. See [402 Payment Required](#troubleshooting).
+
+To go past the free tier, add [Turbo credits](https://turbo.ardrive.io), use [`--on-demand`](#on-demand-payment), or have credits [shared](#shared-credits) to your wallet.
+
+The sandbox (`--dev`) has its own, larger limit and is for testing only: see [Bundler service](#bundler-service).
 
 # Incremental uploads (/ario-deploy/incremental-uploads)
 
@@ -2056,13 +2114,14 @@ DEPLOY_KEY=\ ARNS_KEY=\ pnpm deploy:on-demand
 - **Turbo Credits:** Ensure your wallet has sufficient Turbo Credits, or use on-demand payment for automatic funding
 - **On-Demand Limits:** Set reasonable `--max-token-amount` limits to prevent unexpected costs
 - **Secret Management:** Keep your `DEPLOY_KEY` secret secure and never commit it to your repository
+- **Wallet Location:** Never keep a wallet file inside the folder you deploy. `ario-deploy` refuses to upload one it recognizes (see [Files that are never uploaded](#files-that-are-never-uploaded)), but other tools that publish the folder do not
 - **Build Security:** Always check your build for exposed environmental secrets before deployment, as data on Arweave is permanent
 
 # Shared credits (/ario-deploy/shared-credits)
 
 Credits another wallet has shared with your upload key ([Turbo credit sharing](https://docs.ardrive.io/docs/turbo/)) are used automatically: the credit check counts them, and every data item names the sharing wallets as payers, which is what the bundler needs to charge them. Your own balance covers whatever they do not.
 
-- `--paid-by \`: pay only from these wallets' shared credits (comma-separated).
+- `--paid-by \`: use only these wallets' shared credits (comma-separated), then your own balance.
 - `--ignore-approvals`: ignore shared credits; pay only from the upload key's own balance.
 - `--use-signer-balance-first`: spend the upload key's own balance before shared credits.
 
@@ -2073,6 +2132,7 @@ Credits another wallet has shared with your upload key ([Turbo credit sharing](h
 - **Error: "deploy-file does not exist":** Check that your build file exists and the path is correct
 - **Error: "ArNS name does not exist":** Verify the ArNS name is correct and exists in the specified network
 - **Upload timeouts:** Files have a timeout for upload. Large files may fail and require optimization
+- **"402 Payment Required" (or "Turbo refused the upload as unpaid"):** The upload service will not take the files for free and no credits cover them. Free uploads are up to 105 KiB per file and 10 MiB over the lifetime of a wallet and of an IP range, so a wallet with allowance left can still be refused when its IP range has used up its own. Add Turbo credits at https://turbo.ardrive.io, re-run with `--on-demand` and `--max-token-amount`, or have credits shared to the wallet. Do not use `--dev` to get around it: a sandbox upload is not permanent. Files that uploaded before the failure are cached, so a re-run does not pay for them again
 - **Insufficient Turbo Credits:** Use `--on-demand` with `--max-token-amount` to automatically fund uploads when balance is low
 - **On-demand payment fails:** Ensure the upload wallet holds the token, and that the token matches the key: `ario`, `solana` or `solana-usdc` with `--sig-type solana`; `base-eth` or `base-usdc` with an Ethereum or Polygon key
 - **"Insufficient Turbo credits" on the sandbox with valid sandbox credits:** Use `--dev`, or pass `--payment-url https://payment.services.ar-io.dev` with a custom `--uploader`, so the balance is read from the sandbox
