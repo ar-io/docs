@@ -10,4 +10,22 @@ description: "CLI for deploying apps to the permaweb (Arweave) and updating ArNS
    ```
 
 2. **Ethereum/Polygon signers:** Use your raw private key (no encoding needed) as `DEPLOY_KEY`.
-3. **Solana signer:** Use a base58-encoded secret key as `DEPLOY_KEY`, or a `solana-keygen` `id.json` byte-array wallet file via `--wallet`.
+3. **Solana signer:** Use a base58-encoded secret key as `DEPLOY_KEY`, or a `solana-keygen` `id.json` byte-array wallet file via `--wallet`. To make a new one, run `ario-deploy keygen`.
+
+#### Create a wallet with keygen`
+
+```bash
+ario-deploy keygen                      # writes ~/.ar.io/wallets/\<address\>.json
+ario-deploy keygen --out ~/wallets/my-wallet.json
+```
+
+`keygen` writes a new Solana key in `solana-keygen` `id.json` format. By default the file goes in `~/.ar.io/wallets/`, a folder in your home directory outside any project, named after the wallet's address. It prints the file path, the public address, the wallet's free upload allowance and the exact `deploy` command to run next. It never prints the secret key, and it never overwrites an existing file. Add `--dev` to look up the allowance on the Turbo sandbox.
+
+Who can read the file:
+
+- **Linux and macOS:** the file has mode `0600` and the wallets folder `0700`, so only your account can read them.
+- **Windows:** `keygen` removes inherited permissions with `icacls` and grants access to your account only. When that fails it prints a warning, and other accounts on the computer might be able to read the file.
+
+**Never put the wallet inside the folder you deploy.** An upload is permanent and public, and anyone who reads the file controls the wallet. `deploy` and `upload` refuse to publish any key they were given, including `DEPLOY_KEY` and `ARNS_KEY`, and any file that can be proved to be a private key (see [Files that are never uploaded](#files-that-are-never-uploaded)). --out` accepts any path, but `keygen` warns when the path is inside the current folder. When the file is inside a git repository, `keygen` adds it to the repository's `.gitignore` and then asks git to confirm that it is ignored and not tracked. If git does not confirm both, it prints a warning instead.
+
+Back up the wallet file. It is the only copy, anyone who has it controls the wallet, and nobody can recover it for you. Never paste its contents anywhere.

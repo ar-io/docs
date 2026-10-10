@@ -1,0 +1,15 @@
+---
+title: "Free tier"
+description: "CLI for deploying apps to the permaweb (Arweave) and updating ArNS"
+---
+
+Turbo uploads small files for free. The limits are:
+
+- **105 KiB per file** (per data item). A larger file is billed.
+- **10 MiB over the lifetime of a wallet**, and **10 MiB over the lifetime of an IP range**. Turbo meters both, and an upload is free only while both have allowance left.
+
+`ario-deploy` can check the wallet's allowance before it uploads. It cannot check the IP range, so a deploy can pass the credit check ("within this wallet's free tier") and still be refused at upload time with HTTP 402 when other people on the same network have used the range's allowance. See [402 Payment Required](#troubleshooting).
+
+To go past the free tier, add [Turbo credits](https://turbo.ardrive.io), use [`--on-demand`](#on-demand-payment), or have credits [shared](#shared-credits) to your wallet.
+
+The sandbox (`--dev`) has its own, larger limit and is for testing only: see [Bundler service](#bundler-service).
