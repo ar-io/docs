@@ -5,11 +5,11 @@ description: "Learn how ar.io gateways integrate x402 payment protocol to moneti
 
 import { CreditCard, Shield, Zap, Globe } from "lucide-react";
 
-Ar.io gateways integrate the x402 payment protocol to enable frictionless cryptocurrency payments for data access. This creates a sustainable monetization model that allows gateways to cover infrastructure costs while providing premium access tiers for users who need higher bandwidth or priority service.
+ar.io gateways support the x402 payment protocol, so clients can pay for data access in cryptocurrency. Operators can recover infrastructure costs, and users who need more bandwidth can pay for it.
 
 ## What is x402?
 
-**x402** is an open-source payment protocol built by Coinbase that leverages the HTTP 402 "Payment Required" status code to enable frictionless cryptocurrency payments for web APIs. The protocol is designed to eliminate traditional friction points in web payments:
+**x402** is an open-source payment protocol from Coinbase. It uses the HTTP 402 "Payment Required" status code to let clients pay for web APIs in cryptocurrency, without accounts or card payments:
 
 ### Key Features
 
@@ -22,32 +22,30 @@ Ar.io gateways integrate the x402 payment protocol to enable frictionless crypto
 
 ### How x402 Works
 
-The x402 protocol uses a simple HTTP-based flow:
+The x402 protocol uses an HTTP flow:
 
 ```mermaid
 sequenceDiagram
     participant Client
     participant Gateway
-    participant Payment as Payment Facilitator
-    participant Blockchain
+    participant Facilitator
 
     Client->>Gateway: Request data
-    Gateway->>Client: 402 Payment Required
-    Note over Gateway,Client: Includes payment requirements in headers
-
-    Client->>Payment: Initiate payment
-    Payment->>Blockchain: Process transaction
-    Blockchain-->>Payment: Transaction confirmed
-    Payment-->>Client: Payment receipt
-
-    Client->>Gateway: Retry request with payment proof
-    Gateway->>Gateway: Verify payment
-    Gateway-->>Client: Serve requested data
+    Gateway-->>Client: 402 Payment Required, with payment requirements
+    Note over Client: Signs a payment authorization
+    Client->>Gateway: Same request, with X-Payment header
+    Gateway->>Facilitator: Verify payment
+    Facilitator-->>Gateway: Valid
+    Gateway-->>Client: Requested data
+    Gateway->>Facilitator: Settle payment
+    Note over Facilitator: Transfers USDC on-chain
 ```
+
+The client never talks to the facilitator. The gateway verifies and settles the payment itself, and returns the settlement receipt to the client in the `X-Payment-Response` header.
 
 ## ar.io Gateway Integration
 
-Ar.io gateways implement x402 using **USDC (USD Coin) on the Base blockchain** to monetize data egress with per-byte pricing. This integration works seamlessly with the gateway's rate limiting system to provide a complete traffic management and monetization solution.
+ar.io gateways implement x402 with **USDC (USD Coin) on the Base blockchain**, priced per byte of data served. It works as part of the gateway's rate limiter: a client pays only once it has used its free allowance.
 
 ### Payment Flow in ar.io Gateways
 
@@ -60,13 +58,13 @@ Ar.io gateways implement x402 using **USDC (USD Coin) on the Base blockchain** t
 
 ### Browser Paywall & Onramp Integration
 
-For mainnet deployments, gateways can integrate Coinbase Onramp to enable easy USDC purchases directly in the browser paywall. This requires Coinbase Developer Platform (CDP) API keys, which are separate from payment facilitator authentication. The Onramp integration allows users to purchase USDC without leaving the gateway interface, creating a seamless payment experience.
+For mainnet deployments, gateways can integrate Coinbase Onramp to enable easy USDC purchases directly in the browser paywall. This requires Coinbase Developer Platform (CDP) API keys, which are separate from payment facilitator authentication. With Onramp, users can buy USDC without leaving the gateway's paywall page.
 
 **Note**: CDP keys are optional for testnet but required for mainnet when using Coinbase facilitators. These keys enable the browser-based purchasing experience and are not related to payment verification or settlement.
 
 ## Network Options
 
-Ar.io gateways support two Base blockchain networks for x402 payments:
+ar.io gateways support two Base blockchain networks for x402 payments:
 
 | Feature                 | Base Sepolia (Testnet)            | Base (Mainnet)                    |
 | ----------------------- | --------------------------------- | --------------------------------- |
@@ -86,13 +84,14 @@ The x402 payment system applies to data egress endpoints where gateways serve ac
 - **Raw data requests**: `/raw/:txid`
 - **ArNS resolved content**: All requests resolved through ArNS names
 - **Farcaster frames**: `/local/farcaster/frame/:txid`
-- **Chunk requests**: `GET /chunk/:offset` (uses fixed size pricing)
+- **Chunk requests**: `GET /chunk/:offset` and `GET /chunk/:offset/data` (fixed size pricing)
+- **Index Sharing byte routes**: band files by name, by digest, and the WebSeed under `/ar-io/indexes`. The publication document at `/ar-io/indexes` and the `.torrent` files are free
 
 ### Not Rate Limited
 
 - GraphQL queries (`/graphql`)
 - Chunk POST requests (`POST /chunk`)
-- Administrative endpoints (`/ar-io/*`)
+- Administrative and informational endpoints under `/ar-io/*`, except the Index Sharing byte routes above
 
 ## Benefits for Gateway Operators
 
@@ -112,7 +111,7 @@ The x402 payment system applies to data egress endpoints where gateways serve ac
 
 ## Benefits for Users
 
-### Frictionless Payments
+### Payments Without Accounts
 
 - **No Account Required**: Payments work without registration or OAuth
 - **Fast Settlement**: 2-second payment confirmation

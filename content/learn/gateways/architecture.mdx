@@ -5,28 +5,28 @@ description: "Learn about the technical architecture of ar.io gateways, their co
 
 import { Database, Shield, Layers, Server } from 'lucide-react';
 
-Ar.io gateways are data access layers built on top of Arweave. They make permanent data easier to retrieve, cache, index, and serve through standard web interfaces.
+ar.io gateways are data access layers built on top of Arweave. They make permanent data easier to retrieve, cache, index, and serve through standard web interfaces.
 
 ```mermaid
 graph TB
     CLIENTS[Apps, browsers and agents]
 
     subgraph Gateway ["ar.io Gateway"]
-        ENVOY[Envoy Proxy<br/>Routing]
+        ENVOY[Envoy]
 
         subgraph Services ["Services"]
             API[Core Service<br/>Gateway API and workers]
-            OBS[Observer<br/>Network checks]
-            SIDE[Index sidecar<br/>Optional: shares indexes]
+            OBS[Observer]
+            SIDE[index-swarm sidecar<br/>with tracker<br/>Optional]
             ENG[Torrent engine<br/>Optional]
+            EXP[index-export<br/>Optional, Release 85]
         end
 
         subgraph Local ["Data and Storage Layer"]
             SQL[(SQLite<br/>core · data · bundles<br/>moderation · chunks)]
             REDIS[(Redis<br/>Chain and ArNS cache)]
             CH[(ClickHouse<br/>Optional GraphQL history)]
-            FS[Chunks, headers and<br/>contiguous data]
-            CDB[CDB64 indexes<br/>Root transaction lookups]
+            FS[Files on disk<br/>chunks and contiguous data<br/>data/indexes: root-TX and L1 bands]
         end
     end
 
@@ -36,23 +36,25 @@ graph TB
         NETWORK[ar.io network<br/>Registry and observations]
     end
 
-    CLIENTS --> ENVOY
+    CLIENTS -->|HTTP| ENVOY
     ENVOY --> API
-    SIDE --> ENG
 
     API --> SQL
     API --> REDIS
     API --> CH
     API --> FS
-    API --> CDB
-    SIDE -->|installs| CDB
+    SIDE -->|bands| FS
+    SIDE -->|torrents| ENG
+    SQL -.->|records| EXP
+    CH -.->|records| EXP
+    EXP -.->|bands| FS
 
     API -->|blocks, chunks, data| ARWEAVE
     API -->|data| PEERS
-    OBS -->|checks| PEERS
+    OBS -->|test requests| PEERS
     OBS -->|reports| NETWORK
-    SIDE -->|signed indexes| PEERS
-    ENG -->|BitTorrent| PEERS
+    SIDE -->|signed bands| PEERS
+    ENG -->|pieces| PEERS
 
     classDef database fill:#3b82f6,stroke:#1d4ed8,stroke-width:2px,color:#fff
     classDef service fill:#10b981,stroke:#059669,stroke-width:2px,color:#fff
@@ -63,15 +65,15 @@ graph TB
 
     class SQL,REDIS,CH database
     class API,OBS service
-    class SIDE,ENG optional
+    class SIDE,ENG,EXP optional
     class ENVOY proxy
     class CLIENTS,PEERS,ARWEAVE,NETWORK external
-    class FS,CDB storage
+    class FS storage
 ```
 
 ## Core Technology Stack
 
-Ar.io gateways are built using modern, scalable technologies designed for high-performance data operations:
+ar.io gateways are built from these parts:
 
 ### Runtime and Language
 - **Node.js**: The primary runtime environment for all gateway services
@@ -88,7 +90,7 @@ Ar.io gateways are built using modern, scalable technologies designed for high-p
 - **Redis**: Cache for chain data and ArNS resolutions
 - **ClickHouse** (optional): Columnar store for GraphQL queries over long stable history
 - **File system storage**: Cached chunks, transaction headers and contiguous data
-- **CDB64 indexes**: Read-only files that map a data item to the transaction that holds it, kept current by [Index Sharing](/learn/gateways/index-sharing) when it is enabled
+- **CDB64 indexes**: Read-only files that map a data item to the transaction that holds it, kept current by [Index Sharing](/learn/gateways/index-sharing) when it is enabled. Shared indexes live under `data/indexes`, as root-TX bands and, from Release 85, L1 bands. From Release 85 the optional `index-export` service builds a publishing gateway's bands from its own records
 
 ### Processing Model
 - **Worker-based concurrency**: Specialized workers handle different background tasks
@@ -100,10 +102,10 @@ Ar.io gateways are built using modern, scalable technologies designed for high-p
 Several important design decisions shape how ar.io gateways operate:
 
 ### Data Retrieval Strategy
-Ar.io gateways use a **hierarchical fallback system** for data retrieval:
+ar.io gateways use a **hierarchical fallback system** for data retrieval:
 
 1. **Trusted gateways**: Prioritize data from verified, high-performance peers
-2. **Ar.io network**: Leverage the broader network of ar.io gateways  
+2. **ar.io network**: Fetch from other ar.io gateways
 3. **Chunks data items**: Reconstruct data from individual chunks when needed
 4. **Transaction data**: Fall back to raw Arweave transaction data
 
@@ -129,18 +131,18 @@ Different background workers handle specific responsibilities:
 
 ## Scalability and Configuration
 
-Ar.io gateways are designed to scale from small personal deployments to large enterprise installations:
+ar.io gateways are designed to scale from small personal deployments to large enterprise installations:
 
 ### Modular Architecture
 Gateway services can be independently configured or disabled based on operator needs:
 - **Data serving**: Serve cached data to applications
 - **Data indexing**: Index and process new Arweave data
 - **Bundle processing**: Handle Layer 2 bundled transactions
-- **ArNS routing**: Provide Ar.io Name System resolution
+- **ArNS routing**: Resolve ArNS names
 
 ## Core Philosophy: Builder Independence
 
-A fundamental principle of ar.io gateway architecture is **empowering builders to do the things they care about** without relying on any centralized resource to leverage Arweave. This philosophy manifests in several key ways:
+ar.io gateways are built so that builders can use Arweave without relying on any central resource. This shows in three ways:
 
 ### Extensibility Through Modularity
 Gateways are designed as extensible platforms that operators can customize through **[Extensions](/build/extensions/)**, sidecar services, and plugin architectures for specialized functionality.

@@ -7,7 +7,7 @@ import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { Shield, Globe, Search, Cpu } from "lucide-react";
 
-Ar.io gateways attach HTTP response headers to every data response that communicate whether the data has been verified against the Arweave base layer, whether it has reached finality, and whether the source is trusted. These headers enable clients to make informed trust decisions without relying solely on the gateway operator's reputation.
+ar.io gateways attach HTTP response headers to every data response. They say whether the data has been verified against the Arweave base layer, whether it has reached finality, and whether the source is trusted. Clients can use them to decide how far to trust a response without relying only on the operator's reputation.
 
 ## Trust & Verification Headers
 
@@ -18,12 +18,20 @@ Every data response from an ar.io gateway includes the following headers:
 | `X-AR-IO-Verified` | `true` / `false` | `true` only when data is served from local cache **and** has been verified against the Arweave base layer. Data streamed from network sources is marked `false` even if the gateway's database indicates prior verification, because the hash cannot be confirmed in-flight during streaming. |
 | `X-AR-IO-Stable` | `true` / `false` | `true` when the data exists beyond Arweave's maximum fork depth, indicating finality. Once stable, the data cannot be reorganized out of the chain. |
 | `X-AR-IO-Trusted` | `true` / `false` | `true` when the data was retrieved from a source the operator has configured as trusted (via `TRUSTED_GATEWAY_URL` or `TRUSTED_GATEWAYS_URLS`). |
-| `Content-Digest` | `sha-256=:base64:` | SHA-256 hash of the response body in [RFC 9530](https://www.rfc-editor.org/rfc/rfc9530.html) format. Only set on cache hits and HEAD requests, since the hash cannot be computed during network streaming. Enables direct body integrity verification by clients. |
+| `Content-Digest` | `sha-256=:base64:` | SHA-256 hash of the response body in [RFC 9530](https://www.rfc-editor.org/rfc/rfc9530.html) format. Set on cache hits and HEAD requests. An uncached response of known size up to 2 MiB is buffered and hashed so it carries one too. Larger uncached responses stream without it. |
 | `X-AR-IO-Digest` | base64url string | The raw SHA-256 hash of the content in base64url encoding. Set alongside `Content-Digest`. |
-| `ETag` | `"hash"` | Content hash for HTTP conditional requests (`If-None-Match`). Enables 304 Not Modified responses for efficient caching. |
+| `ETag` | `"hash"` | Content hash for HTTP conditional requests (`If-None-Match`), so a client can get a `304 Not Modified`. Treat it as opaque, and read the digest from `X-AR-IO-Digest`. See the note below for responses served through an ArNS name. |
 | `X-AR-IO-Data-Id` | base64url string | The Arweave transaction ID or data item ID of the content being served. |
 | `X-AR-IO-Hops` | number | The number of inter-gateway hops the request traversed before reaching this gateway. |
 | `X-Cache` | `HIT` / `MISS` | Whether the data was served from the gateway's local cache or fetched from the network. |
+
+<Callout type="info">
+  **Release Requirement**: From gateway Release 85, which is not released yet,
+  a response served through an ArNS name carries the `ETag`
+  `"<digest>.<X-ArNS-Resolved-Id>"`. A `304` then means the same bytes and the
+  same resolution, so a cache does not keep an old resolution after the name
+  is re-pointed. `/raw`, `/<id>` and the index routes keep the plain digest.
+</Callout>
 
 ### Why X-AR-IO-Verified Can Be False for Verified Data
 
@@ -35,10 +43,10 @@ X-AR-IO-Verified: true
 X-Cache: HIT
 Content-Digest: sha-256=:4ROTs2lTPAKbr8Y41WrjHu+2q+7S+m+yTuO7fAUzZI4=:
 
-# Network fetch - same data, but hash can't be confirmed in-flight
+# Network fetch of a large file - same data, but the hash can't be confirmed in-flight
 X-AR-IO-Verified: false
 X-Cache: MISS
-# Content-Digest is NOT set (can't hash during streaming)
+# Content-Digest is NOT set (the body is streamed, not hashed)
 ```
 
 ## ANS-104 Bundle Headers
@@ -102,15 +110,14 @@ The [Wayfinder](/learn/wayfinder) protocol provides automated client-side routin
 
 ## HTTP Message Signatures (RFC 9421)
 
-Gateways can opt in to signing response headers using [RFC 9421 HTTP Message Signatures](https://www.rfc-editor.org/rfc/rfc9421.html). When enabled, an Ed25519 sub-key signs all trust-relevant headers at response time, producing a `Signature` and `Signature-Input` header pair. This provides cryptographic proof that a specific gateway operator produced a given response.
+Gateways sign response headers with [RFC 9421 HTTP Message Signatures](https://www.rfc-editor.org/rfc/rfc9421.html). This is on by default. An Ed25519 key signs the trust-relevant headers of each response, producing a `Signature` and `Signature-Input` header pair. The signature proves which gateway operator produced a response.
 
-### Enabling HTTP Signatures
+### Turning HTTP Signatures Off
 
-Add the following to your gateway's `.env` file:
+Signing is on unless you turn it off in your gateway's `.env` file:
 
 ```bash
-# Enable response signing
-HTTPSIG_ENABLED=true
+HTTPSIG_ENABLED=false
 ```
 
 #### Signing Key Selection
@@ -127,7 +134,7 @@ If you use a single Solana key for both operator and observer (Pattern 1 in the 
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `HTTPSIG_ENABLED` | `false` | Enable RFC 9421 response signing |
+| `HTTPSIG_ENABLED` | `true` | RFC 9421 response signing |
 | `HTTPSIG_KEY_FILE` | `data/keys/httpsig.pem` | Path to standalone Ed25519 private key (auto-generated if missing). Ignored when `OBSERVER_KEYPAIR_PATH` or `OBSERVER_PRIVATE_KEY` is set |
 | `HTTPSIG_BIND_REQUEST` | `true` | Include request method and path in signature (prevents replay) |
 | `OBSERVER_KEYPAIR_PATH` | - | Path to a 64-byte Solana keypair JSON. When set, used as the HTTPSIG signing key — verifiable against the on-chain GAR |
@@ -135,7 +142,7 @@ If you use a single Solana key for both operator and observer (Pattern 1 in the 
 
 ### Verifying It's Working
 
-Once enabled, check the `/ar-io/info` endpoint to confirm:
+Check the `/ar-io/info` endpoint to confirm:
 
 ```bash
 curl -s https://your-gateway.example/ar-io/info | jq '.httpsig'
@@ -150,13 +157,23 @@ The gateway signs all trust-relevant response headers but **not the response bod
 **Signed headers** (when present on the response):
 - Trust headers: `X-AR-IO-Data-Id`, `X-AR-IO-Verified`, `X-AR-IO-Stable`, `X-AR-IO-Trusted`
 - Bundle headers: `X-AR-IO-Root-Transaction-Id`, `X-Arweave-Owner-Address`, `X-Arweave-Tags-Truncated`
-- ArNS headers: `X-ArNS-Name`, `X-ArNS-Resolved-Id`, `X-ArNS-TTL-Seconds`, `X-ArNS-Process-Id`
+- ArNS headers: `X-ArNS-Name`, `X-ArNS-Resolved-Id`, `X-ArNS-TTL-Seconds`, `X-ArNS-ANT-Program-Id`, `X-ArNS-ANT-Id`, and with them `X-ArNS-Basename`, `X-ArNS-Record`, `X-ArNS-Resolved-At`, `X-ArNS-Undername-Limit`, `X-ArNS-Record-Index`
 - Chunk headers: `X-Arweave-Chunk-Data-Root`, `X-Arweave-Chunk-Tx-Id`, `X-AR-IO-Chunk-Source-Type`
-- Content headers: `Content-Type`, `Content-Digest`
+- Index Sharing headers: `X-AR-IO-Index-Publication` on the publication at `/ar-io/indexes`, and `X-AR-IO-Index-File` on band files
+- Content headers: `Content-Type`, `Content-Digest`, `Repr-Digest`
+- Root offset headers: `X-AR-IO-Root-Item-Offset`, `X-AR-IO-Root-Item-Size`, `X-AR-IO-Root-Path` and the older `X-AR-IO-Root-Data-Item-Offset`, `X-AR-IO-Root-Data-Offset`
 - All `X-Arweave-Tag-*` headers (dynamically matched)
 - Request components (when `HTTPSIG_BIND_REQUEST=true`): `@method`, `@path`, `@status`
 
 Only responses containing at least one trust-relevant header are signed. Non-data responses (health checks, info endpoint, errors) are not signed.
+
+A range request for a band file answers `206` with `Repr-Digest`, the digest of the whole file, instead of a `Content-Digest` of the bytes sent. The signature covers it, so a signed range is bound to the file it came from.
+
+<Callout type="info">
+  **Release Requirement**: From gateway Release 85, which is not released yet,
+  `GET /ar-io/offsets/:id` answers are signed too. They carry
+  `X-AR-IO-Root-Transaction-Id` and a `Content-Digest` that binds the body.
+</Callout>
 
 ### Verification Chain
 

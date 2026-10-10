@@ -15,7 +15,7 @@ Gateways that publish [shared indexes](/learn/gateways/index-sharing) offer each
 
 ## What You Need
 
-- **Disk.** About 21 GB for all five bands turbo-gateway.com publishes, or 8 MB to try the tip band. aria2 needs room for pad files beside each band while it downloads: up to 64 MB with 256 KiB pieces, or up to 1 GB from a publisher still on 4 MiB pieces (see [below](#download-with-aria2)).
+- **Disk.** About 21 GB for the five root-TX bands turbo-gateway.com publishes, or a few hundred MB to try the tip band. aria2 needs up to 64 MB more per band for pad files while it downloads (see [below](#download-with-aria2)).
 - **Network.** Nothing to open to download: your client connects out to the peers. To seed well, forward or open your client's listening port, so that peers can connect to you as well. Some networks and hosting providers block or restrict BitTorrent traffic.
 
 ## Find the Torrents
@@ -24,19 +24,21 @@ A publisher lists its bands in one signed JSON document at `/ar-io/indexes`. Eac
 
 ```bash
 curl -s https://turbo-gateway.com/ar-io/indexes \
-  | jq -r '.indexes[].bands[] | "\(.id)\n\(.torrent.magnet)\n"'
+  | jq -r '.indexes[] | .name as $index | .bands[] | "\($index) \(.id)\n\(.torrent.magnet)\n"'
 ```
 
 ```text
-b0-h2010500-tip-20260930
-magnet:?xt=urn:btih:d140717762cfa2d7696d7b8b907f8e1a5d05c46b&xt=urn:btmh:1220b47ad0895458ab839a0a940dedfc27749aee0543f7fe94d182594dec9d7d98ca&dn=6cd021a690e25fac&tr=http%3A%2F%2F167.235.37.218%3A6969%2Fannounce
+root-tx-index b0-h2010500-tip-20261010
+magnet:?xt=urn:btih:2c35385ba96632bcfe39566d8f336e8c9b462f18&xt=urn:btmh:12201710ca02d31b9b4c7305c4506a67fdaaec634cb7200c2d6cce70725ed13686b1&dn=bfa9f0269c7b03f8&tr=http%3A%2F%2F167.235.37.218%3A6969%2Fannounce
 
-b1-h1950000-tip-20260929
-magnet:?xt=urn:btih:658d73729ff9da45323a679c46bc2b499dd76b54&xt=urn:btmh:1220f6ea7f0ed9613865001b75b74b1ece4110ea621e16cdc63cd5373d3bf39741b4&dn=0a27456b192621a7&tr=http%3A%2F%2F167.235.37.218%3A6969%2Fannounce
+root-tx-index b1-h1950000-tip-20260929
+magnet:?xt=urn:btih:57f33f3cdda02de27eb42f84e62b3b67dccc758c&xt=urn:btmh:122027a8171c4e95fe7eeb86c4a1efe9c2190861f7f7e183cdc877549f87a2abc07a&dn=0a27456b192621a7&tr=http%3A%2F%2F167.235.37.218%3A6969%2Fannounce
 ...
 ```
 
-The band id shows the block heights it covers: `b0-h2010500-tip` runs from height 2,010,500 to the chain tip, and `b4-h0-1349999` covers the start of the chain. turbo-gateway.com publishes five bands, about 21 GB in all. The tip band is small (8 MB) and rebuilt often. The older bands are 2 to 8 GB and rarely change. Start with `b0` to try it out.
+turbo-gateway.com publishes two indexes. This guide downloads the **root-TX bands** (`root-tx-index`): five bands, about 21 GB in all. The band id shows the block heights each covers: `b0-h2010500-tip` runs from height 2,010,500 to the chain tip, and `b4-h0-1349999` covers the start of the chain. The tip band is the smallest and is rebuilt often. The older bands are 2 to 8 GB and rarely change. Start with `b0` to try it out.
+
+The list also shows the 24 **L1 bands** (`parquet-l1`), about 15 GB, which come with gateway Release 85, not released yet. They download the same way. The `.cdb` partitions described below belong to root-TX bands only; an L1 band holds Parquet files and a `band.json`. See [Query a Parquet Dataset](/build/advanced/index-publications#query-a-parquet-dataset).
 
 The magnets on this page were current when it was written. Bands are rebuilt and replaced, so take yours from the publication.
 
@@ -61,9 +63,9 @@ The client first fetches the torrent's metadata from peers and checks it against
 <Step>
 ### Know What You Are Seeing
 
-- **Name.** The torrent is named with 16 hex characters, such as `6cd021a690e25fac` for `b0`, not with the band id. The name is derived from the band's files, so two gateways publishing the same bytes share one swarm. It is also the name of the folder the files are saved in.
+- **Name.** The torrent is named with 16 hex characters, such as `bfa9f0269c7b03f8` for `b0`, not with the band id. The name is derived from the band's files, so two gateways publishing the same bytes share one swarm. It is also the name of the folder the files are saved in.
 - **Info hash.** The **General** tab shows *Info Hash v1* and *Info Hash v2*. These should match the band's `infohashV1` and `infohashV2`. The torrents are hybrid v1 and v2, so any current client can join.
-- **Size.** qBittorrent can show a size larger than the band. The difference is BEP 47 pad files, which line each file up with a piece boundary and are never written. Each file pads to the torrent's piece size, so a band of 257 files shows up to 64 MB more than it is with 256 KiB pieces (gateways from Release 85 build these), or up to 1 GB more with the 4 MiB pieces of earlier releases: `b0` showed about 1 GB, while 8 MB landed on disk. The folder holds only the band's real files: `manifest.json` and 256 partitions, `00.cdb` to `ff.cdb`.
+- **Size.** qBittorrent can show up to 64 MB more than the band: BEP 47 pad files, which line each file up with a piece boundary and are never written. The folder holds only the band's real files: for a root-TX band, `manifest.json` and 256 partitions, `00.cdb` to `ff.cdb`.
 - **Trackers.** The **Trackers** tab lists the publisher's tracker as *Working*. It only answers for the publisher's own bands. Peers are also found through the DHT and peer exchange.
 
 </Step>
@@ -71,7 +73,7 @@ The client first fetches the torrent's metadata from peers and checks it against
 <Step>
 ### Let It Finish
 
-In our test run, `b0` finished in under 20 seconds from 4 seeders. The 2 GB `b1` band took about 5 minutes from 2 seeders. Speed depends on how many gateways are seeding a band when you download it.
+Speed depends on how many gateways are seeding a band when you download it. The tip band takes seconds; a 2 GB band takes minutes.
 
 </Step>
 </Steps>
@@ -82,21 +84,21 @@ In our test run, `b0` finished in under 20 seconds from 4 seeders. The 2 GB `b1`
 
 ```bash
 aria2c --seed-time=0 --bt-save-metadata=false \
-  'magnet:?xt=urn:btih:d140717762cfa2d7696d7b8b907f8e1a5d05c46b&xt=urn:btmh:1220b47ad0895458ab839a0a940dedfc27749aee0543f7fe94d182594dec9d7d98ca&dn=6cd021a690e25fac&tr=http%3A%2F%2F167.235.37.218%3A6969%2Fannounce'
+  'magnet:?xt=urn:btih:2c35385ba96632bcfe39566d8f336e8c9b462f18&xt=urn:btmh:12201710ca02d31b9b4c7305c4506a67fdaaec634cb7200c2d6cce70725ed13686b1&dn=bfa9f0269c7b03f8&tr=http%3A%2F%2F167.235.37.218%3A6969%2Fannounce'
 ```
 
 ```text
 Download Results:
 gid   |stat|avg speed  |path/URI
 ======+====+===========+=======================================================
-ece690|OK  |       0B/s|[MEMORY][METADATA]6cd021a690e25fac
-710e97|OK  |    12MiB/s|/data/6cd021a690e25fac/00.cdb (513more)
+ece690|OK  |       0B/s|[MEMORY][METADATA]bfa9f0269c7b03f8
+710e97|OK  |    12MiB/s|/data/bfa9f0269c7b03f8/00.cdb (513more)
 ```
 
-Unlike qBittorrent, aria2 (1.37) writes the pad files, into a hidden `.pad/` folder inside the download. Each pads a file up to the next piece boundary, so a band's 257 files can add up to 64 MB with 256 KiB pieces, or up to 1 GB with 4 MiB pieces: for `b0` from a 4 MiB publisher that was 958 MB of zeros beside 7.9 MB of band. Delete it once the download is done:
+Unlike qBittorrent, aria2 (1.37) writes the pad files, up to 64 MB of zeros, into a hidden `.pad/` folder inside the download. Delete it once the download is done:
 
 ```bash
-rm -r 6cd021a690e25fac/.pad
+rm -r bfa9f0269c7b03f8/.pad
 ```
 
 To seed after downloading, which helps the next person, drop `--seed-time=0`.
@@ -105,34 +107,33 @@ To seed after downloading, which helps the next person, drop `--seed-time=0`.
 
 The client checked every piece against the info hash. That proves you got the torrent the link names. It doesn't prove the files are the publisher's index. For that, check the publication's signature against the key the gateway registry holds for the publisher, then check each file's size and SHA-256 against the publication.
 
-This script does all three. It uses Node.js 20 or later and one dependency (`npm install json-canonicalize`). The signature check is the same one explained in [Verify It](/build/advanced/index-publications#verify-it).
+<Steps>
+<Step>
+### Verify the Publication
+
+Save the publication, then check its signature and sequence as [Verify It](/build/advanced/index-publications#verify-it) shows, on this saved copy:
+
+```bash
+curl -s https://turbo-gateway.com/ar-io/indexes > publication.json
+```
+
+</Step>
+
+<Step>
+### Check the Band's Files
+
+This script finds the band by its torrent name, the folder your client downloaded into. Then it checks each file's size and SHA-256 against the publication you verified. It needs Node.js 20 or later and nothing else:
 
 ```javascript title="verify-band.mjs"
-// Verify a band downloaded over BitTorrent against the signed publication.
-// Usage: node verify-band.mjs <publisher gateway> <band directory> [registry gateway]
+// Check a band downloaded over BitTorrent against a verified publication.
+// Usage: node verify-band.mjs <publication.json> <band directory>
 import crypto from "node:crypto";
 import { createReadStream } from "node:fs";
-import { stat } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
-import { canonicalize } from "json-canonicalize";
 
-const [, , publisherUrl, bandDir, registryUrl = "https://vilenarios.com"] = process.argv;
-
-const B58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
-function base58Decode(s) {
-  let n = 0n;
-  for (const c of s) n = n * 58n + BigInt(B58.indexOf(c));
-  const bytes = [];
-  while (n > 0n) {
-    bytes.unshift(Number(n % 256n));
-    n /= 256n;
-  }
-  for (const c of s) {
-    if (c !== "1") break;
-    bytes.unshift(0);
-  }
-  return new Uint8Array(bytes);
-}
+const [, , publicationFile, bandDir] = process.argv;
+const doc = JSON.parse(await readFile(publicationFile, "utf8"));
 
 async function sha256File(file) {
   const hash = crypto.createHash("sha256");
@@ -140,25 +141,7 @@ async function sha256File(file) {
   return hash.digest("hex");
 }
 
-// 1. The publication, and the key the registry says must have signed it.
-const doc = await fetch(`${publisherUrl}/ar-io/indexes`).then((r) => r.json());
-const peers = await fetch(`${registryUrl}/ar-io/peers`).then((r) => r.json());
-const registered = Object.values(peers.gateways).find((g) => g.wallet === doc.publisher);
-if (registered === undefined) throw new Error(`${doc.publisher} is not in the registry`);
-
-const { signature, ...unsigned } = doc;
-if (signature.keyId !== registered.observerAddress) throw new Error("not the registered key");
-const key = await crypto.subtle.importKey("raw", base58Decode(signature.keyId), { name: "Ed25519" }, false, ["verify"]);
-const signed = await crypto.subtle.verify(
-  "Ed25519",
-  key,
-  Buffer.from(signature.sig, "base64"),
-  new TextEncoder().encode("ar-io-index-publication/v1\n" + canonicalize(unsigned)),
-);
-if (!signed) throw new Error("signature does not verify");
-console.log(`publication sequence ${doc.sequence} signed by ${signature.keyId}: ok`);
-
-// 2. The band whose files are in bandDir: matched by torrent name, which is
+// The band whose files are in bandDir: matched by torrent name, which is
 // the directory name a torrent client downloads into.
 const bands = doc.indexes.flatMap((index) => index.bands);
 const torrentName = (b) => new URLSearchParams(b.torrent?.magnet.split("?")[1]).get("dn");
@@ -166,7 +149,7 @@ const band = bands.find((b) => torrentName(b) === path.basename(bandDir));
 if (band === undefined) throw new Error(`no band in the publication for ${path.basename(bandDir)}`);
 console.log(`band ${band.id}, infohash v1 ${band.torrent.infohashV1}`);
 
-// 3. Every file: size and SHA-256 as signed.
+// Every file: size and SHA-256 as signed.
 let bad = 0;
 for (const file of band.files) {
   const p = path.join(bandDir, file.name);
@@ -181,12 +164,11 @@ process.exit(bad === 0 ? 0 : 1);
 ```
 
 ```bash
-node verify-band.mjs https://turbo-gateway.com ./6cd021a690e25fac
+node verify-band.mjs publication.json ./bfa9f0269c7b03f8
 ```
 
 ```text
-publication sequence 20 signed by 34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7h5: ok
-band b0-h2010500-tip-20260930, infohash v1 d140717762cfa2d7696d7b8b907f8e1a5d05c46b
+band b0-h2010500-tip-20261010, infohash v1 2c35385ba96632bcfe39566d8f336e8c9b462f18
 all 257 files match: ok
 ```
 
@@ -198,12 +180,15 @@ MISMATCH manifest.json
 2 files do not match
 ```
 
-The third argument is any gateway to read the registry from. Its `/ar-io/peers` lists every gateway's `wallet` and `observerAddress`. You can also read the registry with the [ar.io SDK](/sdks/ar-io-sdk). The script checks the publication as it is now, so check a band soon after you download it. Once the publisher replaces a band, it drops out of the publication.
+</Step>
+</Steps>
+
+The check is against the publication as it is now, so check a band soon after you download it. Once the publisher replaces a band, it drops out of the publication.
 
 ## What to Do with It
 
 - **Keep seeding.** Leave the torrent running in your client. Every seeder makes the next download faster, for gateways as well as for people.
-- **Look up IDs.** A band is a partitioned CDB64 index from data item ID to root transaction. See [Look Up One ID](/build/advanced/index-publications#look-up-one-id) to read it.
+- **Look up IDs.** A root-TX band is a partitioned CDB64 index from data item ID to root transaction. See [Look Up One ID](/build/advanced/index-publications#look-up-one-id) to read it.
 - **Let a gateway do it.** A gateway can subscribe to a publisher, download and check every band by itself, keep them current, and seed them:
 
   ```bash

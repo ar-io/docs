@@ -8,7 +8,7 @@ import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 
 ## Overview
 
-When your gateway receives a request for a data item (content inside an ANS-104 bundle), it needs to find the root Arweave transaction containing that data. The CDB64 index provides O(1) lookups for this mapping, enabling instant resolution of historical data items.
+When your gateway receives a request for a data item (content inside an ANS-104 bundle), it needs to find the root Arweave transaction containing that data. The CDB64 index answers this lookup in constant time, so historical data items resolve without a search of the network.
 
 <Callout type="info">
   **Default Behavior**: As of Release 67, CDB64 is enabled by default with no configuration required. As of release r70, the gateway ships three pre-built indexes by default, covering close to 3.8 billion data items combined.
@@ -42,7 +42,7 @@ The gateway ships three CDB64 indexes by default:
 
 The two non-AO indexes exclude Redstone data items. All three cover block heights 0 through 1,820,000.
 
-This means most historical ArDrive, Akord, AO, and similar application data can be resolved via the CDB64 index. The default shipped indexes store partition data on Arweave, so network requests are made to fetch CDB data (with intelligent byte-range caching). For zero network latency, you can download the CDB files locally.
+This means most historical ArDrive, Akord, AO, and similar application data can be resolved via the CDB64 index. The default shipped indexes store partition data on Arweave, so network requests are made to fetch CDB data, with byte-range caching. For zero network latency, you can download the CDB files locally.
 
 ## Fresher Indexes from Other Gateways
 
@@ -165,8 +165,8 @@ If you need to create CDB64 indexes for specific data sets, the gateway includes
 # Export from local SQLite database
 ./tools/export-sqlite-to-cdb64 --output index.cdb
 
-# Verify index completeness
-./tools/verify-cdb64 --index index.cdb --gateway https://turbo-gateway.com
+# Check that every record in the CSV is in the index
+./tools/verify-cdb64 --cdb64 index.cdb --csv data.csv
 ```
 
 The `--partitioned` flag automatically shards records by ID prefix and generates the `manifest.json` with local file locations.
@@ -177,13 +177,37 @@ For high-throughput generation, a Rust-backed tool is also available:
 ./tools/generate-cdb64-root-tx-index-rs --input data.csv --output index.cdb
 ```
 
+## Publishable Bands
+
+<Callout type="info">
+  **Release Requirement**: the `ar-io-node` CLI comes with Release 85, which
+  is not released yet. On Release 84, build bands with
+  `export-sqlite-to-cdb64` as [Index Sharing](/build/run-a-gateway/manage/index-sharing#by-hand)
+  shows.
+</Callout>
+
+A band you publish through [Index Sharing](/build/run-a-gateway/manage/index-sharing) is a partitioned index with a few extra rules. Most publishers let `index-export` build bands. To build one yourself from CSV records, use the `ar-io-node` CLI, run from the gateway's directory. It deduplicates the records, names the band, checks a sample of its headers against their root transactions, and only then renames it into place:
+
+```bash
+./tools/ar-io-node index-band-build --input - --skip-header \
+  --publisher <your gateway wallet> --kind d --height-range 2010500,tip \
+  --gateway-url https://turbo-gateway.com < records.csv
+
+# The same header check on any band
+./tools/ar-io-node index-band-verify \
+  --band-dir data/indexes/published/root-tx-index/<band> \
+  --gateway-url https://turbo-gateway.com
+```
+
+The [CLI reference](https://github.com/ar-io/ar-io-node/blob/develop/docs/cli.md) lists every option.
+
 ## Uploading Indexes to Arweave
 
 You can upload partitioned CDB64 indexes to Arweave for permanent, decentralized storage:
 
 ```bash
 ./tools/upload-cdb64-to-arweave \
-  --input-dir ./partitioned-index/ \
+  --input ./partitioned-index/ \
   --wallet ./wallet.json \
   --concurrency 5
 ```
