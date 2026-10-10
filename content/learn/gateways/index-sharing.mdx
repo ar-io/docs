@@ -6,11 +6,13 @@ description: "How ar.io gateways share signed, verifiable indexes that locate da
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { Server, Code, Download, ShieldCheck } from "lucide-react";
 
-Most data on Arweave today is uploaded as **data items**, packed many at a time into bundles. To serve one, a gateway first has to answer a question: *which Arweave transaction holds this item, and where inside it?* A gateway that can't answer locally has to ask other gateways or search the network, which is slow and often fails.
+Most data on Arweave today is uploaded as **data items**, packed many at a time into bundles. To serve one, a gateway first has to answer a question: *which Arweave transaction holds this item, and where inside it?*
+
+A gateway that can't answer locally has to ask other gateways or search the network, which is slow and often fails.
 
 **Index Sharing** lets gateways share the answer. A gateway that has built a good index publishes it; other gateways download it and answer lookups in milliseconds. Because every piece is signed and hashed, a gateway can use another gateway's index without trusting that gateway's server.
 
-For an operator, that means data items resolve from local disk instead of a round trip to other gateways or GraphQL, and the answer often includes the item's byte offsets, which lets the gateway fetch and verify just that item. It is optional and off by default: a gateway turns it on with one setup script, for about 21 GB of disk.
+For an operator, that means data items resolve from local disk instead of a round trip to other gateways or GraphQL. The answer often includes the item's byte offsets, which lets the gateway fetch and verify just that item. It is optional and off by default: a gateway turns it on with one setup script, for about 21 GB of disk.
 
 ## How It Works
 
@@ -32,7 +34,9 @@ sequenceDiagram
 
 ### Bands
 
-An index is split into **bands**, each a [CDB64 index](/build/run-a-gateway/manage/cdb64) covering a range of block heights: older bands rarely change, while the band at the chain tip is rebuilt as new data arrives. A subscriber downloads only the bands it doesn't have, installs the newest first (most lookups are for recent data), and replaces a band without ever pausing lookups.
+An index is split into **bands**, each covering a range of block heights: older bands rarely change, while the band at the chain tip is rebuilt as new data arrives. A subscriber downloads only the bands it doesn't have, installs the newest first (most lookups are for recent data), and replaces a band without ever pausing lookups.
+
+There are two kinds of band. A **root-TX band** is a [CDB64 index](/build/run-a-gateway/manage/cdb64) that maps a data item to the transaction holding it; this is the kind a gateway loads and answers lookups from. From Release 85, which is not released yet, a publisher can also offer **L1 bands**: the Arweave base layer (blocks, transactions, tags and wallets) in Parquet. A gateway doesn't serve from them. A new gateway imports its L1 index from them instead of indexing the chain block by block, and apps query them in place for analytics.
 
 ### The Publication
 
@@ -66,7 +70,9 @@ Over HTTP, every subscriber downloads every band from the publisher, so the publ
 
 ```mermaid
 flowchart LR
-    A[Signed publication] --> B[Fetch from peers]
+    A[Signed publication] --> T[Check the .torrent<br/>against the signed infohash]
+    T -- matches --> B[Fetch from peers]
+    T -- doesn't match --> D
     B -- peers stall --> C[Add the publisher's WebSeed]
     B -- fails or times out --> D[Fetch over HTTP]
     C -- fails or times out --> D
@@ -78,7 +84,7 @@ flowchart LR
     classDef process fill:#16a34a,stroke:#15803d,stroke-width:2px,color:#fff
 
     class B,C,D source
-    class E process
+    class T,E process
 ```
 
 1. **Peers first.** A publisher offers each band as a torrent and seeds it. A subscriber downloads the band from whichever gateways already hold it. Nobody charges for peer transfers.
@@ -94,14 +100,14 @@ A band's torrent is built only from its files: their names, sizes and digests. N
 
 ### What a Subscriber Trusts
 
-A torrent's infohash covers only its list of files and the hash of every piece; anything else in a `.torrent` file, such as its trackers, is unsigned. So a subscriber takes the infohashes from the signed publication and refuses a torrent that doesn't match them or lists any other files, drops the WebSeeds a `.torrent` file names and keeps only trackers on public hosts, and re-hashes every file against the signed SHA-256 before using it, exactly as over HTTP.
+A `.torrent` file isn't signed, so a subscriber trusts only the infohashes in the signed publication and re-hashes every file against its signed SHA-256, exactly as over HTTP. [Bands as Torrents](/build/advanced/index-publications#bands-as-torrents) shows these checks.
 
 The torrent engine runs isolated from the rest of the gateway: it can't reach the gateway's other services, and it can't change the bands the gateway serves. A publisher also runs a **closed tracker** that helps peers find each other and answers only for the bands it offers. Peers find one another without it too, through the BitTorrent DHT and peer exchange.
 
 ## What Index Sharing Is Not
 
 - **It doesn't replace data verification.** An index says where an item lives; the gateway still [verifies the data itself](/learn/gateways/data-verification) when it serves it.
-- **It isn't storage.** Bands are indexes, not the data they point to: about 21 GB for the index turbo-gateway.com publishes today.
+- **It isn't storage.** Bands are indexes, not the data they point to: about 21 GB for the root-TX index turbo-gateway.com publishes.
 - **It isn't complete.** An index answers only for the bundles its publisher indexed, and the band at the chain tip is rebuilt periodically, so the newest items aren't in it yet. A miss costs nothing: the gateway falls back to its usual lookup.
 - **It isn't one provider.** Any registered gateway can publish. The turbo-gateway.com gateway publishes a root transaction index today, and subscribers can follow more than one publisher.
 - **BitTorrent isn't required.** It is an optional transport. A gateway without the torrent engine publishes and subscribes over HTTP.
