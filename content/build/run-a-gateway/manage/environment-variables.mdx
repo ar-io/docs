@@ -1,12 +1,16 @@
 ---
 title: "Environment Variables"
-description: "Complete reference for all ar.io Gateway environment variables across all services"
+description: "Reference for the ar.io Gateway environment variables, by service"
 ---
 
 <Callout type="info">
-  **Default Values**: Most environment variables have sensible defaults. Only
-  set variables when you need to override the default behavior.
+  **Default Values**: Most variables have defaults that suit a typical
+  gateway. Set a variable only to change its behavior.
 </Callout>
+
+Set these in the `.env` file next to `docker-compose.yaml`. The **Default** column is what you get under the shipped `docker-compose.yaml`. Where Docker Compose sets a different default from the gateway's own code, the cell gives both, and the code's value applies only when you run the gateway outside Docker.
+
+A few variables have a different name in `.env` from the one the service reads, because Docker Compose renames them (for example `CORE_LOG_LEVEL` becomes the core service's `LOG_LEVEL`). The tables use the `.env` name.
 
 ## Core ar.io Node
 
@@ -14,22 +18,22 @@ The main ar.io Gateway service that handles data retrieval, indexing, and servin
 
 ### Server Configuration
 
-| Variable              | Type    | Default           | Description                              |
-| --------------------- | ------- | ----------------- | ---------------------------------------- |
-| `PORT`                | number  | `4000`            | HTTP server port                         |
-| `NODE_ENV`            | string  | `production`      | Node.js environment                      |
-| `LOG_LEVEL`           | string  | `info`            | Logging level (error, warn, info, debug) |
-| `LOG_FORMAT`          | string  | `simple`          | Log format (simple, json)                |
-| `LOG_FILTER`          | string  | `{"always":true}` | Log filtering configuration              |
-| `LOG_ALL_STACKTRACES` | boolean | `false`           | Include full stack traces in logs        |
-| `INSTANCE_ID`         | string  | -                 | Unique instance identifier               |
+| Variable                   | Type    | Default           | Description                                                                    |
+| -------------------------- | ------- | ----------------- | ------------------------------------------------------------------------------ |
+| `CORE_PORT`                | number  | `4000`            | Host port for the core service. Inside its container, the core service listens on 4000; outside Docker, set `PORT` |
+| `NODE_ENV`                 | string  | `production`      | Node.js environment                                                            |
+| `CORE_LOG_LEVEL`           | string  | `info`            | Logging level (error, warn, info, debug). `LOG_LEVEL` outside Docker           |
+| `CORE_LOG_FORMAT`          | string  | `simple`          | Log format (simple, json). `LOG_FORMAT` outside Docker                         |
+| `CORE_LOG_FILTER`          | string  | `{"always":true}` | Log filtering configuration. `LOG_FILTER` outside Docker                       |
+| `CORE_LOG_ALL_STACKTRACES` | boolean | `false`           | Include full stack traces in logs. `LOG_ALL_STACKTRACES` outside Docker        |
+| `INSTANCE_ID`              | string  | -                 | Unique instance identifier                                                     |
 
 ### Authentication & Security
 
-| Variable             | Type   | Default   | Description                                             |
-| -------------------- | ------ | --------- | ------------------------------------------------------- |
-| `ADMIN_API_KEY`      | String | Generated | API key for admin endpoints (auto-generated if not set) |
-| `ADMIN_API_KEY_FILE` | String | -         | Path to file containing admin API key                   |
+| Variable             | Type   | Default   | Description                                                                |
+| -------------------- | ------ | --------- | -------------------------------------------------------------------------- |
+| `ADMIN_API_KEY`      | String | Generated | API key for admin endpoints (generated at startup if not set). The ClickHouse auto-import service uses it too |
+| `ADMIN_API_KEY_FILE` | String | -         | Path to file containing admin API key                                      |
 
 ### HTTP Message Signatures (RFC 9421)
 
@@ -39,118 +43,141 @@ If `OBSERVER_KEYPAIR_PATH` or `OBSERVER_PRIVATE_KEY` is set, the observer's Ed25
 
 | Variable                | Type    | Default                 | Description                                                                                                                                          |
 | ----------------------- | ------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `HTTPSIG_ENABLED`       | boolean | `false`                 | Enable RFC 9421 response signing                                                                                                                     |
+| `HTTPSIG_ENABLED`       | boolean | `true`                  | Enable RFC 9421 response signing                                                                                                                     |
 | `HTTPSIG_KEY_FILE`      | string  | `data/keys/httpsig.pem` | Path to standalone Ed25519 private key PEM. Auto-generated on first startup if missing. Ignored when `OBSERVER_KEYPAIR_PATH` or `OBSERVER_PRIVATE_KEY` is set |
 | `HTTPSIG_BIND_REQUEST`  | boolean | `true`                  | Include request method and path in signature (prevents replay)                                                                                       |
-| `OBSERVER_KEYPAIR_PATH` | string  | -                       | Path to a 64-byte Solana keypair JSON file (e.g. `solana-keygen new` output). When set, used as the HTTPSIG signing key                              |
+| `OBSERVER_KEYPAIR_PATH` | string  | -                       | Path to a 64-byte Solana keypair JSON file (e.g. `solana-keygen new` output). When set, used as the HTTPSIG signing key. The observer reads it too  |
 | `OBSERVER_PRIVATE_KEY`  | string  | -                       | Alternative to `OBSERVER_KEYPAIR_PATH`: base58-encoded 64-byte Solana secret key (the format Phantom and other browser wallets export)               |
 
 ### Network Configuration
 
-| Variable                              | Type   | Default                      | Description                          |
-| ------------------------------------- | ------ | ---------------------------- | ------------------------------------ |
-| `TRUSTED_NODE_URL`                    | string | `https://turbo-gateway.com`        | Trusted Arweave node URL             |
-| `TRUSTED_GATEWAY_URL`                 | string | `https://turbo-gateway.com`        | Primary trusted gateway URL          |
-| `TRUSTED_GATEWAYS_URLS`               | JSON   | `{"https://turbo-gateway.com": 1}` | Weighted trusted gateway URLs        |
-| `TRUSTED_GATEWAYS_REQUEST_TIMEOUT_MS` | number | `10000`                      | Request timeout for trusted gateways |
-| `ARWEAVE_NODE_IGNORE_URLS`            | string | -                            | Comma-separated URLs to ignore       |
+| Variable                                | Type    | Default                                                                                  | Description                          |
+| --------------------------------------- | ------- | ---------------------------------------------------------------------------------------- | ------------------------------------ |
+| `TRUSTED_NODE_URL`                      | string  | `http://envoy:3000`; `https://arweave.net` outside Docker                                | Trusted Arweave node URL. Under Docker, requests go through Envoy, which forwards them to `TRUSTED_NODE_HOST` |
+| `TRUSTED_GATEWAY_URL`                   | string  | -                                                                                        | A single trusted gateway URL. When set and `TRUSTED_GATEWAYS_URLS` is not, it becomes the only trusted gateway |
+| `TRUSTED_GATEWAYS_URLS`                 | JSON    | `{"https://turbo-gateway.com": 1, "https://arweave.net": {"priority": 2, "trusted": false}}` | Weighted trusted gateway URLs. With `TRUSTED_GATEWAY_URL` set, the default is that URL alone |
+| `TRUSTED_GATEWAYS_REQUEST_TIMEOUT_MS`   | number  | `10000`                                                                                  | Request timeout for trusted gateways |
+| `GATEWAYS_THROTTLE_BACKOFF_ENABLED`     | boolean | `true`                                                                                   | Release 85: skip a trusted gateway that answers `429` until its `Retry-After` has passed |
+| `GATEWAYS_THROTTLE_BACKOFF_DEFAULT_MS`  | number  | `30000`                                                                                  | Release 85: how long to skip a gateway whose `429` has no usable `Retry-After` |
+| `GATEWAYS_THROTTLE_BACKOFF_MAX_MS`      | number  | `300000`                                                                                 | Release 85: the longest a `Retry-After` may make the gateway skip a trusted gateway |
+| `ARWEAVE_NODE_IGNORE_URLS`              | string  | -                                                                                        | Comma-separated URLs to ignore       |
 
 ### Chunk Management
 
-| Variable                                 | Type   | Default                     | Description                         |
-| ---------------------------------------- | ------ | --------------------------- | ----------------------------------- |
-| `CHUNK_POST_URLS`                        | string | `https://turbo-gateway.com/chunk` | URLs for posting chunks             |
-| `CHUNK_POST_CONCURRENCY_LIMIT`           | number | `2`                         | Max concurrent chunk posts          |
-| `CHUNK_POST_MIN_SUCCESS_COUNT`           | number | `3`                         | Min successful chunk posts required |
-| `CHUNK_POST_RESPONSE_TIMEOUT_MS`         | number | -                           | Chunk POST response timeout         |
-| `CHUNK_POST_ABORT_TIMEOUT_MS`            | number | -                           | Chunk POST abort timeout            |
-| `SECONDARY_CHUNK_POST_URLS`              | string | -                           | Secondary chunk POST URLs           |
-| `SECONDARY_CHUNK_POST_CONCURRENCY_LIMIT` | number | `2`                         | Secondary chunk POST concurrency    |
-| `SECONDARY_CHUNK_POST_MIN_SUCCESS_COUNT` | number | `1`                         | Secondary chunk POST success count  |
+| Variable                         | Type   | Default | Description                         |
+| -------------------------------- | ------ | ------- | ----------------------------------- |
+| `CHUNK_POST_MIN_SUCCESS_COUNT`   | number | `3`     | Min successful chunk posts required |
+| `CHUNK_POST_RESPONSE_TIMEOUT_MS` | number | -       | Chunk POST response timeout         |
+| `CHUNK_POST_ABORT_TIMEOUT_MS`    | number | -       | Chunk POST abort timeout            |
 
 ### Data Sources
 
-| Variable                     | Type   | Default                              | Description                                  |
-| ---------------------------- | ------ | ------------------------------------ | -------------------------------------------- |
-| `ON_DEMAND_RETRIEVAL_ORDER`  | string | `s3,trusted-gateways,chunks,tx-data` | On-demand data retrieval priority            |
-| `BACKGROUND_RETRIEVAL_ORDER` | string | `chunks,s3,trusted-gateways,tx-data` | Background data retrieval priority           |
-| `CHUNK_DATA_SOURCE_TYPE`     | string | `fs`                                 | Chunk data source type (fs, legacy-s3)       |
-| `CHUNK_METADATA_SOURCE_TYPE` | string | `fs`                                 | Chunk metadata source type (fs, legacy-psql) |
+| Variable                     | Type   | Default                                                      | Description                        |
+| ---------------------------- | ------ | ------------------------------------------------------------ | ---------------------------------- |
+| `ON_DEMAND_RETRIEVAL_ORDER`  | string | `trusted-gateways,ar-io-network,chunks-offset-aware,tx-data` | On-demand data retrieval priority  |
+| `BACKGROUND_RETRIEVAL_ORDER` | string | `chunks`                                                     | Background data retrieval priority |
 
 ### CDB64 Root Transaction Index
 
-The CDB64 index provides O(1) constant-time lookups for resolving data item IDs to their root Arweave transactions. As of release r70, the gateway ships three pre-built indexes by default, covering close to 3.8 billion data items combined. See [CDB64 Root TX Index](/build/run-a-gateway/manage/cdb64) for the coverage breakdown.
+The CDB64 index looks up which root Arweave transaction holds a data item, in one read. The gateway ships three pre-built indexes by default. See [CDB64 Root TX Index](/build/run-a-gateway/manage/cdb64) for what they cover and how to use them.
 
-| Variable                              | Type    | Default                            | Description                                                                                                      |
-| ------------------------------------- | ------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `ROOT_TX_LOOKUP_ORDER`                | string  | `db,gateways,graphql,hyperbeam,cdb` | Comma-separated list of root TX lookup sources. Options: db, peers, gateways, graphql, hyperbeam, cdb, turbo. With local indexes (such as [Index Sharing](/build/run-a-gateway/manage/index-sharing) bands), put `cdb` right after `db` |
-| `CDB64_ROOT_TX_INDEX_SOURCES`         | string  | the three shipped `resources/` indexes | Comma-separated list of CDB64 sources: local paths, directories (including a directory of bands), HTTP URLs, Arweave TX IDs, or bundle data items. When you add a source, write out the shipped ones too if you want to keep them |
-| `CDB64_ROOT_TX_INDEX_WATCH`           | boolean | `true`                    | Enable file watching for local CDB64 directories. New files auto-load without restart                            |
-| `CDB64_REMOTE_RETRIEVAL_ORDER`        | string  | `chunks`                  | Data sources for fetching remote CDB64 files. Options: gateways, chunks, tx-data                                 |
-| `CDB64_REMOTE_CACHE_MAX_REGIONS`      | number  | `100`                     | Maximum byte-range regions to cache per remote source                                                            |
-| `CDB64_REMOTE_CACHE_TTL_MS`           | number  | `300000`                  | TTL for cached byte-range regions (5 minutes)                                                                    |
-| `CDB64_REMOTE_REQUEST_TIMEOUT_MS`     | number  | `30000`                   | Request timeout for remote CDB64 sources                                                                         |
-| `CDB64_REMOTE_MAX_CONCURRENT_REQUESTS`| number  | `4`                       | Maximum concurrent HTTP requests across all remote CDB64 sources                                                 |
-| `CDB64_REMOTE_SEMAPHORE_TIMEOUT_MS`   | number  | `5000`                    | Maximum wait time for a request slot before failing                                                              |
-
-For detailed configuration and usage, see [CDB64 Root TX Index](/build/run-a-gateway/manage/cdb64).
+| Variable                               | Type    | Default                                 | Description                                                                                                      |
+| -------------------------------------- | ------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `ROOT_TX_LOOKUP_ORDER`                 | string  | `db,gateways,graphql,hyperbeam,cdb`     | Comma-separated root TX lookup sources: `db`, `peers`, `gateways`, `graphql`, `hyperbeam`, `cdb`, `turbo`. With local indexes, such as [Index Sharing](/build/run-a-gateway/manage/index-sharing) bands, put `cdb` right after `db` |
+| `CDB64_ROOT_TX_INDEX_SOURCES`          | string  | the three shipped `resources/` indexes  | Comma-separated CDB64 sources: local files, directories (including a directory of bands), HTTP URLs, Arweave TX IDs, or bundle data items. When you add a source, list the shipped ones too if you want to keep them |
+| `CDB64_ROOT_TX_INDEX_DATA_PATH`        | string  | `./data/cdb64-root-tx-index`            | Host directory mounted at `data/cdb64-root-tx-index` in the core container, for your own index files            |
+| `CDB64_ROOT_TX_INDEX_WATCH`            | boolean | `true`                                  | Watch every local CDB64 directory source, so new files load without a restart                                    |
+| `CDB64_REMOTE_RETRIEVAL_ORDER`         | string  | `chunks`                                | Data sources for fetching remote CDB64 files: `gateways`, `chunks`, `tx-data`                                    |
+| `CDB64_REMOTE_CACHE_MAX_REGIONS`       | number  | `100`                                   | Maximum byte-range regions to cache per remote source                                                            |
+| `CDB64_REMOTE_CACHE_TTL_MS`            | number  | `300000`                                | TTL for cached byte-range regions (5 minutes)                                                                    |
+| `CDB64_REMOTE_REQUEST_TIMEOUT_MS`      | number  | `30000`                                 | Request timeout for remote CDB64 sources                                                                         |
+| `CDB64_REMOTE_MAX_CONCURRENT_REQUESTS` | number  | `4`                                     | One limit on concurrent HTTP requests, shared by all remote CDB64 sources                                        |
+| `CDB64_REMOTE_SEMAPHORE_TIMEOUT_MS`    | number  | `5000`                                  | Maximum wait for a request slot before failing                                                                   |
 
 ### Index Sharing
 
-Settings for the `index-swarm` sidecar, which subscribes to other gateways' indexes and publishes your own. Available from Release 84. See [Index Sharing](/build/run-a-gateway/manage/index-sharing).
+Settings for the `index-swarm` sidecar, which subscribes to other gateways' indexes and publishes your own. Available from Release 84. See [Index Sharing](/build/run-a-gateway/manage/index-sharing) for how each one is used.
 
 | Variable | Type | Default | Description |
 | --- | --- | --- | --- |
-| `INDEX_SWARM_SUBSCRIBE` | JSON | unset | Publishers to subscribe to, by gateway wallet: `[{"publisher":"<wallet>","name":"root-tx-index"}]`. `name` is optional; leaving it out takes all of that publisher's indexes. An optional `url` fetches from that address instead of the publisher's registered one, for a fleet node subscribing to its own publisher internally; the signature is still checked against the registered key |
+| `INDEX_SWARM_SUBSCRIBE` | JSON | unset | Publishers to subscribe to, by gateway wallet: `[{"publisher":"<wallet>","name":"root-tx-index"}]`. `name` may be one index or a list. Without `name`, you take every index the publisher offers except opt-in kinds; from Release 85, `parquet-l1` is opt-in and must be named. An optional `url` fetches from another address, such as a fleet's signing node; the signature is still checked against the registered key. See [Take L1 Bands](/build/run-a-gateway/manage/index-sharing#take-l1-bands-parquet-l1) |
 | `INDEX_SWARM_PUBLISH` | JSON | unset | Indexes this gateway publishes: `[{"name":"root-tx-index","kind":"cdb64-root-tx"}]` |
-| `INDEX_SWARM_MAX_DISK_BYTES` | number | unset | Ceiling on installed bands (retired ones until swept), downloads in `incoming/`, and every torrent download at its full size from when it starts (a band that may come over the swarm counts twice). The copy a band replaces isn't counted. A band that would exceed it is skipped (`skipped_disk_budget`) |
+| `INDEX_SWARM_MAX_DISK_BYTES` | number | unset (no ceiling; the setup script writes 50 GiB) | Ceiling on the disk the sidecar takes for bands. A band that would go over it is skipped. See [Disk](/build/run-a-gateway/manage/index-sharing#disk) |
 | `INDEX_SWARM_OBSERVER_KEYPAIR_FILE` | string | unset | Publishers only: host path of the observer keypair file. Set this or `OBSERVER_PRIVATE_KEY`, not both |
 | `INDEX_SWARM_TRUSTED_PUBLISHERS` | string | unset | Comma-separated wallets. When set, only these publishers are accepted |
 | `INDEX_SWARM_ALLOWED_FILE_ORIGINS` | string | unset | Other servers (`http(s)://host[:port]`) a publisher may send band files from, such as its CDN. Anything else is refused |
 | `INDEX_SWARM_POLL_INTERVAL_SECONDS` | number | `300` | How often each publisher is checked for new bands |
 | `INDEX_SWARM_DOWNLOAD_RATE_LIMIT_BYTES_PER_SEC` | number | unset | Cap on download speed, shared across all files of a band |
 | `INDEX_SWARM_DOWNLOAD_STALL_TIMEOUT_SECONDS` | number | `60` | Give up on a download that receives nothing for this long; it resumes next poll |
-| `INDEX_SWARM_DATA_PATH` | string | `./data/indexes` | Host directory for published, downloading and installed bands |
-| `INDEX_SWARM_PUBLISH_TTL_SECONDS` | number | `86400` | How long a publication is valid. It is renewed at half this |
-| `INDEX_SWARM_PUBLISH_SCAN_INTERVAL_SECONDS` | number | `60` | How often the publisher looks for new or changed bands. Only bands whose files changed are re-hashed |
+| `INDEX_SWARM_DOWNLOAD_CONCURRENCY` | number | `4` | Parallel file downloads within one band |
+| `INDEX_SWARM_DATA_PATH` | string | `./data/indexes` | Host directory for published, downloading and installed bands. The gateway mounts the same directory |
+| `INDEXES_PUBLISHED_DIR` | string | `data/indexes/published` | Where the gateway's `/ar-io/indexes` routes serve from, inside the core container |
+| `INDEX_SWARM_PUBLISH_TTL_SECONDS` | number | `86400` | How long a publication is valid. See [Index Sharing](/build/run-a-gateway/manage/index-sharing#publish-your-indexes) |
+| `INDEX_SWARM_PUBLISH_SCAN_INTERVAL_SECONDS` | number | `60` | How often the publisher looks for new or changed bands |
 | `INDEX_SWARM_SUPERSEDE_GRACE_SECONDS` | number | `300` | How long a retired band's files stay on disk after it stops being served |
 | `INDEX_SWARM_MANIFEST_FETCH_TIMEOUT_MS` | number | `30000` | Give up on a publisher that has not answered in this long |
-| `INDEX_SWARM_DOWNLOAD_CONCURRENCY` | number | `4` | Parallel file downloads within one band |
-| `INDEX_SWARM_REGISTRY_CACHE_TTL_SECONDS` | number | `300` | How long one read of the gateway's `/ar-io/peers`, where the sidecar gets registry records, is reused. The sidecar makes no RPC calls of its own |
-| `INDEX_SWARM_DATA_DIR` | string | `data/indexes` | The index directory as the sidecar sees it, inside its container. Compose fixes it; to move the directory on the host, set `INDEX_SWARM_DATA_PATH` instead |
+| `INDEX_SWARM_REGISTRY_CACHE_TTL_SECONDS` | number | `300` | How long one read of the gateway's `/ar-io/peers`, where the sidecar gets registry records, is reused |
+| `INDEX_SWARM_DATA_DIR` | string | `data/indexes` | The index directory inside the sidecar's container. To move the directory on the host, set `INDEX_SWARM_DATA_PATH` instead |
 | `INDEX_SWARM_CORE_URL` | string | `http://core:4000` | Where the sidecar reaches the gateway for its release check |
-| `INDEX_SWARM_MIN_CORE_RELEASE` | number | `84` | Gateway release needed to load installed bands. Below it the subscriber installs nothing until the gateway is upgraded |
+| `INDEX_SWARM_MIN_CORE_RELEASE` | number | `84` | Gateway release needed to load installed bands. Below it, the subscriber installs nothing until the gateway is upgraded |
 | `INDEX_SWARM_METRICS_PORT` | number | `9101` | Port for the sidecar's `/metrics` and `/healthz`, inside its container |
 | `INDEX_SWARM_METRICS_HOST` | string | `0.0.0.0` | Bind address for metrics, inside the container. Nothing reaches the host unless the port is mapped |
 | `INDEX_SWARM_SHUTDOWN_TIMEOUT_MS` | number | `10000` | How long to let work finish on shutdown before exiting anyway |
 | `INDEX_SWARM_LOG_LEVEL` | string | `info` | Sidecar log level |
 | `INDEX_SWARM_LOG_FORMAT` | string | `simple` | Sidecar log format (`simple` or `json`) |
-| `INDEX_SWARM_LOG_MAX_SIZE` | string | `50m` | Docker log rotation size for the sidecar |
-| `INDEX_SWARM_LOG_MAX_FILE` | number | `3` | Docker log rotation file count for the sidecar |
+| `INDEX_SWARM_LOG_MAX_SIZE` | string | `50m` | Docker log rotation size for the sidecar, the torrent engine and its init container, and, from Release 85, `index-export` |
+| `INDEX_SWARM_LOG_MAX_FILE` | number | `3` | Docker log rotation file count for the same containers |
 
 #### BitTorrent
 
-Settings for the optional torrent engine (compose profile `index-swarm-torrent`). Setting `INDEX_SWARM_ENGINE_AUTH` turns it on; `./tools/index-swarm-setup --torrent` generates it. See [Index Sharing](/build/run-a-gateway/manage/index-sharing#bounding-upload).
+Settings for the optional torrent engine (compose profile `index-swarm-torrent`). Setting `INDEX_SWARM_ENGINE_AUTH` turns it on; `./tools/index-swarm-setup --torrent` generates it. See [Tuning the Torrent Engine](/build/run-a-gateway/manage/index-sharing#tuning-the-torrent-engine).
 
 | Variable | Type | Default | Description |
 | --- | --- | --- | --- |
-| `INDEX_SWARM_ENGINE_AUTH` | string | unset | `user:password` for the engine's Web API, for example `swarm:<generated>`. The password must be at least 16 characters. Required by the compose engine, and on its own turns the engine on. Failed logins are not retried: the engine bans an address after five |
-| `INDEX_SWARM_ENGINE_URL` | string | `http://index-swarm-engine:8080` with `INDEX_SWARM_ENGINE_AUTH`, else unset | The engine's Web API. Set it only for an engine run outside the compose profile. Use the host and port the engine listens on, or it answers every call with a 401 |
-| `INDEX_SWARM_ENGINE_PORT` | number | `6881` | Peer port, published on the host over TCP and UDP. Open it to inbound peers. Keep it below Linux's ephemeral range (32768–60999) |
-| `INDEX_SWARM_ENGINE_PUBLIC_HOST` | string | host of the first `INDEX_SWARM_TRACKERS` URL | The host or IP peers reach this node's engine on. The tracker lists this node's engine under it. Set it when the tracker is behind a load balancer that does not forward the peer port |
-| `INDEX_SWARM_UPLOAD_LIMIT_BYTES_PER_SEC` | number | `10000000` | Cap on upload to peers (10 MB/s). `0` is unlimited |
-| `INDEX_SWARM_UPLOAD_DAILY_LIMIT_BYTES` | number | `100000000000` | Most the engine may upload in a UTC day (100 GB). Once spent, seeding is throttled to 1 KiB/s until the next day. Downloads and HTTP are unaffected. `0` is no budget |
-| `INDEX_SWARM_TORRENT_TIMEOUT_SECONDS` | number | `3600` | How long a torrent may go without progress before the subscriber abandons it and fetches the band over HTTP |
-| `INDEX_SWARM_WEBSEED_AFTER_SECONDS` | number | `120` | How long a torrent may make no progress before the subscriber turns on the publisher's WebSeed |
-| `INDEX_SWARM_TRACKERS` | string | unset | Comma-separated announce URLs written into every torrent this node publishes; normally its own tracker, `http://<public host>:6969/announce`. Publishers that want byte-identical `.torrent` files use the same list |
-| `INDEX_SWARM_TRACKER_PORT` | number | `6969` | Port the closed tracker listens on, published on the host. The tracker runs only on a node that publishes torrents |
-| `INDEX_SWARM_TRACKER_TRUSTED_PROXIES` | string | unset | Comma-separated IPs or CIDRs of proxies in front of the tracker whose `X-Forwarded-For` it believes. Set it when the tracker is served through a load balancer or NGINX |
-| `INDEX_SWARM_ALLOWED_TRACKERS` | string | unset | Tracker URLs, exactly as written, that a subscriber hands its engine even though their host is private: your own tracker on a LAN. Only useful with `INDEX_SWARM_ENGINE_BLOCK_PRIVATE=false` |
-| `INDEX_SWARM_ENGINE_BLOCK_PRIVATE` | boolean | `true` | Have the engine refuse peers, trackers and WebSeeds on private, loopback, link-local and carrier-grade NAT addresses. Set `false` only when the swarm runs on a private network, such as between gateways on one LAN |
+| `INDEX_SWARM_ENGINE_AUTH` | string | unset | `user:password` for the engine's Web API, for example `swarm:<generated>`. The password must be at least 16 characters. Setting it turns the engine on |
+| `INDEX_SWARM_ENGINE_URL` | string | `http://index-swarm-engine:8080` with `INDEX_SWARM_ENGINE_AUTH`, else unset | The engine's Web API. Set it only for an engine run outside the compose profile |
+| `INDEX_SWARM_ENGINE_PORT` | number | `6881` | Peer port, published on the host over TCP and UDP. Keep it below Linux's ephemeral range (32768–60999) |
+| `INDEX_SWARM_ENGINE_PUBLIC_HOST` | string | host of the first `INDEX_SWARM_TRACKERS` URL | The host or IP peers reach this node's engine on. Set it when the tracker is behind a load balancer that does not forward the peer port |
+| `INDEX_SWARM_UPLOAD_LIMIT_BYTES_PER_SEC` | number | `10000000` | Cap on upload to peers (10 MB/s). `0` is unlimited. See [Bounding Upload](/build/run-a-gateway/manage/index-sharing#bounding-upload) |
+| `INDEX_SWARM_UPLOAD_DAILY_LIMIT_BYTES` | number | `100000000000` | Most the engine may upload in a UTC day (100 GB). `0` is no budget. See [Bounding Upload](/build/run-a-gateway/manage/index-sharing#bounding-upload) |
+| `INDEX_SWARM_TORRENT_TIMEOUT_SECONDS` | number | `3600` | How long a torrent may go without progress before the band is fetched over HTTP instead |
+| `INDEX_SWARM_WEBSEED_AFTER_SECONDS` | number | `120` | How long a torrent may stall before the publisher's WebSeed is added |
+| `INDEX_SWARM_TRACKERS` | string | unset | Comma-separated announce URLs written into every torrent this node publishes; normally its own tracker, `http://<public host>:6969/announce` |
+| `INDEX_SWARM_TRACKER_PORT` | number | `6969` | Port the tracker listens on, published on the host by the sidecar. Only a node that publishes torrents listens on it |
+| `INDEX_SWARM_TRACKER_TRUSTED_PROXIES` | string | unset | Comma-separated IPs or CIDRs of proxies in front of the tracker whose `X-Forwarded-For` it believes. See [Publishing from a Fleet](/build/run-a-gateway/manage/index-sharing#publishing-from-a-fleet) |
+| `INDEX_SWARM_ALLOWED_TRACKERS` | string | unset | Tracker URLs, exactly as written, that a subscriber hands its engine even though their host is private. Only useful with `INDEX_SWARM_ENGINE_BLOCK_PRIVATE=false` |
+| `INDEX_SWARM_ENGINE_BLOCK_PRIVATE` | boolean | `true` | Have the engine refuse peers, trackers and WebSeeds on private, loopback, link-local and carrier-grade NAT addresses. See [Sharing Between Your Own Gateways](/build/run-a-gateway/manage/index-sharing#sharing-between-your-own-gateways) |
 | `INDEX_SWARM_ENGINE_NETWORK_NAME` | string | `ar-io-index-swarm-engine` | Docker network the engine runs on, shared only with the sidecar |
 | `INDEX_SWARM_ENGINE_UID` / `INDEX_SWARM_ENGINE_GID` | number | `1000` | User and group the engine runs as. Set the same values for the sidecar and the engine |
 | `INDEX_SWARM_ENGINE_CONFIG_PATH` | string | `./data/index-swarm-engine` | Host directory for the engine's configuration and resume data |
 | `INDEX_SWARM_ENGINE_CONFIG_DIR` | string | `/config` | Where `index-swarm-engine-init` writes the engine's configuration, inside its container. Set it only when running the init outside compose |
+
+#### Building Bands (Release 85)
+
+<Callout type="info">
+  **Release Requirement**: The `index-export` service and these settings are
+  part of gateway Release 85, which is not released yet.
+</Callout>
+
+Settings for the `index-export` service (compose profile `index-export`), which builds your gateway's bands for the sidecar to publish. It logs by `LOG_LEVEL` and `LOG_FORMAT`. See [What the Daily Run Does](/build/run-a-gateway/manage/index-sharing#what-the-daily-run-does).
+
+| Variable | Type | Default | Description |
+| --- | --- | --- | --- |
+| `INDEX_EXPORT_KINDS` | string | `root-tx-index` | Comma-separated indexes to build: `root-tx-index`, `parquet-l1`. See [Publish L1 Bands](/build/run-a-gateway/manage/index-sharing#publish-l1-bands) |
+| `INDEX_EXPORT_START_HEIGHT` | number | unset | The lowest height to build. Root-TX bands need it before the first run; `./tools/index-swarm-setup --publish --start-height <n>` sets it |
+| `INDEX_EXPORT_HEADER_CHECK_URL` | string | unset | Required for root-TX bands: the gateway a sample of each band's entries is checked against before publishing. `./tools/index-swarm-setup --publish` writes `https://turbo-gateway.com` |
+| `INDEX_EXPORT_HEADER_CHECK_TIMEOUT_MS` | number | `30000` | Timeout for each read of that check |
+| `INDEX_EXPORT_SOURCES` | JSON | unset (this gateway's ClickHouse when `CLICKHOUSE_URL` is set, else its SQLite) | Where root-TX records come from |
+| `INDEX_EXPORT_SECRETS_DIR` | string | unset | Host directory of password files for the ClickHouse sources `INDEX_EXPORT_SOURCES` names |
+| `INDEX_EXPORT_CORE_DB` | string | `data/sqlite/core.db` | The `core.db` L1 bands are built from, opened read-only |
+| `INDEX_EXPORT_RUN_AT_UTC` | string | `04:00` | Time of the daily run, `HH:MM` UTC |
+| `INDEX_EXPORT_RECENT_MAX_BLOCKS` | number | `100000` | Span at which a recent root-TX band is frozen and a new one starts |
+| `INDEX_EXPORT_L1_RUN_BUDGET_MINUTES` | number | `240` | How long a run keeps starting whole L1 bands. Raise it for a bootstrap |
+| `INDEX_EXPORT_METRICS_PORT` | number | `9102` | Port for `index-export`'s `/metrics` and `/healthz`, inside its container |
+| `INDEX_EXPORT_IMAGE_TAG` | string | the value of `CORE_IMAGE_TAG` | Core image tag for `index-export`, when it should run a newer image than the gateway |
+| `LOG_LEVEL` | string | `info` | `index-export` log level |
+| `LOG_FORMAT` | string | `simple` | `index-export` log format (`simple` or `json`) |
+| `INDEXES_ADVERTISE_FROM_URL` | string | unset | On a fleet node that serves your indexes but does not sign them: the signing node's base URL (for example `http://10.0.0.1:4000`), so `/ar-io/info` advertises the same publication on every node. Leave it unset on the signing node. See [Giving the Other Nodes the Index](/build/run-a-gateway/manage/index-sharing#giving-the-other-nodes-the-index) |
 
 ### Indexing & Synchronization
 
@@ -164,14 +191,14 @@ Settings for the optional torrent engine (compose profile `index-swarm-torrent`)
 
 ### ANS-104 Bundle Processing
 
-| Variable                  | Type    | Default           | Description                           |
-| ------------------------- | ------- | ----------------- | ------------------------------------- |
-| `ANS104_UNBUNDLE_FILTER`  | JSON    | `{"never": true}` | Filter for bundles to unbundle        |
-| `ANS104_INDEX_FILTER`     | JSON    | `{"never": true}` | Filter for data items to index        |
-| `ANS104_UNBUNDLE_WORKERS` | number  | `1`               | Number of unbundling workers          |
-| `ANS104_DOWNLOAD_WORKERS` | number  | `5`               | Number of download workers            |
-| `FILTER_CHANGE_REPROCESS` | boolean | `false`           | Reprocess old bundles with new filter |
-| `BACKFILL_BUNDLE_RECORDS` | boolean | `false`           | Backfill bundle records               |
+| Variable                  | Type    | Default                                                                                   | Description                           |
+| ------------------------- | ------- | ----------------------------------------------------------------------------------------- | ------------------------------------- |
+| `ANS104_UNBUNDLE_FILTER`  | JSON    | `{"never": true}`                                                                         | Filter for bundles to unbundle        |
+| `ANS104_INDEX_FILTER`     | JSON    | `{"always": true}` while background verification is on, else `{"never": true}`           | Filter for data items to index        |
+| `ANS104_UNBUNDLE_WORKERS` | number  | `1`, or `0` when background verification is off and `ANS104_UNBUNDLE_FILTER` matches nothing | Number of unbundling workers     |
+| `ANS104_DOWNLOAD_WORKERS` | number  | `5`, or `0` in the same case                                                              | Number of download workers            |
+| `FILTER_CHANGE_REPROCESS` | boolean | `false`                                                                                   | Reprocess old bundles with new filter |
+| `BACKFILL_BUNDLE_RECORDS` | boolean | `false`                                                                                   | Backfill bundle records               |
 
 ### Data Management
 
@@ -198,7 +225,7 @@ Settings for the optional torrent engine (compose profile `index-swarm-torrent`)
 
 | Variable                                         | Type    | Default | Description                         |
 | ------------------------------------------------ | ------- | ------- | ----------------------------------- |
-| `ENABLE_BACKGROUND_DATA_VERIFICATION`            | boolean | `false` | Enable background data verification |
+| `ENABLE_BACKGROUND_DATA_VERIFICATION`            | boolean | `true`  | Enable background data verification |
 | `BACKGROUND_DATA_VERIFICATION_INTERVAL_SECONDS`  | number  | `600`   | Verification interval               |
 | `BACKGROUND_DATA_VERIFICATION_WORKER_COUNT`      | number  | `1`     | Number of verification workers      |
 | `BACKGROUND_DATA_VERIFICATION_STREAM_TIMEOUT_MS` | number  | `30000` | Stream timeout for verification     |
@@ -215,57 +242,54 @@ Settings for the optional torrent engine (compose profile `index-swarm-torrent`)
 
 ### ArNS Configuration
 
-| Variable                             | Type   | Default             | Description                                       |
-| ------------------------------------ | ------ | ------------------- | ------------------------------------------------- |
-| `ARNS_ROOT_HOST`                     | string | -                   | Root hostname for ArNS                            |
-| `SANDBOX_PROTOCOL`                   | string | -                   | Protocol for sandboxing redirects (http or https) |
-| `AR_IO_SDK_LOG_LEVEL`                | string | `none`              | ar.io SDK log level                               |
-| `ARNS_CACHE_TYPE`                    | string | `node`              | ArNS cache type                                   |
-| `ARNS_CACHE_TTL_SECONDS`             | number | `86400`             | ArNS cache TTL                                    |
-| `ARNS_CACHE_MAX_KEYS`                | number | `10000`             | Max ArNS cache keys                               |
-| `ARNS_RESOLVER_PRIORITY_ORDER`       | string | `gateway,on-demand` | ArNS resolver priority                            |
-| `ARNS_COMPOSITE_RESOLVER_TIMEOUT_MS` | number | `3000`              | Composite resolver timeout                        |
-| `ARNS_NAMES_CACHE_TTL_SECONDS`       | number | `3600`              | Names cache TTL                                   |
-| `ARNS_MAX_CONCURRENT_RESOLUTIONS`    | number | `1`                 | Max concurrent resolutions                        |
+| Variable                             | Type   | Default                                 | Description                                       |
+| ------------------------------------ | ------ | --------------------------------------- | ------------------------------------------------- |
+| `ARNS_ROOT_HOST`                     | string | -                                       | Root hostname for ArNS. Envoy and the ClickHouse auto-import service read it too |
+| `SANDBOX_PROTOCOL`                   | string | -                                       | Protocol for sandboxing redirects (http or https) |
+| `AR_IO_SDK_LOG_LEVEL`                | string | `none`                                  | ar.io SDK log level                               |
+| `ARNS_CACHE_TYPE`                    | string | `redis`; `node` outside Docker          | ArNS cache type                                   |
+| `ARNS_CACHE_TTL_SECONDS`             | number | `86400`                                 | ArNS cache TTL                                    |
+| `ARNS_CACHE_MAX_KEYS`                | number | `10000`                                 | Max ArNS cache keys                               |
+| `ARNS_RESOLVER_PRIORITY_ORDER`       | string | `on-demand,gateway`                     | ArNS resolver priority                            |
+| `ARNS_COMPOSITE_RESOLVER_TIMEOUT_MS` | number | `3000`                                  | Composite resolver timeout                        |
+| `ARNS_NAMES_CACHE_TTL_SECONDS`       | number | `3600`                                  | Names cache TTL                                   |
+| `ARNS_MAX_CONCURRENT_RESOLUTIONS`    | number | `1`                                     | Max concurrent resolutions                        |
 
 ### ar.io
 
-The ar.io protocol runs on five Solana programs (see [protocol architecture](/learn/protocol-architecture)), and the gateway talks to four of them: `ario-core`, `ario-gar`, `ario-arns`, and `ario-ant`. The fifth, `ario-ant-escrow`, has no gateway-side program ID below because a gateway never calls it; it is a wallet-to-wallet escrow, not something a gateway needs to resolve. Each program ID below is configured independently, so the same image can run against mainnet, staging-devnet, or a local devnet. Canonical mainnet IDs are listed in the [Token](/learn/token#mainnet-addresses) docs. To confirm which set a running gateway is using, `GET /ar-io/info` returns the resolved `programIds` object.
+The ar.io protocol runs on five Solana programs (see [protocol architecture](/learn/protocol-architecture)), and the gateway talks to four of them: `ario-core`, `ario-gar`, `ario-arns`, and `ario-ant`. The fifth, `ario-ant-escrow`, has no gateway-side program ID below because a gateway never calls it; it is a wallet-to-wallet escrow, not something a gateway needs to resolve. Each program ID below is configured independently, so the same image can run against mainnet, staging-devnet, or a local devnet. The defaults are the mainnet IDs, listed in the [Token](/learn/token#mainnet-addresses) docs. To confirm which set a running gateway is using, `GET /ar-io/info` returns the resolved `programIds` object.
 
-| Variable                   | Type   | Default                              | Description                                                                                                          |
-| -------------------------- | ------ | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
-| `AR_IO_WALLET`             | string | -                                    | Operator Solana public key (base58). Display label surfaced on `/ar-io/info`                                         |
-| `SOLANA_RPC_URL`           | string | `https://api.mainnet-beta.solana.com`| Solana JSON-RPC endpoint. Public defaults throttle hard — use a premium provider (QuickNode, Helius, Triton) in production |
-| `SOLANA_KEYPAIR_PATH`      | string | -                                    | Path to the operator's 64-byte Solana keypair JSON file. Signs `join_network`, `update_gateway_settings`, and cranker instructions. Inside the container the path must start with `/app/wallets/` |
-| `SOLANA_PRIVATE_KEY`       | string | -                                    | Alternative to `SOLANA_KEYPAIR_PATH`: base58-encoded 64-byte secret (Phantom export format). Mutually exclusive with the file form |
-| `ENABLE_EPOCH_CRANKING`    | boolean | unset (= off)                       | When `true`, the observer runs permissionless epoch instructions (`close_observation`, `tick_epoch`, etc.). "When unset, observer skips cranking." Set `false` to make the off-state explicit |
-| `ARIO_CORE_PROGRAM_ID`     | string | -                                    | `ario-core` program ID (token, staking, epoch state)                                                                 |
-| `ARIO_GAR_PROGRAM_ID`      | string | -                                    | `ario-gar` program ID (Gateway Registry; joins, observations, distributions)                                         |
-| `ARIO_ARNS_PROGRAM_ID`     | string | -                                    | `ario-arns` program ID (ArNS name registry)                                                                          |
-| `ARIO_ANT_PROGRAM_ID`      | string | -                                    | `ario-ant` program ID (ANT records — Metaplex Core NFTs that route names to data)                                    |
-| `AR_IO_NODE_RELEASE`       | string | `33`                                 | ar.io node release version                                                                                           |
-| `APEX_TX_ID`               | string | -                                    | Apex transaction ID                                                                                                  |
-| `APEX_ARNS_NAME`           | string | -                                    | Apex ArNS name                                                                                                       |
-| `ARNS_NOT_FOUND_TX_ID`     | string | -                                    | Not found transaction ID                                                                                             |
-| `ARNS_NOT_FOUND_ARNS_NAME` | string | `unregistered_arns`                  | Not found ArNS name                                                                                                  |
+| Variable                   | Type    | Default                                        | Description                                                                                                          |
+| -------------------------- | ------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `AR_IO_WALLET`             | string  | -                                              | Operator Solana public key (base58). Display label surfaced on `/ar-io/info`                                         |
+| `SOLANA_RPC_URL`           | string  | `https://api.mainnet-beta.solana.com`          | Solana JSON-RPC endpoint, for the gateway and the observer                                                           |
+| `SOLANA_KEYPAIR_PATH`      | string  | -                                              | Path to the operator's 64-byte Solana keypair JSON file. Signs `join_network`, `update_gateway_settings`, and cranker instructions. Inside the container the path must start with `/app/wallets/` |
+| `SOLANA_PRIVATE_KEY`       | string  | -                                              | Alternative to `SOLANA_KEYPAIR_PATH`: base58-encoded 64-byte secret (Phantom export format). Mutually exclusive with the file form |
+| `ENABLE_EPOCH_CRANKING`    | boolean | `false`                                        | When `true`, the observer runs permissionless epoch instructions (`close_observation`, `tick_epoch`, etc.)         |
+| `ARIO_CORE_PROGRAM_ID`     | string  | `73YoECm6NKXpVRoe5f1Q9BcP5DJGPFUjnFy6AxBE5Nvh` | `ario-core` program ID (token, staking, epoch state)                                                                 |
+| `ARIO_GAR_PROGRAM_ID`      | string  | `89fNiiwgpFSPHKuqfNUkgYTYjtAJAhyqHjXmgXeppGpf` | `ario-gar` program ID (Gateway Registry; joins, observations, distributions)                                         |
+| `ARIO_ARNS_PROGRAM_ID`     | string  | `2yCUx5edFvUrkibYaUa2ZXWyx9kuJkS8CwyzsgHPWdZZ` | `ario-arns` program ID (ArNS name registry)                                                                          |
+| `ARIO_ANT_PROGRAM_ID`      | string  | `2MWexMHfMhGJwMHv9Qm9YAVCqjUFUJwDJAysW4oCUGk5` | `ario-ant` program ID (ANT records — Metaplex Core NFTs that route names to data)                                    |
+| `AR_IO_NODE_RELEASE`       | string  | the release of the image                       | The release the gateway and observer report. Leave it unset                                                          |
+| `APEX_TX_ID`               | string  | -                                              | Transaction served at the apex domain. See [Setting an Apex Domain](/build/run-a-gateway/manage/setting-apex-domain) |
+| `APEX_ARNS_NAME`           | string  | -                                              | ArNS name served at the apex domain                                                                                  |
+| `ARNS_NOT_FOUND_TX_ID`     | string  | -                                              | Not found transaction ID                                                                                             |
+| `ARNS_NOT_FOUND_ARNS_NAME` | string  | `unregistered_arns`                            | Not found ArNS name                                                                                                  |
 
-### Apex Domain
-
-| Variable         | Type   | Default | Description         |
-| ---------------- | ------ | ------- | ------------------- |
-| `APEX_TX_ID`     | string | -       | Apex transaction ID |
-| `APEX_ARNS_NAME` | string | -       | Apex ArNS name      |
+<Callout type="warn">
+The default public Solana RPC is rate-limited and may block `getProgramAccounts` queries needed for full registry enumeration. For production gateways, use a dedicated RPC provider such as [Helius](https://helius.dev), [Triton](https://triton.one), or [QuickNode](https://quicknode.com).
+</Callout>
 
 ### Caching
 
-| Variable                                  | Type    | Default                  | Description                             |
-| ----------------------------------------- | ------- | ------------------------ | --------------------------------------- |
-| `CHAIN_CACHE_TYPE`                        | string  | `lmdb`                   | Chain cache type (lmdb, fs, redis)      |
-| `REDIS_CACHE_URL`                         | string  | `redis://localhost:6379` | Redis cache URL                         |
-| `REDIS_USE_TLS`                           | boolean | `false`                  | Use TLS for Redis                       |
-| `REDIS_CACHE_TTL_SECONDS`                 | number  | `28800`                  | Redis cache TTL                         |
-| `ENABLE_FS_HEADER_CACHE_CLEANUP`          | boolean | `false`                  | Enable FS header cache cleanup          |
-| `CONTIGUOUS_DATA_CACHE_CLEANUP_THRESHOLD` | string  | -                        | Contiguous data cache cleanup threshold |
+| Variable                                  | Type    | Default                                                | Description                             |
+| ----------------------------------------- | ------- | ------------------------------------------------------ | --------------------------------------- |
+| `CHAIN_CACHE_TYPE`                        | string  | `redis`; `lmdb` outside Docker                         | Chain cache type (lmdb, fs, redis)      |
+| `REDIS_CACHE_URL`                         | string  | `redis://redis:6379`; `redis://localhost:6379` outside Docker | Redis cache URL                  |
+| `REDIS_USE_TLS`                           | boolean | `false`                                                | Use TLS for Redis                       |
+| `REDIS_CACHE_TTL_SECONDS`                 | number  | `28800`                                                | Redis cache TTL                         |
+| `ENABLE_FS_HEADER_CACHE_CLEANUP`          | boolean | `false`                                                | Enable FS header cache cleanup          |
+| `CONTIGUOUS_DATA_CACHE_CLEANUP_THRESHOLD` | string  | -                                                      | Contiguous data cache cleanup threshold |
 
 ### Webhooks
 
@@ -296,11 +320,11 @@ The ar.io protocol runs on five Solana programs (see [protocol architecture](/le
 
 ### ClickHouse
 
-| Variable              | Type   | Default | Description         |
-| --------------------- | ------ | ------- | ------------------- |
-| `CLICKHOUSE_URL`      | string | -       | ClickHouse URL      |
-| `CLICKHOUSE_USER`     | string | -       | ClickHouse username |
-| `CLICKHOUSE_PASSWORD` | string | -       | ClickHouse password |
+| Variable              | Type   | Default | Description                                                                 |
+| --------------------- | ------ | ------- | --------------------------------------------------------------------------- |
+| `CLICKHOUSE_URL`      | string | -       | ClickHouse URL                                                              |
+| `CLICKHOUSE_USER`     | string | -       | ClickHouse username, for the gateway, the ClickHouse server and the auto-import service. Set it explicitly (usually `default`) when you set a password |
+| `CLICKHOUSE_PASSWORD` | string | -       | ClickHouse password, for the same three services. Required by the auto-import service |
 
 ### PostgreSQL (Legacy)
 
@@ -309,16 +333,6 @@ The ar.io protocol runs on five Solana programs (see [protocol architecture](/le
 | `LEGACY_PSQL_CONNECTION_STRING`       | string  | -       | PostgreSQL connection string        |
 | `LEGACY_PSQL_PASSWORD_FILE`           | string  | -       | Path to PostgreSQL password file    |
 | `LEGACY_PSQL_SSL_REJECT_UNAUTHORIZED` | boolean | `true`  | Reject unauthorized SSL connections |
-
-### Solana
-
-| Variable          | Type   | Default                                    | Description                   |
-| ----------------- | ------ | ------------------------------------------ | ----------------------------- |
-| `SOLANA_RPC_URL`  | string | `https://api.mainnet-beta.solana.com`      | Solana RPC endpoint           |
-
-<Callout type="warn">
-The default public Solana RPC is rate-limited and may block `getProgramAccounts` queries needed for full registry enumeration. For production gateways, use a dedicated RPC provider such as [Helius](https://helius.dev), [Triton](https://triton.one), or [QuickNode](https://quicknode.com).
-</Callout>
 
 ### Circuit Breaker
 
@@ -333,7 +347,7 @@ The default public Solana RPC is rate-limited and may block `getProgramAccounts`
 
 | Variable                                  | Type   | Default                                                                                                                                               | Description                          |
 | ----------------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| `NODE_JS_MAX_OLD_SPACE_SIZE`              | string | -                                                                                                                                                     | Node.js max old space size           |
+| `NODE_MAX_OLD_SPACE_SIZE`                 | number | `2048`, or `8192` when `ANS104_UNBUNDLE_WORKERS` is above 1                                                                                           | Node.js heap limit for the core service, in MB |
 | `WEIGHTED_PEERS_TEMPERATURE_DELTA`        | number | `2`                                                                                                                                                   | Weighted peers temperature delta     |
 | `GATEWAY_PEERS_WEIGHTS_CACHE_DURATION_MS` | number | `5000`                                                                                                                                                | Gateway peers weights cache duration |
 | `GATEWAY_PEERS_REQUEST_WINDOW_COUNT`      | number | `20`                                                                                                                                                  | Gateway peers request window count   |
@@ -341,100 +355,100 @@ The default public Solana RPC is rate-limited and may block `getProgramAccounts`
 
 ### Data Paths
 
-| Variable               | Type   | Default             | Description             |
-| ---------------------- | ------ | ------------------- | ----------------------- |
-| `CHUNKS_DATA_PATH`     | string | `./data/chunks`     | Path to chunks data     |
-| `CONTIGUOUS_DATA_PATH` | string | `./data/contiguous` | Path to contiguous data |
-| `HEADERS_DATA_PATH`    | string | `./data/headers`    | Path to headers data    |
-| `SQLITE_DATA_PATH`     | string | `./data/sqlite`     | Path to SQLite data     |
-| `DUCKDB_DATA_PATH`     | string | `./data/duckdb`     | Path to DuckDB data     |
-| `TEMP_DATA_PATH`       | string | `./data/tmp`        | Path to temporary data  |
-| `LMDB_DATA_PATH`       | string | `./data/lmdb`       | Path to LMDB data       |
-| `PARQUET_DATA_PATH`    | string | `./data/parquet`    | Path to Parquet data    |
+Host directories mounted into the core service. Other services that share a directory mount the same path.
+
+| Variable               | Type   | Default             | Description                                                |
+| ---------------------- | ------ | ------------------- | ---------------------------------------------------------- |
+| `CHUNKS_DATA_PATH`     | string | `./data/chunks`     | Path to chunks data                                        |
+| `CONTIGUOUS_DATA_PATH` | string | `./data/contiguous` | Path to contiguous data                                    |
+| `HEADERS_DATA_PATH`    | string | `./data/headers`    | Path to headers data                                       |
+| `SQLITE_DATA_PATH`     | string | `./data/sqlite`     | Path to SQLite data (also backed up by Litestream)         |
+| `DUCKDB_DATA_PATH`     | string | `./data/duckdb`     | Path to DuckDB data                                        |
+| `TEMP_DATA_PATH`       | string | `./data/tmp`        | Path to temporary data (also used by the observer)         |
+| `LMDB_DATA_PATH`       | string | `./data/lmdb`       | Path to LMDB data                                          |
+| `PARQUET_DATA_PATH`    | string | `./data/parquet`    | Path to Parquet data (also used by ClickHouse auto-import) |
 
 ### Rate Limiter
 
-| Variable                                  | Type    | Default   | Description                         |
-| ----------------------------------------- | ------- | --------- | ----------------------------------- |
-| `ENABLE_RATE_LIMITER`                     | boolean | `false`   | Enable rate limiting system         |
-| `RATE_LIMITER_TYPE`                       | string  | `memory`  | Rate limiter type (memory or redis) |
-| `RATE_LIMITER_REDIS_ENDPOINT`             | string  | -         | Redis endpoint for rate limiter     |
-| `RATE_LIMITER_IP_TOKENS_PER_BUCKET`       | number  | `100000`  | IP bucket token capacity            |
-| `RATE_LIMITER_IP_REFILL_PER_SEC`          | number  | `20`      | IP bucket refill rate per second    |
-| `RATE_LIMITER_RESOURCE_TOKENS_PER_BUCKET` | number  | `1000000` | Resource bucket token capacity      |
-| `RATE_LIMITER_RESOURCE_REFILL_PER_SEC`    | number  | `100`     | Resource bucket refill rate         |
-| `RATE_LIMITER_IPS_AND_CIDRS_ALLOWLIST`    | string  | -         | Comma-separated IP/CIDR allowlist, exempt from rate limits and x402. Matched against the client address only |
-| `TRUSTED_PROXIES`                         | string  | loopback, private, CGNAT and link-local ranges | Proxies (IPs/CIDRs) whose `X-Forwarded-For` and `X-Real-IP` are believed when working out the client address. Add a CDN's or public load balancer's ranges when one is in front; `none` trusts no proxy, only for a core that clients reach directly, with no Envoy in front. See [x402 setup](/build/run-a-gateway/manage/x402-setup) |
-| `RATE_LIMITER_ARNS_ALLOWLIST`             | string  | -         | Comma-separated ArNS allowlist      |
+| Variable                                  | Type    | Default                                                | Description                         |
+| ----------------------------------------- | ------- | ------------------------------------------------------ | ----------------------------------- |
+| `ENABLE_RATE_LIMITER`                     | boolean | `false`                                                | Enable rate limiting system         |
+| `RATE_LIMITER_TYPE`                       | string  | `redis`; `memory` outside Docker                       | Rate limiter type (memory or redis) |
+| `RATE_LIMITER_REDIS_ENDPOINT`             | string  | `redis://redis:6379`; `localhost:6379` outside Docker  | Redis endpoint for rate limiter     |
+| `RATE_LIMITER_IP_TOKENS_PER_BUCKET`       | number  | `100000`                                               | IP bucket token capacity            |
+| `RATE_LIMITER_IP_REFILL_PER_SEC`          | number  | `20`                                                   | IP bucket refill rate per second    |
+| `RATE_LIMITER_RESOURCE_TOKENS_PER_BUCKET` | number  | `1000000`                                              | Resource bucket token capacity      |
+| `RATE_LIMITER_RESOURCE_REFILL_PER_SEC`    | number  | `100`                                                  | Resource bucket refill rate         |
+| `RATE_LIMITER_IPS_AND_CIDRS_ALLOWLIST`    | string  | -                                                      | Comma-separated IP/CIDR allowlist, exempt from rate limits and x402. Matched against the client address only |
+| `TRUSTED_PROXIES`                         | string  | loopback, private, CGNAT and link-local ranges         | Proxies (IPs/CIDRs) whose `X-Forwarded-For` and `X-Real-IP` are believed when working out the client address. Add a CDN's or public load balancer's ranges when one is in front; `none` trusts no proxy, only for a core that clients reach directly, with no Envoy in front. See [x402 setup](/build/run-a-gateway/manage/x402-setup) |
+| `RATE_LIMITER_ARNS_ALLOWLIST`             | string  | -                                                      | Comma-separated ArNS allowlist      |
 
 ### x402 Payment Protocol
 
-| Variable                               | Type    | Default        | Description                                |
-| -------------------------------------- | ------- | -------------- | ------------------------------------------ |
-| `ENABLE_X_402_USDC_DATA_EGRESS`        | boolean | `false`        | Enable x402 USDC payments                  |
-| `X_402_USDC_NETWORK`                   | string  | -              | Base network (base-sepolia or base)        |
-| `X_402_USDC_WALLET_ADDRESS`            | string  | -              | USDC wallet address for receiving payments |
-| `X_402_USDC_FACILITATOR_URL`           | string  | -              | Payment facilitator URL                    |
-| `X_402_USDC_PER_BYTE_PRICE`            | number  | `0.0000000001` | Price per byte in USDC                     |
-| `X_402_USDC_DATA_EGRESS_MIN_PRICE`     | number  | `0.001`        | Minimum payment amount                     |
-| `X_402_USDC_DATA_EGRESS_MAX_PRICE`     | number  | `1.00`         | Maximum payment amount                     |
-| `X_402_RATE_LIMIT_CAPACITY_MULTIPLIER` | number  | `10`           | Paid token capacity multiplier             |
-| `X_402_APP_NAME`                       | string  | -              | Application name for paywall               |
-| `X_402_APP_LOGO`                       | string  | -              | Application logo URL for paywall           |
-| `X_402_CDP_CLIENT_KEY`                 | string  | -              | **PUBLIC**: CDP client key for Onramp (optional testnet, required mainnet) |
-| `CDP_API_KEY_ID`                       | string  | -              | **SECRET**: CDP API key ID for Onramp (optional testnet, required mainnet)      |
-| `CDP_API_KEY_SECRET`                   | string  | -              | **SECRET**: CDP API secret for Onramp (use CDP_API_KEY_SECRET_FILE instead)    |
-| `CDP_API_KEY_SECRET_FILE`              | string  | -              | **SECRET**: Path to CDP secret file for Onramp (takes precedence, recommended) |
-| `CHUNK_GET_BASE64_SIZE_BYTES`          | number  | `368640`       | Fixed size for chunk pricing               |
+| Variable                               | Type    | Default                        | Description                                |
+| -------------------------------------- | ------- | ------------------------------ | ------------------------------------------ |
+| `ENABLE_X_402_USDC_DATA_EGRESS`        | boolean | `false`                        | Enable x402 USDC payments                  |
+| `X_402_USDC_NETWORK`                   | string  | `base-sepolia`                 | Base network (base-sepolia or base)        |
+| `X_402_USDC_WALLET_ADDRESS`            | string  | -                              | USDC wallet address for receiving payments |
+| `X_402_USDC_FACILITATOR_URL`           | string  | `https://x402.org/facilitator` | Payment facilitator URL                    |
+| `X_402_USDC_PER_BYTE_PRICE`            | number  | `0.0000000001`                 | Price per byte in USDC                     |
+| `X_402_USDC_DATA_EGRESS_MIN_PRICE`     | number  | `0.001`                        | Minimum payment amount                     |
+| `X_402_USDC_DATA_EGRESS_MAX_PRICE`     | number  | `1.00`                         | Maximum payment amount                     |
+| `X_402_RATE_LIMIT_CAPACITY_MULTIPLIER` | number  | `10`                           | Paid token capacity multiplier             |
+| `X_402_APP_NAME`                       | string  | `AR.IO Gateway`                | Application name for paywall               |
+| `X_402_APP_LOGO`                       | string  | -                              | Application logo URL for paywall           |
+| `X_402_CDP_CLIENT_KEY`                 | string  | -                              | **PUBLIC**: CDP client key for Onramp (optional testnet, required mainnet) |
+| `CDP_API_KEY_ID`                       | string  | -                              | **SECRET**: CDP API key ID for Onramp (optional testnet, required mainnet)      |
+| `CDP_API_KEY_SECRET`                   | string  | -                              | **SECRET**: CDP API secret for Onramp (use CDP_API_KEY_SECRET_FILE instead)    |
+| `CDP_API_KEY_SECRET_FILE`              | string  | -                              | **SECRET**: Path to CDP secret file for Onramp (takes precedence, recommended) |
+| `CHUNK_GET_BASE64_SIZE_BYTES`          | number  | `368640`                       | Fixed size for chunk pricing               |
+
+### Autoheal
+
+| Variable       | Type    | Default | Description                                                                            |
+| -------------- | ------- | ------- | -------------------------------------------------------------------------------------- |
+| `RUN_AUTOHEAL` | boolean | `false` | Label the gateway's containers so the `autoheal` service restarts them when unhealthy |
+
+## OpenTelemetry Tracing
+
+### Basic Configuration
+
+| Variable                          | Type   | Default      | Description                        |
+| --------------------------------- | ------ | ------------ | ---------------------------------- |
+| `OTEL_SERVICE_NAME`               | string | `ar-io-node` | OpenTelemetry service name         |
+| `OTEL_EXPORTER_OTLP_ENDPOINT`     | string | -            | OTLP exporter endpoint             |
+| `OTEL_EXPORTER_OTLP_HEADERS`      | string | -            | OTLP exporter headers              |
+| `OTEL_EXPORTER_OTLP_HEADERS_FILE` | string | -            | Path to OTLP exporter headers file |
+
+### Tracing Performance
+
+| Variable                                         | Type   | Default | Description                                               |
+| ------------------------------------------------ | ------ | ------- | --------------------------------------------------------- |
+| `OTEL_BATCH_LOG_PROCESSOR_SCHEDULED_DELAY_MS`    | number | `2000`  | Batch log processor scheduled delay                       |
+| `OTEL_BATCH_LOG_PROCESSOR_MAX_EXPORT_BATCH_SIZE` | number | `10000` | Max export batch size                                     |
+| `OTEL_TRACING_SAMPLING_RATE_DENOMINATOR`         | number | `1`     | Tracing sampling rate denominator (`1` keeps every trace) |
 
 ## Observer Service
 
 ### Basic Configuration
 
-| Variable             | Type   | Default | Description                |
-| -------------------- | ------ | ------- | -------------------------- |
-| `PORT`               | number | `5050`  | Observer service port      |
-| `LOG_LEVEL`          | string | -       | Observer log level         |
-| `OBSERVER_WALLET`    | string | -       | Observer wallet            |
-| `IO_PROCESS_ID`      | string | -       | ar.io Solana program address |
-| `AR_IO_NODE_RELEASE` | string | `33`    | ar.io node release version |
+| Variable             | Type   | Default   | Description                                               |
+| -------------------- | ------ | --------- | --------------------------------------------------------- |
+| `OBSERVER_PORT`      | number | `5050`    | Host port for the observer, and the port Envoy forwards to |
+| `OBSERVER_LOG_LEVEL` | string | `verbose` | Observer log level                                        |
+| `OBSERVER_WALLET`    | string | -         | Observer wallet                                           |
 
 ### Observer Operation
 
-| Variable                              | Type    | Default | Description                                |
-| ------------------------------------- | ------- | ------- | ------------------------------------------ |
-| `SUBMIT_CONTRACT_INTERACTIONS`        | boolean | `true`  | Submit observations to Solana programs     |
-| `NUM_ARNS_NAMES_TO_OBSERVE_PER_GROUP` | number  | `8`     | Number of ArNS names per observation group |
-| `REPORT_GENERATION_INTERVAL_MS`       | string  | -       | Report generation interval                 |
-| `REPORT_DATA_SINK`                    | string  | -       | Report data sink                           |
-| `TURBO_UPLOAD_SERVICE_URL`            | string  | -       | Turbo upload service URL                   |
-| `RUN_OBSERVER`                        | boolean | `true`  | Run observer service                       |
-| `MIN_RELEASE_NUMBER`                  | number  | `0`     | Minimum release number                     |
-
-### Report Configuration
-
-| Variable                        | Type   | Default | Description                |
-| ------------------------------- | ------ | ------- | -------------------------- |
-| `REPORT_GENERATION_INTERVAL_MS` | string | -       | Report generation interval |
-| `REPORT_DATA_SINK`              | string | -       | Report data sink           |
-
-### Gateway Assessment
-
-| Variable                              | Type   | Default | Description                                |
-| ------------------------------------- | ------ | ------- | ------------------------------------------ |
-| `NUM_ARNS_NAMES_TO_OBSERVE_PER_GROUP` | number | `8`     | Number of ArNS names per observation group |
-
-### ArNS Names
-
-| Variable                              | Type   | Default | Description                                |
-| ------------------------------------- | ------ | ------- | ------------------------------------------ |
-| `NUM_ARNS_NAMES_TO_OBSERVE_PER_GROUP` | number | `8`     | Number of ArNS names per observation group |
-
-### On-Chain Observations
-
-| Variable                       | Type    | Default | Description                           |
-| ------------------------------ | ------- | ------- | ------------------------------------- |
-| `SUBMIT_CONTRACT_INTERACTIONS` | boolean | `true`  | Submit observations to Solana programs. Pre-flight no-ops unless your pubkey is in `epoch.prescribed_observers` — harmless to leave at default before `join_network` |
+| Variable                              | Type    | Default                        | Description                                |
+| ------------------------------------- | ------- | ------------------------------ | ------------------------------------------ |
+| `RUN_OBSERVER`                        | boolean | `true`                         | Run observer service                       |
+| `SUBMIT_CONTRACT_INTERACTIONS`        | boolean | `true`; `false` outside Docker | Submit observations to Solana programs. Pre-flight no-ops unless your pubkey is in `epoch.prescribed_observers`, so it is harmless before `join_network` |
+| `NUM_ARNS_NAMES_TO_OBSERVE_PER_GROUP` | number  | `8`                            | Number of ArNS names per observation group |
+| `REPORT_GENERATION_INTERVAL_MS`       | number  | `3600000`                      | Report generation interval (one hour)      |
+| `REPORT_DATA_SINK`                    | string  | `turbo`                        | Where reports are saved                    |
+| `TURBO_UPLOAD_SERVICE_URL`            | string  | -                              | Turbo upload service URL                   |
+| `MIN_RELEASE_NUMBER`                  | number  | `0`                            | Minimum release number                     |
 
 ### Upload Wallet Identities
 
@@ -453,166 +467,79 @@ If your observer logs warn that `TurboReportSink` is not configured, explicitly 
 
 When none of the above are set, uploads fall back to the observer key, then the operator key. For production observers, prefer setting `SOLANA_UPLOAD_KEYPAIR_PATH` or `SOLANA_UPLOAD_PRIVATE_KEY` explicitly so report uploads do not depend on fallback behavior.
 
-### Offset Observation
+### Observer Data Paths
 
-| Variable                        | Type   | Default | Description                |
-| ------------------------------- | ------ | ------- | -------------------------- |
-| `REPORT_GENERATION_INTERVAL_MS` | string | -       | Report generation interval |
-
-### Data Paths
-
-| Variable            | Type   | Default          | Description            |
-| ------------------- | ------ | ---------------- | ---------------------- |
-| `TEMP_DATA_PATH`    | string | `./data/tmp`     | Path to temporary data |
-| `REPORTS_DATA_PATH` | string | `./data/reports` | Path to reports data   |
-| `WALLETS_PATH`      | string | `./wallets`      | Path to wallets        |
+| Variable            | Type   | Default          | Description          |
+| ------------------- | ------ | ---------------- | -------------------- |
+| `REPORTS_DATA_PATH` | string | `./data/reports` | Path to reports data |
+| `WALLETS_PATH`      | string | `./wallets`      | Path to wallets      |
 
 ## Envoy Proxy
 
-### Basic Configuration
+Docker Compose also passes Envoy `CORE_PORT`, `OBSERVER_PORT` and `ARNS_ROOT_HOST`, described above.
 
-| Variable              | Type   | Default       | Description     |
-| --------------------- | ------ | ------------- | --------------- |
-| `LOG_LEVEL`           | string | `info`        | Envoy log level |
-| `TVAL_AR_IO_HOST`     | string | `core`        | ar.io host      |
-| `TVAL_AR_IO_PORT`     | number | `4000`        | ar.io port      |
-| `TVAL_OBSERVER_HOST`  | string | `observer`    | Observer host   |
-| `TVAL_OBSERVER_PORT`  | number | `5050`        | Observer port   |
-| `TVAL_GATEWAY_HOST`   | string | `turbo-gateway.com` | Gateway host    |
-| `TVAL_GRAPHQL_HOST`   | string | `core`        | GraphQL host    |
-| `TVAL_GRAPHQL_PORT`   | number | `4000`        | GraphQL port    |
-| `TVAL_ARNS_ROOT_HOST` | string | -             | ArNS root host  |
+| Variable            | Type   | Default       | Description                                  |
+| ------------------- | ------ | ------------- | -------------------------------------------- |
+| `ENVOY_PORT`        | number | `3000`        | Host port Envoy listens on                   |
+| `ENVOY_LOG_LEVEL`   | string | `info`        | Envoy log level                              |
+| `TRUSTED_NODE_HOST` | string | `arweave.net` | Arweave node Envoy forwards node requests to |
+| `TRUSTED_NODE_PORT` | number | `443`         | Port of that node                            |
+| `GRAPHQL_HOST`      | string | `core`        | Where Envoy sends GraphQL requests           |
+| `GRAPHQL_PORT`      | number | `4000`        | Port for GraphQL requests                    |
 
 ## Redis Cache
 
-### Basic Configuration
+| Variable            | Type   | Default                     | Description        |
+| ------------------- | ------ | --------------------------- | ------------------ |
+| `REDIS_MAX_MEMORY`  | string | `256mb`                     | Redis max memory   |
+| `EXTRA_REDIS_FLAGS` | string | `--save "" --appendonly no` | Extra Redis flags  |
+| `REDIS_DATA_PATH`   | string | `./data/redis`              | Path to Redis data |
 
-| Variable            | Type   | Default                     | Description       |
-| ------------------- | ------ | --------------------------- | ----------------- |
-| `REDIS_IMAGE_TAG`   | string | `7`                         | Redis image tag   |
-| `REDIS_MAX_MEMORY`  | string | `256mb`                     | Redis max memory  |
-| `EXTRA_REDIS_FLAGS` | string | `--save "" --appendonly no` | Extra Redis flags |
+## ClickHouse Server
 
-### Data Paths
+`CLICKHOUSE_USER` and `CLICKHOUSE_PASSWORD` are under [ClickHouse](#clickhouse) in the core section.
 
-| Variable          | Type   | Default        | Description        |
-| ----------------- | ------ | -------------- | ------------------ |
-| `REDIS_DATA_PATH` | string | `./data/redis` | Path to Redis data |
-
-## ClickHouse
-
-### Basic Configuration
-
-| Variable               | Type   | Default | Description          |
-| ---------------------- | ------ | ------- | -------------------- |
-| `CLICKHOUSE_IMAGE_TAG` | string | `25.4`  | ClickHouse image tag |
-| `CLICKHOUSE_USER`      | string | -       | ClickHouse username  |
-| `CLICKHOUSE_PASSWORD`  | string | -       | ClickHouse password  |
-
-### Data Paths
-
-| Variable               | Type   | Default             | Description             |
-| ---------------------- | ------ | ------------------- | ----------------------- |
-| `CLICKHOUSE_DATA_PATH` | string | `./data/clickhouse` | Path to ClickHouse data |
-| `CLICKHOUSE_LOGS_PATH` | string | `./logs/clickhouse` | Path to ClickHouse logs |
+| Variable               | Type   | Default             | Description                                |
+| ---------------------- | ------ | ------------------- | ------------------------------------------ |
+| `CLICKHOUSE_PORT`      | number | `9000`              | Host port for ClickHouse's native protocol |
+| `CLICKHOUSE_DATA_PATH` | string | `./data/clickhouse` | Path to ClickHouse data                    |
+| `CLICKHOUSE_LOGS_PATH` | string | `./logs/clickhouse` | Path to ClickHouse logs                    |
 
 ### ClickHouse Auto-Import
 
-| Variable                                   | Type   | Default                                    | Description                                 |
-| ------------------------------------------ | ------ | ------------------------------------------ | ------------------------------------------- |
-| `CLICKHOUSE_AUTO_IMPORT_IMAGE_TAG`         | string | `79792e1b549f64edad3e338769949fd9bffa62db` | ClickHouse auto-import image tag            |
-| `CLICKHOUSE_DEBUG`                         | string | -                                          | ClickHouse debug flag                       |
-| `AR_IO_HOST`                               | string | `core`                                     | ar.io host                                  |
-| `AR_IO_PORT`                               | number | `4000`                                     | ar.io port                                  |
-| `ADMIN_API_KEY`                            | string | -                                          | Admin API key                               |
-| `PARQUET_DATA_PATH`                        | string | `./data/parquet`                           | Path to Parquet data                        |
-| `CLICKHOUSE_HOST`                          | string | `clickhouse`                               | ClickHouse host                             |
-| `CLICKHOUSE_PORT`                          | string | -                                          | ClickHouse port (defaults to 9000)          |
-| `CLICKHOUSE_USER`                          | string | -                                          | ClickHouse username (defaults to 'default') |
-| `CLICKHOUSE_PASSWORD`                      | string | -                                          | ClickHouse password (required)              |
-| `CLICKHOUSE_AUTO_IMPORT_SLEEP_INTERVAL`    | string | -                                          | Auto-import sleep interval                  |
-| `CLICKHOUSE_AUTO_IMPORT_HEIGHT_INTERVAL`   | string | -                                          | Auto-import height interval                 |
-| `CLICKHOUSE_AUTO_IMPORT_MAX_ROWS_PER_FILE` | string | -                                          | Max rows per file for auto-import           |
+| Variable                                   | Type   | Default      | Description                       |
+| ------------------------------------------ | ------ | ------------ | --------------------------------- |
+| `CLICKHOUSE_DEBUG`                         | string | -            | ClickHouse debug flag             |
+| `CLICKHOUSE_HOST`                          | string | `clickhouse` | ClickHouse host                   |
+| `CLICKHOUSE_AUTO_IMPORT_SLEEP_INTERVAL`    | string | -            | Auto-import sleep interval        |
+| `CLICKHOUSE_AUTO_IMPORT_HEIGHT_INTERVAL`   | string | -            | Auto-import height interval       |
+| `CLICKHOUSE_AUTO_IMPORT_MAX_ROWS_PER_FILE` | string | -            | Max rows per file for auto-import |
 
 ## Litestream Backup
 
-### S3 Configuration
-
-| Variable                                   | Type   | Default                                    | Description                         |
-| ------------------------------------------ | ------ | ------------------------------------------ | ----------------------------------- |
-| `LITESTREAM_IMAGE_TAG`                     | string | `be121fc0ae24a9eb7cdb2b92d01f047039b5f5e8` | Litestream image tag                |
-| `AR_IO_SQLITE_BACKUP_S3_BUCKET_NAME`       | string | -                                          | S3 bucket name for SQLite backups   |
-| `AR_IO_SQLITE_BACKUP_S3_BUCKET_REGION`     | string | -                                          | S3 bucket region for SQLite backups |
-| `AR_IO_SQLITE_BACKUP_S3_BUCKET_ACCESS_KEY` | string | -                                          | S3 access key for SQLite backups    |
-| `AR_IO_SQLITE_BACKUP_S3_BUCKET_SECRET_KEY` | string | -                                          | S3 secret key for SQLite backups    |
-| `AR_IO_SQLITE_BACKUP_S3_BUCKET_PREFIX`     | string | -                                          | S3 prefix for SQLite backups        |
-
-### Data Paths
-
-| Variable           | Type   | Default         | Description         |
-| ------------------ | ------ | --------------- | ------------------- |
-| `SQLITE_DATA_PATH` | string | `./data/sqlite` | Path to SQLite data |
-
-## Autoheal Service
-
-### Configuration
-
-| Variable                        | Type    | Default    | Description                     |
-| ------------------------------- | ------- | ---------- | ------------------------------- |
-| `AUTOHEAL_CONTAINER_LABEL`      | string  | `autoheal` | Container label for autoheal    |
-| `AUTOHEAL_ONLY_MONITOR_RUNNING` | boolean | `false`    | Only monitor running containers |
-| `RUN_AUTOHEAL`                  | boolean | `false`    | Enable autoheal service         |
-
-## OpenTelemetry Tracing
-
-### Basic Configuration
-
-| Variable                          | Type   | Default      | Description                        |
-| --------------------------------- | ------ | ------------ | ---------------------------------- |
-| `OTEL_SERVICE_NAME`               | string | `ar-io-node` | OpenTelemetry service name         |
-| `OTEL_EXPORTER_OTLP_ENDPOINT`     | string | -            | OTLP exporter endpoint             |
-| `OTEL_EXPORTER_OTLP_HEADERS`      | string | -            | OTLP exporter headers              |
-| `OTEL_EXPORTER_OTLP_HEADERS_FILE` | string | -            | Path to OTLP exporter headers file |
-
-### Performance Tuning
-
-| Variable                                         | Type   | Default | Description                         |
-| ------------------------------------------------ | ------ | ------- | ----------------------------------- |
-| `OTEL_BATCH_LOG_PROCESSOR_SCHEDULED_DELAY_MS`    | number | `5000`  | Batch log processor scheduled delay |
-| `OTEL_BATCH_LOG_PROCESSOR_MAX_EXPORT_BATCH_SIZE` | number | `512`   | Max export batch size               |
-| `OTEL_TRACING_SAMPLING_RATE_DENOMINATOR`         | number | `1000`  | Tracing sampling rate denominator   |
+| Variable                                   | Type   | Default | Description                         |
+| ------------------------------------------ | ------ | ------- | ----------------------------------- |
+| `AR_IO_SQLITE_BACKUP_S3_BUCKET_NAME`       | string | -       | S3 bucket name for SQLite backups   |
+| `AR_IO_SQLITE_BACKUP_S3_BUCKET_REGION`     | string | -       | S3 bucket region for SQLite backups |
+| `AR_IO_SQLITE_BACKUP_S3_BUCKET_ACCESS_KEY` | string | -       | S3 access key for SQLite backups    |
+| `AR_IO_SQLITE_BACKUP_S3_BUCKET_SECRET_KEY` | string | -       | S3 secret key for SQLite backups    |
+| `AR_IO_SQLITE_BACKUP_S3_BUCKET_PREFIX`     | string | -       | S3 prefix for SQLite backups        |
 
 ## Image Tags
 
-### Service Images
+Each service's image tag can be overridden. The defaults change with each release, so they are not listed here: they are in [`docker-compose.yaml` on `main`](https://github.com/ar-io/ar-io-node/blob/main/docker-compose.yaml).
 
-| Variable                           | Type   | Default                                    | Description                      |
-| ---------------------------------- | ------ | ------------------------------------------ | -------------------------------- |
-| `ENVOY_IMAGE_TAG`                  | string | `4789af164fcd3029a65a1d6739f2d9026567206e` | Envoy image tag                  |
-| `CORE_IMAGE_TAG`                   | string | `3a793c6ee06f5e1df56920fc70184b213ceb8c6e` | Core image tag                   |
-| `OBSERVER_IMAGE_TAG`               | string | `e5f6ae36fd6eea04be5ebba2624f8ecc08db4ea0` | Observer image tag               |
-| `LITESTREAM_IMAGE_TAG`             | string | `be121fc0ae24a9eb7cdb2b92d01f047039b5f5e8` | Litestream image tag             |
-| `CLICKHOUSE_AUTO_IMPORT_IMAGE_TAG` | string | `79792e1b549f64edad3e338769949fd9bffa62db` | ClickHouse auto-import image tag |
+| Variable                           | Type   | Default                   | Description                                            |
+| ---------------------------------- | ------ | ------------------------- | ------------------------------------------------------ |
+| `CORE_IMAGE_TAG`                   | string | see `docker-compose.yaml` | Core image tag, also used by the `index-swarm` sidecar |
+| `ENVOY_IMAGE_TAG`                  | string | see `docker-compose.yaml` | Envoy image tag                                        |
+| `OBSERVER_IMAGE_TAG`               | string | see `docker-compose.yaml` | Observer image tag                                     |
+| `REDIS_IMAGE_TAG`                  | string | see `docker-compose.yaml` | Redis image tag                                        |
+| `CLICKHOUSE_IMAGE_TAG`             | string | see `docker-compose.yaml` | ClickHouse image tag                                   |
+| `CLICKHOUSE_AUTO_IMPORT_IMAGE_TAG` | string | see `docker-compose.yaml` | ClickHouse auto-import image tag                       |
+| `LITESTREAM_IMAGE_TAG`             | string | see `docker-compose.yaml` | Litestream image tag                                   |
 
-## Additional Paths
-
-### Data Directories
-
-| Variable               | Type   | Default             | Description             |
-| ---------------------- | ------ | ------------------- | ----------------------- |
-| `CHUNKS_DATA_PATH`     | string | `./data/chunks`     | Path to chunks data     |
-| `CONTIGUOUS_DATA_PATH` | string | `./data/contiguous` | Path to contiguous data |
-| `HEADERS_DATA_PATH`    | string | `./data/headers`    | Path to headers data    |
-| `SQLITE_DATA_PATH`     | string | `./data/sqlite`     | Path to SQLite data     |
-| `DUCKDB_DATA_PATH`     | string | `./data/duckdb`     | Path to DuckDB data     |
-| `TEMP_DATA_PATH`       | string | `./data/tmp`        | Path to temporary data  |
-| `LMDB_DATA_PATH`       | string | `./data/lmdb`       | Path to LMDB data       |
-| `PARQUET_DATA_PATH`    | string | `./data/parquet`    | Path to Parquet data    |
-| `REDIS_DATA_PATH`      | string | `./data/redis`      | Path to Redis data      |
-| `CLICKHOUSE_DATA_PATH` | string | `./data/clickhouse` | Path to ClickHouse data |
-| `CLICKHOUSE_LOGS_PATH` | string | `./logs/clickhouse` | Path to ClickHouse logs |
-| `REPORTS_DATA_PATH`    | string | `./data/reports`    | Path to reports data    |
-| `WALLETS_PATH`         | string | `./wallets`         | Path to wallets         |
+`INDEX_EXPORT_IMAGE_TAG` (Release 85) is under [Building Bands](#building-bands-release-85).
 
 ## Usage Notes
 
@@ -622,7 +549,6 @@ When none of the above are set, uploads fall back to the observer key, then the 
 - JSON values should be valid JSON strings
 - Path values should be absolute or relative to the project root
 - Some variables are only used in specific deployment scenarios (e.g., ClickHouse, Litestream)
-- Image tags can be updated to use different versions of the services
 - Data paths can be customized based on your storage requirements
 
 ## Configuration Examples
@@ -631,13 +557,10 @@ When none of the above are set, uploads fall back to the observer key, then the 
 
 ```bash
 # Core configuration
-NODE_ENV=production
-LOG_LEVEL=info
-PORT=4000
+CORE_LOG_LEVEL=info
 ADMIN_API_KEY=your-admin-key-here
 
 # Network configuration
-TRUSTED_NODE_URL=https://turbo-gateway.com
 TRUSTED_GATEWAY_URL=https://turbo-gateway.com
 
 # Data paths
@@ -650,9 +573,7 @@ SQLITE_DATA_PATH=/data/sqlite
 
 ```bash
 # Core configuration
-NODE_ENV=production
-LOG_LEVEL=info
-PORT=4000
+CORE_LOG_LEVEL=info
 ADMIN_API_KEY=your-admin-key-here
 
 # ClickHouse configuration
@@ -669,16 +590,12 @@ ANS104_DOWNLOAD_WORKERS=5
 
 ### Gateway with Redis Caching
 
-```bash
-# Core configuration
-NODE_ENV=production
-LOG_LEVEL=info
-PORT=4000
-ADMIN_API_KEY=your-admin-key-here
+Under Docker Compose, the chain cache and the ArNS cache already use the bundled Redis. Outside Docker:
 
+```bash
 # Redis configuration
 CHAIN_CACHE_TYPE=redis
-REDIS_CACHE_URL=redis://redis:6379
+REDIS_CACHE_URL=redis://localhost:6379
 REDIS_USE_TLS=false
 REDIS_CACHE_TTL_SECONDS=28800
 
@@ -686,5 +603,3 @@ REDIS_CACHE_TTL_SECONDS=28800
 ARNS_ROOT_HOST=your-domain.com
 ARNS_CACHE_TYPE=redis
 ```
-
-This comprehensive reference should help you configure your ar.io Gateway with the appropriate environment variables for your specific use case.
