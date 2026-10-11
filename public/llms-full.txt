@@ -23544,7 +23544,7 @@ Ar.io builds on Arweave's permanent storage to create a decentralized, scalable 
 
 - **Decentralized Gateways**: ar.io operates a network of gateways—nodes that serve as entry points to Arweave’s data. These gateways fetch and deliver data quickly, supporting everything from static files to dynamic web apps.
 
-- **ArNS (Ar.io Name System)**: ar.io introduces decentralized domain names (e.g., yourname.arweave), mapping human-readable names to Arweave’s data IDs. This makes content easy to find and share, like URLs on the traditional web.
+- **ArNS (ar.io Name System)**: ar.io introduces decentralized domain names (e.g., yourname.ar.io), mapping human-readable names to Arweave’s data IDs. This makes content easy to find and share, like URLs on the traditional web.
 
 - **Indexing and Querying**: ar.io enables efficient data indexing, allowing developers to search and retrieve specific content from Arweave’s vast storage without scanning the entire blockweave.
 
@@ -23599,7 +23599,7 @@ Arweave is like Bitcoin, but for data. It solves one problem really well: **stor
 
 - **Blockweave Architecture**: Unlike a blockchain's single chain, Arweave's blockweave links each new data block to the previous one and a random older block. Data is split into 256 KiB chunks in a secure Merkle tree, ensuring miners keep all data to add new blocks.
 
-- **Succinct Proofs of Random Access (SPoRA)**: Miners prove they store multiple data copies by accessing random chunks, verified efficiently with Verifiable Delay Functions (VDFs). This combines proof-of-work and proof-of-storage, making data loss nearly impossible.
+- **Succinct Proofs of Random Access (SPoRA)**: Miners prove they store data by producing randomly chosen chunks along with their Merkle proofs. A Verifiable Delay Function (VDF) acts as a clock that limits how many attempts each stored partition gets, so mining power comes from storing more data rather than hashing faster. This combines proof-of-work and proof-of-storage, making data loss nearly impossible.
 
 **In Simple Terms**: Picture a library where new books reference older ones, and librarians must keep every book to add more. SPoRA ensures they prove they’ve got the books, keeping your data safe forever.
 
@@ -23615,7 +23615,7 @@ Pay a one-time fee to upload data, and it's stored "forever"—no subscriptions 
 
 ## Practically Unlimited Storage
 
-Arweave can practically store unlimited data, from small files to entire digital archives, without hitting a ceiling. The theoretical limit is 2^256 bytes which for scale is more atoms than there are in the universe.
+Arweave can practically store unlimited data, from small files to entire digital archives, without hitting a ceiling. The theoretical limit is 2^256 bytes, a 78-digit number far beyond any amount of data that could ever be stored.
 
 ### How Does It Work?
 
@@ -25569,7 +25569,7 @@ Gateway operators and delegated stakers can shorten the standard withdrawal dela
 
 At any point during the withdrawal delay, users can expedite access to pending withdrawal tokens by paying a fee based on how much sooner they want to receive their funds. Once triggered, the tokens are returned immediately to the user's wallet.
 
-A gateway's minimum operator stake is not withdrawable while the gateway is active; only excess stake can be placed into withdrawal during normal operation. If a gateway voluntarily leaves the network, the minimum stake becomes an exit vault and can follow the same expedited withdrawal flow. If a gateway is removed for sustained poor performance, the minimum stake is slashed and cannot be recovered.
+A gateway's minimum operator stake is not withdrawable while the gateway is active; only excess stake can be placed into withdrawal during normal operation. If a gateway voluntarily leaves the network, the minimum stake becomes an exit vault. Exit vaults cannot be expedited; they are claimed once the lock expires. If a gateway is removed for sustained poor performance, the minimum stake is slashed and cannot be recovered.
 
 ## Explore Staking
 
@@ -26261,12 +26261,29 @@ This is ideal when you want infrastructure-level Wayfinder without embedding the
 For most builds, teams use the "preferred with fallback" pattern. This routing strategy prioritizes your preferred gateway but automatically falls back to other gateways in the network if needed:
 
 ```typescript
+import {
+  createWayfinderClient,
+  FastestPingRoutingStrategy,
+  NetworkGatewaysProvider,
+  PreferredWithFallbackRoutingStrategy,
+} from '@ar.io/wayfinder-core';
 
-const wayfinder = new createWayfinderClient({
-  ario: ARIO.mainnet(),
-  verification: 'hash',
-  routing: 'preferred',
-  preferredGateway: 'ar-io.net',
+const ario = ARIO.init({
+  rpc: createSolanaRpc('https://api.mainnet-beta.solana.com'),
+});
+
+const wayfinder = createWayfinderClient({
+  routingSettings: {
+    strategy: new PreferredWithFallbackRoutingStrategy({
+      preferredGateway: 'https://ar-io.net',
+      fallbackStrategy: new FastestPingRoutingStrategy({
+        gatewaysProvider: new NetworkGatewaysProvider({ ario }),
+      }),
+    }),
+  },
+  verificationSettings: {
+    enabled: true, // hash verification, see below
+  },
 });
 ```
 
@@ -26285,9 +26302,18 @@ While verification is optional, it's strongly encouraged when fetching from gate
 
 const wayfinder = createWayfinderClient({
   //...other settings,
-  verification: 'hash', // hash based verification
+  verificationSettings: {
+    enabled: true,
+    // hash-based verification against gateways you trust
+    strategy: new HashVerificationStrategy({
+      trustedGateways: [new URL('https://turbo-gateway.com')],
+    }),
+    strict: true, // fail the request if verification fails
+  },
 });
 ```
+
+Verification is off by default. With `enabled: true` and no `strategy`, Wayfinder uses hash verification against turbo-gateway.com.
 
 Verification ensures you're receiving authentic content regardless of which gateway serves it.
 
@@ -26299,7 +26325,7 @@ Enable telemetry to understand how Wayfinder performs across gateways:
 
 const wayfinder = createWayfinderClient({
   //...other settings,
-  telemetry: {
+  telemetrySettings: {
       enabled: true,
       sampleRate: 0.1, // sample 10% of requests
       apiKey: 'your-api-key', // optional
@@ -26317,23 +26343,11 @@ Here's a complete example using wayfinder-react:
 
 ```tsx
 
-// Configure Wayfinder
-const wayfinderConfig = {
-  gatewaysProvider: new NetworkGatewaysProvider({
-    ario: ARIO.mainnet(),
-  }),
-  routingSettings: {
-    // use the fastest pinging strategy to select the fastest gateway for requests
-    strategy: new FastestPingRoutingStrategy({
-      timeoutMs: 1000,
-    }),
-  }
-  verificationSettings: {
-    enabled: false
-  }
-};
+const ario = ARIO.init({
+  rpc: createSolanaRpc('https://api.mainnet-beta.solana.com'),
+});
 
-// Wrap your app
+// Wrap your app; WayfinderProvider takes the same options as createWayfinderClient
 function App() {
   return (
 
@@ -35306,7 +35320,7 @@ const wayfinder = new Wayfinder({
 
 #### HashVerificationStrategy
 
-Verifies data integrity using SHA-256 hash comparison. This is the default verification strategy and is recommended for most users looking for a balance between security and performance.
+Verifies data integrity using SHA-256 hash comparison. Verification is off by default; if you enable it without choosing a strategy, Wayfinder uses this one, checking hashes against turbo-gateway.com. It is recommended for most users looking for a balance between security and performance.
 
 ```javascript
 
