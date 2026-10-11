@@ -64,14 +64,31 @@ This is ideal when you want infrastructure-level Wayfinder without embedding the
 For most builds, teams use the "preferred with fallback" pattern. This routing strategy prioritizes your preferred gateway but automatically falls back to other gateways in the network if needed:
 
 ```typescript
-import { createWayfinderClient } from '@ar-io/wayfinder-core';
+import {
+  createWayfinderClient,
+  FastestPingRoutingStrategy,
+  NetworkGatewaysProvider,
+  PreferredWithFallbackRoutingStrategy,
+} from '@ar.io/wayfinder-core';
 import { ARIO } from '@ar.io/sdk';
+import { createSolanaRpc } from '@solana/kit';
 
-const wayfinder = new createWayfinderClient({
-  ario: ARIO.mainnet(),
-  verification: 'hash',
-  routing: 'preferred',
-  preferredGateway: 'ar-io.net',
+const ario = ARIO.init({
+  rpc: createSolanaRpc('https://api.mainnet-beta.solana.com'),
+});
+
+const wayfinder = createWayfinderClient({
+  routingSettings: {
+    strategy: new PreferredWithFallbackRoutingStrategy({
+      preferredGateway: 'https://ar-io.net',
+      fallbackStrategy: new FastestPingRoutingStrategy({
+        gatewaysProvider: new NetworkGatewaysProvider({ ario }),
+      }),
+    }),
+  },
+  verificationSettings: {
+    enabled: true, // hash verification, see below
+  },
 });
 ```
 
@@ -87,13 +104,22 @@ For detailed routing strategy options, see the [routing strategies documentation
 While verification is optional, it's strongly encouraged when fetching from gateways:
 
 ```typescript
-import { createWayfinderClient } from '@ar-io/wayfinder-core';
+import { createWayfinderClient, HashVerificationStrategy } from '@ar.io/wayfinder-core';
 
 const wayfinder = createWayfinderClient({
   //...other settings,
-  verification: 'hash', // hash based verification
+  verificationSettings: {
+    enabled: true,
+    // hash-based verification against gateways you trust
+    strategy: new HashVerificationStrategy({
+      trustedGateways: [new URL('https://turbo-gateway.com')],
+    }),
+    strict: true, // fail the request if verification fails
+  },
 });
 ```
+
+Verification is off by default. With `enabled: true` and no `strategy`, Wayfinder uses hash verification against turbo-gateway.com.
 
 Verification ensures you're receiving authentic content regardless of which gateway serves it.
 
@@ -102,11 +128,11 @@ Verification ensures you're receiving authentic content regardless of which gate
 Enable telemetry to understand how Wayfinder performs across gateways:
 
 ```typescript
-import { createWayfinderClient } from '@ar-io/wayfinder-core';
+import { createWayfinderClient } from '@ar.io/wayfinder-core';
 
 const wayfinder = createWayfinderClient({
   //...other settings,
-  telemetry: {
+  telemetrySettings: {
       enabled: true,
       sampleRate: 0.1, // sample 10% of requests
       apiKey: 'your-api-key', // optional
@@ -123,29 +149,26 @@ This helps teams make data-driven decisions about gateway selection and optimiza
 Here's a complete example using wayfinder-react:
 
 ```tsx
-import { WayfinderProvider, FastestPingRoutingStrategy } from '@ar-io/wayfinder-react';
+import { WayfinderProvider, useWayfinderUrl } from '@ar.io/wayfinder-react';
+import { FastestPingRoutingStrategy, NetworkGatewaysProvider } from '@ar.io/wayfinder-core';
 import { ARIO } from '@ar.io/sdk';
+import { createSolanaRpc } from '@solana/kit';
 
-// Configure Wayfinder
-const wayfinderConfig = {
-  gatewaysProvider: new NetworkGatewaysProvider({
-    ario: ARIO.mainnet(),
-  }),
-  routingSettings: {
-    // use the fastest pinging strategy to select the fastest gateway for requests
-    strategy: new FastestPingRoutingStrategy({
-      timeoutMs: 1000,
-    }),
-  }
-  verificationSettings: {
-    enabled: false
-  }
-};
+const ario = ARIO.init({
+  rpc: createSolanaRpc('https://api.mainnet-beta.solana.com'),
+});
 
-// Wrap your app
+// Wrap your app; WayfinderProvider takes the same options as createWayfinderClient
 function App() {
   return (
-    <WayfinderProvider config={wayfinderConfig}>
+    <WayfinderProvider
+      gatewaysProvider={new NetworkGatewaysProvider({ ario })}
+      routingSettings={{
+        // use the fastest pinging strategy to select the fastest gateway for requests
+        strategy: new FastestPingRoutingStrategy({ timeoutMs: 1000 }),
+      }}
+      verificationSettings={{ enabled: false }}
+    >
       <YourApp />
     </WayfinderProvider>
   );
