@@ -115,7 +115,7 @@ See what it would change first, then run it for real:
 ./tools/index-swarm-setup --subscribe 34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7h5 --torrent --restart
 ```
 
-This subscribes to the publisher's root transaction index, points your gateway at the installed bands, puts `cdb` right after `db` in the lookup order, generates the torrent engine's password, and restarts only what needs it, by service name. Leave out `--torrent` to move bands over HTTP only.
+This subscribes to the publisher's root transaction index, points your gateway at the installed bands, puts `cdb` right after `db` in the lookup order, generates the torrent engine's password, and restarts only what needs it, by service name. Leave out `--torrent` to move bands over HTTP only. Add `--l1` to take the publisher's L1 bands too and fill your gateway's L1 history from them; see [Take L1 Bands](#take-l1-bands-parquet-l1).
 
 </Step>
 
@@ -160,22 +160,22 @@ The status script's `CDB64 lookups ... found X of Y` line shows how many root tr
   the publisher. Release 85 is not released yet.
 </Callout>
 
-A publisher can also offer **L1 bands**: the Arweave base layer (blocks, transactions, tags and wallets) in Parquet, one height range per band. Your gateway doesn't read them. They are for two jobs:
+A publisher can also offer **L1 bands**: the Arweave base layer (blocks, transactions, tags and wallets) in Parquet, one height range per band. Your gateway doesn't serve lookups from them. They are for two jobs:
 
-- Bootstrapping a new gateway's L1 index with `index-l1-import`, instead of indexing the chain block by block. See [Bootstrap from L1 Bands](/build/run-a-gateway/manage/index-snapshots#bootstrap-from-l1-bands).
+- Filling your gateway's L1 history while it runs, instead of indexing the chain block by block. See [Bootstrap from L1 Bands](/build/run-a-gateway/manage/index-snapshots#bootstrap-from-l1-bands).
 - Analytics: query the installed files with DuckDB or Polars, or read them over HTTP. See [Reading Shared Indexes](/build/advanced/index-publications).
 
-A subscription takes L1 bands only when it names them. The setup script subscribes to root-TX bands only, so add the name by hand:
+A subscription takes L1 bands only when it names them. Add `--l1` to the setup script:
 
 ```bash
-INDEX_SWARM_SUBSCRIBE='[{"publisher":"34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7h5","name":["root-tx-index","parquet-l1"]}]'
+./tools/index-swarm-setup --subscribe 34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7h5 --l1 --torrent --restart
 ```
 
-The whole chain is 24 L1 bands, about 15 GB more disk. They share `INDEX_SWARM_MAX_DISK_BYTES` with root-TX bands, so raise the budget too, for example with `--max-disk-gib 100`. Then restart the sidecar by name, with your compose `-f` files:
+It adds `parquet-l1` to the subscription's `name` list and sets `L1_BAND_IMPORT_ENABLED=true`, so your gateway fills its L1 history from the bands while it runs, and restarts core. The whole chain is 24 L1 bands, about 15 GB more disk. They share `INDEX_SWARM_MAX_DISK_BYTES` with root-TX bands, so the script also sets the budget to 100 GiB if it is unset, and warns if yours is lower.
 
-```bash
-docker compose --profile index-swarm up -d --no-deps index-swarm
-```
+On a new gateway, run it before the first start, and leave `START_HEIGHT` unset: with an empty `core.db`, the gateway then follows the chain tip from the start, and the history beneath arrives as the bands do. On a gateway that already runs, it fills whatever is missing beneath what the gateway indexed itself.
+
+Taking `parquet-l1` off the subscription retires its bands. History already filled from them stays in `core.db`.
 
 ## Publish Your Indexes
 
@@ -377,6 +377,7 @@ The script edits `.env` and nothing else, unless given `--restart`.
 | `--public-host <addr>` | Sets `INDEX_SWARM_ENGINE_PUBLIC_HOST`. From Release 85 it works on its own; on Release 84, pass it with `--torrent` |
 | `--engine-port <n>` | Sets `INDEX_SWARM_ENGINE_PORT` (default 6881). From Release 85 it works on its own; on Release 84, pass it with `--torrent` |
 | `--public-url <origin>` | Release 85. The gateway's public origin, such as `https://gateway.example`, for the tracker URL. Defaults to `INDEXES_PUBLIC_URL`, then `https://<ARNS_ROOT_HOST>`. To change the feeds' origin too, set `INDEXES_PUBLIC_URL` |
+| `--l1` | Release 85. With `--subscribe`: takes the publisher's L1 bands as well (`"name": ["root-tx-index", "parquet-l1"]`) and sets `L1_BAND_IMPORT_ENABLED=true`, so the gateway fills its L1 history from them while it runs; restarts core. Sets the disk budget to 100 GiB if unset, and warns if an existing one is lower |
 | `--max-disk-gib <n>` | Sets `INDEX_SWARM_MAX_DISK_BYTES`. Works on its own too, to change an existing subscriber's budget |
 | `--no-gateway` | Leaves `CDB64_ROOT_TX_INDEX_SOURCES` and `ROOT_TX_LOOKUP_ORDER` alone |
 | `--dry-run` | Shows the changes and writes nothing |
@@ -394,7 +395,7 @@ The status script is read-only. It runs inside the sidecar, so it sees exactly w
 - that the sidecar is up and the gateway's release is new enough
 - per publisher: the sequence accepted and its age, any `signature_failed`, `replayed` or `verify_failed`, and failed downloads
 - installed bands and their size, and bands skipped or nearly skipped for the disk budget
-- that the gateway reads the installed directory, has every installed root-TX band loaded, and sends lookups to them. It compares root-TX bands only, since the gateway never loads L1 bands
+- that the gateway reads the installed directory, has every installed root-TX band loaded, and sends lookups to them. It compares root-TX bands only, since the gateway doesn't load L1 bands as an index
 - publishing: the document served, its expiry, and how many bands seed
 - the torrent engine: that it answers, whether any peer has connected in (so a closed port shows), and the day's upload against the budget
 - from Release 85, `index-export`: that it answers, when each kind of band last succeeded, retries, and rejected bands, for root-TX and L1 bands
@@ -416,6 +417,14 @@ INDEX_SWARM_ENGINE_AUTH=swarm:<generated>   # only for BitTorrent: at least 16 c
 The installed bands go **first** in `CDB64_ROOT_TX_INDEX_SOURCES`, so a fresh band answers before the older shipped indexes. The three `resources/` entries are the shipped default; keep them to go on searching them, or leave them off, since each lookup against them fetches from Arweave and a subscribed set that covers the whole chain makes them redundant.
 
 `ROOT_TX_LOOKUP_ORDER` matters most. By default, `cdb` is asked last, after every network source, so your gateway would barely use the bands it downloaded. Drop `hyperbeam` unless you run the `hb` profile.
+
+With `--l1` (Release 85), the subscription names L1 bands as well, the budget is larger, and core fills its history from them:
+
+```bash
+INDEX_SWARM_SUBSCRIBE='[{"publisher":"34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7h5","name":["root-tx-index","parquet-l1"]}]'
+INDEX_SWARM_MAX_DISK_BYTES=107374182400   # 100 GiB
+L1_BAND_IMPORT_ENABLED=true
+```
 
 Then restart by service name, with the same `-f` files your gateway was started with:
 
@@ -631,7 +640,7 @@ docker compose --profile index-swarm rm -f index-swarm
 
 With the torrent engine, also stop and remove `index-swarm-engine` and `index-swarm-engine-init` (profile `index-swarm-torrent`), then delete `data/indexes/swarm/`, `data/indexes/torrents/` and `data/index-swarm-engine/`. Remove `INDEX_SWARM_ENGINE_AUTH` from `.env` too: while it is set, the sidecar expects the engine and warns that it is not answering.
 
-- **On a subscriber**, restore your previous `CDB64_ROOT_TX_INDEX_SOURCES` and restart the gateway, then delete `data/indexes/installed/`. In that order, so the gateway is no longer holding the files open.
+- **On a subscriber**, restore your previous `CDB64_ROOT_TX_INDEX_SOURCES`, remove `L1_BAND_IMPORT_ENABLED` if it was set, and restart the gateway, then delete `data/indexes/installed/`. In that order, so the gateway is no longer holding the files open. L1 history already filled from bands stays in `core.db`.
 - **On a publisher**, delete `data/indexes/published/publication.json`. The gateway stops serving the routes on its next request, without a restart. The band directories can then go too. From Release 85, also stop and remove `index-export` (profile `index-export`); it writes its bands as root, so removing them takes `sudo`.
 
 ## Related

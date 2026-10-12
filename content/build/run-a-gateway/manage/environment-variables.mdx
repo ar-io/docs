@@ -192,8 +192,12 @@ Settings for the `index-export` service (compose profile `index-export`), which 
 | Variable                         | Type    | Default    | Description                        |
 | -------------------------------- | ------- | ---------- | ---------------------------------- |
 | `START_WRITERS`                  | boolean | `true`     | Enable indexing processes          |
-| `START_HEIGHT`                   | number  | `0`        | Starting block height for indexing |
+| `START_HEIGHT`                   | number  | `0`        | Starting block height for indexing. With `L1_BAND_IMPORT_ENABLED=true` and an empty `core.db`, leaving it unset starts at the chain tip instead, and the history beneath comes from L1 bands |
 | `STOP_HEIGHT`                    | number  | `Infinity` | Stopping block height for indexing |
+| `L1_BAND_IMPORT_ENABLED`         | boolean | `false`    | Release 85. Fill this gateway's L1 history (`core.db`) from installed `parquet-l1` bands while it runs. Writes only heights `core.db` lacks beneath what the block importer writes itself, in short transactions, so the gateway keeps indexing and serving. Needs the `index-swarm` sidecar subscribed to `parquet-l1`; `./tools/index-swarm-setup --subscribe <publisher> --l1` sets both. See [Bootstrap from L1 Bands](/build/run-a-gateway/manage/index-snapshots#bootstrap-from-l1-bands) |
+| `L1_BAND_IMPORT_BANDS_DIR`       | string  | `data/indexes/installed/parquet-l1` | Release 85. Where the sidecar installs `parquet-l1` bands, as core sees it |
+| `L1_BAND_IMPORT_INTERVAL_SECONDS` | number | `600`      | Release 85. Seconds between fill runs, counted from the end of the last. A run with nothing to fill writes nothing |
+| `L1_BAND_IMPORT_CACHE_MIB`       | number  | `512`      | Release 85. SQLite page cache for a fill run, in MiB. The run is a child process of core, so this is memory beside the gateway's own |
 | `SKIP_CACHE`                     | boolean | `false`    | Bypass header cache                |
 | `SIMULATED_REQUEST_FAILURE_RATE` | number  | `0`        | Rate of simulated request failures |
 
