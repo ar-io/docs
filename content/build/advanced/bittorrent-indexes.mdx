@@ -150,13 +150,13 @@ Open the **RSS Downloader** and add a rule with nothing in "Must contain". Apply
 </Step>
 </Steps>
 
-Every band in the feed is added at once. qBittorrent downloads them all together unless torrent queueing is on (**Options → BitTorrent → Torrent Queueing**, three at a time by default; the official Docker image turns it on). Each band lands in its own folder, named after its torrent (16 hex characters), not its band id. The folder's `band.json` says which heights it holds.
+Every band in the feed is added at once. qBittorrent downloads them all together unless torrent queueing is on (**Options → BitTorrent → Torrent Queueing**), which lets only a few be active at a time. Each band lands in its own folder, named after its torrent (16 hex characters), not its band id. The folder's `band.json` says which heights it holds.
 
 **Where the bytes come from.** The `.torrent` a gateway serves names that gateway as a WebSeed, so your client can finish a band even with no seeders, as long as the gateway still offers the band. The client uses the WebSeed alongside peers from the start, not only when they stall, so expect a good share of each band to come over HTTPS from the gateway, through its rate limits and x402 if it meters. Past its allowance, your client is answered `429` or `402`, backs off the WebSeed, and goes on with peers. Either way, the client checks every piece against the torrent's hashes.
 
 **Keeping up.** Bands are replaced: the tip band is rebuilt each day, and a finished range of heights replaces the smaller bands beneath it. Your client keeps old folders beside new ones. For L1 bands, delete a folder whose `heightRange` lies inside another folder's, and of two with the same `heightRange`, keep the later layout (`schema`). Root-TX bands overlap by design, so this doesn't apply to them. A band that leaves the feed before your client has it is gone: remove that torrent, since its replacement is in the feed. The feed isn't metered and asks to be polled at most every 30 minutes.
 
-The feed is a view of the signed publication, not a second authority. Check what you downloaded as below. For L1 bands, `index-l1-verify` also checks them against the chain's own commitments, with only Docker and a core image from Release 85 or later:
+The feed is a view of the signed publication, not a second authority. Check what you downloaded as below. For L1 bands, once you have dropped the replaced folders as above, `index-l1-verify` also checks that they form one consistent chain (block links, `hash_list_merkle`, `tx_root`), with only Docker and a core image from Release 85 or later. Add `--anchor-from` with independent Arweave nodes to tie the top of that chain to block hashes they agree on:
 
 ```bash
 IMAGE=ghcr.io/ar-io/ar-io-core:latest   # Release 85 or later

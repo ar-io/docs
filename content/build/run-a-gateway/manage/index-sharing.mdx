@@ -173,7 +173,7 @@ A subscription takes L1 bands only when it names them. Add `--l1` to the setup s
 
 It adds `parquet-l1` to the subscription's `name` list and sets `L1_BAND_IMPORT_ENABLED=true`, so your gateway fills its L1 history from the bands while it runs, and restarts core. The whole chain is 24 L1 bands, about 15 GB more disk. They share `INDEX_SWARM_MAX_DISK_BYTES` with root-TX bands, so the script also sets the budget to 100 GiB if it is unset, and warns if yours is lower.
 
-On a new gateway, run it before the first start, and leave `START_HEIGHT` unset: with an empty `core.db`, the gateway then follows the chain tip from the start, and the history beneath arrives as the bands do. On a gateway that already runs, it fills whatever is missing beneath what the gateway indexed itself.
+On a new gateway, run it before the first start, without `--restart` (on a gateway that isn't running, `--restart` would start core and the sidecar alone), then start the gateway as usual with `--profile index-swarm` added, and leave `START_HEIGHT` unset: with an empty `core.db`, the gateway then follows the chain tip from the start, and the history beneath arrives as the bands do. On a gateway that already runs, it fills whatever is missing beneath what the gateway indexed itself.
 
 Taking `parquet-l1` off the subscription retires its bands. History already filled from them stays in `core.db`.
 
@@ -250,7 +250,7 @@ See what it would change first, then write it to `.env`, without restarting yet:
 - `--start-height` is the lowest height `index-export` builds. Choose the lowest height your index holds data items for.
 - `INDEX_EXPORT_HEADER_CHECK_URL` is the gateway `index-export` checks a sample of each band against before publishing. The script sets it to `https://turbo-gateway.com`; pass `--header-check-url http://core:4000` only if your own gateway holds the root transactions' data.
 - `--public-host` is where peers reach this node's torrent engine.
-- Peers announce to your tracker through the gateway itself, at `https://<ARNS_ROOT_HOST>/ar-io/indexes/announce`. Pass `--public-url` to name another origin.
+- Peers announce to your tracker through the gateway itself, at `<origin>/ar-io/indexes/announce`, where the origin is `--public-url`, else `INDEXES_PUBLIC_URL`, else `https://<ARNS_ROOT_HOST>`.
 
 </Step>
 
@@ -287,7 +287,7 @@ With `--torrent`, open 6881, TCP and UDP, to the internet. See [Ports](#ports).
 
 The tracker needs no port of its own. Peers announce to it through your gateway, at `https://<your-gateway>/ar-io/indexes/announce`, and Envoy forwards that path to the sidecar's second tracker listener on port 6970, which is never published. The route is Envoy's, so run the Envoy image from Release 85 or later. An older Envoy passes the path to core, which answers `404`, so every announce fails without an error.
 
-If the script has no public URL for your gateway (no `--public-url`, `INDEXES_PUBLIC_URL` or `ARNS_ROOT_HOST`), it writes the direct tracker port instead, `http://<public host>:6969/announce`, and says to open 6969 (TCP). Open 6969 only if peers announce to it directly.
+If the script has no public URL for your gateway (no `--public-url`, `INDEXES_PUBLIC_URL` or `ARNS_ROOT_HOST`) but has a public host (`--public-host` or `INDEX_SWARM_ENGINE_PUBLIC_HOST`), it writes the tracker's own port instead, `http://<public host>:<INDEX_SWARM_TRACKER_PORT>/announce` (6969 by default), and that port must be open (TCP). With neither, it writes no tracker and warns. An existing `INDEX_SWARM_TRACKERS` is always kept.
 
 </Step>
 
@@ -630,7 +630,7 @@ Run `./tools/index-swarm-status` first: it names most problems and their fix.
 
 **No peer has connected in.** Port 6881 is closed somewhere between the internet and the engine. Bands still arrive, from peers and over HTTP, and the peers you connect to can download from you, but peers that can't reach you can't. Open or forward the port if you can; for a subscriber it is optional.
 
-**Announces to `/ar-io/indexes/announce` get `404`.** The route is Envoy's. Either Envoy is older than Release 85, so it passes the path to core, which answers `404`, or a proxy or a fleet pin for `/ar-io/indexes` reaches core (port 4000) instead of Envoy (port 3000). Upgrade the Envoy image with core, and point the proxy at Envoy. Every announce fails without an error, so check it with `curl -s -o /dev/null -w '%{http_code}' https://<your-gateway>/ar-io/indexes/announce`: Envoy's route answers something other than `404`.
+**Announces to `/ar-io/indexes/announce` get `404`.** The route is Envoy's. Either Envoy is older than Release 85, so it passes the path to core, which answers `404`, or a proxy or a fleet pin for `/ar-io/indexes` reaches core (port 4000) instead of Envoy (port 3000). Upgrade the Envoy image with core, and point the proxy at Envoy. Every announce fails without an error, so check it the way the setup script does: `curl -s 'https://<your-gateway>/ar-io/indexes/announce?info_hash=x'` should print a bencoded `failure reason` from the tracker. A `404` means the route doesn't reach Envoy's tracker; a `503` means Envoy has the route but nothing answers on the sidecar's port 6970.
 
 **`Bind for 0.0.0.0:6969 failed: port is already allocated`** (or `6881`). Another program on the host holds the port, so the sidecar (6969) or the engine (6881) can't start. Move the engine with `--engine-port`, or the tracker with `INDEX_SWARM_TRACKER_PORT`, and restart.
 

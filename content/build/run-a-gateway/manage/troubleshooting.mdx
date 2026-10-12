@@ -331,7 +331,7 @@ Observers on the Release 85 observer image check that gateways serve chunks. Eac
 
 The check fails gateways by default (`OFFSET_OBSERVATION_ENFORCEMENT_ENABLED=true`). A failed check fails the observation, like a failed ownership or ArNS check, and the 2-of-3 majority still applies. A check the observer could not judge itself, because its own lookups failed, is reported as `inconclusive` and never fails a gateway.
 
-The report lists each sample under `offsetAssessments`. Each failed sample names its offset and a `failureCategory`:
+The report lists the samples of the observer's best observation of your gateway under `offsetAssessments`. Each failed sample names its offset and a `failureCategory`:
 
 | `failureCategory` | Meaning |
 | --- | --- |
@@ -340,7 +340,7 @@ The report lists each sample under `offsetAssessments`. Each failed sample names
 | `http_status` | The gateway answered with an error status. A `404` means it could not serve the chunk |
 | `invalid_chunk` | The response was not a usable chunk: not JSON, an empty or oversized chunk, or a missing or unreadable `data_path` |
 | `bad_proof` | The `data_path` Merkle proof does not validate against the chain |
-| `unverifiable` | The gateway served a chunk, but the observer could not check it against the chain. This is the observer's failure, not evidence against your gateway |
+| `unverifiable` | The gateway served a chunk, but the observer could not check it against the chain, because its own lookups failed. It never counts as a pass. Only a check whose samples are all `unverifiable` is `inconclusive` and fails no gateway |
 
 To fix it:
 

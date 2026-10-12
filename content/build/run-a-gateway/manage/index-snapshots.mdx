@@ -145,7 +145,7 @@ There are two ways to do it:
 
 With `L1_BAND_IMPORT_ENABLED=true`, core runs `ar-io-node index-l1-import --fill` every 10 minutes (`L1_BAND_IMPORT_INTERVAL_SECONDS`, counted from the end of the last run), as a child process, so a crash in the import can't take the gateway down. A fill writes only the heights `core.db` lacks beneath what the block importer writes itself, so nothing your gateway indexed is rewritten. It writes in short transactions with a pause after each, so the gateway keeps indexing and serving the whole time.
 
-On a new gateway, set this up **before the first start** and leave `START_HEIGHT` unset. With an empty `core.db`, the block importer then starts at the chain tip instead of block 0, and the history beneath it arrives as the bands do.
+On a new gateway, set this up **before the first start** and leave `START_HEIGHT` unset: run the setup script below without `--restart` (on a gateway that isn't running, `--restart` would start core and the sidecar alone), then start the gateway as usual with `--profile index-swarm` added. With an empty `core.db`, the block importer then starts at the chain tip instead of block 0, and the history beneath it arrives as the bands do.
 
 ### Prerequisites
 
