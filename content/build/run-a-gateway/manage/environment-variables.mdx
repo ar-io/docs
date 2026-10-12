@@ -69,6 +69,11 @@ If `OBSERVER_KEYPAIR_PATH` or `OBSERVER_PRIVATE_KEY` is set, the observer's Ed25
 | `CHUNK_POST_MIN_SUCCESS_COUNT`   | number | `3`     | Min successful chunk posts required |
 | `CHUNK_POST_RESPONSE_TIMEOUT_MS` | number | -       | Chunk POST response timeout         |
 | `CHUNK_POST_ABORT_TIMEOUT_MS`    | number | -       | Chunk POST abort timeout            |
+| `ARWEAVE_PEER_CHUNK_GET_MAX_PEER_ATTEMPT_COUNT` | number | `8` | Most Arweave peers tried, one after another, to fetch a chunk before giving up. Each attempt is capped at 500 ms. Release 85 raised it from 5 |
+| `PREFERRED_CHUNK_GET_NODE_URLS`  | string | `data-1` to `data-17` and `tip-1` to `tip-4` `.arweave.xyz:1984` | Comma-separated Arweave node URLs tried first for chunk GETs. From Release 85, each gateway orders them by how well each serves it, so set this only to pin specific nodes |
+| `PREFERRED_CHUNK_POST_NODE_URLS` | string | `tip-1` to `tip-4` `.arweave.xyz:1984` | Comma-separated Arweave node URLs chunks are broadcast to first (`POST /chunk`) |
+
+Release 85 removed `tip-5.arweave.xyz` from both default lists. If you set either list yourself, remove it there too.
 
 ### Data Sources
 
@@ -453,6 +458,17 @@ Host directories mounted into the core service. Other services that share a dire
 | `TURBO_UPLOAD_SERVICE_URL`            | string  | -                              | Turbo upload service URL                   |
 | `MIN_RELEASE_NUMBER`                  | number  | `0`                            | Minimum release number                     |
 
+### Offset Checks
+
+The observer's offset (chunk-proof) checks, on the observer image from Release 85 (`8e7f4d53`). Each epoch every observer samples the same share of gateways, and a sampled gateway must serve `/chunk/<offset>` with a Merkle proof that validates against the chain. See [Failed Offset Checks](/build/run-a-gateway/manage/troubleshooting#failed-offset-chunk-proof-checks).
+
+| Variable                                 | Type    | Default | Description |
+| ---------------------------------------- | ------- | ------- | ----------- |
+| `OFFSET_OBSERVATION_ENABLED`             | boolean | `true`  | Run offset checks. `false` samples no gateway, and reports carry no `offsetAssessments` |
+| `OFFSET_OBSERVATION_ENFORCEMENT_ENABLED` | boolean | `true`  | A sampled gateway that fails its offset check fails the observation. `false` records failures in the report without failing gateways |
+| `OFFSET_OBSERVATION_SAMPLE_RATE`         | number  | `0.20`  | Share (0.0 to 1.0) of gateways sampled each epoch. At least one is sampled when it is above 0 |
+| `OFFSET_SAMPLE_COUNT`                    | number  | `4`     | Offsets tried per sampled gateway. The gateway passes on the first offset whose proof validates |
+
 ### Upload Wallet Identities
 
 The observer uploads report bundles to Turbo. The upload signer is resolved from the first matching env in the [precedence chain](/build/run-a-gateway/manage/solana-migration#upload-signing-precedence). Setting envs from more than one chain group at once is rejected at startup.
@@ -536,7 +552,7 @@ Each service's image tag can be overridden. The defaults change with each releas
 | ---------------------------------- | ------ | ------------------------- | ------------------------------------------------------ |
 | `CORE_IMAGE_TAG`                   | string | see `docker-compose.yaml` | Core image tag, also used by the `index-swarm` sidecar |
 | `ENVOY_IMAGE_TAG`                  | string | see `docker-compose.yaml` | Envoy image tag                                        |
-| `OBSERVER_IMAGE_TAG`               | string | see `docker-compose.yaml` | Observer image tag                                     |
+| `OBSERVER_IMAGE_TAG`               | string | see `docker-compose.yaml` | Observer image tag. Release 85 moves the default to `8e7f4d53`, which runs the offset checks. A tag you set in `.env` overrides the compose default, so update it there when you upgrade |
 | `REDIS_IMAGE_TAG`                  | string | see `docker-compose.yaml` | Redis image tag                                        |
 | `CLICKHOUSE_IMAGE_TAG`             | string | see `docker-compose.yaml` | ClickHouse image tag                                   |
 | `CLICKHOUSE_AUTO_IMPORT_IMAGE_TAG` | string | see `docker-compose.yaml` | ClickHouse auto-import image tag                       |
