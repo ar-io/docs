@@ -83,7 +83,7 @@ When observing a gateway, there are three pass/fail tests. A gateway must pass a
 
 - Offsets (chunk proofs): Each epoch, a share of gateways must serve `/chunk/<offset>` with a Merkle proof that validates against the chain. See [Failed Offset (Chunk-Proof) Checks](#failed-offset-chunk-proof-checks).
 
-Each observer checks a gateway 3 times an epoch and passes it if at least 2 of those checks pass (`MAJORITY_VOTE_THRESHOLD`), so one bad moment doesn't fail you.
+By default, each observer checks a gateway 3 times an epoch (`OBSERVATIONS_PER_GATEWAY`) and passes it if at least 2 of those checks pass (`MAJORITY_VOTE_THRESHOLD`), so one bad moment doesn't fail you.
 
 </Accordion>
 
@@ -200,7 +200,7 @@ The ARIO Network provides several tools to help troubleshoot problems with a gat
 
 The Observer, which is a component of every gateway joined to the ARIO Network, checks all gateways in the network to ensure that they are functioning properly, and returning the correct data. The Observer then creates a report of the results of these checks, including the reasons why a gateway might have failed the checks.
 
-Each observer checks a gateway 3 times during an epoch, and reports it as failed if fewer than 2 of those checks pass. If a gateway fails the checks from more than half of the prescribed observers, the gateway is marked as failed for the epoch, and does not receive any rewards for that epoch.
+By default, each observer checks a gateway 3 times during an epoch, and reports it as failed if fewer than 2 of those checks pass. If a gateway fails the checks from more than half of the prescribed observers, the gateway is marked as failed for the epoch, and does not receive any rewards for that epoch.
 
 First, try to resolve data on the failed gateway in a browser. If that does not make the issue clear, use the Observer report to diagnose the problem.
 
