@@ -304,6 +304,19 @@ curl -s https://<your-gateway>/ar-io/info | jq .indexes
 
 A gateway can do both: pass `--subscribe` and `--publish` together. If you run more than one node behind a load balancer, read [Publishing from a Fleet](#publishing-from-a-fleet) before anyone subscribes.
 
+### Feeds and the WebSeed
+
+<Callout type="info">
+  **Release Requirement**: feeds and the served WebSeed require Release 85 or
+  later.
+</Callout>
+
+With torrents on, your gateway also serves an RSS feed of each index's torrents at `/ar-io/indexes/feed/<index>.xml`, and lists the feeds in `/ar-io/info` under `indexes.feeds`. Anyone can then follow your index in an ordinary BitTorrent client; see [Follow a Publisher with RSS](/build/advanced/bittorrent-indexes#follow-a-publisher-with-rss). Each `.torrent` your gateway serves also names your gateway as a WebSeed, so such a client can finish a band nobody is seeding.
+
+Both need your gateway's public origin, `INDEXES_PUBLIC_URL`, which defaults to `https://<ARNS_ROOT_HOST>`. With neither set, the feeds answer `404` and `.torrent` files are served without a WebSeed.
+
+A stock client pulls a good share of every band from the WebSeed even while seeders could serve it. If your gateway doesn't meter its byte routes, that is your core's egress, read from disk and outside the torrent engine's upload limits. Meter the byte routes to bound it, or set `INDEXES_TORRENT_WEBSEED=false` to serve torrents without the WebSeed. Gateways that subscribe to you drop the WebSeed either way, and add yours only when peers stall.
+
 ### What the Daily Run Does
 
 <Callout type="info">
@@ -543,11 +556,11 @@ For BitTorrent:
 1. **One node publishes and seeds.** The signing node, the one `/ar-io/indexes` is sent to, runs the engine and the tracker. The other nodes need neither.
 2. **The peer port reaches that node directly.** BitTorrent is not HTTP, so the load balancer can't carry it. Publish `INDEX_SWARM_ENGINE_PORT` (TCP and UDP) on the node's own public address, make sure the internet reaches it there (Docker-published ports bypass the host firewall; see [Firewalls and Docker ports](#firewalls-and-docker-ports) to restrict them), and set `INDEX_SWARM_ENGINE_PUBLIC_HOST` (`--public-host`) to that address. Otherwise the tracker lists the engine under the host of its tracker URL, which for a fleet is the load balancer.
 3. **The tracker, through the load balancer.** Announce to `https://<gateway>/ar-io/indexes/announce`. The `/ar-io/indexes*` pin sends it to the signing node, whose Envoy forwards it to the tracker, so the pin must reach that node's **Envoy (port 3000)**. Pinned to core (port 4000), announces get `404`. The load balancer and any proxy after it must append `X-Forwarded-For` (`proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`), and any that reach the node from a public address go in `INDEX_SWARM_TRACKER_TRUSTED_PROXIES`. Otherwise every peer appears at the proxy's address and the tracker's per-address limits throttle them together. Publishing `INDEX_SWARM_TRACKER_PORT` on the node's public address and announcing to `http://<that address>:6969/announce` also works.
-4. **The `.torrent`, WebSeed and tracker routes** are under `/ar-io/indexes`, so the pin and the [NGINX block](#behind-nginx) for that prefix already cover them.
+4. **The `.torrent`, WebSeed, feed and tracker routes** are under `/ar-io/indexes`, so the pin and the [NGINX block](#behind-nginx) for that prefix already cover them.
 
 ### Rate Limiting and x402 in a Fleet
 
-Nothing extra to configure. The rate limiter and x402 apply to the byte routes (files by name, by digest, and the WebSeed) the same way they apply to data. The publication and the `.torrent` files are free. Peer-to-peer transfer never touches the gateway; the upload budget bounds it instead. A tracker announce is a few hundred bytes through Envoy to the sidecar, never to core. Because `/ar-io/indexes` goes to one node, all metering happens there, so per-address limits stay consistent even if your nodes don't share a rate limiter.
+Nothing extra to configure. The rate limiter and x402 apply to the byte routes (files by name, by digest, and the WebSeed) the same way they apply to data. The publication, the feeds and the `.torrent` files are free. Peer-to-peer transfer never touches the gateway; the upload budget bounds it instead. A tracker announce is a few hundred bytes through Envoy to the sidecar, never to core. Because `/ar-io/indexes` goes to one node, all metering happens there, so per-address limits stay consistent even if your nodes don't share a rate limiter.
 
 ### Advertising From the Other Nodes
 
@@ -557,6 +570,8 @@ Nothing extra to configure. The rate limiter and x402 apply to the byte routes (
 </Callout>
 
 `/ar-io/info` describes the node that answered, so leave it on every node. A node that doesn't sign has no `indexes` block of its own. Set `INDEXES_ADVERTISE_FROM_URL` on each of those nodes to the signing node's gateway URL. The node then fetches the publication every minute and advertises the same `indexes` block, as long as the signature verifies and the publisher is its own `AR_IO_WALLET`.
+
+It advertises the publication's feeds too, when it has a public origin of its own (`INDEXES_PUBLIC_URL` or `ARNS_ROOT_HOST`). The feeds themselves are served by the signing node that the `/ar-io/indexes*` pin reaches, so give that node a public origin as well.
 
 ### Giving the Other Nodes the Index
 
@@ -590,7 +605,7 @@ Give `/ar-io/indexes` its own uncached location, with no trailing slash, that fo
 | `index_publish_seeding_bands` | On a publisher: bands handed to the engine. Below `index_publish_bands` means some are offered over HTTP only |
 | `index_swarm_tracker_seeding_hosts`, `index_swarm_tracker_seeders` | On a publisher running the tracker: who shares your index. Seeding hosts are the other hosts seeding at least one of your bands, roughly how many gateways share it; seeders are the peers holding a whole band, per band. Both are as peers report them, and peers found only through DHT or peer exchange aren't counted. From Release 85 |
 
-On the gateway, `indexes_requests_total{route,status}` shows who is downloading from you, by route (`publication`, `file`, `blob`, `torrent`, `webseed`), including `402` and `429` from your rate limits.
+On the gateway, `indexes_requests_total{route,status}` shows who is downloading from you, by route (`publication`, `file`, `blob`, `torrent`, `webseed`, and from Release 85 `feed`), including `402` and `429` from your rate limits.
 
 <Callout type="info">
   **Release Requirement**: `index-export` and its metrics require Release 85

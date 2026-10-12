@@ -103,6 +103,68 @@ rm -r bfa9f0269c7b03f8/.pad
 
 To seed after downloading, which helps the next person, drop `--seed-time=0`.
 
+## Follow a Publisher with RSS
+
+<Callout type="info">
+  **Release Requirement**: feeds require Release 85 or later on the
+  publisher's gateway.
+</Callout>
+
+Instead of adding bands one at a time, a BitTorrent client can follow an index and take each new band as it is published. A publisher that offers torrents serves an RSS feed of each index at `/ar-io/indexes/feed/<index>.xml`. Each item is one band offered as a torrent, newest heights first: its enclosure is the band's `.torrent` and its link is the magnet.
+
+A gateway lists its feeds in `/ar-io/info`, under `indexes.feeds`:
+
+```bash
+curl -s https://<gateway>/ar-io/info | jq .indexes.feeds
+```
+
+```json
+{
+  "parquet-l1": "/ar-io/indexes/feed/parquet-l1.xml",
+  "root-tx-index": "/ar-io/indexes/feed/root-tx-index.xml"
+}
+```
+
+The paths are relative to the gateway. `feeds` is there only when the gateway serves feeds, which needs a public origin (`INDEXES_PUBLIC_URL` or `ARNS_ROOT_HOST`). So one `/ar-io/info` request per gateway finds every feed.
+
+<Steps>
+<Step>
+### Turn On RSS in qBittorrent
+
+In **Options → RSS**, turn on fetching RSS feeds and the RSS torrent auto downloader.
+
+</Step>
+
+<Step>
+### Subscribe to the Feed
+
+Choose **View → RSS Reader** (the RSS tab is hidden until you do). Then, on the **RSS** tab, choose **New subscription** and enter the feed's URL, such as `https://<gateway>/ar-io/indexes/feed/parquet-l1.xml`.
+
+</Step>
+
+<Step>
+### Add an Auto-Download Rule
+
+Open the **RSS Downloader** and add a rule with nothing in "Must contain". Apply it to the feed, and set the save path to an empty folder, such as `~/arweave-l1`.
+
+</Step>
+</Steps>
+
+Every band in the feed is added at once. qBittorrent downloads them all together unless torrent queueing is on (**Options → BitTorrent → Torrent Queueing**, three at a time by default; the official Docker image turns it on). Each band lands in its own folder, named after its torrent (16 hex characters), not its band id. The folder's `band.json` says which heights it holds.
+
+**Where the bytes come from.** The `.torrent` a gateway serves names that gateway as a WebSeed, so your client can finish a band even with no seeders, as long as the gateway still offers the band. The client uses the WebSeed alongside peers from the start, not only when they stall, so expect a good share of each band to come over HTTPS from the gateway, through its rate limits and x402 if it meters. Past its allowance, your client is answered `429` or `402`, backs off the WebSeed, and goes on with peers. Either way, the client checks every piece against the torrent's hashes.
+
+**Keeping up.** Bands are replaced: the tip band is rebuilt each day, and a finished range of heights replaces the smaller bands beneath it. Your client keeps old folders beside new ones. For L1 bands, delete a folder whose `heightRange` lies inside another folder's, and of two with the same `heightRange`, keep the later layout (`schema`). Root-TX bands overlap by design, so this doesn't apply to them. A band that leaves the feed before your client has it is gone: remove that torrent, since its replacement is in the feed. The feed isn't metered and asks to be polled at most every 30 minutes.
+
+The feed is a view of the signed publication, not a second authority. Check what you downloaded as below. For L1 bands, `index-l1-verify` also checks them against the chain's own commitments, with only Docker and a core image from Release 85 or later:
+
+```bash
+IMAGE=ghcr.io/ar-io/ar-io-core:latest   # Release 85 or later
+docker run --rm -u "$(id -u):$(id -g)" -v "$HOME/arweave-l1:/bands:ro" \
+  -w /app --entrypoint /nodejs/bin/node "$IMAGE" \
+  /app/dist/cli/cli.js index-l1-verify --bands-dir /bands
+```
+
 ## Check the Download
 
 The client checked every piece against the info hash. That proves you got the torrent the link names. It doesn't prove the files are the publisher's index. For that, check the publication's signature against the key the gateway registry holds for the publisher, then check each file's size and SHA-256 against the publication.
