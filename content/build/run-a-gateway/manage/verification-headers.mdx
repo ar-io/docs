@@ -26,8 +26,8 @@ Every data response from an ar.io gateway includes the following headers:
 | `X-Cache` | `HIT` / `MISS` | Whether the data was served from the gateway's local cache or fetched from the network. |
 
 <Callout type="info">
-  **Release Requirement**: From gateway Release 85, which is not released yet,
-  a response served through an ArNS name carries the `ETag`
+  **Release Requirement**: Requires gateway Release 85 or later. A response
+  served through an ArNS name carries the `ETag`
   `"<digest>.<X-ArNS-Resolved-Id>"`. A `304` then means the same bytes and the
   same resolution, so a cache does not keep an old resolution after the name
   is re-pointed. `/raw`, `/<id>` and the index routes keep the plain digest.
@@ -170,7 +170,7 @@ Only responses containing at least one trust-relevant header are signed. Non-dat
 A range request for a band file answers `206` with `Repr-Digest`, the digest of the whole file, instead of a `Content-Digest` of the bytes sent. The signature covers it, so a signed range is bound to the file it came from.
 
 <Callout type="info">
-  **Release Requirement**: From gateway Release 85, which is not released yet,
+  **Release Requirement**: Requires gateway Release 85 or later.
   `GET /ar-io/offsets/:id` answers are signed too. They carry
   `X-AR-IO-Root-Transaction-Id` and a `Content-Digest` that binds the body.
 </Callout>

@@ -36,7 +36,7 @@ sequenceDiagram
 
 An index is split into **bands**, each covering a range of block heights: older bands rarely change, while the band at the chain tip is rebuilt as new data arrives. A subscriber downloads only the bands it doesn't have, installs the newest first (most lookups are for recent data), and replaces a band without ever pausing lookups.
 
-There are two kinds of band. A **root-TX band** is a [CDB64 index](/build/run-a-gateway/manage/cdb64) that maps a data item to the transaction holding it; this is the kind a gateway loads and answers lookups from. From Release 85, which is not released yet, a publisher can also offer **L1 bands**: the Arweave base layer (blocks, transactions, tags and wallets) in Parquet. A gateway doesn't serve from them. A new gateway imports its L1 index from them instead of indexing the chain block by block, and apps query them in place for analytics.
+There are two kinds of band. A **root-TX band** is a [CDB64 index](/build/run-a-gateway/manage/cdb64) that maps a data item to the transaction holding it; this is the kind a gateway loads and answers lookups from. A publisher on Release 85 or later can also offer **L1 bands**: the Arweave base layer (blocks, transactions, tags and wallets) in Parquet. A gateway doesn't serve from them. A gateway fills its L1 history from them while it runs, instead of indexing the chain block by block, and apps query them in place for analytics.
 
 ### The Publication
 

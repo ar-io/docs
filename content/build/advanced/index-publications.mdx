@@ -177,9 +177,8 @@ The [reference client](https://github.com/ar-io/ar-io-node/blob/develop/docs/ind
 ## Query a Parquet Dataset
 
 <Callout type="info">
-  **Release Requirement**: `parquet-l1` bands come with gateway Release 85,
-  which is not released yet. Some gateways, such as turbo-gateway.com, already
-  publish them from pre-release builds.
+  **Release Requirement**: `parquet-l1` bands require gateway Release 85 or
+  later.
 </Callout>
 
 A `cdb64-root-tx` band answers one question quickly: where is this ID. A `parquet-l1` band answers a different kind: how many, how large, which, over the whole chain. It holds Arweave's base layer as [Apache Parquet](https://parquet.apache.org/), partitioned into bands by block height, so any engine that reads Parquet can query it. No band files to download, no import into a database, and no API to learn. The examples use DuckDB, which installs its own `httpfs` and `json` extensions on first use.
@@ -217,8 +216,8 @@ IDs, addresses, hashes and tag names and values are stored as raw bytes (`BLOB`)
 ### Lookup Files
 
 <Callout type="info">
-  **Release Requirement**: lookup files (layout `l1-3`) come with Release 85,
-  which is not released yet.
+  **Release Requirement**: lookup files (layout `l1-3`) require Release 85 or
+  later.
 </Callout>
 
 From layout `l1-3` (the `schema` in a band's publication `metadata`, and in its `band.json`), a band also holds three lookup files. Parquet has no index, so finding one transaction otherwise means scanning every band's `id` column. A lookup file is derived from the band's tables and sorted by a key, in row groups of 16,384 rows. Parquet keeps each row group's min and max, so a reader holding a key reads the footer, then the one or two row groups that can hold it.
@@ -241,7 +240,7 @@ The keys are unsigned 64-bit integers made one of two ways, which any client can
 | `sha256_64` | `App-Name` | `0xbf6cc2a967f23a82` |
 | `sha256_64` | `ArDrive-App` | `0xa2c30101e8045f65` |
 
-A key is a pointer: two values can share one, so always finish in the table the key points into, as the examples below do. `data_size` and `txs` are carried so a wallet's bytes stored and a tag's count need no table read. A lookup file is listed and signed in the publication like any band file. In a gateway checkout, `./tools/ar-io-node index-l1-verify --bands-dir` (Release 85) checks that it holds exactly what its band's tables give.
+A key is a pointer: two values can share one, so always finish in the table the key points into, as the examples below do. `data_size` and `txs` are carried so a wallet's bytes stored and a tag's count need no table read. A lookup file is listed and signed in the publication like any band file. In a gateway checkout, `./tools/ar-io-node index-l1-verify --bands-dir` (Release 85 or later) checks that it holds exactly what its band's tables give.
 
 <Callout type="info">
   `parquet-l1` is the **base layer only**: Arweave transactions, not the data
@@ -308,8 +307,8 @@ GROUP BY 1 ORDER BY n DESC LIMIT 5;
 ### Find One Transaction
 
 <Callout type="info">
-  **Release Requirement**: this example needs `l1-3` bands, which come with
-  Release 85, not released yet.
+  **Release Requirement**: this example needs `l1-3` bands, which require
+  Release 85 or later.
 </Callout>
 
 Point lookups are what a scan is bad at: finding one ID means reading every band's `id` column. The [lookup files](#lookup-files) turn it into two small reads, first the height from `lookup_tx_id`, then the rows at that height. This is a complete script:
@@ -388,7 +387,7 @@ Querying over HTTP means trusting the server for the bytes it streams you. If th
 - Every band file has a signed SHA-256 in the publication, so a local copy is checkable.
 - `Repr-Digest` is co-signable, so even a `206` carries a signature over the digest of the whole file it came from. A client can confirm which file it is reading bytes out of without fetching all of it.
 
-A `parquet-l1` dataset is also checkable against Arweave itself, independently of the publisher: block linkage, `hash_list_merkle`, `tx_root` and weave accounting can all be recomputed from the rows. In a gateway checkout, `./tools/ar-io-node index-l1-verify --bands-dir` (Release 85) does that over a local copy.
+A `parquet-l1` dataset is also checkable against Arweave itself, independently of the publisher: block linkage, `hash_list_merkle`, `tx_root` and weave accounting can all be recomputed from the rows. In a gateway checkout, `./tools/ar-io-node index-l1-verify --bands-dir` (Release 85 or later) does that over a local copy.
 
 ### Metering
 

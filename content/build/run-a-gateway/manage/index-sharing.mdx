@@ -156,8 +156,8 @@ The status script's `CDB64 lookups ... found X of Y` line shows how many root tr
 ### Take L1 Bands (`parquet-l1`)
 
 <Callout type="info">
-  **Release Requirement**: L1 bands need Release 85 on your gateway and on
-  the publisher. Release 85 is not released yet.
+  **Release Requirement**: L1 bands require Release 85 or later on your
+  gateway and on the publisher.
 </Callout>
 
 A publisher can also offer **L1 bands**: the Arweave base layer (blocks, transactions, tags and wallets) in Parquet, one height range per band. Your gateway doesn't serve lookups from them. They are for two jobs:
@@ -233,8 +233,7 @@ The setup script refuses to publish, and writes nothing, until the key and `AR_I
 
 <Callout type="info">
   **Release Requirement**: `--start-height`, `--header-check-url` and the
-  `index-export` service need Release 85, which is not released yet. On
-  Release 84, put your bands in place [by hand](#by-hand) and run the script
+  `index-export` service require Release 85 or later. On Release 84, put your bands in place [by hand](#by-hand) and run the script
   without those two flags.
 </Callout>
 
@@ -308,8 +307,7 @@ A gateway can do both: pass `--subscribe` and `--publish` together. If you run m
 ### What the Daily Run Does
 
 <Callout type="info">
-  **Release Requirement**: `index-export` needs Release 85, which is not
-  released yet.
+  **Release Requirement**: `index-export` requires Release 85 or later.
 </Callout>
 
 `index-export` first runs about five minutes after it starts, then daily at `INDEX_EXPORT_RUN_AT_UTC` (04:00 UTC by default). It reads your ClickHouse if `CLICKHOUSE_URL` is set, otherwise your SQLite (`INDEX_EXPORT_SOURCES` changes this). Each run:
@@ -330,8 +328,7 @@ If `published/` already holds bands built another way, `index-export` builds not
 ### Publish L1 Bands
 
 <Callout type="info">
-  **Release Requirement**: L1 bands need Release 85, which is not released
-  yet.
+  **Release Requirement**: L1 bands require Release 85 or later.
 </Callout>
 
 `index-export` also builds L1 bands from your `core.db`, if it holds every block from height 0. A gateway that started above it (`START_HEIGHT`) can't build them. Add both lines to `.env`:
@@ -555,8 +552,8 @@ Nothing extra to configure. The rate limiter and x402 apply to the byte routes (
 ### Advertising From the Other Nodes
 
 <Callout type="info">
-  **Release Requirement**: `INDEXES_ADVERTISE_FROM_URL` needs Release 85,
-  which is not released yet.
+  **Release Requirement**: `INDEXES_ADVERTISE_FROM_URL` requires Release 85
+  or later.
 </Callout>
 
 `/ar-io/info` describes the node that answered, so leave it on every node. A node that doesn't sign has no `indexes` block of its own. Set `INDEXES_ADVERTISE_FROM_URL` on each of those nodes to the signing node's gateway URL. The node then fetches the publication every minute and advertises the same `indexes` block, as long as the signature verifies and the publisher is its own `AR_IO_WALLET`.
@@ -596,8 +593,8 @@ Give `/ar-io/indexes` its own uncached location, with no trailing slash, that fo
 On the gateway, `indexes_requests_total{route,status}` shows who is downloading from you, by route (`publication`, `file`, `blob`, `torrent`, `webseed`), including `402` and `429` from your rate limits.
 
 <Callout type="info">
-  **Release Requirement**: `index-export` and its metrics need Release 85,
-  which is not released yet.
+  **Release Requirement**: `index-export` and its metrics require Release 85
+  or later.
 </Callout>
 
 `index-export` serves its own metrics on port `9102` inside its container:
