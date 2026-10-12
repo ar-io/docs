@@ -102,7 +102,7 @@ A band's torrent is built only from its files: their names, sizes and digests. N
 
 A `.torrent` file isn't signed, so a subscriber trusts only the infohashes in the signed publication and re-hashes every file against its signed SHA-256, exactly as over HTTP. [Bands as Torrents](/build/advanced/index-publications#bands-as-torrents) shows these checks.
 
-The torrent engine runs isolated from the rest of the gateway: it can't reach the gateway's other services, and it can't change the bands the gateway serves. A publisher also runs a **closed tracker** that helps peers find each other and answers only for the bands it offers. Peers find one another without it too, through the BitTorrent DHT and peer exchange.
+The torrent engine runs isolated from the rest of the gateway: it can't reach the gateway's other services, and it can't change the bands the gateway serves. A publisher also runs a **closed tracker** that helps peers find each other and answers only for the bands it offers. From Release 85, peers reach it through the publisher's own gateway, at `/ar-io/indexes/announce`, so it needs no port of its own. Peers find one another without it too, through the BitTorrent DHT and peer exchange.
 
 ## What Index Sharing Is Not
 

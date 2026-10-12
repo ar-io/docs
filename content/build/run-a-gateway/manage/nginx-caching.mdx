@@ -689,16 +689,17 @@ Every layer should print `206 100`. The gateway and Envoy are always correct, so
 
 ### Torrent Routes
 
-A gateway that publishes over BitTorrent serves two more routes. Both live under `/ar-io/indexes`, so the block above already covers them, and so do any pin or cache rules you have for that prefix:
+A gateway that publishes over BitTorrent serves more routes. All live under `/ar-io/indexes`, so the block above already covers them, and so do any pin or cache rules you have for that prefix:
 
 | Route | What it serves | `Cache-Control` on success |
 | --- | --- | --- |
 | `/ar-io/indexes/torrents/<v1 infohash>.torrent` | A band's `.torrent` file. Not metered | `public, max-age=86400` |
 | `/ar-io/indexes/webseed/<torrent name>/<file>` | A band file for torrent clients (the WebSeed). Metered like the blob route | As the blob route: `private` when metered, else `public`, `max-age=31536000, immutable` |
+| `/ar-io/indexes/announce` | Release 85. Tracker announces. Envoy forwards them to the sidecar's tracker; core never sees them | `no-store` |
 
-Errors from both are `no-store`, as for every index route.
+Errors from all of them are `no-store`, as for every index route.
 
-The tracker is not a gateway route: it runs in the sidecar, on its own port (6969). To serve it through NGINX or a load balancer, see [Publishing from a Fleet](/build/run-a-gateway/manage/index-sharing#publishing-from-a-fleet).
+From Release 85, peers announce to the tracker through the gateway, at `/ar-io/indexes/announce`, so no tracker port needs opening. The route is Envoy's, so the block's `proxy_pass` must reach Envoy (port 3000, as above), not core (port 4000), and the Envoy image must be from Release 85 or later. Otherwise core gets the path and answers `404`, and every announce fails without an error. Keep the `X-Forwarded-For` line too: the tracker reads each peer's address from it. For a load balancer in front of several nodes, see [Publishing from a Fleet](/build/run-a-gateway/manage/index-sharing#publishing-from-a-fleet).
 
 ## TTL Summary
 

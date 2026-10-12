@@ -47,7 +47,7 @@ graph LR
     subgraph Host ["Your gateway"]
         ENVOY[Envoy :3000]
         CORE[Core Service]
-        SIDE[index-swarm sidecar<br/>publisher · subscriber<br/>tracker :6969]
+        SIDE[index-swarm sidecar<br/>publisher · subscriber<br/>tracker]
         ENG[Torrent engine :6881<br/>own Docker network]
         EXP[index-export]
         DIR[data/indexes]
@@ -63,7 +63,8 @@ graph LR
     SIDE --> ENG
     ENG -->|writes swarm/ only| DIR
     ENG <-->|pieces| PEERS
-    PEERS -->|announce| SIDE
+    PEERS -->|announce to<br/>/ar-io/indexes/announce| ENVOY
+    ENVOY -->|announces, :6970| SIDE
 
     classDef service fill:#10b981,stroke:#059669,stroke-width:2px,color:#fff
     classDef proxy fill:#f59e0b,stroke:#d97706,stroke-width:2px,color:#fff
@@ -187,7 +188,7 @@ Publishing is for gateways that unbundle, so their index holds data items to bui
 - A gateway **registered** in the gateway registry, reachable at its registered URL, on Release 84 or later. The routes that serve bands live in the gateway, not the sidecar
 - Its registered **observer key**, which signs what it publishes
 - For `index-export`: Release 85, and a gateway that unbundles (`ANS104_UNBUNDLE_FILTER`)
-- For BitTorrent: the peer and tracker ports open, and this node's public IP. See [Ports](#ports)
+- For BitTorrent: the peer port open, and this node's public IP. Peers announce to your tracker through your gateway's HTTPS, which needs the Envoy image from Release 85 or later. See [Ports](#ports)
 
 <Steps>
 <Step>
@@ -248,7 +249,8 @@ See what it would change first, then write it to `.env`, without restarting yet:
 
 - `--start-height` is the lowest height `index-export` builds. Choose the lowest height your index holds data items for.
 - `INDEX_EXPORT_HEADER_CHECK_URL` is the gateway `index-export` checks a sample of each band against before publishing. The script sets it to `https://turbo-gateway.com`; pass `--header-check-url http://core:4000` only if your own gateway holds the root transactions' data.
-- `--public-host` is where peers reach this node's torrent engine and its tracker.
+- `--public-host` is where peers reach this node's torrent engine.
+- Peers announce to your tracker through the gateway itself, at `https://<ARNS_ROOT_HOST>/ar-io/indexes/announce`. Pass `--public-url` to name another origin.
 
 </Step>
 
@@ -279,9 +281,13 @@ The first scan reads and hashes every band once, which takes a few minutes for t
 </Step>
 
 <Step>
-### Open the Ports
+### Open the Peer Port
 
-With `--torrent`, open the peer port and the tracker port to the internet. See [Ports](#ports).
+With `--torrent`, open 6881, TCP and UDP, to the internet. See [Ports](#ports).
+
+The tracker needs no port of its own. Peers announce to it through your gateway, at `https://<your-gateway>/ar-io/indexes/announce`, and Envoy forwards that path to the sidecar's second tracker listener on port 6970, which is never published. The route is Envoy's, so run the Envoy image from Release 85 or later. An older Envoy passes the path to core, which answers `404`, so every announce fails without an error.
+
+If the script has no public URL for your gateway (no `--public-url`, `INDEXES_PUBLIC_URL` or `ARNS_ROOT_HOST`), it writes the direct tracker port instead, `http://<public host>:6969/announce`, and says to open 6969 (TCP). Open 6969 only if peers announce to it directly.
 
 </Step>
 
@@ -364,12 +370,13 @@ The script edits `.env` and nothing else, unless given `--restart`.
 | Flag | Effect |
 | --- | --- |
 | `--subscribe <wallet>` | Adds the publisher to `INDEX_SWARM_SUBSCRIBE`. Repeatable; existing entries are kept. Sets `INDEX_SWARM_MAX_DISK_BYTES` to 50 GiB if unset. Puts `data/indexes/installed/root-tx-index` first in `CDB64_ROOT_TX_INDEX_SOURCES`, keeping what was there (or, if unset, the shipped default), and moves `cdb` right after `db` in `ROOT_TX_LOOKUP_ORDER` (if unset: `db,cdb,gateways,graphql`) |
-| `--publish` | Adds `root-tx-index` to `INDEX_SWARM_PUBLISH`. Refuses, writing nothing, without a registered key or `AR_IO_WALLET`. With `--torrent` and a public host, sets `INDEX_SWARM_TRACKERS` to this node's tracker. From Release 85, also sets `INDEX_EXPORT_HEADER_CHECK_URL` (default `https://turbo-gateway.com`) and starts `index-export` |
+| `--publish` | Adds `root-tx-index` to `INDEX_SWARM_PUBLISH`. Refuses, writing nothing, without a registered key or `AR_IO_WALLET`. With `--torrent`, sets `INDEX_SWARM_TRACKERS`, if unset, to this node's tracker: from Release 85, through the gateway, `<public URL>/ar-io/indexes/announce`, or with no public URL, `http://<public host>:6969/announce`. An existing tracker list is kept. From Release 85, also sets `INDEX_EXPORT_HEADER_CHECK_URL` (default `https://turbo-gateway.com`) and starts `index-export` |
 | `--start-height <n>` | Release 85. With `--publish`: sets `INDEX_EXPORT_START_HEIGHT`, the lowest height `index-export` builds |
 | `--header-check-url <url>` | Release 85. With `--publish`: the gateway `index-export` checks sampled headers against |
 | `--torrent` | Generates `INDEX_SWARM_ENGINE_AUTH` if unset (`swarm:` and 48 random hex characters; never printed) |
 | `--public-host <addr>` | Sets `INDEX_SWARM_ENGINE_PUBLIC_HOST`. From Release 85 it works on its own; on Release 84, pass it with `--torrent` |
 | `--engine-port <n>` | Sets `INDEX_SWARM_ENGINE_PORT` (default 6881). From Release 85 it works on its own; on Release 84, pass it with `--torrent` |
+| `--public-url <origin>` | Release 85. The gateway's public origin, such as `https://gateway.example`, for the tracker URL. Defaults to `INDEXES_PUBLIC_URL`, then `https://<ARNS_ROOT_HOST>`. To change the feeds' origin too, set `INDEXES_PUBLIC_URL` |
 | `--max-disk-gib <n>` | Sets `INDEX_SWARM_MAX_DISK_BYTES`. Works on its own too, to change an existing subscriber's budget |
 | `--no-gateway` | Leaves `CDB64_ROOT_TX_INDEX_SOURCES` and `ROOT_TX_LOOKUP_ORDER` alone |
 | `--dry-run` | Shows the changes and writes nothing |
@@ -426,9 +433,11 @@ Without BitTorrent, leave out the `index-swarm-torrent` profile and the two engi
 
 | Port | Who needs it open | What for |
 | --- | --- | --- |
-| Your gateway's HTTP port (via Envoy or NGINX) | Publishers | Serving `/ar-io/indexes`, the band files and the `.torrent` files. Nothing new: it is the port your gateway already serves on |
+| Your gateway's HTTP port (via Envoy or NGINX) | Publishers | Serving `/ar-io/indexes`, the band files and the `.torrent` files, and, from Release 85, tracker announces at `/ar-io/indexes/announce`. Nothing new: it is the port your gateway already serves on |
 | 6881, TCP and UDP (`INDEX_SWARM_ENGINE_PORT`) | Publishers; recommended for subscribers | Peers connecting to your torrent engine. A publisher needs it, since subscribers must reach its engine. A subscriber works without it, but only peers it connects to can download from it |
-| 6969, TCP (`INDEX_SWARM_TRACKER_PORT`) | Publishers of torrents | The closed tracker, where peers find each other. Published on every node, but only a publisher listens |
+| 6969, TCP (`INDEX_SWARM_TRACKER_PORT`) | Only publishers whose peers announce to it directly | The closed tracker's direct port. Peers normally announce through your gateway instead, which needs no port. Published on every node, but only a publisher listens |
+
+From Release 85, Envoy forwards `/ar-io/indexes/announce` to a second tracker listener on the sidecar, `INDEX_SWARM_TRACKER_PROXY_PORT` (6970). That port is never published, so there is nothing to open for it. The route needs the Envoy image from Release 85 or later: an older Envoy passes the path to core, which answers `404`.
 
 Outbound, the sidecar needs HTTPS to each publisher's gateway, and the torrent engine needs to reach peers anywhere on the internet on any port. If your host filters outbound traffic, allow both.
 
@@ -448,7 +457,7 @@ A first pull of the index turbo-gateway.com publishes is about 21 GB. After that
 
 ## Firewalls and Docker Ports
 
-The torrent engine publishes only its peer port, `INDEX_SWARM_ENGINE_PORT` (6881, TCP and UDP). The sidecar also publishes the tracker port, `INDEX_SWARM_TRACKER_PORT` (6969, TCP), on every node, but only a node that publishes torrents listens on it; a subscriber needn't open it. The engine's Web API is never published.
+The torrent engine publishes only its peer port, `INDEX_SWARM_ENGINE_PORT` (6881, TCP and UDP). The sidecar also publishes the tracker port, `INDEX_SWARM_TRACKER_PORT` (6969, TCP), on every node, but only a node that publishes torrents listens on it. A subscriber needn't open it, and a publisher needs it open only if peers announce to it directly rather than through the gateway. The engine's Web API is never published.
 
 The engine is kept away from the rest of the gateway, because the peers and trackers it talks to are chosen by other gateways. It runs on its own Docker network, shared only with the sidecar, so it can't reach the gateway, the observer, ClickHouse or anything else on the node's network. Its IP filter refuses private, loopback, link-local and carrier-grade NAT addresses for peers, trackers and WebSeeds. It can write only its own download and configuration directories; the bands your gateway serves are mounted read-only.
 
@@ -478,7 +487,7 @@ The defaults suit most gateways. These are the settings worth changing, all in `
 | `INDEX_SWARM_WEBSEED_AFTER_SECONDS` | `120` | How long a torrent may stall before the publisher's WebSeed is added. The WebSeed is metered like the HTTP routes |
 | `INDEX_SWARM_TORRENT_TIMEOUT_SECONDS` | `3600` | How long a torrent may go without progress before the band is fetched over HTTP instead |
 | `INDEX_SWARM_MAX_DISK_BYTES` | 50 GiB (set by the setup script) | Subscribing to more publishers or to larger indexes. Also `--max-disk-gib` |
-| `INDEX_SWARM_ENGINE_PUBLIC_HOST` | host of the tracker URL | A publisher whose engine is reached at a different address from its tracker, such as behind a load balancer |
+| `INDEX_SWARM_ENGINE_PUBLIC_HOST` | host of the tracker URL | A publisher whose gateway name doesn't resolve to this node, such as one behind a CDN or a load balancer that doesn't forward the peer port |
 
 ### Sharing Between Your Own Gateways
 
@@ -496,7 +505,7 @@ graph LR
     subgraph Fleet ["Your fleet"]
         LB[Load balancer<br/>and cache]
         subgraph Signer ["Signing node"]
-            C1[Core Service]
+            C1[Gateway<br/>Envoy :3000 + core]
             S1[Index sidecar<br/>publisher · tracker]
             E1[Torrent engine :6881]
         end
@@ -507,12 +516,12 @@ graph LR
     end
 
     CLIENTS --> LB
-    PEERS -->|/ar-io/indexes| LB
-    LB -->|/ar-io/indexes| C1
+    PEERS -->|/ar-io/indexes,<br/>including announces| LB
+    LB -->|/ar-io/indexes*,<br/>to Envoy :3000| C1
     LB -->|everything else| C2
     S2 -->|url: signing node :4000,<br/>allowlisted| C1
     PEERS <-->|pieces, to the node's<br/>own public address| E1
-    PEERS -->|announce| S1
+    C1 -->|/ar-io/indexes/announce,<br/>by Envoy| S1
 
     classDef service fill:#10b981,stroke:#059669,stroke-width:2px,color:#fff
     classDef proxy fill:#f59e0b,stroke:#d97706,stroke-width:2px,color:#fff
@@ -527,14 +536,12 @@ For BitTorrent:
 
 1. **One node publishes and seeds.** The signing node, the one `/ar-io/indexes` is sent to, runs the engine and the tracker. The other nodes need neither.
 2. **The peer port reaches that node directly.** BitTorrent is not HTTP, so the load balancer can't carry it. Publish `INDEX_SWARM_ENGINE_PORT` (TCP and UDP) on the node's own public address, make sure the internet reaches it there (Docker-published ports bypass the host firewall; see [Firewalls and Docker ports](#firewalls-and-docker-ports) to restrict them), and set `INDEX_SWARM_ENGINE_PUBLIC_HOST` (`--public-host`) to that address. Otherwise the tracker lists the engine under the host of its tracker URL, which for a fleet is the load balancer.
-3. **The tracker, one of two ways:**
-   - Directly: publish `INDEX_SWARM_TRACKER_PORT` on the same address and announce to `http://<that address>:6969/announce` in `INDEX_SWARM_TRACKERS`.
-   - Through the load balancer: route `/announce` to the signing node's tracker port, uncached, with `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`, and list the proxies' addresses in `INDEX_SWARM_TRACKER_TRUSTED_PROXIES`. Otherwise every peer appears at the proxy's address, the tracker's per-address limits throttle them together, and it hands out an address nobody can connect to.
-4. **The `.torrent` and WebSeed routes** are under `/ar-io/indexes`, so the [NGINX block](#behind-nginx) for that prefix already covers them.
+3. **The tracker, through the load balancer.** Announce to `https://<gateway>/ar-io/indexes/announce`. The `/ar-io/indexes*` pin sends it to the signing node, whose Envoy forwards it to the tracker, so the pin must reach that node's **Envoy (port 3000)**. Pinned to core (port 4000), announces get `404`. The load balancer and any proxy after it must append `X-Forwarded-For` (`proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`), and any that reach the node from a public address go in `INDEX_SWARM_TRACKER_TRUSTED_PROXIES`. Otherwise every peer appears at the proxy's address and the tracker's per-address limits throttle them together. Publishing `INDEX_SWARM_TRACKER_PORT` on the node's public address and announcing to `http://<that address>:6969/announce` also works.
+4. **The `.torrent`, WebSeed and tracker routes** are under `/ar-io/indexes`, so the pin and the [NGINX block](#behind-nginx) for that prefix already cover them.
 
 ### Rate Limiting and x402 in a Fleet
 
-Nothing extra to configure. The rate limiter and x402 apply to the byte routes (files by name, by digest, and the WebSeed) the same way they apply to data. The publication and the `.torrent` files are free. Peer-to-peer transfer and tracker announces never reach the gateway at all; the upload budget bounds them instead. Because `/ar-io/indexes` goes to one node, all metering happens there, so per-address limits stay consistent even if your nodes don't share a rate limiter.
+Nothing extra to configure. The rate limiter and x402 apply to the byte routes (files by name, by digest, and the WebSeed) the same way they apply to data. The publication and the `.torrent` files are free. Peer-to-peer transfer never touches the gateway; the upload budget bounds it instead. A tracker announce is a few hundred bytes through Envoy to the sidecar, never to core. Because `/ar-io/indexes` goes to one node, all metering happens there, so per-address limits stay consistent even if your nodes don't share a rate limiter.
 
 ### Advertising From the Other Nodes
 
@@ -559,7 +566,7 @@ Subscribers behind NAT still work: they reach the publisher's engine, and a reac
 
 ## Behind NGINX
 
-Give `/ar-io/indexes` its own uncached location, with no trailing slash, that forwards the client IP. A cache breaks range reads and per-subscriber rate limits. [Advanced NGINX Caching](/build/run-a-gateway/manage/nginx-caching#index-sharing) has the location block.
+Give `/ar-io/indexes` its own uncached location, with no trailing slash, that forwards the client IP. A cache breaks range reads and per-subscriber rate limits. The tracker at `/ar-io/indexes/announce` also reads each peer's address from `X-Forwarded-For`, and it is reached only through Envoy, so point the location at Envoy (port 3000), not core (port 4000). [Advanced NGINX Caching](/build/run-a-gateway/manage/nginx-caching#index-sharing) has the location block.
 
 ## Monitoring
 
@@ -600,6 +607,8 @@ Run `./tools/index-swarm-status` first: it names most problems and their fix.
 **Bands installed, but lookups still go to the network.** Check `ROOT_TX_LOOKUP_ORDER` puts `cdb` right after `db`, and that `CDB64_ROOT_TX_INDEX_SOURCES` starts with `data/indexes/installed/root-tx-index`. Both need a gateway restart; `./tools/index-swarm-setup --restart` does it.
 
 **No peer has connected in.** Port 6881 is closed somewhere between the internet and the engine. Bands still arrive, from peers and over HTTP, and the peers you connect to can download from you, but peers that can't reach you can't. Open or forward the port if you can; for a subscriber it is optional.
+
+**Announces to `/ar-io/indexes/announce` get `404`.** The route is Envoy's. Either Envoy is older than Release 85, so it passes the path to core, which answers `404`, or a proxy or a fleet pin for `/ar-io/indexes` reaches core (port 4000) instead of Envoy (port 3000). Upgrade the Envoy image with core, and point the proxy at Envoy. Every announce fails without an error, so check it with `curl -s -o /dev/null -w '%{http_code}' https://<your-gateway>/ar-io/indexes/announce`: Envoy's route answers something other than `404`.
 
 **`Bind for 0.0.0.0:6969 failed: port is already allocated`** (or `6881`). Another program on the host holds the port, so the sidecar (6969) or the engine (6881) can't start. Move the engine with `--engine-port`, or the tracker with `INDEX_SWARM_TRACKER_PORT`, and restart.
 
