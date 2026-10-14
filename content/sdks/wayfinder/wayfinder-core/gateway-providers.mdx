@@ -3,7 +3,7 @@ title: "Gateway Providers"
 description: "JavaScript/TypeScript SDK for accessing Arweave data with built-in verification and gateway routing"
 ---
 
-Gateway providers supply the list of gateways for routing. **By default, `createWayfinderClient` uses a cached `TrustedPeersGatewaysProvider`**.
+Gateway providers supply the list of gateways for routing. **By default, `createWayfinderClient` and `new Wayfinder()` use a cached `CompositeGatewaysProvider` that tries `TrustedPeersGatewaysProvider` first and falls back to the trusted gateway itself.** Peer discovery is a single point of failure — a gateway can answer `/ar-io/peers` with `200` and an empty list — and the fallback keeps requests working (routed through the one gateway already trusted) instead of failing outright. Call `createDefaultGatewaysProvider()` to build the same thing yourself.
 
 | Provider                       | Description                                    | Use Case                                |
 | ------------------------------ | ---------------------------------------------- | --------------------------------------- |
@@ -36,6 +36,14 @@ const gatewayProvider = new NetworkGatewaysProvider({
 });
 ```
 
+> **Note on sorting.** The Solana backend of `@ar.io/sdk` accepts `sortBy` and
+> `sortOrder` but does not apply them — its pagination helper slices the account
+> list in on-chain order. This provider therefore sorts client-side, which means
+> it reads the whole registry before applying `limit`. That is what makes
+> `limit: 10` actually return the ten highest-staked gateways rather than ten
+> arbitrary ones. `sortBy` also accepts dotted paths such as
+> `weights.stakeWeight`; a gateway missing the field sorts as `0`.
+
 #### TrustedPeersGatewaysProvider
 
 Fetches a dynamic list of trusted peer gateways from an AR.IO gateway's `/ar-io/peers` endpoint. This provider is useful for discovering available gateways from a trusted source.
@@ -45,8 +53,18 @@ import { TrustedPeersGatewaysProvider } from '@ar.io/wayfinder-core';
 
 const gatewayProvider = new TrustedPeersGatewaysProvider({
   trustedGateway: 'https://turbo-gateway.com',
+  retries: 3, // optional, defaults to 3
 });
 ```
+
+A gateway can answer `/ar-io/peers` with `200` and an empty `gateways` map — in
+practice this happens when an instance hasn't synced its view of the registry.
+The provider retries in that case and, if the list is still empty, throws an
+error naming the endpoint rather than returning `[]` (which would surface much
+later as an opaque "No gateways available" from whichever routing strategy
+consumed it). Both `CompositeGatewaysProvider` and `SimpleCacheGatewaysProvider`
+treat that throw as a signal to fall back, so wrapping this provider in either
+one gives you a clean degradation path.
 
 #### CompositeGatewaysProvider
 
