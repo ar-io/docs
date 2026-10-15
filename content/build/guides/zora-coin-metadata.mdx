@@ -32,7 +32,7 @@ For any other upload, use [turbo-upload](/sdks/turbo-upload), the library the up
 
 ## Before you start
 
-- Node.js 20.3 or later.
+- Node.js 20 or later.
 - An EVM private key for an account on Base that holds ETH for the coin creation transaction's gas. Uploads within the free tier cost the account nothing.
 - The coin's image, saved as `coin.png`.
 
@@ -59,7 +59,7 @@ npm install @ardrive/turbo-zora-uploader @zoralabs/coins-sdk viem tsx
 
 To try the uploads without writing permanent data, see [Test on testnet](#test-on-testnet).
 
-Save the following as `create-coin.mts`. It builds the metadata, uploads the image and the metadata JSON with the uploader, and creates the coin.
+Save the following as `create-coin.mts`. It builds the metadata, uploads the image and the metadata JSON with the uploader, and creates the coin. In its comments and on the rest of this page, `ITEM_ID` is a stored item's id.
 
 ```ts
 import { readFile } from "node:fs/promises";
@@ -154,16 +154,16 @@ A coin's usual upload, one small image and one metadata file, stays free in this
 
 ## The URLs it returns
 
-With the default `uri: "auto"`, the uploader picks the URL form by the file's type. In the following list, `ITEM_ID` is the stored item's id:
+With the default `uri: "auto"`, the uploader picks the URL form by the file's type:
 
 - **The metadata JSON**, a file of type `application/json`: `https://turbo-gateway.com/ITEM_ID`. This is the coin's metadata pointer.
 - **Every other file, such as the image**: `ar://ITEM_ID`. `createMetadataBuilder` writes this URL into the metadata's `image` field.
 
-**The pointer is https because Zora's create API accepts only an `https://` or `ipfs://` metadata URI.** It refuses an `ar://` pointer with `uri is required and needs to be an ipfs:// or https:// uri`.
+**The pointer is https because Zora's create API accepts only an `https://` or `ipfs://` metadata URI.** On 2026-10-15, it refused an `ar://` pointer with `uri is required and needs to be an ipfs:// or https:// uri`.
 
-**turbo-gateway.com passes Zora's metadata check.** Before it creates a coin, the Zora Coins SDK fetches the pointer and requires a content-type of exactly `application/json` or `text/plain`. turbo-gateway.com serves a freshly uploaded item at once, as exactly `application/json`: in the package's tests, the check passed 1.2 seconds after a free upload (measured 2026-10-14).
+**turbo-gateway.com passes Zora's metadata check.** Before it creates a coin, the Zora Coins SDK fetches the pointer and requires a content-type of exactly `application/json` or `text/plain`. turbo-gateway.com serves a freshly uploaded item at once, as exactly `application/json`: on 2026-10-14, the check passed 1.2 seconds after a free upload.
 
-**Media is `ar://`, which names no gateway.** Any gateway that serves Arweave data can resolve it.
+**Media is `ar://`, which names no gateway.** A gateway that has the item can resolve it. How Zora's apps display `ar://` media is not verified here.
 
 To serve the pointer from another gateway, pass `gateway`. That gateway must serve a freshly uploaded item at once, as exactly `application/json`, or the check fails: the SDK refuses `application/json; charset=utf-8`. The uploader refuses a gateway with credentials, a space, a query or a fragment. Two other forms exist: `uri: "https"` returns the gateway URL for every file, and `uri: "ar"` returns `ar://ITEM_ID` for every file, including the metadata, so it cannot create a Zora coin.
 
@@ -224,7 +224,10 @@ import { createTurboUploader } from "@ardrive/turbo-zora-uploader";
 
 type Address = `0x${string}`;
 
-export function smartWalletUploader(walletClient: WalletClient, address: Address) {
+export function smartWalletUploader(
+  walletClient: WalletClient,
+  address: Address,
+) {
   return createTurboUploader({
     signer: {
       address,
@@ -265,7 +268,7 @@ const uploader = createTurboUploader({
 
 `testnet: true` uploads to the testnet upload service. Signed files are free up to a larger item size than on production, x402 pays in Base Sepolia USDC, and nothing on testnet is permanent. The uploads work, and testnet items are served by the default testnet gateway, `https://ar-io.dev`. For the testnet services and their limits, see [Testnet Sandbox](/build/testnet).
 
-Creating a coin from testnet uploads does not work, for two reasons:
+Creating a coin from testnet uploads does not work, for two reasons, as checked on 2026-10-15:
 
 - ar-io.dev serves JSON as `application/json; charset=utf-8`, so Zora's metadata check refuses the pointer, and `createCoin` fails with `Metadata is not a valid JSON or plain text response type`.
 - On Base Sepolia, Zora's create API refuses the coin: the factory's `coinAddress` call reverts, and `createCoin` fails with `Failed to create content calldata`.
@@ -277,11 +280,10 @@ The uploader throws the error classes of `@ardrive/turbo-upload`. Check `err.nam
 | `err.name` | Thrown when | What to do |
 |---|---|---|
 | `TurboConfigError` | An option is unknown or invalid, or `tags` take over 3072 bytes when the uploader can pay with x402, at `createTurboUploader`; or `timeout` is invalid, at `upload` | Fix the option. The message names it |
-| `TurboPaymentError` | The address cannot pay: the free allowance is spent, it has too few credits and the uploader has no x402 path, or the x402 price is over `maxUsdc`, or a smart account is not deployed | Stop. Retrying with the same settings does not help. Raise `maxUsdc`, add Turbo credits, or deploy the smart account |
+| `TurboPaymentError` | The address cannot pay: the free allowance is spent, it has too few credits and the uploader has no x402 path, or the x402 price is over `maxUsdc`, or a smart account is not deployed. It also covers a paid request that got a `402` because settling failed | Retrying with the same settings does not help. Raise `maxUsdc`, add Turbo credits, or deploy the smart account. If the message says the payment might have settled, check the payer's USDC transfers before you retry |
 | `TurboSignerError` | The wallet refused to sign, or cannot sign data items. Nothing was uploaded | For a smart-contract wallet, pass `mode: "x402"` |
 | `TurboValidationError` | An x402 upload is more than one request carries: a file over about 75 MiB, or `tags` plus the file's Content-Type tag over 3072 bytes | Upload a smaller file, shorten the tags, or sign the file instead. Nothing was paid |
-| `TurboTimeoutError` | The `timeout` passed, or the `signal` aborted, during a request | Retry the upload, or raise `timeout`. After an x402 payment was sent, check the payer's USDC transfers first |
-| `AbortError`, `TimeoutError` | The signal had already fired before a request started | Retry with a fresh signal |
+| `TurboTimeoutError`, `AbortError` or `TimeoutError` | The `signal` aborted or the `timeout` passed. Which one depends on when | Retry if you still want the upload, with a fresh signal or a longer `timeout`. After an x402 payment was sent, check the payer's USDC transfers first |
 
 If an x402 upload fails after the payment was sent, the error message says the payment might have settled. Check the payer's USDC transfers on Base before you upload the file again.
 
