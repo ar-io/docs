@@ -1,0 +1,300 @@
+---
+title: "Zora Coin Metadata on Arweave"
+description: "Store a Zora coin's metadata and image on Arweave through Turbo, with an Uploader for the Zora Coins SDK. Small files from an EVM account upload free."
+keywords:
+  - zora
+  - coins
+  - metadata
+  - uploader
+  - base
+  - x402
+  - usdc
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Steps, Step } from "fumadocs-ui/components/steps";
+import { Tabs, Tab } from "fumadocs-ui/components/tabs";
+import { Card, Cards } from "fumadocs-ui/components/card";
+
+This guide stores a Zora coin's metadata and image on Arweave through Turbo, in a project that creates coins with the [Zora Coins SDK](https://www.npmjs.com/package/@zoralabs/coins-sdk). [`@ardrive/turbo-zora-uploader`](https://www.npmjs.com/package/@ardrive/turbo-zora-uploader) implements the SDK's `Uploader` interface, so you pass it to `createMetadataBuilder().upload()` in place of another uploader. The SDK still creates the coin.
+
+## When to use it
+
+Use the uploader when all of the following are true:
+
+- You create coins with the Zora Coins SDK.
+- You want the coin's metadata and image stored on Arweave, paid for once.
+- You sign with an EVM account or wallet.
+
+Small files from an externally owned account (EOA) upload free, with no Turbo credits and no setup. A smart-contract wallet pays each upload in USDC on Base.
+
+For any other upload, use [turbo-upload](/sdks/turbo-upload), the library the uploader is built on.
+
+## Before you start
+
+- Node.js 20 or later.
+- An EVM private key for an account on Base that holds ETH for the coin creation transaction's gas. Uploads within the free tier cost the account nothing.
+- The coin's image, saved as `coin.png`.
+
+## Create a coin with metadata on Arweave
+
+<Steps>
+<Step>
+### Install the packages
+
+```bash
+npm install @ardrive/turbo-zora-uploader @zoralabs/coins-sdk viem
+```
+
+The uploader has one runtime dependency, [`@ardrive/turbo-upload`](https://www.npmjs.com/package/@ardrive/turbo-upload), which has none. You bring `viem` and `@zoralabs/coins-sdk`, which a Zora project already has.
+</Step>
+
+<Step>
+### Write the script
+
+<Callout type="warn">
+  This script writes to production. Its uploads are permanent and public, and `createCoin` sends a
+  transaction on Base. To try the flow without either, see [Test on testnet](#test-on-testnet).
+</Callout>
+
+Save the following as `create-coin.mts`. It builds the metadata, uploads the image and the metadata JSON with the uploader, and creates the coin.
+
+```ts
+import { readFile } from "node:fs/promises";
+import { createCoin, createMetadataBuilder } from "@zoralabs/coins-sdk";
+import {
+  createPublicClient,
+  createWalletClient,
+  http,
+  recoverPublicKey,
+} from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { base } from "viem/chains";
+import { createTurboUploader } from "@ardrive/turbo-zora-uploader";
+
+const account = privateKeyToAccount(process.env.PRIVATE_KEY as `0x${string}`);
+
+// Production by default: uploads are permanent and public.
+// Small files are free. maxUsdc is the most one larger upload may cost, in
+// USDC base units (6 decimals): 500_000n is 0.50 USDC, paid on Base.
+const uploader = createTurboUploader({
+  signer: { ...account, recoverPublicKey },
+  maxUsdc: 500_000n,
+});
+
+const png = await readFile("coin.png");
+const { createMetadataParameters } = await createMetadataBuilder()
+  .withName("My Coin")
+  .withSymbol("MYC")
+  .withDescription("Metadata and image stored on Arweave")
+  .withImage(new File([png], "coin.png", { type: "image/png" }))
+  .upload(uploader);
+
+const { address, hash } = await createCoin({
+  call: {
+    ...createMetadataParameters,
+    creator: account.address,
+    currency: "ETH",
+  },
+  walletClient: createWalletClient({ account, chain: base, transport: http() }),
+  publicClient: createPublicClient({ chain: base, transport: http() }),
+});
+console.log(createMetadataParameters.metadata.uri, address, hash);
+```
+
+The signer is the viem account spread with viem's `recoverPublicKey`. Without `recoverPublicKey`, the account cannot sign data items, so it cannot use the free tier and pays every upload with USDC. `maxUsdc` is in USDC base units, which have six decimals: `500_000n` is 0.50 USDC.
+</Step>
+
+<Step>
+### Run it
+
+```bash
+PRIVATE_KEY="$(cat KEY_FILE)" npx tsx create-coin.mts
+```
+
+Replace `KEY_FILE` with the path to a file that holds your `0x`-prefixed private key.
+
+The script prints the metadata URL, `https://turbo-gateway.com/` followed by the item id, then the coin's address and the transaction hash. The `.mts` extension makes the file an ES module, which the top-level `await` needs.
+</Step>
+</Steps>
+
+## Who pays for the uploads
+
+The uploader has two ways to pay for a file. The following table compares them:
+
+| | Signed upload | x402 upload |
+|---|---|---|
+| The signer needs | `signMessage`, and viem's `recoverPublicKey` | `signTypedData`, and you set `maxUsdc` |
+| Who pays | Nobody, while the file fits the free tier. After that, Turbo credits on the signer's address | The signer, in USDC on Base, for every file. This path has no free tier |
+| Largest file | Set by the upload service. Files over 10 MiB upload in chunks | About 75 MiB |
+| Who owns the item | The signer, which signs the data item (ANS-104 signature type 3) | The upload service, which signs the item. The signer is recorded as the payer |
+| Wallets | An EOA. A smart-contract wallet cannot sign data items | Any, including a deployed smart-contract wallet |
+
+**The free tier is service policy.** It covers files up to a set item size, until the signer's address, or the IP address uploading, has stored a lifetime allowance. The upload service publishes both as `freeTier` in its [service information](https://upload.ardrive.io/v1/info): on 2026-10-14 that was 107,520 bytes (105 KiB) per item and 10 MiB per address. The uploader reads the item limit from the service on the first upload that needs it.
+
+**`mode: "auto"`**, the default, picks the path for each file in this order:
+
+1. x402, when the signer has no `signMessage` or no `recoverPublicKey`.
+2. Signed, when the file fits the free tier, or when the signer cannot pay with x402 because it has no `signTypedData` or you set no `maxUsdc`.
+3. x402, for a larger file.
+4. If the service refuses a signed file with `TurboPaymentError`, because the free allowance is spent and the address has too few credits, nothing is stored. The same file then goes through x402, and so does every later file from that uploader.
+
+Any other failure on the signed path is thrown, and is not retried with x402.
+
+A coin's usual upload, one small image and one metadata file, stays free in this mode. A larger image goes through x402 with no code change, provided its price is within `maxUsdc`. To spend only Turbo credits and never USDC, pass `mode: "signed"`. To always pay with USDC, pass `mode: "x402"`.
+
+**`maxUsdc` caps each x402 upload, not the total.** When the service asks more for a file, the upload fails with `TurboPaymentError` before anything is signed. `maxUsdc` must be a positive whole number of base units, as a bigint, a number or a digit string: `0.05` is refused.
+
+## Why the URL is https, not ar://
+
+The uploader returns `https://turbo-gateway.com/ITEM_ID` by default, where `ITEM_ID` is the stored item's id, because of how Zora checks metadata.
+
+Before it creates a coin, the Zora Coins SDK fetches the metadata URI and requires a content-type of exactly `application/json` or `text/plain`. It reads an `ar://` URI from `http://arweave.net`, which can take minutes or longer to serve a freshly uploaded item, and `createCoin` fails until it does. turbo-gateway.com serves the item as `application/json` straight after the upload: in the package's tests, the check passed 1.2 seconds after a free upload (measured 2026-10-14).
+
+To get `ar://ITEM_ID` instead, pass `uri: "ar"`, and expect `createCoin` to fail until arweave.net serves the item. To return URLs on another https gateway, pass `gateway`. The uploader refuses a gateway with a query or a fragment, and refuses `gateway` together with `uri: "ar"`.
+
+## Choose the signer
+
+The quickstart signs with a private key in Node.js. In a browser, or from a smart-contract wallet, build the signer from a viem `WalletClient`. In the following samples, `walletClient` is a viem `WalletClient` connected to the user's wallet, and `address` is the wallet's account address.
+
+<Tabs items={['Private key', 'Browser wallet', 'Smart-contract wallet']}>
+<Tab value="Private key">
+
+```ts
+import { recoverPublicKey } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { createTurboUploader } from "@ardrive/turbo-zora-uploader";
+
+const account = privateKeyToAccount(process.env.PRIVATE_KEY as `0x${string}`);
+
+const uploader = createTurboUploader({
+  signer: { ...account, recoverPublicKey },
+  maxUsdc: 500_000n,
+});
+```
+
+A viem account carries its public key, so signing needs no prompt.
+
+</Tab>
+<Tab value="Browser wallet">
+
+```ts
+import { recoverPublicKey, type WalletClient } from "viem";
+import { createTurboUploader } from "@ardrive/turbo-zora-uploader";
+
+type Address = `0x${string}`;
+
+export function uploaderFor(walletClient: WalletClient, address: Address) {
+  return createTurboUploader({
+    signer: {
+      address,
+      signMessage: ({ message }) =>
+        walletClient.signMessage({ account: address, message }),
+      recoverPublicKey,
+      signTypedData: (typedData) =>
+        walletClient.signTypedData({ account: address, ...typedData }),
+    },
+    maxUsdc: 500_000n,
+  });
+}
+```
+
+A browser wallet does not expose its public key, so the first signed upload asks the user to sign one extra connect message, and the uploader recovers the key from it. To skip that prompt, pass `publicKey` in the signer: the 65-byte uncompressed public key, as hex.
+
+</Tab>
+<Tab value="Smart-contract wallet">
+
+```ts
+import type { WalletClient } from "viem";
+import { createTurboUploader } from "@ardrive/turbo-zora-uploader";
+
+type Address = `0x${string}`;
+
+export function smartWalletUploader(walletClient: WalletClient, address: Address) {
+  return createTurboUploader({
+    signer: {
+      address,
+      signTypedData: (typedData) =>
+        walletClient.signTypedData({ account: address, ...typedData }),
+    },
+    mode: "x402",
+    maxUsdc: 500_000n,
+  });
+}
+```
+
+A smart-contract wallet cannot sign data items, so it pays for every upload in USDC on Base through x402, and the service signs the item. Pass `mode: "x402"` and `maxUsdc`. In `"auto"` mode, a wallet client that exposes `signMessage` is tried on the signed path first, and its signature fails with `TurboSignerError`, which is thrown and not retried with x402.
+
+The wallet must be deployed. The service refuses a payment from a smart account that is not deployed yet, and charges nothing: the `TurboPaymentError` says to deploy the account first.
+
+</Tab>
+</Tabs>
+
+## Test on testnet
+
+```ts
+const uploader = createTurboUploader({
+  signer: { ...account, recoverPublicKey },
+  testnet: true,
+  maxUsdc: 200_000n,
+});
+```
+
+`testnet: true` uploads to the testnet upload service. Signed files are free up to a larger item size than on production, x402 pays in Base Sepolia USDC, and nothing on testnet is permanent. Testnet items are served by `https://ar-io.dev`, so that is the default gateway with `testnet: true`. For the testnet services and their limits, see [Testnet Sandbox](/build/testnet).
+
+**Zora's metadata check refuses testnet metadata.** ar-io.dev serves JSON as `application/json; charset=utf-8`, and the check accepts only the exact `application/json`, so `createCoin` fails with `Metadata is not a valid JSON or plain text response type`. To get past the check on Base Sepolia, pass `skipMetadataValidation: true` in `call`:
+
+```ts
+const { address, hash } = await createCoin({
+  call: {
+    ...createMetadataParameters,
+    creator: account.address,
+    currency: "ETH",
+    skipMetadataValidation: true,
+  },
+  walletClient: createWalletClient({
+    account,
+    chain: baseSepolia,
+    transport: http(),
+  }),
+  publicClient: createPublicClient({ chain: baseSepolia, transport: http() }),
+});
+```
+
+Import `baseSepolia` from `viem/chains`. Never set `skipMetadataValidation` on Base to get past a failed check: on Base, a failed check means the metadata URI is wrong.
+
+## Handle errors
+
+The uploader throws the error classes of `@ardrive/turbo-upload`. Check `err.name`:
+
+| `err.name` | Thrown when | What to do |
+|---|---|---|
+| `TurboConfigError` | An option is unknown or invalid, at `createTurboUploader`, or `timeout` is negative, at `upload` | Fix the option. The message names it |
+| `TurboPaymentError` | The address cannot pay: the free allowance is spent, it has too few credits and the uploader has no x402 path, or the x402 price is over `maxUsdc`, or a smart account is not deployed | Stop. Retrying never helps. Raise `maxUsdc`, add Turbo credits, or deploy the smart account |
+| `TurboSignerError` | The wallet refused to sign, or cannot sign data items. Nothing was uploaded | For a smart-contract wallet, pass `mode: "x402"` |
+| `TurboTimeoutError` | The `timeout` passed, or the `signal` aborted, during a request | Retry the upload, or raise `timeout` |
+| `AbortError`, `TimeoutError` | The signal had already fired before a request started | Retry with a fresh signal |
+
+If an x402 upload fails after the payment was sent, the error message says the payment might have settled. Check the payer's USDC transfers on Base before you upload the file again.
+
+`upload(file, { signal, timeout })` takes the options the SDK's own uploader takes: `timeout` is a deadline for the whole upload, in milliseconds, and `0` means none. For every error class and what it carries, see [the turbo-upload errors reference](https://github.com/ardriveapp/turbo-upload#errors).
+
+## Next steps
+
+<Cards>
+  <Card
+    title="turbo-upload"
+    description="The zero-dependency Turbo client the uploader is built on: EVM signing, x402 and the free tier"
+    href="/sdks/turbo-upload"
+  />
+  <Card
+    title="x402 Uploading To Turbo"
+    description="How Turbo takes USDC payments on Base over x402"
+    href="/build/upload/x402-uploading-to-turbo"
+  />
+  <Card
+    title="Testnet Sandbox"
+    description="Upload, payment and gateway services for testing without real money"
+    href="/build/testnet"
+  />
+</Cards>
