@@ -38,6 +38,9 @@ npm install @ardrive/turbo-sdk
 # turbo-upload (zero-dependency Turbo client: Arweave, Solana and EVM signers, x402)
 npm install @ardrive/turbo-upload
 
+# turbo-zora-uploader (an Uploader for the Zora Coins SDK, built on turbo-upload)
+npm install @ardrive/turbo-zora-uploader @zoralabs/coins-sdk viem
+
 # Wayfinder (decentralized data fetching with verification)
 npm install @ar.io/wayfinder-core @ar.io/sdk
 ```
@@ -144,7 +147,7 @@ import { recoverPublicKey } from 'viem';
 import { TurboUpload } from '@ardrive/turbo-upload';
 
 const account = privateKeyToAccount(process.env.EVM_PRIVATE_KEY as `0x${string}`);
-// .testnet() is free and not permanent. .production() is permanent, public and paid.
+// .testnet() is free and not permanent. .production() is permanent and public; items over the free tier are paid.
 const client = TurboUpload.testnet({ signer: { ...account, recoverPublicKey }, token: 'base-eth' });
 const { id } = await client.upload({
   data: new TextEncoder().encode('hello'),
@@ -177,7 +180,7 @@ const { id, payer } = await uploadUnsignedX402({
 
 ### Store Zora coin metadata (turbo-zora-uploader)
 
-`@ardrive/turbo-zora-uploader` is an `Uploader` for `@zoralabs/coins-sdk`. Pass it to `createMetadataBuilder().upload()`; the SDK still creates the coin. It returns `ar://` URLs and assumes no gateway.
+`@ardrive/turbo-zora-uploader` is an `Uploader` for `@zoralabs/coins-sdk`. Pass it to `createMetadataBuilder().upload()`; the SDK still creates the coin. The metadata JSON comes back as `https://turbo-gateway.com/ITEM_ID`, the coin's pointer; the image as `ar://ITEM_ID`.
 
 ```typescript
 import { createCoin, createMetadataBuilder } from '@zoralabs/coins-sdk';
@@ -187,34 +190,31 @@ import { base } from 'viem/chains';
 import { createTurboUploader } from '@ardrive/turbo-zora-uploader';
 
 const account = privateKeyToAccount(process.env.PRIVATE_KEY as `0x${string}`);
-// Production by default: permanent and public. URLs are ar://. Small files signed by an EOA are free.
+// Production by default: permanent and public; items over the free tier are paid. Small files signed by an EOA are free.
 const uploader = createTurboUploader({ signer: { ...account, recoverPublicKey }, maxUsdc: 500_000n });
+
+declare const imageFile: File; // the coin's image, with its MIME type as `type`
 
 const { createMetadataParameters } = await createMetadataBuilder()
   .withName('My Coin')
   .withSymbol('MYC')
   .withDescription('Metadata and image stored on Arweave')
-  .withImage(imageFile) // a File whose type is the image's MIME type
+  .withImage(imageFile)
   .upload(uploader);
 
 await createCoin({
-  call: {
-    ...createMetadataParameters,
-    creator: account.address,
-    currency: 'ETH',
-    skipMetadataValidation: true, // Zora reads ar:// through arweave.net, which can lag a fresh upload
-  },
+  call: { ...createMetadataParameters, creator: account.address, currency: 'ETH' },
   walletClient: createWalletClient({ account, chain: base, transport: http() }),
   publicClient: createPublicClient({ chain: base, transport: http() }),
 });
 ```
 
-- **URLs are `ar://<id>`, so set `skipMetadataValidation: true`.** Zora's SDK fetches `ar://` through `http://arweave.net`, which can lag behind a fresh upload, and the check fails until it serves the item. With the check skipped, `createCoin` succeeds, and Zora's app might not show the name, image or description until arweave.net serves the metadata.
-- **To keep the check**, pass `uri: 'https'` with a `gateway` you choose that serves JSON as exactly `application/json` (not `application/json; charset=utf-8`). No gateway is assumed: `uri: 'https'` without `gateway` is refused, and so is `gateway` without it.
+- **The pointer is https, media is `ar://ITEM_ID`.** With the default `uri: 'auto'`, a file of type `application/json` (the metadata Zora's builder uploads) returns `https://turbo-gateway.com/ITEM_ID`, and every other file `ar://ITEM_ID`. Zora's create API accepts only an `https://` or `ipfs://` pointer, so `uri: 'ar'` cannot create a coin.
+- **Leave `skipMetadataValidation` unset.** turbo-gateway.com serves a fresh item at once as exactly `application/json`, so Zora's check passes. Another `gateway` must do the same: `application/json; charset=utf-8` fails the check.
 - **`maxUsdc` is USDC base units per upload**: `500_000n` is 0.50 USDC. In the default `mode: 'auto'`, a file within the free tier is signed and free; a larger one is paid with x402 up to `maxUsdc`. With `mode: 'signed'`, `maxUsdc` is refused.
 - **Smart-contract wallet**: signer `{ address, signTypedData }`, `mode: 'x402'` and `maxUsdc`. The wallet must be deployed.
-- **Testnet**: `testnet: true` for anything not meant to last. URLs are `ar://<id>` there too, so skip the check the same way.
-- **Errors**: check `err.name`. `TurboPaymentError`: cannot pay, stop. `TurboSignerError`: the wallet refused or cannot sign; for a smart-contract wallet use `mode: 'x402'`. `TurboConfigError`: a bad option.
+- **Testnet**: `testnet: true` uploads work, but cannot create a coin: the testnet gateway, ar-io.dev, adds a charset to JSON, which fails Zora's check, and Zora's create API refuses Base Sepolia coins (a `coinAddress` revert).
+- **Errors**: check `err.name`. `TurboPaymentError`: cannot pay, stop. `TurboSignerError`: the wallet refused or cannot sign; for a smart-contract wallet use `mode: 'x402'`. `TurboConfigError`: a bad option, or tags over 3072 bytes when the uploader can pay with x402.
 
 Full guide: https://docs.ar.io/build/guides/zora-coin-metadata
 
