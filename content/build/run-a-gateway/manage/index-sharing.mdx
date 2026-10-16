@@ -70,7 +70,7 @@ The rest of this page covers changing the defaults: following another publisher,
 
 From Release 85, BitTorrent is the default, and the torrent engine runs whatever the subscription. To move bands over HTTP only on Release 85, see [HTTP Only](#http-only). On Release 84, decide this first; you can change it later by running the setup script again.
 
-| | HTTP only | With BitTorrent (`--torrent`) |
+| | HTTP only | With BitTorrent (the default from Release 85; `--torrent` on Release 84) |
 | --- | --- | --- |
 | First download | From the publisher's HTTP routes, through its rate limits and x402. Can take hours | From peers first, unmetered; the publisher's HTTP routes are the fallback |
 | Ports to open | None | None required. Opening 6881, TCP and UDP, is recommended: it lets peers connect to you |
@@ -129,7 +129,7 @@ Subscribing is what most operators want: your gateway downloads a publisher's in
 ### Prerequisites
 
 - A running ar.io gateway on Release 84 or later, with Docker, and a checkout of the gateway repository at that release (the scripts live in `tools/`)
-- Free disk on the filesystem that holds `data/indexes`, at least the disk budget: 64 GiB by default from Release 85 (the setup script writes the same when it sets a subscription), and 50 GiB, the budget the setup script sets, on Release 84. The bands turbo-gateway.com publishes take about 22 GB once installed, and grow with the chain; the rest is room for a band to be on disk twice while it arrives and for a new band beside the one it replaces. This is on top of what your gateway already uses. See [Network and Disk](#network-and-disk)
+- Free disk on the filesystem that holds `data/indexes`, at least the disk budget: 64 GiB by default from Release 85, and 50 GiB, the budget the setup script sets, on Release 84. The bands turbo-gateway.com publishes take about 22 GB once installed, and grow with the chain; the rest is room for a band to be on disk twice while it arrives and for a new band beside the one it replaces. This is on top of what your gateway already uses. See [Network and Disk](#network-and-disk)
 
 - For BitTorrent: an open peer port is recommended, not required. See [Ports](#ports)
 
@@ -159,16 +159,16 @@ See what it would change first, then run it for real:
 ./tools/index-swarm-setup --subscribe 34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7h5 --torrent --restart
 ```
 
-This subscribes to the publisher's root transaction index, points your gateway at the installed bands, and restarts only what needs it, by service name. If you set `ROOT_TX_LOOKUP_ORDER` yourself, it puts `cdb` right after `db` and, from Release 85, `cdb-remote` last. On Release 84, `--torrent` generates the torrent engine's password, and leaving it out moves bands over HTTP only. From Release 85 the engine runs by default and generates its own password, so `--torrent` changes nothing; see [HTTP Only](#http-only) to leave the engine out. Add `--l1` to take the publisher's L1 bands too and fill your gateway's L1 history from them; see [Take L1 Bands](#take-l1-bands-parquet-l1).
+This subscribes to the publisher's root transaction index, makes sure your gateway searches the installed bands first, and restarts only what needs it, by service name. From Release 85 the defaults already search them first, so the script changes `ROOT_TX_LOOKUP_ORDER` and `CDB64_ROOT_TX_INDEX_SOURCES` only if you set them yourself. On Release 84, `--torrent` generates the torrent engine's password, and leaving it out moves bands over HTTP only. From Release 85 the engine runs by default and generates its own password, so `--torrent` changes nothing; see [HTTP Only](#http-only) to leave the engine out. Add `--l1` to take the publisher's L1 bands too and fill your gateway's L1 history from them; see [Take L1 Bands](#take-l1-bands-parquet-l1).
 
-From Release 85, the script keeps the default turbo-gateway.com subscription when it adds another publisher. It also writes `INDEX_SWARM_MAX_DISK_BYTES` (64 GiB) if no budget is set, because the default budget applies only to the default subscription.
+From Release 85, the script keeps the default turbo-gateway.com subscription when it adds another publisher. If the subscription was the default one and no budget is set, it also writes `INDEX_SWARM_MAX_DISK_BYTES`: 64 GiB, or 100 GiB with `--l1`. The default budget applies only to the default subscription.
 
 </Step>
 
 <Step>
 ### Open the Peer Port
 
-With `--torrent`, open the engine's peer port to the internet if you can, as [Ports](#ports) describes. It isn't required: without it, your gateway still downloads from peers and seeds to the peers it connects to. Behind a home router, forward the port yourself; the engine doesn't use UPnP.
+With BitTorrent, open the engine's peer port to the internet if you can, as [Ports](#ports) describes. It isn't required: without it, your gateway still downloads from peers and seeds to the peers it connects to. Behind a home router, forward the port yourself; the engine doesn't use UPnP.
 
 </Step>
 
@@ -329,7 +329,7 @@ The first scan reads and hashes every band once, which takes a few minutes for t
 <Step>
 ### Open the Peer Port
 
-With `--torrent`, open 6881, TCP and UDP, to the internet. See [Ports](#ports).
+With BitTorrent, open 6881, TCP and UDP, to the internet. See [Ports](#ports).
 
 The tracker needs no port of its own. Peers announce to it through your gateway, at `https://<your-gateway>/ar-io/indexes/announce`, and Envoy forwards that path to the sidecar's second tracker listener on port 6970, which is never published. The route is Envoy's, so run the Envoy image from Release 85 or later. An older Envoy passes the path to core, which answers `404`, so every announce fails without an error.
 
@@ -426,11 +426,11 @@ The script edits `.env` and nothing else, unless given `--restart`.
 
 | Flag | Effect |
 | --- | --- |
-| `--subscribe <wallet>` | Adds the publisher to `INDEX_SWARM_SUBSCRIBE`. Repeatable; existing entries are kept. Sets `INDEX_SWARM_MAX_DISK_BYTES` to 50 GiB if unset. Puts `data/indexes/installed/root-tx-index` first in `CDB64_ROOT_TX_INDEX_SOURCES`, keeping what was there (or, if unset, the shipped default), and moves `cdb` right after `db` in `ROOT_TX_LOOKUP_ORDER` (if unset: `db,cdb,gateways,graphql`) |
-| `--publish` | Adds `root-tx-index` to `INDEX_SWARM_PUBLISH`. Refuses, writing nothing, without a registered key or `AR_IO_WALLET`. With `--torrent`, sets `INDEX_SWARM_TRACKERS`, if unset, to this node's tracker: from Release 85, through the gateway, `<public URL>/ar-io/indexes/announce`, or with no public URL, `http://<public host>:6969/announce`. An existing tracker list is kept. From Release 85, also sets `INDEX_EXPORT_HEADER_CHECK_URL` (default `https://turbo-gateway.com`) and starts `index-export` |
+| `--subscribe <wallet>` | Adds the publisher to `INDEX_SWARM_SUBSCRIBE`. Repeatable; existing entries are kept, and from Release 85 so is the default subscription. Release 85: writes `INDEX_SWARM_MAX_DISK_BYTES` (64 GiB) only if the subscription was the default one and no budget is set. Leaves `CDB64_ROOT_TX_INDEX_SOURCES` and `ROOT_TX_LOOKUP_ORDER` alone if they are unset, since the defaults search installed bands first. If you set them, it puts `data/indexes/installed/root-tx-index` first in the sources, moves `cdb` right after `db` in the order, and adds `cdb-remote` to the order if it is missing. Release 84: sets the budget to 50 GiB if unset, puts the installed directory first in the sources (or the shipped default, if unset), and moves `cdb` right after `db` (if unset: `db,cdb,gateways,graphql`) |
+| `--publish` | Adds `root-tx-index` to `INDEX_SWARM_PUBLISH`. Refuses, writing nothing, without a registered key or `AR_IO_WALLET`. With `--torrent` (from Release 85, always), sets `INDEX_SWARM_TRACKERS`, if unset, to this node's tracker: from Release 85, through the gateway, `<public URL>/ar-io/indexes/announce`, or with no public URL, `http://<public host>:6969/announce`. An existing tracker list is kept. From Release 85, also sets `INDEX_EXPORT_HEADER_CHECK_URL` (default `https://turbo-gateway.com`) and starts `index-export` |
 | `--start-height <n>` | Release 85. With `--publish`: sets `INDEX_EXPORT_START_HEIGHT`, the lowest height `index-export` builds |
 | `--header-check-url <url>` | Release 85. With `--publish`: the gateway `index-export` checks sampled headers against |
-| `--torrent` | Generates `INDEX_SWARM_ENGINE_AUTH` if unset (`swarm:` and 48 random hex characters; never printed) |
+| `--torrent` | Release 84: generates `INDEX_SWARM_ENGINE_AUTH` if unset (`swarm:` and 48 random hex characters; never printed). Release 85: accepted, but writes nothing, since the engine runs by default and generates its own password |
 | `--public-host <addr>` | Sets `INDEX_SWARM_ENGINE_PUBLIC_HOST`. From Release 85 it works on its own; on Release 84, pass it with `--torrent` |
 | `--engine-port <n>` | Sets `INDEX_SWARM_ENGINE_PORT` (default 6881). From Release 85 it works on its own; on Release 84, pass it with `--torrent` |
 | `--public-url <origin>` | Release 85. The gateway's public origin, such as `https://gateway.example`, for the tracker URL. Defaults to `INDEXES_PUBLIC_URL`, then `https://<ARNS_ROOT_HOST>`. To change the feeds' origin too, set `INDEXES_PUBLIC_URL` |
@@ -438,10 +438,10 @@ The script edits `.env` and nothing else, unless given `--restart`.
 | `--max-disk-gib <n>` | Sets `INDEX_SWARM_MAX_DISK_BYTES`. Works on its own too, to change an existing subscriber's budget |
 | `--no-gateway` | Leaves `CDB64_ROOT_TX_INDEX_SOURCES` and `ROOT_TX_LOOKUP_ORDER` alone |
 | `--dry-run` | Shows the changes and writes nothing |
-| `--restart` | Then recreates what needs it: the gateway only when those two settings differ from what it runs with, then the sidecar (and the engine, with torrents), by service name, with the compose files the running gateway was started with |
+| `--restart` | Then recreates what needs it: the gateway only when those two settings differ from what it runs with, then the sidecar and the engine (on Release 84, the engine only with torrents), by service name, with the compose files the running gateway was started with. From Release 85 it always starts the engine, even on a gateway set up for [HTTP only](#http-only), so don't use it there |
 | `--env-file <path>` | A file other than `.env`, relative to the gateway's directory |
 
-It is idempotent: a second run changes only what is missing, so it is also how to add a publisher or turn on torrents later. It never replaces a value it cannot parse or a password it did not write; it stops and says what to fix. Before writing, it copies `.env` to `.env.bak-index-swarm-<time>`, readable only by its owner, since it holds secrets. It warns when an explicit `ROOT_TX_LOOKUP_ORDER` keeps `hyperbeam`, which fails unless you run the `hb` profile, but does not remove it.
+It is idempotent: a second run changes only what is missing, so it is also how to add a publisher later, or, on Release 84, turn on torrents. It never replaces a value it cannot parse or a password it did not write; it stops and says what to fix. Before writing, it copies `.env` to `.env.bak-index-swarm-<time>`, readable only by its owner, since it holds secrets. It warns when an explicit `ROOT_TX_LOOKUP_ORDER` keeps `hyperbeam`, which fails unless you run the `hb` profile, but does not remove it.
 
 On Release 84, `INDEX_SWARM_ENGINE_AUTH` alone turns the torrent engine on: with a password set, `INDEX_SWARM_ENGINE_URL` defaults to the engine in the compose file. From Release 85 the engine runs by default and its password is generated on first start. Set the URL only for an engine you run some other way.
 
@@ -461,7 +461,7 @@ It exits `1` when a check fails, so it can run from cron or a health script.
 
 ## Doing It by Hand
 
-What the setup script writes, if you would rather edit `.env` yourself:
+What the Release 84 setup script writes, if you would rather edit `.env` yourself. From Release 85, the defaults cover everything here except the subscription, and the engine generates its own password; see the notes after the block.
 
 ```bash
 INDEX_SWARM_SUBSCRIBE='[{"publisher":"34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7h5","name":"root-tx-index"}]'
@@ -470,6 +470,8 @@ CDB64_ROOT_TX_INDEX_SOURCES=data/indexes/installed/root-tx-index,resources/cdb64
 ROOT_TX_LOOKUP_ORDER=db,cdb,gateways,graphql
 INDEX_SWARM_ENGINE_AUTH=swarm:<generated>   # only for BitTorrent: at least 16 characters, e.g. openssl rand -hex 24
 ```
+
+From Release 85, set only `INDEX_SWARM_SUBSCRIBE`, and `INDEX_SWARM_MAX_DISK_BYTES` if you want a ceiling: a subscription you set has none by default. If you set `ROOT_TX_LOOKUP_ORDER` yourself on Release 85, end it with `cdb-remote`, as in `db,cdb,gateways,graphql,cdb-remote`. Without `cdb-remote`, `cdb` also asks the shipped indexes, which are read from Arweave, right after `db`.
 
 The installed bands go **first** in `CDB64_ROOT_TX_INDEX_SOURCES`, so a fresh band answers before the older shipped indexes. The three `resources/` entries are the shipped default; keep them to go on searching them, or leave them off, since each lookup against them fetches from Arweave and a subscribed set that covers the whole chain makes them redundant.
 
@@ -551,7 +553,7 @@ The defaults suit most gateways. These are the settings worth changing, all in `
 | `INDEX_SWARM_DOWNLOAD_CONCURRENCY` | `4` | Files fetched at once within one band. Lower it on a slow disk or link |
 | `INDEX_SWARM_WEBSEED_AFTER_SECONDS` | `120` | How long a torrent may stall before the publisher's WebSeed is added. The WebSeed is metered like the HTTP routes |
 | `INDEX_SWARM_TORRENT_TIMEOUT_SECONDS` | `3600` | How long a torrent may go without progress before the band is fetched over HTTP instead |
-| `INDEX_SWARM_MAX_DISK_BYTES` | 64 GiB from Release 85; on Release 84, 50 GiB set by the setup script | Subscribing to more publishers or to larger indexes. Also `--max-disk-gib` |
+| `INDEX_SWARM_MAX_DISK_BYTES` | From Release 85, 64 GiB with the default subscription and no ceiling with one you set; on Release 84, 50 GiB set by the setup script | Subscribing to more publishers or to larger indexes. Also `--max-disk-gib` |
 | `INDEX_SWARM_ENGINE_PUBLIC_HOST` | host of the tracker URL | A publisher whose gateway name doesn't resolve to this node, such as one behind a CDN or a load balancer that doesn't forward the peer port |
 
 ### Sharing Between Your Own Gateways
@@ -723,6 +725,8 @@ docker compose up -d --no-deps --force-recreate index-swarm
 
 If you set `INDEX_SWARM_ENGINE_AUTH` in `.env`, remove it before the last command. The sidecar reads the password only when it starts, which is why it is recreated. With no password, it doesn't look for an engine and moves bands over HTTP only. If you start your gateway with `-f` files, add `-f docker-compose.override.yaml` to each command: passing `-f` turns off loading the override file automatically.
 
+Don't run `./tools/index-swarm-setup --restart` on a gateway set up this way: it names the engine services, and Docker Compose starts a service named on the command line even when its profile is off. Run the script without `--restart`, then recreate what it lists, by name, leaving out the engine services.
+
 ### Remove Index Sharing
 
 From Release 85 the sidecar and the engine start with every `docker compose up -d`, so a stopped container comes back on the next one. To keep them from starting, put all three services behind a profile you never enable, in `docker-compose.override.yaml`:
@@ -748,7 +752,7 @@ On Release 84, stop and remove `index-swarm` with `--profile index-swarm`, and t
 
 Then delete `data/indexes/swarm/`, `data/indexes/torrents/`, `data/indexes/engine-auth` and `data/index-swarm-engine/` (some are owned by root, so use `sudo`). Remove `INDEX_SWARM_ENGINE_AUTH` from `.env` too, if you set it: while it is set, the sidecar expects the engine and warns that it is not answering.
 
-- **On a subscriber**, restore your previous `CDB64_ROOT_TX_INDEX_SOURCES`, remove `L1_BAND_IMPORT_ENABLED` if it was set, and restart the gateway, then delete `data/indexes/installed/`. In that order, so the gateway is no longer holding the files open. L1 history already filled from bands stays in `core.db`.
+- **On a subscriber**, set `CDB64_ROOT_TX_INDEX_SOURCES` to your previous value or, if you never set it, to the three shipped indexes (`resources/cdb64-root-tx-index-non-ao-non-redstone-with-content-type-to-height-1820000,resources/cdb64-root-tx-index-non-ao-non-redstone-without-content-type-to-height-1820000,resources/cdb64-root-tx-index-ao-to-height-1820000`): from Release 85 the default includes the installed bands. Remove `L1_BAND_IMPORT_ENABLED` if it was set, restart the gateway, then delete `data/indexes/installed/`. In that order, so the gateway is no longer holding the files open. L1 history already filled from bands stays in `core.db`.
 - **On a publisher**, delete `data/indexes/published/publication.json`. The gateway stops serving the routes on its next request, without a restart. The band directories can then go too. From Release 85, also stop and remove `index-export` (profile `index-export`); it writes its bands as root, so removing them takes `sudo`.
 
 ## Related
