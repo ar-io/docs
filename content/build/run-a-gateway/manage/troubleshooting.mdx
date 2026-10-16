@@ -81,7 +81,7 @@ When observing a gateway, there are three pass/fail tests. A gateway must pass a
 
 - ArNS Assessment: This tests to see if a gateway is able to resolve ArNS names correctly. The first thing you should check is if you have the `ARNS_ROOT_HOST` value set in your .env file. If not, set the value and restart your gateway. If this value is set, check to make sure you have current DNS records and SSL certificates for wildcard subdomains on your gateway.
 
-- Offsets (chunk proofs): Each epoch, a share of gateways must serve `/chunk/<offset>` with a Merkle proof that validates against the chain. See [Failed Offset (Chunk-Proof) Checks](#failed-offset-chunk-proof-checks).
+- Offsets (chunk proofs): Each epoch, every gateway (by default) must serve `/chunk/<offset>` with a Merkle proof that validates against the chain. See [Failed Offset (Chunk-Proof) Checks](#failed-offset-chunk-proof-checks).
 
 By default, each observer checks a gateway 3 times an epoch (`OBSERVATIONS_PER_GATEWAY`) and passes it if at least 2 of those checks pass (`MAJORITY_VOTE_THRESHOLD`), so one bad moment doesn't fail you.
 
@@ -327,7 +327,7 @@ This failure almost always means that the gateway operator did not properly obta
 
 ### Failed Offset (Chunk-Proof) Checks
 
-Observers on the Release 85 observer image check that gateways serve chunks. Each epoch, every observer picks the same share of gateways (`OFFSET_OBSERVATION_SAMPLE_RATE`, 20% by default). A sampled gateway must serve `/chunk/<offset>` with a Merkle proof that validates against the chain. The observer tries up to 4 offsets (`OFFSET_SAMPLE_COUNT`) and stops at the first that validates, so a gateway fails only when every offset fails. Timeouts, error statuses and bad proofs all count as failures.
+Observers on the Release 85 observer image (`c5e98ddc`) check that gateways serve chunks. By default every gateway is checked every epoch (`OFFSET_OBSERVATION_SAMPLE_RATE`, `1.0`); an observer that sets a lower rate checks a share of gateways, the same share as every other observer at that rate. A checked gateway must serve `/chunk/<offset>` with a Merkle proof that validates against the chain. The observer tries up to 4 offsets (`OFFSET_SAMPLE_COUNT`) and stops at the first that validates, so a gateway fails only when every offset fails. Timeouts, error statuses and bad proofs all count as failures.
 
 The check fails gateways by default (`OFFSET_OBSERVATION_ENFORCEMENT_ENABLED=true`). A failed check fails the observation, like a failed ownership or ArNS check, and the 2-of-3 majority still applies. A check the observer could not judge itself, because its own lookups failed, is reported as `inconclusive` and never fails a gateway.
 

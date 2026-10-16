@@ -12,7 +12,7 @@ A gateway that can't answer locally has to ask other gateways or search the netw
 
 **Index Sharing** lets gateways share the answer. A gateway that has built a good index publishes it; other gateways download it and answer lookups in milliseconds. Because every piece is signed and hashed, a gateway can use another gateway's index without trusting that gateway's server.
 
-For an operator, that means data items resolve from local disk instead of a round trip to other gateways or GraphQL. The answer often includes the item's byte offsets, which lets the gateway fetch and verify just that item. It is optional and off by default: a gateway turns it on with one setup script, for about 21 GB of disk.
+For an operator, that means data items resolve from local disk instead of a round trip to other gateways or GraphQL. The answer often includes the item's byte offsets, which lets the gateway fetch and verify just that item. From Release 85 it is on by default: a gateway subscribes to turbo-gateway.com's root transaction index, about 22 GB of disk today, and seeds it to other gateways. An operator can follow other publishers, or opt out with one setting. On Release 84 it is off until a setup script turns it on.
 
 ## How It Works
 
@@ -60,7 +60,7 @@ Each band file can be fetched by its SHA-256 (`/ar-io/indexes/blob/<sha256>`). T
 
 ## Bands over BitTorrent
 
-Because every file is checked against the signed publication, it doesn't matter who delivers the bytes. That makes peer-to-peer delivery safe, and gateways that run the optional torrent engine move bands over **BitTorrent**. Without the engine, everything moves over HTTP as shown above.
+Because every file is checked against the signed publication, it doesn't matter who delivers the bytes. That makes peer-to-peer delivery safe, and gateways that run the torrent engine, which starts by default from Release 85, move bands over **BitTorrent**. Without the engine, everything moves over HTTP as shown above.
 
 ### Why BitTorrent
 
@@ -107,7 +107,7 @@ The torrent engine runs isolated from the rest of the gateway: it can't reach th
 ## What Index Sharing Is Not
 
 - **It doesn't replace data verification.** An index says where an item lives; the gateway still [verifies the data itself](/learn/gateways/data-verification) when it serves it.
-- **It isn't storage.** Bands are indexes, not the data they point to: about 21 GB for the root-TX index turbo-gateway.com publishes.
+- **It isn't storage.** Bands are indexes, not the data they point to: about 22 GB for the root-TX index turbo-gateway.com publishes, growing with the chain.
 - **It isn't complete.** An index answers only for the bundles its publisher indexed, and the band at the chain tip is rebuilt periodically, so the newest items aren't in it yet. A miss costs nothing: the gateway falls back to its usual lookup.
 - **It isn't one provider.** Any registered gateway can publish. The turbo-gateway.com gateway publishes a root transaction index today, and subscribers can follow more than one publisher.
 - **BitTorrent isn't required.** It is an optional transport. A gateway without the torrent engine publishes and subscribes over HTTP.
