@@ -90,8 +90,8 @@ The CDB64 index looks up which root Arweave transaction holds a data item, in on
 
 | Variable                               | Type    | Default                                 | Description                                                                                                      |
 | -------------------------------------- | ------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `ROOT_TX_LOOKUP_ORDER`                 | string  | `db,gateways,graphql,hyperbeam,cdb`     | Comma-separated root TX lookup sources: `db`, `peers`, `gateways`, `graphql`, `hyperbeam`, `cdb`, `turbo`. With local indexes, such as [Index Sharing](/build/run-a-gateway/manage/index-sharing) bands, put `cdb` right after `db` |
-| `CDB64_ROOT_TX_INDEX_SOURCES`          | string  | the three shipped `resources/` indexes  | Comma-separated CDB64 sources: local files, directories (including a directory of bands), HTTP URLs, Arweave TX IDs, or bundle data items. When you add a source, list the shipped ones too if you want to keep them |
+| `ROOT_TX_LOOKUP_ORDER`                 | string  | Release 85: `db,cdb,gateways,graphql,hyperbeam,cdb-remote`; Release 84: `db,gateways,graphql,hyperbeam,cdb` | Comma-separated root TX lookup sources: `db`, `peers`, `gateways`, `graphql`, `hyperbeam`, `cdb`, `cdb-remote` (Release 85), `turbo`. With `cdb-remote` in the order, `cdb` asks only CDB64 indexes on local disk and `cdb-remote` the ones read over the network; without it, `cdb` asks all of them. See [Root Transaction Lookup](/build/run-a-gateway/manage/cdb64) |
+| `CDB64_ROOT_TX_INDEX_SOURCES`          | string  | Release 85: `data/indexes/installed/root-tx-index`, then the three shipped `resources/` indexes; Release 84: the three shipped indexes | Comma-separated CDB64 sources: local files, directories (including a directory of bands), HTTP URLs, Arweave TX IDs, or bundle data items. When you add a source, list the shipped ones too if you want to keep them |
 | `CDB64_ROOT_TX_INDEX_DATA_PATH`        | string  | `./data/cdb64-root-tx-index`            | Host directory mounted at `data/cdb64-root-tx-index` in the core container, for your own index files            |
 | `CDB64_ROOT_TX_INDEX_WATCH`            | boolean | `true`                                  | Watch every local CDB64 directory source, so new files load without a restart                                    |
 | `CDB64_REMOTE_RETRIEVAL_ORDER`         | string  | `chunks`                                | Data sources for fetching remote CDB64 files: `gateways`, `chunks`, `tx-data`                                    |
@@ -103,13 +103,13 @@ The CDB64 index looks up which root Arweave transaction holds a data item, in on
 
 ### Index Sharing
 
-Settings for the `index-swarm` sidecar, which subscribes to other gateways' indexes and publishes your own. Available from Release 84. See [Index Sharing](/build/run-a-gateway/manage/index-sharing) for how each one is used.
+Settings for the `index-swarm` sidecar, which subscribes to other gateways' indexes and publishes your own. Available from Release 84, and on by default from Release 85 ([On by Default](/build/run-a-gateway/manage/index-sharing#on-by-default)). See [Index Sharing](/build/run-a-gateway/manage/index-sharing) for how each one is used.
 
 | Variable | Type | Default | Description |
 | --- | --- | --- | --- |
-| `INDEX_SWARM_SUBSCRIBE` | JSON | unset | Publishers to subscribe to, by gateway wallet: `[{"publisher":"<wallet>","name":"root-tx-index"}]`. `name` may be one index or a list. Without `name`, you take every index the publisher offers except opt-in kinds; from Release 85, `parquet-l1` is opt-in and must be named. An optional `url` fetches from another address, such as a fleet's signing node; the signature is still checked against the registered key. See [Take L1 Bands](/build/run-a-gateway/manage/index-sharing#take-l1-bands-parquet-l1) |
+| `INDEX_SWARM_SUBSCRIBE` | JSON | Release 85: turbo-gateway.com's `root-tx-index` (wallet `34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7h5`); Release 84: unset | `[]` opts out. Publishers to subscribe to, by gateway wallet: `[{"publisher":"<wallet>","name":"root-tx-index"}]`. `name` may be one index or a list. Without `name`, you take every index the publisher offers except opt-in kinds; from Release 85, `parquet-l1` is opt-in and must be named. An optional `url` fetches from another address, such as a fleet's signing node; the signature is still checked against the registered key. See [Take L1 Bands](/build/run-a-gateway/manage/index-sharing#take-l1-bands-parquet-l1) |
 | `INDEX_SWARM_PUBLISH` | JSON | unset | Indexes this gateway publishes: `[{"name":"root-tx-index","kind":"cdb64-root-tx"}]` |
-| `INDEX_SWARM_MAX_DISK_BYTES` | number | unset (no ceiling; the setup script writes 50 GiB) | Ceiling on the disk the sidecar takes for bands. A band that would go over it is skipped. See [Disk](/build/run-a-gateway/manage/index-sharing#disk) |
+| `INDEX_SWARM_MAX_DISK_BYTES` | number | Release 85: 64 GiB with the default subscription, no ceiling with one you set; Release 84: unset (no ceiling; the setup script writes 50 GiB) | Ceiling on the disk the sidecar takes for bands. A band that would go over it is skipped. See [Disk](/build/run-a-gateway/manage/index-sharing#disk) |
 | `INDEX_SWARM_OBSERVER_KEYPAIR_FILE` | string | unset | Publishers only: host path of the observer keypair file. Set this or `OBSERVER_PRIVATE_KEY`, not both |
 | `INDEX_SWARM_TRUSTED_PUBLISHERS` | string | unset | Comma-separated wallets. When set, only these publishers are accepted |
 | `INDEX_SWARM_ALLOWED_FILE_ORIGINS` | string | unset | Other servers (`http(s)://host[:port]`) a publisher may send band files from, such as its CDN. Anything else is refused |
@@ -139,12 +139,12 @@ Settings for the `index-swarm` sidecar, which subscribes to other gateways' inde
 
 #### BitTorrent
 
-Settings for the optional torrent engine (compose profile `index-swarm-torrent`). Setting `INDEX_SWARM_ENGINE_AUTH` turns it on; `./tools/index-swarm-setup --torrent` generates it. See [Tuning the Torrent Engine](/build/run-a-gateway/manage/index-sharing#tuning-the-torrent-engine).
+Settings for the torrent engine. From Release 85 it runs by default and generates its password on first start. On Release 84 it sits in the compose profile `index-swarm-torrent`, and setting `INDEX_SWARM_ENGINE_AUTH` turns it on; `./tools/index-swarm-setup --torrent` generates it. See [Tuning the Torrent Engine](/build/run-a-gateway/manage/index-sharing#tuning-the-torrent-engine).
 
 | Variable | Type | Default | Description |
 | --- | --- | --- | --- |
-| `INDEX_SWARM_ENGINE_AUTH` | string | unset | `user:password` for the engine's Web API, for example `swarm:<generated>`. The password must be at least 16 characters. Setting it turns the engine on |
-| `INDEX_SWARM_ENGINE_URL` | string | `http://index-swarm-engine:8080` with `INDEX_SWARM_ENGINE_AUTH`, else unset | The engine's Web API. Set it only for an engine run outside the compose profile |
+| `INDEX_SWARM_ENGINE_AUTH` | string | Release 85: generated on first start into `data/indexes/engine-auth`; Release 84: unset | `user:password` for the engine's Web API, for example `swarm:<generated>`. The password must be at least 16 characters. A value you set is used instead of the generated one. On Release 84, setting it turns the engine on |
+| `INDEX_SWARM_ENGINE_URL` | string | `http://index-swarm-engine:8080` when there is an engine password, else unset | The engine's Web API. Set it only for an engine run outside the compose profile |
 | `INDEX_SWARM_ENGINE_PORT` | number | `6881` | Peer port, published on the host over TCP and UDP. Keep it below Linux's ephemeral range (32768–60999) |
 | `INDEX_SWARM_ENGINE_PUBLIC_HOST` | string | host of the first `INDEX_SWARM_TRACKERS` URL | The host or IP peers reach this node's engine on. Set it when the tracker is served through a CDN or load balancer that does not forward the peer port |
 | `INDEX_SWARM_UPLOAD_LIMIT_BYTES_PER_SEC` | number | `10000000` | Cap on upload to peers (10 MB/s). `0` is unlimited. See [Bounding Upload](/build/run-a-gateway/manage/index-sharing#bounding-upload) |
@@ -153,6 +153,7 @@ Settings for the optional torrent engine (compose profile `index-swarm-torrent`)
 | `INDEX_SWARM_WEBSEED_AFTER_SECONDS` | number | `120` | How long a torrent may stall before the publisher's WebSeed is added |
 | `INDEX_SWARM_TRACKERS` | string | unset | Comma-separated announce URLs written into every torrent this node publishes; normally its own tracker through the gateway, `https://<gateway>/ar-io/indexes/announce` (Release 85; on Release 84, `http://<public host>:6969/announce`) |
 | `INDEX_SWARM_TRACKER_PORT` | number | `6969` | Port the tracker listens on for direct announces, published on the host by the sidecar. Only a node that publishes torrents listens on it. Open it only when peers announce to it directly rather than through the gateway |
+| `INDEX_SWARM_TRACKER_HOST_IP` | string | `127.0.0.1` | Release 85. Host address the tracker port is published on. Set `0.0.0.0` when peers announce to the tracker port directly |
 | `INDEX_SWARM_TRACKER_PROXY_PORT` | number | `6970` | Release 85. Port of the tracker's second listener, which Envoy forwards `/ar-io/indexes/announce` to. Never published. Compose passes it to both the sidecar and Envoy. Needs the Envoy image from Release 85 or later |
 | `INDEX_SWARM_TRACKER_PROXY_HOST` | string | `index-swarm` | Release 85. Host Envoy forwards `/ar-io/indexes/announce` to: the sidecar's service name. Change it only when the sidecar runs elsewhere |
 | `INDEX_SWARM_TRACKER_PROXY_TRUSTED_PROXIES` | string | every private range | Release 85. IPs or CIDRs whose `X-Forwarded-For` hop the tracker's gateway listener believes. Like core's `TRUSTED_PROXIES`, the default needs no setting behind NGINX and Envoy, but also believes a client that reaches Envoy from a private address (LAN, tailnet, another container), which can then list any address as a peer. Where such clients exist, list only the proxies, such as `172.16.0.0/12,<nginx host>` |
@@ -306,6 +307,8 @@ The default public Solana RPC is rate-limited and may block `getProgramAccounts`
 | `REDIS_CACHE_TTL_SECONDS`                 | number  | `28800`                                                | Redis cache TTL                         |
 | `ENABLE_FS_HEADER_CACHE_CLEANUP`          | boolean | `false`                                                | Enable FS header cache cleanup          |
 | `CONTIGUOUS_DATA_CACHE_CLEANUP_THRESHOLD` | string  | -                                                      | Contiguous data cache cleanup threshold |
+| `BACKGROUND_CACHE_RANGE_MAX_SIZE`         | number  | `10737418240` (10 GiB)                                 | Release 85 (was `0`, off). Largest item a range request that misses the cache fetches whole in the background, so the next request is a cache hit. This fills the data cache with items read only by range, such as video, SQLite or Parquet. `0` turns it off |
+| `BACKGROUND_CACHE_RANGE_CONCURRENCY`      | number  | `4`                                                    | Release 85 (was `1`). Background whole-item fetches at once. A miss beyond the limit is served without starting one |
 
 ### Webhooks
 
@@ -468,13 +471,13 @@ Host directories mounted into the core service. Other services that share a dire
 
 ### Offset Checks
 
-The observer's offset (chunk-proof) checks, on the observer image from Release 85 (`8e7f4d53`). Each epoch every observer samples the same share of gateways, and a sampled gateway must serve `/chunk/<offset>` with a Merkle proof that validates against the chain. See [Failed Offset Checks](/build/run-a-gateway/manage/troubleshooting#failed-offset-chunk-proof-checks).
+The observer's offset (chunk-proof) checks, on the observer image from Release 85 (`c5e98ddc`). By default every gateway is checked each epoch; at a lower sample rate every observer picks the same share. A checked gateway must serve `/chunk/<offset>` with a Merkle proof that validates against the chain. See [Failed Offset Checks](/build/run-a-gateway/manage/troubleshooting#failed-offset-chunk-proof-checks).
 
 | Variable                                 | Type    | Default | Description |
 | ---------------------------------------- | ------- | ------- | ----------- |
 | `OFFSET_OBSERVATION_ENABLED`             | boolean | `true`  | Run offset checks. `false` samples no gateway, and reports carry no `offsetAssessments` |
 | `OFFSET_OBSERVATION_ENFORCEMENT_ENABLED` | boolean | `true`  | A sampled gateway that fails its offset check fails the observation. `false` records failures in the report without failing gateways |
-| `OFFSET_OBSERVATION_SAMPLE_RATE`         | number  | `0.20`  | Share (0.0 to 1.0) of gateways sampled each epoch. At least one is sampled when it is above 0 |
+| `OFFSET_OBSERVATION_SAMPLE_RATE`         | number  | `1.0`   | Share (0.0 to 1.0) of gateways sampled each epoch; `1.0` checks every gateway. At least one is sampled when it is above 0 |
 | `OFFSET_SAMPLE_COUNT`                    | number  | `4`     | Offsets tried per sampled gateway. The gateway passes on the first offset whose proof validates |
 
 ### Upload Wallet Identities
@@ -560,7 +563,7 @@ Each service's image tag can be overridden. The defaults change with each releas
 | ---------------------------------- | ------ | ------------------------- | ------------------------------------------------------ |
 | `CORE_IMAGE_TAG`                   | string | see `docker-compose.yaml` | Core image tag, also used by the `index-swarm` sidecar |
 | `ENVOY_IMAGE_TAG`                  | string | see `docker-compose.yaml` | Envoy image tag                                        |
-| `OBSERVER_IMAGE_TAG`               | string | see `docker-compose.yaml` | Observer image tag. Release 85 moves the default to `8e7f4d53`, which runs the offset checks. A tag you set in `.env` overrides the compose default, so update it there when you upgrade |
+| `OBSERVER_IMAGE_TAG`               | string | see `docker-compose.yaml` | Observer image tag. Release 85 moves the default to `c5e98ddc`, which checks every gateway's offsets each epoch. A tag you set in `.env` overrides the compose default, so update it there when you upgrade |
 | `REDIS_IMAGE_TAG`                  | string | see `docker-compose.yaml` | Redis image tag                                        |
 | `CLICKHOUSE_IMAGE_TAG`             | string | see `docker-compose.yaml` | ClickHouse image tag                                   |
 | `CLICKHOUSE_AUTO_IMPORT_IMAGE_TAG` | string | see `docker-compose.yaml` | ClickHouse auto-import image tag                       |
