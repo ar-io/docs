@@ -12,6 +12,8 @@ Set these in the `.env` file next to `docker-compose.yaml`. The **Default** colu
 
 A few variables have a different name in `.env` from the one the service reads, because Docker Compose renames them (for example `CORE_LOG_LEVEL` becomes the core service's `LOG_LEVEL`). The tables use the `.env` name.
 
+This page covers the variables most operators need. The full list, with every default, is in the gateway repository's [`docs/envs.md`](https://github.com/ar-io/ar-io-node/blob/develop/docs/envs.md).
+
 ## Core ar.io Node
 
 The main ar.io Gateway service that handles data retrieval, indexing, and serving.
@@ -69,6 +71,11 @@ If `OBSERVER_KEYPAIR_PATH` or `OBSERVER_PRIVATE_KEY` is set, the observer's Ed25
 | `CHUNK_POST_MIN_SUCCESS_COUNT`   | number | `3`     | Min successful chunk posts required |
 | `CHUNK_POST_RESPONSE_TIMEOUT_MS` | number | -       | Chunk POST response timeout         |
 | `CHUNK_POST_ABORT_TIMEOUT_MS`    | number | -       | Chunk POST abort timeout            |
+| `ARWEAVE_PEER_CHUNK_GET_MAX_PEER_ATTEMPT_COUNT` | number | `8` | Most Arweave peers tried, one after another, to fetch a chunk before giving up. Each attempt is capped at 500 ms. Release 85 raised it from 5 |
+| `PREFERRED_CHUNK_GET_NODE_URLS`  | string | `data-1` to `data-17` and `tip-1` to `tip-4` `.arweave.xyz:1984` | Comma-separated Arweave node URLs tried first for chunk GETs. From Release 85, each gateway orders them by how well each serves it, so set this only to pin specific nodes |
+| `PREFERRED_CHUNK_POST_NODE_URLS` | string | `tip-1` to `tip-4` `.arweave.xyz:1984` | Comma-separated Arweave node URLs chunks are broadcast to first (`POST /chunk`) |
+
+Release 85 removed `tip-5.arweave.xyz` from both default lists. If you set either list yourself, remove it there too.
 
 ### Data Sources
 
@@ -112,6 +119,8 @@ Settings for the `index-swarm` sidecar, which subscribes to other gateways' inde
 | `INDEX_SWARM_DOWNLOAD_CONCURRENCY` | number | `4` | Parallel file downloads within one band |
 | `INDEX_SWARM_DATA_PATH` | string | `./data/indexes` | Host directory for published, downloading and installed bands. The gateway mounts the same directory |
 | `INDEXES_PUBLISHED_DIR` | string | `data/indexes/published` | Where the gateway's `/ar-io/indexes` routes serve from, inside the core container |
+| `INDEXES_PUBLIC_URL` | string | `https://<ARNS_ROOT_HOST>` | Release 85. This gateway's public origin, such as `https://gateway.example`: the start of the URLs in its index feeds (`/ar-io/indexes/feed/<index>.xml`) and of the WebSeed each served `.torrent` names. An origin only (scheme, host and optional port, no path); any other value stops the gateway at startup. Never taken from a request's `Host` header. With neither this nor `ARNS_ROOT_HOST`, feeds answer `404` and `.torrent` files are served without a WebSeed |
+| `INDEXES_TORRENT_WEBSEED` | boolean | `true` | Release 85. Whether each served `.torrent` names this gateway as its WebSeed (`<INDEXES_PUBLIC_URL>/ar-io/indexes/webseed/`), so a stock BitTorrent client following a feed can finish a band no peer is delivering. Such a client pulls a good share of every band from it even while seeders could serve it, through the byte routes' rate limits when they are metered. `false` serves torrents as the publisher wrote them, for peers only. Subscribing gateways drop the WebSeed either way |
 | `INDEX_SWARM_PUBLISH_TTL_SECONDS` | number | `86400` | How long a publication is valid. See [Index Sharing](/build/run-a-gateway/manage/index-sharing#publish-your-indexes) |
 | `INDEX_SWARM_PUBLISH_SCAN_INTERVAL_SECONDS` | number | `60` | How often the publisher looks for new or changed bands |
 | `INDEX_SWARM_SUPERSEDE_GRACE_SECONDS` | number | `300` | How long a retired band's files stay on disk after it stops being served |
@@ -137,14 +146,17 @@ Settings for the optional torrent engine (compose profile `index-swarm-torrent`)
 | `INDEX_SWARM_ENGINE_AUTH` | string | unset | `user:password` for the engine's Web API, for example `swarm:<generated>`. The password must be at least 16 characters. Setting it turns the engine on |
 | `INDEX_SWARM_ENGINE_URL` | string | `http://index-swarm-engine:8080` with `INDEX_SWARM_ENGINE_AUTH`, else unset | The engine's Web API. Set it only for an engine run outside the compose profile |
 | `INDEX_SWARM_ENGINE_PORT` | number | `6881` | Peer port, published on the host over TCP and UDP. Keep it below Linux's ephemeral range (32768–60999) |
-| `INDEX_SWARM_ENGINE_PUBLIC_HOST` | string | host of the first `INDEX_SWARM_TRACKERS` URL | The host or IP peers reach this node's engine on. Set it when the tracker is behind a load balancer that does not forward the peer port |
+| `INDEX_SWARM_ENGINE_PUBLIC_HOST` | string | host of the first `INDEX_SWARM_TRACKERS` URL | The host or IP peers reach this node's engine on. Set it when the tracker is served through a CDN or load balancer that does not forward the peer port |
 | `INDEX_SWARM_UPLOAD_LIMIT_BYTES_PER_SEC` | number | `10000000` | Cap on upload to peers (10 MB/s). `0` is unlimited. See [Bounding Upload](/build/run-a-gateway/manage/index-sharing#bounding-upload) |
 | `INDEX_SWARM_UPLOAD_DAILY_LIMIT_BYTES` | number | `100000000000` | Most the engine may upload in a UTC day (100 GB). `0` is no budget. See [Bounding Upload](/build/run-a-gateway/manage/index-sharing#bounding-upload) |
 | `INDEX_SWARM_TORRENT_TIMEOUT_SECONDS` | number | `3600` | How long a torrent may go without progress before the band is fetched over HTTP instead |
 | `INDEX_SWARM_WEBSEED_AFTER_SECONDS` | number | `120` | How long a torrent may stall before the publisher's WebSeed is added |
-| `INDEX_SWARM_TRACKERS` | string | unset | Comma-separated announce URLs written into every torrent this node publishes; normally its own tracker, `http://<public host>:6969/announce` |
-| `INDEX_SWARM_TRACKER_PORT` | number | `6969` | Port the tracker listens on, published on the host by the sidecar. Only a node that publishes torrents listens on it |
-| `INDEX_SWARM_TRACKER_TRUSTED_PROXIES` | string | unset | Comma-separated IPs or CIDRs of proxies in front of the tracker whose `X-Forwarded-For` it believes. See [Publishing from a Fleet](/build/run-a-gateway/manage/index-sharing#publishing-from-a-fleet) |
+| `INDEX_SWARM_TRACKERS` | string | unset | Comma-separated announce URLs written into every torrent this node publishes; normally its own tracker through the gateway, `https://<gateway>/ar-io/indexes/announce` (Release 85; on Release 84, `http://<public host>:6969/announce`) |
+| `INDEX_SWARM_TRACKER_PORT` | number | `6969` | Port the tracker listens on for direct announces, published on the host by the sidecar. Only a node that publishes torrents listens on it. Open it only when peers announce to it directly rather than through the gateway |
+| `INDEX_SWARM_TRACKER_PROXY_PORT` | number | `6970` | Release 85. Port of the tracker's second listener, which Envoy forwards `/ar-io/indexes/announce` to. Never published. Compose passes it to both the sidecar and Envoy. Needs the Envoy image from Release 85 or later |
+| `INDEX_SWARM_TRACKER_PROXY_HOST` | string | `index-swarm` | Release 85. Host Envoy forwards `/ar-io/indexes/announce` to: the sidecar's service name. Change it only when the sidecar runs elsewhere |
+| `INDEX_SWARM_TRACKER_PROXY_TRUSTED_PROXIES` | string | every private range | Release 85. IPs or CIDRs whose `X-Forwarded-For` hop the tracker's gateway listener believes. Like core's `TRUSTED_PROXIES`, the default needs no setting behind NGINX and Envoy, but also believes a client that reaches Envoy from a private address (LAN, tailnet, another container), which can then list any address as a peer. Where such clients exist, list only the proxies, such as `172.16.0.0/12,<nginx host>` |
+| `INDEX_SWARM_TRACKER_TRUSTED_PROXIES` | string | unset | Comma-separated IPs or CIDRs of proxies in front of the tracker whose `X-Forwarded-For` it believes, on both listeners. List any proxy that reaches the gateway from a public address. The direct port believes only this list. See [Publishing from a Fleet](/build/run-a-gateway/manage/index-sharing#publishing-from-a-fleet) |
 | `INDEX_SWARM_ALLOWED_TRACKERS` | string | unset | Tracker URLs, exactly as written, that a subscriber hands its engine even though their host is private. Only useful with `INDEX_SWARM_ENGINE_BLOCK_PRIVATE=false` |
 | `INDEX_SWARM_ENGINE_BLOCK_PRIVATE` | boolean | `true` | Have the engine refuse peers, trackers and WebSeeds on private, loopback, link-local and carrier-grade NAT addresses. See [Sharing Between Your Own Gateways](/build/run-a-gateway/manage/index-sharing#sharing-between-your-own-gateways) |
 | `INDEX_SWARM_ENGINE_NETWORK_NAME` | string | `ar-io-index-swarm-engine` | Docker network the engine runs on, shared only with the sidecar |
@@ -155,8 +167,8 @@ Settings for the optional torrent engine (compose profile `index-swarm-torrent`)
 #### Building Bands (Release 85)
 
 <Callout type="info">
-  **Release Requirement**: The `index-export` service and these settings are
-  part of gateway Release 85, which is not released yet.
+  **Release Requirement**: The `index-export` service and these settings
+  require gateway Release 85 or later.
 </Callout>
 
 Settings for the `index-export` service (compose profile `index-export`), which builds your gateway's bands for the sidecar to publish. It logs by `LOG_LEVEL` and `LOG_FORMAT`. See [What the Daily Run Does](/build/run-a-gateway/manage/index-sharing#what-the-daily-run-does).
@@ -184,8 +196,12 @@ Settings for the `index-export` service (compose profile `index-export`), which 
 | Variable                         | Type    | Default    | Description                        |
 | -------------------------------- | ------- | ---------- | ---------------------------------- |
 | `START_WRITERS`                  | boolean | `true`     | Enable indexing processes          |
-| `START_HEIGHT`                   | number  | `0`        | Starting block height for indexing |
+| `START_HEIGHT`                   | number  | `0`        | Starting block height for indexing. With `L1_BAND_IMPORT_ENABLED=true` and an empty `core.db`, leaving it unset starts at the chain tip instead, and the history beneath comes from L1 bands |
 | `STOP_HEIGHT`                    | number  | `Infinity` | Stopping block height for indexing |
+| `L1_BAND_IMPORT_ENABLED`         | boolean | `false`    | Release 85. Fill this gateway's L1 history (`core.db`) from installed `parquet-l1` bands while it runs. Writes only heights `core.db` lacks beneath what the block importer writes itself, in short transactions, so the gateway keeps indexing and serving. Needs the `index-swarm` sidecar subscribed to `parquet-l1`; `./tools/index-swarm-setup --subscribe <publisher> --l1` sets both. See [Bootstrap from L1 Bands](/build/run-a-gateway/manage/index-snapshots#bootstrap-from-l1-bands) |
+| `L1_BAND_IMPORT_BANDS_DIR`       | string  | `data/indexes/installed/parquet-l1` | Release 85. Where the sidecar installs `parquet-l1` bands, as core sees it |
+| `L1_BAND_IMPORT_INTERVAL_SECONDS` | number | `600`      | Release 85. Seconds between fill runs, counted from the end of the last. A run with nothing to fill writes nothing |
+| `L1_BAND_IMPORT_CACHE_MIB`       | number  | `512`      | Release 85. SQLite page cache for a fill run, in MiB. The run is a child process of core, so this is memory beside the gateway's own |
 | `SKIP_CACHE`                     | boolean | `false`    | Bypass header cache                |
 | `SIMULATED_REQUEST_FAILURE_RATE` | number  | `0`        | Rate of simulated request failures |
 
@@ -450,6 +466,17 @@ Host directories mounted into the core service. Other services that share a dire
 | `TURBO_UPLOAD_SERVICE_URL`            | string  | -                              | Turbo upload service URL                   |
 | `MIN_RELEASE_NUMBER`                  | number  | `0`                            | Minimum release number                     |
 
+### Offset Checks
+
+The observer's offset (chunk-proof) checks, on the observer image from Release 85 (`8e7f4d53`). Each epoch every observer samples the same share of gateways, and a sampled gateway must serve `/chunk/<offset>` with a Merkle proof that validates against the chain. See [Failed Offset Checks](/build/run-a-gateway/manage/troubleshooting#failed-offset-chunk-proof-checks).
+
+| Variable                                 | Type    | Default | Description |
+| ---------------------------------------- | ------- | ------- | ----------- |
+| `OFFSET_OBSERVATION_ENABLED`             | boolean | `true`  | Run offset checks. `false` samples no gateway, and reports carry no `offsetAssessments` |
+| `OFFSET_OBSERVATION_ENFORCEMENT_ENABLED` | boolean | `true`  | A sampled gateway that fails its offset check fails the observation. `false` records failures in the report without failing gateways |
+| `OFFSET_OBSERVATION_SAMPLE_RATE`         | number  | `0.20`  | Share (0.0 to 1.0) of gateways sampled each epoch. At least one is sampled when it is above 0 |
+| `OFFSET_SAMPLE_COUNT`                    | number  | `4`     | Offsets tried per sampled gateway. The gateway passes on the first offset whose proof validates |
+
 ### Upload Wallet Identities
 
 The observer uploads report bundles to Turbo. The upload signer is resolved from the first matching env in the [precedence chain](/build/run-a-gateway/manage/solana-migration#upload-signing-precedence). Setting envs from more than one chain group at once is rejected at startup.
@@ -533,7 +560,7 @@ Each service's image tag can be overridden. The defaults change with each releas
 | ---------------------------------- | ------ | ------------------------- | ------------------------------------------------------ |
 | `CORE_IMAGE_TAG`                   | string | see `docker-compose.yaml` | Core image tag, also used by the `index-swarm` sidecar |
 | `ENVOY_IMAGE_TAG`                  | string | see `docker-compose.yaml` | Envoy image tag                                        |
-| `OBSERVER_IMAGE_TAG`               | string | see `docker-compose.yaml` | Observer image tag                                     |
+| `OBSERVER_IMAGE_TAG`               | string | see `docker-compose.yaml` | Observer image tag. Release 85 moves the default to `8e7f4d53`, which runs the offset checks. A tag you set in `.env` overrides the compose default, so update it there when you upgrade |
 | `REDIS_IMAGE_TAG`                  | string | see `docker-compose.yaml` | Redis image tag                                        |
 | `CLICKHOUSE_IMAGE_TAG`             | string | see `docker-compose.yaml` | ClickHouse image tag                                   |
 | `CLICKHOUSE_AUTO_IMPORT_IMAGE_TAG` | string | see `docker-compose.yaml` | ClickHouse auto-import image tag                       |

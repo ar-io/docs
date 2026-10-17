@@ -100,6 +100,8 @@ curl -X 'PUT' \
 
 </CodeGroup>
 
+From Release 85, the bare root of a sandbox subdomain (`GET` or `HEAD /` on `<52-character base32>.<ARNS_ROOT_HOST>`) answers `451` when the ID it encodes is blocked, and `404` otherwise. Abuse reports often cite that bare URL. Both answers use the not-found cache time (`CACHE_NOT_FOUND_MAX_AGE`, with `must-revalidate`), not the 30-day blocked one, because an unblock never revalidates this URL. Every other path on a sandbox subdomain is unchanged.
+
 ### Unblock Data
 
 At this time, blocked data items can only be unblocked by manually deleting the corresponding row from the `data/sqlite/moderation.db` database.

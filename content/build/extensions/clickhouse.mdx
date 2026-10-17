@@ -167,8 +167,10 @@ Each cycle:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `CLICKHOUSE_AUTO_IMPORT_SLEEP_INTERVAL` | `3600` | Seconds between import cycles |
-| `CLICKHOUSE_AUTO_IMPORT_HEIGHT_INTERVAL` | `1000` | Blocks per Parquet partition |
-| `CLICKHOUSE_AUTO_IMPORT_MAX_ROWS_PER_FILE` | - | Maximum rows per Parquet file |
+| `CLICKHOUSE_AUTO_IMPORT_HEIGHT_INTERVAL` | `10000` | Blocks per batch (Parquet partition) |
+| `CLICKHOUSE_AUTO_IMPORT_MAX_ROWS_PER_FILE` | `1000000` | Maximum rows per Parquet file |
+| `CLICKHOUSE_IMPORT_SKIP_UNCHANGED` | `true` | Release 85. Insert only rows whose content differs from the newest stored version of their key, so re-importing a range adds no duplicate versions. Real changes, such as an L1 `offset` backfilled later, are still inserted. An unchanged re-import does not refresh `expires_at`. `false` inserts every row, as before |
+| `CLICKHOUSE_AUTO_IMPORT_DEBUG_RETRY_WINDOW_S` | `600` | Release 85. Seconds the auto-import keeps retrying, with backoff from 5 s up to 60 s, when the gateway's `/ar-io/admin/debug` endpoint is unreachable or errors, as during a core restart. After that, the cycle stops at that batch and the next cycle picks up the rest. `0` makes a single attempt |
 
 The default 1-hour interval is conservative. For gateways with high unbundling throughput, reduce to 600-900 seconds to keep ClickHouse more current.
 
@@ -231,7 +233,16 @@ When multiple rules could apply, the first matching branch wins:
 - **`prefix`** — Matches the beginning of the value. Use for `Content-Type` with parameters (e.g., `image/gif` catches `image/gif; charset=...`) or app name families.
 
 <Callout type="warn">
-  TTL rules apply only to rows imported after the rules are loaded. Previously imported rows keep their existing expiration. To apply new rules retroactively, re-import affected Parquet partitions.
+  TTL rules apply only to rows imported after the rules are loaded. Previously
+  imported rows keep their existing expiration. Re-importing the same Parquet
+  doesn't change that: with `CLICKHOUSE_IMPORT_SKIP_UNCHANGED=true` (the
+  default), an unchanged row is skipped, so its `expires_at` is not refreshed.
+  To apply new rules to rows already imported, run a mutation on
+  `transactions` that sets `expires_at` with the same lookup the import uses
+  (`ALTER TABLE transactions UPDATE expires_at = ... WHERE 1`). It is a heavy
+  mutation, so run it off-peak. The [Parquet and ClickHouse
+  guide](https://github.com/ar-io/ar-io-node/blob/develop/docs/parquet-and-clickhouse-usage.md#backfilling-existing-rows-optional)
+  has the details.
 </Callout>
 
 ### Normalization

@@ -249,4 +249,17 @@ docker compose up -d
 </Tab>
 </Tabs>
 
+## Release-Specific Steps
+
+Some releases need a step beyond pulling and restarting. Do these when you upgrade to the release named, or past it.
+
+### Release 85
+
+- **Upgrade the Envoy image with core.** Peers now announce to an [Index Sharing](/build/run-a-gateway/manage/index-sharing) publisher's tracker through the gateway, at `/ar-io/indexes/announce`, and that route is Envoy's. An older Envoy passes the path to core, which answers `404`, so every announce fails without an error. If you set `ENVOY_IMAGE_TAG` in `.env`, update it too.
+- **Use the same `-f` files and `--profile` flags.** The `index-swarm` sidecar, the torrent engine's setup step (`index-swarm-engine-init`) and `index-export` run the core image (`CORE_IMAGE_TAG`, or `INDEX_EXPORT_IMAGE_TAG` for `index-export` when set), each in a compose profile that is off unless you name it. The torrent engine itself is qBittorrent's image. Pass the same `-f` files and `--profile` flags you start them with, so they move to the new core image along with core. Passing `-f` at all turns off loading `docker-compose.override.yaml` automatically, so name every compose file you normally use.
+- **Publishers of torrents: move peers to the gateway's tracker route.** The setup script keeps an existing `INDEX_SWARM_TRACKERS`, so a publisher set up on Release 84 still announces to the tracker's own port (6969), which must stay open. To announce through the gateway instead, set `INDEX_SWARM_TRACKERS=https://<your-gateway>/ar-io/indexes/announce` and restart the sidecar. On its next scan it rebuilds each band's `.torrent` with the new tracker; the infohashes don't change, since trackers sit outside the info dictionary.
+- **Update a pinned `OBSERVER_IMAGE_TAG`.** Release 85 moves the default observer image to `8e7f4d53`, which runs the new [offset checks](/build/run-a-gateway/manage/troubleshooting#failed-offset-chunk-proof-checks). A tag you set in `.env` overrides the compose default, so update it there.
+- **Purge gzip bodies cached before the upgrade.** Before Release 85, a gateway could serve a gzip-compressed upload decoded, either still labelled `Content-Encoding: gzip` or without the header. Bodies an NGINX `proxy_cache` stored before the upgrade keep the wrong body until they expire or are purged. [Cache Bypass Header](/build/run-a-gateway/manage/nginx-caching#cache-bypass-header) shows how to force-refresh one. When your gateway finds a decoded copy in its own cache, it logs a warning and counts it in `served_content_encoding_dropped_total`.
+- **Don't trust gateways older than the gzip fix.** A gateway older than that fix (#964, first released in Release 85) can serve a gzip-compressed upload decoded. Release 85 refuses those bodies when the response's headers give them away, but a decoded body sent with neither `Content-Encoding` nor the tag headers can't be told apart. Don't list such gateways in `TRUSTED_GATEWAYS_URLS` or `TRUSTED_GATEWAY_URL`.
+
 That's it! Your ar.io Gateway is now upgraded to the latest version. Ensure to test and verify that everything is functioning as expected. If you encounter any issues, reach out to the [ar.io community](https://discord.com/invite/HGG52EtTc2) for assistance.

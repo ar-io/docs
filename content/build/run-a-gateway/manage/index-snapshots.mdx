@@ -8,7 +8,7 @@ description: "Bootstrap your ar.io gateway's index from a SQLite snapshot or, fr
 A new gateway builds its index of the Arweave network block by block. That can take days or weeks, depending on your hardware and on how much data you index. You can skip most of it in one of two ways:
 
 - [Import a SQLite snapshot](#import-a-sqlite-snapshot). The 2025-04-23 snapshot holds transactions and the data items uploaded through ArDrive products, including Turbo, up to block 1645229.
-- [Bootstrap from L1 bands](#bootstrap-from-l1-bands) (Release 85). Your gateway imports the Arweave base layer (blocks, transactions, tags and owners) from signed bands that another gateway publishes, up to the current tip. Data items are not included.
+- [Bootstrap from L1 bands](#bootstrap-from-l1-bands) (Release 85 or later). Your gateway follows the chain tip and, while it runs, fills in the Arweave base layer beneath it (blocks, transactions, tags and owners) from signed bands that another gateway publishes. Data items are not included.
 
 <Callout type="info">
   Looking to resolve data items faster without a full database? [Index
@@ -130,26 +130,72 @@ The 2025-04-23 snapshot was taken at block `1645229`. If the import worked, the 
 
 <Callout type="info">
   **Release Requirement**: L1 bands, and the `ar-io-node` CLI that imports
-  them, arrive in gateway Release 85, which is not released yet. Your gateway
-  and the publisher you subscribe to must both run it.
+  them, require gateway Release 85 or later, on your gateway and on the
+  publisher you subscribe to.
 </Callout>
 
-An L1 band (`parquet-l1`) holds the Arweave base layer for a range of block heights, as Parquet files: blocks, transactions, tags and owners. Gateways that publish them sign every file, and your gateway checks each one before it installs the band. `index-l1-import` then fills your gateway's `core.db` from the installed bands, so it starts near the tip instead of at block 0.
+An L1 band (`parquet-l1`) holds the Arweave base layer for a range of block heights, as Parquet files: blocks, transactions, tags and owners. Gateways that publish them sign every file, and your gateway checks each one before it installs the band. Your gateway then fills its `core.db` from the installed bands, instead of indexing the chain from block 0.
 
 L1 bands carry no data items. Your gateway still unbundles the bundles your filters select, and it does that for imported history only if you also set `BACKFILL_BUNDLE_RECORDS`.
 
+There are two ways to do it:
+
+- Fill the history while the gateway runs, as below. This is the usual way. It works on a new gateway, on one that began mid-chain, and on one with a hole in what it holds.
+- [Import with the gateway stopped](#import-l1-bands-with-the-gateway-stopped). Faster, but only for a new `core.db` that the gateway has never run on.
+
+With `L1_BAND_IMPORT_ENABLED=true`, core runs `ar-io-node index-l1-import --fill` every 10 minutes (`L1_BAND_IMPORT_INTERVAL_SECONDS`, counted from the end of the last run), as a child process, so a crash in the import can't take the gateway down. A fill writes only the heights `core.db` lacks beneath what the block importer writes itself, so nothing your gateway indexed is rewritten. It writes in short transactions with a pause after each, so the gateway keeps indexing and serving the whole time.
+
+On a new gateway, set this up **before the first start** and leave `START_HEIGHT` unset: run the setup script below without `--restart` (on a gateway that isn't running, `--restart` would start core and the sidecar alone), then start the gateway as usual with `--profile index-swarm` added. With an empty `core.db`, the block importer then starts at the chain tip instead of block 0, and the history beneath it arrives as the bands do.
+
 ### Prerequisites
 
-- A gateway on Release 85. The core service migrates its database when it starts, and the import refuses a `core.db` that has not been migrated
-- A `core.db` with no unstable blocks near the tip (the `new_*` tables). The import refuses one that holds them, so run it on a new gateway before its block importer has indexed the tip
+- A gateway on Release 85 or later
+- Room on disk: about 15 GB for the bands, and about 120 GB for a `core.db` that covers the whole chain. The setup script sets the Index Sharing disk budget to 100 GiB if it is unset, and warns if yours is lower
+
+<Steps>
+<Step>
+### Subscribe with `--l1`
+
+L1 bands arrive through [Index Sharing](/build/run-a-gateway/manage/index-sharing). Run the setup script with `--l1`, first with `--dry-run` to see the changes:
+
+```bash
+./tools/index-swarm-setup --subscribe 34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7h5 --l1 --torrent --dry-run
+./tools/index-swarm-setup --subscribe 34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7h5 --l1 --torrent --restart
+```
+
+`--l1` subscribes to the publisher's L1 bands as well as its root-TX bands, sets `L1_BAND_IMPORT_ENABLED=true`, and restarts core. Leave out `--torrent` to move bands over HTTP only.
+
+</Step>
+
+<Step>
+### Check It
+
+```bash
+./tools/index-swarm-status
+```
+
+Bands install under `data/indexes/installed/parquet-l1`, and each fill writes what they hold. On the gateway's `/ar-io/__gateway_metrics`, `l1_band_import_runs_total{result}` counts fills (`filled`, `idle` or `failed`), `l1_band_import_rows_total` the rows written, and `l1_band_import_uncovered_heights` the heights no installed band holds yet.
+
+</Step>
+</Steps>
+
+Uncovered heights are normal for a while: bands still downloading, and, on a new gateway, the heights between the newest band and where it began, which the publisher's next tip band holds, usually within a day. A run with nothing to fill writes nothing. Only one import or fill runs against a `core.db` at a time.
+
+## Import L1 Bands with the Gateway Stopped
+
+The fastest way to load the whole chain into an empty database, at the cost of the gateway being down while it runs. It is only for a **new** `core.db` that the gateway has not run on yet. The import refuses a `core.db` that another process is writing to, and one that holds unstable blocks (the `new_*` tables). A gateway that has run always holds some, because it moves blocks to the stable tables only once they are 18 deep. For a gateway that already runs, [fill while it runs](#bootstrap-from-l1-bands) instead.
+
+### Prerequisites
+
+- A gateway on Release 85 or later, and a migrated `core.db` (`yarn db:migrate up`; the core service also runs it when it starts). The import refuses one without its ledger table
 - Room on disk: about 15 GB for the bands, and about 120 GB for a `core.db` that covers the whole chain. The import refuses to start without the space it needs
-- Time: a full chain takes many hours. The import logs its progress once a minute
+- Time: the whole chain takes about 15 hours on 12 cores. The import logs its progress once a minute
 
 <Steps>
 <Step>
 ### Subscribe to L1 Bands
 
-L1 bands arrive through [Index Sharing](/build/run-a-gateway/manage/index-sharing). A subscription takes them only when it names them, so add `parquet-l1` to the `name` list in `INDEX_SWARM_SUBSCRIBE`:
+A subscription takes L1 bands only when it names them, so add `parquet-l1` to the `name` list in `INDEX_SWARM_SUBSCRIBE`:
 
 ```bash
 INDEX_SWARM_SUBSCRIBE='[{"publisher":"34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7h5","name":["root-tx-index","parquet-l1"]}]'
@@ -162,7 +208,7 @@ Then recreate the `index-swarm` sidecar and wait until `./tools/index-swarm-stat
 <Step>
 ### Stop the Gateway
 
-The import refuses a `core.db` that another process is writing to. Stop only the core service, with the same `-f` files your gateway was started with:
+Stop only the core service, with the same `-f` files your gateway was started with:
 
 ```bash
 docker compose stop core
@@ -184,8 +230,6 @@ Run it from the gateway's directory. The tool runs in the core image, so the hos
 
 Bands import in height order, lowest first. `--cache-mib` sets SQLite's page cache for the run (default 1024 MiB); give it what your machine can spare, since a larger cache keeps a long import fast. An interrupted run is safe: run the command again and it carries on from the last band that landed. `--max-bands` splits the work across several runs.
 
-If your gateway started above block 0 (`START_HEIGHT`), add `--from 0 --to <height below what it holds>` to fill in the history underneath. Check that the result's `holes` field is absent or empty before you start the gateway.
-
 </Step>
 
 <Step>
@@ -200,4 +244,4 @@ The block importer continues from the highest height imported.
 </Step>
 </Steps>
 
-To check a set of bands, or your gateway's own `core.db`, against the chain, use `./tools/ar-io-node index-l1-verify`. Every option, and the JSON each command prints, is in the [`ar-io-node` CLI reference](https://github.com/ar-io/ar-io-node/blob/develop/docs/cli.md#index-l1-import).
+To check a set of bands, or your gateway's own `core.db`, against the chain, use `./tools/ar-io-node index-l1-verify` (see [The `ar-io-node` CLI](/build/run-a-gateway/manage/ar-io-node-cli)). Every option, and the JSON each command prints, is in the [`ar-io-node` CLI reference](https://github.com/ar-io/ar-io-node/blob/develop/docs/cli.md#index-l1-import).

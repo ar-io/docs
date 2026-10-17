@@ -38,7 +38,7 @@ magnet:?xt=urn:btih:57f33f3cdda02de27eb42f84e62b3b67dccc758c&xt=urn:btmh:122027a
 
 turbo-gateway.com publishes two indexes. This guide downloads the **root-TX bands** (`root-tx-index`): five bands, about 21 GB in all. The band id shows the block heights each covers: `b0-h2010500-tip` runs from height 2,010,500 to the chain tip, and `b4-h0-1349999` covers the start of the chain. The tip band is the smallest and is rebuilt often. The older bands are 2 to 8 GB and rarely change. Start with `b0` to try it out.
 
-The list also shows the 24 **L1 bands** (`parquet-l1`), about 15 GB, which come with gateway Release 85, not released yet. They download the same way. The `.cdb` partitions described below belong to root-TX bands only; an L1 band holds Parquet files and a `band.json`. See [Query a Parquet Dataset](/build/advanced/index-publications#query-a-parquet-dataset).
+The list also shows the 24 **L1 bands** (`parquet-l1`), about 15 GB, which require gateway Release 85 or later. They download the same way. The `.cdb` partitions described below belong to root-TX bands only; an L1 band holds Parquet files and a `band.json`. See [Query a Parquet Dataset](/build/advanced/index-publications#query-a-parquet-dataset).
 
 The magnets on this page were current when it was written. Bands are rebuilt and replaced, so take yours from the publication.
 
@@ -102,6 +102,68 @@ rm -r bfa9f0269c7b03f8/.pad
 ```
 
 To seed after downloading, which helps the next person, drop `--seed-time=0`.
+
+## Follow a Publisher with RSS
+
+<Callout type="info">
+  **Release Requirement**: feeds require Release 85 or later on the
+  publisher's gateway.
+</Callout>
+
+Instead of adding bands one at a time, a BitTorrent client can follow an index and take each new band as it is published. A publisher that offers torrents serves an RSS feed of each index at `/ar-io/indexes/feed/<index>.xml`. Each item is one band offered as a torrent, newest heights first: its enclosure is the band's `.torrent` and its link is the magnet.
+
+A gateway lists its feeds in `/ar-io/info`, under `indexes.feeds`:
+
+```bash
+curl -s https://<gateway>/ar-io/info | jq .indexes.feeds
+```
+
+```json
+{
+  "parquet-l1": "/ar-io/indexes/feed/parquet-l1.xml",
+  "root-tx-index": "/ar-io/indexes/feed/root-tx-index.xml"
+}
+```
+
+The paths are relative to the gateway. `feeds` is there only when the gateway serves feeds, which needs a public origin (`INDEXES_PUBLIC_URL` or `ARNS_ROOT_HOST`). So one `/ar-io/info` request per gateway finds every feed.
+
+<Steps>
+<Step>
+### Turn On RSS in qBittorrent
+
+In **Options → RSS**, turn on fetching RSS feeds and the RSS torrent auto downloader.
+
+</Step>
+
+<Step>
+### Subscribe to the Feed
+
+Choose **View → RSS Reader** (the RSS tab is hidden until you do). Then, on the **RSS** tab, choose **New subscription** and enter the feed's URL, such as `https://<gateway>/ar-io/indexes/feed/parquet-l1.xml`.
+
+</Step>
+
+<Step>
+### Add an Auto-Download Rule
+
+Open the **RSS Downloader** and add a rule with nothing in "Must contain". Apply it to the feed, and set the save path to an empty folder, such as `~/arweave-l1`.
+
+</Step>
+</Steps>
+
+Every band in the feed is added at once. qBittorrent downloads them all together unless torrent queueing is on (**Options → BitTorrent → Torrent Queueing**), which lets only a few be active at a time. Each band lands in its own folder, named after its torrent (16 hex characters), not its band id. The folder's `band.json` says which heights it holds.
+
+**Where the bytes come from.** The `.torrent` a gateway serves names that gateway as a WebSeed, so your client can finish a band even with no seeders, as long as the gateway still offers the band. The client uses the WebSeed alongside peers from the start, not only when they stall, so expect a good share of each band to come over HTTPS from the gateway, through its rate limits and x402 if it meters. Past its allowance, your client is answered `429` or `402`, backs off the WebSeed, and goes on with peers. Either way, the client checks every piece against the torrent's hashes.
+
+**Keeping up.** Bands are replaced: the tip band is rebuilt each day, and a finished range of heights replaces the smaller bands beneath it. Your client keeps old folders beside new ones. For L1 bands, delete a folder whose `heightRange` lies inside another folder's, and of two with the same `heightRange`, keep the later layout (`schema`). Root-TX bands overlap by design, so this doesn't apply to them. A band that leaves the feed before your client has it is gone: remove that torrent, since its replacement is in the feed. The feed isn't metered and asks to be polled at most every 30 minutes.
+
+The feed is a view of the signed publication, not a second authority. Check what you downloaded as below. For L1 bands, once you have dropped the replaced folders as above, `index-l1-verify` also checks that they form one consistent chain (block links, `hash_list_merkle`, `tx_root`), with only Docker and a core image from Release 85 or later. Add `--anchor-from` with independent Arweave nodes to tie the top of that chain to block hashes they agree on:
+
+```bash
+IMAGE=ghcr.io/ar-io/ar-io-core:latest   # Release 85 or later
+docker run --rm -u "$(id -u):$(id -g)" -v "$HOME/arweave-l1:/bands:ro" \
+  -w /app --entrypoint /nodejs/bin/node "$IMAGE" \
+  /app/dist/cli/cli.js index-l1-verify --bands-dir /bands
+```
 
 ## Check the Download
 
