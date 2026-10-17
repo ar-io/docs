@@ -27,21 +27,36 @@ _openapi:
       - content: Get the current health status of the AR.IO Gateway.
       - content: |
           Returns the location of a data item within its root L1 transaction,
-          read directly from this node's index.
+          from this node's own data: its index first, then CDB64 indexes on its
+          local disk, such as bands installed by Index Sharing.
 
           This is the cheap counterpart to `HEAD /raw/{id}`, which exposes the
           same values in `X-AR-IO-Root-*` headers but only as a side effect of a
           successful data retrieval — on a cache miss that route runs the node's
-          entire retrieval cascade before answering. This endpoint performs a
-          single indexed lookup and never reads contiguous data, so a miss is as
-          cheap as a hit.
+          entire retrieval cascade before answering. This endpoint never reads
+          contiguous data and never makes a network request. A hit costs one
+          index read; a miss costs that plus a read or two per local CDB64
+          index.
 
           Offsets resolve for any data item this node has unbundled and indexed,
-          even when none of its bytes are cached locally.
+          or that an installed CDB64 index covers, even when none of its bytes
+          are cached locally. CDB64 indexes are consulted only while `cdb` is
+          in `ROOT_TX_LOOKUP_ORDER`, as it is by default.
+
+          A 200 is cached for `CACHE_DEFAULT_MAX_AGE` seconds, short because a
+          band can be replaced or withdrawn; a 404 for `CACHE_NOT_FOUND_MAX_AGE`
+          seconds with `must-revalidate`; a 500 is `no-store`.
+
+          A 200 is signed with HTTP Message Signatures (when the gateway signs
+          responses, the default), with `Content-Digest` binding the body, so
+          it is this gateway's attributable claim. The offsets are still a
+          claim, not proof: confirm them by reading the data item header at
+          `rootOffset` (its ID must match) or with a chunk proof. An answer from
+          a CDB64 index never includes `contentType` or `dataSize`.
       - content: |
           Returns information about the AR.IO Gateway, including:
           - Gateway wallet address
-          - Process ID
+          - The AR.IO Network's Solana program IDs
           - ANS-104 filter configurations
           - Supported manifest versions
           - Gateway software release version
@@ -49,6 +64,7 @@ _openapi:
           - Rate limiter configuration (if enabled)
           - x402 payment protocol configuration (if enabled)
           - HTTPSIG response signing configuration (if enabled)
+          - The indexes it publishes, and their feeds (if it publishes any)
       - content: >
           Returns information about AR.IO Gateway peers and Arweave node peers.
 
