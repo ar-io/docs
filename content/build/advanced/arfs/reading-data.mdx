@@ -176,6 +176,76 @@ async function buildDriveState(driveId) {
 }
 ```
 
+## Using Drive State
+
+A drive's newest usable [Drive State](/build/advanced/arfs/entity-types#drive-state) entity replaces most of the replay. A client reads a drive from three sources, each covering the blocks the one before it did not:
+
+| Order | Source | Blocks it covers |
+| --- | --- | --- |
+| 1 | Drive State entity | `0` to its `Block-End` |
+| 2 | Snapshots | From a margin below `Block-End` to the newest snapshot |
+| 3 | GQL queries | The rest, up to the current block height |
+
+Start the later sources a margin below `Block-End`, not at it. `Block-End` is the producer's block height when it last synced, and an entity mined just below it but indexed after that sync is in no Drive State entity. ArDrive uses a margin of 240 blocks. Re-reading those blocks costs one query, and a client skips revisions it already holds.
+
+If no Drive State entity is found, or every candidate is refused, the client reads the drive from snapshots and GQL alone, exactly as it would without one.
+
+### Drive State Query
+
+Find candidates by the drive's owner and `Drive-Id`. The owner is the wallet that created the drive's first Drive entity, which may differ from the wallet reading it, such as on a drive shared with another user.
+
+```graphql
+query ($driveId: String!, $owner: String!) {
+  transactions(
+    owners: [$owner]
+    tags: [
+      { name: "Drive-Id", values: [$driveId] }
+      { name: "Entity-Type", values: ["drive-state"] }
+    ]
+    sort: HEIGHT_DESC
+    first: 100
+  ) {
+    edges {
+      node {
+        id
+        owner {
+          address
+        }
+        block {
+          height
+          timestamp
+        }
+        tags {
+          name
+          value
+        }
+      }
+    }
+  }
+}
+```
+
+One page is enough. An entity mined before the newest 100 cannot cover more blocks than they do, because a producer cannot account for blocks that did not exist yet. Try candidates in order of highest `Block-End`, and move to the next one when a candidate is refused.
+
+Keep "no Drive State entity exists" apart from "the query failed". If the gateway does not answer, report that, and do not record the drive as having no Drive State entity.
+
+### Drive State Checks
+
+A client checks a candidate in this order and refuses it at the first failed check. A refusal means skipping that candidate, never failing the drive:
+
+1. **Tags.** The transaction's owner is the drive's owner, `Drive-Id` is the drive's, the cipher tags match the drive's privacy, and the client reads this `State-Version`.
+2. **Bytes.** Fetch the data by transaction ID, from an L1 transaction or a bundled data item alike. Decrypt with the drive key if private, detect gzip from the first bytes, and inflate within the 100 MiB limit.
+3. **Database.** Open the file under a name of its own and read no rows until `PRAGMA integrity_check` returns `ok`, `application_id` is `0x41724453`, and `sqlite_master` holds exactly the nine tables of the [Drive State Entity Data](/build/advanced/arfs/entity-types#drive-state-entity-data).
+4. **Claims.** `meta` agrees with the tags and with the drive the client holds: version, drive, owner, privacy and block range. The number of drive, folder and file rows equals `entityCount`. A `Block-End` above the current block height counts only up to that height.
+5. **Rows.** Every value has the column's declared type, no entity is listed twice, and every row belongs to the drive.
+6. **Merge.** Copy the rows in one database transaction, and keep any row the client already holds that is newer.
+
+Three more rules:
+
+- **Do not go backwards.** A candidate whose `Block-End` is not above the block height the client has already synced the drive to adds nothing.
+- **Do not import the same entity twice.** Record the transaction ID of the entity a drive last imported, and skip it while the drive's synced height is still at or past its `Block-End`. Key the record on the transaction ID, not the range, because a different entity over the same range can repair entities a sync skipped.
+- **A full rebuild of a drive ignores Drive State entities.** A request to rebuild from the chain is a request to stop trusting saved state, and a Drive State entity is saved state.
+
 ## Using Snapshots
 
 For large drives, snapshots can significantly improve performance:
@@ -231,6 +301,7 @@ query ($driveId: String!) {
 
 - **Local caching** - Store frequently accessed data locally
 - **Incremental updates** - Only fetch new transactions since last sync
+- **Drive State usage** - Import a drive's Drive State entity before reading snapshots
 - **Snapshot usage** - Use snapshots for large drives
 - **Batch queries** - Combine multiple queries when possible
 

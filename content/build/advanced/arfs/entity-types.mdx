@@ -19,6 +19,8 @@ ArFS adds an additional layer of separation between data and metadata by using s
 
 - Snapshot entities require a single transaction, which contains a Data JSON with all of the Drive's rolled up ArFS metadata and standard Snapshot GQL tags that identify the Snapshot.
 
+- Drive State entities require a single transaction, which contains a SQLite database of the Drive's parsed state and standard Drive State GQL tags that identify it.
+
 ArFS v0.14 introduces the `isHidden` property. `isHidden` is a boolean (true/false) that tells clients if they should display the file or folder. Hidden files still exist and will be included in [snapshots](#snapshot), but should not be rendered by clients. If `isHidden` is not present, its value should be assumed false.
 
 ArFS v0.15 introduces the `Signature-Type` metadata property on Drive entities, and a new entity type `DriveSignature`.
@@ -251,6 +253,106 @@ For private drives, `jsonMetadata` contains the JSON-string-escaped encrypted te
   ]
 }
 ```
+
+## Drive State
+
+A Drive State entity holds a drive's whole parsed state, up to a block height, in one SQLite database. The drive's owner publishes it. A client that finds one imports the drive in one step and then queries only the blocks after it, instead of fetching and replaying every entity in the drive.
+
+A Drive State entity is a cache. A client that finds none, cannot read one, or refuses one for any reason syncs the drive from snapshots and GQL as it would without it. A Drive State entity that cannot be used must never cause a drive to fail to load.
+
+The following table shows how a Drive State entity differs from a [Snapshot](#snapshot):
+
+| | Snapshot | Drive State |
+| --- | --- | --- |
+| Data | JSON: each transaction's GQL node and JSON metadata | A SQLite database of the drive's rows |
+| Range | Any block range; several snapshots combine | Always from block 0, so each one is a complete copy |
+| Private drives | Each entry's metadata is encrypted on its own; the GQL nodes are in the clear | One ciphertext under the drive key |
+| Checking against chain | Each entry carries its GQL node | Rows carry no GQL node; trust rests on the owner |
+
+Drive State is its own `Entity-Type` so that clients written before it never query for it. A client that read one as a snapshot would trust its block range and find no transactions in it, so it would skip those blocks for good.
+
+### Drive State Entity Tags
+
+Drive State entities require the following tags. `Cipher` and `Cipher-IV` are present on a private drive's entity only.
+
+```json
+ArFS: "0.15",
+Drive-Id: "<drive uuid that this drive state belongs to>",
+Entity-Type: "drive-state",
+Drive-State-Id: "<uuid of this drive state entity>",
+State-Version: "<format version as major.minor, eg 0.2>",
+Content-Type: "application/octet-stream",
+Block-Start: "0",
+Block-End: "<the highest block height the producer had synced, eg 2021868>",
+Data-Start: "<the first block in which drive data was found>",
+Data-End: "<the last block in which drive data was found>",
+Entity-Count: "<the number of entities in the data, eg 792>",
+Unix-Time: "<seconds since unix epoch>",
+Cipher: "AES256-GCM",
+Cipher-IV: "<12 byte initialization vector as base64url>"
+```
+
+A reader checks every tag against the data before trusting it, because a gateway reports tags and the gateway is not trusted:
+
+- **`Cipher` and `Cipher-IV`** are both present on a private drive's entity and both absent on a public drive's. There is no `Cipher: "none"`. An entity with one and not the other is malformed. A reader refuses an entity whose cipher tags contradict the privacy of the drive it names, in either direction. `Cipher-IV` is base64url without padding, and readers also accept standard base64.
+- **`Block-Start` and `Block-End`** must equal `blockStart` and `blockEnd` in the data's `meta` table. A `Block-End` higher than the data covers would move a reader's sync position past blocks it never read, and the entities in them would never appear.
+- **`Entity-Count`** counts the drive, its folders and its files, not their revisions. It must equal `meta.entityCount` and the rows imported.
+- **`State-Version`** must equal `meta.version`. From `1.0`, a reader accepts any minor version of its own major version and refuses any other major version. Below `1.0`, a reader requires an exact match, because a `0.x` format makes no compatibility promise. A version that does not parse as two integers, such as `1` or `1.0.0`, is malformed.
+- **Never set `Content-Encoding`** on a Drive State entity. Gateways index that tag and send it on the data response, so an HTTP client decodes the body before the reader can bound it, and a browser fails on the ciphertext of a private drive. Tags cannot be changed, so an entity with the tag stays unreadable through ordinary data requests.
+
+### Drive State Entity Data
+
+The data is a SQLite database file, sealed in this order:
+
+| Drive | Sealing steps |
+| --- | --- |
+| Public | SQLite file, then gzip (optional) |
+| Private | SQLite file, then gzip (optional), then AES256-GCM with the drive key |
+
+For a private drive the key is the drive key itself, as for drive metadata. The data is the ciphertext followed by the 16-byte GCM authentication tag, and the 12-byte nonce is the `Cipher-IV` tag.
+
+A producer chooses whether to gzip each entity, and no tag records the choice. After decrypting, a reader tells the two apart by the first bytes:
+
+- `1f 8b`: a gzip stream, which the reader inflates.
+- `SQLite format 3` followed by a zero byte: an uncompressed SQLite file.
+- Anything else: refused.
+
+A reader limits the inflated size to 100 MiB (104,857,600 bytes) and stops at the first byte over it, while inflating rather than afterwards. The size recorded in the gzip trailer is chosen by whoever wrote the stream, so it is not the limit. A producer must not publish a database larger than the limit.
+
+**The database.** Its header carries `application_id` `0x41724453` (`ArDS` in ASCII). Apart from SQLite's own `sqlite_` objects, a `State-Version` `0.2` database contains exactly the following nine tables and nothing else: no indexes, views, triggers or virtual tables. A reader compares each table's `sql` value in `sqlite_master` with these strings byte for byte and refuses any difference, so that no SQL written by someone else runs inside the reader:
+
+```sql
+CREATE TABLE meta (version TEXT NOT NULL, driveId TEXT NOT NULL, ownerAddress TEXT NOT NULL, privacy TEXT NOT NULL, blockStart INTEGER NOT NULL, blockEnd INTEGER NOT NULL, entityCount INTEGER NOT NULL, producer TEXT NOT NULL)
+CREATE TABLE drives (id TEXT NOT NULL, rootFolderId TEXT NOT NULL, ownerAddress TEXT NOT NULL, name TEXT NOT NULL, privacy TEXT NOT NULL, bundledIn TEXT, customJsonMetadata TEXT, customGQLTags TEXT, isHidden INTEGER NOT NULL, signatureType TEXT, dateCreated INTEGER NOT NULL, lastUpdated INTEGER NOT NULL)
+CREATE TABLE folder_entries (id TEXT NOT NULL, driveId TEXT NOT NULL, name TEXT NOT NULL, parentFolderId TEXT, dateCreated INTEGER NOT NULL, lastUpdated INTEGER NOT NULL, customJsonMetadata TEXT, customGQLTags TEXT, isHidden INTEGER NOT NULL)
+CREATE TABLE file_entries (id TEXT NOT NULL, driveId TEXT NOT NULL, name TEXT NOT NULL, parentFolderId TEXT NOT NULL, size INTEGER NOT NULL, lastModifiedDate INTEGER NOT NULL, dataContentType TEXT, dataTxId TEXT NOT NULL, licenseTxId TEXT, bundledIn TEXT, thumbnail TEXT, pinnedDataOwnerAddress TEXT, customJsonMetadata TEXT, customGQLTags TEXT, isHidden INTEGER NOT NULL, dateCreated INTEGER NOT NULL, lastUpdated INTEGER NOT NULL, assignedNames TEXT, fallbackTxId TEXT, originalOwner TEXT, importSource TEXT)
+CREATE TABLE drive_revisions (driveId TEXT NOT NULL, rootFolderId TEXT NOT NULL, ownerAddress TEXT NOT NULL, name TEXT NOT NULL, privacy TEXT NOT NULL, metadataTxId TEXT NOT NULL, dateCreated INTEGER NOT NULL, action TEXT NOT NULL, bundledIn TEXT, customJsonMetadata TEXT, customGQLTags TEXT, isHidden INTEGER NOT NULL)
+CREATE TABLE folder_revisions (folderId TEXT NOT NULL, driveId TEXT NOT NULL, name TEXT NOT NULL, parentFolderId TEXT, metadataTxId TEXT NOT NULL, dateCreated INTEGER NOT NULL, action TEXT NOT NULL, customJsonMetadata TEXT, customGQLTags TEXT, isHidden INTEGER NOT NULL)
+CREATE TABLE file_revisions (fileId TEXT NOT NULL, driveId TEXT NOT NULL, name TEXT NOT NULL, parentFolderId TEXT NOT NULL, size INTEGER NOT NULL, lastModifiedDate INTEGER NOT NULL, dataContentType TEXT, metadataTxId TEXT NOT NULL, dataTxId TEXT NOT NULL, licenseTxId TEXT, thumbnail TEXT, bundledIn TEXT, dateCreated INTEGER NOT NULL, customJsonMetadata TEXT, customGQLTags TEXT, action TEXT NOT NULL, pinnedDataOwnerAddress TEXT, isHidden INTEGER NOT NULL, assignedNames TEXT, fallbackTxId TEXT, originalOwner TEXT, importSource TEXT)
+CREATE TABLE licenses (fileId TEXT NOT NULL, driveId TEXT NOT NULL, dataTxId TEXT NOT NULL, licenseTxType TEXT NOT NULL, licenseTxId TEXT NOT NULL, bundledIn TEXT, dateCreated INTEGER NOT NULL, licenseType TEXT NOT NULL, customGQLTags TEXT)
+CREATE TABLE transaction_statuses (id TEXT NOT NULL, status TEXT NOT NULL)
+```
+
+Every table must be present. `meta` and `drives` hold exactly one row each, and any other table may be empty. A table that is present and empty says that the drive has no such rows.
+
+The rows mirror the drive's ArFS metadata:
+
+- Each `*_revisions` row is one metadata transaction of the drive, the folder or the file, and every revision travels, not only the newest. Each `*_entries` row is the latest state of one folder or file.
+- `meta` names the format `version`, the `driveId`, the drive's `ownerAddress` and `privacy`, the `blockStart` to `blockEnd` range the rows account for, the `entityCount`, and the `producer` that built the file as `<App-Name>/<App-Version>`. On a private drive the `producer` value is encrypted with everything else, so a reader can trust it more than the `App-Version` tag.
+- Dates (`dateCreated`, `lastUpdated`, `lastModifiedDate`) are Unix time in seconds. `isHidden` is `0` or `1`. `privacy` is `public` or `private`.
+- `customJsonMetadata` and `customGQLTags` hold an entity's extra metadata fields and tags as JSON text, or `NULL`. `assignedNames` holds a file's ArNS names as a JSON array, or `NULL`.
+- `licenseTxType` is `composed` when the licence tags are on the file's data transaction, or `assertion` when a separate transaction asserts the licence.
+- `action` records what a revision did, such as `create`, `rename`, `move` or `hide`. It is informational.
+- `transaction_statuses` lists the transactions the rows reference that the producer had not seen confirmed, with the status it held: `pending` or `failed`. A reader treats every other transaction the rows reference as confirmed. It re-checks a listed file data transaction, and shows any other listed transaction as failed. A metadata transaction listed as `pending` is malformed.
+
+A producer follows these rules:
+
+- **Publish only from a complete sync.** If the producer's last sync of the drive skipped any entity, the gap would be published as permanent.
+- **Read `Block-End` before reading the rows.** Rows can then only be newer than the claim, never older.
+- **Wait while the drive's metadata transactions are unconfirmed**, rather than publishing them as pending.
+- **Publish only rows a revision vouches for.** A placeholder a client made for a folder whose metadata it never found must not travel.
+- **Build up, never tear down.** Select named columns into an empty database. Copying a database and deleting from it can leave deleted bytes in the file.
+- **Never include key material** or the producer's own sync position.
 
 ## Schema Diagrams
 
