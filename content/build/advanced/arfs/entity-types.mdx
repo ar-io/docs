@@ -319,7 +319,7 @@ A producer chooses whether to gzip each entity, and no tag records the choice. A
 
 A reader limits the inflated size to 100 MiB (104,857,600 bytes) and stops at the first byte over it, while inflating rather than afterwards. The size recorded in the gzip trailer is chosen by whoever wrote the stream, so it is not the limit. A producer must not publish a database larger than the limit.
 
-**The database.** Its header carries `application_id` `0x41724453` (`ArDS` in ASCII). Apart from SQLite's own `sqlite_` objects, it contains exactly the following nine tables and nothing else: no indexes, views, triggers or virtual tables. A reader compares each table's `sql` value in `sqlite_master` with these strings byte for byte and refuses any difference, so that no SQL written by someone else runs inside the reader:
+**The database.** Its header carries `application_id` `0x41724453` (`ArDS` in ASCII). Apart from SQLite's own `sqlite_` objects, a `State-Version` `0.2` database contains exactly the following nine tables and nothing else: no indexes, views, triggers or virtual tables. A reader compares each table's `sql` value in `sqlite_master` with these strings byte for byte and refuses any difference, so that no SQL written by someone else runs inside the reader:
 
 ```sql
 CREATE TABLE meta (version TEXT NOT NULL, driveId TEXT NOT NULL, ownerAddress TEXT NOT NULL, privacy TEXT NOT NULL, blockStart INTEGER NOT NULL, blockEnd INTEGER NOT NULL, entityCount INTEGER NOT NULL, producer TEXT NOT NULL)
