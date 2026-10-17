@@ -1,6 +1,6 @@
 ---
 title: "turbo-upload"
-description: "Zero-dependency Node library that signs and uploads ANS-104 data items to Turbo, for adding uploads to a server that already exists"
+description: "Zero-dependency Turbo client for Node and browsers: signs ANS-104 data items with an Arweave JWK, a Solana key or wallet, or an EVM account or wallet through viem, uploads them, and pays for uploads in USDC over x402"
 ---
 
 import { Card, Cards } from "fumadocs-ui/components/card";
@@ -14,7 +14,7 @@ import { Steps, Step } from "fumadocs-ui/components/steps";
   agent toolkit.
 </Callout>
 
-`turbo-upload` signs ANS-104 data items with an Arweave JWK or a Solana key and uploads them to Turbo. That is all it does, and it has no dependencies.
+`turbo-upload` signs ANS-104 data items with an Arweave JWK, a Solana key or wallet, or an EVM account or wallet, and uploads them to Turbo. It can also pay for an upload in USDC on Base over x402, from an EVM wallet, without the wallet signing a data item. It has no dependencies.
 
 ## Which One To Use
 
@@ -22,12 +22,12 @@ import { Steps, Step } from "fumadocs-ui/components/steps";
 
 | | [Turbo SDK](/sdks/turbo-sdk) | turbo-upload |
 |---|---|---|
-| Keys | Arweave, Solana, Ethereum, KYVE, Polygon | Arweave JWK or Solana key |
-| Runs in | Node and the browser | Node only |
-| Does | upload, payments, credits, folders, CLI, ArNS | sign and upload |
-| Installed on its own | 784 lockfile entries, 895 MB | 1 entry, 460 KB |
+| Keys | Arweave, Solana, Ethereum, KYVE, Polygon | Arweave JWK, Solana key or wallet, EVM account or wallet through viem |
+| Runs in | Node and the browser | Node and the browser |
+| Does | upload, payments, credits, folders, CLI, ArNS | sign, upload, prices, balances, credit sharing, x402 uploads |
+| Installed on its own | 784 lockfile entries, 895 MB | 1 entry, 824 KB |
 
-Measured on 2026-09-11 against `@ardrive/turbo-sdk@1.43.0` and `@ardrive/turbo-upload@0.3.0`, installing each into an empty project. Re-run it rather than trusting the table.
+Measured by installing each into an empty project: `@ardrive/turbo-sdk@1.43.0` on 2026-09-11, `@ardrive/turbo-upload@0.7.0` on 2026-10-14. Re-run it rather than trusting the table.
 
 The two share no state, so having both installed is fine.
 
@@ -78,6 +78,76 @@ This is **ANS-104 signature type 4**, the same type the Turbo SDK uses for `toke
 
 A 64-byte key carries its own public key, and that half is checked rather than trusted. A key whose halves disagree is refused when the client is constructed, because signing with one produces items nothing can verify and you find out after paying.
 
+## EVM Signers
+
+```javascript
+import { privateKeyToAccount } from "viem/accounts";
+import { recoverPublicKey } from "viem";
+import { TurboUpload } from "@ardrive/turbo-upload";
+
+const account = privateKeyToAccount(process.env.EVM_PRIVATE_KEY);
+const client = TurboUpload.testnet({ signer: { ...account, recoverPublicKey }, token: "base-eth" });
+
+const { id } = await client.upload({ data: new TextEncoder().encode("hello from an EVM account") });
+console.log(client.address, id);
+```
+
+An EVM signer signs **ANS-104 signature type 3**, the type the Turbo SDK emits for an Ethereum key or wallet, so both produce identical ids for identical content. `token` is required, and is `"ethereum"`, `"base-eth"` or `"base-usdc"`: it names the token that prices and balances are read in, and the signature is the same for all three. `client.address` is the EIP-55 `0x` address, and the free tier is that address's.
+
+You bring the EVM library. The package carries no secp256k1 code, so your library signs, and its `recoverPublicKey` checks each signature before the item is uploaded. A viem account spread with viem's `recoverPublicKey` is a signer as it is. In a browser, wrap a viem `WalletClient`:
+
+```javascript
+import { recoverPublicKey } from "viem";
+import { TurboUpload } from "@ardrive/turbo-upload";
+
+export function evmClient(walletClient, address) {
+  const signer = {
+    address,
+    signMessage: ({ message }) => walletClient.signMessage({ account: address, message }),
+    recoverPublicKey,
+  };
+  return TurboUpload.testnet({ signer, token: "base-eth" });
+}
+```
+
+A browser wallet does not expose its public key, so the client asks it to sign one connect message, once, and recovers the key from that signature. Pass `signer.publicKey` to skip that prompt.
+
+**A smart-contract wallet cannot sign data items.** A multisig, a passkey account or any other ERC-1271 or ERC-6492 account fails with `TurboSignerError` before anything is uploaded or charged. To pay from a deployed one, use an x402 upload.
+
+## x402 Uploads
+
+`uploadUnsignedX402` pays for an upload in USDC on Base. Your EVM wallet signs one USDC payment authorization, and the upload service wraps the bytes into a data item that it signs with its own key, so this works for wallets that cannot sign data items.
+
+```javascript
+import { privateKeyToAccount } from "viem/accounts";
+import { uploadUnsignedX402, getUnsignedX402Price, TESTNET } from "@ardrive/turbo-upload";
+
+const signer = privateKeyToAccount(process.env.EVM_PRIVATE_KEY);
+const data = new TextEncoder().encode("hello from an EVM wallet");
+
+// Testnet pays in Base Sepolia USDC. Drop `uploadUrl` for production, which pays on Base.
+const estimate = await getUnsignedX402Price({ byteCount: data.length, uploadUrl: TESTNET.uploadUrl });
+const { id, owner, payer, x402Payment } = await uploadUnsignedX402({
+  data,
+  tags: [{ name: "Content-Type", value: "text/plain" }],
+  signer,
+  maxUsdc: 50_000n,              // the most this upload may pay: 0.05 USDC, in base units (6 decimals)
+  uploadUrl: TESTNET.uploadUrl,
+});
+console.log(estimate.usdcAmount, id, owner, payer, x402Payment?.transactionHash);
+```
+
+- **`uploadUrl` defaults to production**, which pays real USDC on Base. The sample passes `TESTNET.uploadUrl`.
+- **`maxUsdc` is required**, in USDC base units with six decimals: `50_000n` is 0.05 USDC. When the price the service asks is over it, the upload fails with `TurboPaymentError` before anything is signed.
+- **This route has no free tier.** Every upload is paid, however small. For a small item, a signed upload is free.
+- **The service owns the data item.** `owner` is the service's wallet, and your address is recorded as `payer`. To own the item, sign it yourself.
+- **`getUnsignedX402Price` is an estimate.** The amount the upload pays can be higher, so set `maxUsdc` from what you are willing to pay.
+- **The paid request is never retried.** If it fails, the error says the payment might have settled: check the payer's USDC transfers before you upload again.
+
+The signer is any object with `address` and `signTypedData`. A viem account works as it is. For a viem `WalletClient`, pass `{ address, signTypedData: (typedData) => walletClient.signTypedData({ account: address, ...typedData }) }`. A deployed smart-contract wallet can pay, and one that is not deployed yet is refused with `TurboPaymentError`, without a charge. One x402 upload carries at most about 75 MiB.
+
+To store a Zora coin's metadata with these two paths, see [Zora Coin Metadata on Arweave](/build/guides/zora-coin-metadata).
+
 ## What Gets Written Wrong
 
 The rest of the API behaves as you would expect. These do not.
@@ -86,6 +156,7 @@ The rest of the API behaves as you would expect. These do not.
 - **`target` and `anchor` look alike and are not.** Adjacent 32-byte fields: `target` is base64url that decodes to 32 bytes, `anchor` is 32 raw bytes. A 43-character base64url anchor throws.
 - **Production is the default.** A bare `new TurboUpload({ jwk })` writes to mainnet, permanently, paid.
 - **An unrecognised option throws** rather than being ignored, and the error names the key you meant.
+- **An EVM signer needs `recoverPublicKey`.** A bare viem account cannot sign data items: spread it with viem's `recoverPublicKey`, and pass `token`.
 
 <Callout type="warn">
   Do not spread `PRODUCTION` or `TESTNET` into the constructor. Those records also carry `name` and
@@ -104,7 +175,7 @@ Exported as constants. Import `PRODUCTION` or `TESTNET` rather than typing a hos
 
 ## Requirements
 
-Node 18.17 or later, tested on 18.17, 18, 20, 22 and 24. Server-side only, because a raw Arweave key does not belong in a browser. Published with npm provenance.
+Node 18.17 or later, tested on 18.17, 18, 20, 22 and 24. In browsers, workers and jsdom, the `browser` export condition selects a separate web build that needs no polyfills and signs only through a wallet `signer`: it refuses a raw key, because a secret key in a page is readable by every script on it. Published with npm provenance.
 
 Every error extends `TurboError`. Catch `TurboPaymentError` separately: it means the wallet cannot pay, and retrying never helps.
 
