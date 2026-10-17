@@ -120,6 +120,14 @@ sequenceDiagram
     Client->>Arweave: Upload encrypted data
 ```
 
+## Drive State and Snapshots of Private Drives
+
+A private drive's [Drive State](/build/advanced/arfs/entity-types#drive-state) entity is encrypted as one unit with the drive key, using AES256-GCM. It has no key of its own, so anyone with the drive key can read it, and a shared file key cannot. Its tags show the drive, the block range, the number of entities and the size of the data, and nothing about names or structure.
+
+A public drive's Drive State entity is not encrypted and carries neither `Cipher` nor `Cipher-IV`. A producer must never publish a private drive's state without encryption, and a reader refuses any Drive State entity whose cipher tags contradict the privacy of the drive it names, in either direction.
+
+A [Snapshot](/build/advanced/arfs/entity-types#snapshot) of a private drive works differently. It encrypts each entry's JSON metadata on its own, but carries each entry's GQL node, with all of that entity's tags, in the clear. The same tags are public on the entities themselves; a snapshot gathers all of them in one place.
+
 ## Security Best Practices
 
 When working with private drives, follow these security guidelines:

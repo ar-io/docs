@@ -13,6 +13,7 @@ These defined entities allow the state of the drive to be constructed by a clien
 - Folder Entities contain other folders or files
 - File Entities contain both the file data and metadata
 - Snapshot entities contain a state rollups of all entities' (such as drive, folder, file and snapshot) metadata within a drive
+- Drive State entities contain a drive's whole parsed state, up to a block height, as one SQLite database
 
 ## Entity Relationships
 
@@ -158,6 +159,7 @@ ArFS ensures data integrity through:
 
 For large drives, consider these optimization strategies:
 
+- **Use Drive State entities** to import a drive in one step, then read only later blocks
 - **Use snapshots** for quick state reconstruction
 - **Implement caching** for frequently accessed data
 - **Batch operations** when possible
