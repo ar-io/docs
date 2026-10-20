@@ -1,0 +1,148 @@
+---
+title: "Verifying Shared Indexes"
+description: "Check a downloaded or installed index band by band, against its own commitments and against Arweave, with no gateway and without trusting its publisher"
+---
+
+import { Step, Steps } from "fumadocs-ui/components/steps";
+import { Callout } from "fumadocs-ui/components/callout";
+
+A [signed publication](/build/advanced/index-publications#verify-it) proves who published an index and that the files you hold are the ones they signed. It does not prove the index is right: that every row is where it says, that every location points at the item it names, that the lookups match the tables. The `ar-io-node` CLI has one read-only check per index kind that proves those things from the bands alone. Anyone holding a set of bands can run it: a subscriber after installing them, a publisher before publishing, or an agent asked whether an index is sound.
+
+<Callout type="info">
+  **Release Requirement**: `index-l1-verify` and `index-band-verify` need
+  gateway Release 85 or later. `index-l2-verify`, and reading roots from
+  Arweave nodes (`--arweave-nodes`), ship in the release after 85 and are on
+  `develop` today.
+</Callout>
+
+## Which Check, for Which Index
+
+| Index | Holds | Check it with | Proves | Does not prove |
+| --- | --- | --- | --- | --- |
+| `root-tx-index` (CDB64) | each data item's root transaction and offsets | `index-band-verify` | sampled entries' headers sit at their recorded offsets, in their root transactions | entries not sampled; root-only entries' roots |
+| `parquet-l1` | blocks, L1 transactions, their tags and owners | `index-l1-verify`, then `index-l1-audit` | every block's place in the chain, against the weave size the chain commits to; every block's `tx_root` rebuilt from its transactions; the lookups. `index-l1-audit` closes the format-1 gap `tx_root` can't | that a transaction id is in the block (`tx_root` doesn't bind ids; the audit checks each format-1 id against its signature) |
+| `parquet-l2` (for example `ardrive-l2`) | the ANS-104 data items one selection takes, with tags, owners and locations | `index-l2-verify` | every band's id against its contents; the set has no overlaps or holes; every table row by row; every location's layout and parent link; the lookups; a sample of locations against the chain | that every item the selection should take is there (completeness is the publisher's to show, by rebuilding the band from its source) |
+
+Every command follows the [CLI contract](/build/run-a-gateway/manage/ar-io-node-cli#output): the result as JSON on stdout and exit `0`; on failure the full result on stderr and exit `1`. Every option is in the [`ar-io-node` CLI reference](https://github.com/ar-io/ar-io-node/blob/develop/docs/cli.md).
+
+## Run It
+
+<Steps>
+<Step>
+### Get the Bands
+
+Download the index [over BitTorrent](/build/advanced/bittorrent-indexes) or [by digest](/build/advanced/index-publications#fetch-a-band-file), one folder per band, and drop any folder a newer band replaced. A subscribing gateway already holds its bands under `data/indexes/installed/<index>/`.
+
+</Step>
+
+<Step>
+### Run the Check
+
+With only Docker, from a directory holding the bands:
+
+```bash
+IMAGE=ghcr.io/ar-io/ar-io-core:latest
+docker run --rm -u "$(id -u):$(id -g)" -v "$PWD/ardrive-l2:/bands:ro" \
+  -w /app --entrypoint /nodejs/bin/node "$IMAGE" \
+  /app/dist/cli/cli.js index-l2-verify --bands-dir /bands \
+  --publisher 34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7h5
+```
+
+`--publisher` is the address the publication names: with it, each band's id is also checked to carry that publisher's tag. In a gateway checkout the wrapper mounts the paths for you:
+
+```bash
+./tools/ar-io-node index-l2-verify --bands-dir data/indexes/installed/ardrive-l2 \
+  --publisher 34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7h5
+```
+
+For L1 bands the command is `index-l1-verify --bands-dir`, as [Downloading Indexes with BitTorrent](/build/advanced/bittorrent-indexes#check-the-download) shows; for one root-TX band, `index-band-verify --band-dir <band> --arweave-nodes`.
+
+</Step>
+
+<Step>
+### Read the Result
+
+```json
+{
+  "ok": true,
+  "bands": 23,
+  "items": 127734401,
+  "checks": {
+    "identity": { "ok": true, "failures": [] },
+    "selection": { "ok": true, "failures": [] },
+    "files": { "ok": true, "failures": [] },
+    "tables": { "ok": true, "failures": [] },
+    "locations": { "ok": true, "failures": [] },
+    "parents": { "ok": true, "failures": [] },
+    "lookups": { "ok": true, "failures": [] },
+    "onchain": {
+      "ok": true,
+      "checked": 800, "wrong": 0, "unreadable": 12, "errors": 0,
+      "seed": 1934802271,
+      "failures": []
+    }
+  },
+  "superseded": [],
+  "unlocatedBands": []
+}
+```
+
+`ok` is the verdict. Each check lists its `failures`, and each failure names the band (its `found` starts with the band id) and the height it starts at. Keep the `seed`: `--seed <n>` draws the same sample again.
+
+</Step>
+</Steps>
+
+## What `index-l2-verify` Checks
+
+| Check | Fails when |
+| --- | --- |
+| `identity` | a band's id doesn't name its heights, or its digest isn't that of its heights, selection and rows, or, with `--publisher`, its tag isn't the publisher's. The id is what the publication signs, so this ties the signature to the bytes |
+| `selection` | the bands hold different selections |
+| `files` | a band lacks a file its layout requires, or holds one it doesn't |
+| `tables` | a table's rows, read in file order, are out of their table's order, or don't digest to what `band.json` says, or an owner key doesn't hash to its address |
+| `locations` | a location is partly set; or isn't laid out as ANS-104 requires (signature right after the 2-byte type, owner right after the signature, payload after the owner and inside the item); or `data_size` isn't the payload the location gives; or a signature or owner length isn't its type's; or an id, address or root isn't 32 bytes; or an item lies outside its band's heights |
+| `parents` | an item directly in its root isn't at offset 0 of it, or an item in a nested bundle names one `parents` doesn't describe where the item says its payload starts, or a `parents` row's payload doesn't start inside it |
+| `lookups` | a lookup file doesn't hold exactly the rows its tables give (`--skip-lookups` leaves this out) |
+| `onchain` | a sampled item's header, read at its recorded location from Arweave nodes, is not that item, or too few could be verified. `--onchain <n>` sets the items per band (20 unless set; `0` leaves it out). Items directly in their roots and items in nested bundles are sampled apart, half each, so rare nested items are always read |
+
+The set is refused outright, with no checks run, if its bands overlap or leave a hole: that is not one index. `--from` and `--to` check only the bands inside those heights. A band that its own publisher's newer band supersedes is left out, as a subscriber leaves it out, and listed under `superseded`.
+
+Every row is read in file order, so memory stays flat. The lookup check sorts and joins, and spills to the system temp directory: `--spill-max` caps it at 128 GB unless set. Measured on a 2-core, 10 GB host, the whole `ardrive-l2` index of 23 bands and 127.7 million items, with 50 items per band read from Arweave nodes, took 1 hour 51 minutes; its largest band (69 million items) takes 66 minutes alone and spills about 65 GB. The on-chain sample is seconds per band.
+
+## Reading from Arweave Nodes
+
+`index-l2-verify`, and `index-band-verify --arweave-nodes`, read root transactions from Arweave nodes and prove every byte, so the check trusts no gateway, the publisher's included:
+
+1. **The root's id is bound to its data.** Its header's signature must hash to its id, and the signature must verify, since a transaction signs its `data_root` and `data_size`. For the few valid transactions arweave-js can't verify, at least two nodes must serve the same `data_root` and `data_size` instead; the result says which (`bySignature`, `byAgreement`).
+2. **Its place in the weave** comes from `/tx/{id}/offset`, whose size must be the signed `data_size`.
+3. **Every chunk is proven.** Its `data_path` must validate against the signed `data_root` under the consensus rules for its weave offset, the chunk must hash to the path's leaf, and it is placed by the bounds the proof gives. A node whose chunk fails is passed over for the next. A wrong offset can't pass wrong bytes: the chunks it leads to would not prove against the root's `data_root`.
+
+Each sampled header comes out as one of:
+
+| Outcome | Means | Counts |
+| --- | --- | --- |
+| `ok` | the bytes at the recorded location are a data item header whose signature hashes to the item's id | for the band |
+| `wrong` | something else is there, or the range runs past the root | **against** the band: its offsets are wrong |
+| `unreadable` | every node that answered said 404 for the root, or for the chunk holding the header: the data is gone network-wide (unseeded or purged) | neither way; another sample is taken in its place |
+| `errors` | nothing usable came back: nodes busy or failing, a chunk no node could prove, no node reachable, a root that can't be bound | against the pass ratio; rerun |
+
+A 404 counts only when **every** node that answered said 404. One busy node among them, or one whose chunk failed its proof, makes it an error instead: that node may hold the data, and an unprovable chunk is the node's fault, not an absence.
+
+The default pool is the nodes a gateway reads chunks from. Most of them hold a partition of the weave and answer 404 for most offsets; that is normal. Name your own with `--arweave-nodes http://a:1984,http://b:1984`. With `--gateway-url` instead, roots are read through that gateway's `/raw`: faster, but that gateway is trusted.
+
+## When a Check Fails
+
+| Found | Do |
+| --- | --- |
+| `identity`, `files` or `tables` failure in a band you **installed** | the copy is damaged or not what was signed: remove it and let the `index-swarm` sidecar fetch it again; if it recurs, tell the publisher |
+| the same in a band you **published** | rebuild it (`index-export --once --range <from>-<to>` into a staging directory), check the rebuild, and publish it in its place with `index-export --once --resettle --range <from>-<to>` |
+| `locations`, `parents`, or `onchain` `wrong` | the builder placed items wrongly, or its source holds a wrong row: report it to the publisher with the band id and the failures; the publisher repairs the source, rebuilds and re-settles the band |
+| many `unreadable` | not a fault of the index: every node said 404, so the data is gone network-wide. Seeding the missing chunks again, where the data still exists, makes them readable |
+| many `errors` | rerun; the nodes were busy. If a chunk keeps failing its proof, the nodes serving it are at fault, not the index |
+| `lookups` | the lookups are derived: rebuilding the band rewrites them |
+
+A band's id is a digest of its heights, selection and rows, so a publisher, or anyone with the same source data, can rebuild a band and compare ids: equal ids are equal rows. A source that has changed since (items backfilled, offsets repaired) gives a new id, which is what re-settling publishes; compare against the source as of the same time, or diff the rows.
+
+## For Agents
+
+Run the command, read stdout (or stderr on exit `1`) as JSON, and act on `ok` and each check's `failures`. `unreadable` is never a fault of the index, and `errors` are never a verdict on it either way, so rerun before acting on them. Never treat a passing sample as proof of every row: the row-by-row checks are what cover every row.

@@ -34,12 +34,13 @@ Read stdout and branch on the exit code; don't parse stderr for success. Band co
 | Command | What it does |
 | --- | --- |
 | `index-band-build` | Builds one root-TX band from CSV records, checks a sample of its headers against their root transactions, and publishes it for the `index-swarm` sidecar |
-| `index-band-verify` | Runs that header check on any built or installed band |
+| `index-band-verify` | Runs that header check on any built or installed band. With `--arweave-nodes`, roots are read from Arweave nodes and every byte proven, so no gateway is trusted |
 | `index-band-export` | Writes one source's root-TX records for a height range as the CSV `index-band-build` reads. The source is this gateway's ClickHouse or SQLite, a peer's ClickHouse, or an overlay directory of CSV files |
 | `index-l1-import --fill` | Fills the gateway's `core.db` from installed `parquet-l1` bands while the gateway runs, writing only the heights missing beneath what it indexed itself. Core runs this by itself with `L1_BAND_IMPORT_ENABLED=true` |
 | `index-l1-import` | Without `--fill`, imports the bands with the gateway stopped. Faster, but only for a new `core.db` the gateway has never run on |
 | `index-l1-verify` | Checks an L1 index against what the chain commits to: a gateway's own `core.db` (`--core-db`), or a directory of bands with no gateway at all (`--bands-dir`). Read-only |
 | `index-l1-audit` | Checks the blocks `index-l1-verify` has to skip, those holding a format-1 transaction with data, by fetching a sample of that data and recomputing each block's `tx_root`. Read-only |
+| `index-l2-verify` | Checks a `parquet-l2` index (a directory of bands, such as `ardrive-l2`) with no gateway: every band's id, every table row by row, every location and parent link, the lookups, and a sample of locations against Arweave nodes. Read-only. See [Verifying Shared Indexes](/build/advanced/index-verification) |
 | Any other command | Runs as the `ar.io` CLI of the `@ar.io/sdk` the gateway carries, with the same arguments, output and exit code. For example, `./tools/ar-io-node get-gateway --address <wallet>` |
 
 The `ar.io` commands use the SDK's own network defaults and flags, not your gateway's settings. For one that signs, prefer `--wallet-file` to `--private-key`: an inline key is visible in `ps` and `docker inspect`.

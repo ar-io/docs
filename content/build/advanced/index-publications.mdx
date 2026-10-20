@@ -389,7 +389,7 @@ Querying over HTTP means trusting the server for the bytes it streams you. If th
 - Every band file has a signed SHA-256 in the publication, so a local copy is checkable.
 - `Repr-Digest` is co-signable, so even a `206` carries a signature over the digest of the whole file it came from. A client can confirm which file it is reading bytes out of without fetching all of it.
 
-A `parquet-l1` dataset is also checkable against Arweave itself, independently of the publisher: block linkage, `hash_list_merkle`, `tx_root` and weave accounting can all be recomputed from the rows. In a gateway checkout, `./tools/ar-io-node index-l1-verify --bands-dir` (Release 85 or later) does that over a local copy.
+A `parquet-l1` dataset is also checkable against Arweave itself, independently of the publisher: block linkage, `hash_list_merkle`, `tx_root` and weave accounting can all be recomputed from the rows. In a gateway checkout, `./tools/ar-io-node index-l1-verify --bands-dir` (Release 85 or later) does that over a local copy. A `parquet-l2` dataset is checked the same way by `index-l2-verify`, down to a sample of item locations read from Arweave nodes. [Verifying Shared Indexes](/build/advanced/index-verification) covers both.
 
 ### Metering
 
