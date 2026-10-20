@@ -101,18 +101,25 @@ If you need to upgrade drives programmatically, here's the process:
 
 ### 1. Identify V1 Drives
 
-Query for drives that don't have the `Signature-Type` tag:
+Query the wallet's private drive entities, then keep the drives whose latest drive entity has no `Signature-Type` tag. GraphQL cannot query for a missing tag, so this filter runs in the client. Do not filter on the `ArFS` tag: a drive that needs upgrading can carry any version.
 
 ```graphql
-query {
+query ($owner: String!, $after: String) {
   transactions(
+    owners: [$owner]
     tags: [
-      { name: "ArFS", values: ["0.15"] }
       { name: "Entity-Type", values: ["drive"] }
       { name: "Drive-Privacy", values: ["private"] }
     ]
+    sort: HEIGHT_DESC
+    first: 100
+    after: $after
   ) {
+    pageInfo {
+      hasNextPage
+    }
     edges {
+      cursor
       node {
         id
         tags {
@@ -180,10 +187,10 @@ After upgrading, verify the process was successful:
 ### Check Drive-Signature Entity
 
 ```graphql
-query ($driveId: String!) {
+query ($owner: String!, $driveId: String!) {
   transactions(
+    owners: [$owner]
     tags: [
-      { name: "ArFS", values: ["0.15"] }
       { name: "Entity-Type", values: ["drive-signature"] }
       { name: "Drive-Id", values: [$driveId] }
     ]
@@ -208,10 +215,10 @@ query ($driveId: String!) {
 ### Check Updated Drive Entity
 
 ```graphql
-query ($driveId: String!) {
+query ($owner: String!, $driveId: String!) {
   transactions(
+    owners: [$owner]
     tags: [
-      { name: "ArFS", values: ["0.15"] }
       { name: "Entity-Type", values: ["drive"] }
       { name: "Drive-Id", values: [$driveId] }
       { name: "Signature-Type", values: ["1"] }

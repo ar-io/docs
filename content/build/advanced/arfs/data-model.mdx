@@ -12,7 +12,7 @@ These defined entities allow the state of the drive to be constructed by a clien
 - Drive Entities contain folders and files
 - Folder Entities contain other folders or files
 - File Entities contain both the file data and metadata
-- Snapshot entities contain a state rollups of all entities' (such as drive, folder, file and snapshot) metadata within a drive
+- Snapshot entities contain a rollup of the metadata of a drive's entities over a block range
 - Drive State entities contain a drive's whole parsed state, up to a block height, as one SQLite database
 
 ## Entity Relationships
@@ -90,17 +90,18 @@ All UUIDs used for Entity-Ids are based on the [Universally Unique Identifier](h
 
 There are no requirements to list ArFS tags in any specific order.
 
-## Building Drive State
+## Building a Drive's Current State
 
-To construct the current state of a drive, clients must:
+To construct the current state of a drive, a client:
 
-1. **Query for all entities** associated with a specific `Drive-Id`
-2. **Sort by block height** to establish chronological order
-3. **Process entities bottom-up** starting with files and folders
-4. **Build the hierarchy** by following parent-child relationships
-5. **Handle conflicts** by using the most recent entity version
+1. **Queries for the drive's entities** by `Drive-Id`, from the wallet that owns the drive
+2. **Orders them by block height**, using `Unix-Time` only to break ties within a block
+3. **Keeps the latest revision** of each drive, folder and file ID
+4. **Builds the hierarchy** by following each entity's `Parent-Folder-Id`
 
-### Example Drive State Construction
+A [Drive State](/build/advanced/arfs/entity-types#drive-state) entity or [snapshots](/build/advanced/arfs/entity-types#snapshot) can replace most of this replay. See [Reading Data](/build/advanced/arfs/reading-data).
+
+### Example Construction
 
 ```mermaid
 sequenceDiagram
@@ -108,15 +109,12 @@ sequenceDiagram
     participant Gateway
     participant Arweave
 
-    Client->>Gateway: Query Drive-Id: abc123
-    Gateway->>Client: Return all entities
+    Client->>Gateway: Query Drive-Id abc123, owner's wallet
+    Gateway->>Client: Return entities, one page at a time
 
-    Client->>Client: Sort by block height
-    Client->>Client: Process files first
-    Client->>Client: Process folders
-    Client->>Client: Process drive metadata
+    Client->>Client: Order by block height
+    Client->>Client: Keep the latest revision of each entity
     Client->>Client: Build hierarchy tree
-    Client->>Client: Resolve conflicts
     Client->>Client: Return complete drive state
 ```
 
@@ -163,7 +161,7 @@ For large drives, consider these optimization strategies:
 - **Use snapshots** for quick state reconstruction
 - **Implement caching** for frequently accessed data
 - **Batch operations** when possible
-- **Query by date ranges** to limit data transfer
+- **Query by block range** to read only blocks a client has not seen
 
 ## Next Steps
 

@@ -21,7 +21,7 @@ ArFS adds an additional layer of separation between data and metadata by using s
 
 - Drive State entities require a single transaction, which contains a SQLite database of the Drive's parsed state and standard Drive State GQL tags that identify it.
 
-ArFS v0.14 introduces the `isHidden` property. `isHidden` is a boolean (true/false) that tells clients if they should display the file or folder. Hidden files still exist and will be included in [snapshots](#snapshot), but should not be rendered by clients. If `isHidden` is not present, its value should be assumed false.
+ArFS v0.14 introduces the `isHidden` property. `isHidden` is a boolean (true/false) that tells clients if they should display the file or folder. Hidden files still exist and are included in [snapshots](#snapshot) and [Drive State](#drive-state) entities, but should not be rendered by clients. If `isHidden` is not present, its value should be assumed false.
 
 ArFS v0.15 introduces the `Signature-Type` metadata property on Drive entities, and a new entity type `DriveSignature`.
 
@@ -59,8 +59,9 @@ A drive signature uses the v0.15 encryption scheme to encrypt and store the pre-
 ```json
 ArFS: "0.15",
 Entity-Type: "drive-signature",
+Drive-Id: "<uuid of the drive this signature unlocks>",
 Signature-Format: "1",
-Cipher?: "AES256-GCM",
+Cipher: "AES256-GCM",
 Cipher-IV: "<12 byte initialization vector as Base64>"
 {data: <Encrypted type 1 signature>}
 ```

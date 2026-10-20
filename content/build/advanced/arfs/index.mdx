@@ -13,7 +13,7 @@ ArFS works around this by implementing a privacy and encryption pattern and defi
 
 ### File Structure
 
-ArFS organizes files and folders using a hierarchical structure. Files are stored as individual transactions on the Arweave blockchain, while folders are metadata that reference these file transactions.
+ArFS organizes files and folders in a hierarchy. A file is two transactions: its data, and a metadata transaction that names the file and its parent folder. A folder is a metadata transaction only. Each file and folder points to its parent, so a client builds the hierarchy from the bottom up.
 
 ### Metadata
 
@@ -21,15 +21,15 @@ Each file and folder has associated metadata, such as the name, type, size, and 
 
 ### File Permissions
 
-ArFS supports public and private file permissions. Public files can be accessed by anyone on the network, while private files are encrypted using the owner's private key, ensuring only they can decrypt and access the content.
+ArFS supports public and private drives. Anyone can read a public drive. A private drive is encrypted with AES-256 under keys derived from the owner's wallet signature and a drive password, so only someone holding the drive key, or one file's key, can read it. See [Privacy & Encryption](/build/advanced/arfs/privacy).
 
 ### File Versioning
 
-ArFS supports versioning of files, allowing users to store multiple versions of a file and access previous versions at any time. This is achieved by linking new file transactions to previous versions through the use of metadata tags.
+ArFS keeps every version of a file. A new version is a new metadata transaction with the same `File-Id`, and every earlier version stays on Arweave.
 
 ### Search and Discovery
 
-ArFS enables users to search and discover files based on their metadata, such as file names, types, and tags. This is made possible by indexing the metadata stored within the Arweave blockchain.
+Arweave GraphQL gateways index ArFS tags such as `Drive-Id`, `Folder-Id`, `File-Id` and `Entity-Type`, so a client can find a drive's entities by query. Names and other JSON metadata are in the transaction data, not in tags, so a client searches them after it has read the drive.
 
 ### Interoperability
 
@@ -49,6 +49,8 @@ To start using ArFS, you'll need to familiarize yourself with the Arweave ecosys
 | 0.13    | August 2023    | Added pins                                                                                                                                   |
 | 0.14    | January 2024   | Added `isHidden` property to file and folder metadata to enable clients to "hide" content from end users.                                    |
 | 0.15    | May 2025       | Added `Drive-Signature` entity type and `Signature-Type` metadata property on Drive entities.                                                |
+
+[Drive State](/build/advanced/arfs/entity-types#drive-state) entities are tagged `ArFS: "0.15"` and did not change the version. A client that does not read them is unaffected.
 
 ## Next Steps
 

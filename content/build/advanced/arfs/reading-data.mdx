@@ -24,20 +24,39 @@ Clients that want to provide users with a quick view of a single folder can simp
 
 ## Basic Query Patterns
 
-### Query All Drive Entities
+Every query names the drive owner's wallet in `owners`, for the reason given earlier: entities from any other wallet are not part of the drive.
+
+Do not filter on the `ArFS` tag. A drive holds entities written at every ArFS version since it was created, from `0.11` to `0.15`, and a query for one version misses the rest.
+
+Gateways return at most 100 results per query. Read every page: while `pageInfo.hasNextPage` is true, query again with `after` set to the `cursor` of the last edge.
+
+### Query a Drive's Entities
 
 ```graphql
-query {
+query ($driveId: String!, $owner: String!, $after: String) {
   transactions(
+    owners: [$owner]
     tags: [
-      { name: "ArFS", values: ["0.15"] }
-      { name: "Entity-Type", values: ["drive"] }
-      { name: "Drive-Id", values: ["your-drive-id"] }
+      { name: "Drive-Id", values: [$driveId] }
+      { name: "Entity-Type", values: ["drive", "folder", "file"] }
     ]
+    sort: HEIGHT_ASC
+    first: 100
+    after: $after
   ) {
+    pageInfo {
+      hasNextPage
+    }
     edges {
+      cursor
       node {
         id
+        owner {
+          address
+        }
+        bundledIn {
+          id
+        }
         block {
           height
           timestamp
@@ -51,18 +70,28 @@ query {
   }
 }
 ```
+
+To read only blocks a client has not seen, add `block: { min: <height> }`.
 
 ### Query Folder Contents
 
 ```graphql
-query ($parentFolderId: String!) {
+query ($driveId: String!, $owner: String!, $parentFolderId: String!, $after: String) {
   transactions(
+    owners: [$owner]
     tags: [
-      { name: "ArFS", values: ["0.15"] }
+      { name: "Drive-Id", values: [$driveId] }
       { name: "Parent-Folder-Id", values: [$parentFolderId] }
     ]
+    sort: HEIGHT_ASC
+    first: 100
+    after: $after
   ) {
+    pageInfo {
+      hasNextPage
+    }
     edges {
+      cursor
       node {
         id
         block {
@@ -79,16 +108,20 @@ query ($parentFolderId: String!) {
 }
 ```
 
-### Query File Entities
+A file or folder moved out of this folder still appears here with its old revisions, so keep only entities whose latest revision names this folder as its parent.
+
+### Query a File's Revisions
 
 ```graphql
-query ($fileId: String!) {
+query ($owner: String!, $fileId: String!) {
   transactions(
+    owners: [$owner]
     tags: [
-      { name: "ArFS", values: ["0.15"] }
       { name: "Entity-Type", values: ["file"] }
       { name: "File-Id", values: [$fileId] }
     ]
+    sort: HEIGHT_DESC
+    first: 100
   ) {
     edges {
       node {
@@ -107,41 +140,45 @@ query ($fileId: String!) {
 }
 ```
 
-## Building Drive State
+The first edge is the latest revision.
 
-The process of building drive state involves several steps:
+## Building a Drive's Current State
+
+The process of building a drive's current state involves several steps:
 
 ```mermaid
 graph TD
-    A[Query Drive Entities] --> B[Sort by Block Height]
-    B --> C[Process Files First]
-    C --> D[Process Folders]
-    D --> E[Process Drive Metadata]
-    E --> F[Build Hierarchy Tree]
-    F --> G[Resolve Conflicts]
-    G --> H[Return Complete State]
+    A[Query the drive's entities from its owner] --> B[Order by block height]
+    B --> C[Keep the latest revision of each entity]
+    C --> D[Build hierarchy tree]
+    D --> E[Return complete state]
 
     style A fill:#e3f2fd
-    style H fill:#c8e6c9
+    style E fill:#c8e6c9
 ```
 
 ### Step-by-Step Process
 
-1. **Query for all entities** associated with a specific `Drive-Id`
-2. **Sort by block height** to establish chronological order
-3. **Process entities bottom-up** starting with files and folders
-4. **Build the hierarchy** by following parent-child relationships
-5. **Handle conflicts** by using the most recent entity version
+1. **Query for the drive's entities** by `Drive-Id`, from the wallet that owns the drive
+2. **Order them by block height**, using `Unix-Time` only to break ties within a block
+3. **Keep the latest revision** of each drive, folder and file ID
+4. **Build the hierarchy** by following each entity's `Parent-Folder-Id`
 
 ### Example Implementation
 
 ```javascript
-async function buildDriveState(driveId) {
-  // Query all entities for the drive
-  const entities = await queryDriveEntities(driveId);
+async function buildDriveState(driveId, ownerAddress) {
+  // Query every page of the drive's entities, from the drive's owner
+  const entities = await queryDriveEntities(driveId, ownerAddress);
 
-  // Sort by block height
-  entities.sort((a, b) => a.block.height - b.block.height);
+  // Order by block height, then Unix-Time within a block, so later
+  // revisions replace earlier ones below
+  entities.sort(
+    (a, b) =>
+      a.block.height - b.block.height ||
+      Number(getTagValue(a.tags, "Unix-Time")) -
+        Number(getTagValue(b.tags, "Unix-Time"))
+  );
 
   // Process entities
   const driveState = {
@@ -248,7 +285,7 @@ Three more rules:
 
 ## Using Snapshots
 
-For large drives, snapshots can significantly improve performance:
+For large drives, snapshots can significantly improve performance. A drive can have several snapshots over different block ranges: read all of them, then query only the blocks none of them covers.
 
 ```mermaid
 sequenceDiagram
@@ -256,7 +293,7 @@ sequenceDiagram
     participant Gateway
     participant Arweave
 
-    Client->>Gateway: Query for latest snapshot
+    Client->>Gateway: Query for the drive's snapshots
     Gateway->>Client: Return snapshot data
     Client->>Client: Process snapshot data
     Client->>Gateway: Query for newer transactions
@@ -268,19 +305,27 @@ sequenceDiagram
 ### Snapshot Query
 
 ```graphql
-query ($driveId: String!) {
+query ($driveId: String!, $owner: String!, $after: String) {
   transactions(
+    owners: [$owner]
     tags: [
-      { name: "ArFS", values: ["0.15"] }
-      { name: "Entity-Type", values: ["snapshot"] }
       { name: "Drive-Id", values: [$driveId] }
+      { name: "Entity-Type", values: ["snapshot"] }
     ]
     sort: HEIGHT_DESC
-    first: 1
+    first: 100
+    after: $after
   ) {
+    pageInfo {
+      hasNextPage
+    }
     edges {
+      cursor
       node {
         id
+        bundledIn {
+          id
+        }
         block {
           height
           timestamp
@@ -309,7 +354,7 @@ query ($driveId: String!) {
 
 - **Use specific tags** - Narrow down queries with relevant tags
 - **Limit results** - Use pagination for large result sets
-- **Filter by date** - Query specific time ranges
+- **Filter by block height** - Query only blocks a client has not read
 - **Index utilization** - Write queries that GraphQL indexes can answer
 
 ## Error Handling
