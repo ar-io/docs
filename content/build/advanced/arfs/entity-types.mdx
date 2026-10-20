@@ -285,8 +285,8 @@ State-Version: "<format version as major.minor, eg 0.2>",
 Content-Type: "application/octet-stream",
 Block-Start: "0",
 Block-End: "<the highest block height the producer had synced, eg 2021868>",
-Data-Start: "<the first block in which drive data was found>",
-Data-End: "<the last block in which drive data was found>",
+Data-Start: "<0, or -1 when the data holds only the drive row>",
+Data-End: "<the Block-End value, or -1 when the data holds only the drive row>",
 Entity-Count: "<the number of entities in the data, eg 792>",
 Unix-Time: "<seconds since unix epoch>",
 Cipher: "AES256-GCM",
@@ -297,6 +297,7 @@ A reader checks every tag against the data before trusting it, because a gateway
 
 - **`Cipher` and `Cipher-IV`** are both present on a private drive's entity and both absent on a public drive's. There is no `Cipher: "none"`. An entity with one and not the other is malformed. A reader refuses an entity whose cipher tags contradict the privacy of the drive it names, in either direction. `Cipher-IV` is base64url without padding, and readers also accept standard base64.
 - **`Block-Start` and `Block-End`** must equal `blockStart` and `blockEnd` in the data's `meta` table. A `Block-End` higher than the data covers would move a reader's sync position past blocks it never read, and the entities in them would never appear.
+- **`Data-Start` and `Data-End`** are `0` and the `Block-End` value when the data holds any folder or file, and `-1` when it holds only the drive row. The rows carry dates rather than block heights, so the claim is the whole range they account for.
 - **`Entity-Count`** counts the drive, its folders and its files, not their revisions. It must equal `meta.entityCount` and the rows imported.
 - **`State-Version`** must equal `meta.version`. From `1.0`, a reader accepts any minor version of its own major version and refuses any other major version. Below `1.0`, a reader requires an exact match, because a `0.x` format makes no compatibility promise. A version that does not parse as two integers, such as `1` or `1.0.0`, is malformed.
 - **Never set `Content-Encoding`** on a Drive State entity. Gateways index that tag and send it on the data response, so an HTTP client decodes the body before the reader can bound it, and a browser fails on the ciphertext of a private drive. Tags cannot be changed, so an entity with the tag stays unreadable through ordinary data requests.
