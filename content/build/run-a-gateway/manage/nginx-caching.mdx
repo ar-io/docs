@@ -215,9 +215,13 @@ server {
     proxy_cache_revalidate on;
     proxy_cache_background_update on;
 
-    # Never cache 429 or no-store responses
-    proxy_no_cache $no_cache_429 $no_cache_no_store;
-    proxy_cache_bypass $no_cache_429 $no_cache_no_store;
+    # Never cache 429 or no-store responses. Range requests go to the
+    # gateway uncached too: see "Range Requests and Signed Responses".
+    proxy_no_cache $no_cache_429 $no_cache_no_store $http_range;
+    proxy_cache_bypass $no_cache_429 $no_cache_no_store $http_range;
+
+    # Do not compress signed responses: see "Range Requests and Signed Responses".
+    gzip off;
 
     # Error TTLs shared across all locations
     proxy_cache_valid 400 60s;
@@ -265,6 +269,9 @@ location ^~ /raw/ {
     proxy_set_header X-AR-IO-Origin $http_x_ar_io_origin;
     proxy_set_header X-AR-IO-Origin-Node-Release $http_x_ar_io_origin_node_release;
     proxy_set_header X-AR-IO-Hops $http_x_ar_io_hops;
+    # NGINX drops these on a cached location; pass them for the bypass above.
+    proxy_set_header Range $http_range;
+    proxy_set_header If-Range $http_if_range;
 
     add_header X-Cache-Status $upstream_cache_status always;
 
@@ -296,6 +303,9 @@ location ~ "^/[a-zA-Z0-9_-]{43}(/|$)" {
     proxy_set_header X-AR-IO-Origin $http_x_ar_io_origin;
     proxy_set_header X-AR-IO-Origin-Node-Release $http_x_ar_io_origin_node_release;
     proxy_set_header X-AR-IO-Hops $http_x_ar_io_hops;
+    # NGINX drops these on a cached location; pass them for the bypass above.
+    proxy_set_header Range $http_range;
+    proxy_set_header If-Range $http_if_range;
 
     add_header X-Cache-Status $upstream_cache_status always;
 
@@ -619,6 +629,8 @@ location / {
     proxy_set_header X-AR-IO-Origin $http_x_ar_io_origin;
     proxy_set_header X-AR-IO-Origin-Node-Release $http_x_ar_io_origin_node_release;
     proxy_set_header X-AR-IO-Hops $http_x_ar_io_hops;
+    proxy_set_header Range $http_range;
+    proxy_set_header If-Range $http_if_range;
 
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection $connection_upgrade;
@@ -630,13 +642,28 @@ location / {
 }
 ```
 
+## Range Requests and Signed Responses
+
+The gateway signs its data responses ([HTTP signatures](/learn/verification/signed-gateway-claims), RFC 9421). The signature covers the response status and a digest of the body, so NGINX must pass a signed response through as the gateway sent it. Two default behaviors do not:
+
+- **A range answered from cache.** NGINX stores the full `200` and answers a later `Range` request from it with a `206`, reusing the stored headers. The signature was made for status `200` and the digest describes the whole item, so the `206` carries a signature that fails verification and a `Content-Digest` its body does not match. On a cache miss, NGINX also drops the `Range` and fetches the whole item from the gateway before answering, so the first range read of a large file costs the full download.
+- **Compression.** Ubuntu's stock `nginx.conf` sets `gzip on`, which compresses `text/html` responses after the gateway signed them.
+
+The configuration above handles both. The server block sends every request that carries a `Range` header to the gateway uncached (`$http_range` in `proxy_cache_bypass` and `proxy_no_cache`) and turns `gzip` off. The data locations and the catch-all pass `Range` and `If-Range` on explicitly, since NGINX removes them from requests in a location that has a cache zone. The gateway then answers the range itself: a `206` with exactly the bytes asked for, a `Repr-Digest` for the whole item and a signature made for that response. Full requests are cached as before, and a range request does not replace a cached copy.
+
+To check, compare a range read through NGINX with one from the gateway directly. Both should report `X-Cache-Status: BYPASS` through NGINX and the same `Content-Range`:
+
+```bash
+curl -s -o /dev/null -D - -H 'Range: bytes=0-99' https://your-gateway.example/raw/<id> | grep -iE 'content-range|x-cache-status|repr-digest'
+```
+
 ## Index Sharing
 
 If your gateway [shares indexes](/build/run-a-gateway/manage/index-sharing), give `/ar-io/indexes` its own location block, **uncached**. There are two reasons, and the second is easy to miss.
 
 The gateway already marks each response correctly (errors are `no-store`, and files are `private` when you meter them), but an `/ar-io/` block with its own `proxy_cache_valid` or stale-serving rules could otherwise keep a publication a subscriber should not see.
 
-**A cache zone on this prefix also breaks range requests.** When a location has a cache zone, NGINX strips the client's `Range` from the upstream request and fetches the whole object so it can store it. It does that before it has seen any `Cache-Control`, so no response header prevents it. `proxy_buffering off` on its own does not fix it. A `proxy_cache_bypass` keyed on `$upstream_http_cache_control` cannot help either, because that variable is empty when the bypass is evaluated. Only `proxy_cache off` works.
+**A cache zone on this prefix also breaks range requests.** When a location has a cache zone, NGINX strips the client's `Range` from the upstream request and fetches the whole object so it can store it. It does that before it has seen any `Cache-Control`, so no response header prevents it. `proxy_buffering off` on its own does not fix it. A `proxy_cache_bypass` keyed on `$upstream_http_cache_control` cannot help either, because that variable is empty when the bypass is evaluated. A bypass keyed on the request's own `Range` header does work (see [Range Requests and Signed Responses](#range-requests-and-signed-responses)), but this prefix needs no cache at all, so turn it off.
 
 What the client sees depends on whether the response was cacheable, so the symptom differs between gateways:
 
@@ -689,16 +716,18 @@ Every layer should print `206 100`. The gateway and Envoy are always correct, so
 
 ### Torrent Routes
 
-A gateway that publishes over BitTorrent serves two more routes. Both live under `/ar-io/indexes`, so the block above already covers them, and so do any pin or cache rules you have for that prefix:
+A gateway that publishes over BitTorrent serves more routes. All live under `/ar-io/indexes`, so the block above already covers them, and so do any pin or cache rules you have for that prefix:
 
 | Route | What it serves | `Cache-Control` on success |
 | --- | --- | --- |
 | `/ar-io/indexes/torrents/<v1 infohash>.torrent` | A band's `.torrent` file. Not metered | `public, max-age=86400` |
 | `/ar-io/indexes/webseed/<torrent name>/<file>` | A band file for torrent clients (the WebSeed). Metered like the blob route | As the blob route: `private` when metered, else `public`, `max-age=31536000, immutable` |
+| `/ar-io/indexes/feed/<index>.xml` | Release 85. An RSS feed of an index's torrents. Not metered | `public, max-age=60` |
+| `/ar-io/indexes/announce` | Release 85. Tracker announces. Envoy forwards them to the sidecar's tracker; core never sees them | `no-store` |
 
-Errors from both are `no-store`, as for every index route.
+Errors from all of them are `no-store`, as for every index route.
 
-The tracker is not a gateway route: it runs in the sidecar, on its own port (6969). To serve it through NGINX or a load balancer, see [Publishing from a Fleet](/build/run-a-gateway/manage/index-sharing#publishing-from-a-fleet).
+From Release 85, peers announce to the tracker through the gateway, at `/ar-io/indexes/announce`, so no tracker port needs opening. The route is Envoy's, so the block's `proxy_pass` must reach Envoy (port 3000, as above), not core (port 4000), and the Envoy image must be from Release 85 or later. Otherwise core gets the path and answers `404`, and every announce fails without an error. Keep the `X-Forwarded-For` line too: the tracker reads each peer's address from it. For a load balancer in front of several nodes, see [Publishing from a Fleet](/build/run-a-gateway/manage/index-sharing#publishing-from-a-fleet).
 
 ## TTL Summary
 

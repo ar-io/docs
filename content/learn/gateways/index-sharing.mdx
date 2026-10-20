@@ -12,7 +12,7 @@ A gateway that can't answer locally has to ask other gateways or search the netw
 
 **Index Sharing** lets gateways share the answer. A gateway that has built a good index publishes it; other gateways download it and answer lookups in milliseconds. Because every piece is signed and hashed, a gateway can use another gateway's index without trusting that gateway's server.
 
-For an operator, that means data items resolve from local disk instead of a round trip to other gateways or GraphQL. The answer often includes the item's byte offsets, which lets the gateway fetch and verify just that item. It is optional and off by default: a gateway turns it on with one setup script, for about 21 GB of disk.
+For an operator, that means data items resolve from local disk instead of a round trip to other gateways or GraphQL. The answer often includes the item's byte offsets, which lets the gateway fetch and verify just that item. From Release 85 it is on by default: a gateway subscribes to turbo-gateway.com's root transaction index, about 22 GB of disk today, and seeds it to other gateways. An operator can follow other publishers, or opt out with one setting. On Release 84 it is off until a setup script turns it on.
 
 ## How It Works
 
@@ -36,7 +36,7 @@ sequenceDiagram
 
 An index is split into **bands**, each covering a range of block heights: older bands rarely change, while the band at the chain tip is rebuilt as new data arrives. A subscriber downloads only the bands it doesn't have, installs the newest first (most lookups are for recent data), and replaces a band without ever pausing lookups.
 
-There are two kinds of band. A **root-TX band** is a [CDB64 index](/build/run-a-gateway/manage/cdb64) that maps a data item to the transaction holding it; this is the kind a gateway loads and answers lookups from. From Release 85, which is not released yet, a publisher can also offer **L1 bands**: the Arweave base layer (blocks, transactions, tags and wallets) in Parquet. A gateway doesn't serve from them. A new gateway imports its L1 index from them instead of indexing the chain block by block, and apps query them in place for analytics.
+There are two kinds of band. A **root-TX band** is a [CDB64 index](/build/run-a-gateway/manage/cdb64) that maps a data item to the transaction holding it; this is the kind a gateway loads and answers lookups from. A publisher on Release 85 or later can also offer **L1 bands**: the Arweave base layer (blocks, transactions, tags and wallets) in Parquet. A gateway doesn't serve from them. A gateway fills its L1 history from them while it runs, instead of indexing the chain block by block, and apps query them in place for analytics.
 
 ### The Publication
 
@@ -60,7 +60,7 @@ Each band file can be fetched by its SHA-256 (`/ar-io/indexes/blob/<sha256>`). T
 
 ## Bands over BitTorrent
 
-Because every file is checked against the signed publication, it doesn't matter who delivers the bytes. That makes peer-to-peer delivery safe, and gateways that run the optional torrent engine move bands over **BitTorrent**. Without the engine, everything moves over HTTP as shown above.
+Because every file is checked against the signed publication, it doesn't matter who delivers the bytes. That makes peer-to-peer delivery safe, and gateways that run the torrent engine, which starts by default from Release 85, move bands over **BitTorrent**. Without the engine, everything moves over HTTP as shown above.
 
 ### Why BitTorrent
 
@@ -100,14 +100,14 @@ A band's torrent is built only from its files: their names, sizes and digests. N
 
 ### What a Subscriber Trusts
 
-A `.torrent` file isn't signed, so a subscriber trusts only the infohashes in the signed publication and re-hashes every file against its signed SHA-256, exactly as over HTTP. [Bands as Torrents](/build/advanced/index-publications#bands-as-torrents) shows these checks.
+The publication doesn't sign a `.torrent` file (with HTTPSIG, the gateway serving it signs its response), so a subscriber trusts only the infohashes in the signed publication and re-hashes every file against its signed SHA-256, exactly as over HTTP. [Bands as Torrents](/build/advanced/index-publications#bands-as-torrents) shows these checks.
 
-The torrent engine runs isolated from the rest of the gateway: it can't reach the gateway's other services, and it can't change the bands the gateway serves. A publisher also runs a **closed tracker** that helps peers find each other and answers only for the bands it offers. Peers find one another without it too, through the BitTorrent DHT and peer exchange.
+The torrent engine runs isolated from the rest of the gateway: it can't reach the gateway's other services, and it can't change the bands the gateway serves. A publisher also runs a **closed tracker** that helps peers find each other and answers only for the bands it offers. From Release 85, peers reach it through the publisher's own gateway, at `/ar-io/indexes/announce`, so it needs no port of its own. Peers find one another without it too, through the BitTorrent DHT and peer exchange.
 
 ## What Index Sharing Is Not
 
 - **It doesn't replace data verification.** An index says where an item lives; the gateway still [verifies the data itself](/learn/gateways/data-verification) when it serves it.
-- **It isn't storage.** Bands are indexes, not the data they point to: about 21 GB for the root-TX index turbo-gateway.com publishes.
+- **It isn't storage.** Bands are indexes, not the data they point to: about 22 GB for the root-TX index turbo-gateway.com publishes, growing with the chain.
 - **It isn't complete.** An index answers only for the bundles its publisher indexed, and the band at the chain tip is rebuilt periodically, so the newest items aren't in it yet. A miss costs nothing: the gateway falls back to its usual lookup.
 - **It isn't one provider.** Any registered gateway can publish. The turbo-gateway.com gateway publishes a root transaction index today, and subscribers can follow more than one publisher.
 - **BitTorrent isn't required.** It is an optional transport. A gateway without the torrent engine publishes and subscribes over HTTP.

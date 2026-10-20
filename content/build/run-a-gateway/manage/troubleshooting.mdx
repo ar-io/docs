@@ -16,8 +16,8 @@ Below is a quick summary of what you should check when troubleshooting your gate
 | My release number is wrong                                   | Pull the latest github updates and make sure you are on the `main` branch |
 | Gateway appears offline on Viewblock or https://gateways.ar.io        | Probably fine, but verify that your gateway is still running.             |
 | '/ar-io/observer/reports/current' just says "report pending" | Normal behavior, wait for the report to complete.                         |
-| Observer error "Cannot read properties of undefined"         | Normal behavior, Observer is checking for data not implemented yet.       |
-| Observing my gateway shows failures                          | Check `AR_IO_WALLET` and `ARNS_ROOT_HOST` settings.                       |
+| Observing my gateway shows failures                          | Check `AR_IO_WALLET` and `ARNS_ROOT_HOST` settings, and that `/chunk/<offset>` works. |
+| Failed offset (chunk-proof) checks                           | Upgrade core to Release 85 or later. See [Failed Offset Checks](#failed-offset-chunk-proof-checks). |
 | Updated .env settings not reflected on gateway               | Rebuild your gateway after editing .env file.                             |
 | Out of disk space error                                      | Check for inode exhaustion and delete files if necessary.                 |
 | Can't load ArNS names                                        | Check `ARNS_ROOT_HOST` setting in .env file, and DNS records.             |
@@ -73,28 +73,17 @@ This is normal. Your Observer is working to generate a report and that report wi
 
 </Accordion>
 
-<Accordion title="My Observer is showing me the error 'error: Error reading interaction: Cannot read properties of undefined'">
-
-This is not an issue with your observer. The short explanation is that your Observer is looking for tasks assigned to it by the ar.io network contract, but there isnt anything there. You can safely ignore this error message.
-
-</Accordion>
-
 <Accordion title="Observing my gateway shows failures">
 
-When observing a gateway, there are two main pass/fail tests. "Ownership" and "ArNS Assessment"
+When observing a gateway, there are three pass/fail tests. A gateway must pass all three:
 
 - Ownership: This tests to see if the value set in your gateway `AR_IO_WALLET` value (in .env) matches the wallet used to join ar.io. If they don't match, update the value in your .env file and restart your gateway.
 
 - ArNS Assessment: This tests to see if a gateway is able to resolve ArNS names correctly. The first thing you should check is if you have the `ARNS_ROOT_HOST` value set in your .env file. If not, set the value and restart your gateway. If this value is set, check to make sure you have current DNS records and SSL certificates for wildcard subdomains on your gateway.
 
-<Callout type="info">
-  **Release Requirement**: From gateway Release 85, which is not released yet,
-  observers also run offset (chunk-proof) checks. Each epoch, every observer
-  picks the same share of gateways (20% by default). A sampled gateway must
-  serve `/chunk/<offset>` with a Merkle proof that validates against the chain.
-  It fails only if all of its sampled offsets (4 by default) fail, and the
-  report lists each failure in `offsetAssessments` with a `failureCategory`.
-</Callout>
+- Offsets (chunk proofs): Each epoch, every gateway (by default) must serve `/chunk/<offset>` with a Merkle proof that validates against the chain. See [Failed Offset (Chunk-Proof) Checks](#failed-offset-chunk-proof-checks).
+
+By default, each observer checks a gateway 3 times an epoch (`OBSERVATIONS_PER_GATEWAY`) and passes it if at least 2 of those checks pass (`MAJORITY_VOTE_THRESHOLD`), so one bad moment doesn't fail you.
 
 </Accordion>
 
@@ -180,12 +169,6 @@ If you continue to have issues, you can check the [official certbot instructions
 
 </Accordion>
 
-<Accordion title="I see an error in my logs that says '<h...' is not valid JSON">
-
-- This happens when a request to a CU fails, and your gateway receives an html failure message instead of the expected JSON response. This will normally clear up on its own after congestion on that CU dies down, but if it is persistent try switching to a different CU.
-
-</Accordion>
-
 <Accordion title="My gateway logs just changed, instead of importing blocks I see 'polling for block'">
 
 - This is normal. It means you have reached the current Arweave block and need to wait for more before you can index them.
@@ -204,6 +187,7 @@ If you continue to have issues, you can check the [official certbot instructions
   - Try to visit your gateway in a browser and see if your SSL certs are bad
   - Try to resolve an ArNS name on your gateway. If it fails to resolve, check the console and your gateway logs for errors
   - Look at the observation reports that failed your gateway, they will list the reason for failure
+  - If the reports show failed offset checks, see [Failed Offset (Chunk-Proof) Checks](#failed-offset-chunk-proof-checks)
 
 </Accordion>
 </Accordions>
@@ -216,7 +200,7 @@ The ARIO Network provides several tools to help troubleshoot problems with a gat
 
 The Observer, which is a component of every gateway joined to the ARIO Network, checks all gateways in the network to ensure that they are functioning properly, and returning the correct data. The Observer then creates a report of the results of these checks, including the reasons why a gateway might have failed the checks.
 
-If a gateway fails the checks from more than half of the prescribed observers, the gateway is marked as failed for the epoch, and does not receive any rewards for that epoch.
+By default, each observer checks a gateway 3 times during an epoch, and reports it as failed if fewer than 2 of those checks pass. If a gateway fails the checks from more than half of the prescribed observers, the gateway is marked as failed for the epoch, and does not receive any rewards for that epoch.
 
 First, try to resolve data on the failed gateway in a browser. If that does not make the issue clear, use the Observer report to diagnose the problem.
 
@@ -295,7 +279,7 @@ This failure means that the gateway did respond to a resolution request, but the
 - The gateway is configured to operate on testnet or devnet. Gateways joined to the ARIO Network MUST operate on mainnet in order to pass observation checks.
 - The gateway is intentionally returning fraudulent data.
 
-A gateway will not return fraudulent data unless that operator intentionally rewrote the gateway's code to do so, and a major purpose of the Observation and Incentive Protocol is to catch and prevent this behavior. A gateway may return mistaken data on occasion, usually due to a cache mismatch between the gateway and the observer's authority (usually arweavae.net). This is a relatively rare occurrence, and should only be considered an issue if it occurs persistently. If most or all of the ArNS names checked are failing for this reason, it is likely that the gateway is not operating on mainnet.
+A gateway will not return fraudulent data unless that operator intentionally rewrote the gateway's code to do so, and a major purpose of the Observation and Incentive Protocol is to catch and prevent this behavior. A gateway may return mistaken data on occasion, usually due to a cache mismatch between the gateway and the observer's reference gateway. The bundled observer uses its own gateway (`ARNS_ROOT_HOST`) as its reference, or turbo-gateway.com and ar-io.net when that isn't set. A gateway is never used as its own reference. This is a relatively rare occurrence, and should only be considered an issue if it occurs persistently. If most or all of the ArNS names checked are failing for this reason, it is likely that the gateway is not operating on mainnet.
 
 #### Response code 502 (Bad Gateway)
 
@@ -340,6 +324,36 @@ This failure means that the observer's SSL certificate does not match the gatewa
 ![Diagram](https://turbo-gateway.com/Hbip_ZmqmFN8-uXijw1aylyYp1YllwgyZTNAcsPCxSg)
 
 This failure almost always means that the gateway operator did not properly obtain SSL certificates for the gateway's wildcard subdomain. Obtaining a new SSL certificate and updating the gateway's reverse proxy configuration to use the new certificate is the only solution to this issue.
+
+### Failed Offset (Chunk-Proof) Checks
+
+Observers on the Release 85 observer image (`c5e98ddc`) check that gateways serve chunks. By default every gateway is checked every epoch (`OFFSET_OBSERVATION_SAMPLE_RATE`, `1.0`); an observer that sets a lower rate checks a share of gateways, the same share as every other observer at that rate. A checked gateway must serve `/chunk/<offset>` with a Merkle proof that validates against the chain. The observer tries up to 4 offsets (`OFFSET_SAMPLE_COUNT`) and stops at the first that validates, so a gateway fails only when every offset fails. Timeouts, error statuses and bad proofs all count as failures.
+
+The check fails gateways by default (`OFFSET_OBSERVATION_ENFORCEMENT_ENABLED=true`). A failed check fails the observation, like a failed ownership or ArNS check, and the 2-of-3 majority still applies. A check the observer could not judge itself, because its own lookups failed, is reported as `inconclusive` and never fails a gateway.
+
+The report lists the samples of the observer's best observation of your gateway under `offsetAssessments`. Each failed sample names its offset and a `failureCategory`:
+
+| `failureCategory` | Meaning |
+| --- | --- |
+| `timeout` | The gateway did not answer `/chunk/<offset>` in time |
+| `network` | The connection failed: DNS, refused, TLS or reset |
+| `http_status` | The gateway answered with an error status. A `404` means it could not serve the chunk |
+| `invalid_chunk` | The response was not a usable chunk: not JSON, an empty or oversized chunk, or a missing or unreadable `data_path` |
+| `bad_proof` | The `data_path` Merkle proof does not validate against the chain |
+| `unverifiable` | The gateway served a chunk, but the observer could not check it against the chain, because its own lookups failed. It never counts as a pass. Only a check whose samples are all `unverifiable` is `inconclusive` and fails no gateway |
+
+To fix it:
+
+- **Upgrade core to Release 85 or later.** Release 85 fixes chunk fetches that answered `404` for chunks the network holds. A gateway now asks the preferred Arweave nodes first, in the order that serves it best from where it runs, and tries up to 8 peers per chunk instead of 5 (`ARWEAVE_PEER_CHUNK_GET_MAX_PEER_ATTEMPT_COUNT`).
+- **Test the offset yourself**, with an offset from the report:
+
+  ```bash
+  curl -s -o /dev/null -w '%{http_code}\n' https://<your-gateway>/chunk/<offset>
+  ```
+
+  `200` means your gateway served a chunk. `404` means it couldn't fetch it.
+- **Allow for warm-up.** After each restart, a gateway needs roughly 100 chunk requests to learn which preferred nodes serve it well. Chunks fail more often until then.
+- **Check your own node lists.** If you set `PREFERRED_CHUNK_GET_NODE_URLS` or `PREFERRED_CHUNK_POST_NODE_URLS`, remove `tip-5.arweave.xyz`. Release 85 dropped it from the defaults because it stopped answering.
 
 ## FAQ
 

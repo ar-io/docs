@@ -196,7 +196,8 @@ _openapi:
           ```
 
 
-          **Fee:** Configurable via X402_PRICING_BUFFER_PERCENT (default: 15%)
+          **Fee:** Configurable via X402_FEE_PERCENT (default: 15%);
+          X402_PRICING_BUFFER_PERCENT is the deprecated fallback
 
 
           **Get price quote first:** `GET
@@ -240,11 +241,38 @@ _openapi:
           "value": "MyApp"}`
 
 
+          **Via a JSON header:** `x-data-item-tags: [{"name": "App-Name",
+          "value": "MyApp"}]`, as @ardrive/turbo-sdk sends. A value that is not
+          a JSON array of `{name, value}` strings is refused with 400 before any
+          payment; an empty value is ignored. Header values are Latin-1, an HTTP
+          limit: send other text in the envelope.
+
+
           **Via JSON Envelope:** `{"data": "...", "tags": [{"name": "App-Name",
           "value": "MyApp"}]}`
 
 
           Note: Header tag names are converted from kebab-case to Proper-Case.
+
+
+          Tags from every source are kept, in this order: the envelope's,
+          `x-data-item-tags`, then `X-Tag-*`. The item's Content-Type comes from
+          one explicit source: a `Content-Type` tag (any case) or the envelope's
+          `contentType`. More than one is refused with 400, even when they
+          agree. With neither, a binary upload uses the request's Content-Type
+          unless it is `application/octet-stream`, and an envelope gets none. An
+          empty value counts as absent.
+
+
+          A JSON body is read as an envelope when `data` is a non-empty string
+          and every other key is an envelope key (`tags`, `contentType`, and the
+          unused `target` and `anchor`). `data` can be standard or url-safe
+          base64, with or without padding or line breaks. Any other JSON body,
+          such as a document with its own `data` field and other keys, is stored
+          byte for byte. An envelope whose `data` is not base64, whose `tags`
+          are not `{name, value}` strings, or whose `contentType`, `target` or
+          `anchor` is not a string is refused with 400 before any payment. A
+          `null` optional field counts as absent.
 
 
           ---
@@ -259,9 +287,14 @@ _openapi:
           - **Server Requirement:** Requires `RAW_DATA_UPLOADS_ENABLED=true` on
           server
 
-          - **Max Size:** 10 GB
+          - **Max Size:** the request body is limited to `MAX_DATA_ITEM_SIZE`
+          bytes (default 4 GiB); a larger body answers 413. A JSON envelope
+          carries base64, about 4/3 the size of the data, so its data can be at
+          most about 3/4 of that limit.
 
-          - **Max Tags:** 100 user tags
+          - **Max Tags:** 4096 serialized tag bytes for the whole item,
+          including the Content-Type tag and the 7 system tags this bundler
+          adds. Checked before payment.
 
 
           ---

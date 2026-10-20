@@ -6,6 +6,14 @@ _openapi:
   structuredData:
     headings: []
     contents:
+      - content: |
+          Broadcasts a chunk of an uploaded transaction's data, with its Merkle
+          proof, to Arweave nodes, as an Arweave node's `POST /chunk` does. It
+          succeeds when at least `CHUNK_POST_MIN_SUCCESS_COUNT` nodes accept
+          it, `CHUNK_POST_MIN_PREFERRED_SUCCESS_COUNT` of them preferred nodes
+          (`PREFERRED_CHUNK_POST_NODE_URLS`). Otherwise the status is the one
+          most of the failing nodes gave: 504 for a timeout, 502 for a network
+          error, 499 when cancelled.
       - content: Fetches information about the size and offset of a specified chunk.
       - content: >-
           Returns the same headers as GET but without the response body. Useful
@@ -73,4 +81,4 @@ _openapi:
 Upload Arweave data chunks or get existing chunk offset information
 
 
-<APIPage document={"https://raw.githubusercontent.com/ar-io/ar-io-node/refs/heads/main/docs/openapi.yaml"} operations={[{"path":"/chunk/{offset}","method":"get"},{"path":"/chunk/{offset}","method":"head"},{"path":"/chunk/{offset}/data","method":"get"},{"path":"/chunk/{offset}/data","method":"head"}]} webhooks={[]} hasHead={true} />
+<APIPage document={"https://raw.githubusercontent.com/ar-io/ar-io-node/refs/heads/main/docs/openapi.yaml"} operations={[{"path":"/chunk","method":"post"},{"path":"/chunk/{offset}","method":"get"},{"path":"/chunk/{offset}","method":"head"},{"path":"/chunk/{offset}/data","method":"get"},{"path":"/chunk/{offset}/data","method":"head"}]} webhooks={[]} hasHead={true} />
