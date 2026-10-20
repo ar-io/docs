@@ -24,20 +24,39 @@ Clients that want to provide users with a quick view of a single folder can simp
 
 ## Basic Query Patterns
 
-### Query All Drive Entities
+Every query names the drive owner's wallet in `owners`, for the reason given earlier: entities from any other wallet are not part of the drive.
+
+Do not filter on the `ArFS` tag. A drive holds entities written at every ArFS version since it was created, from `0.11` to `0.15`, and a query for one version misses the rest.
+
+Gateways return at most 100 results per query. Read every page: while `pageInfo.hasNextPage` is true, query again with `after` set to the `cursor` of the last edge.
+
+### Query a Drive's Entities
 
 ```graphql
-query {
+query ($driveId: String!, $owner: String!, $after: String) {
   transactions(
+    owners: [$owner]
     tags: [
-      { name: "ArFS", values: ["0.15"] }
-      { name: "Entity-Type", values: ["drive"] }
-      { name: "Drive-Id", values: ["your-drive-id"] }
+      { name: "Drive-Id", values: [$driveId] }
+      { name: "Entity-Type", values: ["drive", "folder", "file"] }
     ]
+    sort: HEIGHT_ASC
+    first: 100
+    after: $after
   ) {
+    pageInfo {
+      hasNextPage
+    }
     edges {
+      cursor
       node {
         id
+        owner {
+          address
+        }
+        bundledIn {
+          id
+        }
         block {
           height
           timestamp
@@ -51,18 +70,28 @@ query {
   }
 }
 ```
+
+To read only blocks a client has not seen, add `block: { min: <height> }`.
 
 ### Query Folder Contents
 
 ```graphql
-query ($parentFolderId: String!) {
+query ($driveId: String!, $owner: String!, $parentFolderId: String!, $after: String) {
   transactions(
+    owners: [$owner]
     tags: [
-      { name: "ArFS", values: ["0.15"] }
+      { name: "Drive-Id", values: [$driveId] }
       { name: "Parent-Folder-Id", values: [$parentFolderId] }
     ]
+    sort: HEIGHT_ASC
+    first: 100
+    after: $after
   ) {
+    pageInfo {
+      hasNextPage
+    }
     edges {
+      cursor
       node {
         id
         block {
@@ -79,16 +108,20 @@ query ($parentFolderId: String!) {
 }
 ```
 
-### Query File Entities
+A file or folder moved out of this folder still appears here with its old revisions, so keep only entities whose latest revision names this folder as its parent.
+
+### Query a File's Revisions
 
 ```graphql
-query ($fileId: String!) {
+query ($owner: String!, $fileId: String!) {
   transactions(
+    owners: [$owner]
     tags: [
-      { name: "ArFS", values: ["0.15"] }
       { name: "Entity-Type", values: ["file"] }
       { name: "File-Id", values: [$fileId] }
     ]
+    sort: HEIGHT_DESC
+    first: 100
   ) {
     edges {
       node {
@@ -107,41 +140,45 @@ query ($fileId: String!) {
 }
 ```
 
-## Building Drive State
+The first edge is the latest revision.
 
-The process of building drive state involves several steps:
+## Building a Drive's Current State
+
+The process of building a drive's current state involves several steps:
 
 ```mermaid
 graph TD
-    A[Query Drive Entities] --> B[Sort by Block Height]
-    B --> C[Process Files First]
-    C --> D[Process Folders]
-    D --> E[Process Drive Metadata]
-    E --> F[Build Hierarchy Tree]
-    F --> G[Resolve Conflicts]
-    G --> H[Return Complete State]
+    A[Query the drive's entities from its owner] --> B[Order by block height]
+    B --> C[Keep the latest revision of each entity]
+    C --> D[Build hierarchy tree]
+    D --> E[Return complete state]
 
     style A fill:#e3f2fd
-    style H fill:#c8e6c9
+    style E fill:#c8e6c9
 ```
 
 ### Step-by-Step Process
 
-1. **Query for all entities** associated with a specific `Drive-Id`
-2. **Sort by block height** to establish chronological order
-3. **Process entities bottom-up** starting with files and folders
-4. **Build the hierarchy** by following parent-child relationships
-5. **Handle conflicts** by using the most recent entity version
+1. **Query for the drive's entities** by `Drive-Id`, from the wallet that owns the drive
+2. **Order them by block height**, using `Unix-Time` only to break ties within a block
+3. **Keep the latest revision** of each drive, folder and file ID
+4. **Build the hierarchy** by following each entity's `Parent-Folder-Id`
 
 ### Example Implementation
 
 ```javascript
-async function buildDriveState(driveId) {
-  // Query all entities for the drive
-  const entities = await queryDriveEntities(driveId);
+async function buildDriveState(driveId, ownerAddress) {
+  // Query every page of the drive's entities, from the drive's owner
+  const entities = await queryDriveEntities(driveId, ownerAddress);
 
-  // Sort by block height
-  entities.sort((a, b) => a.block.height - b.block.height);
+  // Order by block height, then Unix-Time within a block, so later
+  // revisions replace earlier ones below
+  entities.sort(
+    (a, b) =>
+      a.block.height - b.block.height ||
+      Number(getTagValue(a.tags, "Unix-Time")) -
+        Number(getTagValue(b.tags, "Unix-Time"))
+  );
 
   // Process entities
   const driveState = {
@@ -176,9 +213,79 @@ async function buildDriveState(driveId) {
 }
 ```
 
+## Using Drive State
+
+A drive's newest usable [Drive State](/build/advanced/arfs/entity-types#drive-state) entity replaces most of the replay. A client reads a drive from three sources, each covering the blocks the one before it did not:
+
+| Order | Source | Blocks it covers |
+| --- | --- | --- |
+| 1 | Drive State entity | `0` to its `Block-End` |
+| 2 | Snapshots | From a margin below `Block-End` to the newest snapshot |
+| 3 | GQL queries | The rest, up to the current block height |
+
+Start the later sources a margin below `Block-End`, not at it. `Block-End` is the producer's block height when it last synced, and an entity mined just below it but indexed after that sync is in no Drive State entity. ArDrive uses a margin of 240 blocks. Re-reading those blocks costs one query, and a client skips revisions it already holds.
+
+If no Drive State entity is found, or every candidate is refused, the client reads the drive from snapshots and GQL alone, exactly as it would without one.
+
+### Drive State Query
+
+Find candidates by the drive's owner and `Drive-Id`. The owner is the wallet that created the drive's first Drive entity, which may differ from the wallet reading it, such as on a drive shared with another user.
+
+```graphql
+query ($driveId: String!, $owner: String!) {
+  transactions(
+    owners: [$owner]
+    tags: [
+      { name: "Drive-Id", values: [$driveId] }
+      { name: "Entity-Type", values: ["drive-state"] }
+    ]
+    sort: HEIGHT_DESC
+    first: 100
+  ) {
+    edges {
+      node {
+        id
+        owner {
+          address
+        }
+        block {
+          height
+          timestamp
+        }
+        tags {
+          name
+          value
+        }
+      }
+    }
+  }
+}
+```
+
+One page is enough. An entity mined before the newest 100 cannot cover more blocks than they do, because a producer cannot account for blocks that did not exist yet. Try candidates in order of highest `Block-End`, and move to the next one when a candidate is refused.
+
+Keep "no Drive State entity exists" apart from "the query failed". If the gateway does not answer, report that, and do not record the drive as having no Drive State entity.
+
+### Drive State Checks
+
+A client checks a candidate in this order and refuses it at the first failed check. A refusal means skipping that candidate, never failing the drive:
+
+1. **Tags.** The transaction's owner is the drive's owner, `Drive-Id` is the drive's, the cipher tags match the drive's privacy, and the client reads this `State-Version`.
+2. **Bytes.** Fetch the data by transaction ID, from an L1 transaction or a bundled data item alike. Decrypt with the drive key if private, detect gzip from the first bytes, and inflate within the 100 MiB limit.
+3. **Database.** Open the file under a name of its own and read no rows until `PRAGMA integrity_check` returns `ok`, `application_id` is `0x41724453`, and `sqlite_master` holds exactly the nine tables of the [Drive State Entity Data](/build/advanced/arfs/entity-types#drive-state-entity-data).
+4. **Claims.** `meta` agrees with the tags and with the drive the client holds: version, drive, owner, privacy and block range. The number of drive, folder and file rows equals `entityCount`. A `Block-End` above the current block height counts only up to that height.
+5. **Rows.** Every value has the column's declared type, no entity is listed twice, and every row belongs to the drive.
+6. **Merge.** Copy the rows in one database transaction, and keep any row the client already holds that is newer.
+
+Three more rules:
+
+- **Do not go backwards.** A candidate whose `Block-End` is not above the block height the client has already synced the drive to adds nothing.
+- **Do not import the same entity twice.** Record the transaction ID of the entity a drive last imported, and skip it while the drive's synced height is still at or past its `Block-End`. Key the record on the transaction ID, not the range, because a different entity over the same range can repair entities a sync skipped.
+- **A full rebuild of a drive ignores Drive State entities.** A request to rebuild from the chain is a request to stop trusting saved state, and a Drive State entity is saved state.
+
 ## Using Snapshots
 
-For large drives, snapshots can significantly improve performance:
+For large drives, snapshots can significantly improve performance. A drive can have several snapshots over different block ranges: read all of them, then query only the blocks none of them covers.
 
 ```mermaid
 sequenceDiagram
@@ -186,7 +293,7 @@ sequenceDiagram
     participant Gateway
     participant Arweave
 
-    Client->>Gateway: Query for latest snapshot
+    Client->>Gateway: Query for the drive's snapshots
     Gateway->>Client: Return snapshot data
     Client->>Client: Process snapshot data
     Client->>Gateway: Query for newer transactions
@@ -198,19 +305,27 @@ sequenceDiagram
 ### Snapshot Query
 
 ```graphql
-query ($driveId: String!) {
+query ($driveId: String!, $owner: String!, $after: String) {
   transactions(
+    owners: [$owner]
     tags: [
-      { name: "ArFS", values: ["0.15"] }
-      { name: "Entity-Type", values: ["snapshot"] }
       { name: "Drive-Id", values: [$driveId] }
+      { name: "Entity-Type", values: ["snapshot"] }
     ]
     sort: HEIGHT_DESC
-    first: 1
+    first: 100
+    after: $after
   ) {
+    pageInfo {
+      hasNextPage
+    }
     edges {
+      cursor
       node {
         id
+        bundledIn {
+          id
+        }
         block {
           height
           timestamp
@@ -231,6 +346,7 @@ query ($driveId: String!) {
 
 - **Local caching** - Store frequently accessed data locally
 - **Incremental updates** - Only fetch new transactions since last sync
+- **Drive State usage** - Import a drive's Drive State entity before reading snapshots
 - **Snapshot usage** - Use snapshots for large drives
 - **Batch queries** - Combine multiple queries when possible
 
@@ -238,7 +354,7 @@ query ($driveId: String!) {
 
 - **Use specific tags** - Narrow down queries with relevant tags
 - **Limit results** - Use pagination for large result sets
-- **Filter by date** - Query specific time ranges
+- **Filter by block height** - Query only blocks a client has not read
 - **Index utilization** - Write queries that GraphQL indexes can answer
 
 ## Error Handling

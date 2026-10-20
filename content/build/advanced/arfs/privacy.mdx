@@ -64,7 +64,7 @@ Drive-Auth-Mode?: 'password'
 
 On every encrypted Drive Entity, a `Cipher` tag must be specified, along with the public parameters for decrypting the data. This is done by specifying the parameter with a `Cipher-*` tag. eg. `Cipher-IV`. If the parameter is byte data, it must be encoded as Base64 in the tag.
 
-ArDrive clients currently use AES256-GCM for all symmetric encryption, which requires a Cipher Initialization Vector consisting of 12 random bytes.
+ArDrive uses AES256-GCM for metadata and for files smaller than 100 MiB, and AES256-CTR for files of 100 MiB or more. Both take a Cipher Initialization Vector of 12 random bytes.
 
 ```
 Cipher?: "AES256-GCM"
@@ -81,10 +81,10 @@ When a file is uploaded to a private drive, it by default also becomes private a
 
 These file keys can be shared by the drive's owner as needed.
 
-Private File entities have both its metadata and data transactions encrypted using the same File Key, ensuring all facets of the data is truly private. As such, both the file's metadata and data transactions must both have a unique `Cipher-IV` and `Cipher` tag:
+Private File entities have both its metadata and data transactions encrypted using the same File Key, ensuring all facets of the data is truly private. As such, both the file's metadata and data transactions must both have a unique `Cipher-IV` and `Cipher` tag. The metadata transaction always uses AES256-GCM; the data transaction uses AES256-CTR when the file is 100 MiB or more:
 
 ```
-Cipher?: "AES256-GCM"
+Cipher?: "AES256-GCM | AES256-CTR"
 Cipher-IV?: "<12 byte initialization vector as Base64>"
 ```
 
@@ -119,6 +119,14 @@ sequenceDiagram
     Client->>Arweave: Upload encrypted metadata
     Client->>Arweave: Upload encrypted data
 ```
+
+## Drive State and Snapshots of Private Drives
+
+A private drive's [Drive State](/build/advanced/arfs/entity-types#drive-state) entity is encrypted as one unit with the drive key, using AES256-GCM. It has no key of its own, so anyone with the drive key can read it, and a shared file key cannot. Its tags show the drive, the block range and the number of entities, and the transaction shows the size of the data. None of them show names or structure.
+
+A public drive's Drive State entity is not encrypted and carries neither `Cipher` nor `Cipher-IV`. A producer must never publish a private drive's state without encryption, and a reader refuses any Drive State entity whose cipher tags contradict the privacy of the drive it names, in either direction.
+
+A [Snapshot](/build/advanced/arfs/entity-types#snapshot) of a private drive works differently. It encrypts each entry's JSON metadata on its own, but carries each entry's GQL node, with all of that entity's tags, in the clear. The same tags are public on the entities themselves; a snapshot gathers all of them in one place.
 
 ## Security Best Practices
 
