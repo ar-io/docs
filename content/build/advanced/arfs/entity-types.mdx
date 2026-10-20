@@ -343,7 +343,7 @@ The rows mirror the drive's ArFS metadata:
 - `customJsonMetadata` and `customGQLTags` hold an entity's extra metadata fields and tags as JSON text, or `NULL`. `assignedNames` holds a file's ArNS names as a JSON array, or `NULL`.
 - `licenseTxType` is `composed` when the licence tags are on the file's data transaction, or `assertion` when a separate transaction asserts the licence.
 - `action` records what a revision did, such as `create`, `rename`, `move` or `hide`. It is informational.
-- `transaction_statuses` lists the transactions the rows reference that the producer had not seen confirmed, with the status it held: `pending` or `failed`. A reader treats every other transaction the rows reference as confirmed. It re-checks a listed file data transaction, and shows any other listed transaction as failed. A metadata transaction listed as `pending` is malformed.
+- `transaction_statuses` lists the transactions the rows reference that the producer had not seen confirmed, with the status it held: `pending` or `failed`. A reader treats every other transaction the rows reference as confirmed. It re-checks a listed file data transaction, and shows any other listed transaction as failed. Any other transaction listed as `pending`, such as a metadata or licence transaction, makes the entity malformed.
 
 A producer follows these rules:
 
