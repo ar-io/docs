@@ -107,7 +107,7 @@ Settings for the `index-swarm` sidecar, which subscribes to other gateways' inde
 
 | Variable | Type | Default | Description |
 | --- | --- | --- | --- |
-| `INDEX_SWARM_SUBSCRIBE` | JSON | Release 85: turbo-gateway.com's `root-tx-index` (wallet `34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7h5`); Release 84: unset | `[]` opts out. Publishers to subscribe to, by gateway wallet: `[{"publisher":"<wallet>","name":"root-tx-index"}]`. `name` may be one index or a list. Without `name`, you take every index the publisher offers except opt-in kinds; from Release 85, `parquet-l1` is opt-in and must be named. An optional `url` fetches from another address, such as a fleet's signing node; the signature is still checked against the registered key. See [Take L1 Bands](/build/run-a-gateway/manage/index-sharing#take-l1-bands-parquet-l1) |
+| `INDEX_SWARM_SUBSCRIBE` | JSON | Release 85: turbo-gateway.com's `root-tx-index` (wallet `34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7h5`); Release 84: unset | `[]` opts out. Publishers to subscribe to, by gateway wallet: `[{"publisher":"<wallet>","name":"root-tx-index"}]`. `name` may be one index or a list. Without `name`, you take every index the publisher offers except opt-in kinds; from Release 85, `parquet-l1` and every `parquet-l2` index are opt-in and must be named. An optional `url` fetches from another address, such as a fleet's signing node; the signature is still checked against the registered key. See [Take L1 Bands](/build/run-a-gateway/manage/index-sharing#take-l1-bands-parquet-l1) |
 | `INDEX_SWARM_PUBLISH` | JSON | unset | Indexes this gateway publishes: `[{"name":"root-tx-index","kind":"cdb64-root-tx"}]` |
 | `INDEX_SWARM_MAX_DISK_BYTES` | number | Release 85: 64 GiB with the default subscription, no ceiling with one you set; Release 84: unset (no ceiling; the setup script writes 50 GiB) | Ceiling on the disk the sidecar takes for bands. A band that would go over it is skipped. See [Disk](/build/run-a-gateway/manage/index-sharing#disk) |
 | `INDEX_SWARM_OBSERVER_KEYPAIR_FILE` | string | unset | Publishers only: host path of the observer keypair file. Set this or `OBSERVER_PRIVATE_KEY`, not both |
@@ -176,9 +176,9 @@ Settings for the `index-export` service (compose profile `index-export`), which 
 
 | Variable | Type | Default | Description |
 | --- | --- | --- | --- |
-| `INDEX_EXPORT_KINDS` | string | `root-tx-index` | Comma-separated indexes to build: `root-tx-index`, `parquet-l1`. See [Publish L1 Bands](/build/run-a-gateway/manage/index-sharing#publish-l1-bands) |
+| `INDEX_EXPORT_KINDS` | string | `root-tx-index` | Comma-separated indexes to build: `root-tx-index`, `parquet-l1`, `parquet-l2`. See [Publish L1 Bands](/build/run-a-gateway/manage/index-sharing#publish-l1-bands) and [Publish an L2 Index](/build/run-a-gateway/manage/index-sharing#publish-an-l2-index-parquet-l2) |
 | `INDEX_EXPORT_START_HEIGHT` | number | unset | The lowest height to build. Root-TX bands need it before the first run; `./tools/index-swarm-setup --publish --start-height <n>` sets it |
-| `INDEX_EXPORT_HEADER_CHECK_URL` | string | unset | Required for root-TX bands: the gateway a sample of each band's entries is checked against before publishing. `./tools/index-swarm-setup --publish` writes `https://turbo-gateway.com` |
+| `INDEX_EXPORT_HEADER_CHECK_URL` | string | unset | Required for root-TX and L2 bands: the gateway a sample of each band's entries is checked against before publishing. `./tools/index-swarm-setup --publish` writes `https://turbo-gateway.com` |
 | `INDEX_EXPORT_HEADER_CHECK_TIMEOUT_MS` | number | `30000` | Timeout for each read of that check |
 | `INDEX_EXPORT_SOURCES` | JSON | unset (this gateway's ClickHouse when `CLICKHOUSE_URL` is set, else its SQLite) | Where root-TX records come from |
 | `INDEX_EXPORT_SECRETS_DIR` | string | unset | Host directory of password files for the ClickHouse sources `INDEX_EXPORT_SOURCES` names |
@@ -186,6 +186,17 @@ Settings for the `index-export` service (compose profile `index-export`), which 
 | `INDEX_EXPORT_RUN_AT_UTC` | string | `04:00` | Time of the daily run, `HH:MM` UTC |
 | `INDEX_EXPORT_RECENT_MAX_BLOCKS` | number | `100000` | Span at which a recent root-TX band is frozen and a new one starts |
 | `INDEX_EXPORT_L1_RUN_BUDGET_MINUTES` | number | `240` | How long a run keeps starting whole L1 bands. Raise it for a bootstrap |
+| `INDEX_EXPORT_L2_INDEXES` | JSON | unset (required for `parquet-l2`) | The L2 indexes to build, each `{"name":…,"selection":{"kind":"ans104-data-items","tag":{"name":…,"valuePrefix":…,"excludeValuePrefix":…}}}`. Names match `[a-z0-9-]{1,64}`, are unique, and are not `root-tx-index`, `parquet-l1` or `blobs`. A selection never changes: a new one is a new name. Each is listed in `INDEX_SWARM_PUBLISH` as `{"name":<name>,"kind":"parquet-l2"}` |
+| `INDEX_EXPORT_L2_SOURCE` | JSON | this gateway's ClickHouse | The ClickHouse L2 bands are read from: `{"type":"clickhouse"}` (this gateway's; `CLICKHOUSE_USER` must be set) or a peer's with `url`, `user` and `passwordFile` under `INDEX_EXPORT_SECRETS_DIR` |
+| `INDEX_EXPORT_L2_SETTLE_BLOCKS` | number | `INDEX_EXPORT_ROOT_TX_SETTLE_BLOCKS` (5040) | Blocks a 5,000-height range waits below the source's stable top before its L2 band is frozen; above, a tip band per sub-range is rebuilt daily |
+| `INDEX_EXPORT_L2_WALLETS_DB` | string | `data/sqlite/bundles.db` | The `bundles.db` whose `wallets` table gives owners' keys ClickHouse doesn't hold, read-only; skipped when absent |
+| `INDEX_EXPORT_L2_MAX_READS` | number | `200000` | The most reads through `INDEX_EXPORT_HEADER_CHECK_URL` one L2 band may make to settle ambiguous locations and read owners' keys. A band needing more is rejected |
+| `INDEX_EXPORT_L2_RUN_BUDGET_MINUTES` | number | `240` | How long a run keeps starting frozen L2 bands; the rest, and the tip, wait for the next run. Raise it for a bootstrap |
+| `INDEX_EXPORT_L2_DUCKDB_MEMORY` | string | `2GB` | DuckDB's memory limit while an L2 band is built. Keep it, with the 4 GB heap, under the container's `mem_limit` |
+| `INDEX_EXPORT_L2_DUCKDB_THREADS` | number | `2` | DuckDB's threads while an L2 band is built, 1 to 64 |
+| `INDEX_EXPORT_L2_DUCKDB_SPILL_MAX_GB` | number | `256` | The most DuckDB may spill to disk while an L2 band is built; a build past it fails rather than fill the disk |
+| `INDEX_EXPORT_L2_WINDOW_ITEMS` | number | `50000` | The most items one window of the source holds in memory; a larger window is read again in halves. At least 1,000 |
+| `INDEX_EXPORT_L2_RECHECK_UNREADABLE_EVERY` | number | `4` | A frozen L2 band built while some roots answered 404 is rebuilt on every this many re-settles, so roots served again get in |
 | `INDEX_EXPORT_METRICS_PORT` | number | `9102` | Port for `index-export`'s `/metrics` and `/healthz`, inside its container |
 | `INDEX_EXPORT_IMAGE_TAG` | string | the value of `CORE_IMAGE_TAG` | Core image tag for `index-export`, when it should run a newer image than the gateway |
 | `LOG_LEVEL` | string | `info` | `index-export` log level |

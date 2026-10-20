@@ -195,11 +195,12 @@ curl -s https://turbo-gateway.com/ar-io/indexes \
 ```
 
 ```json
-{ "name": "root-tx-index", "kind": "cdb64-root-tx", "bands": 5 }
-{ "name": "parquet-l1", "kind": "parquet-l1", "bands": 24 }
+{ "name": "root-tx-index", "kind": "cdb64-root-tx", "bands": 17 }
+{ "name": "parquet-l1", "kind": "parquet-l1", "bands": 25 }
+{ "name": "ardrive-l2", "kind": "parquet-l2", "bands": 25 }
 ```
 
-`name` is the dataset you want; `kind` tells you how to read it. They are not the same thing, and for `root-tx-index` they differ.
+`name` is the dataset you want; `kind` tells you how to read it. They are not the same thing: for `root-tx-index` they differ, and every `parquet-l2` index has its own name (here `ardrive-l2`, ArDrive's data items; see [L2 Datasets](#l2-datasets-parquet-l2)).
 
 ### The Tables
 
@@ -246,9 +247,51 @@ A key is a pointer: two values can share one, so always finish in the table the 
 
 <Callout type="info">
   `parquet-l1` is the **base layer only**: Arweave transactions, not the data
-  items bundled inside them. For items inside bundles, use
-  [`root-tx-index`](#look-up-one-id) or the gateway's GraphQL.
+  items bundled inside them. For items inside bundles, use a
+  [`parquet-l2` dataset](#l2-datasets-parquet-l2) that covers the app,
+  [`root-tx-index`](#look-up-one-id) for one item's location, or the
+  gateway's GraphQL.
 </Callout>
+
+### L2 Datasets (`parquet-l2`)
+
+<Callout type="info">
+  **Release Requirement**: `parquet-l2` bands require gateway Release 85 or
+  later.
+</Callout>
+
+A `parquet-l2` dataset holds the ANS-104 data items of one **selection**: those carrying a tag with an exact name whose value starts with a prefix (and not with an optional longer prefix to exclude), compared as UTF-8 bytes. Each selection is its own index, published under its own name; the publication carries the selection as every band's `metadata.selection`, and a reader refuses an index whose bands disagree. turbo-gateway.com publishes `ardrive-l2`:
+
+```json
+{ "kind": "ans104-data-items", "tag": { "name": "App-Name", "valuePrefix": "ArDrive", "excludeValuePrefix": "ArDriver" } }
+```
+
+Bands cover the same fixed height ranges as `parquet-l1` bands, and an item's `height` is its **root transaction's**, so an L2 band lies over the L1 band of the same heights and the two join on `height`. Layout `l2-1`:
+
+| File | One row per | Key columns |
+| --- | --- | --- |
+| `data_items.parquet` | place an item sits in its root transaction (a few items sit in two) | `id`, `height`, `block_transaction_index`, `root_transaction_id`, `parent_id`, `owner_address`, `target`, `data_size`, `content_type`, `content_encoding`, `tag_count`, and its location: `root_parent_offset`, `offset`, `size`, `data_offset`, … (all set, or all null for an item known to be in its root but not where) |
+| `tags.parquet` | tag, names and values in plaintext | `id`, `height`, `tag_index`, `tag_name`, `tag_value` |
+| `wallets.parquet` | owner | `address`, `public_modulus` |
+| `parents.parquet` | nested bundle between a held item and its root | `id`, `root_transaction_id`, `root_parent_offset`, `offset`, `size` |
+| `lookup_id.parquet`, `lookup_wallet.parquet`, `lookup_tag.parquet` | as an L1 band's [lookup files](#lookup-files), one row per distinct item and height | `id8`; `addr8`, `role`; `name8`, `val8`, `txs`, `first_height`, `last_height` |
+
+Everything said about L1 bands holds here: raw bytes for ids, addresses, names and values; the same `prefix64` and `sha256_64` keys; the same range reads. `GROUP BY id, height` when counting items from `data_items`, since it holds a row per place. The tag lookup turns an app's own ids into cheap questions. For an ArDrive drive:
+
+```sql
+-- how many records a drive has, and the heights to read (one row group or two per band)
+SELECT sum(txs) AS records, min(first_height) AS lo, max(last_height) AS hi
+FROM read_parquet([<every band's lookup_tag.parquet>])
+WHERE name8 = ('0x' || left(sha256('Drive-Id'::BLOB), 16))::UBIGINT
+  AND val8  = ('0x' || left(sha256(:drive::BLOB), 16))::UBIGINT
+  AND name = 'Drive-Id'::BLOB AND value = :drive::BLOB;
+
+-- then only the tags at those heights
+SELECT id, tag_name, tag_value FROM read_parquet([<the bands' tags.parquet in that range>])
+WHERE height BETWEEN :lo AND :hi AND tag_name = 'Drive-Id'::BLOB AND tag_value = :drive::BLOB;
+```
+
+What the items *mean* is the app's: `ardrive-l2` is read as [ArFS](/build/advanced/arfs) by pivoting each item's `Entity-Type`, `Drive-Id`, `Folder-Id`, `File-Id` and `Parent-Folder-Id` tags into one row per record. Another app publishes another selection and reads its own tags the same way. A gateway operator adds an index with one line of configuration: [Publish an L2 Index](/build/run-a-gateway/manage/index-sharing#publish-an-l2-index-parquet-l2).
 
 ### Query It in Place, Downloading Nothing
 
@@ -408,5 +451,6 @@ Both read a gateway's index, and they are good at different things.
 | --- | --- |
 | **GraphQL** | Anything that includes data items inside bundles; anything near the chain tip; filtering on several fields at once; a browser or a small client with no query engine |
 | **`parquet-l1`** | Counting, summing, grouping or joining over the whole base layer; bulk export with no pagination; reproducible analysis on a pinned, verifiable snapshot; anything where you do not want a gateway in the query path. On `l1-3` bands, also one transaction by ID, a wallet's transactions, or a tag value's count, through the lookup files |
+| **`parquet-l2`** | The same questions over one app's data items inside bundles, when a publisher offers that app's selection: every record of an ArDrive drive, an app's uploads by wallet, tag values counted over all history, with every byte checkable against the signed publication |
 
 GraphQL cannot aggregate: there is no `count` or `sum`, and a large result has to be paged. On an `l1-3` band, a point lookup is two small reads through the [lookup files](#lookup-files); on a band of an older layout, it is a scan of every band's `id` column. A published band set also lags the tip by its publishing cadence.
