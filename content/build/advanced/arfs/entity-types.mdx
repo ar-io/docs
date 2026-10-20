@@ -334,7 +334,7 @@ CREATE TABLE licenses (fileId TEXT NOT NULL, driveId TEXT NOT NULL, dataTxId TEX
 CREATE TABLE transaction_statuses (id TEXT NOT NULL, status TEXT NOT NULL)
 ```
 
-Every table must be present. `meta` and `drives` hold exactly one row each, and any other table may be empty. A table that is present and empty says that the drive has no such rows.
+Every table must be present. `meta` and `drives` hold exactly one row each, and any other table may be empty. A table that is present and empty says that the drive has no such rows, except `licenses`.
 
 The rows mirror the drive's ArFS metadata:
 
@@ -342,7 +342,7 @@ The rows mirror the drive's ArFS metadata:
 - `meta` names the format `version`, the `driveId`, the drive's `ownerAddress` and `privacy`, the `blockStart` to `blockEnd` range the rows account for, the `entityCount`, and the `producer` that built the file as `<App-Name>/<App-Version>`. On a private drive the `producer` value is encrypted with everything else, so a reader can trust it more than the `App-Version` tag.
 - Dates (`dateCreated`, `lastUpdated`, `lastModifiedDate`) are Unix time in seconds. `isHidden` is `0` or `1`. `privacy` is `public` or `private`.
 - `customJsonMetadata` and `customGQLTags` hold an entity's extra metadata fields and tags as JSON text, or `NULL`. `assignedNames` holds a file's ArNS names as a JSON array, or `NULL`.
-- `licenseTxType` is `composed` when the licence tags are on the file's data transaction, or `assertion` when a separate transaction asserts the licence.
+- `licenses` holds the details of the licences the producer had already read, and can be partial or empty for a drive with licensed files. A file's licence is the `licenseTxId` on its file rows. A reader that has no `licenses` row for that ID reads the licence transaction itself. `licenseTxType` is `composed` when the licence tags are on the file's data transaction, or `assertion` when a separate transaction asserts the licence.
 - `action` records what a revision did, such as `create`, `rename`, `move` or `hide`. It is informational.
 - `transaction_statuses` lists the transactions the rows reference that the producer had not seen confirmed, with the status it held: `pending` or `failed`. A reader treats every other transaction the rows reference as confirmed. It re-checks a listed file data transaction, and shows any other listed transaction as failed. Any other transaction listed as `pending`, such as a metadata or licence transaction, makes the entity malformed.
 
