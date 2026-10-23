@@ -156,14 +156,21 @@ Every band in the feed is added at once. qBittorrent downloads them all together
 
 **Keeping up.** Bands are replaced: the tip band is rebuilt each day, and a finished range of heights replaces the smaller bands beneath it. Your client keeps old folders beside new ones. For L1 bands, delete a folder whose `heightRange` lies inside another folder's, and of two with the same `heightRange`, keep the later layout (`schema`). Root-TX bands overlap by design, so this doesn't apply to them. A band that leaves the feed before your client has it is gone: remove that torrent, since its replacement is in the feed. The feed isn't metered and asks to be polled at most every 30 minutes.
 
-The feed is a view of the signed publication, not a second authority. Check what you downloaded as below. For L1 bands, once you have dropped the replaced folders as above, `index-l1-verify` also checks that they form one consistent chain (block links, `hash_list_merkle`, `tx_root`), with only Docker and a core image from Release 85 or later. Add `--anchor-from` with independent Arweave nodes to tie the top of that chain to block hashes they agree on:
+The feed is a view of the signed publication, not a second authority. Check what you downloaded as below.
+
+### Check L1 Bands Against the Chain
+
+For L1 bands, once you have dropped the replaced folders as above, `index-l1-verify` also checks them against the chain, with only Docker and a core image. First rename each folder to its band id (the feed item's `ario:band`): a band's name is its identity, and from Release 86 `index-l1-verify` (and the importer) fail a folder not named for what it holds. Then run it over the folder:
 
 ```bash
-IMAGE=ghcr.io/ar-io/ar-io-core:latest   # Release 85 or later
+IMAGE=ghcr.io/ar-io/ar-io-core:latest   # Release 86 or later
 docker run --rm -u "$(id -u):$(id -g)" -v "$HOME/arweave-l1:/bands:ro" \
   -w /app --entrypoint /nodejs/bin/node "$IMAGE" \
-  /app/dist/cli/cli.js index-l1-verify --bands-dir /bands
+  /app/dist/cli/cli.js index-l1-verify --bands-dir /bands \
+  --anchor-from https://<gateway one>,https://<gateway two>
 ```
+
+From Release 86 it fails closed. `--anchor-from` binds the bands to the chain, with sources that resolve to at least two distinct machines; without it the run says it is not anchored and fails unless `--allow-unanchored`. Today's `l1-3` bands report every block below the 2.0 fork, and the post-2.0 blocks holding a format-1 transaction with data (none from height 2,000,000), as `unbound`, which also fails the run: read the result's `unbound` and `assurance`, and add `--allow-unbound --allow-unverified-format1` only if that is enough for your use. `--publication` binds the bands to what their publisher signed. See [What `index-l1-verify` Checks](/build/advanced/index-verification#what-index-l1-verify-checks).
 
 ## Check the Download
 

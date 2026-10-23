@@ -219,6 +219,8 @@ A subscription takes L1 bands only when it names them. Add `--l1` to the setup s
 
 It adds `parquet-l1` to the subscription's `name` list and sets `L1_BAND_IMPORT_ENABLED=true`, so your gateway fills its L1 history from the bands while it runs, and restarts core. The whole chain is 24 L1 bands, about 15 GB more disk. They share `INDEX_SWARM_MAX_DISK_BYTES` with root-TX bands, so the script also sets the budget to 100 GiB if it is unset, and warns if yours is lower.
 
+From Release 86, the gateway verifies every band before it writes a row of it, anchoring and sampling against `L1_BAND_IMPORT_SAMPLE_FROM` (by default the trusted node and the trusted gateways not marked `trusted: false`), and refuses blocks it cannot bind to the chain. Today's bands carry no witnesses for those, so every band below height 2,000,000 is refused unless you set `L1_BAND_IMPORT_ALLOW_UNVERIFIED=true`. The script does not set it; add it to `.env` yourself, including on a gateway upgraded from Release 85. See [Verified Before It Is Written](/build/run-a-gateway/manage/index-snapshots#verified-before-it-is-written).
+
 On a new gateway, run it before the first start, without `--restart` (on a gateway that isn't running, `--restart` would start core and the sidecar alone), then start the gateway as usual, and leave `START_HEIGHT` unset: with an empty `core.db`, the gateway then follows the chain tip from the start, and the history beneath arrives as the bands do. On a gateway that already runs, it fills whatever is missing beneath what the gateway indexed itself.
 
 Taking `parquet-l1` off the subscription retires its bands. History already filled from them stays in `core.db`.
@@ -434,7 +436,7 @@ The script edits `.env` and nothing else, unless given `--restart`.
 | `--public-host <addr>` | Sets `INDEX_SWARM_ENGINE_PUBLIC_HOST`. From Release 85 it works on its own; on Release 84, pass it with `--torrent` |
 | `--engine-port <n>` | Sets `INDEX_SWARM_ENGINE_PORT` (default 6881). From Release 85 it works on its own; on Release 84, pass it with `--torrent` |
 | `--public-url <origin>` | Release 85. The gateway's public origin, such as `https://gateway.example`, for the tracker URL. Defaults to `INDEXES_PUBLIC_URL`, then `https://<ARNS_ROOT_HOST>`. To change the feeds' origin too, set `INDEXES_PUBLIC_URL` |
-| `--l1` | Release 85. With `--subscribe`: takes the publisher's L1 bands as well (`"name": ["root-tx-index", "parquet-l1"]`) and sets `L1_BAND_IMPORT_ENABLED=true`, so the gateway fills its L1 history from them while it runs; restarts core. Sets the disk budget to 100 GiB if unset, and warns if an existing one is lower |
+| `--l1` | Release 85. With `--subscribe`: takes the publisher's L1 bands as well (`"name": ["root-tx-index", "parquet-l1"]`) and sets `L1_BAND_IMPORT_ENABLED=true`, so the gateway fills its L1 history from them while it runs; restarts core. Sets the disk budget to 100 GiB if unset, and warns if an existing one is lower. Does not set `L1_BAND_IMPORT_ALLOW_UNVERIFIED`, which Release 86 needs to fill bands below height 2,000,000 |
 | `--max-disk-gib <n>` | Sets `INDEX_SWARM_MAX_DISK_BYTES`. Works on its own too, to change an existing subscriber's budget |
 | `--no-gateway` | Leaves `CDB64_ROOT_TX_INDEX_SOURCES` and `ROOT_TX_LOOKUP_ORDER` alone |
 | `--dry-run` | Shows the changes and writes nothing |
@@ -484,6 +486,8 @@ INDEX_SWARM_SUBSCRIBE='[{"publisher":"34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7
 INDEX_SWARM_MAX_DISK_BYTES=107374182400   # 100 GiB
 L1_BAND_IMPORT_ENABLED=true
 ```
+
+On Release 86 or later, add `L1_BAND_IMPORT_ALLOW_UNVERIFIED=true` too, or every band below height 2,000,000 is refused; `L1_BAND_IMPORT_SAMPLE_FROM` sets the sources the fill anchors and samples against. See [Verified Before It Is Written](/build/run-a-gateway/manage/index-snapshots#verified-before-it-is-written).
 
 Then restart by service name, with the same `-f` files your gateway was started with:
 
