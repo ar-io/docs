@@ -1,0 +1,22 @@
+---
+title: "Reading Drives From Snapshots"
+description: "Command line interface for ArDrive"
+---
+
+`list-drive`, `list-folder`, `download-drive` and `download-folder` read a drive's newest snapshot first, then the older JSON snapshots and GraphQL for anything after it. A snapshot that cannot be used, for any reason, falls back to the slower path, so a drive always lists the same way. Each listing logs one line to stderr saying whether a snapshot was used and why not:
+
+```shell
+[drive-state] bc9af866-6421-40f1-ac89-202bddb5c487: read 1543 entities through block 2025061 (xk_N9vGYgTuLUgyWlVbdHCkl_js_Bo35M2miM6porK4) - outcome=used
+```
+
+Set `ARDRIVE_DISABLE_DRIVE_STATE=1` to skip snapshots for a run, and `ARDRIVE_DISABLE_SNAPSHOTS=1` to skip the older JSON snapshots too.
+
+The downloaded snapshot is cached under `~/.ardrive/caches/drive-state` (`ardrive-caches/drive-state` in your home folder on Windows), so the next listing of the same drive does not download it again. For a private drive, the cache holds the encrypted snapshot, never the decrypted one.
+
+To see whether a drive has a usable snapshot without listing it, use `snapshot-info`. It reads only and spends nothing:
+
+```shell
+ardrive snapshot-info --drive-id "bc9af866-6421-40f1-ac89-202bddb5c487"
+```
+
+The `outcome` is `used` when a snapshot was read, `none-found` when the drive has none, or the reason one was refused, such as `unknown-version` for a format this version does not read.

@@ -1416,7 +1416,7 @@ Metadata JSON {
 
 ## Creating Snapshots
 
-Snapshots provide a way to quickly synchronize drive state by rolling up all metadata into a single transaction:
+Snapshots provide a way to quickly synchronize drive state by rolling up all metadata into a single transaction. A [Drive State](/build/advanced/arfs/entity-types#drive-state) entity does the same job as one SQLite database covering the drive from block 0. A snapshot carries these tags:
 
 ```json
 ArFS: "0.15",
@@ -1536,7 +1536,8 @@ These defined entities allow the state of the drive to be constructed by a clien
 - Drive Entities contain folders and files
 - Folder Entities contain other folders or files
 - File Entities contain both the file data and metadata
-- Snapshot entities contain a state rollups of all entities' (such as drive, folder, file and snapshot) metadata within a drive
+- Snapshot entities contain a rollup of the metadata of a drive's entities over a block range
+- Drive State entities contain a drive's whole parsed state, up to a block height, as one SQLite database
 
 ## Entity Relationships
 
@@ -1613,17 +1614,18 @@ All UUIDs used for Entity-Ids are based on the [Universally Unique Identifier](h
 
 There are no requirements to list ArFS tags in any specific order.
 
-## Building Drive State
+## Building a Drive's Current State
 
-To construct the current state of a drive, clients must:
+To construct the current state of a drive, a client:
 
-1. **Query for all entities** associated with a specific `Drive-Id`
-2. **Sort by block height** to establish chronological order
-3. **Process entities bottom-up** starting with files and folders
-4. **Build the hierarchy** by following parent-child relationships
-5. **Handle conflicts** by using the most recent entity version
+1. **Queries for the drive's entities** by `Drive-Id`, from the wallet that owns the drive
+2. **Orders them by block height**, using `Unix-Time` only to break ties within a block
+3. **Keeps the latest revision** of each drive, folder and file ID
+4. **Builds the hierarchy** by following each entity's `Parent-Folder-Id`
 
-### Example Drive State Construction
+A [Drive State](/build/advanced/arfs/entity-types#drive-state) entity or [snapshots](/build/advanced/arfs/entity-types#snapshot) can replace most of this replay. See [Reading Data](/build/advanced/arfs/reading-data).
+
+### Example Construction
 
 ```mermaid
 sequenceDiagram
@@ -1631,15 +1633,12 @@ sequenceDiagram
     participant Gateway
     participant Arweave
 
-    Client->>Gateway: Query Drive-Id: abc123
-    Gateway->>Client: Return all entities
+    Client->>Gateway: Query Drive-Id abc123, owner's wallet
+    Gateway->>Client: Return entities, one page at a time
 
-    Client->>Client: Sort by block height
-    Client->>Client: Process files first
-    Client->>Client: Process folders
-    Client->>Client: Process drive metadata
+    Client->>Client: Order by block height
+    Client->>Client: Keep the latest revision of each entity
     Client->>Client: Build hierarchy tree
-    Client->>Client: Resolve conflicts
     Client->>Client: Return complete drive state
 ```
 
@@ -1682,10 +1681,11 @@ ArFS ensures data integrity through:
 
 For large drives, consider these optimization strategies:
 
+- **Use Drive State entities** to import a drive in one step, then read only later blocks
 - **Use snapshots** for quick state reconstruction
 - **Implement caching** for frequently accessed data
 - **Batch operations** when possible
-- **Query by date ranges** to limit data transfer
+- **Query by block range** to read only blocks a client has not seen
 
 ## Next Steps
 
@@ -1713,7 +1713,9 @@ ArFS adds an additional layer of separation between data and metadata by using s
 
 - Snapshot entities require a single transaction, which contains a Data JSON with all of the Drive's rolled up ArFS metadata and standard Snapshot GQL tags that identify the Snapshot.
 
-ArFS v0.14 introduces the `isHidden` property. `isHidden` is a boolean (true/false) that tells clients if they should display the file or folder. Hidden files still exist and will be included in [snapshots](#snapshot), but should not be rendered by clients. If `isHidden` is not present, its value should be assumed false.
+- Drive State entities require a single transaction, which contains a SQLite database of the Drive's parsed state and standard Drive State GQL tags that identify it.
+
+ArFS v0.14 introduces the `isHidden` property. `isHidden` is a boolean (true/false) that tells clients if they should display the file or folder. Hidden files still exist and are included in [snapshots](#snapshot) and [Drive State](#drive-state) entities, but should not be rendered by clients. If `isHidden` is not present, its value should be assumed false.
 
 ArFS v0.15 introduces the `Signature-Type` metadata property on Drive entities, and a new entity type `DriveSignature`.
 
@@ -1751,8 +1753,9 @@ A drive signature uses the v0.15 encryption scheme to encrypt and store the pre-
 ```json
 ArFS: "0.15",
 Entity-Type: "drive-signature",
+Drive-Id: "",
 Signature-Format: "1",
-Cipher?: "AES256-GCM",
+Cipher: "AES256-GCM",
 Cipher-IV: ""
 {data: }
 ```
@@ -1879,7 +1882,7 @@ Each `txSnapshot` has exactly two fields, `gqlNode` and `jsonMetadata`, as sibli
 
 `gqlNode` uses the same GQL tags interface returned by the Arweave Gateway. It includes all of the important `block`, `owner`, `tags`, and `bundledIn` information needed by ArFS clients.
 
-`jsonMetadata` is a **string**, not an object: the correlated Data JSON for that ArFS entity, serialized and escaped. It is `null` for an entry recorded for its GQL node alone, with no metadata body — a client must handle that rather than assume a string is always present.
+`jsonMetadata` is a **string**, not an object: the correlated Data JSON for that ArFS entity, serialized and escaped. It is `null` for an entry recorded for its GQL node alone, with no metadata body. A client must handle that rather than assume a string is always present.
 
 For private drives, `jsonMetadata` contains the JSON-string-escaped encrypted text of the associated file or folder. This encrypted text uses the file's existing `Cipher` and `Cipher-IV`. This ensures clients can decrypt this information quickly using the existing ArFS privacy protocols.
 
@@ -1944,6 +1947,109 @@ For private drives, `jsonMetadata` contains the JSON-string-escaped encrypted te
 }
 ```
 
+## Drive State
+
+A Drive State entity holds a drive's whole parsed state, up to a block height, in one SQLite database. The drive's owner publishes it. A client that finds one imports the drive in one step and then queries only the blocks after it, instead of fetching and replaying every entity in the drive.
+
+A Drive State entity is a cache. A client that finds none, cannot read one, or refuses one for any reason syncs the drive from snapshots and GQL as it would without it. A Drive State entity that cannot be used must never cause a drive to fail to load.
+
+The following table shows how a Drive State entity differs from a [Snapshot](#snapshot):
+
+| | Snapshot | Drive State |
+| --- | --- | --- |
+| Data | JSON: each transaction's GQL node and JSON metadata | A SQLite database of the drive's rows |
+| Range | Any block range; several snapshots combine | Always from block 0, so each one is a complete copy |
+| Private drives | Each entry's metadata is encrypted on its own; the GQL nodes are in the clear | One ciphertext under the drive key |
+| Checking against chain | Each entry carries its GQL node | Rows carry no GQL node; trust rests on the owner |
+
+Drive State is its own `Entity-Type` so that clients written before it never query for it. A client that read one as a snapshot would trust its block range and find no transactions in it, so it would skip those blocks for good.
+
+### Drive State Entity Tags
+
+Drive State entities require the following tags. `Cipher` and `Cipher-IV` are present on a private drive's entity only.
+
+```json
+ArFS: "0.15",
+Drive-Id: "",
+Entity-Type: "drive-state",
+Drive-State-Id: "",
+State-Version: "",
+Content-Type: "application/octet-stream",
+Block-Start: "0",
+Block-End: "",
+Data-Start: "",
+Data-End: "",
+Entity-Count: "",
+Unix-Time: "",
+Cipher: "AES256-GCM",
+Cipher-IV: ""
+```
+
+A reader checks every tag against the data before trusting it, because a gateway reports tags and the gateway is not trusted:
+
+- **`Cipher` and `Cipher-IV`** are both present on a private drive's entity and both absent on a public drive's. There is no `Cipher: "none"`. An entity with one and not the other is malformed. A reader refuses an entity whose cipher tags contradict the privacy of the drive it names, in either direction. `Cipher-IV` is base64url without padding, and readers also accept standard base64.
+- **`Block-Start` and `Block-End`** must equal `blockStart` and `blockEnd` in the data's `meta` table. A `Block-End` higher than the data covers would move a reader's sync position past blocks it never read, and the entities in them would never appear.
+- **`Data-Start` and `Data-End`** are `0` and the `Block-End` value when the data holds any folder or file, and `-1` when it holds only the drive row. The rows carry dates rather than block heights, so the claim is the whole range they account for.
+- **`Entity-Count`** counts the drive, its folders and its files, not their revisions. It must equal `meta.entityCount` and the rows imported.
+- **`State-Version`** must equal `meta.version`. From `1.0`, a reader accepts any minor version of its own major version and refuses any other major version. Below `1.0`, a reader requires an exact match, because a `0.x` format makes no compatibility promise. A version that does not parse as two integers, such as `1` or `1.0.0`, is malformed.
+- **Never set `Content-Encoding`** on a Drive State entity. Gateways index that tag and send it on the data response, so an HTTP client decodes the body before the reader can bound it, and a browser fails on the ciphertext of a private drive. Tags cannot be changed, so an entity with the tag stays unreadable through ordinary data requests.
+
+### Drive State Entity Data
+
+The data is a SQLite database file, sealed in this order:
+
+| Drive | Sealing steps |
+| --- | --- |
+| Public | SQLite file, then gzip (optional) |
+| Private | SQLite file, then gzip (optional), then AES256-GCM with the drive key |
+
+For a private drive the key is the drive key itself, as for drive metadata. The data is the ciphertext followed by the 16-byte GCM authentication tag, and the 12-byte nonce is the `Cipher-IV` tag.
+
+A producer chooses whether to gzip each entity, and no tag records the choice. After decrypting, a reader tells the two apart by the first bytes:
+
+- `1f 8b`: a gzip stream, which the reader inflates.
+- `SQLite format 3` followed by a zero byte: an uncompressed SQLite file.
+- Anything else: refused.
+
+A reader limits the inflated size to 100 MiB (104,857,600 bytes) and stops at the first byte over it, while inflating rather than afterwards. The size recorded in the gzip trailer is chosen by whoever wrote the stream, so it is not the limit. A producer must not publish a database larger than the limit.
+
+**The database.** Its header carries `application_id` `0x41724453` (`ArDS` in ASCII). Apart from SQLite's own `sqlite_` objects, a `State-Version` `0.2` database contains exactly the following nine tables and nothing else: no indexes, views, triggers or virtual tables. A reader compares each table's `sql` value in `sqlite_master` with these strings byte for byte and refuses any difference, so that no SQL written by someone else runs inside the reader:
+
+```sql
+CREATE TABLE meta (version TEXT NOT NULL, driveId TEXT NOT NULL, ownerAddress TEXT NOT NULL, privacy TEXT NOT NULL, blockStart INTEGER NOT NULL, blockEnd INTEGER NOT NULL, entityCount INTEGER NOT NULL, producer TEXT NOT NULL)
+CREATE TABLE drives (id TEXT NOT NULL, rootFolderId TEXT NOT NULL, ownerAddress TEXT NOT NULL, name TEXT NOT NULL, privacy TEXT NOT NULL, bundledIn TEXT, customJsonMetadata TEXT, customGQLTags TEXT, isHidden INTEGER NOT NULL, signatureType TEXT, dateCreated INTEGER NOT NULL, lastUpdated INTEGER NOT NULL)
+CREATE TABLE folder_entries (id TEXT NOT NULL, driveId TEXT NOT NULL, name TEXT NOT NULL, parentFolderId TEXT, dateCreated INTEGER NOT NULL, lastUpdated INTEGER NOT NULL, customJsonMetadata TEXT, customGQLTags TEXT, isHidden INTEGER NOT NULL)
+CREATE TABLE file_entries (id TEXT NOT NULL, driveId TEXT NOT NULL, name TEXT NOT NULL, parentFolderId TEXT NOT NULL, size INTEGER NOT NULL, lastModifiedDate INTEGER NOT NULL, dataContentType TEXT, dataTxId TEXT NOT NULL, licenseTxId TEXT, bundledIn TEXT, thumbnail TEXT, pinnedDataOwnerAddress TEXT, customJsonMetadata TEXT, customGQLTags TEXT, isHidden INTEGER NOT NULL, dateCreated INTEGER NOT NULL, lastUpdated INTEGER NOT NULL, assignedNames TEXT, fallbackTxId TEXT, originalOwner TEXT, importSource TEXT)
+CREATE TABLE drive_revisions (driveId TEXT NOT NULL, rootFolderId TEXT NOT NULL, ownerAddress TEXT NOT NULL, name TEXT NOT NULL, privacy TEXT NOT NULL, metadataTxId TEXT NOT NULL, dateCreated INTEGER NOT NULL, action TEXT NOT NULL, bundledIn TEXT, customJsonMetadata TEXT, customGQLTags TEXT, isHidden INTEGER NOT NULL)
+CREATE TABLE folder_revisions (folderId TEXT NOT NULL, driveId TEXT NOT NULL, name TEXT NOT NULL, parentFolderId TEXT, metadataTxId TEXT NOT NULL, dateCreated INTEGER NOT NULL, action TEXT NOT NULL, customJsonMetadata TEXT, customGQLTags TEXT, isHidden INTEGER NOT NULL)
+CREATE TABLE file_revisions (fileId TEXT NOT NULL, driveId TEXT NOT NULL, name TEXT NOT NULL, parentFolderId TEXT NOT NULL, size INTEGER NOT NULL, lastModifiedDate INTEGER NOT NULL, dataContentType TEXT, metadataTxId TEXT NOT NULL, dataTxId TEXT NOT NULL, licenseTxId TEXT, thumbnail TEXT, bundledIn TEXT, dateCreated INTEGER NOT NULL, customJsonMetadata TEXT, customGQLTags TEXT, action TEXT NOT NULL, pinnedDataOwnerAddress TEXT, isHidden INTEGER NOT NULL, assignedNames TEXT, fallbackTxId TEXT, originalOwner TEXT, importSource TEXT)
+CREATE TABLE licenses (fileId TEXT NOT NULL, driveId TEXT NOT NULL, dataTxId TEXT NOT NULL, licenseTxType TEXT NOT NULL, licenseTxId TEXT NOT NULL, bundledIn TEXT, dateCreated INTEGER NOT NULL, licenseType TEXT NOT NULL, customGQLTags TEXT)
+CREATE TABLE transaction_statuses (id TEXT NOT NULL, status TEXT NOT NULL)
+```
+
+Every table must be present. `meta` and `drives` hold exactly one row each, and any other table may be empty. A table that is present and empty says that the drive has no such rows, except `licenses`.
+
+The rows mirror the drive's ArFS metadata:
+
+- Each `*_revisions` row is one metadata transaction of the drive, the folder or the file, and every revision travels, not only the newest. Each `*_entries` row is the latest state of one folder or file.
+- `meta` names the format `version`, the `driveId`, the drive's `ownerAddress` and `privacy`, the `blockStart` to `blockEnd` range the rows account for, the `entityCount`, and the `producer` that built the file as `/`. On a private drive the `producer` value is encrypted with everything else, so a reader can trust it more than the `App-Version` tag.
+- Dates (`dateCreated`, `lastUpdated`, `lastModifiedDate`) are Unix time in seconds. `isHidden` is `0` or `1`. `privacy` is `public` or `private`.
+- `customJsonMetadata` holds the metadata JSON fields an entity carries beyond the ones ArFS defines, as a JSON object, such as `{"department":"finance"}`. `customGQLTags` holds the tags it carries beyond the ones ArFS defines, as a JSON array of `{"name": ..., "value": ...}` objects in the order they appear on the transaction. Either can be `NULL`, `{}` or `[]` when there are none.
+- `thumbnail` holds the file's `thumbnail` metadata as JSON, such as `{"variants":[{"name":"thumbnail","txId":"...","size":2048,"width":256,"height":256}]}`, or `NULL`. `assignedNames` holds the file's ArNS names as `{"assignedNames":["name"]}`, or `NULL`.
+- A revision's `dateCreated` is its metadata transaction's `Unix-Time`. An entry's `dateCreated` is its oldest revision's, and its `lastUpdated` is its newest revision's.
+- `licenses` holds the details of the licences the producer had already read, and can be partial or empty for a drive with licensed files. A file's licence is the `licenseTxId` on its file rows. A reader that has no `licenses` row for that ID reads the licence transaction itself. `licenseTxType` is `composed` when the licence tags are on the file's data transaction, or `assertion` when a separate transaction asserts the licence.
+- `action` records what a revision did, such as `create`, `rename`, `move` or `hide`. It is informational.
+- `transaction_statuses` lists the transactions the rows reference that the producer had not seen confirmed, with the status it held: `pending` or `failed`. A reader treats every other transaction the rows reference as confirmed. It re-checks a listed file data transaction, and shows any other listed transaction as failed. Any other transaction listed as `pending`, such as a metadata or licence transaction, makes the entity malformed.
+
+A producer follows these rules:
+
+- **Publish only from a complete sync.** If the producer's last sync of the drive skipped any entity, the gap would be published as permanent.
+- **Read `Block-End` before reading the rows.** Rows can then only be newer than the claim, never older.
+- **Wait while the drive's metadata transactions are unconfirmed**, rather than publishing them as pending.
+- **Publish only rows a revision vouches for.** A placeholder a client made for a folder whose metadata it never found must not travel.
+- **Build up, never tear down.** Select named columns into an empty database. Copying a database and deleting from it can leave deleted bytes in the file.
+- **Never include key material** or the producer's own sync position.
+
 ## Schema Diagrams
 
 The following diagrams show complete examples of Drive, Folder, and File entity Schemas.
@@ -2003,7 +2109,7 @@ ArFS works around this by implementing a privacy and encryption pattern and defi
 
 ### File Structure
 
-ArFS organizes files and folders using a hierarchical structure. Files are stored as individual transactions on the Arweave blockchain, while folders are metadata that reference these file transactions.
+ArFS organizes files and folders in a hierarchy. A file is two transactions: its data, and a metadata transaction that names the file and its parent folder. A folder is a metadata transaction only. Each file and folder points to its parent, so a client builds the hierarchy from the bottom up.
 
 ### Metadata
 
@@ -2011,15 +2117,15 @@ Each file and folder has associated metadata, such as the name, type, size, and 
 
 ### File Permissions
 
-ArFS supports public and private file permissions. Public files can be accessed by anyone on the network, while private files are encrypted using the owner's private key, ensuring only they can decrypt and access the content.
+ArFS supports public and private drives. Anyone can read a public drive. A private drive is encrypted with AES-256 under keys derived from the owner's wallet signature and a drive password, so only someone holding the drive key, or one file's key, can read it. See [Privacy & Encryption](/build/advanced/arfs/privacy).
 
 ### File Versioning
 
-ArFS supports versioning of files, allowing users to store multiple versions of a file and access previous versions at any time. This is achieved by linking new file transactions to previous versions through the use of metadata tags.
+ArFS keeps every version of a file. A new version is a new metadata transaction with the same `File-Id`, and every earlier version stays on Arweave.
 
 ### Search and Discovery
 
-ArFS enables users to search and discover files based on their metadata, such as file names, types, and tags. This is made possible by indexing the metadata stored within the Arweave blockchain.
+Arweave GraphQL gateways index ArFS tags such as `Drive-Id`, `Folder-Id`, `File-Id` and `Entity-Type`, so a client can find a drive's entities by query. Names and other JSON metadata are in the transaction data, not in tags, so a client searches them after it has read the drive.
 
 ### Interoperability
 
@@ -2039,6 +2145,8 @@ To start using ArFS, you'll need to familiarize yourself with the Arweave ecosys
 | 0.13    | August 2023    | Added pins                                                                                                                                   |
 | 0.14    | January 2024   | Added `isHidden` property to file and folder metadata to enable clients to "hide" content from end users.                                    |
 | 0.15    | May 2025       | Added `Drive-Signature` entity type and `Signature-Type` metadata property on Drive entities.                                                |
+
+[Drive State](/build/advanced/arfs/entity-types#drive-state) entities are tagged `ArFS: "0.15"` and did not change the version. A client that does not read them is unaffected.
 
 ## Next Steps
 
@@ -2121,7 +2229,7 @@ Drive-Auth-Mode?: 'password'
 
 On every encrypted Drive Entity, a `Cipher` tag must be specified, along with the public parameters for decrypting the data. This is done by specifying the parameter with a `Cipher-*` tag. eg. `Cipher-IV`. If the parameter is byte data, it must be encoded as Base64 in the tag.
 
-ArDrive clients currently use AES256-GCM for all symmetric encryption, which requires a Cipher Initialization Vector consisting of 12 random bytes.
+ArDrive uses AES256-GCM for metadata and for files smaller than 100 MiB, and AES256-CTR for files of 100 MiB or more. Both take a Cipher Initialization Vector of 12 random bytes.
 
 ```
 Cipher?: "AES256-GCM"
@@ -2138,10 +2246,10 @@ When a file is uploaded to a private drive, it by default also becomes private a
 
 These file keys can be shared by the drive's owner as needed.
 
-Private File entities have both its metadata and data transactions encrypted using the same File Key, ensuring all facets of the data is truly private. As such, both the file's metadata and data transactions must both have a unique `Cipher-IV` and `Cipher` tag:
+Private File entities have both its metadata and data transactions encrypted using the same File Key, ensuring all facets of the data is truly private. As such, both the file's metadata and data transactions must both have a unique `Cipher-IV` and `Cipher` tag. The metadata transaction always uses AES256-GCM; the data transaction uses AES256-CTR when the file is 100 MiB or more:
 
 ```
-Cipher?: "AES256-GCM"
+Cipher?: "AES256-GCM | AES256-CTR"
 Cipher-IV?: ""
 ```
 
@@ -2176,6 +2284,14 @@ sequenceDiagram
     Client->>Arweave: Upload encrypted metadata
     Client->>Arweave: Upload encrypted data
 ```
+
+## Drive State and Snapshots of Private Drives
+
+A private drive's [Drive State](/build/advanced/arfs/entity-types#drive-state) entity is encrypted as one unit with the drive key, using AES256-GCM. It has no key of its own, so anyone with the drive key can read it, and a shared file key cannot. Its tags show the drive, the block range and the number of entities, and the transaction shows the size of the data. None of them show names or structure.
+
+A public drive's Drive State entity is not encrypted and carries neither `Cipher` nor `Cipher-IV`. A producer must never publish a private drive's state without encryption, and a reader refuses any Drive State entity whose cipher tags contradict the privacy of the drive it names, in either direction.
+
+A [Snapshot](/build/advanced/arfs/entity-types#snapshot) of a private drive works differently. It encrypts each entry's JSON metadata on its own, but carries each entry's GQL node, with all of that entity's tags, in the clear. The same tags are public on the entities themselves; a snapshot gathers all of them in one place.
 
 ## Security Best Practices
 
@@ -2256,20 +2372,39 @@ Clients that want to provide users with a quick view of a single folder can simp
 
 ## Basic Query Patterns
 
-### Query All Drive Entities
+Every query names the drive owner's wallet in `owners`, for the reason given earlier: entities from any other wallet are not part of the drive.
+
+Do not filter on the `ArFS` tag. A drive holds entities written at every ArFS version since it was created, from `0.11` to `0.15`, and a query for one version misses the rest.
+
+Gateways return at most 100 results per query. Read every page: while `pageInfo.hasNextPage` is true, query again with `after` set to the `cursor` of the last edge.
+
+### Query a Drive's Entities
 
 ```graphql
-query {
+query ($driveId: String!, $owner: String!, $after: String) {
   transactions(
+    owners: [$owner]
     tags: [
-      { name: "ArFS", values: ["0.15"] }
-      { name: "Entity-Type", values: ["drive"] }
-      { name: "Drive-Id", values: ["your-drive-id"] }
+      { name: "Drive-Id", values: [$driveId] }
+      { name: "Entity-Type", values: ["drive", "folder", "file"] }
     ]
+    sort: HEIGHT_ASC
+    first: 100
+    after: $after
   ) {
+    pageInfo {
+      hasNextPage
+    }
     edges {
+      cursor
       node {
         id
+        owner {
+          address
+        }
+        bundledIn {
+          id
+        }
         block {
           height
           timestamp
@@ -2283,18 +2418,28 @@ query {
   }
 }
 ```
+
+To read only blocks a client has not seen, add `block: { min:  }`.
 
 ### Query Folder Contents
 
 ```graphql
-query ($parentFolderId: String!) {
+query ($driveId: String!, $owner: String!, $parentFolderId: String!, $after: String) {
   transactions(
+    owners: [$owner]
     tags: [
-      { name: "ArFS", values: ["0.15"] }
+      { name: "Drive-Id", values: [$driveId] }
       { name: "Parent-Folder-Id", values: [$parentFolderId] }
     ]
+    sort: HEIGHT_ASC
+    first: 100
+    after: $after
   ) {
+    pageInfo {
+      hasNextPage
+    }
     edges {
+      cursor
       node {
         id
         block {
@@ -2311,16 +2456,20 @@ query ($parentFolderId: String!) {
 }
 ```
 
-### Query File Entities
+A file or folder moved out of this folder still appears here with its old revisions, so keep only entities whose latest revision names this folder as its parent.
+
+### Query a File's Revisions
 
 ```graphql
-query ($fileId: String!) {
+query ($owner: String!, $fileId: String!) {
   transactions(
+    owners: [$owner]
     tags: [
-      { name: "ArFS", values: ["0.15"] }
       { name: "Entity-Type", values: ["file"] }
       { name: "File-Id", values: [$fileId] }
     ]
+    sort: HEIGHT_DESC
+    first: 100
   ) {
     edges {
       node {
@@ -2339,41 +2488,45 @@ query ($fileId: String!) {
 }
 ```
 
-## Building Drive State
+The first edge is the latest revision.
 
-The process of building drive state involves several steps:
+## Building a Drive's Current State
+
+The process of building a drive's current state involves several steps:
 
 ```mermaid
 graph TD
-    A[Query Drive Entities] --> B[Sort by Block Height]
-    B --> C[Process Files First]
-    C --> D[Process Folders]
-    D --> E[Process Drive Metadata]
-    E --> F[Build Hierarchy Tree]
-    F --> G[Resolve Conflicts]
-    G --> H[Return Complete State]
+    A[Query the drive's entities from its owner] --> B[Order by block height]
+    B --> C[Keep the latest revision of each entity]
+    C --> D[Build hierarchy tree]
+    D --> E[Return complete state]
 
     style A fill:#e3f2fd
-    style H fill:#c8e6c9
+    style E fill:#c8e6c9
 ```
 
 ### Step-by-Step Process
 
-1. **Query for all entities** associated with a specific `Drive-Id`
-2. **Sort by block height** to establish chronological order
-3. **Process entities bottom-up** starting with files and folders
-4. **Build the hierarchy** by following parent-child relationships
-5. **Handle conflicts** by using the most recent entity version
+1. **Query for the drive's entities** by `Drive-Id`, from the wallet that owns the drive
+2. **Order them by block height**, using `Unix-Time` only to break ties within a block
+3. **Keep the latest revision** of each drive, folder and file ID
+4. **Build the hierarchy** by following each entity's `Parent-Folder-Id`
 
 ### Example Implementation
 
 ```javascript
-async function buildDriveState(driveId) {
-  // Query all entities for the drive
-  const entities = await queryDriveEntities(driveId);
+async function buildDriveState(driveId, ownerAddress) {
+  // Query every page of the drive's entities, from the drive's owner
+  const entities = await queryDriveEntities(driveId, ownerAddress);
 
-  // Sort by block height
-  entities.sort((a, b) => a.block.height - b.block.height);
+  // Order by block height, then Unix-Time within a block, so later
+  // revisions replace earlier ones below
+  entities.sort(
+    (a, b) =>
+      a.block.height - b.block.height ||
+      Number(getTagValue(a.tags, "Unix-Time")) -
+        Number(getTagValue(b.tags, "Unix-Time"))
+  );
 
   // Process entities
   const driveState = {
@@ -2408,9 +2561,79 @@ async function buildDriveState(driveId) {
 }
 ```
 
+## Using Drive State
+
+A drive's newest usable [Drive State](/build/advanced/arfs/entity-types#drive-state) entity replaces most of the replay. A client reads a drive from three sources, each covering the blocks the one before it did not:
+
+| Order | Source | Blocks it covers |
+| --- | --- | --- |
+| 1 | Drive State entity | `0` to its `Block-End` |
+| 2 | Snapshots | From a margin below `Block-End` to the newest snapshot |
+| 3 | GQL queries | The rest, up to the current block height |
+
+Start the later sources a margin below `Block-End`, not at it. `Block-End` is the producer's block height when it last synced, and an entity mined just below it but indexed after that sync is in no Drive State entity. ArDrive uses a margin of 240 blocks. Re-reading those blocks costs one query, and a client skips revisions it already holds.
+
+If no Drive State entity is found, or every candidate is refused, the client reads the drive from snapshots and GQL alone, exactly as it would without one.
+
+### Drive State Query
+
+Find candidates by the drive's owner and `Drive-Id`. The owner is the wallet that created the drive's first Drive entity, which may differ from the wallet reading it, such as on a drive shared with another user.
+
+```graphql
+query ($driveId: String!, $owner: String!) {
+  transactions(
+    owners: [$owner]
+    tags: [
+      { name: "Drive-Id", values: [$driveId] }
+      { name: "Entity-Type", values: ["drive-state"] }
+    ]
+    sort: HEIGHT_DESC
+    first: 100
+  ) {
+    edges {
+      node {
+        id
+        owner {
+          address
+        }
+        block {
+          height
+          timestamp
+        }
+        tags {
+          name
+          value
+        }
+      }
+    }
+  }
+}
+```
+
+One page is enough. An entity mined before the newest 100 cannot cover more blocks than they do, because a producer cannot account for blocks that did not exist yet. Try candidates in order of highest `Block-End`, and move to the next one when a candidate is refused.
+
+Keep "no Drive State entity exists" apart from "the query failed". If the gateway does not answer, report that, and do not record the drive as having no Drive State entity.
+
+### Drive State Checks
+
+A client checks a candidate in this order and refuses it at the first failed check. A refusal means skipping that candidate, never failing the drive:
+
+1. **Tags.** The transaction's owner is the drive's owner, `Drive-Id` is the drive's, the cipher tags match the drive's privacy, and the client reads this `State-Version`.
+2. **Bytes.** Fetch the data by transaction ID, from an L1 transaction or a bundled data item alike. Decrypt with the drive key if private, detect gzip from the first bytes, and inflate within the 100 MiB limit.
+3. **Database.** Open the file under a name of its own and read no rows until `PRAGMA integrity_check` returns `ok`, `application_id` is `0x41724453`, and `sqlite_master` holds exactly the nine tables of the [Drive State Entity Data](/build/advanced/arfs/entity-types#drive-state-entity-data).
+4. **Claims.** `meta` agrees with the tags and with the drive the client holds: version, drive, owner, privacy and block range. The number of drive, folder and file rows equals `entityCount`. A `Block-End` above the current block height counts only up to that height.
+5. **Rows.** Every value has the column's declared type, no entity is listed twice, and every row belongs to the drive.
+6. **Merge.** Copy the rows in one database transaction, and keep any row the client already holds that is newer.
+
+Three more rules:
+
+- **Do not go backwards.** A candidate whose `Block-End` is not above the block height the client has already synced the drive to adds nothing.
+- **Do not import the same entity twice.** Record the transaction ID of the entity a drive last imported, and skip it while the drive's synced height is still at or past its `Block-End`. Key the record on the transaction ID, not the range, because a different entity over the same range can repair entities a sync skipped.
+- **A full rebuild of a drive ignores Drive State entities.** A request to rebuild from the chain is a request to stop trusting saved state, and a Drive State entity is saved state.
+
 ## Using Snapshots
 
-For large drives, snapshots can significantly improve performance:
+For large drives, snapshots can significantly improve performance. A drive can have several snapshots over different block ranges: read all of them, then query only the blocks none of them covers.
 
 ```mermaid
 sequenceDiagram
@@ -2418,7 +2641,7 @@ sequenceDiagram
     participant Gateway
     participant Arweave
 
-    Client->>Gateway: Query for latest snapshot
+    Client->>Gateway: Query for the drive's snapshots
     Gateway->>Client: Return snapshot data
     Client->>Client: Process snapshot data
     Client->>Gateway: Query for newer transactions
@@ -2430,19 +2653,27 @@ sequenceDiagram
 ### Snapshot Query
 
 ```graphql
-query ($driveId: String!) {
+query ($driveId: String!, $owner: String!, $after: String) {
   transactions(
+    owners: [$owner]
     tags: [
-      { name: "ArFS", values: ["0.15"] }
-      { name: "Entity-Type", values: ["snapshot"] }
       { name: "Drive-Id", values: [$driveId] }
+      { name: "Entity-Type", values: ["snapshot"] }
     ]
     sort: HEIGHT_DESC
-    first: 1
+    first: 100
+    after: $after
   ) {
+    pageInfo {
+      hasNextPage
+    }
     edges {
+      cursor
       node {
         id
+        bundledIn {
+          id
+        }
         block {
           height
           timestamp
@@ -2463,6 +2694,7 @@ query ($driveId: String!) {
 
 - **Local caching** - Store frequently accessed data locally
 - **Incremental updates** - Only fetch new transactions since last sync
+- **Drive State usage** - Import a drive's Drive State entity before reading snapshots
 - **Snapshot usage** - Use snapshots for large drives
 - **Batch queries** - Combine multiple queries when possible
 
@@ -2470,7 +2702,7 @@ query ($driveId: String!) {
 
 - **Use specific tags** - Narrow down queries with relevant tags
 - **Limit results** - Use pagination for large result sets
-- **Filter by date** - Query specific time ranges
+- **Filter by block height** - Query only blocks a client has not read
 - **Index utilization** - Write queries that GraphQL indexes can answer
 
 ## Error Handling
@@ -2610,18 +2842,25 @@ If you need to upgrade drives programmatically, here's the process:
 
 ### 1. Identify V1 Drives
 
-Query for drives that don't have the `Signature-Type` tag:
+Query the wallet's private drive entities, then keep the drives whose latest drive entity has no `Signature-Type` tag. GraphQL cannot query for a missing tag, so this filter runs in the client. Do not filter on the `ArFS` tag: a drive that needs upgrading can carry any version.
 
 ```graphql
-query {
+query ($owner: String!, $after: String) {
   transactions(
+    owners: [$owner]
     tags: [
-      { name: "ArFS", values: ["0.15"] }
       { name: "Entity-Type", values: ["drive"] }
       { name: "Drive-Privacy", values: ["private"] }
     ]
+    sort: HEIGHT_DESC
+    first: 100
+    after: $after
   ) {
+    pageInfo {
+      hasNextPage
+    }
     edges {
+      cursor
       node {
         id
         tags {
@@ -2689,10 +2928,10 @@ After upgrading, verify the process was successful:
 ### Check Drive-Signature Entity
 
 ```graphql
-query ($driveId: String!) {
+query ($owner: String!, $driveId: String!) {
   transactions(
+    owners: [$owner]
     tags: [
-      { name: "ArFS", values: ["0.15"] }
       { name: "Entity-Type", values: ["drive-signature"] }
       { name: "Drive-Id", values: [$driveId] }
     ]
@@ -2717,10 +2956,10 @@ query ($driveId: String!) {
 ### Check Updated Drive Entity
 
 ```graphql
-query ($driveId: String!) {
+query ($owner: String!, $driveId: String!) {
   transactions(
+    owners: [$owner]
     tags: [
-      { name: "ArFS", values: ["0.15"] }
       { name: "Entity-Type", values: ["drive"] }
       { name: "Drive-Id", values: [$driveId] }
       { name: "Signature-Type", values: ["1"] }
@@ -3023,6 +3262,8 @@ MISMATCH manifest.json
 ```
 
 The check is against the publication as it is now, so check a band soon after you download it. Once the publisher replaces a band, it drops out of the publication.
+
+That proves the bytes are the publisher's. To prove the index itself is sound, row by row and against Arweave, run the check for its kind: see [Verifying Shared Indexes](/build/advanced/index-verification).
 
 ## What to Do with It
 
@@ -3558,7 +3799,7 @@ Querying over HTTP means trusting the server for the bytes it streams you. If th
 - Every band file has a signed SHA-256 in the publication, so a local copy is checkable.
 - `Repr-Digest` is co-signable, so even a `206` carries a signature over the digest of the whole file it came from. A client can confirm which file it is reading bytes out of without fetching all of it.
 
-A `parquet-l1` dataset is also checkable against Arweave itself, independently of the publisher: block linkage, `hash_list_merkle`, `tx_root` and weave accounting can all be recomputed from the rows. In a gateway checkout, `./tools/ar-io-node index-l1-verify --bands-dir` (Release 85 or later) does that over a local copy.
+A `parquet-l1` dataset is also checkable against Arweave itself, independently of the publisher: block linkage, `hash_list_merkle`, `tx_root` and weave accounting can all be recomputed from the rows. In a gateway checkout, `./tools/ar-io-node index-l1-verify --bands-dir` (Release 85 or later) does that over a local copy. A `parquet-l2` dataset is checked the same way by `index-l2-verify`, down to a sample of item locations read from Arweave nodes. [Verifying Shared Indexes](/build/advanced/index-verification) covers both.
 
 ### Metering
 
@@ -3578,6 +3819,135 @@ Both read a gateway's index, and they are good at different things.
 | **GraphQL** | Anything that includes data items inside bundles; anything near the chain tip; filtering on several fields at once; a browser or a small client with no query engine |
 | **`parquet-l1`** | Counting, summing, grouping or joining over the whole base layer; bulk 
 GraphQL cannot aggregate: there is no `count` or `sum`, and a large result has to be paged. On an `l1-3` band, a point lookup is two small reads through the [lookup files](#lookup-files); on a band of an older layout, it is a scan of every band's `id` column. A published band set also lags the tip by its publishing cadence.
+
+# Verifying Shared Indexes (/build/advanced/index-verification)
+
+A [signed publication](/build/advanced/index-publications#verify-it) proves who published an index and that the files you hold are the ones they signed. It does not prove the index is right: that every row is where it says, that every location points at the item it names, that the lookups match the tables. The `ar-io-node` CLI has one read-only check per index kind that proves those things from the bands alone. Anyone holding a set of bands can run it: a subscriber after installing them, a publisher before publishing, or an agent asked whether an index is sound.
+
+  **Release Requirement**: `index-l1-verify` and `index-band-verify` need
+  gateway Release 85 or later. `index-l2-verify`, and reading roots from
+  Arweave nodes (`--arweave-nodes`), ship in the release after 85 and are on
+  `develop` today.
+
+## Which Check, for Which Index
+
+| Index | Holds | Check it with | Proves | Does not prove |
+| --- | --- | --- | --- | --- |
+| `root-tx-index` (CDB64) | each data item's root transaction and offsets | `index-band-verify` | sampled entries' headers sit at their recorded offsets, in their root transactions | entries not sampled; root-only entries' roots |
+| `parquet-l1` | blocks, L1 transactions, their tags and owners | `index-l1-verify`, then `index-l1-audit` | every block's place in the chain, against the weave size the chain commits to; every block's `tx_root` rebuilt from its transactions; the lookups. `index-l1-audit` closes the format-1 gap `tx_root` can't | that a transaction id is in the block (`tx_root` doesn't bind ids; the audit checks each format-1 id against its signature) |
+| `parquet-l2` (for example `ardrive-l2`) | the ANS-104 data items one selection takes, with tags, owners and locations | `index-l2-verify` | every band's id against its contents; the set has no overlaps or holes; every table row by row; every location's layout and parent link; the lookups; a sample of locations against the chain | that every item the selection should take is there (completeness is the publisher's to show, by rebuilding the band from its source) |
+
+Every command follows the [CLI contract](/build/run-a-gateway/manage/ar-io-node-cli#output): the result as JSON on stdout and exit `0`; on failure the full result on stderr and exit `1`. Every option is in the [`ar-io-node` CLI reference](https://github.com/ar-io/ar-io-node/blob/develop/docs/cli.md).
+
+## Run It
+
+### Get the Bands
+
+Download the index [over BitTorrent](/build/advanced/bittorrent-indexes) or [by digest](/build/advanced/index-publications#fetch-a-band-file), one folder per band, and drop any folder a newer band replaced. A subscribing gateway already holds its bands under `data/indexes/installed//`.
+
+### Run the Check
+
+With only Docker, from a directory holding the bands:
+
+```bash
+IMAGE=ghcr.io/ar-io/ar-io-core:latest
+docker run --rm -u "$(id -u):$(id -g)" -v "$PWD/ardrive-l2:/bands:ro" \
+  -w /app --entrypoint /nodejs/bin/node "$IMAGE" \
+  /app/dist/cli/cli.js index-l2-verify --bands-dir /bands \
+  --publisher 34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7h5
+```
+
+`--publisher` is the address the publication names: with it, each band's id is also checked to carry that publisher's tag. In a gateway checkout the wrapper mounts the paths for you:
+
+```bash
+./tools/ar-io-node index-l2-verify --bands-dir data/indexes/installed/ardrive-l2 \
+  --publisher 34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7h5
+```
+
+For L1 bands the command is `index-l1-verify --bands-dir`, as [Downloading Indexes with BitTorrent](/build/advanced/bittorrent-indexes#check-the-download) shows; for one root-TX band, `index-band-verify --band-dir  --arweave-nodes`.
+
+### Read the Result
+
+```json
+{
+  "ok": true,
+  "bands": 23,
+  "items": 127734401,
+  "checks": {
+    "identity": { "ok": true, "failures": [] },
+    "selection": { "ok": true, "failures": [] },
+    "files": { "ok": true, "failures": [] },
+    "tables": { "ok": true, "failures": [] },
+    "locations": { "ok": true, "failures": [] },
+    "parents": { "ok": true, "failures": [] },
+    "lookups": { "ok": true, "failures": [] },
+    "onchain": {
+      "ok": true,
+      "checked": 800, "wrong": 0, "unreadable": 12, "errors": 0,
+      "seed": 1934802271,
+      "failures": []
+    }
+  },
+  "superseded": [],
+  "unlocatedBands": []
+}
+```
+
+`ok` is the verdict. Each check lists its `failures`, and each failure names the band (its `found` starts with the band id) and the height it starts at. Keep the `seed`: `--seed ` draws the same sample again.
+
+## What `index-l2-verify` Checks
+
+| Check | Fails when |
+| --- | --- |
+| `identity` | a band's id doesn't name its heights, or its digest isn't that of its heights, selection and rows, or, with `--publisher`, its tag isn't the publisher's. The id is what the publication signs, so this ties the signature to the bytes |
+| `selection` | the bands hold different selections |
+| `files` | a band lacks a file its layout requires, or holds one it doesn't |
+| `tables` | a table's rows, read in file order, are out of their table's order, or don't digest to what `band.json` says, or an owner key doesn't hash to its address |
+| `locations` | a location is partly set; or isn't laid out as ANS-104 requires (signature right after the 2-byte type, owner right after the signature, payload after the owner and inside the item); or `data_size` isn't the payload the location gives; or a signature or owner length isn't its type's; or an id, address or root isn't 32 bytes; or an item lies outside its band's heights |
+| `parents` | an item directly in its root isn't at offset 0 of it, or an item in a nested bundle names one `parents` doesn't describe where the item says its payload starts, or a `parents` row's payload doesn't start inside it |
+| `lookups` | a lookup file doesn't hold exactly the rows its tables give (`--skip-lookups` leaves this out) |
+| `onchain` | a sampled item's header, read at its recorded location from Arweave nodes, is not that item, or too few could be verified. `--onchain ` sets the items per band (20 unless set; `0` leaves it out). Items directly in their roots and items in nested bundles are sampled apart, half each, so rare nested items are always read |
+
+The set is refused outright, with no checks run, if its bands overlap or leave a hole: that is not one index. `--from` and `--to` check only the bands inside those heights. A band that its own publisher's newer band supersedes is left out, as a subscriber leaves it out, and listed under `superseded`.
+
+Every row is read in file order, so memory stays flat. The lookup check sorts and joins, and spills to the system temp directory: `--spill-max` caps it at 128 GB unless set. Measured on a 2-core, 10 GB host, the whole `ardrive-l2` index of 23 bands and 127.7 million items, with 50 items per band read from Arweave nodes, took 1 hour 51 minutes; its largest band (69 million items) takes 66 minutes alone and spills about 65 GB. The on-chain sample is seconds per band.
+
+## Reading from Arweave Nodes
+
+`index-l2-verify`, and `index-band-verify --arweave-nodes`, read root transactions from Arweave nodes and prove every byte, so the check trusts no gateway, the publisher's included:
+
+1. **The root's id is bound to its data.** Its header's signature must hash to its id, and the signature must verify, since a transaction signs its `data_root` and `data_size`. For the few valid transactions arweave-js can't verify, at least two nodes must serve the same `data_root` and `data_size` instead; the result says which (`bySignature`, `byAgreement`).
+2. **Its place in the weave** comes from `/tx/{id}/offset`, whose size must be the signed `data_size`.
+3. **Every chunk is proven.** Its `data_path` must validate against the signed `data_root` under the consensus rules for its weave offset, the chunk must hash to the path's leaf, and it is placed by the bounds the proof gives. A node whose chunk fails is passed over for the next. A wrong offset can't pass wrong bytes: the chunks it leads to would not prove against the root's `data_root`.
+
+Each sampled header comes out as one of:
+
+| Outcome | Means | Counts |
+| --- | --- | --- |
+| `ok` | the bytes at the recorded location are a data item header whose signature hashes to the item's id | for the band |
+| `wrong` | something else is there, or the range runs past the root | **against** the band: its offsets are wrong |
+| `unreadable` | every node that answered said 404 for the root, or for the chunk holding the header: the data is gone network-wide (unseeded or purged) | neither way; another sample is taken in its place |
+| `errors` | nothing usable came back: nodes busy or failing, a chunk no node could prove, no node reachable, a root that can't be bound | against the pass ratio; rerun |
+
+A 404 counts only when **every** node that answered said 404. One busy node among them, or one whose chunk failed its proof, makes it an error instead: that node may hold the data, and an unprovable chunk is the node's fault, not an absence.
+
+The default pool is the nodes a gateway reads chunks from. Most of them hold a partition of the weave and answer 404 for most offsets; that is normal. Name your own with `--arweave-nodes http://a:1984,http://b:1984`. With `--gateway-url` instead, roots are read through that gateway's `/raw`: faster, but that gateway is trusted.
+
+## When a Check Fails
+
+| Found | Do |
+| --- | --- |
+| `identity`, `files` or `tables` failure in a band you **installed** | the copy is damaged or not what was signed: remove it and let the `index-swarm` sidecar fetch it again; if it recurs, tell the publisher |
+| the same in a band you **published** | rebuild it (`index-| `locations`, `parents`, or `onchain` `wrong` | the builder placed items wrongly, or its source holds a wrong row: report it to the publisher with the band id and the failures; the publisher repairs the source, rebuilds and re-settles the band |
+| many `unreadable` | not a fault of the index: every node said 404, so the data is gone network-wide. Seeding the missing chunks again, where the data still exists, makes them readable |
+| many `errors` | rerun; the nodes were busy. If a chunk keeps failing its proof, the nodes serving it are at fault, not the index |
+| `lookups` | the lookups are derived: rebuilding the band rewrites them |
+
+A band's id is a digest of its heights, selection and rows, so a publisher, or anyone with the same source data, can rebuild a band and compare ids: equal ids are equal rows. A source that has changed since (items backfilled, offsets repaired) gives a new id, which is what re-settling publishes; compare against the source as of the same time, or diff the rows.
+
+## For Agents
+
+Run the command, read stdout (or stderr on exit `1`) as JSON, and act on `ok` and each check's `failures`. `unreadable` is never a fault of the index, and `errors` are never a verdict on it either way, so rerun before acting on them. Never treat a passing sample as proof of every row: the row-by-row checks are what cover every row.
 
 # Advanced (/build/advanced)
 
@@ -12359,12 +12729,13 @@ Read stdout and branch on the exit code; don't parse stderr for success. Band co
 | Command | What it does |
 | --- | --- |
 | `index-band-build` | Builds one root-TX band from CSV records, checks a sample of its headers against their root transactions, and publishes it for the `index-swarm` sidecar |
-| `index-band-verify` | Runs that header check on any built or installed band |
+| `index-band-verify` | Runs that header check on any built or installed band. With `--arweave-nodes`, roots are read from Arweave nodes and every byte proven, so no gateway is trusted |
 | `index-band-export` | Writes one source's root-TX records for a height range as the CSV `index-band-build` reads. The source is this gateway's ClickHouse or SQLite, a peer's ClickHouse, or an overlay directory of CSV files |
 | `index-l1-import --fill` | Fills the gateway's `core.db` from installed `parquet-l1` bands while the gateway runs, writing only the heights missing beneath what it indexed itself. Core runs this by itself with `L1_BAND_IMPORT_ENABLED=true` |
 | `index-l1-import` | Without `--fill`, imports the bands with the gateway stopped. Faster, but only for a new `core.db` the gateway has never run on |
 | `index-l1-verify` | Checks an L1 index against what the chain commits to: a gateway's own `core.db` (`--core-db`), or a directory of bands with no gateway at all (`--bands-dir`). Read-only |
 | `index-l1-audit` | Checks the blocks `index-l1-verify` has to skip, those holding a format-1 transaction with data, by fetching a sample of that data and recomputing each block's `tx_root`. Read-only |
+| `index-l2-verify` | Checks a `parquet-l2` index (a directory of bands, such as `ardrive-l2`) with no gateway: every band's id, every table row by row, every location and parent link, the lookups, and a sample of locations against Arweave nodes. Read-only. See [Verifying Shared Indexes](/build/advanced/index-verification) |
 | Any other command | Runs as the `ar.io` CLI of the `@ar.io/sdk` the gateway carries, with the same arguments, output and exit code. For example, `./tools/ar-io-node get-gateway --address ` |
 
 The `ar.io` commands use the SDK's own network defaults and flags, not your gateway's settings. For one that signs, prefer `--wallet-file` to `--private-key`: an inline key is visible in `ps` and `docker inspect`.
@@ -27057,6 +27428,7 @@ drive-info
 list-folder
 list-drive
 list-all-drives
+snapshot-info
 
 download-file
 download-folder
@@ -27329,20 +27701,28 @@ This flag will skip any balance check on the CLI side. Turbo will check a user's
 
 # Creating a Snapshot (/sdks/(clis)/ardrive-cli/(working-with-files)/creating-a-snapshot)
 
-A **snapshot** is a single Arweave transaction, tagged `Entity-Type: snapshot`, `Drive-Id`, `Block-Start`, and `Block-End`, whose body is a JSON index of every ArFS entity metadata transaction (drive, folder, and file revisions) mined for that drive across the block range it covers. It exists purely as a read-path optimization: a client that wants to list a drive's full entity history can read the snapshot's JSON body directly instead of paginating through and re-fetching every individual metadata transaction the drive has ever produced. `create-snapshot` builds this snapshot for you and posts it to Arweave.
+A **snapshot** is a drive's whole state, up to the current block, published as one Arweave transaction: an ArFS Drive State entity (`Entity-Type: drive-state`) holding a SQLite database of the drive's folders, files and their revisions. A client that finds one reads the drive in one download and then queries only the blocks after it, instead of replaying every transaction the drive has ever produced. `create-snapshot` builds it from the chain and posts it.
 
 Some important things to know:
 
--   **Costs to post, like any other data transaction.** For a drive with a long entity history the snapshot body can be large, so posting it is not free -- `create-snapshot` estimates the cost up front, asserts your wallet can cover it, and prints the cost before sending.
--   **When to use it.** Snapshotting is most useful for drives with a large number of files/folders/revisions, where clients that support snapshot-accelerated listing would otherwise have to replay a long transaction history on every listing. It's a maintenance operation you run occasionally (e.g. periodically, or before publishing a drive expected to see heavy read traffic) -- not something every drive needs.
--   **Public drives only (for now).** Private drive snapshots are not yet supported.
--   **Idempotent-ish, not automatic.** Each run creates a NEW snapshot transaction covering the drive's entity history at that point in time; it does not update or replace a previous snapshot.
+-   **You must own the drive.** Clients trust a snapshot only from the drive's owner.
+-   **Public and private drives.** A private drive's snapshot is encrypted with the drive key, so only someone with the drive key can read it. Pass `--private` or `--drive-key` as you would to list the drive.
+-   **Costs to post, like any other data transaction.** `create-snapshot` prints the size and, without `--turbo`, the estimated AR cost before sending, and checks your wallet can cover it.
+-   **It refuses rather than publish a drive state it cannot vouch for.** It stops if a recent change to the drive is still being confirmed, if any of the drive's metadata cannot be read, if the drive has no folders or files, or if the snapshot would be larger than the 100 MiB every reader accepts. Licence details are not included: readers read each file's licence from its `licenseTxId`.
+-   **Each run publishes a new snapshot.** Readers use the newest one. Publishing again after a drive has grown keeps reading it fast.
+-   **The format replaced the JSON snapshot.** Earlier versions of this command published `Entity-Type: snapshot` JSON bodies. Those stay readable by every client; this command no longer creates them.
 
 ```shell
 ardrive create-snapshot --drive-id "bc9af866-6421-40f1-ac89-202bddb5c487" -w "/path/to/wallet"
 ```
 
-Use `--dry-run` to see the block range, entity count, byte size, and estimated cost without posting anything:
+For a private drive:
+
+```shell
+ardrive create-snapshot --drive-id "bc9af866-6421-40f1-ac89-202bddb5c487" -w "/path/to/wallet" --private
+```
+
+Use `--dry-run` to build and sign the snapshot and see its block range, entity count and size without posting anything or needing the funds:
 
 ```shell
 ardrive create-snapshot --drive-id "bc9af866-6421-40f1-ac89-202bddb5c487" -w "/path/to/wallet" --dry-run
@@ -27570,6 +27950,26 @@ Transaction nA1stCdTkuf290k0qsqvmJ78isEC0bwgrAi3D8Cl1LU Upload Progress: 76%
 Transaction nA1stCdTkuf290k0qsqvmJ78isEC0bwgrAi3D8Cl1LU Upload Progress: 91%
 Transaction nA1stCdTkuf290k0qsqvmJ78isEC0bwgrAi3D8Cl1LU Upload Progress: 100%
 ```
+
+# Reading Drives From Snapshots (/sdks/(clis)/ardrive-cli/(working-with-files)/reading-drives-from-snapshots)
+
+`list-drive`, `list-folder`, `download-drive` and `download-folder` read a drive's newest snapshot first, then the older JSON snapshots and GraphQL for anything after it. A snapshot that cannot be used, for any reason, falls back to the slower path, so a drive always lists the same way. Each listing logs one line to stderr saying whether a snapshot was used and why not:
+
+```shell
+[drive-state] bc9af866-6421-40f1-ac89-202bddb5c487: read 1543 entities through block 2025061 (xk_N9vGYgTuLUgyWlVbdHCkl_js_Bo35M2miM6porK4) - outcome=used
+```
+
+Set `ARDRIVE_DISABLE_DRIVE_STATE=1` to skip snapshots for a run, and `ARDRIVE_DISABLE_SNAPSHOTS=1` to skip the older JSON snapshots too.
+
+The downloaded snapshot is cached under `~/.ardrive/caches/drive-state` (`ardrive-caches/drive-state` in your home folder on Windows), so the next listing of the same drive does not download it again. For a private drive, the cache holds the encrypted snapshot, never the decrypted one.
+
+To see whether a drive has a usable snapshot without listing it, use `snapshot-info`. It reads only and spends nothing:
+
+```shell
+ardrive snapshot-info --drive-id "bc9af866-6421-40f1-ac89-202bddb5c487"
+```
+
+The `outcome` is `used` when a snapshot was read, `none-found` when the drive has none, or the reason one was refused, such as `unknown-version` for a format this version does not read.
 
 # Rename a Single File (/sdks/(clis)/ardrive-cli/(working-with-files)/rename-a-single-file)
 
@@ -32198,6 +32598,68 @@ await arDrive.sendCommunityTip({
     communityWalletAddress
 });
 ```
+
+# Drive State (/sdks/ardrive-core-js/(advanced-features)/drive-state)
+
+A Drive State entity (`Entity-Type: drive-state`) is a drive's whole state up to a block height, published by the drive's owner as one SQLite database: every folder and file and their revisions. Reading one replaces most of the GraphQL queries and metadata fetches a drive listing otherwise makes. The format is specified on [docs.ar.io](https://docs.ar.io/build/advanced/arfs/entity-types#drive-state); ArDrive's apps call these snapshots.
+
+#### Reading
+
+Listing and downloading read a drive's newest usable Drive State entity first, with nothing to configure: `listPublicFolder`, `listPrivateFolder`, `downloadPublicFolder`, `downloadPrivateFolder`, `downloadPublicDrive` and `downloadPrivateDrive`. A first `syncPublicDrive` or `syncPrivateDrive` with no `syncState` starts from one too, and its result's `driveState` names the entity it used.
+
+The entity gives the drive's state up to 240 blocks below its `Block-End`. Snapshots and GraphQL supply every block above that, and a revision they return replaces the entity's copy. An entity that cannot be used falls back to snapshots and then to a full replay, so a drive lists the same either way. Every refusal has a reason:
+
+| Outcome | Meaning |
+| --- | --- |
+| `used` | The entity was read |
+| `none-found` | The drive has none. With `discoveryFailed`, the query itself failed |
+| `unknown-version` | A format version, or a cipher, this version does not read |
+| `owner-mismatch` | Not uploaded by the drive's owner |
+| `decrypt-failed` | Did not decrypt under the drive key |
+| `integrity-failed` | Not the database its tags describe, or malformed |
+| `count-mismatch`, `coverage-mismatch` | `Entity-Count`, `Block-Start` or `Block-End` disagree with the database |
+| `privacy-mismatch` | Encrypted for a public drive, or not encrypted for a private one |
+| `fetch-failed` | Identified, and could not be downloaded |
+| `range-already-covered` | Covers nothing a stateful caller has not already synced |
+
+Each listing logs one line per drive to stderr, such as `[drive-state] \: read 1543 entities through block 2025061 (\) - outcome=used`. To skip Drive State, pass `useDriveState: false` to a listing, download or sync, or set `ARDRIVE_DISABLE_DRIVE_STATE=1`.
+
+A downloaded entity is cached by transaction id, the newest one per drive, under `~/.ardrive/caches/drive-state` (`ardrive-caches/drive-state` in the home folder on Windows). For a private drive the cache holds the encrypted body, never the decrypted one.
+
+To read one directly:
+
+```typescript
+
+const source = new DriveStateSource({ gatewayApi: new GatewayAPI({ gatewayUrl: new URL('https://ardrive.net') }) });
+const result = await source.read({ driveId, owner, protection: { kind: 'public' } });
+if (result.outcome === 'used') {
+	console.log(result.contents.files.length, result.contents.blockEnd);
+}
+```
+
+The database is read with [sql.js](https://github.com/sql-js/sql.js) (SQLite compiled to WebAssembly), loaded only when a drive state is first read. In the browser build, call `enableDriveState` with a `locateFile` that maps the wasm file name sql.js asks for to its URL. The name depends on which sql.js entry your bundler picks (`sql-wasm-browser.wasm` under the `browser` 
+```typescript
+
+enableDriveState({ locateFile: (file) => `/assets/${file}` });
+```
+
+#### Producing
+
+`ArFSDAO.buildPublicDriveState` and `buildPrivateDriveState` build a drive's entity from its chain data: every drive, folder and file revision, read through its snapshots where it has them. `prepareDriveStateTransaction` and `prepareDriveStateDataItem` turn the result into an L1 transaction or a data item for Turbo. Only the drive's owner can produce one, because readers trust no one else's.
+
+The build refuses, with a `DriveStateBuildRefused` naming the reason, rather than publish a drive state it cannot vouch for:
+
+- `unconfirmed-changes`: a change to the drive is not yet mined.
+- `skipped-entities`: a revision's metadata could not be read or decrypted.
+- `empty-drive`: the drive has no folders or files.
+- `no-drive`: no drive entity was found from the owner, or its privacy is not the one asked for.
+- `too-large`: the database is 100 MiB or more, which every reader refuses.
+- `incomplete-index`: the gateway returned fewer entities than the newest drive state already published for the drive holds, or not the drive's root folder. Entities are never deleted, so the gateway has not indexed the whole drive; build through one that has.
+- `unreadable`: the built drive state fails the checks every reader runs, so it is not uploaded.
+
+The build reads its result back as a reader would before returning it.
+
+Licence details are not included. Readers read each file's licence from its `licenseTxId`, which is included.
 
 # Incremental Drive Synchronization (/sdks/ardrive-core-js/(advanced-features)/incremental-drive-synchronization)
 
