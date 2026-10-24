@@ -222,7 +222,7 @@ IDs, addresses, hashes and tag names and values are stored as raw bytes (`BLOB`)
   later.
 </Callout>
 
-From layout `l1-3` (the `schema` in a band's publication `metadata`, and in its `band.json`), a band also holds three lookup files. Parquet has no index, so finding one transaction otherwise means scanning every band's `id` column. A lookup file is derived from the band's tables and sorted by a key, in row groups of 16,384 rows. Parquet keeps each row group's min and max, so a reader holding a key reads the footer, then the one or two row groups that can hold it.
+From layout `l1-3` (the `schema` in a band's publication `metadata`, and in its `band.json`), a band also holds three lookup files, and `l1-4` keeps them. Parquet has no index, so finding one transaction otherwise means scanning every band's `id` column. A lookup file is derived from the band's tables and sorted by a key, in row groups of 16,384 rows. Parquet keeps each row group's min and max, so a reader holding a key reads the footer, then the one or two row groups that can hold it.
 
 | File | One row per | Columns |
 | --- | --- | --- |
@@ -243,6 +243,15 @@ The keys are unsigned 64-bit integers made one of two ways, which any client can
 | `sha256_64` | `ArDrive-App` | `0xa2c30101e8045f65` |
 
 A key is a pointer: two values can share one, so always finish in the table the key points into, as the examples below do. `data_size` and `txs` are carried so a wallet's bytes stored and a tag's count need no table read. A lookup file is listed and signed in the publication like any band file. In a gateway checkout, `./tools/ar-io-node index-l1-verify --bands-dir` (Release 85 or later) checks that it holds exactly what its band's tables give.
+
+### Witness Files
+
+<Callout type="info">
+  **Release Requirement**: witness files (layout `l1-4`) require Release 87
+  or later.
+</Callout>
+
+From layout `l1-4`, a band also holds witness files: `witness_v1_data_roots.parquet` (the v1 data root of each format-1 transaction with data) and, in a band holding heights below the 2.0 fork (422,250), `witness_fork_2_0.parquet` (each pre-2.0 block's transition `tx_root`, the 2.0 seed fold through it, and its 2.0 hash). They hold what the chain committed to but no header carries, so a verifier can bind every block from genesis. They are untrusted: every witness is checked against the chain (and, for older header fields, Arweave's own checkpoint) before the band is published, and again by every verifier and importer that reads it. Like lookup files, they are not part of a band's id, so a publisher adds them to a published band in place. A query reading only the tables can ignore them. [Verifying Shared Indexes](/build/advanced/index-verification#witness-files-l1-4) explains what they bind.
 
 <Callout type="info">
   `parquet-l1` is the **base layer only**: Arweave transactions, not the data
@@ -309,7 +318,7 @@ GROUP BY 1 ORDER BY n DESC LIMIT 5;
 ### Find One Transaction
 
 <Callout type="info">
-  **Release Requirement**: this example needs `l1-3` bands, which require
+  **Release Requirement**: this example needs `l1-3` or `l1-4` bands, which require
   Release 85 or later.
 </Callout>
 
@@ -329,7 +338,7 @@ CREATE TEMP TABLE bands AS
         FROM (SELECT unnest(indexes) AS ix
               FROM read_json(getvariable('gateway') || '/ar-io/indexes'))
         WHERE ix.name = 'parquet-l1');
-SET VARIABLE lookups = (SELECT list(dir || 'lookup_tx_id.parquet') FROM bands WHERE schema = 'l1-3');
+SET VARIABLE lookups = (SELECT list(dir || 'lookup_tx_id.parquet') FROM bands WHERE schema IN ('l1-3', 'l1-4'));
 SET VARIABLE txs = (SELECT list(dir || 'transactions.parquet') FROM bands);
 
 -- The ID as bytes, and its key: the first 8 bytes as an unsigned integer.
@@ -409,4 +418,4 @@ Both read a gateway's index, and they are good at different things.
 | **GraphQL** | Anything that includes data items inside bundles; anything near the chain tip; filtering on several fields at once; a browser or a small client with no query engine |
 | **`parquet-l1`** | Counting, summing, grouping or joining over the whole base layer; bulk export with no pagination; reproducible analysis on a pinned, verifiable snapshot; anything where you do not want a gateway in the query path. On `l1-3` bands, also one transaction by ID, a wallet's transactions, or a tag value's count, through the lookup files |
 
-GraphQL cannot aggregate: there is no `count` or `sum`, and a large result has to be paged. On an `l1-3` band, a point lookup is two small reads through the [lookup files](#lookup-files); on a band of an older layout, it is a scan of every band's `id` column. A published band set also lags the tip by its publishing cadence.
+GraphQL cannot aggregate: there is no `count` or `sum`, and a large result has to be paged. On an `l1-3` or `l1-4` band, a point lookup is two small reads through the [lookup files](#lookup-files); on a band of an older layout, it is a scan of every band's `id` column. A published band set also lags the tip by its publishing cadence.
