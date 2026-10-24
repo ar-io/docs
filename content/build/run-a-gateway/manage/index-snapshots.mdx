@@ -134,14 +134,13 @@ The 2025-04-23 snapshot was taken at block `1645229`. If the import worked, the 
   publisher you subscribe to.
 </Callout>
 
-<Callout type="warning" title="Upgrading to Release 86">
-  From Release 86 the gateway verifies every band before it writes a row of
-  it, and refuses blocks it cannot bind to the chain. Today's `l1-3` bands
-  carry no witnesses for those, so **every band below height 2,000,000 is
-  refused** unless you set `L1_BAND_IMPORT_ALLOW_UNVERIFIED=true`. A Release 85
-  gateway with `L1_BAND_IMPORT_ENABLED=true` needs it set to go on filling
-  history below that height. `./tools/index-swarm-setup --l1` does not set it: add it to `.env`
-  yourself. See [Verified Before It Is Written](#verified-before-it-is-written).
+<Callout type="warning" title="Upgrade to Release 87">
+  From Release 87, L1 bands are layout `l1-4`, whose witness files bind
+  every block from genesis, so your gateway verifies and fills the whole
+  chain with nothing more to set. A gateway still on Release 86 keeps the
+  `l1-3` bands it has installed, but refuses each band its publisher
+  upgrades to `l1-4`, and tries it again every poll, until it runs Release
+  87. If you subscribe to L1 bands, upgrade.
 </Callout>
 
 An L1 band (`parquet-l1`) holds the Arweave base layer for a range of block heights, as Parquet files: blocks, transactions, tags and owners. Gateways that publish them sign every file, and your gateway checks each one before it installs the band. Your gateway then fills its `core.db` from the installed bands, instead of indexing the chain from block 0.
@@ -161,9 +160,9 @@ From Release 86, before a band's first row reaches `core.db`, the import checks 
 
 1. **The band, whole**, with the same code as [`index-l1-verify --bands-dir`](/build/advanced/index-verification#what-index-l1-verify-checks): its name is its identity, its files and columns are the layout's, its tables digest to what `band.json` says, and every block, transaction, link, tag and wallet row passes.
 2. **Its edges, against `core.db`.** The first height written must build on the block `core.db` holds below it, and the block `core.db` holds above the last height written must build on the band.
-3. **A binding to the chain.** The block above, when `core.db` holds one the gateway synced from its own nodes, or one an earlier import wrote bound to the chain without accepting a gap. From the 2.0 fork, the band's `hash_list_merkle` recurrence then binds every block hash, weave size and `tx_root` beneath it. Otherwise, an anchor fetched from the sources (`--anchor-from`), as `index-l1-verify` does.
+3. **A binding to the chain.** The block above, when `core.db` holds one the gateway synced from its own nodes, or one an earlier import wrote bound to the chain without accepting a gap. From the 2.0 fork, the band's `hash_list_merkle` recurrence then binds every block hash, weave size and `tx_root` beneath it. Otherwise, an anchor fetched from the sources (`--anchor-from`), as `index-l1-verify` does. An `l1-4` band below the 2.0 fork that ends at a pinned height is anchored there by its witnessed folds, with no header fetched.
 4. **A sample.** What the binding does not reach, such as transaction ids, their order and every transaction field, is checked by the same keyed sample of headers and signatures as `index-l1-verify`, from the same sources. Without a sample the import is refused unless you accept that (`--allow-unsampled`). A sample that could not be read is an outage, not evidence: the band is refused as `unreadable` and a later run tries again.
-5. **What nothing binds is refused unless accepted**: blocks below the 2.0 fork (`--allow-unbound`), post-2.0 blocks holding a format-1 transaction with data (`--allow-unverified-format1`), and blocks whose transactions or owners' keys the band lacks (`--allow-incomplete`). Today's `l1-3` bands carry no witnesses for the first two, so every band below height 2,000,000 is refused without those flags.
+5. **What nothing binds is refused unless accepted.** An `l1-4` band's [witness files](/build/advanced/index-verification#witness-files-l1-4) bind its blocks below the 2.0 fork and its blocks holding a format-1 transaction with data, so a whole chain of `l1-4` bands imports with no `--allow-*` flag, and the importer writes the witnessed data roots and `tx_root`s over whatever `core.db` kept. What is left is blocks whose transactions or owners' keys the band lacks (`--allow-incomplete`). A band without witnesses (`l1-3`) has those first two kinds unbound, and is refused below height 2,000,000 unless they are accepted (`--allow-unbound`, `--allow-unverified-format1`).
 
 A refused band removes nothing that was there before. While the gateway runs, ranges are filled from the top down, so each is bound by the block the gateway holds above it: its own, or one the range above it just wrote and verified. The run stops at the first range refused.
 
@@ -172,7 +171,7 @@ The gateway's own fill takes these settings from `.env`:
 | Variable | Default | Does |
 | --- | --- | --- |
 | `L1_BAND_IMPORT_SAMPLE_FROM` | `TRUSTED_NODE_URL` and the `TRUSTED_GATEWAYS_URLS` gateways not marked `trusted: false` | The sources to anchor at and sample from. They must resolve to at least two distinct machines; the worker warns at its first run when they don't, and the import refuses to run on them |
-| `L1_BAND_IMPORT_ALLOW_UNVERIFIED` | `false` | `true` passes `--allow-unbound --allow-unverified-format1`, so bands below height 2,000,000 are filled. Never `--allow-incomplete`. Every other check still runs |
+| `L1_BAND_IMPORT_ALLOW_UNVERIFIED` | `false` | Legacy, for `l1-3` bands only: `true` passes `--allow-unbound --allow-unverified-format1`, so their blocks below height 2,000,000 are filled. `l1-4` bands don't need it. Never `--allow-incomplete`. Every other check still runs |
 | `L1_BAND_IMPORT_ALLOW_UNSAMPLED` | `false` | `true` passes `--allow-unsampled`: fill without a sample, so transaction ids and fields are checked against nothing on the chain. A sample whose sources are only unreachable is never waived: that fill waits and is tried again |
 
 A refused fill is not re-verified every interval: the worker waits, twice as long each time (up to a day), until the bands directory changes. One refused only because its sources could not be read is tried again after an interval, twice as long each time it repeats (up to two hours), and at once when the bands directory changes.
@@ -181,7 +180,7 @@ On a new gateway, set this up **before the first start** and leave `START_HEIGHT
 
 ### Prerequisites
 
-- A gateway on Release 85 or later
+- A gateway on Release 85 or later, and Release 87 to take `l1-4` bands
 - Room on disk: about 15 GB for the bands, and about 120 GB for a `core.db` that covers the whole chain. The setup script sets the Index Sharing disk budget to 100 GiB if it is unset, and warns if yours is lower
 
 <Steps>
@@ -196,12 +195,6 @@ L1 bands arrive through [Index Sharing](/build/run-a-gateway/manage/index-sharin
 ```
 
 `--l1` subscribes to the publisher's L1 bands as well as its root-TX bands, sets `L1_BAND_IMPORT_ENABLED=true`, and restarts core. To move bands over HTTP only, see [HTTP Only](/build/run-a-gateway/manage/index-sharing#http-only).
-
-On Release 86 or later, it does not set `L1_BAND_IMPORT_ALLOW_UNVERIFIED`, so without it every band below height 2,000,000 is refused. To fill the whole chain, add it to `.env` before the restart (or recreate core after adding it):
-
-```bash
-L1_BAND_IMPORT_ALLOW_UNVERIFIED=true
-```
 
 </Step>
 
@@ -264,11 +257,10 @@ Run it from the gateway's directory. The tool runs in the core image, so the hos
   --bands-dir data/indexes/installed/parquet-l1 \
   --core-db data/sqlite/core.db \
   --cache-mib 8192 \
-  --anchor-from https://<gateway one>,https://<gateway two> \
-  --allow-unbound --allow-unverified-format1
+  --anchor-from https://<gateway one>,https://<gateway two>
 ```
 
-From Release 86, every planned band is verified first, as one contiguous run anchored once at its top, and a plan that does not verify writes nothing. With an empty `core.db` there is no block above to bind the bands, so give `--anchor-from` with sources that resolve to at least two distinct machines; they are also where the sample is drawn from. Bands below height 2,000,000 need `--allow-unbound --allow-unverified-format1` (see [Verified Before It Is Written](#verified-before-it-is-written)). The check's DuckDB spills to a folder beside `core.db`, capped at `--spill-max` (default 128GB) and at 80% of the space free there, and never into the last `--spill-reserve-gb` (default 100).
+From Release 86, every planned band is verified first, as one contiguous run anchored once at its top, and a plan that does not verify writes nothing. With an empty `core.db` there is no block above to bind the bands, so give `--anchor-from` with sources that resolve to at least two distinct machines; they are also where the sample is drawn from. With `l1-4` bands (Release 87) no `--allow-*` flag is needed; `l1-3` bands below height 2,000,000 would need `--allow-unbound --allow-unverified-format1` (see [Verified Before It Is Written](#verified-before-it-is-written)). The check's DuckDB spills to a folder beside `core.db`, capped at `--spill-max` (default 128GB) and at 80% of the space free there, and never into the last `--spill-reserve-gb` (default 100).
 
 Bands import in height order, lowest first. `--cache-mib` sets SQLite's page cache for the run (default 1024 MiB); give it what your machine can spare, since a larger cache keeps a long import fast. An interrupted run is safe: run the command again and it carries on from the last band that landed. A band that fails stops the run: the bands imported before it are kept, the one that failed is cleared, and the result goes to stderr with exit code `1`. `--max-bands` splits the work across several runs.
 

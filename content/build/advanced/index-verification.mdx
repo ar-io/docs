@@ -11,11 +11,11 @@ A [signed publication](/build/advanced/index-publications#verify-it) proves who 
 <Callout type="info">
   **Release Requirement**: `index-l1-verify` and `index-band-verify` need
   gateway Release 85 or later. `index-l2-verify`, and reading roots from
-  Arweave nodes (`--arweave-nodes`), need Release 86. From Release 86,
-  `index-l1-verify` fails closed: what it cannot bind to the chain fails the
-  run unless you accept it with an `--allow-*` flag, and a run without
-  `--anchor-from` fails unless you pass `--allow-unanchored`. See [What
-  `index-l1-verify` Checks](#what-index-l1-verify-checks).
+  Arweave nodes (`--arweave-nodes`), need Release 86. Checking `l1-4` bands,
+  whose [witness files](#witness-files-l1-4) bind every block of the chain,
+  needs Release 87: with them a whole set of L1 bands verifies with no
+  `--allow-*` flag. See [What `index-l1-verify`
+  Checks](#what-index-l1-verify-checks).
 </Callout>
 
 ## Which Check, for Which Index
@@ -23,7 +23,7 @@ A [signed publication](/build/advanced/index-publications#verify-it) proves who 
 | Index | Holds | Check it with | Proves | Does not prove |
 | --- | --- | --- | --- | --- |
 | `root-tx-index` (CDB64) | each data item's root transaction and offsets | `index-band-verify` | sampled entries' headers sit at their recorded offsets, in their root transactions | entries not sampled; root-only entries' roots |
-| `parquet-l1` | blocks, L1 transactions, their tags and owners | `index-l1-verify`, then `index-l1-audit` | with `--anchor-from`: the top block, its header recomputed and served by two machines, equals the index; from there, every post-2.0 block's hash, weave size and `tx_root` (through `hash_list_merkle`), its links and sizes, and its transactions' sizes and data roots (`tx_root` rebuilt); every table, file and lookup against `band.json` (and, with `--publication`, against what the publisher signed); every row non-null, placed, counted and owned; a keyed sample of headers and signatures. `index-l1-audit` closes the format-1 gap `tx_root` can't | blocks it reports `unbound` (failing unless accepted): every block below the 2.0 fork, and post-2.0 blocks holding a format-1 transaction with data; without `--anchor-from`, anything about the chain (it fails unless `--allow-unanchored`); transaction ids, their order, every transaction field and the block fields the recurrence doesn't carry, except for the share of forged rows `sample.detects` states |
+| `parquet-l1` | blocks, L1 transactions, their tags and owners | `index-l1-verify`, then `index-l1-audit` | with `--anchor-from`: the top block, its header recomputed and served by two machines, equals the index; from there, every post-2.0 block's hash, weave size and `tx_root` (through `hash_list_merkle`), its links and sizes, and its transactions' sizes and data roots (`tx_root` rebuilt, with an `l1-4` band's witnessed v1 data roots); with an `l1-4` band's witnesses, every pre-2.0 block's hash, weave size and transition `tx_root` (through the 2.0 seed fold, to a pinned fold or block 422,250's `hash_list_merkle`); every table, file and lookup against `band.json` (and, with `--publication`, against what the publisher signed); every row non-null, placed, counted and owned; a keyed sample of headers and signatures. `index-l1-audit` closes the format-1 gap `tx_root` can't | blocks it reports `unbound` (failing unless accepted): under `l1-3` (and with `--core-db`), every block below the 2.0 fork, and post-2.0 blocks holding a format-1 transaction with data; under `l1-4`, only blocks whose witness is missing; without `--anchor-from`, anything about the chain (it fails unless `--allow-unanchored`); transaction ids, their order, every transaction field and the block fields the recurrence doesn't carry, except for the share of forged rows `sample.detects` states |
 | `parquet-l2` (for example `ardrive-l2`) | the ANS-104 data items one selection takes, with tags, owners and locations | `index-l2-verify` | every band's id against its contents; the set has no overlaps or holes; every table row by row; every location's layout and parent link; the lookups; a sample of locations against the chain | that every item the selection should take is there (completeness is the publisher's to show, by rebuilding the band from its source) |
 
 Every command follows the [CLI contract](/build/run-a-gateway/manage/ar-io-node-cli#output): the result as JSON on stdout and exit `0`; on failure the full result on stderr and exit `1`. Every option is in the [`ar-io-node` CLI reference](https://github.com/ar-io/ar-io-node/blob/main/docs/cli.md).
@@ -58,31 +58,30 @@ docker run --rm -u "$(id -u):$(id -g)" -v "$PWD/ardrive-l2:/bands:ro" \
   --publisher 34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7h5
 ```
 
-For L1 bands the command is `index-l1-verify`. It needs sources to anchor and sample against (`--anchor-from`, at least two distinct machines), and flags for what today's `l1-3` bands cannot bind (see [`unbound`](#what-it-cannot-bind-unbound)). For example, for heights 500,000 to 699,999:
+For L1 bands the command is `index-l1-verify`. It needs sources to anchor and sample against (`--anchor-from`, at least two distinct machines). `l1-4` bands carry [witness files](#witness-files-l1-4) that bind every block, so a whole set, from genesis to the tip, verifies with no `--allow-*` flag. `--publication` also binds the bands to what their publisher signed:
 
 ```bash
-IMAGE=ghcr.io/ar-io/ar-io-core:latest   # Release 86 or later
+IMAGE=ghcr.io/ar-io/ar-io-core:latest   # Release 87 or later
 docker run --rm -u "$(id -u):$(id -g)" -v "$PWD/parquet-l1:/bands:ro" \
   -w /app --entrypoint /nodejs/bin/node "$IMAGE" \
   /app/dist/cli/cli.js index-l1-verify --bands-dir /bands \
-  --from 500000 --to 699999 \
-  --anchor-from https://vilenarios.com,https://turbo-gateway.com \
-  --allow-unverified-format1
+  --anchor-from https://<gateway one>,https://<gateway two> \
+  --publication https://<publisher gateway>/ar-io/indexes \
+  --publisher-key <the publisher's observer address>
 ```
 
-In a gateway checkout, check the installed bands, or the gateway's own `core.db`, with the wrapper:
+`--from` and `--to` check part of the set. In a gateway checkout, check the installed bands, or the gateway's own `core.db`, with the wrapper:
 
 ```bash
 ./tools/ar-io-node index-l1-verify --bands-dir data/indexes/installed/parquet-l1 \
-  --anchor-from https://<gateway one>,https://<gateway two> \
-  --allow-unbound --allow-unverified-format1
+  --anchor-from https://<gateway one>,https://<gateway two>
 
 ./tools/ar-io-node index-l1-verify --core-db data/sqlite/core.db \
   --anchor-from https://<gateway one>,https://<gateway two> \
   --allow-unbound --allow-unverified-format1
 ```
 
-Each band's folder must be named by its band id: a folder a BitTorrent client named after its torrent fails `identity` until you rename it (see [Check L1 Bands Against the Chain](/build/advanced/bittorrent-indexes#check-l1-bands-against-the-chain)). `--allow-unbound` is needed only when the range reaches below the 2.0 fork (height 422,250); the whole chain does. For one root-TX band, the command is `index-band-verify --band-dir <band> --arweave-nodes`.
+Only bands carry witnesses: a `core.db` holds none, so checking one reports its pre-2.0 blocks and its blocks holding a format-1 transaction with data as [`unbound`](#what-it-cannot-bind-unbound), and needs the two flags to pass. Each band's folder must be named by its band id: a folder a BitTorrent client named after its torrent fails `identity` until you rename it (see [Check L1 Bands Against the Chain](/build/advanced/bittorrent-indexes#check-l1-bands-against-the-chain)). For one root-TX band, the command is `index-band-verify --band-dir <band> --arweave-nodes`.
 
 </Step>
 
@@ -167,27 +166,45 @@ The default pool is the nodes a gateway reads chunks from. Most of them hold a p
 
 An index agreeing with itself proves nothing: a fabricated chain built by Arweave's rules passes every self-check. Three things tie it to the real chain:
 
-- **The anchor** (`--anchor-from`). The block at the top of the range is fetched (`/block/height/N`) from every source given. At least `--anchor-min` distinct machines (default 2, and never fewer) must serve it, and names that resolve to a shared address count as one machine. Each header's identity hash is recomputed from its own fields, for every era from the 2.0 fork; every source that answered must give the same hash; and the index's row must equal the header field by field, with its transaction ids in block order. A header the command cannot recompute exactly is a failure, never a pass.
+- **The anchor** (`--anchor-from`). The block at the top of the range is fetched (`/block/height/N`) from every source given. At least `--anchor-min` distinct machines (default 2, and never fewer) must serve it, and names that resolve to a shared address count as one machine. Each header's identity hash is recomputed from its own fields, for every era from the 2.0 fork; every source that answered must give the same hash; and the index's row must equal the header field by field, with its transaction ids in block order. A header the command cannot recompute exactly is a failure, never a pass. Below the 2.0 fork no header recomputes, so a range ending at 422,249 is anchored at the fork block, whose `previous_block` binds it, and an `l1-4` range ending at a pinned height (99,999, 199,999, 299,999 or 399,999) is anchored by its [witnessed folds](#witness-files-l1-4) reaching the pins there (`anchor.pinned: true`, no header fetched). So pre-2.0 bands verify and import with no `--allow-unanchored`.
 - **The `hash_list_merkle` recurrence.** From the 2.0 fork, each block's `hash_list_merkle` folds the hash, weave size and `tx_root` of every block below it, so an anchored top binds those three for every post-2.0 block in the range. The links then bind each `previous_block`, the weave each `block_size`, and a recomputed `tx_root` each block's transactions' data sizes and data roots. Not their ids: `tx_root` drops them.
-- **The sample.** Nothing above binds transaction ids, their order, any other transaction field, or any other block field. Checking every one would mean fetching every header or every signature, so the command draws a keyed uniform sample from the `--anchor-from` sources: the headers of `--sample-blocks` blocks (default 1000), recomputed and compared field by field; `--sample-txs` transactions per band (default 1000), each fetched and checked against its signature over the fields the index holds; and `--sample-format1` format-1 transactions per band (default 200) from blocks whose `tx_root` cannot be recomputed, which catches a format-2 transaction relabelled format 1. `sample.detects` says what a pass means: the share of forged rows that would have been caught with 95% probability. A forgery confined to fewer rows may pass. `--seed` repeats a run.
+- **The sample.** Nothing above binds transaction ids, their order, any other transaction field, or any other block field. Checking every one would mean fetching every header or every signature, so the command draws a keyed uniform sample from the `--anchor-from` sources: the headers of `--sample-blocks` blocks (default 1000), recomputed and compared field by field from the 2.0 fork, and below it **attested**: the header `--anchor-min` distinct machines serve alike, the sources' word rather than a proof (counted as `blocksAttested`, and what binds a pre-2.0 block's transaction order); `--sample-txs` transactions per band (default 1000), pre-2.0 included, each fetched and checked against its signature over the fields the index holds; and `--sample-format1` format-1 transactions with data per band (default 200) drawn from the 2.0 fork, which catches a format-2 transaction relabelled format 1, witnessed or not. `--sample-blocks 0` with sources, or no format-1 draw over such transactions (`--sample-format1 0`, or no `--anchor-from`), fails the run unless `--allow-unsampled`. `sample.detects` says what a pass means: the share of forged rows that would have been caught with 95% probability. A forgery confined to fewer rows may pass. `--seed` repeats a run.
 
 RSA signatures are verified exactly as Arweave verifies them, not by OpenSSL, which is stricter and rejects some real mined transactions. A recomputed header or a verifying signature decides on one source's word. A refutation on a source's word needs `--anchor-min` distinct machines saying so: a single lying source makes a draw unreadable, never a failure. More than 20% of any one kind of draw (blocks, transactions, format-1) unreadable in any one band fails the sample as unreadable.
 
 What two agreeing sources mean depends on who they are. Two ar.io gateways both route `/block/` to their operators' chosen Arweave nodes, so their agreement is those choices agreeing, not two independent nodes. A source that redirects is not followed. The result names each source and the address it was counted as.
 
+### Witness Files (`l1-4`)
+
+Two kinds of block can't be bound from a band's tables alone, because the chain committed to something no header carries:
+
+- **A block holding a format-1 transaction with data.** Its `tx_root` leaf is the root of that transaction's data, and a format-1 header carries no data root.
+- **A block below the 2.0 fork (height 422,250).** Its identity hash covers the full wallet list (and, below the 1.6 fork, the full hash list), which no header carries, so it can't be recomputed. Arweave's 2.0 fork bound these blocks another way, through the 2.0 seed of `hash_list_merkle`.
+
+From layout `l1-4` a band carries what is missing, as two witness files:
+
+| File | One row per | Gives |
+| --- | --- | --- |
+| `witness_v1_data_roots.parquet` | format-1 transaction with data (none from the 2.9.6 fork) | its v1 data root, as Arweave computes it |
+| `witness_fork_2_0.parquet` | height below 422,250 (only in a band holding such heights) | the block's transition `tx_root`, the 2.0 seed fold through it, and its "2.0 hash" |
+
+A witness is an untrusted value: whoever wrote it needs no trust, because the verifier recomputes everything it can from the band and checks the rest against hashes the chain fixes. A v1 data root is put into its block's recomputed `tx_root`, which must then equal the header's (below the 2.0 fork, the witnessed transition `tx_root`). Each transition `tx_root` is recomputed from the block's transactions. Each fold is recomputed from the one below and must reach block 422,250's `hash_list_merkle`, or a fold pinned in ar-io-node at heights 99,999, 199,999, 299,999, 399,999 and 422,249, recomputed by a test from Arweave's own 2.0 checkpoint. That binds each pre-2.0 block's hash, weave size and `tx_root` to the chain. Each block's 2.0 hash is recomputed from the band's own fields and transaction ids, and their fold must reach the pinned folds of Arweave's `genesis_data/hash_list_1_0`, the list Arweave checks every pre-2.0 header it syncs against. That binds the rest of a pre-2.0 header and its transaction ids to Arweave's checkpoint, not to a hash the chain's own blocks reach, and the result says so. A pre-2.0 block is bound only when both folds reach their pins.
+
+A wrong witness fails the check (`tx_root`, `hash_list_merkle`, `witnesses` or `hash_list_1_0`); it never falls back to `unbound`. An `l1-4` band holds every witness, and a block of it left unbound fails `witnesses`, whatever `--allow-*` flag is given. A band whose witnesses its publisher could not have or confirm in full is published as `l1-3` instead.
+
+Witnesses are not part of a band's id. A publisher adds them to a published `l1-3` band in place: only `band.json` and the new files change, the band keeps its id, and a subscriber that holds it fetches only those. Every witness is checked against the chain before the band is published, by the same code every verifier runs, and again by every `index-l1-verify` and import that reads it. The full format is in the [publication protocol](https://github.com/ar-io/ar-io-node/blob/main/docs/index-publication.md#witness-files).
+
 ### What It Cannot Bind (`unbound`)
 
-**It fails closed.** What the `l1-3` layout gives it no way to bind is reported in `unbound`, by class, and fails the run unless you accept that class with its flag:
+**It fails closed.** What it has no way to bind is reported in `unbound`, by class, and fails the run unless you accept that class with its flag. A whole set of `l1-4` bands needs none of them:
 
 | Class | Blocks | Accept with |
 | --- | --- | --- |
-| `pre20` | every block below the 2.0 fork (height 422,250). A pre-2.0 block's identity hash covers the full wallet list at its height, which no header or index carries, so it cannot be recomputed | `--allow-unbound` |
-| `txRootFormat1` | post-2.0 blocks holding a format-1 transaction with data. That transaction's `tx_root` leaf is the root of data the index does not store, so every field of every transaction in such a block is bound only by the sample. In the published bands this is 208,812 of 1,604,083 post-2.0 blocks, the last at height 1,999,999. [`index-l1-audit`](/build/run-a-gateway/manage/ar-io-node-cli#commands) checks a sample of them by fetching their data | `--allow-unverified-format1` |
+| `pre20` | blocks below the 2.0 fork that no witnessed fold binds: every one in a `core.db`, or in a band without witnesses (`l1-3`) | `--allow-unbound` |
+| `txRootFormat1` | blocks holding a format-1 transaction with data whose v1 data root no witness gives: every such post-2.0 block in a `core.db` or an `l1-3` band (none from height 2,000,000). Every field of every transaction in such a block is bound only by the sample; [`index-l1-audit`](/build/run-a-gateway/manage/ar-io-node-cli#commands) checks a sample of them by fetching their data | `--allow-unverified-format1` |
 | `incomplete` | blocks the index holds only part of: a link whose transaction it lacks, or a transaction whose owner's key it lacks. A publisher's tip band can be like this | `--allow-incomplete` |
 
-So for today's bands, every range below height 2,000,000 needs `--allow-unverified-format1` to pass, and a range that reaches below 422,250 needs `--allow-unbound` as well. Without `--anchor-from`, nothing outside the index vouches for it: the result says `anchored: false`, and the run fails unless `--allow-unanchored`. Every flag that accepted something is echoed in `accepted`, so a pass that rests on one says so; read `unbound` and `assurance` and accept a class only if a pass on those terms is enough for your use.
-
-For example, a `--bands-dir` run over heights 500,000 to 699,999 with `--anchor-from https://vilenarios.com,https://turbo-gateway.com --allow-unverified-format1` passed every check on 2026-10-23. Without `--allow-unverified-format1`, the same run failed on `unbound` alone (`txRootFormat1`: 51,314 blocks).
+`--allow-unbound` and `--allow-unverified-format1` accept such blocks of a `core.db` or of bands without witnesses, never an `l1-4` band's. Without `--anchor-from`, nothing outside the index vouches for it: the result says `anchored: false`, and the run fails unless `--allow-unanchored`. Every flag that accepted something is echoed in `accepted`, so a pass that rests on one says so; read `unbound` and `assurance` and accept a class only if a pass on those terms is enough for your use.
 
 ### The Checks
 
@@ -199,11 +216,14 @@ For example, a `--bands-dir` run over heights 500,000 to 699,999 with `--anchor-
 | `files` | Bands: every entry is a readable band holding exactly its layout's files |
 | `schema` | Bands: every Parquet file has exactly its layout's columns, in order, with its types |
 | `tables` | Bands: each table's rows are in the table's order, inside the band's heights, and digest to what `band.json` says |
-| `lookups` | Bands of `l1-3`: each lookup file is in key order and holds exactly the rows its tables give and its `band.json` describes |
+| `lookups` | Bands of `l1-3` and `l1-4`: each lookup file is in key order and holds exactly the rows its tables give and its `band.json` describes |
 | `contiguous`, `linked` | Every height once; each `previous_block` is the hash below |
-| `hash_list_merkle` | The recurrence in each era's form |
+| `hash_list_merkle` | The recurrence in each era's form; the 2.0 seed against the fold through 422,249; a witnessed fold against each pinned fold it reaches |
 | `block_size`, `weave_accounting` | Each block grew the weave by its `block_size`, and (below the offset where Arweave began padding data to a chunk) by its transactions' `data_size` |
-| `tx_root` | Recomputed from each post-2.0 block's transactions, with the 2.5 padding |
+| `tx_root` | Recomputed from each post-2.0 block's transactions, with the 2.5 padding and the witnessed v1 data roots; below the 2.0 fork, the transition `tx_root` from each block's transactions against its witness |
+| `witnesses` | Bands of `l1-4`: each witness file in its order, digesting to what `band.json` says, every row inside the band and well formed; each witnessed fold the fold of the block below and the block; no format-1 transaction with a `data_root` column set |
+| `hash_list_1_0` | Bands of `l1-4`: each pre-2.0 block's 2.0 hash recomputes from its fields, ids and transition `tx_root` to its witness, and their fold reaches the pinned fold of Arweave's `hash_list_1_0` |
+| `sample_blocks`, `sample_format1` | `--sample-blocks 0` with sources, or a range anchored by pinned folds with no sample at all; format-1 transactions with data from the 2.0 fork and none drawn. Each fails unless `--allow-unsampled` |
 | `nulls` | Every key and commitment column is set: a NULL is a failure, never read as zero. Also format 1 or 2, and no format 2 below the 2.0 fork |
 | `position`, `tx_count` | Each transaction sits at the link of its height and index, links run 0 to n-1, and `tx_count` is their number |
 | `tag_count`, `owners`, `wallets` | Tags match `tag_count` and run 0 to n-1; every transaction has an owner; every wallet key hashes to its address |
@@ -226,7 +246,8 @@ Every option and the full result are in the [CLI reference](https://github.com/a
 | many `unreadable` | not a fault of the index: every node said 404, so the data is gone network-wide. Seeding the missing chunks again, where the data still exists, makes them readable |
 | many `errors` | rerun; the nodes were busy. If a chunk keeps failing its proof, the nodes serving it are at fault, not the index |
 | `lookups` | the lookups are derived: rebuilding the band rewrites them |
-| `index-l1-verify`: `unbound` | the index holds blocks nothing binds (see [What It Cannot Bind](#what-it-cannot-bind-unbound)). Read `unbound` and `assurance`, and pass the class's `--allow-*` flag only if a pass on those terms is enough |
+| `index-l1-verify`: `unbound` | the index holds blocks nothing binds (see [What It Cannot Bind](#what-it-cannot-bind-unbound)). For `l1-3` bands, the fix is their `l1-4` versions, which a publisher on Release 87 adds in place. Until then, read `unbound` and `assurance`, and pass the class's `--allow-*` flag only if a pass on those terms is enough |
+| `index-l1-verify`: `witnesses` or `hash_list_1_0` | an `l1-4` band's witnesses are missing or do not reproduce what the chain or Arweave's checkpoint fixed. No `--allow-*` flag accepts that: as for `tables`, remove an installed copy and let the sidecar fetch it again, and tell the publisher if it recurs |
 | `index-l1-verify`: `anchor` | read `anchor.problems` for why it did not bind and `anchor.mismatches` for the fields where the index differs from the chain's header. Give sources that resolve to at least two distinct machines |
 | `index-l1-verify`: `sample` unreadable | too many draws went unanswered in a band. That is not evidence against the index: rerun |
 
