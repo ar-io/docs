@@ -195,9 +195,9 @@ curl -s https://turbo-gateway.com/ar-io/indexes \
 ```
 
 ```json
-{ "name": "root-tx-index", "kind": "cdb64-root-tx", "bands": 17 }
-{ "name": "parquet-l1", "kind": "parquet-l1", "bands": 25 }
-{ "name": "ardrive-l2", "kind": "parquet-l2", "bands": 25 }
+{ "name": "root-tx-index", "kind": "cdb64-root-tx", "bands": 18 }
+{ "name": "parquet-l1", "kind": "parquet-l1", "bands": 26 }
+{ "name": "ardrive-l2", "kind": "parquet-l2", "bands": 26 }
 ```
 
 `name` is the dataset you want; `kind` tells you how to read it. They are not the same thing: for `root-tx-index` they differ, and every `parquet-l2` index has its own name (here `ardrive-l2`, ArDrive's data items; see [L2 Datasets](#l2-datasets-parquet-l2)).
@@ -257,38 +257,54 @@ A key is a pointer: two values can share one, so always finish in the table the 
 
 <Callout type="info">
   **Release Requirement**: `parquet-l2` bands require gateway Release 85 or
-  later.
+  later. Layout `l2-2`, with the key lookup and stats files, requires
+  Release 86.
 </Callout>
 
-A `parquet-l2` dataset holds the ANS-104 data items of one **selection**: those carrying a tag with an exact name whose value starts with a prefix (and not with an optional longer prefix to exclude), compared as UTF-8 bytes. Each selection is its own index, published under its own name; the publication carries the selection as every band's `metadata.selection`, and a reader refuses an index whose bands disagree. turbo-gateway.com publishes `ardrive-l2`:
+A `parquet-l2` dataset holds the ANS-104 data items of one **selection**: those carrying a tag with an exact name whose value starts with a prefix (and not with an optional longer prefix to exclude), compared as UTF-8 bytes. Each selection is its own index, published under its own name; the publication carries the selection as every band's `metadata.selection`, and a reader refuses an index whose bands disagree. Any app's tag makes a selection. turbo-gateway.com publishes one today, `ardrive-l2`, ArDrive's data items:
 
 ```json
 { "kind": "ans104-data-items", "tag": { "name": "App-Name", "valuePrefix": "ArDrive", "excludeValuePrefix": "ArDriver" } }
 ```
 
-Bands cover the same fixed height ranges as `parquet-l1` bands, and an item's `height` is its **root transaction's**, so an L2 band lies over the L1 band of the same heights and the two join on `height`. Layout `l2-1`:
+The name is a convention (`<app>-l2`), not a promise: to find the index that holds an app's items, match the selection in the bands' `metadata`, not the name.
+
+Bands cover the same fixed height ranges as `parquet-l1` bands, and an item's `height` is its **root transaction's**, so an L2 band lies over the L1 band of the same heights and the two join on `height`. Every band built from Release 86 is layout `l2-2` (the `schema` in a band's `metadata` and `band.json`); a reader accepts `l2-1` too, which lacks the last two files:
 
 | File | One row per | Key columns |
 | --- | --- | --- |
-| `data_items.parquet` | place an item sits in its root transaction (a few items sit in two) | `id`, `height`, `block_transaction_index`, `root_transaction_id`, `parent_id`, `owner_address`, `target`, `data_size`, `content_type`, `content_encoding`, `tag_count`, and its location: `root_parent_offset`, `offset`, `size`, `data_offset`, … (all set, or all null for an item known to be in its root but not where) |
+| `data_items.parquet` | place an item sits in its root transaction (a few items sit in two) | `id`, `height`, `block_transaction_index`, `root_transaction_id`, `parent_id`, `owner_address`, `target`, `anchor`, `signature_type`, `data_size`, `content_type`, `content_encoding`, `tag_count`, and its location: `root_parent_offset`, `offset`, `size`, `data_offset`, … (all set, or all null for an item known to be in its root but not where) |
 | `tags.parquet` | tag, names and values in plaintext | `id`, `height`, `tag_index`, `tag_name`, `tag_value` |
 | `wallets.parquet` | owner | `address`, `public_modulus` |
 | `parents.parquet` | nested bundle between a held item and its root | `id`, `root_transaction_id`, `root_parent_offset`, `offset`, `size` |
 | `lookup_id.parquet`, `lookup_wallet.parquet`, `lookup_tag.parquet` | as an L1 band's [lookup files](#lookup-files), one row per distinct item and height | `id8`; `addr8`, `role`; `name8`, `val8`, `txs`, `first_height`, `last_height` |
+| `lookup_key.parquet` (`l2-2`) | value of a **key tag** and height at which items carry it | `name8`, `val8`, `height`, `items` |
+| `stats.parquet` (`l2-2`) | 1,000 heights, in all and per value of each **stat tag** | `bucket`, `name`, `value`, `items`, `bytes` |
 
-Everything said about L1 bands holds here: raw bytes for ids, addresses, names and values; the same `prefix64` and `sha256_64` keys; the same range reads. `GROUP BY id, height` when counting items from `data_items`, since it holds a row per place. The tag lookup turns an app's own ids into cheap questions. For an ArDrive drive:
+The key tags and stat tags are chosen per index by the publisher and listed in each band's `band.json` (`keyTags`, `statTags`); they are not part of a band's id. For `ardrive-l2` the key tags are `Drive-Id`, `File-Id`, `Folder-Id` and `Parent-Folder-Id`, and the stat tags `App-Name`, `Content-Type` and `Entity-Type`. Use `lookup_key` when the band lists the tag you need, and fall back to `lookup_tag` otherwise.
+
+Everything said about L1 bands holds here: raw bytes for ids, addresses, names and values; the same `prefix64` and `sha256_64` keys; the same range reads. `GROUP BY id, height` when counting items from `data_items`, since it holds a row per place. The key lookup turns an app's own ids into cheap questions. For an ArDrive drive:
 
 ```sql
--- how many records a drive has, and the heights to read (one row group or two per band)
-SELECT sum(txs) AS records, min(first_height) AS lo, max(last_height) AS hi
-FROM read_parquet([<every band's lookup_tag.parquet>])
+-- the heights holding one drive's records, however spread: a row group or two per band
+SELECT height, items
+FROM read_parquet([<every band's lookup_key.parquet>])
 WHERE name8 = ('0x' || left(sha256('Drive-Id'::BLOB), 16))::UBIGINT
-  AND val8  = ('0x' || left(sha256(:drive::BLOB), 16))::UBIGINT
-  AND name = 'Drive-Id'::BLOB AND value = :drive::BLOB;
+  AND val8  = ('0x' || left(sha256(:drive::BLOB), 16))::UBIGINT;
 
 -- then only the tags at those heights
-SELECT id, tag_name, tag_value FROM read_parquet([<the bands' tags.parquet in that range>])
-WHERE height BETWEEN :lo AND :hi AND tag_name = 'Drive-Id'::BLOB AND tag_value = :drive::BLOB;
+SELECT id, tag_name, tag_value FROM read_parquet([<the bands' tags.parquet at those heights>])
+WHERE height IN (<those heights>) AND tag_name = 'Drive-Id'::BLOB AND tag_value = :drive::BLOB;
+```
+
+`lookup_key` keys only: confirm the value in `lookup_tag` (`name`, `value`) or in the `tags` rows you read, since two values can share a key. On an `l2-1` band, `lookup_tag` gives the first and last height instead, and a drive active for a year costs every `tags` row group between them. A question over the whole index is answered from the stats files alone:
+
+```sql
+-- items and bytes by app, over all history
+SELECT CAST(value AS VARCHAR) AS app, sum(items) AS items, sum(bytes) AS bytes
+FROM read_parquet([<every band's stats.parquet>])
+WHERE name = 'App-Name'::BLOB
+GROUP BY 1 ORDER BY bytes DESC;
 ```
 
 What the items *mean* is the app's: `ardrive-l2` is read as [ArFS](/build/advanced/arfs) by pivoting each item's `Entity-Type`, `Drive-Id`, `Folder-Id`, `File-Id` and `Parent-Folder-Id` tags into one row per record. Another app publishes another selection and reads its own tags the same way. A gateway operator adds an index with one line of configuration: [Publish an L2 Index](/build/run-a-gateway/manage/index-sharing#publish-an-l2-index-parquet-l2).
@@ -432,7 +448,19 @@ Querying over HTTP means trusting the server for the bytes it streams you. If th
 - Every band file has a signed SHA-256 in the publication, so a local copy is checkable.
 - `Repr-Digest` is co-signable, so even a `206` carries a signature over the digest of the whole file it came from. A client can confirm which file it is reading bytes out of without fetching all of it.
 
-A `parquet-l1` dataset is also checkable against Arweave itself, independently of the publisher: block linkage, `hash_list_merkle`, `tx_root` and weave accounting can all be recomputed from the rows. In a gateway checkout, `./tools/ar-io-node index-l1-verify --bands-dir` (Release 85 or later) does that over a local copy. A `parquet-l2` dataset is checked the same way by `index-l2-verify`, down to a sample of item locations read from Arweave nodes. [Verifying Shared Indexes](/build/advanced/index-verification) covers both.
+A `parquet-l1` dataset is also checkable against Arweave itself, independently of the publisher: block linkage, `hash_list_merkle`, `tx_root` and weave accounting can all be recomputed from the rows. In a gateway checkout, `./tools/ar-io-node index-l1-verify --bands-dir` (Release 85 or later) does that over a local copy. A `parquet-l2` dataset is checked the same way by `index-l2-verify` (Release 86 or later), down to a sample of item locations read from Arweave nodes. [Verifying Shared Indexes](/build/advanced/index-verification) covers both.
+
+### Readers You Can Use or Copy
+
+[ar-io/index-explorers](https://github.com/ar-io/index-explorers) holds three pages that read these publications in the browser, verifying every byte before it is used, and the TypeScript library under them, `@ar-io/index-client` (in that repository; not published to npm). The library checks a publication's signature against the registry through a second gateway, reads band files in byte ranges checked against each band's BitTorrent v2 hash tree, and queries them with a pinned DuckDB-WASM:
+
+| Page | Reads | Repository path |
+| --- | --- | --- |
+| [explore_ardrive.ar.io](https://explore_ardrive.ar.io) | `ardrive-l2`, as drives, folders and files, with SQL over all of it | `apps/ardrive-explorer` |
+| [arweave-l1-search.ar.io](https://arweave-l1-search.ar.io) | `parquet-l1`: SQL, and lookups of a transaction, block or wallet | `apps/arweave-l1-explorer` |
+| [cdb64.ar.io](https://cdb64.ar.io) | every index a gateway publishes, and a `root-tx-index` lookup | `apps/network-index` |
+
+ArDrive is the worked example, not a special case: `parquet-l2` reading is generic, and the ArDrive layer is a thin one over it. To build a page for another app's selection, follow the repository's [`docs/new-l2-index.md`](https://github.com/ar-io/index-explorers/blob/main/docs/new-l2-index.md).
 
 ### Metering
 
