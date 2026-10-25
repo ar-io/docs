@@ -232,6 +232,25 @@ On a new gateway, run it before the first start, without `--restart` (on a gatew
 
 Taking `parquet-l1` off the subscription retires its bands. History already filled from them stays in `core.db`.
 
+### Take L2 Bands (`parquet-l2`)
+
+<Callout type="info">
+  **Release Requirement**: L2 bands require Release 85 or later on your
+  gateway and on the publisher. Bands of layout `l2-2`, which
+  turbo-gateway.com publishes, require Release 86 on your gateway: an older
+  sidecar refuses them and keeps the copies it has.
+</Callout>
+
+A publisher can also offer **L2 indexes**: the ANS-104 data items of one app, chosen by a **selection** (a tag name and a value prefix), in Parquet on the same height ranges as L1 bands, with their tags, owners, locations and lookup files. Each selection is its own index under its own name. turbo-gateway.com publishes `ardrive-l2`, the items whose `App-Name` starts with `ArDrive` but not `ArDriver`: ArDrive is one example, and any app's tag can be a selection. Your gateway doesn't read them yet; they are for analytics and for apps that read an index in the browser or a script. See [L2 Datasets](/build/advanced/index-publications#l2-datasets-parquet-l2).
+
+A subscription takes an L2 index only when it names it. There is no setup-script flag; add the name to the subscription's `name` list in `.env` and restart the sidecar:
+
+```bash
+INDEX_SWARM_SUBSCRIBE='[{"publisher":"34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7h5","name":["root-tx-index","ardrive-l2"]}]'
+```
+
+The sidecar checks each band's files, footers, row counts and selection against the signed publication and installs it under `data/indexes/installed/<name>/`. Every band of an index must declare the same selection; a band or an index `filter` that disagrees is refused whole. Taking an index off `name` retires its bands. To check an installed index row by row, and a sample of its locations against Arweave nodes, run `index-l2-verify` (Release 86): see [Verifying Shared Indexes](/build/advanced/index-verification).
+
 ## Publish Your Indexes
 
 Any registered gateway can publish. Other gateways then find it in the registry and subscribe by its wallet.
@@ -242,7 +261,7 @@ Publishing is for gateways that unbundle, so their index holds data items to bui
 
 - A gateway **registered** in the gateway registry, reachable at its registered URL, on Release 84 or later. The routes that serve bands live in the gateway, not the sidecar
 - Its registered **observer key**, which signs what it publishes
-- For `index-export`: Release 85, and a gateway that unbundles (`ANS104_UNBUNDLE_FILTER`)
+- For `index-export`: Release 85, and a gateway that unbundles (`ANS104_UNBUNDLE_FILTER`); for L2 indexes, into ClickHouse
 - For BitTorrent: the peer port open, and this node's public IP. Peers announce to your tracker through your gateway's HTTPS, which needs the Envoy image from Release 85 or later. See [Ports](#ports)
 
 <Steps>
@@ -442,6 +461,44 @@ docker compose --profile index-export run --rm -T index-export --once > run.json
 ```
 
 The report lists each band under `l1Witnessed`, and `index_export_runs_total{kind="witness"}` counts them: `published` when added, `skipped` (`witnesses_unavailable`) when the inputs lack what the band needs, and `couldnt_check` when an input contradicts the chain. Upgrade in the same order as for `l1-3`: subscribers first, then your `index-swarm` with or before your `index-export`, since a sidecar that doesn't know `l1-4` can't read the band.
+
+### Publish an L2 Index (`parquet-l2`)
+
+<Callout type="info">
+  **Release Requirement**: L2 bands require Release 85 or later, and a
+  gateway that unbundles into ClickHouse. `keyTags`, `statTags` and layout
+  `l2-2` require Release 86.
+</Callout>
+
+An **L2 index** is the data items one app uploads, chosen by a **selection**: a tag name, a value prefix, and optionally a longer prefix to leave out. An item is in it when one of its tags has that exact name and its value starts with the prefix, compared as UTF-8 bytes. `index-export` reads the items from your ClickHouse (`CLICKHOUSE_URL` and `CLICKHOUSE_USER`, or a peer's with `INDEX_EXPORT_L2_SOURCE`), places each at its root transaction's height, reads owners' keys and settles ambiguous locations through `INDEX_EXPORT_HEADER_CHECK_URL`, and writes bands on the same fixed ranges as L1 bands. Add the kind, the selections and the sidecar entries to `.env`:
+
+```bash
+INDEX_EXPORT_KINDS=root-tx-index,parquet-l1,parquet-l2
+INDEX_EXPORT_L2_INDEXES='[{"name":"ardrive-l2","selection":{"kind":"ans104-data-items","tag":{"name":"App-Name","valuePrefix":"ArDrive","excludeValuePrefix":"ArDriver"}},"keyTags":["Drive-Id","Parent-Folder-Id","Folder-Id","File-Id"],"statTags":["App-Name","Content-Type","Entity-Type"]}]'
+INDEX_SWARM_PUBLISH='[{"name":"root-tx-index","kind":"cdb64-root-tx"},{"name":"parquet-l1","kind":"parquet-l1"},{"name":"ardrive-l2","kind":"parquet-l2"}]'
+```
+
+Each entry in `INDEX_EXPORT_L2_INDEXES` is one index, published under `data/indexes/published/<name>/`; the name matches `[a-z0-9-]{1,64}` and is by convention `<app>-l2`. A selection is part of every band's id, so it never changes: to index something else, add a new entry under a new name. The example above is the index turbo-gateway.com publishes; any app's tag works the same way, for example `{"name":"Protocol","valuePrefix":"MyProtocol"}`. To read an index you publish in the browser, [ar-io/index-explorers](https://github.com/ar-io/index-explorers) has a verifying client and a recipe for a new selection's page, [`docs/new-l2-index.md`](https://github.com/ar-io/index-explorers/blob/main/docs/new-l2-index.md).
+
+`keyTags` and `statTags` (optional, at most 16 tag names each, none unless given) name the tags each band's key lookup and stats are derived for: the tags readers look values up by, such as a drive or folder id, and the tags worth counting items and bytes by. They are not part of a band's id, so changing them later rewrites only those two files in every published band, in place.
+
+From Release 86, bands are layout `l2-2`: `data_items`, `tags`, `wallets` and `parents` tables, the three [lookup files](/build/advanced/index-publications#lookup-files) an L1 band has, and `lookup_key.parquet` and `stats.parquet` ([L2 Datasets](/build/advanced/index-publications#l2-datasets-parquet-l2)). Before a band publishes, every table is read back against its row digest, the lookups are derived again from the tables, every owner key is checked against its address, and a sample of items is read through `INDEX_EXPORT_HEADER_CHECK_URL` at their recorded locations. A band that fails is left for the next run, and `./tools/index-swarm-status` shows why.
+
+<Callout type="warning" title="Upgrade subscribers before publishing l2-2">
+  On Release 86, `index-export` upgrades every published `l2-1` band to
+  `l2-2` in place, under the same id, at the start of each run. A
+  subscriber still on Release 85 refuses an `l2-2` band and keeps its copy,
+  and a Release 85 `index-swarm` can't publish one. Upgrade subscribers
+  first, then your `index-swarm` with or before your `index-export`.
+</Callout>
+
+Dry-run one band first, to see its rows, where its positions came from and the header check's result:
+
+```bash
+docker compose --profile index-export run --rm -T index-export --once --dry-run --range 1300000-1399999 > ardrive-l2.json
+```
+
+A first build over a long history can take days: each run starts frozen bands for `INDEX_EXPORT_L2_RUN_BUDGET_MINUTES` (240 by default) and the next carries on. Alarm on `index_export_last_success_timestamp_seconds{index="<name>",kind="tip"}`. Memory, disk and the remaining `INDEX_EXPORT_L2_*` settings are under [Building Bands](/build/run-a-gateway/manage/environment-variables#building-bands-release-85); the [`index-export` reference](https://github.com/ar-io/ar-io-node/blob/develop/docs/index-export.md#l2-bands) covers where rows come from, the checks and the lifecycle in full.
 
 ### By Hand
 
