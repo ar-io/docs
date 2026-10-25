@@ -219,6 +219,15 @@ A subscription takes L1 bands only when it names them. Add `--l1` to the setup s
 
 It adds `parquet-l1` to the subscription's `name` list and sets `L1_BAND_IMPORT_ENABLED=true`, so your gateway fills its L1 history from the bands while it runs, and restarts core. The whole chain is 24 L1 bands, about 15 GB more disk. They share `INDEX_SWARM_MAX_DISK_BYTES` with root-TX bands, so the script also sets the budget to 100 GiB if it is unset, and warns if yours is lower.
 
+The gateway verifies every band before it writes a row of it, anchoring and sampling against `L1_BAND_IMPORT_SAMPLE_FROM` (by default the trusted node and the trusted gateways not marked `trusted: false`). From Release 87, `l1-4` bands carry [witness files](/build/advanced/index-verification#witness-files-l1-4) that bind every block from genesis, so the whole chain fills with nothing more to set. See [Verified Before It Is Written](/build/run-a-gateway/manage/index-snapshots#verified-before-it-is-written).
+
+<Callout type="warning" title="Upgrade to Release 87 to take l1-4 bands">
+  A gateway still on Release 86 that subscribes to `parquet-l1` keeps the
+  `l1-3` copies it has installed, but refuses each band its publisher
+  upgrades to `l1-4`, and tries it again every poll, until it runs Release
+  87. If you subscribe to L1 bands, upgrade.
+</Callout>
+
 On a new gateway, run it before the first start, without `--restart` (on a gateway that isn't running, `--restart` would start core and the sidecar alone), then start the gateway as usual, and leave `START_HEIGHT` unset: with an empty `core.db`, the gateway then follows the chain tip from the start, and the history beneath arrives as the bands do. On a gateway that already runs, it fills whatever is missing beneath what the gateway indexed itself.
 
 Taking `parquet-l1` off the subscription retires its bands. History already filled from them stays in `core.db`.
@@ -398,13 +407,41 @@ INDEX_EXPORT_KINDS=root-tx-index,parquet-l1
 INDEX_SWARM_PUBLISH='[{"name":"root-tx-index","kind":"cdb64-root-tx"},{"name":"parquet-l1","kind":"parquet-l1"}]'
 ```
 
-The sidecar entry is needed too: the sidecar retires each superseded tip band, so without it `published/parquet-l1/` keeps every one. The chain is cut into the same fixed ranges by every publisher: a band per 100,000 heights, a band per 5,000 heights inside the newest range, and a tip band rebuilt each run. Bands are layout `l1-3`, with [lookup files](/build/advanced/index-publications#lookup-files).
+The sidecar entry is needed too: the sidecar retires each superseded tip band, so without it `published/parquet-l1/` keeps every one. The chain is cut into the same fixed ranges by every publisher: a band per 100,000 heights, a band per 5,000 heights inside the newest range, and a tip band rebuilt each run. Bands are layout `l1-3`, with [lookup files](/build/advanced/index-publications#lookup-files), and from Release 87 layout `l1-4`, which adds witness files, wherever the witnesses can be had (below).
 
 The first build of the whole chain takes many hours and reads all of `core.db` once, so start it off-peak. A run starts no new band after `INDEX_EXPORT_L1_RUN_BUDGET_MINUTES` (240 by default), and the next run carries on 15 minutes later. Dry-run it first, capped with `--to`:
 
 ```bash
 docker compose --profile index-export run --rm -T index-export --once --dry-run --to 600000 > plan.json
 ```
+
+#### Add Witnesses (Release 87)
+
+[Witness files](/build/advanced/index-verification#witness-files-l1-4) are what let a subscriber verify and import every block, from genesis, with no `--allow-*` flag. `index-export` builds them for new bands, and adds them to the `l1-3` bands you have already published in place, so those bands keep their ids and subscribers fetch only the new files. It needs inputs for that, set in `.env`:
+
+| Variable | What it gives |
+| --- | --- |
+| `INDEX_EXPORT_L1_WITNESS_DIR` | A directory, as the container sees it, holding v1 data roots in `roots-*.jsonl` files (lines `{"h": <height>, "id": "<base64url>", "root": "<base64url>"}`), Arweave's 2.0 checkpoint as `fork_2_0_checkpoint`, and optionally Arweave's `hash_list_1_0`. In a clone of the Arweave repository, `git show d43ba2b9^:apps/arweave/priv/fork_2_0_checkpoint` prints the checkpoint; it is refused unless its SHA-256 is Arweave's |
+| `INDEX_EXPORT_L1_WITNESS_NODES` | Comma-separated Arweave nodes (`http://host:1984`), asked for what the directory lacks: a format-1 transaction's last chunk, its data where a block's roots don't reproduce its `tx_root`, and `/block_index` from height 400,000 to the 2.0 fork |
+
+For example, with the directory at `data/indexes/l1-witness` on the host, which `index-export` sees under `/app/data/indexes`:
+
+```bash
+INDEX_EXPORT_L1_WITNESS_DIR=/app/data/indexes/l1-witness
+INDEX_EXPORT_L1_WITNESS_NODES=http://<arweave node one>:1984,http://<arweave node two>:1984
+```
+
+The inputs are untrusted. A root is kept only when its block's `tx_root` recomputes with it, a transition `tx_root` only when the 2.0 seed fold reaches the pinned one, and a 2.0 hash only when their fold reaches the pinned fold of `hash_list_1_0`. Then the band with its witnesses is judged whole by the same code every consumer runs (`index-l1-verify --bands-dir`), and must pass with no block left unbound, before anything is published. A band that can't get every witness (a transaction whose data no node serves, say) stays `l1-3`. Without either variable, only bands that need no input (no format-1 data, no height below the 2.0 fork) get witnesses.
+
+**Pass both variables to `index-export`.** Compose hands a service only the variables its `docker-compose.yaml` entry lists, so a compose file older than Release 87 silently drops them, and nothing gains witnesses. Check that your `docker-compose.yaml` lists `INDEX_EXPORT_L1_WITNESS_DIR` and `INDEX_EXPORT_L1_WITNESS_NODES` under `index-export`.
+
+The daily run adds witnesses, before its builds and after them. To add them now, run it once:
+
+```bash
+docker compose --profile index-export run --rm -T index-export --once > run.json
+```
+
+The report lists each band under `l1Witnessed`, and `index_export_runs_total{kind="witness"}` counts them: `published` when added, `skipped` (`witnesses_unavailable`) when the inputs lack what the band needs, and `couldnt_check` when an input contradicts the chain. Upgrade in the same order as for `l1-3`: subscribers first, then your `index-swarm` with or before your `index-export`, since a sidecar that doesn't know `l1-4` can't read the band.
 
 ### By Hand
 
@@ -484,6 +521,8 @@ INDEX_SWARM_SUBSCRIBE='[{"publisher":"34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7
 INDEX_SWARM_MAX_DISK_BYTES=107374182400   # 100 GiB
 L1_BAND_IMPORT_ENABLED=true
 ```
+
+`L1_BAND_IMPORT_SAMPLE_FROM` (Release 86) sets the sources the fill anchors and samples against. See [Verified Before It Is Written](/build/run-a-gateway/manage/index-snapshots#verified-before-it-is-written).
 
 Then restart by service name, with the same `-f` files your gateway was started with:
 
