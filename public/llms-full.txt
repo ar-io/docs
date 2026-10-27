@@ -3182,16 +3182,23 @@ Every band in the feed is added at once. qBittorrent downloads them all together
 
 **Where the bytes come from.** The `.torrent` a gateway serves names that gateway as a WebSeed, so your client can finish a band even with no seeders, as long as the gateway still offers the band. The client uses the WebSeed alongside peers from the start, not only when they stall, so expect a good share of each band to come over HTTPS from the gateway, through its rate limits and x402 if it meters. Past its allowance, your client is answered `429` or `402`, backs off the WebSeed, and goes on with peers. Either way, the client checks every piece against the torrent's hashes.
 
-**Keeping up.** Bands are replaced: the tip band is rebuilt each day, and a finished range of heights replaces the smaller bands beneath it. Your client keeps old folders beside new ones. For L1 bands, delete a folder whose `heightRange` lies inside another folder's, and of two with the same `heightRange`, keep the later layout (`schema`). Root-TX bands overlap by design, so this doesn't apply to them. A band that leaves the feed before your client has it is gone: remove that torrent, since its replacement is in the feed. The feed isn't metered and asks to be polled at most every 30 minutes.
+**Keeping up.** Bands are replaced: the tip band is rebuilt each day, and a finished range of heights replaces the smaller bands beneath it. Your client keeps old folders beside new ones. For L1 bands, delete a folder whose `heightRange` lies inside another folder's, and of two with the same `heightRange`, keep the later layout (`schema`): a band that gains witnesses in place is offered again as a new torrent, and its `l1-4` folder replaces the `l1-3` one. Root-TX bands overlap by design, so this doesn't apply to them. A band that leaves the feed before your client has it is gone: remove that torrent, since its replacement is in the feed. The feed isn't metered and asks to be polled at most every 30 minutes.
 
-The feed is a view of the signed publication, not a second authority. Check what you downloaded as below. For L1 bands, once you have dropped the replaced folders as above, `index-l1-verify` also checks that they form one consistent chain (block links, `hash_list_merkle`, `tx_root`), with only Docker and a core image from Release 85 or later. Add `--anchor-from` with independent Arweave nodes to tie the top of that chain to block hashes they agree on:
+The feed is a view of the signed publication, not a second authority. Check what you downloaded as below.
+
+### Check L1 Bands Against the Chain
+
+For L1 bands, once you have dropped the replaced folders as above, `index-l1-verify` also checks them against the chain, with only Docker and a core image. First rename each folder to its band id (the feed item's `ario:band`): a band's name is its identity, and from Release 86 `index-l1-verify` (and the importer) fail a folder not named for what it holds. Then run it over the folder:
 
 ```bash
-IMAGE=ghcr.io/ar-io/ar-io-core:latest   # Release 85 or later
+IMAGE=ghcr.io/ar-io/ar-io-core:latest   # Release 87 or later
 docker run --rm -u "$(id -u):$(id -g)" -v "$HOME/arweave-l1:/bands:ro" \
   -w /app --entrypoint /nodejs/bin/node "$IMAGE" \
-  /app/dist/cli/cli.js index-l1-verify --bands-dir /bands
+  /app/dist/cli/cli.js index-l1-verify --bands-dir /bands \
+  --anchor-from https://,https://
 ```
+
+`--anchor-from` binds the bands to the chain, with sources that resolve to at least two distinct machines; without it the run says it is not anchored and fails unless `--allow-unanchored`. `l1-4` bands carry [witness files](/build/advanced/index-verification#witness-files-l1-4) that bind every block, so the whole chain, from genesis, verifies with no `--allow-*` flag (Release 87 or later). `--publication` binds the bands to what their publisher signed. A folder still on `l1-3` reports its blocks below the 2.0 fork, and those holding a format-1 transaction with data, as `unbound`, which fails the run; prefer its `l1-4` version from the feed. See [What `index-l1-verify` Checks](/build/advanced/index-verification#what-index-l1-verify-checks).
 
 ## Check the Download
 
@@ -3613,11 +3620,12 @@ curl -s https://turbo-gateway.com/ar-io/indexes \
 ```
 
 ```json
-{ "name": "root-tx-index", "kind": "cdb64-root-tx", "bands": 5 }
-{ "name": "parquet-l1", "kind": "parquet-l1", "bands": 24 }
+{ "name": "root-tx-index", "kind": "cdb64-root-tx", "bands": 18 }
+{ "name": "parquet-l1", "kind": "parquet-l1", "bands": 26 }
+{ "name": "ardrive-l2", "kind": "parquet-l2", "bands": 26 }
 ```
 
-`name` is the dataset you want; `kind` tells you how to read it. They are not the same thing, and for `root-tx-index` they differ.
+`name` is the dataset you want; `kind` tells you how to read it. They are not the same thing: for `root-tx-index` they differ, and every `parquet-l2` index has its own name (here `ardrive-l2`, ArDrive's data items; see [L2 Datasets](#l2-datasets-parquet-l2)).
 
 ### The Tables
 
@@ -3638,7 +3646,7 @@ IDs, addresses, hashes and tag names and values are stored as raw bytes (`BLOB`)
   **Release Requirement**: lookup files (layout `l1-3`) require Release 85 or
   later.
 
-From layout `l1-3` (the `schema` in a band's publication `metadata`, and in its `band.json`), a band also holds three lookup files. Parquet has no index, so finding one transaction otherwise means scanning every band's `id` column. A lookup file is derived from the band's tables and sorted by a key, in row groups of 16,384 rows. Parquet keeps each row group's min and max, so a reader holding a key reads the footer, then the one or two row groups that can hold it.
+From layout `l1-3` (the `schema` in a band's publication `metadata`, and in its `band.json`), a band also holds three lookup files, and `l1-4` keeps them. Parquet has no index, so finding one transaction otherwise means scanning every band's `id` column. A lookup file is derived from the band's tables and sorted by a key, in row groups of 16,384 rows. Parquet keeps each row group's min and max, so a reader holding a key reads the footer, then the one or two row groups that can hold it.
 
 | File | One row per | Columns |
 | --- | --- | --- |
@@ -3660,9 +3668,72 @@ The keys are unsigned 64-bit integers made one of two ways, which any client can
 
 A key is a pointer: two values can share one, so always finish in the table the key points into, as the examples below do. `data_size` and `txs` are carried so a wallet's bytes stored and a tag's count need no table read. A lookup file is listed and signed in the publication like any band file. In a gateway checkout, `./tools/ar-io-node index-l1-verify --bands-dir` (Release 85 or later) checks that it holds exactly what its band's tables give.
 
+### Witness Files
+
+  **Release Requirement**: witness files (layout `l1-4`) require Release 87
+  or later.
+
+From layout `l1-4`, a band also holds witness files: `witness_v1_data_roots.parquet` (the v1 data root of each format-1 transaction with data) and, in a band holding heights below the 2.0 fork (422,250), `witness_fork_2_0.parquet` (each pre-2.0 block's transition `tx_root`, the 2.0 seed fold through it, and its 2.0 hash). They hold what the chain committed to but no header carries, so a verifier can bind every block from genesis. They are untrusted: every witness is checked against the chain (and, for older header fields, Arweave's own checkpoint) before the band is published, and again by every verifier and importer that reads it. Like lookup files, they are not part of a band's id, so a publisher adds them to a published band in place. A query reading only the tables can ignore them. [Verifying Shared Indexes](/build/advanced/index-verification#witness-files-l1-4) explains what they bind.
+
   `parquet-l1` is the **base layer only**: Arweave transactions, not the data
-  items bundled inside them. For items inside bundles, use
-  [`root-tx-index`](#look-up-one-id) or the gateway's GraphQL.
+  items bundled inside them. For items inside bundles, use a
+  [`parquet-l2` dataset](#l2-datasets-parquet-l2) that covers the app,
+  [`root-tx-index`](#look-up-one-id) for one item's location, or the
+  gateway's GraphQL.
+
+### L2 Datasets (`parquet-l2`)
+
+  **Release Requirement**: `parquet-l2` bands require gateway Release 85 or
+  later. Layout `l2-2`, with the key lookup and stats files, requires
+  Release 86.
+
+A `parquet-l2` dataset holds the ANS-104 data items of one **selection**: those carrying a tag with an exact name whose value starts with a prefix (and not with an optional longer prefix to exclude), compared as UTF-8 bytes. Each selection is its own index, published under its own name; the publication carries the selection as every band's `metadata.selection`, and a reader refuses an index whose bands disagree. Any app's tag makes a selection. turbo-gateway.com publishes one today, `ardrive-l2`, ArDrive's data items:
+
+```json
+{ "kind": "ans104-data-items", "tag": { "name": "App-Name", "valuePrefix": "ArDrive", "excludeValuePrefix": "ArDriver" } }
+```
+
+The name is a convention (`-l2`), not a promise: to find the index that holds an app's items, match the selection in the bands' `metadata`, not the name.
+
+Bands cover the same fixed height ranges as `parquet-l1` bands, and an item's `height` is its **root transaction's**, so an L2 band lies over the L1 band of the same heights and the two join on `height`. Every band built from Release 86 is layout `l2-2` (the `schema` in a band's `metadata` and `band.json`); a reader accepts `l2-1` too, which lacks the last two files:
+
+| File | One row per | Key columns |
+| --- | --- | --- |
+| `data_items.parquet` | place an item sits in its root transaction (a few items sit in two) | `id`, `height`, `block_transaction_index`, `root_transaction_id`, `parent_id`, `owner_address`, `target`, `anchor`, `signature_type`, `data_size`, `content_type`, `content_encoding`, `tag_count`, and its location: `root_parent_offset`, `offset`, `size`, `data_offset`, … (all set, or all null for an item known to be in its root but not where) |
+| `tags.parquet` | tag, names and values in plaintext | `id`, `height`, `tag_index`, `tag_name`, `tag_value` |
+| `wallets.parquet` | owner | `address`, `public_modulus` |
+| `parents.parquet` | nested bundle between a held item and its root | `id`, `root_transaction_id`, `root_parent_offset`, `offset`, `size` |
+| `lookup_id.parquet`, `lookup_wallet.parquet`, `lookup_tag.parquet` | as an L1 band's [lookup files](#lookup-files), one row per distinct item and height | `id8`; `addr8`, `role`; `name8`, `val8`, `txs`, `first_height`, `last_height` |
+| `lookup_key.parquet` (`l2-2`) | value of a **key tag** and height at which items carry it | `name8`, `val8`, `height`, `items` |
+| `stats.parquet` (`l2-2`) | 1,000 heights, in all and per value of each **stat tag** | `bucket`, `name`, `value`, `items`, `bytes` |
+
+The key tags and stat tags are chosen per index by the publisher and listed in each band's `band.json` (`keyTags`, `statTags`); they are not part of a band's id. For `ardrive-l2` the key tags are `Drive-Id`, `File-Id`, `Folder-Id` and `Parent-Folder-Id`, and the stat tags `App-Name`, `Content-Type` and `Entity-Type`. Use `lookup_key` when the band lists the tag you need, and fall back to `lookup_tag` otherwise.
+
+Everything said about L1 bands holds here: raw bytes for ids, addresses, names and values; the same `prefix64` and `sha256_64` keys; the same range reads. `GROUP BY id, height` when counting items from `data_items`, since it holds a row per place. The key lookup turns an app's own ids into cheap questions. For an ArDrive drive:
+
+```sql
+-- the heights holding one drive's records, however spread: a row group or two per band
+SELECT height, items
+FROM read_parquet([])
+WHERE name8 = ('0x' || left(sha256('Drive-Id'::BLOB), 16))::UBIGINT
+  AND val8  = ('0x' || left(sha256(:drive::BLOB), 16))::UBIGINT;
+
+-- then only the tags at those heights
+SELECT id, tag_name, tag_value FROM read_parquet([])
+WHERE height IN () AND tag_name = 'Drive-Id'::BLOB AND tag_value = :drive::BLOB;
+```
+
+`lookup_key` keys only: confirm the value in `lookup_tag` (`name`, `value`) or in the `tags` rows you read, since two values can share a key. On an `l2-1` band, `lookup_tag` gives the first and last height instead, and a drive active for a year costs every `tags` row group between them. A question over the whole index is answered from the stats files alone:
+
+```sql
+-- items and bytes by app, over all history
+SELECT CAST(value AS VARCHAR) AS app, sum(items) AS items, sum(bytes) AS bytes
+FROM read_parquet([])
+WHERE name = 'App-Name'::BLOB
+GROUP BY 1 ORDER BY bytes DESC;
+```
+
+What the items *mean* is the app's: `ardrive-l2` is read as [ArFS](/build/advanced/arfs) by pivoting each item's `Entity-Type`, `Drive-Id`, `Folder-Id`, `File-Id` and `Parent-Folder-Id` tags into one row per record. Another app publishes another selection and reads its own tags the same way. A gateway operator adds an index with one line of configuration: [Publish an L2 Index](/build/run-a-gateway/manage/index-sharing#publish-an-l2-index-parquet-l2).
 
 ### Query It in Place, Downloading Nothing
 
@@ -3722,7 +3793,7 @@ GROUP BY 1 ORDER BY n DESC LIMIT 5;
 
 ### Find One Transaction
 
-  **Release Requirement**: this example needs `l1-3` bands, which require
+  **Release Requirement**: this example needs `l1-3` or `l1-4` bands, which require
   Release 85 or later.
 
 Point lookups are what a scan is bad at: finding one ID means reading every band's `id` column. The [lookup files](#lookup-files) turn it into two small reads, first the height from `lookup_tx_id`, then the rows at that height. This is a complete script:
@@ -3741,7 +3812,7 @@ CREATE TEMP TABLE bands AS
         FROM (SELECT unnest(indexes) AS ix
               FROM read_json(getvariable('gateway') || '/ar-io/indexes'))
         WHERE ix.name = 'parquet-l1');
-SET VARIABLE lookups = (SELECT list(dir || 'lookup_tx_id.parquet') FROM bands WHERE schema = 'l1-3');
+SET VARIABLE lookups = (SELECT list(dir || 'lookup_tx_id.parquet') FROM bands WHERE schema IN ('l1-3', 'l1-4'));
 SET VARIABLE txs = (SELECT list(dir || 'transactions.parquet') FROM bands);
 
 -- The ID as bytes, and its key: the first 8 bytes as an unsigned integer.
@@ -3799,7 +3870,19 @@ Querying over HTTP means trusting the server for the bytes it streams you. If th
 - Every band file has a signed SHA-256 in the publication, so a local copy is checkable.
 - `Repr-Digest` is co-signable, so even a `206` carries a signature over the digest of the whole file it came from. A client can confirm which file it is reading bytes out of without fetching all of it.
 
-A `parquet-l1` dataset is also checkable against Arweave itself, independently of the publisher: block linkage, `hash_list_merkle`, `tx_root` and weave accounting can all be recomputed from the rows. In a gateway checkout, `./tools/ar-io-node index-l1-verify --bands-dir` (Release 85 or later) does that over a local copy. A `parquet-l2` dataset is checked the same way by `index-l2-verify`, down to a sample of item locations read from Arweave nodes. [Verifying Shared Indexes](/build/advanced/index-verification) covers both.
+A `parquet-l1` dataset is also checkable against Arweave itself, independently of the publisher: block linkage, `hash_list_merkle`, `tx_root` and weave accounting can all be recomputed from the rows. In a gateway checkout, `./tools/ar-io-node index-l1-verify --bands-dir` (Release 85 or later) does that over a local copy. A `parquet-l2` dataset is checked the same way by `index-l2-verify` (Release 86 or later), down to a sample of item locations read from Arweave nodes. [Verifying Shared Indexes](/build/advanced/index-verification) covers both.
+
+### Readers You Can Use or Copy
+
+[ar-io/index-explorers](https://github.com/ar-io/index-explorers) holds three pages that read these publications in the browser, verifying every byte before it is used, and the TypeScript library under them, `@ar-io/index-client` (in that repository; not published to npm). The library checks a publication's signature against the registry through a second gateway, reads band files in byte ranges checked against each band's BitTorrent v2 hash tree, and queries them with a pinned DuckDB-WASM:
+
+| Page | Reads | Repository path |
+| --- | --- | --- |
+| [explore_ardrive.ar.io](https://explore_ardrive.ar.io) | `ardrive-l2`, as drives, folders and files, with SQL over all of it | `apps/ardrive-explorer` |
+| [arweave-l1-search.ar.io](https://arweave-l1-search.ar.io) | `parquet-l1`: SQL, and lookups of a transaction, block or wallet | `apps/arweave-l1-explorer` |
+| [cdb64.ar.io](https://cdb64.ar.io) | every index a gateway publishes, and a `root-tx-index` lookup | `apps/network-index` |
+
+ArDrive is the worked example, not a special case: `parquet-l2` reading is generic, and the ArDrive layer is a thin one over it. To build a page for another app's selection, follow the repository's [`docs/new-l2-index.md`](https://github.com/ar-io/index-explorers/blob/main/docs/new-l2-index.md).
 
 ### Metering
 
@@ -3817,8 +3900,9 @@ Both read a gateway's index, and they are good at different things.
 | Use | When |
 | --- | --- |
 | **GraphQL** | Anything that includes data items inside bundles; anything near the chain tip; filtering on several fields at once; a browser or a small client with no query engine |
-| **`parquet-l1`** | Counting, summing, grouping or joining over the whole base layer; bulk 
-GraphQL cannot aggregate: there is no `count` or `sum`, and a large result has to be paged. On an `l1-3` band, a point lookup is two small reads through the [lookup files](#lookup-files); on a band of an older layout, it is a scan of every band's `id` column. A published band set also lags the tip by its publishing cadence.
+| **`parquet-l1`** | Counting, summing, grouping or joining over the whole base layer; bulk | **`parquet-l2`** | The same questions over one app's data items inside bundles, when a publisher offers that app's selection: every record of an ArDrive drive, an app's uploads by wallet, tag values counted over all history, with every byte checkable against the signed publication |
+
+GraphQL cannot aggregate: there is no `count` or `sum`, and a large result has to be paged. On an `l1-3` or `l1-4` band, a point lookup is two small reads through the [lookup files](#lookup-files); on a band of an older layout, it is a scan of every band's `id` column. A published band set also lags the tip by its publishing cadence.
 
 # Verifying Shared Indexes (/build/advanced/index-verification)
 
@@ -3826,18 +3910,21 @@ A [signed publication](/build/advanced/index-publications#verify-it) proves who 
 
   **Release Requirement**: `index-l1-verify` and `index-band-verify` need
   gateway Release 85 or later. `index-l2-verify`, and reading roots from
-  Arweave nodes (`--arweave-nodes`), ship in the release after 85 and are on
-  `develop` today.
+  Arweave nodes (`--arweave-nodes`), need Release 86. Checking `l1-4` bands,
+  whose [witness files](#witness-files-l1-4) bind every block of the chain,
+  needs Release 87: with them a whole set of L1 bands verifies with no
+  `--allow-*` flag. See [What `index-l1-verify`
+  Checks](#what-index-l1-verify-checks).
 
 ## Which Check, for Which Index
 
 | Index | Holds | Check it with | Proves | Does not prove |
 | --- | --- | --- | --- | --- |
 | `root-tx-index` (CDB64) | each data item's root transaction and offsets | `index-band-verify` | sampled entries' headers sit at their recorded offsets, in their root transactions | entries not sampled; root-only entries' roots |
-| `parquet-l1` | blocks, L1 transactions, their tags and owners | `index-l1-verify`, then `index-l1-audit` | every block's place in the chain, against the weave size the chain commits to; every block's `tx_root` rebuilt from its transactions; the lookups. `index-l1-audit` closes the format-1 gap `tx_root` can't | that a transaction id is in the block (`tx_root` doesn't bind ids; the audit checks each format-1 id against its signature) |
+| `parquet-l1` | blocks, L1 transactions, their tags and owners | `index-l1-verify`, then `index-l1-audit` | with `--anchor-from`: the top block, its header recomputed and served by two machines, equals the index; from there, every post-2.0 block's hash, weave size and `tx_root` (through `hash_list_merkle`), its links and sizes, and its transactions' sizes and data roots (`tx_root` rebuilt, with an `l1-4` band's witnessed v1 data roots); with an `l1-4` band's witnesses, every pre-2.0 block's hash, weave size and transition `tx_root` (through the 2.0 seed fold, to a pinned fold or block 422,250's `hash_list_merkle`); every table, file and lookup against `band.json` (and, with `--publication`, against what the publisher signed); every row non-null, placed, counted and owned; a keyed sample of headers and signatures. `index-l1-audit` closes the format-1 gap `tx_root` can't | blocks it reports `unbound` (failing unless accepted): under `l1-3` (and with `--core-db`), every block below the 2.0 fork, and post-2.0 blocks holding a format-1 transaction with data; under `l1-4`, only blocks whose witness is missing; without `--anchor-from`, anything about the chain (it fails unless `--allow-unanchored`); transaction ids, their order, every transaction field and the block fields the recurrence doesn't carry, except for the share of forged rows `sample.detects` states |
 | `parquet-l2` (for example `ardrive-l2`) | the ANS-104 data items one selection takes, with tags, owners and locations | `index-l2-verify` | every band's id against its contents; the set has no overlaps or holes; every table row by row; every location's layout and parent link; the lookups; a sample of locations against the chain | that every item the selection should take is there (completeness is the publisher's to show, by rebuilding the band from its source) |
 
-Every command follows the [CLI contract](/build/run-a-gateway/manage/ar-io-node-cli#output): the result as JSON on stdout and exit `0`; on failure the full result on stderr and exit `1`. Every option is in the [`ar-io-node` CLI reference](https://github.com/ar-io/ar-io-node/blob/develop/docs/cli.md).
+Every command follows the [CLI contract](/build/run-a-gateway/manage/ar-io-node-cli#output): the result as JSON on stdout and exit `0`; on failure the full result on stderr and exit `1`. Every option is in the [`ar-io-node` CLI reference](https://github.com/ar-io/ar-io-node/blob/main/docs/cli.md).
 
 ## Run It
 
@@ -3864,7 +3951,30 @@ docker run --rm -u "$(id -u):$(id -g)" -v "$PWD/ardrive-l2:/bands:ro" \
   --publisher 34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7h5
 ```
 
-For L1 bands the command is `index-l1-verify --bands-dir`, as [Downloading Indexes with BitTorrent](/build/advanced/bittorrent-indexes#check-the-download) shows; for one root-TX band, `index-band-verify --band-dir  --arweave-nodes`.
+For L1 bands the command is `index-l1-verify`. It needs sources to anchor and sample against (`--anchor-from`, at least two distinct machines). `l1-4` bands carry [witness files](#witness-files-l1-4) that bind every block, so a whole set, from genesis to the tip, verifies with no `--allow-*` flag. `--publication` also binds the bands to what their publisher signed:
+
+```bash
+IMAGE=ghcr.io/ar-io/ar-io-core:latest   # Release 87 or later
+docker run --rm -u "$(id -u):$(id -g)" -v "$PWD/parquet-l1:/bands:ro" \
+  -w /app --entrypoint /nodejs/bin/node "$IMAGE" \
+  /app/dist/cli/cli.js index-l1-verify --bands-dir /bands \
+  --anchor-from https://,https:// \
+  --publication https:///ar-io/indexes \
+  --publisher-key 
+```
+
+`--from` and `--to` check part of the set. In a gateway checkout, check the installed bands, or the gateway's own `core.db`, with the wrapper:
+
+```bash
+./tools/ar-io-node index-l1-verify --bands-dir data/indexes/installed/parquet-l1 \
+  --anchor-from https://,https://
+
+./tools/ar-io-node index-l1-verify --core-db data/sqlite/core.db \
+  --anchor-from https://,https:// \
+  --allow-unbound --allow-unverified-format1
+```
+
+Only bands carry witnesses: a `core.db` holds none, so checking one reports its pre-2.0 blocks and its blocks holding a format-1 transaction with data as [`unbound`](#what-it-cannot-bind-unbound), and needs the two flags to pass. Each band's folder must be named by its band id: a folder a BitTorrent client named after its torrent fails `identity` until you rename it (see [Check L1 Bands Against the Chain](/build/advanced/bittorrent-indexes#check-l1-bands-against-the-chain)). For one root-TX band, the command is `index-band-verify --band-dir  --arweave-nodes`.
 
 ### Read the Result
 
@@ -3894,6 +4004,8 @@ For L1 bands the command is `index-l1-verify --bands-dir`, as [Downloading Index
 ```
 
 `ok` is the verdict. Each check lists its `failures`, and each failure names the band (its `found` starts with the band id) and the height it starts at. Keep the `seed`: `--seed ` draws the same sample again.
+
+`index-l1-verify` prints a different shape, the same with `--core-db` and `--bands-dir`: `ok`, `anchored` and the `anchor`, what is `unbound`, the `sample` (with `detects`, what a pass means), the checks it `skipped`, the gaps it `accepted`, and `assurance`, what binds what, in words. Its `checks` are a list, each with `name`, `ok` and `detail`, and a failing one carries `failures`. See [the result](https://github.com/ar-io/ar-io-node/blob/main/docs/cli.md#index-l1-verify-result) in the CLI reference.
 
 ## What `index-l2-verify` Checks
 
@@ -3933,6 +4045,84 @@ A 404 counts only when **every** node that answered said 404. One busy node amon
 
 The default pool is the nodes a gateway reads chunks from. Most of them hold a partition of the weave and answer 404 for most offsets; that is normal. Name your own with `--arweave-nodes http://a:1984,http://b:1984`. With `--gateway-url` instead, roots are read through that gateway's `/raw`: faster, but that gateway is trusted.
 
+## What `index-l1-verify` Checks
+
+`index-l1-verify` has two views of the same index. `--core-db` is the operator's: does this gateway's own database hold the chain? `--bands-dir` is the consumer's: a directory of bands, checked with no gateway and no database, so anyone deciding whether to install someone else's bands can check them before importing a byte. Given both, it checks `core.db`. It is read-only, so the gateway can stay up. Both views run the same judge over the same chain rules, and `index-l1-import` runs that judge too before it writes.
+
+### What Binds What
+
+An index agreeing with itself proves nothing: a fabricated chain built by Arweave's rules passes every self-check. Three things tie it to the real chain:
+
+- **The anchor** (`--anchor-from`). The block at the top of the range is fetched (`/block/height/N`) from every source given. At least `--anchor-min` distinct machines (default 2, and never fewer) must serve it, and names that resolve to a shared address count as one machine. Each header's identity hash is recomputed from its own fields, for every era from the 2.0 fork; every source that answered must give the same hash; and the index's row must equal the header field by field, with its transaction ids in block order. A header the command cannot recompute exactly is a failure, never a pass. Below the 2.0 fork no header recomputes, so a range ending at 422,249 is anchored at the fork block, whose `previous_block` binds it, and an `l1-4` range ending at a pinned height (99,999, 199,999, 299,999 or 399,999) is anchored by its [witnessed folds](#witness-files-l1-4) reaching the pins there (`anchor.pinned: true`, no header fetched). So pre-2.0 bands verify and import with no `--allow-unanchored`.
+- **The `hash_list_merkle` recurrence.** From the 2.0 fork, each block's `hash_list_merkle` folds the hash, weave size and `tx_root` of every block below it, so an anchored top binds those three for every post-2.0 block in the range. The links then bind each `previous_block`, the weave each `block_size`, and a recomputed `tx_root` each block's transactions' data sizes and data roots. Not their ids: `tx_root` drops them.
+- **The sample.** Nothing above binds transaction ids, their order, any other transaction field, or any other block field. Checking every one would mean fetching every header or every signature, so the command draws a keyed uniform sample from the `--anchor-from` sources: the headers of `--sample-blocks` blocks (default 1000), recomputed and compared field by field from the 2.0 fork, and below it **attested**: the header `--anchor-min` distinct machines serve alike, the sources' word rather than a proof (counted as `blocksAttested`, and what binds a pre-2.0 block's transaction order); `--sample-txs` transactions per band (default 1000), pre-2.0 included, each fetched and checked against its signature over the fields the index holds; and `--sample-format1` format-1 transactions with data per band (default 200) drawn from the 2.0 fork, which catches a format-2 transaction relabelled format 1, witnessed or not. `--sample-blocks 0` with sources, or no format-1 draw over such transactions (`--sample-format1 0`, or no `--anchor-from`), fails the run unless `--allow-unsampled`. `sample.detects` says what a pass means: the share of forged rows that would have been caught with 95% probability. A forgery confined to fewer rows may pass. `--seed` repeats a run.
+
+RSA signatures are verified exactly as Arweave verifies them, not by OpenSSL, which is stricter and rejects some real mined transactions. A recomputed header or a verifying signature decides on one source's word. A refutation on a source's word needs `--anchor-min` distinct machines saying so: a single lying source makes a draw unreadable, never a failure. More than 20% of any one kind of draw (blocks, transactions, format-1) unreadable in any one band fails the sample as unreadable.
+
+What two agreeing sources mean depends on who they are. Two ar.io gateways both route `/block/` to their operators' chosen Arweave nodes, so their agreement is those choices agreeing, not two independent nodes. A source that redirects is not followed. The result names each source and the address it was counted as.
+
+### Witness Files (`l1-4`)
+
+Two kinds of block can't be bound from a band's tables alone, because the chain committed to something no header carries:
+
+- **A block holding a format-1 transaction with data.** Its `tx_root` leaf is the root of that transaction's data, and a format-1 header carries no data root.
+- **A block below the 2.0 fork (height 422,250).** Its identity hash covers the full wallet list, which no header carries, so it can't be recomputed. Arweave's 2.0 fork bound these blocks another way, through the 2.0 seed of `hash_list_merkle`.
+
+From layout `l1-4` a band carries what is missing, as two witness files:
+
+| File | One row per | Gives |
+| --- | --- | --- |
+| `witness_v1_data_roots.parquet` | format-1 transaction with data (none from the 2.9.6 fork) | its v1 data root, as Arweave computes it |
+| `witness_fork_2_0.parquet` | height below 422,250 (only in a band holding such heights) | the block's transition `tx_root`, the 2.0 seed fold through it, and its "2.0 hash" |
+
+A witness is an untrusted value: whoever wrote it needs no trust, because the verifier recomputes everything it can from the band and checks the rest against hashes the chain fixes. A v1 data root is put into its block's recomputed `tx_root`, which must then equal the header's (below the 2.0 fork, the witnessed transition `tx_root`). Each transition `tx_root` is recomputed from the block's transactions. Each fold is recomputed from the one below and must reach block 422,250's `hash_list_merkle`, or a fold pinned in ar-io-node at heights 99,999, 199,999, 299,999, 399,999 and 422,249, recomputed by a test from Arweave's own 2.0 checkpoint. That binds each pre-2.0 block's hash, weave size and `tx_root` to the chain. Each block's 2.0 hash is recomputed from the band's own fields and transaction ids, and their fold must reach the pinned folds of Arweave's `genesis_data/hash_list_1_0`, the list Arweave checks every pre-2.0 header it syncs against. That binds the rest of a pre-2.0 header and its transaction ids to Arweave's checkpoint, not to a hash the chain's own blocks reach, and the result says so. A pre-2.0 block is bound only when both folds reach their pins.
+
+A wrong witness fails the check (`tx_root`, `hash_list_merkle`, `witnesses` or `hash_list_1_0`); it never falls back to `unbound`. An `l1-4` band holds every witness, and a block of it left unbound fails `witnesses`, whatever `--allow-*` flag is given. A band whose witnesses its publisher could not have or confirm in full is published as `l1-3` instead.
+
+Witnesses are not part of a band's id. A publisher adds them to a published `l1-3` band in place: only `band.json` and the new files change, the band keeps its id, and a subscriber that holds it fetches only those. Every witness is checked against the chain before the band is published, by the same code every verifier runs, and again by every `index-l1-verify` and import that reads it. The full format is in the [publication protocol](https://github.com/ar-io/ar-io-node/blob/main/docs/index-publication.md#witness-files).
+
+### What It Cannot Bind (`unbound`)
+
+**It fails closed.** What it has no way to bind is reported in `unbound`, by class, and fails the run unless you accept that class with its flag. A whole set of `l1-4` bands needs none of them:
+
+| Class | Blocks | Accept with |
+| --- | --- | --- |
+| `pre20` | blocks below the 2.0 fork that no witnessed fold binds: every one in a `core.db`, or in a band without witnesses (`l1-3`) | `--allow-unbound` |
+| `txRootFormat1` | blocks holding a format-1 transaction with data whose v1 data root no witness gives: every such post-2.0 block in a `core.db` or an `l1-3` band (none from height 2,000,000). Every field of every transaction in such a block is bound only by the sample; [`index-l1-audit`](/build/run-a-gateway/manage/ar-io-node-cli#commands) checks a sample of them by fetching their data | `--allow-unverified-format1` |
+| `incomplete` | blocks the index holds only part of: a link whose transaction it lacks, or a transaction whose owner's key it lacks. A publisher's tip band can be like this | `--allow-incomplete` |
+
+`--allow-unbound` and `--allow-unverified-format1` accept such blocks of a `core.db` or of bands without witnesses, never an `l1-4` band's. Without `--anchor-from`, nothing outside the index vouches for it: the result says `anchored: false`, and the run fails unless `--allow-unanchored`. Every flag that accepted something is echoed in `accepted`, so a pass that rests on one says so; read `unbound` and `assurance` and accept a class only if a pass on those terms is enough for your use.
+
+### The Checks
+
+| Check | |
+| --- | --- |
+| `identity` | Bands: each directory is named `l1-h---` in canonical decimals, its heights are its `band.json`'s, and its digest is its tables'; with `--publication`, its tag is the publisher's |
+| `coverage` | Bands: they cover every height asked for, each band whole |
+| `publication` | With `--publication`: every band is listed in the signed publication, every file with the size and SHA-256 signed, and every band it lists in the range is here |
+| `files` | Bands: every entry is a readable band holding exactly its layout's files |
+| `schema` | Bands: every Parquet file has exactly its layout's columns, in order, with its types |
+| `tables` | Bands: each table's rows are in the table's order, inside the band's heights, and digest to what `band.json` says |
+| `lookups` | Bands of `l1-3` and `l1-4`: each lookup file is in key order and holds exactly the rows its tables give and its `band.json` describes |
+| `contiguous`, `linked` | Every height once; each `previous_block` is the hash below |
+| `hash_list_merkle` | The recurrence in each era's form; the 2.0 seed against the fold through 422,249; a witnessed fold against each pinned fold it reaches |
+| `block_size`, `weave_accounting` | Each block grew the weave by its `block_size`, and (below the offset where Arweave began padding data to a chunk) by its transactions' `data_size` |
+| `tx_root` | Recomputed from each post-2.0 block's transactions, with the 2.5 padding and the witnessed v1 data roots; below the 2.0 fork, the transition `tx_root` from each block's transactions against its witness |
+| `witnesses` | Bands of `l1-4`: each witness file in its order, digesting to what `band.json` says, every row inside the band and well formed; each witnessed fold the fold of the block below and the block; no format-1 transaction with a `data_root` column set |
+| `hash_list_1_0` | Bands of `l1-4`: each pre-2.0 block's 2.0 hash recomputes from its fields, ids and transition `tx_root` to its witness, and their fold reaches the pinned fold of Arweave's `hash_list_1_0` |
+| `sample_blocks`, `sample_format1` | `--sample-blocks 0` with sources, or a range anchored by pinned folds with no sample at all; format-1 transactions with data from the 2.0 fork and none drawn. Each fails unless `--allow-unsampled` |
+| `nulls` | Every key and commitment column is set: a NULL is a failure, never read as zero. Also format 1 or 2, and no format 2 below the 2.0 fork |
+| `position`, `tx_count` | Each transaction sits at the link of its height and index, links run 0 to n-1, and `tx_count` is their number |
+| `tag_count`, `owners`, `wallets` | Tags match `tag_count` and run 0 to n-1; every transaction has an owner; every wallet key hashes to its address |
+| `rows` | No transaction or link at a height without a block, and none outside the index's blocks |
+| `anchor`, `sample`, `unbound` | As above |
+
+`--from` and `--to` set the heights to check (default: everything held). With `--bands-dir`, the directory is listed explicitly, never globbed: a folder without a readable `band.json` (a retired copy, or a stray directory) is ignored and listed in `ignored`, and two installed generations of one band with the same tables are read once. Bands only partly inside `--from`/`--to` are not checked and fail `coverage`. A set that overlaps or leaves a hole, or a `--bands-dir` that is missing or cannot be read, is refused outright. `--publication`, with `--publisher-key` or `--registry-url`, binds the bands to the publication their publisher signed; without it the result says `publisherBound: false`.
+
+The lookup check spills to the system temp directory (through `tools/ar-io-node`, `data/tmp/index-verify` on the node's data disk). The spill is capped at `--spill-max` (default 128GB) and at 80% of the space free there, and never goes into the last `--spill-reserve-gb` (default 100) of it. With no room under that, the run is refused before it starts, unless `--skip-lookups`.
+
+Every option and the full result are in the [CLI reference](https://github.com/ar-io/ar-io-node/blob/main/docs/cli.md#index-l1-verify).
+
 ## When a Check Fails
 
 | Found | Do |
@@ -3942,12 +4132,18 @@ The default pool is the nodes a gateway reads chunks from. Most of them hold a p
 | many `unreadable` | not a fault of the index: every node said 404, so the data is gone network-wide. Seeding the missing chunks again, where the data still exists, makes them readable |
 | many `errors` | rerun; the nodes were busy. If a chunk keeps failing its proof, the nodes serving it are at fault, not the index |
 | `lookups` | the lookups are derived: rebuilding the band rewrites them |
+| `index-l1-verify`: `unbound` | the index holds blocks nothing binds (see [What It Cannot Bind](#what-it-cannot-bind-unbound)). For `l1-3` bands, the fix is their `l1-4` versions, which a publisher on Release 87 adds in place. Until then, read `unbound` and `assurance`, and pass the class's `--allow-*` flag only if a pass on those terms is enough |
+| `index-l1-verify`: `witnesses` or `hash_list_1_0` | an `l1-4` band's witnesses are missing or do not reproduce what the chain or Arweave's checkpoint fixed. No `--allow-*` flag accepts that: as for `tables`, remove an installed copy and let the sidecar fetch it again, and tell the publisher if it recurs |
+| `index-l1-verify`: `anchor` | read `anchor.problems` for why it did not bind and `anchor.mismatches` for the fields where the index differs from the chain's header. Give sources that resolve to at least two distinct machines |
+| `index-l1-verify`: `sample` unreadable | too many draws went unanswered in a band. That is not evidence against the index: rerun |
+
+A sample mismatch on `reward_pool` between heights 585,633 and 633,719 is a known fault of indexes built before Release 86, not of the chain: before the 2.4 fork, headers write `reward_pool` as a bare JSON number, and from 585,633 it passes 2^53, so the block importer, parsing it as a JavaScript number, stored an odd value rounded to an even neighbour. Gateways that indexed those heights themselves, or imported L1 bands built from them, hold the rounded values. From Release 86 block headers are parsed with long integers kept exact.
 
 A band's id is a digest of its heights, selection and rows, so a publisher, or anyone with the same source data, can rebuild a band and compare ids: equal ids are equal rows. A source that has changed since (items backfilled, offsets repaired) gives a new id, which is what re-settling publishes; compare against the source as of the same time, or diff the rows.
 
 ## For Agents
 
-Run the command, read stdout (or stderr on exit `1`) as JSON, and act on `ok` and each check's `failures`. `unreadable` is never a fault of the index, and `errors` are never a verdict on it either way, so rerun before acting on them. Never treat a passing sample as proof of every row: the row-by-row checks are what cover every row.
+Run the command, read stdout (or stderr on exit `1`) as JSON, and act on `ok` and each check's `failures`. `unreadable` is never a fault of the index, and `errors` are never a verdict on it either way, so rerun before acting on them. Never treat a passing sample as proof of every row: the row-by-row checks are what cover every row. For `index-l1-verify`, also read `anchored`, `unbound`, `accepted` and `assurance`: a pass that rests on an accepted gap lists it in `accepted`.
 
 # Advanced (/build/advanced)
 
@@ -12731,10 +12927,10 @@ Read stdout and branch on the exit code; don't parse stderr for success. Band co
 | `index-band-build` | Builds one root-TX band from CSV records, checks a sample of its headers against their root transactions, and publishes it for the `index-swarm` sidecar |
 | `index-band-verify` | Runs that header check on any built or installed band. With `--arweave-nodes`, roots are read from Arweave nodes and every byte proven, so no gateway is trusted |
 | `index-band-export` | Writes one source's root-TX records for a height range as the CSV `index-band-build` reads. The source is this gateway's ClickHouse or SQLite, a peer's ClickHouse, or an overlay directory of CSV files |
-| `index-l1-import --fill` | Fills the gateway's `core.db` from installed `parquet-l1` bands while the gateway runs, writing only the heights missing beneath what it indexed itself. Core runs this by itself with `L1_BAND_IMPORT_ENABLED=true` |
+| `index-l1-import --fill` | Fills the gateway's `core.db` from installed `parquet-l1` bands while the gateway runs, writing only the heights missing beneath what it indexed itself. From Release 86, verifies every band before it writes a row of it; from Release 87, `l1-4` bands' witnesses let it fill the whole chain with no `--allow-*` flag. Core runs this by itself with `L1_BAND_IMPORT_ENABLED=true` |
 | `index-l1-import` | Without `--fill`, imports the bands with the gateway stopped. Faster, but only for a new `core.db` the gateway has never run on |
-| `index-l1-verify` | Checks an L1 index against what the chain commits to: a gateway's own `core.db` (`--core-db`), or a directory of bands with no gateway at all (`--bands-dir`). Read-only |
-| `index-l1-audit` | Checks the blocks `index-l1-verify` has to skip, those holding a format-1 transaction with data, by fetching a sample of that data and recomputing each block's `tx_root`. Read-only |
+| `index-l1-verify` | Checks an L1 index against the chain: a gateway's own `core.db` (`--core-db`), or a directory of bands with no gateway at all (`--bands-dir`). Read-only. From Release 86 it anchors the index's top block (`--anchor-from`), samples what nothing else binds, and fails closed: what it cannot bind fails the run unless an `--allow-*` flag accepts it. From Release 87 it reads `l1-4` bands, whose witness files bind every block, so a whole set passes with no such flag. See [Verifying Shared Indexes](/build/advanced/index-verification#what-index-l1-verify-checks) |
+| `index-l1-audit` | Checks the blocks `index-l1-verify` reports as `unbound.txRootFormat1` (in a `core.db` or an `l1-3` band), those holding a format-1 transaction with data, by fetching a sample of that data and recomputing each block's `tx_root`. Read-only |
 | `index-l2-verify` | Checks a `parquet-l2` index (a directory of bands, such as `ardrive-l2`) with no gateway: every band's id, every table row by row, every location and parent link, the lookups, and a sample of locations against Arweave nodes. Read-only. See [Verifying Shared Indexes](/build/advanced/index-verification) |
 | Any other command | Runs as the `ar.io` CLI of the `@ar.io/sdk` the gateway carries, with the same arguments, output and exit code. For example, `./tools/ar-io-node get-gateway --address ` |
 
@@ -12744,7 +12940,7 @@ For how these fit together, see [Bootstrap from L1 Bands](/build/run-a-gateway/m
 
 ## Full Reference
 
-Every option, the paths it mounts, and the JSON each command prints are in the [`ar-io-node` CLI reference](https://github.com/ar-io/ar-io-node/blob/develop/docs/cli.md).
+Every option, the paths it mounts, and the JSON each command prints are in the [`ar-io-node` CLI reference](https://github.com/ar-io/ar-io-node/blob/main/docs/cli.md).
 
 # CDB64 Root Transaction Index (/build/run-a-gateway/manage/cdb64)
 
@@ -13229,7 +13425,7 @@ Settings for the `index-swarm` sidecar, which subscribes to other gateways' inde
 
 | Variable | Type | Default | Description |
 | --- | --- | --- | --- |
-| `INDEX_SWARM_SUBSCRIBE` | JSON | Release 85: turbo-gateway.com's `root-tx-index` (wallet `34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7h5`); Release 84: unset | `[]` opts out. Publishers to subscribe to, by gateway wallet: `[{"publisher":"","name":"root-tx-index"}]`. `name` may be one index or a list. Without `name`, you take every index the publisher offers except opt-in kinds; from Release 85, `parquet-l1` is opt-in and must be named. An optional `url` fetches from another address, such as a fleet's signing node; the signature is still checked against the registered key. See [Take L1 Bands](/build/run-a-gateway/manage/index-sharing#take-l1-bands-parquet-l1) |
+| `INDEX_SWARM_SUBSCRIBE` | JSON | Release 85: turbo-gateway.com's `root-tx-index` (wallet `34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7h5`); Release 84: unset | `[]` opts out. Publishers to subscribe to, by gateway wallet: `[{"publisher":"","name":"root-tx-index"}]`. `name` may be one index or a list. Without `name`, you take every index the publisher offers except opt-in kinds; from Release 85, `parquet-l1` and every `parquet-l2` index are opt-in and must be named. An optional `url` fetches from another address, such as a fleet's signing node; the signature is still checked against the registered key. See [Take L1 Bands](/build/run-a-gateway/manage/index-sharing#take-l1-bands-parquet-l1) |
 | `INDEX_SWARM_PUBLISH` | JSON | unset | Indexes this gateway publishes: `[{"name":"root-tx-index","kind":"cdb64-root-tx"}]` |
 | `INDEX_SWARM_MAX_DISK_BYTES` | number | Release 85: 64 GiB with the default subscription, no ceiling with one you set; Release 84: unset (no ceiling; the setup script writes 50 GiB) | Ceiling on the disk the sidecar takes for bands. A band that would go over it is skipped. See [Disk](/build/run-a-gateway/manage/index-sharing#disk) |
 | `INDEX_SWARM_OBSERVER_KEYPAIR_FILE` | string | unset | Publishers only: host path of the observer keypair file. Set this or `OBSERVER_PRIVATE_KEY`, not both |
@@ -13296,9 +13492,9 @@ Settings for the `index-export` service (compose profile `index-export`), which 
 
 | Variable | Type | Default | Description |
 | --- | --- | --- | --- |
-| `INDEX_EXPORT_KINDS` | string | `root-tx-index` | Comma-separated indexes to build: `root-tx-index`, `parquet-l1`. See [Publish L1 Bands](/build/run-a-gateway/manage/index-sharing#publish-l1-bands) |
+| `INDEX_EXPORT_KINDS` | string | `root-tx-index` | Comma-separated indexes to build: `root-tx-index`, `parquet-l1`, `parquet-l2`. See [Publish L1 Bands](/build/run-a-gateway/manage/index-sharing#publish-l1-bands) and [Publish an L2 Index](/build/run-a-gateway/manage/index-sharing#publish-an-l2-index-parquet-l2) |
 | `INDEX_EXPORT_START_HEIGHT` | number | unset | The lowest height to build. Root-TX bands need it before the first run; `./tools/index-swarm-setup --publish --start-height ` sets it |
-| `INDEX_EXPORT_HEADER_CHECK_URL` | string | unset | Required for root-TX bands: the gateway a sample of each band's entries is checked against before publishing. `./tools/index-swarm-setup --publish` writes `https://turbo-gateway.com` |
+| `INDEX_EXPORT_HEADER_CHECK_URL` | string | unset | Required for root-TX and L2 bands: the gateway a sample of each band's entries is checked against before publishing. `./tools/index-swarm-setup --publish` writes `https://turbo-gateway.com` |
 | `INDEX_EXPORT_HEADER_CHECK_TIMEOUT_MS` | number | `30000` | Timeout for each read of that check |
 | `INDEX_EXPORT_SOURCES` | JSON | unset (this gateway's ClickHouse when `CLICKHOUSE_URL` is set, else its SQLite) | Where root-TX records come from |
 | `INDEX_EXPORT_SECRETS_DIR` | string | unset | Host directory of password files for the ClickHouse sources `INDEX_EXPORT_SOURCES` names |
@@ -13306,6 +13502,19 @@ Settings for the `index-export` service (compose profile `index-export`), which 
 | `INDEX_EXPORT_RUN_AT_UTC` | string | `04:00` | Time of the daily run, `HH:MM` UTC |
 | `INDEX_EXPORT_RECENT_MAX_BLOCKS` | number | `100000` | Span at which a recent root-TX band is frozen and a new one starts |
 | `INDEX_EXPORT_L1_RUN_BUDGET_MINUTES` | number | `240` | How long a run keeps starting whole L1 bands. Raise it for a bootstrap |
+| `INDEX_EXPORT_L1_WITNESS_DIR` | string | unset | Release 87. Where `index-export` takes L1 [witnesses](/build/run-a-gateway/manage/index-sharing#add-witnesses-release-87) (layout `l1-4`) from, as the container sees it (under `data/indexes`, say): v1 data roots in `roots-*.jsonl` files, Arweave's 2.0 checkpoint as `fork_2_0_checkpoint`, and optionally Arweave's `hash_list_1_0`. Untrusted: only what the chain confirms is kept |
+| `INDEX_EXPORT_L1_WITNESS_NODES` | string | unset | Release 87. Comma-separated Arweave nodes (`http://host:1984`) `index-export` asks for what the witness directory lacks. Without this or `INDEX_EXPORT_L1_WITNESS_DIR`, only bands needing no input (no format-1 data, no height below the 2.0 fork) get witnesses; the rest stay `l1-3` |
+| `INDEX_EXPORT_L2_INDEXES` | JSON | unset (required for `parquet-l2`) | The L2 indexes to build, each `{"name":…,"selection":{"kind":"ans104-data-items","tag":{"name":…,"valuePrefix":…,"excludeValuePrefix":…}},"keyTags":[…],"statTags":[…]}`. An item is in an index when one of its tags is named `name` exactly and its value starts with `valuePrefix` and not with `excludeValuePrefix` (optional; it must extend `valuePrefix`), compared as UTF-8 bytes. Names match `[a-z0-9-]{1,64}`, are unique, and are not `root-tx-index`, `parquet-l1` or `blobs`. A selection never changes: a new one is a new name. Each is listed in `INDEX_SWARM_PUBLISH` as `{"name":,"kind":"parquet-l2"}`. Release 86: `keyTags` and `statTags` (optional, at most 16 tag names each, none unless given) name the tags each band's `lookup_key.parquet` and `stats.parquet` are derived for; a change is applied to every published band in place. See [Publish an L2 Index](/build/run-a-gateway/manage/index-sharing#publish-an-l2-index-parquet-l2) |
+| `INDEX_EXPORT_L2_SOURCE` | JSON | this gateway's ClickHouse | The ClickHouse L2 bands are read from: `{"type":"clickhouse"}` (this gateway's; `CLICKHOUSE_USER` must be set) or a peer's with `url`, `user` and `passwordFile` under `INDEX_EXPORT_SECRETS_DIR` |
+| `INDEX_EXPORT_L2_SETTLE_BLOCKS` | number | `INDEX_EXPORT_ROOT_TX_SETTLE_BLOCKS` (5040) | Blocks a 5,000-height range waits below the source's stable top before its L2 band is frozen; above, a tip band per sub-range is rebuilt daily |
+| `INDEX_EXPORT_L2_WALLETS_DB` | string | `data/sqlite/bundles.db` | The `bundles.db` whose `wallets` table gives owners' keys ClickHouse doesn't hold, read-only; skipped when absent |
+| `INDEX_EXPORT_L2_MAX_READS` | number | `200000` | The most reads through `INDEX_EXPORT_HEADER_CHECK_URL` one L2 band may make to settle ambiguous locations and read owners' keys. A band needing more is rejected |
+| `INDEX_EXPORT_L2_RUN_BUDGET_MINUTES` | number | `240` | How long a run keeps starting frozen L2 bands; the rest, and the tip, wait for the next run. Raise it for a bootstrap |
+| `INDEX_EXPORT_L2_DUCKDB_MEMORY` | string | `2GB` | DuckDB's memory limit while an L2 band is built. Keep it, with the 4 GB heap, under the container's `mem_limit` |
+| `INDEX_EXPORT_L2_DUCKDB_THREADS` | number | `2` | DuckDB's threads while an L2 band is built, 1 to 64 |
+| `INDEX_EXPORT_L2_DUCKDB_SPILL_MAX_GB` | number | `256` | The most DuckDB may spill to disk while an L2 band is built; a build past it fails rather than fill the disk |
+| `INDEX_EXPORT_L2_WINDOW_ITEMS` | number | `50000` | The most items one window of the source holds in memory; a larger window is read again in halves. At least 1,000 |
+| `INDEX_EXPORT_L2_RECHECK_UNREADABLE_EVERY` | number | `4` | A frozen L2 band built while some roots answered 404 is rebuilt on every this many re-settles, so roots served again get in |
 | `INDEX_EXPORT_METRICS_PORT` | number | `9102` | Port for `index-export`'s `/metrics` and `/healthz`, inside its container |
 | `INDEX_EXPORT_IMAGE_TAG` | string | the value of `CORE_IMAGE_TAG` | Core image tag for `index-export`, when it should run a newer image than the gateway |
 | `LOG_LEVEL` | string | `info` | `index-export` log level |
@@ -13319,10 +13528,13 @@ Settings for the `index-export` service (compose profile `index-export`), which 
 | `START_WRITERS`                  | boolean | `true`     | Enable indexing processes          |
 | `START_HEIGHT`                   | number  | `0`        | Starting block height for indexing. With `L1_BAND_IMPORT_ENABLED=true` and an empty `core.db`, leaving it unset starts at the chain tip instead, and the history beneath comes from L1 bands |
 | `STOP_HEIGHT`                    | number  | `Infinity` | Stopping block height for indexing |
-| `L1_BAND_IMPORT_ENABLED`         | boolean | `false`    | Release 85. Fill this gateway's L1 history (`core.db`) from installed `parquet-l1` bands while it runs. Writes only heights `core.db` lacks beneath what the block importer writes itself, in short transactions, so the gateway keeps indexing and serving. Needs the `index-swarm` sidecar subscribed to `parquet-l1`; `./tools/index-swarm-setup --subscribe  --l1` sets both. See [Bootstrap from L1 Bands](/build/run-a-gateway/manage/index-snapshots#bootstrap-from-l1-bands) |
+| `L1_BAND_IMPORT_ENABLED`         | boolean | `false`    | Release 85. Fill this gateway's L1 history (`core.db`) from installed `parquet-l1` bands while it runs. Writes only heights `core.db` lacks beneath what the block importer writes itself, in short transactions, so the gateway keeps indexing and serving. Needs the `index-swarm` sidecar subscribed to `parquet-l1`; `./tools/index-swarm-setup --subscribe  --l1` sets both. Release 86: every range is verified before a row of it is written: the band checked whole, as `index-l1-verify --bands-dir` checks it, and bound to the chain by the block the gateway holds above it; a band that fails is refused and nothing of it is left. Release 87: an `l1-4` band's witness files bind every block, including those below the 2.0 fork and those holding a format-1 transaction with data, so a whole chain of `l1-4` bands fills with no further setting. See [Bootstrap from L1 Bands](/build/run-a-gateway/manage/index-snapshots#bootstrap-from-l1-bands) |
 | `L1_BAND_IMPORT_BANDS_DIR`       | string  | `data/indexes/installed/parquet-l1` | Release 85. Where the sidecar installs `parquet-l1` bands, as core sees it |
 | `L1_BAND_IMPORT_INTERVAL_SECONDS` | number | `600`      | Release 85. Seconds between fill runs, counted from the end of the last. A run with nothing to fill writes nothing |
 | `L1_BAND_IMPORT_CACHE_MIB`       | number  | `512`      | Release 85. SQLite page cache for a fill run, in MiB. The run is a child process of core, so this is memory beside the gateway's own |
+| `L1_BAND_IMPORT_ALLOW_UNVERIFIED` | boolean | `false`   | Release 86. Legacy, for bands without witnesses (`l1-3` and older) only: lets the fill write their pre-2.0 blocks and their blocks holding a format-1 transaction with data, which nothing binds without witnesses (passes `--allow-unbound --allow-unverified-format1` to `index-l1-import --fill`). `l1-4` bands don't need it. It never accepts blocks the bands hold only part of (`--allow-incomplete`), nor an `l1-4` band's unbound blocks. Every other check still runs |
+| `L1_BAND_IMPORT_SAMPLE_FROM`     | string  | `TRUSTED_NODE_URL` and the `TRUSTED_GATEWAYS_URLS` gateways not marked `trusted: false` | Release 86. Comma-separated sources the L1 band import anchors the bands' top at and draws its sample of headers and transactions from (`--anchor-from`). Two distinct machines must agree before a source's word refutes a band or attests a field; the worker warns when these resolve to fewer, and the import refuses to run on them |
+| `L1_BAND_IMPORT_ALLOW_UNSAMPLED` | boolean | `false`    | Release 86. Let the L1 band import fill without a sample (`--allow-unsampled`): with no sources, or a sample that leaves transactions undrawn; transaction ids and fields are then checked against nothing on the chain. A sample whose sources are only unreachable is never waived by this: that fill waits and is tried again |
 | `SKIP_CACHE`                     | boolean | `false`    | Bypass header cache                |
 | `SIMULATED_REQUEST_FAILURE_RATE` | number  | `0`        | Rate of simulated request failures |
 
@@ -14631,9 +14843,33 @@ A subscription takes L1 bands only when it names them. Add `--l1` to the setup s
 
 It adds `parquet-l1` to the subscription's `name` list and sets `L1_BAND_IMPORT_ENABLED=true`, so your gateway fills its L1 history from the bands while it runs, and restarts core. The whole chain is 24 L1 bands, about 15 GB more disk. They share `INDEX_SWARM_MAX_DISK_BYTES` with root-TX bands, so the script also sets the budget to 100 GiB if it is unset, and warns if yours is lower.
 
+The gateway verifies every band before it writes a row of it, anchoring and sampling against `L1_BAND_IMPORT_SAMPLE_FROM` (by default the trusted node and the trusted gateways not marked `trusted: false`). From Release 87, `l1-4` bands carry [witness files](/build/advanced/index-verification#witness-files-l1-4) that bind every block from genesis, so the whole chain fills with nothing more to set. See [Verified Before It Is Written](/build/run-a-gateway/manage/index-snapshots#verified-before-it-is-written).
+
+  A gateway still on Release 86 that subscribes to `parquet-l1` keeps the
+  `l1-3` copies it has installed, but refuses each band its publisher
+  upgrades to `l1-4`, and tries it again every poll, until it runs Release
+  87. If you subscribe to L1 bands, upgrade.
+
 On a new gateway, run it before the first start, without `--restart` (on a gateway that isn't running, `--restart` would start core and the sidecar alone), then start the gateway as usual, and leave `START_HEIGHT` unset: with an empty `core.db`, the gateway then follows the chain tip from the start, and the history beneath arrives as the bands do. On a gateway that already runs, it fills whatever is missing beneath what the gateway indexed itself.
 
 Taking `parquet-l1` off the subscription retires its bands. History already filled from them stays in `core.db`.
+
+### Take L2 Bands (`parquet-l2`)
+
+  **Release Requirement**: L2 bands require Release 85 or later on your
+  gateway and on the publisher. Bands of layout `l2-2`, which
+  turbo-gateway.com publishes, require Release 86 on your gateway: an older
+  sidecar refuses them and keeps the copies it has.
+
+A publisher can also offer **L2 indexes**: the ANS-104 data items of one app, chosen by a **selection** (a tag name and a value prefix), in Parquet on the same height ranges as L1 bands, with their tags, owners, locations and lookup files. Each selection is its own index under its own name. turbo-gateway.com publishes `ardrive-l2`, the items whose `App-Name` starts with `ArDrive` but not `ArDriver`: ArDrive is one example, and any app's tag can be a selection. Your gateway doesn't read them yet; they are for analytics and for apps that read an index in the browser or a script. See [L2 Datasets](/build/advanced/index-publications#l2-datasets-parquet-l2).
+
+A subscription takes an L2 index only when it names it. There is no setup-script flag; add the name to the subscription's `name` list in `.env` and restart the sidecar:
+
+```bash
+INDEX_SWARM_SUBSCRIBE='[{"publisher":"34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7h5","name":["root-tx-index","ardrive-l2"]}]'
+```
+
+The sidecar checks each band's files, footers, row counts and selection against the signed publication and installs it under `data/indexes/installed//`. Every band of an index must declare the same selection; a band or an index `filter` that disagrees is refused whole. Taking an index off `name` retires its bands. To check an installed index row by row, and a sample of its locations against Arweave nodes, run `index-l2-verify` (Release 86): see [Verifying Shared Indexes](/build/advanced/index-verification).
 
 ## Publish Your Indexes
 
@@ -14645,7 +14881,7 @@ Publishing is for gateways that unbundle, so their index holds data items to bui
 
 - A gateway **registered** in the gateway registry, reachable at its registered URL, on Release 84 or later. The routes that serve bands live in the gateway, not the sidecar
 - Its registered **observer key**, which signs what it publishes
-- For `index-export`: Release 85, and a gateway that unbundles (`ANS104_UNBUNDLE_FILTER`)
+- For `index-export`: Release 85, and a gateway that unbundles (`ANS104_UNBUNDLE_FILTER`); for L2 indexes, into ClickHouse
 - For BitTorrent: the peer port open, and this node's public IP. Peers announce to your tracker through your gateway's HTTPS, which needs the Envoy image from Release 85 or later. See [Ports](#ports)
 
 ### Set the Signing Key
@@ -14773,12 +15009,72 @@ INDEX_EXPORT_KINDS=root-tx-index,parquet-l1
 INDEX_SWARM_PUBLISH='[{"name":"root-tx-index","kind":"cdb64-root-tx"},{"name":"parquet-l1","kind":"parquet-l1"}]'
 ```
 
-The sidecar entry is needed too: the sidecar retires each superseded tip band, so without it `published/parquet-l1/` keeps every one. The chain is cut into the same fixed ranges by every publisher: a band per 100,000 heights, a band per 5,000 heights inside the newest range, and a tip band rebuilt each run. Bands are layout `l1-3`, with [lookup files](/build/advanced/index-publications#lookup-files).
+The sidecar entry is needed too: the sidecar retires each superseded tip band, so without it `published/parquet-l1/` keeps every one. The chain is cut into the same fixed ranges by every publisher: a band per 100,000 heights, a band per 5,000 heights inside the newest range, and a tip band rebuilt each run. Bands are layout `l1-3`, with [lookup files](/build/advanced/index-publications#lookup-files), and from Release 87 layout `l1-4`, which adds witness files, wherever the witnesses can be had (below).
 
 The first build of the whole chain takes many hours and reads all of `core.db` once, so start it off-peak. A run starts no new band after `INDEX_EXPORT_L1_RUN_BUDGET_MINUTES` (240 by default), and the next run carries on 15 minutes later. Dry-run it first, capped with `--to`:
 
 ```bash
 docker compose --profile index-```
+
+#### Add Witnesses (Release 87)
+
+[Witness files](/build/advanced/index-verification#witness-files-l1-4) are what let a subscriber verify and import every block, from genesis, with no `--allow-*` flag. `index-export` builds them for new bands, and adds them to the `l1-3` bands you have already published in place, so those bands keep their ids and subscribers fetch only the new files. It needs inputs for that, set in `.env`:
+
+| Variable | What it gives |
+| --- | --- |
+| `INDEX_EXPORT_L1_WITNESS_DIR` | A directory, as the container sees it, holding v1 data roots in `roots-*.jsonl` files (lines `{"h": , "id": "", "root": ""}`), Arweave's 2.0 checkpoint as `fork_2_0_checkpoint`, and optionally Arweave's `hash_list_1_0`. In a clone of the Arweave repository, `git show d43ba2b9^:apps/arweave/priv/fork_2_0_checkpoint` prints the checkpoint; it is refused unless its SHA-256 is Arweave's |
+| `INDEX_EXPORT_L1_WITNESS_NODES` | Comma-separated Arweave nodes (`http://host:1984`), asked for what the directory lacks: a format-1 transaction's last chunk, its data where a block's roots don't reproduce its `tx_root`, and `/block_index` from height 400,000 to the 2.0 fork |
+
+For example, with the directory at `data/indexes/l1-witness` on the host, which `index-export` sees under `/app/data/indexes`:
+
+```bash
+INDEX_EXPORT_L1_WITNESS_DIR=/app/data/indexes/l1-witness
+INDEX_EXPORT_L1_WITNESS_NODES=http://:1984,http://:1984
+```
+
+The inputs are untrusted. A root is kept only when its block's `tx_root` recomputes with it, a transition `tx_root` only when the 2.0 seed fold reaches the pinned one, and a 2.0 hash only when their fold reaches the pinned fold of `hash_list_1_0`. Then the band with its witnesses is judged whole by the same code every consumer runs (`index-l1-verify --bands-dir`), and must pass with no block left unbound, before anything is published. A band that can't get every witness (a transaction whose data no node serves, say) stays `l1-3`. Without either variable, only bands that need no input (no format-1 data, no height below the 2.0 fork) get witnesses.
+
+**Pass both variables to `index-export`.** Compose hands a service only the variables its `docker-compose.yaml` entry lists, so a compose file older than Release 87 silently drops them, and nothing gains witnesses. Check that your `docker-compose.yaml` lists `INDEX_EXPORT_L1_WITNESS_DIR` and `INDEX_EXPORT_L1_WITNESS_NODES` under `index-export`.
+
+The daily run adds witnesses, before its builds and after them. To add them now, run it once:
+
+```bash
+docker compose --profile index-```
+
+The report lists each band under `l1Witnessed`, and `index_export_runs_total{kind="witness"}` counts them: `published` when added, `skipped` (`witnesses_unavailable`) when the inputs lack what the band needs, and `couldnt_check` when an input contradicts the chain. Upgrade in the same order as for `l1-3`: subscribers first, then your `index-swarm` with or before your `index-export`, since a sidecar that doesn't know `l1-4` can't read the band.
+
+### Publish an L2 Index (`parquet-l2`)
+
+  **Release Requirement**: L2 bands require Release 85 or later, and a
+  gateway that unbundles into ClickHouse. `keyTags`, `statTags` and layout
+  `l2-2` require Release 86.
+
+An **L2 index** is the data items one app uploads, chosen by a **selection**: a tag name, a value prefix, and optionally a longer prefix to leave out. An item is in it when one of its tags has that exact name and its value starts with the prefix, compared as UTF-8 bytes. `index-export` reads the items from your ClickHouse (`CLICKHOUSE_URL` and `CLICKHOUSE_USER`, or a peer's with `INDEX_EXPORT_L2_SOURCE`), places each at its root transaction's height, reads owners' keys and settles ambiguous locations through `INDEX_EXPORT_HEADER_CHECK_URL`, and writes bands on the same fixed ranges as L1 bands. Add the kind, the selections and the sidecar entries to `.env`:
+
+```bash
+INDEX_EXPORT_KINDS=root-tx-index,parquet-l1,parquet-l2
+INDEX_EXPORT_L2_INDEXES='[{"name":"ardrive-l2","selection":{"kind":"ans104-data-items","tag":{"name":"App-Name","valuePrefix":"ArDrive","excludeValuePrefix":"ArDriver"}},"keyTags":["Drive-Id","Parent-Folder-Id","Folder-Id","File-Id"],"statTags":["App-Name","Content-Type","Entity-Type"]}]'
+INDEX_SWARM_PUBLISH='[{"name":"root-tx-index","kind":"cdb64-root-tx"},{"name":"parquet-l1","kind":"parquet-l1"},{"name":"ardrive-l2","kind":"parquet-l2"}]'
+```
+
+Each entry in `INDEX_EXPORT_L2_INDEXES` is one index, published under `data/indexes/published//`; the name matches `[a-z0-9-]{1,64}` and is by convention `-l2`. A selection is part of every band's id, so it never changes: to index something else, add a new entry under a new name. The example above is the index turbo-gateway.com publishes; any app's tag works the same way, for example `{"name":"Protocol","valuePrefix":"MyProtocol"}`. To read an index you publish in the browser, [ar-io/index-explorers](https://github.com/ar-io/index-explorers) has a verifying client and a recipe for a new selection's page, [`docs/new-l2-index.md`](https://github.com/ar-io/index-explorers/blob/main/docs/new-l2-index.md).
+
+`keyTags` and `statTags` (optional, at most 16 tag names each, none unless given) name the tags each band's key lookup and stats are derived for: the tags readers look values up by, such as a drive or folder id, and the tags worth counting items and bytes by. They are not part of a band's id, so changing them later rewrites only those two files in every published band, in place.
+
+From Release 86, bands are layout `l2-2`: `data_items`, `tags`, `wallets` and `parents` tables, the three [lookup files](/build/advanced/index-publications#lookup-files) an L1 band has, and `lookup_key.parquet` and `stats.parquet` ([L2 Datasets](/build/advanced/index-publications#l2-datasets-parquet-l2)). Before a band publishes, every table is read back against its row digest, the lookups are derived again from the tables, every owner key is checked against its address, and a sample of items is read through `INDEX_EXPORT_HEADER_CHECK_URL` at their recorded locations. A band that fails is left for the next run, and `./tools/index-swarm-status` shows why.
+
+  On Release 86, `index-export` upgrades every published `l2-1` band to
+  `l2-2` in place, under the same id, at the start of each run. A
+  subscriber still on Release 85 refuses an `l2-2` band and keeps its copy,
+  and a Release 85 `index-swarm` can't publish one. Upgrade subscribers
+  first, then your `index-swarm` with or before your `index-export`.
+
+Dry-run one band first, to see its rows, where its positions came from and the header check's result:
+
+```bash
+docker compose --profile index-```
+
+A first build over a long history can take days: each run starts frozen bands for `INDEX_EXPORT_L2_RUN_BUDGET_MINUTES` (240 by default) and the next carries on. Alarm on `index_export_last_success_timestamp_seconds{index="",kind="tip"}`. Memory, disk and the remaining `INDEX_EXPORT_L2_*` settings are under [Building Bands](/build/run-a-gateway/manage/environment-variables#building-bands-release-85); the [`index-export` reference](https://github.com/ar-io/ar-io-node/blob/develop/docs/index-export.md#l2-bands) covers where rows come from, the checks and the lifecycle in full.
 
 ### By Hand
 
@@ -14858,6 +15154,8 @@ INDEX_SWARM_SUBSCRIBE='[{"publisher":"34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7
 INDEX_SWARM_MAX_DISK_BYTES=107374182400   # 100 GiB
 L1_BAND_IMPORT_ENABLED=true
 ```
+
+`L1_BAND_IMPORT_SAMPLE_FROM` (Release 86) sets the sources the fill anchors and samples against. See [Verified Before It Is Written](/build/run-a-gateway/manage/index-snapshots#verified-before-it-is-written).
 
 Then restart by service name, with the same `-f` files your gateway was started with:
 
@@ -15235,6 +15533,13 @@ The 2025-04-23 snapshot was taken at block `1645229`. If the import worked, the 
   them, require gateway Release 85 or later, on your gateway and on the
   publisher you subscribe to.
 
+  From Release 87, L1 bands are layout `l1-4`, whose witness files bind
+  every block from genesis, so your gateway verifies and fills the whole
+  chain with nothing more to set. A gateway still on Release 86 keeps the
+  `l1-3` bands it has installed, but refuses each band its publisher
+  upgrades to `l1-4`, and tries it again every poll, until it runs Release
+  87. If you subscribe to L1 bands, upgrade.
+
 An L1 band (`parquet-l1`) holds the Arweave base layer for a range of block heights, as Parquet files: blocks, transactions, tags and owners. Gateways that publish them sign every file, and your gateway checks each one before it installs the band. Your gateway then fills its `core.db` from the installed bands, instead of indexing the chain from block 0.
 
 L1 bands carry no data items. Your gateway still unbundles the bundles your filters select, and it does that for imported history only if you also set `BACKFILL_BUNDLE_RECORDS`.
@@ -15246,11 +15551,33 @@ There are two ways to do it:
 
 With `L1_BAND_IMPORT_ENABLED=true`, core runs `ar-io-node index-l1-import --fill` every 10 minutes (`L1_BAND_IMPORT_INTERVAL_SECONDS`, counted from the end of the last run), as a child process, so a crash in the import can't take the gateway down. A fill writes only the heights `core.db` lacks beneath what the block importer writes itself, so nothing your gateway indexed is rewritten. It writes in short transactions with a pause after each, so the gateway keeps indexing and serving the whole time.
 
+### Verified Before It Is Written
+
+From Release 86, before a band's first row reaches `core.db`, the import checks it, with the gateway running or stopped:
+
+1. **The band, whole**, with the same code as [`index-l1-verify --bands-dir`](/build/advanced/index-verification#what-index-l1-verify-checks): its name is its identity, its files and columns are the layout's, its tables digest to what `band.json` says, and every block, transaction, link, tag and wallet row passes.
+2. **Its edges, against `core.db`.** The first height written must build on the block `core.db` holds below it, and the block `core.db` holds above the last height written must build on the band.
+3. **A binding to the chain.** The block above, when `core.db` holds one the gateway synced from its own nodes, or one an earlier import wrote bound to the chain without accepting a gap. From the 2.0 fork, the band's `hash_list_merkle` recurrence then binds every block hash, weave size and `tx_root` beneath it. Otherwise, an anchor fetched from the sources (`--anchor-from`), as `index-l1-verify` does. An `l1-4` band below the 2.0 fork that ends at a pinned height is anchored there by its witnessed folds, with no header fetched.
+4. **A sample.** What the binding does not reach, such as transaction ids, their order and every transaction field, is checked by the same keyed sample of headers and signatures as `index-l1-verify`, from the same sources. Without a sample the import is refused unless you accept that (`--allow-unsampled`). A sample that could not be read is an outage, not evidence: the band is refused as `unreadable` and a later run tries again.
+5. **What nothing binds is refused unless accepted.** An `l1-4` band's [witness files](/build/advanced/index-verification#witness-files-l1-4) bind its blocks below the 2.0 fork and its blocks holding a format-1 transaction with data, so a whole chain of `l1-4` bands imports with no `--allow-*` flag, and the importer writes the witnessed data roots and `tx_root`s over whatever `core.db` kept. What is left is blocks whose transactions or owners' keys the band lacks (`--allow-incomplete`). A band without witnesses (`l1-3`) has those first two kinds unbound, and is refused below height 2,000,000 unless they are accepted (`--allow-unbound`, `--allow-unverified-format1`).
+
+A refused band removes nothing that was there before. While the gateway runs, ranges are filled from the top down, so each is bound by the block the gateway holds above it: its own, or one the range above it just wrote and verified. The run stops at the first range refused.
+
+The gateway's own fill takes these settings from `.env`:
+
+| Variable | Default | Does |
+| --- | --- | --- |
+| `L1_BAND_IMPORT_SAMPLE_FROM` | `TRUSTED_NODE_URL` and the `TRUSTED_GATEWAYS_URLS` gateways not marked `trusted: false` | The sources to anchor at and sample from. They must resolve to at least two distinct machines; the worker warns at its first run when they don't, and the import refuses to run on them |
+| `L1_BAND_IMPORT_ALLOW_UNVERIFIED` | `false` | Legacy, for `l1-3` bands only: `true` passes `--allow-unbound --allow-unverified-format1`, so their blocks below height 2,000,000 are filled. `l1-4` bands don't need it. Never `--allow-incomplete`. Every other check still runs |
+| `L1_BAND_IMPORT_ALLOW_UNSAMPLED` | `false` | `true` passes `--allow-unsampled`: fill without a sample, so transaction ids and fields are checked against nothing on the chain. A sample whose sources are only unreachable is never waived: that fill waits and is tried again |
+
+A refused fill is not re-verified every interval: the worker waits, twice as long each time (up to a day), until the bands directory changes. One refused only because its sources could not be read is tried again after an interval, twice as long each time it repeats (up to two hours), and at once when the bands directory changes.
+
 On a new gateway, set this up **before the first start** and leave `START_HEIGHT` unset: run the setup script below without `--restart` (on a gateway that isn't running, `--restart` would start core and the sidecar alone), then start the gateway as usual (the Index Sharing sidecar starts with it). With an empty `core.db`, the block importer then starts at the chain tip instead of block 0, and the history beneath it arrives as the bands do.
 
 ### Prerequisites
 
-- A gateway on Release 85 or later
+- A gateway on Release 85 or later, and Release 87 to take `l1-4` bands
 - Room on disk: about 15 GB for the bands, and about 120 GB for a `core.db` that covers the whole chain. The setup script sets the Index Sharing disk budget to 100 GiB if it is unset, and warns if yours is lower
 
 ### Subscribe with `--l1`
@@ -15270,7 +15597,7 @@ L1 bands arrive through [Index Sharing](/build/run-a-gateway/manage/index-sharin
 ./tools/index-swarm-status
 ```
 
-Bands install under `data/indexes/installed/parquet-l1`, and each fill writes what they hold. On the gateway's `/ar-io/__gateway_metrics`, `l1_band_import_runs_total{result}` counts fills (`filled`, `idle` or `failed`), `l1_band_import_rows_total` the rows written, and `l1_band_import_uncovered_heights` the heights no installed band holds yet.
+Bands install under `data/indexes/installed/parquet-l1`, and each fill writes what they hold. On the gateway's `/ar-io/__gateway_metrics`, `l1_band_import_runs_total{result}` counts fills (`filled`, `idle` or `failed`, and from Release 86 `deferred` for a refused fill waiting for the bands to change, and `unreadable` for one whose sources could not be read; a refused band counts as `failed`), `l1_band_import_rows_total` the rows written, and `l1_band_import_uncovered_heights` the heights no installed band holds yet.
 
 Uncovered heights are normal for a while: bands still downloading, and, on a new gateway, the heights between the newest band and where it began, which the publisher's next tip band holds, usually within a day. A run with nothing to fill writes nothing. Only one import or fill runs against a `core.db` at a time.
 
@@ -15310,10 +15637,13 @@ Run it from the gateway's directory. The tool runs in the core image, so the hos
 ./tools/ar-io-node index-l1-import \
   --bands-dir data/indexes/installed/parquet-l1 \
   --core-db data/sqlite/core.db \
-  --cache-mib 8192
+  --cache-mib 8192 \
+  --anchor-from https://,https://
 ```
 
-Bands import in height order, lowest first. `--cache-mib` sets SQLite's page cache for the run (default 1024 MiB); give it what your machine can spare, since a larger cache keeps a long import fast. An interrupted run is safe: run the command again and it carries on from the last band that landed. `--max-bands` splits the work across several runs.
+From Release 86, every planned band is verified first, as one contiguous run anchored once at its top, and a plan that does not verify writes nothing. With an empty `core.db` there is no block above to bind the bands, so give `--anchor-from` with sources that resolve to at least two distinct machines; they are also where the sample is drawn from. With `l1-4` bands (Release 87) no `--allow-*` flag is needed; `l1-3` bands below height 2,000,000 would need `--allow-unbound --allow-unverified-format1` (see [Verified Before It Is Written](#verified-before-it-is-written)). The check's DuckDB spills to a folder beside `core.db`, capped at `--spill-max` (default 128GB) and at 80% of the space free there, and never into the last `--spill-reserve-gb` (default 100).
+
+Bands import in height order, lowest first. `--cache-mib` sets SQLite's page cache for the run (default 1024 MiB); give it what your machine can spare, since a larger cache keeps a long import fast. An interrupted run is safe: run the command again and it carries on from the last band that landed. A band that fails stops the run: the bands imported before it are kept, the one that failed is cleared, and the result goes to stderr with exit code `1`. `--max-bands` splits the work across several runs.
 
 ### Start the Gateway
 
@@ -15323,7 +15653,7 @@ docker compose up -d --no-deps core
 
 The block importer continues from the highest height imported.
 
-To check a set of bands, or your gateway's own `core.db`, against the chain, use `./tools/ar-io-node index-l1-verify` (see [The `ar-io-node` CLI](/build/run-a-gateway/manage/ar-io-node-cli)). Every option, and the JSON each command prints, is in the [`ar-io-node` CLI reference](https://github.com/ar-io/ar-io-node/blob/develop/docs/cli.md#index-l1-import).
+To check a set of bands, or your gateway's own `core.db`, against the chain, use `./tools/ar-io-node index-l1-verify` (see [The `ar-io-node` CLI](/build/run-a-gateway/manage/ar-io-node-cli)). Every option, and the JSON each command prints, is in the [`ar-io-node` CLI reference](https://github.com/ar-io/ar-io-node/blob/main/docs/cli.md#index-l1-import).
 
 # Manage your Gateway (/build/run-a-gateway/manage)
 
@@ -25408,7 +25738,7 @@ The torrent engine runs isolated from the rest of the gateway: it can't reach th
 - **It doesn't replace data verification.** An index says where an item lives; the gateway still [verifies the data itself](/learn/gateways/data-verification) when it serves it.
 - **It isn't storage.** Bands are indexes, not the data they point to: about 22 GB for the root-TX index turbo-gateway.com publishes, growing with the chain.
 - **It isn't complete.** An index answers only for the bundles its publisher indexed, and the band at the chain tip is rebuilt periodically, so the newest items aren't in it yet. A miss costs nothing: the gateway falls back to its usual lookup.
-- **It isn't one provider.** Any registered gateway can publish. The turbo-gateway.com gateway publishes a root transaction index today, and subscribers can follow more than one publisher.
+- **It isn't one provider.** Any registered gateway can publish. The turbo-gateway.com gateway publishes a root transaction index, the L1 base layer and an L2 index of ArDrive's data items today, and subscribers can follow more than one publisher.
 - **BitTorrent isn't required.** It is an optional transport. A gateway without the torrent engine publishes and subscribes over HTTP.
 
 ## Explore Index Sharing
@@ -29029,7 +29359,8 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
+          check-latest: true
           cache: 'pnpm'
 
       - run: pnpm install
@@ -29061,7 +29392,8 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
+          check-latest: true
           cache: 'pnpm'
 
       - run: pnpm install
