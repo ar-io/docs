@@ -5,7 +5,7 @@ description: "TypeScript SDK for Turbo, an ar.io gateway run by the ArDrive team
 
 #### getBalance()
 
-Issues a signed request to get the credit balance of a wallet measured in AR (measured in Winston Credits, or winc).
+Issues a signed request to get the Turbo Credits balance of a wallet, in `winc`.
 
 ```typescript
 const { winc: balance } = await turbo.getBalance();
@@ -52,7 +52,7 @@ const address = await turbo.signer.getNativeAddress();
 
 #### getWincForFiat()
 
-Returns the current amount of Winston Credits including all adjustments for the provided fiat currency, amount, and optional promo codes.
+Returns the current amount of `winc` including all adjustments for the provided fiat currency, amount, and optional promo codes.
 
 ```typescript
 const { winc, paymentAmount, quotedPaymentAmount, adjustments } =
@@ -304,7 +304,7 @@ await turbo.uploadRawX402Data({
 });
 ```
 
-The raw x402 route has no free tier: every upload pays, however small. An unauthenticated client cannot pay, so it gets a `402` with a price. To upload under the free limit without paying, sign a data item and use `upload` or `uploadFile` instead.
+The raw x402 route has no free tier: every upload pays, however small. A request that carries no x402 payment gets a `402` with the price, which `uploadRawX402Data` pays within `maxMUSDCAmount`. To upload under the free limit without paying, sign a data item and use `upload` or `uploadFile` instead.
 
 #### uploadFolder()
 
