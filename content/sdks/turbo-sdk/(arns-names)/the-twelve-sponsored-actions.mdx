@@ -33,6 +33,16 @@ await turbo.setArNSRecord({
 });
 await turbo.removeArNSRecord({ antId, owner, undername: 'docs' });
 
+// Every action above and below takes an optional `paidBy`: wallets that shared
+// credits with the paying wallet (credit-share approvals), spent in order
+// before its own balance. It is not part of the owner's signed message.
+await turbo.setArNSRecord({
+  antId,
+  owner,
+  transactionId,
+  paidBy: ['\<sharing-wallet-address\>'],
+});
+
 // Record metadata — display name, logo, description, keywords. Same margin,
 // same shape rules as setArNSRecord. `null` clears a field; omit to leave it.
 await turbo.setArNSRecordMetadata({

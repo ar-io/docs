@@ -175,10 +175,20 @@ _openapi:
           return 404.
         heading: get-parquet-export-status-for-a-specific-job
       - content: >
-          Removes stable data items from the database that were indexed before
-          the specified timestamp.
+          Removes the stable data items in a height range that were written
 
-          This helps manage database size by removing older, stable data items.
+          before a threshold, after the ClickHouse import has exported them.
+
+          Give exactly one threshold. `stableAtThreshold` (the debug endpoint's
+
+          `maxStableDataItemStableAt`, read before exporting the range) removes
+
+          only rows that were in the range when it was read.
+          `indexedAtThreshold`
+
+          is kept for older callers, but a row flushed late can carry an old
+
+          indexed_at and be removed although no export read it.
         heading: prune-stable-data-items
 ---
 
