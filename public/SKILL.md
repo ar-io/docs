@@ -35,6 +35,12 @@ npm install @ar.io/sdk @solana/kit
 # Turbo SDK (file/folder uploads to Arweave)
 npm install @ardrive/turbo-sdk
 
+# turbo-upload (zero-dependency Turbo client: Arweave, Solana and EVM signers, x402)
+npm install @ardrive/turbo-upload
+
+# turbo-zora-uploader (an Uploader for the Zora Coins SDK, built on turbo-upload)
+npm install @ardrive/turbo-zora-uploader @zoralabs/coins-sdk viem
+
 # Wayfinder (decentralized data fetching with verification)
 npm install @ar.io/wayfinder-core @ar.io/sdk
 ```
@@ -130,6 +136,87 @@ npx @ar.io/deploy upload --sig-type solana --wallet ~/.ar.io/wallets/<address>.j
 - `--compress gzip` shrinks HTML, CSS and JavaScript before upload, so more files fit under the free 105 KiB.
 - The result prints the manifest id; the site is at `https://turbo-gateway.com/<manifest id>`.
 - `--dev` uploads to the sandbox, which is for testing and is not permanent. Do not use it to get past a `402`.
+
+### Upload from an EVM account (turbo-upload)
+
+`@ardrive/turbo-upload` signs ANS-104 type 3 items through viem. The caller brings viem; a viem account spread with viem's `recoverPublicKey` is a signer.
+
+```typescript
+import { privateKeyToAccount } from 'viem/accounts';
+import { recoverPublicKey } from 'viem';
+import { TurboUpload } from '@ardrive/turbo-upload';
+
+const account = privateKeyToAccount(process.env.EVM_PRIVATE_KEY as `0x${string}`);
+// .testnet() is free and not permanent. .production() is permanent and public; items over the free tier are paid.
+const client = TurboUpload.testnet({ signer: { ...account, recoverPublicKey }, token: 'base-eth' });
+const { id } = await client.upload({
+  data: new TextEncoder().encode('hello'),
+  tags: [{ name: 'Content-Type', value: 'text/plain' }],
+});
+```
+
+- `token` is required with an EVM signer: `'ethereum'`, `'base-eth'` or `'base-usdc'`. The signature is the same for all three; the free tier belongs to the `0x` address.
+- Without `recoverPublicKey`, signing throws `TurboSignerError` and nothing is uploaded. A smart-contract wallet cannot sign data items: `TurboSignerError`, nothing uploaded. Use x402 for one.
+
+### Pay in USDC with x402 (turbo-upload)
+
+```typescript
+import { privateKeyToAccount } from 'viem/accounts';
+import { uploadUnsignedX402, TESTNET } from '@ardrive/turbo-upload';
+
+const signer = privateKeyToAccount(process.env.EVM_PRIVATE_KEY as `0x${string}`);
+const { id, payer } = await uploadUnsignedX402({
+  data: new TextEncoder().encode('hello'),
+  tags: [{ name: 'Content-Type', value: 'text/plain' }],
+  signer,                        // { address, signTypedData }; a deployed smart-contract wallet works
+  maxUsdc: 50_000n,              // required, USDC base units (6 decimals): 0.05 USDC
+  uploadUrl: TESTNET.uploadUrl,  // Base Sepolia. Omit for production, which pays on Base
+});
+```
+
+- **No free tier on this route**: every upload is paid. For an item within the free tier, sign it instead.
+- The service signs the item, so `owner` is the service and your address is `payer`.
+- Over `maxUsdc`, the upload throws `TurboPaymentError` before anything is signed. The paid request is never retried; if it fails, check the payer's USDC transfers before uploading again.
+
+### Store Zora coin metadata (turbo-zora-uploader)
+
+`@ardrive/turbo-zora-uploader` is an `Uploader` for `@zoralabs/coins-sdk`. Pass it to `createMetadataBuilder().upload()`; the SDK still creates the coin. The metadata JSON comes back as `https://turbo-gateway.com/ITEM_ID`, the coin's pointer; the image as `ar://ITEM_ID`.
+
+```typescript
+import { createCoin, createMetadataBuilder } from '@zoralabs/coins-sdk';
+import { createPublicClient, createWalletClient, http, recoverPublicKey } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { base } from 'viem/chains';
+import { createTurboUploader } from '@ardrive/turbo-zora-uploader';
+
+const account = privateKeyToAccount(process.env.PRIVATE_KEY as `0x${string}`);
+// Production by default: permanent and public; items over the free tier are paid. Small files signed by an EOA are free.
+const uploader = createTurboUploader({ signer: { ...account, recoverPublicKey }, maxUsdc: 500_000n });
+
+declare const imageFile: File; // the coin's image, with its MIME type as `type`
+
+const { createMetadataParameters } = await createMetadataBuilder()
+  .withName('My Coin')
+  .withSymbol('MYC')
+  .withDescription('Metadata and image stored on Arweave')
+  .withImage(imageFile)
+  .upload(uploader);
+
+await createCoin({
+  call: { ...createMetadataParameters, creator: account.address, currency: 'ETH' },
+  walletClient: createWalletClient({ account, chain: base, transport: http() }),
+  publicClient: createPublicClient({ chain: base, transport: http() }),
+});
+```
+
+- **The pointer is https, media is `ar://ITEM_ID`.** With the default `uri: 'auto'`, a file of type `application/json` (the metadata Zora's builder uploads) returns `https://turbo-gateway.com/ITEM_ID`, and every other file `ar://ITEM_ID`. Zora's create API accepts only an `https://` or `ipfs://` pointer, so `uri: 'ar'` cannot create a coin.
+- **Leave `skipMetadataValidation` unset.** turbo-gateway.com serves a fresh item at once as exactly `application/json`, so Zora's check passes. Another `gateway` must do the same: `application/json; charset=utf-8` fails the check.
+- **`maxUsdc` is USDC base units per upload**: `500_000n` is 0.50 USDC. In the default `mode: 'auto'`, a file within the free tier is signed and free; a larger one is paid with x402 up to `maxUsdc`. With `mode: 'signed'`, `maxUsdc` is refused.
+- **Smart-contract wallet**: signer `{ address, signTypedData }`, `mode: 'x402'` and `maxUsdc`. The wallet must be deployed.
+- **Testnet**: `testnet: true` uploads work, but cannot create a coin: the testnet gateway, ar-io.dev, adds a charset to JSON, which fails Zora's check, and Zora's create API refuses Base Sepolia coins (a `coinAddress` revert).
+- **Errors**: check `err.name`. `TurboPaymentError`: cannot pay, stop. `TurboSignerError`: the wallet refused or cannot sign; for a smart-contract wallet use `mode: 'x402'`. `TurboConfigError`: a bad option, or tags over 3072 bytes when the uploader can pay with x402.
+
+Full guide: https://docs.ar.io/build/guides/zora-coin-metadata
 
 ### Register an ArNS name
 
@@ -372,6 +459,8 @@ Full docs: https://docs.ar.io
 - Agent entry points (llms.txt, SKILL.md, per-SDK llm.txt): https://docs.ar.io/build/agents
 - SDK reference: https://docs.ar.io/sdks/ar-io-sdk
 - Turbo SDK: https://docs.ar.io/sdks/turbo-sdk
+- turbo-upload: https://docs.ar.io/sdks/turbo-upload
+- Zora coin metadata: https://docs.ar.io/build/guides/zora-coin-metadata
 - Gateway API: https://docs.ar.io/apis/ar-io-node
 - ArNS guide: https://docs.ar.io/learn/arns
 - Wayfinder: https://docs.ar.io/sdks/wayfinder

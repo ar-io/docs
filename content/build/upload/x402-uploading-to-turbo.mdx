@@ -40,6 +40,12 @@ turbo x402-unsigned-upload -f ../path/to/file --wallet-file ../path/to/evm/walle
 
 ### Turbo SDK
 
+The Turbo SDK pays x402 through `x402-fetch`, an optional peer dependency that is not installed with the SDK. Install it before you use either method:
+
+```bash
+npm install x402-fetch
+```
+
 Signed Data Item Upload:
 
 ```typescript
@@ -58,6 +64,7 @@ Unsigned Raw Data Upload:
 
 ```typescript
 import { TurboFactory } from "@ardrive/turbo-sdk";
+import { BigNumber } from "bignumber.js";
 
 const turbo = TurboFactory.authenticated({
   privateKey,
@@ -65,19 +72,13 @@ const turbo = TurboFactory.authenticated({
 });
 await turbo.uploadRawX402Data({
   data: myRawData,
-  maxMUSDCAmount: 1_000_000, // Max 1 USDC. Opt out if too expensive
+  maxMUSDCAmount: new BigNumber(1_000_000), // Max 1 USDC. Opt out if too expensive
 });
 ```
 
-NOTE: For free uploads under 105 KiB, this method of upload currently does not require a signature and can be used with an unauthenticated client.
+`uploadRawX402Data` takes `maxMUSDCAmount` as a `BigNumber`. Import it from `bignumber.js` 9, the major version the SDK depends on (`npm install bignumber.js@9`): another major version is a different `BigNumber` type, and the call fails to type-check.
 
-```ts
-// Unsigned free upload of raw data under 105 KiB
-const turbo = TurboFactory.unauthenticated({ token: "base-usdc" });
-await turbo.uploadRawX402Data({
-  data: myRawData,
-});
-```
+The unsigned route has no free tier. Every upload on it is paid in USDC, however small: an unpaid request answers `402` with a price, even for a few bytes. So `uploadRawX402Data` needs an authenticated client. `maxMUSDCAmount` is optional and caps the price; without it, x402-fetch, which the SDK pays through, caps the price at 0.10 USDC. To upload an item within the free tier, sign it instead: use the Turbo SDK's `upload`, or post a signed data item to `/v1/tx`.
 
 <Callout type="info">
   **Receipt context:** x402 integrations can surface both an upload receipt and a
