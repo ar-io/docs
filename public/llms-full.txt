@@ -27870,6 +27870,10 @@ ardrive create-drive --wallet-file /path/to/my/wallet.json --drive-name "My Publ
 ardrive create-drive --wallet-file /path/to/my/wallet.json --drive-name "Teenage Love Poetry" -P
 ```
 
+A new private drive's password doesn't have to match your other private drives. When `-P` prompts for the new password, it asks for it twice.
+
+Keep the drive key that `create-drive` prints (`key` in its output). It opens the drive whatever the password, so it is your way back in if you forget which password the drive uses. Store it as carefully as the password.
+
 # List Drive Pipeline Examples (/sdks/(clis)/ardrive-cli/(working-with-drives)/list-drive-pipeline-examples)
 
 You can utilize `jq` and the list commands to reshape the commands' output data into useful forms and stats for many use cases. Here are a few examples:
@@ -27904,6 +27908,8 @@ ardrive list-drive -d 01ea6ba3-9e58-42e7-899d-622fd110211c | jq '[ .[] | select(
 
 You can list all the drives associated with any Arweave wallet address, though the details of private drives will be obfuscated from you unless you provide the necessary decryption data.
 
+The password or drive key you give is tried on every private drive. Drives it opens are listed in full; the others are listed with `name` and `rootFolderId` set to `ENCRYPTED`. To see a drive with a different password, list again with that password.
+
 ```shell
 ardrive list-all-drives -w /path/to/my/wallet.json -P
 
@@ -27929,6 +27935,8 @@ ardrive list-drive -d "c7f87712-b54e-4491-bc96-1c5fa7b1da50" --max-depth 2
 # Managing Drive Passwords (/sdks/(clis)/ardrive-cli/(working-with-drives)/managing-drive-passwords)
 
 The ArDrive CLI's private drive and folder functions all require either a drive password OR a drive key. Private file functions require either the drive password or the file key. **Keys and passwords are sensitive data, so manage the entry, display, storage, and transmission of them very carefully.**
+
+Each private drive can have its own password. A new private drive can use any password, whatever your other drives use, so keep a record of which password opens which drive.
 
 Drive passwords are the most portable, and fundamental, encryption facet, so a few options are available during private drive operations for supplying them:
 
@@ -33917,7 +33925,7 @@ All of them ship TypeScript types. Every one runs in both Node.js and the browse
 
 #### getBalance()
 
-Issues a signed request to get the credit balance of a wallet measured in AR (measured in Winston Credits, or winc).
+Issues a signed request to get the Turbo Credits balance of a wallet, in `winc`.
 
 ```typescript
 const { winc: balance } = await turbo.getBalance();
@@ -33964,7 +33972,7 @@ const address = await turbo.signer.getNativeAddress();
 
 #### getWincForFiat()
 
-Returns the current amount of Winston Credits including all adjustments for the provided fiat currency, amount, and optional promo codes.
+Returns the current amount of `winc` including all adjustments for the provided fiat currency, amount, and optional promo codes.
 
 ```typescript
 const { winc, paymentAmount, quotedPaymentAmount, adjustments } =
@@ -34216,7 +34224,7 @@ await turbo.uploadRawX402Data({
 });
 ```
 
-The raw x402 route has no free tier: every upload pays, however small. An unauthenticated client cannot pay, so it gets a `402` with a price. To upload under the free limit without paying, sign a data item and use `upload` or `uploadFile` instead.
+The raw x402 route has no free tier: every upload pays, however small. A request that carries no x402 payment gets a `402` with the price, which `uploadRawX402Data` pays within `maxMUSDCAmount`. To upload under the free limit without paying, sign a data item and use `upload` or `uploadFile` instead.
 
 #### uploadFolder()
 
@@ -34780,7 +34788,7 @@ days); it is never posted to mainnet Arweave. See
 
 #### getSupportedCurrencies()
 
-Returns the list of currencies supported by the Turbo Payment Service for topping up a user balance of AR Credits (measured in Winston Credits, or winc).
+Returns the list of currencies supported by the Turbo Payment Service for topping up a Turbo Credits balance, which is counted in `winc`.
 
 ```typescript
 const currencies = await turbo.getSupportedCurrencies();
@@ -34812,7 +34820,7 @@ const rates = await turbo.getFiatRates();
 
 #### getWincForFiat()
 
-Returns the current amount of Winston Credits including all adjustments for the provided fiat currency.
+Returns the current amount of `winc` including all adjustments for the provided fiat currency.
 
 ```typescript
 const { winc, actualPaymentAmount, quotedPaymentAmount, adjustments } =
@@ -34823,7 +34831,7 @@ const { winc, actualPaymentAmount, quotedPaymentAmount, adjustments } =
 
 #### getWincForToken()
 
-Returns the current amount of Winston Credits including all adjustments for the provided token amount.
+Returns the current amount of `winc` including all adjustments for the provided token amount.
 
 ```typescript
 const { winc, actualTokenAmount, equivalentWincTokenAmount } =
@@ -34872,7 +34880,7 @@ console.log(tokenPrice); // Estimated SOL Price for 100 MiB
 
 #### getUploadCosts()
 
-Returns the estimated cost in Winston Credits for the provided file sizes, including all upload adjustments and fees.
+Returns the estimated cost in `winc` for the provided file sizes, including all upload adjustments and fees.
 
 ```typescript
 const [uploadCostForFile] = await turbo.getUploadCosts({ bytes: [1024] });
@@ -35100,6 +35108,16 @@ await turbo.setArNSRecord({
   ttlSeconds: 900,
 });
 await turbo.removeArNSRecord({ antId, owner, undername: 'docs' });
+
+// Every action above and below takes an optional `paidBy`: wallets that shared
+// credits with the paying wallet (credit-share approvals), spent in order
+// before its own balance. It is not part of the owner's signed message.
+await turbo.setArNSRecord({
+  antId,
+  owner,
+  transactionId,
+  paidBy: ['\'],
+});
 
 // Record metadata — display name, logo, description, keywords. Same margin,
 // same shape rules as setArNSRecord. `null` clears a field; omit to leave it.
