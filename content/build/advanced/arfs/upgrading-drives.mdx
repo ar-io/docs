@@ -5,12 +5,12 @@ description: "Learn how to upgrade legacy private drives to ArFS v0.15"
 
 ## Overview
 
-Private drives rely on a combination of user-set password and a wallet signature for encryption and decryption. [Wander](https://www.wander.app/), formerly ArConnect, is a popular Arweave wallet that is deprecating its `signature()` method in favor of `signDataItem()` or `signMessage()`. In order to preserve access to private drive contents that were secured via drive keys created via 'signature()', ArFS v0.15 introduces a new drive key derivation scheme that both utilizes the modern signing APIs and bridges historical drive keys for usage with it.
+Private drives rely on a combination of user-set password and a wallet signature for encryption and decryption. [Wander](https://www.wander.app/), formerly ArConnect, is an Arweave wallet that is deprecating its `signature()` method in favor of `signDataItem()` or `signMessage()`. So that drives whose keys came from `signature()` stay readable, ArFS v0.15 adds a way to derive drive keys with `signDataItem()`, and a bridge from the old keys to the new one.
 
-Because private drive entities exist on chain and their encryption cannot be altered, an upgrade is required to allow continued access to "V1" private drives. This upgrade essentially takes a signature from the drive owner wallet, encrypts it using the required signature structure for V2 private drives, and places it on Arweave as a new "Drive-Signature" entity. This allows the signature to be fetched and decrypted using the latest methods before using it to decrypt the private drive in the V1 format.
+A private drive's encryption is on chain and cannot change, so a type `1` ("V1") private drive needs an upgrade to stay readable. The upgrade stores the drive's type `1` signature on Arweave, encrypted with a key that only the newer type `2` signature can derive. A client can then fetch and decrypt that signature with `signDataItem()` and use it to open the drive.
 
 <Callout type="warning" title="Deprecation Period">
-The below instructions for upgrading a private drive will work during the deprecation period for the `signature()` method from Wanter. Once this period is over, and `signature()` loses all support, additional steps will be required to obtain the correct signature format to decrypt V1 private drives in order to upgrade them.
+The below instructions for upgrading a private drive will work during the deprecation period for the `signature()` method from Wander. Once this period is over, and `signature()` loses all support, additional steps will be required to obtain the correct signature format to decrypt V1 private drives in order to upgrade them.
 
 There is, at this time, no set date for when the deprecation period will end.
 
@@ -18,64 +18,54 @@ There is, at this time, no set date for when the deprecation period will end.
 
 ## The Upgrade Process
 
-The upgrade process involves creating a new `Drive-Signature` entity that contains an encrypted version of the legacy signature needed to decrypt the private drive.
+The upgrade adds one new `drive-signature` entity holding the drive's type `1` signature, encrypted under the drive's type `2` key. It does not change the drive entity: the drive keeps no `Signature-Type` tag, or `Signature-Type: 1`, and its drive key stays the same.
 
 ```mermaid
 sequenceDiagram
+    accTitle: The upgrade writes one drive-signature entity and never rewrites the drive
+    accDescr: The client asks the wallet for the drive's type 1 signature and checks that it reproduces the drive key it holds. It asks for the type 2 signature twice and checks both match. It derives the type 2 drive key, encrypts the type 1 signature with it, decrypts it again as a reader would, and only then uploads the drive-signature entity. If any check fails, nothing is uploaded.
+
     participant User
     participant Client
     participant Wallet
     participant Arweave
 
-    User->>Client: Initiate drive upgrade
-    Client->>Wallet: Request legacy signature
-    Wallet->>Client: Return signature
-    Client->>Client: Encrypt signature with v0.15 scheme
-    Client->>Arweave: Upload Drive-Signature entity
-    Client->>Client: Update drive with Signature-Type tag
-    Client->>Arweave: Upload updated drive entity
-    Client->>User: Upgrade complete
+    User->>Client: Update drive
+    Client->>Wallet: signature() for drive + Drive-Id
+    Wallet-->>Client: Type 1 signature
+    Note over Client: Must reproduce the drive key held
+    Client->>Wallet: signDataItem() for the same bytes, twice
+    Wallet-->>Client: Type 2 signature, twice
+    Note over Client: Both must match
+    Note over Client: Derive type 2 key, encrypt type 1 signature
+    Note over Client: Decrypt it back, check it opens the drive
+    alt Every check passes
+        Client->>Arweave: drive-signature entity
+        Client-->>User: Drive updated
+    else A check fails
+        Client-->>User: Drive not updated, nothing uploaded
+    end
 ```
 
 ### Drive-Signature Entity
 
-The `Drive-Signature` entity stores the encrypted legacy signature:
+The `drive-signature` entity stores the encrypted type `1` signature:
 
 ```json
 ArFS: "0.15",
 Entity-Type: "drive-signature",
+Drive-Id: "<uuid of the drive this signature unlocks>",
 Signature-Format: "1",
-Cipher?: "AES256-GCM",
+Cipher: "AES256-GCM",
 Cipher-IV: "<12 byte initialization vector as Base64>"
-{data: <Encrypted type 1 signature>}
+{data: <Encrypted type 1 signature, followed by the 16-byte GCM tag>}
 ```
 
-### Updated Drive Entity
-
-The drive entity is updated with a new `Signature-Type` tag:
-
-```json
-ArFS: "0.15",
-Cipher?: "AES256-GCM",
-Cipher-IV?: "<12 byte initialization vector as Base64>",
-Content-Type: "<application/json | application/octet-stream>",
-Drive-Id: "<uuid>",
-Drive-Privacy: "<public | private>",
-Drive-Auth-Mode?: "password",
-Entity-Type: "drive",
-Signature-Type?: "1",
-Unix-Time: "<seconds since unix epoch>"
-
-Metadata JSON {
-    "name": "<user defined drive name>",
-    "rootFolderId": "<uuid of the drive root folder>",
-    "isHidden": false
-}
-```
+A reader takes only the owner's newest `drive-signature` entity for the drive, so a newer entity encrypted under the wrong key hides any correct older one, and it cannot be deleted. That is why ArDrive refuses to upload an entity it has not read back.
 
 ## Using ArDrive
 
-The upgrade process has been made simple by using the [ArDrive app](https://app.ardrive.io/).
+The [ArDrive app](https://app.ardrive.io/) runs the upgrade for you.
 
 ### Step 1: Log into ArDrive
 
@@ -91,17 +81,17 @@ This will open a modal listing the drives that need to be updated, and linking t
 
 ### Step 3: Click "Update"
 
-The process of upgrading the private drives will begin, and involve signing messages depending on how many drives are being upgraded. When the process is complete, a new modal will appear listing the drives that have been successfully updated.
+ArDrive starts the upgrade and asks your wallet to sign for each drive. When it finishes, a new modal lists the drives it updated.
 
 ![ArDrive Upgrade Complete](https://turbo-gateway.com/qEwT3oFZbFDpmRQpw9j1c_okN5pIkFqRuoSwBzhc3HQ)
 
 ## Manual Upgrade Process
 
-If you need to upgrade drives programmatically, here's the process:
+To upgrade drives from your own code:
 
 ### 1. Identify V1 Drives
 
-Query the wallet's private drive entities, then keep the drives whose latest drive entity has no `Signature-Type` tag. GraphQL cannot query for a missing tag, so this filter runs in the client. Do not filter on the `ArFS` tag: a drive that needs upgrading can carry any version.
+Query the wallet's private drive entities, then keep the drives whose latest drive entity has no `Signature-Type` tag or has `Signature-Type: 1`, and that have no `drive-signature` entity yet. GraphQL cannot query for a missing tag, so this filter runs in the client. Do not filter on the `ArFS` tag: a drive that needs upgrading can carry any version.
 
 ```graphql
 query ($owner: String!, $after: String) {
@@ -135,16 +125,16 @@ query ($owner: String!, $after: String) {
 ### 2. Create Drive-Signature Entity
 
 ```javascript
-async function createDriveSignature(driveId, legacySignature) {
-  // Encrypt the legacy signature
-  const encryptedSignature = await encryptSignature(legacySignature);
+async function createDriveSignature(driveId, typeOneSignature, typeTwoDriveKey) {
+  // Encrypt the type 1 signature under the type 2 drive key, with AES256-GCM
+  const { cipherIV, data } = await driveEncrypt(typeTwoDriveKey, typeOneSignature);
 
-  // Create the drive signature entity
   const driveSignature = {
-    data: encryptedSignature,
+    data,
     tags: [
       { name: "ArFS", value: "0.15" },
       { name: "Entity-Type", value: "drive-signature" },
+      { name: "Drive-Id", value: driveId },
       { name: "Signature-Format", value: "1" },
       { name: "Cipher", value: "AES256-GCM" },
       { name: "Cipher-IV", value: cipherIV },
@@ -156,33 +146,11 @@ async function createDriveSignature(driveId, legacySignature) {
 }
 ```
 
-### 3. Update Drive Entity
-
-```javascript
-async function updateDriveEntity(driveId) {
-  // Get existing drive entity
-  const driveEntity = await getDriveEntity(driveId);
-
-  // Add Signature-Type tag
-  const updatedTags = [
-    ...driveEntity.tags,
-    { name: "Signature-Type", value: "1" },
-  ];
-
-  // Create updated drive entity
-  const updatedDrive = {
-    data: driveEntity.data,
-    tags: updatedTags,
-  };
-
-  // Upload to Arweave
-  return await uploadTransaction(updatedDrive);
-}
-```
+Before uploading, decrypt the entity's data with a type `2` key made from a fresh signature, derive the drive key from what comes out, and check that it opens the drive. Do not upload a new drive entity: the drive's tags stay as they are.
 
 ## Verification
 
-After upgrading, verify the process was successful:
+After upgrading, check that it worked:
 
 ### Check Drive-Signature Entity
 
@@ -212,34 +180,9 @@ query ($owner: String!, $driveId: String!) {
 }
 ```
 
-### Check Updated Drive Entity
+### Check the Drive Opens
 
-```graphql
-query ($owner: String!, $driveId: String!) {
-  transactions(
-    owners: [$owner]
-    tags: [
-      { name: "Entity-Type", values: ["drive"] }
-      { name: "Drive-Id", values: [$driveId] }
-      { name: "Signature-Type", values: ["1"] }
-    ]
-  ) {
-    edges {
-      node {
-        id
-        block {
-          height
-          timestamp
-        }
-        tags {
-          name
-          value
-        }
-      }
-    }
-  }
-}
-```
+Open the drive in a client that reads `drive-signature` entities, such as ArDrive or ardrive-core-js 3.0.0 or later, with a wallet that offers only `signDataItem()`. The drive's `Signature-Type` tag is unchanged, so do not look for a new drive entity.
 
 ## Troubleshooting
 
@@ -255,14 +198,12 @@ query ($owner: String!, $driveId: String!) {
 ```javascript
 async function upgradeDrive(driveId) {
   try {
-    // Get legacy signature
-    const legacySignature = await getLegacySignature(driveId);
+    // Get the type 1 signature and the type 2 drive key
+    const typeOneSignature = await getTypeOneSignature(driveId);
+    const typeTwoDriveKey = await getTypeTwoDriveKey(driveId);
 
     // Create drive signature entity
-    await createDriveSignature(driveId, legacySignature);
-
-    // Update drive entity
-    await updateDriveEntity(driveId);
+    await createDriveSignature(driveId, typeOneSignature, typeTwoDriveKey);
 
     console.log("Drive upgraded successfully");
   } catch (error) {
@@ -295,21 +236,12 @@ async function upgradeDrive(driveId) {
 - **Monitor performance** - Check for any performance issues
 - **Document changes** - Keep track of upgraded drives
 
-## Migration Timeline
+## Release History
 
-```mermaid
-gantt
-    title ArFS v0.15 Migration Timeline
-    dateFormat  YYYY-MM-DD
-    section Phase 1
-    Legacy Support    :active, legacy, 2024-01-01, 2024-06-30
-    section Phase 2
-    Migration Period  :migration, 2024-07-01, 2024-12-31
-    section Phase 3
-    Legacy Deprecation :deprecation, 2025-01-01, 2025-06-30
-    section Phase 4
-    Full v0.15        :full, 2025-07-01, 2025-12-31
-```
+- **2025-05-21**: ArDrive published the upgrade guide in its ArFS specification.
+- **2025-05-29**: ArDrive web 2.68.0 shipped ArFS v0.15, including the upgrade banner.
+- **2025-06-16**: ardrive-core-js 3.0.0 shipped ArFS v0.15 support. It reads `drive-signature` entities and gives new private drives `Signature-Type: 2`.
+- **No date set**: the end of Wander's `signature()` deprecation period.
 
 ## Next Steps
 

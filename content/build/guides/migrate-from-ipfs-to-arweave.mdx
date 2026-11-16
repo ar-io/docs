@@ -44,17 +44,7 @@ This guide connects those pieces into a migration workflow.
 
 ## Migration Architecture
 
-At a high level, every migration follows the same pipeline:
-
-```mermaid
-flowchart LR
-  inventory["Inventory CIDs"] --> fetch["Fetch from IPFS gateway"]
-  fetch --> upload["Upload via Turbo"]
-  upload --> map["Persist CID to txId mapping"]
-  map --> rewrite["Rewrite references"]
-  rewrite --> index["Publish migration index"]
-  index --> validate["Validate on ar.io"]
-```
+A migration has seven steps, from inventorying your CIDs to validating the result on ar.io:
 
 <Steps>
   <Step>

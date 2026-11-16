@@ -41,7 +41,7 @@ Packing many data items into one Arweave transaction. Bundling is what makes sma
 
 ## CPI (Cross-Program Invocation)
 
-The mechanism by which Solana programs call into each other. The ar.io architecture uses CPI for token operations — ario-gar and ario-arns call into ario-core for SPL Token transfers.
+How one Solana program calls another. The ar.io programs use it to move ARIO (through the SPL Token program), to pay for names from stake, and to manage ANTs. See [Protocol architecture](/learn/protocol-architecture).
 
 ## Cranker
 
@@ -53,7 +53,7 @@ The id of a [data item](#ans-104-data-item), assigned when it is signed. A gatew
 
 ## Epoch Pipeline
 
-The 6-step process for observation, reward calculation, and distribution each epoch: create_epoch → tally_weights → prescribe_epoch → save_observations → distribute_epoch → close_epoch.
+The steps that run each epoch to choose observers, record their results and pay rewards: `create_epoch`, `tally_weights`, `prescribe_epoch`, observers' `save_observations`, `distribute_epoch`, `close_observation` and `close_epoch`. Any [cranker](#cranker) can submit them. See [Epoch pipeline](/learn/oip/epoch-pipeline).
 
 ## Gateway
 
@@ -105,7 +105,7 @@ A data indexing strategy where new data is immediately made available for querie
 
 ## PDA (Program Derived Address)
 
-Deterministic Solana account addresses derived from a program ID and a set of seeds. The ar.io protocol uses PDAs extensively — for gateways, delegations, withdrawals, vaults, ArNS records, ANT configs, and more.
+A Solana account address computed from a program ID and a few fixed inputs (seeds), so anyone can work out where a record lives. The ar.io programs store each gateway, delegation, withdrawal, vault and ArNS record at one.
 
 ## Permaweb
 
@@ -149,7 +149,7 @@ A protocol-level token lock with a start time, optional end time, and token bala
 
 ## Wayfinder
 
-A client library that chooses an ar.io gateway for each request and verifies that what comes back matches what was stored, so an app does not have to trust a single gateway. See [Wayfinder](/learn/wayfinder).
+A client library that picks an ar.io gateway for each request and retries on another if one fails, so an app does not depend on a single gateway. It can also check that the data it gets back matches what was stored. See [Wayfinder](/learn/wayfinder).
 
 ## WebSeed
 

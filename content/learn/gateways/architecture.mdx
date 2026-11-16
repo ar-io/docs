@@ -7,150 +7,148 @@ import { Database, Shield, Layers, Server } from 'lucide-react';
 
 ar.io gateways are data access layers built on top of Arweave. They make permanent data easier to retrieve, cache, index, and serve through standard web interfaces.
 
+A gateway does two jobs at once. It answers requests, and in the background it indexes the chain so that it can find data later.
+
+### Serving a request
+
 ```mermaid
-graph TB
-    CLIENTS[Apps, browsers and agents]
+graph LR
+    accTitle: Envoy routes each request, and the core service serves data from its cache or fetches it from peers
+    accDescr: A client request reaches Envoy, which sends data, ArNS and GraphQL requests to the core service and chain requests, such as posting a transaction, to a trusted Arweave node. The core service looks up where the data lives in its SQLite and CDB64 indexes, serves cached bytes from disk, and on a cache miss fetches the bytes from other gateways or Arweave nodes.
+    CL[Apps, browsers<br/>and agents]
+    ENV[Envoy :3000]
+    CORE[Core service]
+    AN[Trusted Arweave node]
+    IDX[(SQLite and<br/>CDB64 indexes)]
+    CACHE[(Cached data<br/>and chunks on disk)]
+    UP[Other gateways<br/>and Arweave nodes]
 
-    subgraph Gateway ["ar.io Gateway"]
-        ENVOY[Envoy]
+    CL -->|HTTP request| ENV
+    ENV -->|data, ArNS, GraphQL| CORE
+    ENV -->|chain requests, tx posts| AN
+    CORE -->|root TX and offset lookups| IDX
+    CORE -->|reads and writes bytes| CACHE
+    CORE -->|fetches on a cache miss| UP
 
-        subgraph Services ["Services"]
-            API[Core Service<br/>Gateway API and workers]
-            OBS[Observer]
-            SIDE[index-swarm sidecar<br/>with tracker<br/>Optional]
-            ENG[Torrent engine<br/>Optional]
-            EXP[index-export<br/>Optional, Release 85]
-        end
-
-        subgraph Local ["Data and Storage Layer"]
-            SQL[(SQLite<br/>core · data · bundles<br/>moderation · chunks)]
-            REDIS[(Redis<br/>Chain and ArNS cache)]
-            CH[(ClickHouse<br/>Optional GraphQL history)]
-            FS[Files on disk<br/>chunks and contiguous data<br/>data/indexes: root-TX and L1 bands]
-        end
-    end
-
-    subgraph External ["External Network"]
-        ARWEAVE[(Arweave nodes)]
-        PEERS[Other ar.io gateways]
-        NETWORK[ar.io network<br/>Registry and observations]
-    end
-
-    CLIENTS -->|HTTP| ENVOY
-    ENVOY --> API
-
-    API --> SQL
-    API --> REDIS
-    API --> CH
-    API --> FS
-    SIDE -->|bands| FS
-    SIDE -->|torrents| ENG
-    SQL -.->|records| EXP
-    CH -.->|records| EXP
-    EXP -.->|bands| FS
-
-    API -->|blocks, chunks, data| ARWEAVE
-    API -->|data| PEERS
-    OBS -->|test requests| PEERS
-    OBS -->|reports| NETWORK
-    SIDE -->|signed bands| PEERS
-    ENG -->|pieces| PEERS
-
-
-    class SQL,REDIS,CH dg-soft
-    class API,OBS dg-strong
-    class SIDE,ENG,EXP dg-strong
-    class SIDE,ENG,EXP dg-dashed
-    class ENVOY dg-muted
-    class CLIENTS,PEERS,ARWEAVE,NETWORK dg-muted
-    class FS dg-soft
+    class CORE dg-strong
+    class IDX,CACHE dg-soft
+    class CL,AN,UP dg-muted
 ```
 
-## Core Technology Stack
+Envoy also sends `/ar-io/observer` requests to the observer. Each epoch the observer checks other gateways, uploads its report to Arweave and records the result on Solana. See [Observation and Incentives](/learn/oip).
 
-ar.io gateways are built from these parts:
+### Indexing in the background
 
-### Runtime and Language
-- **Node.js**: The primary runtime environment for all gateway services
-- **TypeScript**: Core services written with flexible interfaces for customization
-- **Event-driven architecture**: Enables efficient handling of concurrent operations
+A gateway indexes blocks and transactions itself, and unbundles the bundles its filter selects. It can also install signed index bands that other gateways publish, through [Index Sharing](/learn/gateways/index-sharing).
 
-### Data Storage
-- **SQLite**: Five databases handle different aspects of gateway operations:
+```mermaid
+graph LR
+    accTitle: A gateway indexes the chain itself and can also install signed index bands from other gateways
+    accDescr: Importers read blocks and transaction headers from Arweave nodes into SQLite. Bundles that the unbundling filter selects are fetched as chunks and unbundled into data item rows. Stable rows can be exported as Parquet into an optional ClickHouse. Separately, the index-swarm sidecar installs signed bands from other gateways. When the operator turns it on, the gateway fills its L1 history in SQLite from them and, from Release 88, adds L2 data items to ClickHouse or SQLite.
+    AN[Arweave nodes]
+    IMP[Block and<br/>transaction importers]
+    UB[ANS-104 unbundler]
+    SQL[(SQLite<br/>core.db, bundles.db)]
+    CH[(ClickHouse<br/>optional)]
+    PUB[Publishing gateways<br/>and BitTorrent peers]
+    SIDE[index-swarm sidecar]
+    BANDS[(data/indexes<br/>installed bands)]
+
+    AN -->|blocks, tx headers| IMP
+    IMP -->|block and tx rows| SQL
+    IMP -->|bundle IDs the filter selects| UB
+    AN -->|bundle bytes as chunks| UB
+    UB -->|data item rows| SQL
+    SQL -->|stable rows as Parquet| CH
+    PUB -->|signed bands| SIDE
+    SIDE -->|verified bands| BANDS
+    BANDS -->|L1 history, optional| SQL
+    BANDS -->|L2 data items, optional| CH
+
+    class IMP,UB dg-strong
+    class SQL,BANDS dg-soft
+    class SIDE dg-soft
+    class CH dg-dashed
+    class AN,PUB dg-muted
+```
+
+## Core technology stack
+
+### Runtime and language
+- **Node.js** runs every gateway service.
+- **TypeScript**: the services are written in it, with interfaces you can swap for your own implementations.
+
+### Data storage
+- **SQLite**: five databases, each with one job:
   - `core`: Arweave blocks and transactions
   - `data`: content hashes and cache metadata
   - `bundles`: ANS-104 data items
   - `moderation`: blocked content
   - `chunks`: chunk metadata
-- **Redis**: Cache for chain data and ArNS resolutions
-- **ClickHouse** (optional): Columnar store for GraphQL queries over long stable history
-- **File system storage**: Cached chunks, transaction headers and contiguous data
-- **CDB64 indexes**: Read-only files that map a data item to the transaction that holds it, kept current by [Index Sharing](/learn/gateways/index-sharing) when it is enabled. Shared indexes live under `data/indexes`, as root-TX bands and, from Release 85, L1 bands. From Release 85 the optional `index-export` service builds a publishing gateway's bands from its own records
+- **Redis**: a cache for chain data and ArNS resolutions
+- **ClickHouse** (optional): a column store that answers GraphQL queries over long, stable history
+- **Files on disk**: cached chunks, transaction headers and whole data
+- **CDB64 indexes**: read-only files that map a data item to the root transaction that holds it. [Index Sharing](/learn/gateways/index-sharing), on by default from Release 85, keeps them current with bands other gateways publish. Bands can also hold the Arweave base layer (L1) or selected data items (L2), in Parquet. A gateway that publishes builds its bands from its own records
 
-### Processing Model
-- **Worker-based concurrency**: Specialized workers handle different background tasks
-- **Event-driven processing**: Loosely coupled components communicate via events
-- **Streaming data handling**: Minimizes memory overhead for large data operations
+### Processing model
+- **Workers**: separate background workers each handle one task.
+- **Events**: components pass work to each other through events rather than direct calls.
+- **Streaming**: data streams through the gateway rather than loading into memory, so large files use little memory.
 
-## Key Architectural Decisions
+## Key architectural decisions
 
-Several important design decisions shape how ar.io gateways operate:
+### Data retrieval strategy
+When a gateway does not have the data cached, it tries these sources in order by default, and stops at the first that answers:
 
-### Data Retrieval Strategy
-ar.io gateways use a **hierarchical fallback system** for data retrieval:
+1. **Trusted gateways**: the gateways the operator lists, turbo-gateway.com by default
+2. **ar.io network**: other gateways in the registry
+3. **Chunks**: the data reassembled from Arweave chunks, located by offset
+4. **Transaction data**: the whole transaction from Arweave nodes
 
-1. **Trusted gateways**: Prioritize data from verified, high-performance peers
-2. **ar.io network**: Fetch from other ar.io gateways
-3. **Chunks data items**: Reconstruct data from individual chunks when needed
-4. **Transaction data**: Fall back to raw Arweave transaction data
+[Data Retrieval](/learn/gateways/data-retrieval) covers each source.
 
-This approach improves availability while optimizing for speed and reliability.
+### Verification and trust model
+- **Checks while fetching**: a peer's response must match the hash the gateway already knows, and each chunk is proven against its transaction's data root.
+- **Background verification**: the gateway later recomputes the data root of cached data and marks it verified. When the roots differ, it fetches the data again from Arweave chunks.
+- **Verification headers**: response headers such as `X-AR-IO-Verified` tell the client whether the data has been verified.
 
-### Verification and Trust Model
-- **Multi-level cryptographic verification**: Data integrity is verified at multiple points
-- **Trust hierarchy**: Cached verified data → trusted cached data → network streams
-- **Self-healing mechanisms**: Automatic recovery and re-verification of corrupted data
-- **Verification headers**: HTTP headers indicate the verification status of returned data
+[Data Verification](/learn/gateways/data-verification) covers both.
 
-### Serving Capabilities
+### Serving capabilities
 
-Gateways expose a serving layer for applications and end users. This layer includes byte-range requests, signed and verifiable responses, x402 paid access, peer routing, content moderation hooks, and [Index Sharing](/learn/gateways/index-sharing), through which gateways publish and subscribe to signed indexes that locate data items. These capabilities let operators tune how data is delivered while preserving verifiability and local operator choice.
+Beyond serving data, a gateway supports byte-range requests, signed responses that a client can verify, paid access through x402, routing between peers, content moderation, and [Index Sharing](/learn/gateways/index-sharing). The operator chooses which to turn on.
 
-### Worker Specialization
-Different background workers handle specific responsibilities:
+### Worker specialization
+- **Block sync workers** keep the gateway in step with Arweave blocks.
+- **Bundle workers** unbundle and index ANS-104 data items.
+- **Verification workers** check cached data.
+- **Maintenance workers** clean up old cache files and database rows.
 
-- **Block synchronization workers**: Keep the gateway aligned with Arweave blocks
-- **Bundle processing workers**: Extract and index ANS-104 data items
-- **Data verification workers**: Check cached data integrity
-- **Maintenance workers**: Perform cleanup and optimization tasks
+## Scalability and configuration
 
-## Scalability and Configuration
+A gateway can run on one small server or as a fleet of nodes.
 
-ar.io gateways are designed to scale from small personal deployments to large enterprise installations:
+### Modular architecture
+An operator can configure or turn off each of these on its own:
+- **Data serving**: serve cached data to applications
+- **Data indexing**: index new Arweave data
+- **Bundle processing**: unbundle and index data items
+- **ArNS routing**: resolve ArNS names
 
-### Modular Architecture
-Gateway services can be independently configured or disabled based on operator needs:
-- **Data serving**: Serve cached data to applications
-- **Data indexing**: Index and process new Arweave data
-- **Bundle processing**: Handle Layer 2 bundled transactions
-- **ArNS routing**: Resolve ArNS names
+## Core philosophy: builder independence
 
-## Core Philosophy: Builder Independence
+Gateways are built so that you can use Arweave without relying on any one provider.
 
-ar.io gateways are built so that builders can use Arweave without relying on any central resource. This shows in three ways:
+### Extensibility through modularity
+Operators add features through [Extensions](/build/extensions/) and sidecar services that run beside the gateway.
 
-### Extensibility Through Modularity
-Gateways are designed as extensible platforms that operators can customize through **[Extensions](/build/extensions/)**, sidecar services, and plugin architectures for specialized functionality.
+### Data sovereignty
+Each operator chooses where its gateway fetches data from ([Data Retrieval](/learn/gateways/data-retrieval)) and checks that data itself ([Data Verification](/learn/gateways/data-verification)), so it does not have to trust a middleman.
 
-### Data Sovereignty
-Operators maintain complete control through **[Data Retrieval](/learn/gateways/data-retrieval)** strategies and **[Data Verification](/learn/gateways/data-verification)** systems that ensure independence from trusted intermediaries.
+### Network resilience
+Many independent gateways serve the same data, so no single gateway is a point of failure.
 
-### Network Resilience
-The modular design creates a resilient ecosystem where distributed infrastructure and customizable trust models prevent single points of failure.
-
-This architecture helps builders use Arweave without depending on a single infrastructure provider.
-
-## Explore Gateway Capabilities
+## Explore gateway capabilities
 
 <Cards>
   <Card 

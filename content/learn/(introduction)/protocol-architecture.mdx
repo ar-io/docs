@@ -3,131 +3,142 @@ title: 'Protocol Architecture'
 description: "Explore the technical architecture of the ar.io Solana programs and protocol components"
 ---
 
-## Ar.io Protocol Architecture
+## Overview
 
-The ar.io protocol operates through five Solana programs that work together via cross-program invocation (CPI). This architecture organizes protocol responsibilities into a coordinated set of programs with clear boundaries.
+The ar.io protocol runs as five Solana programs. Each one owns one part of the protocol. They call each other through [cross-program invocation (CPI)](/glossary#cpi-cross-program-invocation), where one program calls another inside the same transaction.
 
 For the deployed Solana mainnet program IDs and ARIO token mint, see [Mainnet Addresses](/learn/token#mainnet-addresses).
 
+The first diagram shows how the programs call each other on chain. The second shows the off-chain actors that drive them.
+
+### Calls between programs
+
 ```mermaid
-graph TD
+graph LR
+    accTitle: Programs call each other only where stake, treasury funds, or an ANT asset must move
+    accDescr: ario-arns and ario-core call ario-gar to pay a fee out of staked ARIO. ario-gar calls ario-core to release epoch rewards from the protocol treasury. ario-ant-escrow calls ario-core to recreate a vault for a claimant and calls Metaplex Core to move an escrowed ANT. ario-ant calls Metaplex Core to write name traits onto the ANT asset, and reads ArnsRecord accounts owned by ario-arns without calling it.
 
-    subgraph CORE["ario-core"]
-        direction TB
-        BAL[SPL Token / Balances]
-        VAULTS[Vaults]
-        PRIMARY[Primary Names]
-    end
+    ARNS["ario-arns<br/>name registry"]
+    GAR["ario-gar<br/>gateways, stake, epochs"]
+    CORE["ario-core<br/>treasury, vaults,<br/>primary names"]
+    ANT["ario-ant<br/>ANT records"]
+    ESC["ario-ant-escrow"]
+    MPL["Metaplex Core"]
 
-    subgraph GAR["ario-gar"]
-        direction TB
-        GW_REG[Gateway Registry]
-        STAKING[Staking & Delegation]
-        EPOCHS[Epochs & Rewards]
-    end
+    ARNS -->|"pay for a name<br/>from stake"| GAR
+    CORE -->|"pay a primary name<br/>fee from stake"| GAR
+    GAR -->|"release epoch rewards<br/>from treasury"| CORE
+    ESC -->|"recreate a claimed vault"| CORE
+    ESC -->|"move escrowed ANT"| MPL
+    ANT -->|"write name traits"| MPL
+    ANT -.->|"reads ArnsRecord"| ARNS
 
-    subgraph ARNS["ario-arns"]
-        direction TB
-        NAME_REG[Name Registry]
-        DEMAND[Demand Factor]
-        PRICING[Pricing & Auctions]
-    end
-
-    subgraph ANT["ario-ant"]
-        direction TB
-        NFT[Metaplex Core NFTs]
-        RECORDS[DNS-like Records]
-        CTRL[Controllers]
-    end
-
-    subgraph ESCROW["ario-ant-escrow"]
-        direction TB
-        ANT_ESC[ANT Escrow]
-        TOKEN_ESC[Token / Vault Escrow]
-        CLAIMS[Arweave + Ethereum Claims]
-    end
-
-    CORE --> GAR
-    CORE --> ARNS
-    ARNS --> ANT
-    ARNS -.->|gateway data| GAR
-    ESCROW -->|cpi: transfer/update ANT| MPL[Metaplex Core]
-
-
-    class BAL,VAULTS,PRIMARY dg-soft
-    class GW_REG,STAKING,EPOCHS dg-soft
-    class NAME_REG,DEMAND,PRICING dg-soft
-    class NFT,RECORDS,CTRL dg-soft
-    class ANT_ESC,TOKEN_ESC,CLAIMS dg-soft
+    class GAR dg-strong
     class MPL dg-muted
-    class MPL dg-dashed
 ```
 
-`ario-ant-escrow` has no arrow to `ario-core`, `ario-gar`, or `ario-arns` above, and that is deliberate, not an omission: current `main` shows no CPI between them. Its only onchain call out is `invoke`/`invoke_signed` into Metaplex Core (`mpl_core_cpi.rs`, called from `deposit.rs`, `claim_arweave_attested.rs`, `claim_ethereum.rs`, `cancel.rs`, and `admin_purge_unclaimed.rs`) to move the escrowed ANT. It also calls `CpiContext`/`token::transfer` into the standard SPL Token program for liquid ARIO and vault transfers (`deposit_tokens.rs`, `deposit_vault.rs`, and their cancel/claim counterparts); that edge is not drawn, matching how this diagram never draws `ario-core`'s own SPL Token calls as a separate node either. Arweave claims are checked by instruction introspection of a sibling `Ed25519Program` instruction, and Ethereum claims by the `secp256k1_recover` syscall: neither is a CPI, so neither gets an edge.
+Solid arrows are CPIs. The dashed arrow is a read of another program's account. The diagram leaves out two things:
+
+- Plain ARIO transfers. ario-core, ario-gar, ario-arns, and ario-ant-escrow each move ARIO by calling the standard SPL Token program directly.
+- Other account reads. ario-arns reads a buyer's Gateway account to apply the operator discount, ario-gar reads the NameRegistry to prescribe names, and ario-core reads ArnsRecord accounts to price primary names.
+
+ario-ant-escrow checks Arweave claims against an `Ed25519Program` instruction in the same transaction, and Ethereum claims with the `secp256k1_recover` syscall. Neither is a CPI.
+
+### Who drives the programs
+
+```mermaid
+graph TB
+    accTitle: Gateways, observers, and crankers are independent peers that read and drive the programs
+    accDescr: Gateways are peers. Each one reads ArNS name and ANT records from Solana and fetches and verifies data from Arweave and from other gateways. A gateway's observer, when prescribed, sends ArNS test requests to every other gateway, uploads a JSON report to Arweave, and submits pass and fail results to ario-gar. A cranker, which can be any wallet with SOL, submits the epoch instructions to ario-gar, and ario-gar adds rewards to the stake of gateways that pass.
+
+    subgraph PEERS["Gateways, each a peer"]
+        GA["Gateway A<br/>with observer"]
+        GB["Gateway B"]
+        GC["Gateway C"]
+    end
+    CR["Cranker<br/>any wallet with SOL"]
+    GAR["ario-gar"]
+    NAMES["ario-arns<br/>and ario-ant"]
+    AR["Arweave"]
+
+    GA -->|"ArNS test requests"| GB
+    GA -->|"ArNS test requests"| GC
+    GA -->|"JSON report"| AR
+    GA -->|"pass and fail results<br/>and report tx ID"| GAR
+    CR -->|"epoch instructions"| GAR
+    GAR -->|"rewards added<br/>to stake"| PEERS
+    PEERS -->|"read name and<br/>ANT records"| NAMES
+    PEERS -->|"fetch and verify<br/>data by tx ID"| AR
+
+    class GAR dg-strong
+    class NAMES dg-soft
+    class AR dg-muted
+    class CR dg-dashed
+```
 
 ## Programs
 
 ### ario-core
 
-The core program manages the ARIO SPL Token, vaults, and primary names:
+The core program manages the ARIO token configuration, the protocol treasury, vaults, and primary names:
 
-- **SPL Token Operations**: ARIO is a standard SPL Token (6 decimals, 1 ARIO = 1,000,000 mARIO). Transfers, balances, and token accounts follow the SPL Token standard.
-- **Vaults**: Time-locked token deposits for various purposes, including ecosystem programs and other protocol-managed incentives.
-
-Other programs (ario-gar, ario-arns) call into ario-core via CPI for all token operations.
+- **Token**: ARIO is a standard SPL Token (6 decimals, 1 ARIO = 1,000,000 mARIO). Transfers, balances, and token accounts follow the SPL Token standard.
+- **Vaults**: Time-locked ARIO deposits, used for ecosystem programs and other protocol incentives.
+- **Primary names**: A mapping from a wallet address to one ArNS name, and back.
 
 ### ario-gar (Gateway Address Registry)
 
 Manages the network's gateway infrastructure, staking, delegation, and the epoch reward pipeline:
 
-- **Gateway Registry**: An onchain registry of network gateways. Each gateway is a PDA storing operator address, stake, observer address, settings, and performance stats.
-- **Staking & Delegation**: Operator stakes, delegated stakes (separate PDA per gateway-delegator pair), withdrawals, redelegation, and allowlists.
-- **Observer Address Uniqueness**: An ObserverLookup PDA enforces that no two gateways share the same observer address.
-- **Epoch Pipeline**: A 6-step permissionless pipeline driven by [cranker bots](/learn/oip/epoch-pipeline):
-  1. `create_epoch` — Initialize epoch, compute reward rate
-  2. `tally_weights` — Batched weight computation
-  3. `prescribe_epoch` — Select observers and prescribed names via weighted roulette
-  4. `save_observations` — Observers submit pass/fail reports
-  5. `distribute_epoch` — Batched reward distribution
-  6. `close_epoch` — Close completed observer epoch accounts and return remaining SOL rent to observers
-- **Gateway Pruning**: Gateways that repeatedly fail observation are removed from the network and subject to stake slashing.
+- **Gateway registry**: An onchain registry of network gateways. Each gateway is a PDA storing operator address, stake, observer address, settings, and performance stats.
+- **Staking and delegation**: Operator stakes, delegated stakes (separate PDA per gateway-delegator pair), withdrawals, redelegation, and allowlists.
+- **Observer address uniqueness**: An ObserverLookup PDA enforces that no two gateways share the same observer address.
+- **Epoch pipeline**: Permissionless instructions submitted by [crankers](/learn/oip/epoch-pipeline), plus one signed by each prescribed observer:
+  1. `create_epoch`: create the epoch account and compute its reward allocation
+  2. `tally_weights`: compute gateway weights, in batches
+  3. `prescribe_epoch`: select observers and prescribed names by weighted roulette
+  4. `save_observations`: each prescribed observer submits its pass and fail results
+  5. `distribute_epoch`: pay rewards after the epoch ends, in batches
+  6. `close_observation`: close each Observation account and refund its rent to the observer
+  7. `close_epoch`: close the epoch account at least 7 epochs later and refund its rent to the creator recorded at `create_epoch`, or to the closer if none was recorded
+- **Gateway pruning**: A gateway that fails 30 epochs in a row can be pruned by anyone. It loses its minimum operator stake and leaves the network. See [Gateway pruning](/learn/oip/pruning).
 
 ### ario-arns (ArNS Registry)
 
-Manages the Ar.io Name System — name registration, leasing, pricing, and returned names:
+Manages the Ar.io Name System (ArNS): name registration, leasing, pricing, and returned names.
 
-- **Name Registry**: An onchain registry of ArNS domains. Each name is an ArnsRecord PDA storing the owner, ANT mint address, lease type, and expiration.
+- **Name registry**: An onchain registry of ArNS domains. Each name is an ArnsRecord PDA storing the owner, ANT mint address, lease type, and expiration.
 - **Pricing**: Dynamic pricing via a DemandFactor PDA.
-- **Returned Name Auctions**: When a name expires or is released, it enters a Dutch auction.
-- **Validation**: Names must meet certain formatting criteria.
-- **Cost Simulation**: `get_token_cost` view instruction available via `simulateTransaction` for fee estimation.
+- **Returned name auctions**: When a lease ends past its grace period, or a permanent name is released, the name enters a 14-day Dutch auction. See [Returned names](/learn/arns/returned-names).
+- **Validation**: Names must meet the [naming rules](/learn/arns/name-registration).
+- **Cost simulation**: `get_token_cost` view instruction available via `simulateTransaction` for fee estimation.
 
 ### ario-ant (Ar.io Name Tokens)
 
 ANTs are [Metaplex Core](https://developers.metaplex.com/core) NFTs that represent ownership of ArNS names:
 
-- **NFT Standard**: Each ANT is a Metaplex Core asset — tradeable on Tensor, Magic Eden, and other NFT marketplaces.
-- **DNS-like Records**: Each ANT stores routing records (AntRecord PDAs) mapping undernames to Arweave transaction IDs or IPFS CIDs, with configurable TTL values.
+- **NFT standard**: Each ANT is a Metaplex Core asset, tradeable on Tensor, Magic Eden, and other NFT marketplaces.
+- **DNS-like records**: Each ANT stores routing records (AntRecord PDAs) mapping undernames to Arweave transaction IDs or IPFS CIDs, with configurable TTL values.
 - **Controllers**: Controllers can manage records without holding the NFT itself.
-- **Lazy Reconciliation**: When an ANT is transferred via a marketplace (outside the ar.io protocol), controllers are cleared on the next write operation, ensuring the new owner has full control.
+- **Lazy reconciliation**: When an ANT changes hands outside the ar.io protocol, for example on a marketplace, its controllers are cleared on the next write, so the new owner has full control.
 
 ### ario-ant-escrow
 
-A trustless escrow that hands an ANT, liquid ARIO, or a time-locked vault to a recipient identified by an Arweave or Ethereum address, claimable once the recipient holds a Solana wallet. No off-chain authority or oracle decides a claim:
+An escrow that holds an ANT, liquid ARIO, or a time-locked vault for a recipient known only by an Arweave or Ethereum address. The recipient claims it once they have a Solana wallet. No off-chain authority or oracle decides a claim.
 
 - **ANT escrow**: Holds a Metaplex Core ANT NFT in a per-mint PDA until the named recipient claims it.
-- **Token and vault escrow**: Escrows liquid ARIO or a time-locked vault the same way, in a PDA per depositor and asset id.
-- **Claims**: An Arweave claim is attested off-chain, re-signed with Ed25519, then verified onchain; an Ethereum claim is verified onchain with `secp256k1_recover` and EIP-191; a vault claim uses instruction introspection that preserves the remaining lock.
+- **Token and vault escrow**: Holds liquid ARIO or a time-locked vault the same way, in a PDA per depositor and asset ID.
+- **Claims**: An Arweave claim is attested off-chain, re-signed with Ed25519, then verified onchain. An Ethereum claim is verified onchain with `secp256k1_recover` and an EIP-191 signed message. A vault claim keeps the vault's remaining lock.
 
 See the [Escrow SDK reference](/sdks/ar-io-sdk/escrow).
 
-## State Model
+## State model
 
-All protocol state is stored in Solana accounts using Program Derived Addresses (PDAs):
+All protocol state lives in Solana accounts at [Program Derived Addresses (PDAs)](/glossary#pda-program-derived-address), addresses each program derives from fixed seeds:
 
 | Account Type | Program | Derivation Seeds | Purpose |
 |-------------|---------|-----------------|---------|
-| ArioConfig | ario-core | `["config"]` | Global token configuration |
+| ArioConfig | ario-core | `["ario_config"]` | Global token configuration |
 | Vault | ario-core | `["vault", owner, vault_id]` | Time-locked token deposit |
 | PrimaryName | ario-core | `["primary_name", name_hash]` | Name → address mapping |
 | PrimaryNameReverse | ario-core | `["primary_name_reverse", owner]` | Address → name reverse lookup |
@@ -137,20 +148,21 @@ All protocol state is stored in Solana accounts using Program Derived Addresses 
 | Withdrawal | ario-gar | `["withdrawal", owner, id]` | Pending withdrawal |
 | ObserverLookup | ario-gar | `["observer_lookup", observer]` | Observer uniqueness check |
 | Epoch | ario-gar | `["epoch", epoch_index]` | Epoch state and rewards |
+| Observation | ario-gar | `["observation", epoch_index, observer]` | One observer's results for one epoch |
 | NameRegistry | ario-arns | `["name_registry"]` | Zero-copy name slot array |
 | ArnsRecord | ario-arns | `["arns_record", name_hash]` | Individual name record |
 | DemandFactor | ario-arns | `["demand_factor"]` | Current pricing multiplier |
 | AntConfig | ario-ant | `["ant_config", mint]` | ANT metadata and settings |
-| AntControllers | ario-ant | `["ant_controllers", mint]` | Controller list (max 10) |
+| AntControllers | ario-ant | `["ant_controllers", mint]` | Controller list (max 4) |
 | AntRecord | ario-ant | `["ant_record", mint, undername_hash]` | DNS-like routing record |
 | EscrowAnt | ario-ant-escrow | `["escrow_ant", ant_mint]` | ANT held in escrow for a claimant |
 | EscrowToken | ario-ant-escrow | `["escrow_token" or "escrow_vault", depositor, asset_id]` | ARIO or vault held in escrow for a claimant |
 
-## Security Model
+## Security model
 
-The protocol relies on a combination of Solana runtime guarantees, deterministic account ownership, and economic incentives:
+The protocol relies on Solana's runtime checks, accounts that only the right program can change, and staked ARIO:
 
 - **Signer and account checks**: Solana enforces transaction signatures, account ownership, and program execution rules.
-- **Program Derived Addresses (PDAs)**: Protocol state lives in deterministic accounts controlled by the relevant ar.io programs.
-- **Economic accountability**: Gateway operators stake ARIO, and repeated failure can lead to removal and slashing.
-- **Permissionless verification**: Gateway observations and cranking keep network operations open and independently verifiable.
+- **PDAs**: Each piece of protocol state lives at an address only its own ar.io program can sign for.
+- **Economic accountability**: Gateway operators stake ARIO, and a gateway that keeps failing can be pruned and lose stake.
+- **Permissionless verification**: Anyone can crank the epoch pipeline, and every observer report is public on Arweave.

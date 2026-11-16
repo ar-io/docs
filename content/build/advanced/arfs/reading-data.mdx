@@ -20,7 +20,7 @@ ArweaveFS does not store folder or file paths along with entities as these paths
 
 ## Folder View Queries
 
-Clients that want to provide users with a quick view of a single folder can simply query for an entity timeline for a particular folder by its id. Clients with multi-owner permissions will additionally have to query for the folder's parent drive entity for permission based filtering of the timeline.
+To show a single folder quickly, a client can query the entity timeline for that folder by its ID. Clients with multi-owner permissions will additionally have to query for the folder's parent drive entity for permission based filtering of the timeline.
 
 ## Basic Query Patterns
 
@@ -28,7 +28,7 @@ Every query names the drive owner's wallet in `owners`, for the reason given ear
 
 Do not filter on the `ArFS` tag. A drive holds entities written at every ArFS version since it was created, from `0.11` to `0.15`, and a query for one version misses the rest.
 
-Gateways return at most 100 results per query. Read every page: while `pageInfo.hasNextPage` is true, query again with `after` set to the `cursor` of the last edge.
+A gateway returns one page per query, of at most the `first` value you ask for. ar.io gateways cap `first` at 1000, and other GraphQL providers may cap it lower. Read every page: while `pageInfo.hasNextPage` is true, query again with `after` set to the `cursor` of the last edge.
 
 ### Query a Drive's Entities
 
@@ -144,20 +144,7 @@ The first edge is the latest revision.
 
 ## Building a Drive's Current State
 
-The process of building a drive's current state involves several steps:
-
-```mermaid
-graph TD
-    A[Query the drive's entities from its owner] --> B[Order by block height]
-    B --> C[Keep the latest revision of each entity]
-    C --> D[Build hierarchy tree]
-    D --> E[Return complete state]
-
-    class A dg-soft
-    class E dg-strong
-```
-
-### Step-by-Step Process
+Without a Drive State entity or snapshots, a client builds a drive's current state in four steps:
 
 1. **Query for the drive's entities** by `Drive-Id`, from the wallet that owns the drive
 2. **Order them by block height**, using `Unix-Time` only to break ties within a block
@@ -227,6 +214,35 @@ Start the later sources a margin below `Block-End`, not at it. `Block-End` is th
 
 If no Drive State entity is found, or every candidate is refused, the client reads the drive from snapshots and GQL alone, exactly as it would without one.
 
+The following diagram shows the whole read. The client can send these requests to any gateway, such as `turbo-gateway.com`.
+
+```mermaid
+sequenceDiagram
+    accTitle: Each source starts where the one before it stopped, and a refused Drive State entity only moves the start back to block 0
+    accDescr: The client asks a gateway for the drive's Drive State entities. If a candidate's tags pass, it fetches the data. If the data passes every check too, the client imports its rows and starts the later sources 240 blocks below its Block-End. Otherwise it starts from block 0. It then fetches the snapshots above that point, and finally queries GQL for folder and file entities in the blocks no snapshot covers. Newer revisions replace older ones.
+
+    participant Client
+    participant Gateway
+
+    Client->>Gateway: GQL query, Entity-Type drive-state
+    Gateway-->>Client: Candidate tx IDs and tags
+    alt A candidate's tags pass the checks
+        Client->>Gateway: Fetch candidate data by tx ID
+        Gateway-->>Client: SQLite database, encrypted if private
+        Note over Client: Check database, import rows
+        Note over Client: Start at Block-End minus 240
+    else None found, or every candidate refused
+        Note over Client: Start at block 0
+    end
+    Client->>Gateway: GQL query, Entity-Type snapshot
+    Gateway-->>Client: Snapshot tx IDs and block ranges
+    Client->>Gateway: Fetch each snapshot's data
+    Gateway-->>Client: txSnapshots JSON
+    Client->>Gateway: GQL query, folders and files in uncovered blocks
+    Gateway-->>Client: Remaining entity tags
+    Note over Client: Newer revisions replace older ones
+```
+
 ### Drive State Query
 
 Find candidates by the drive's owner and `Drive-Id`. The owner is the wallet that created the drive's first Drive entity, which may differ from the wallet reading it, such as on a drive shared with another user.
@@ -285,22 +301,7 @@ Three more rules:
 
 ## Using Snapshots
 
-For large drives, snapshots can significantly improve performance. A drive can have several snapshots over different block ranges: read all of them, then query only the blocks none of them covers.
-
-```mermaid
-sequenceDiagram
-    participant Client
-    participant Gateway
-    participant Arweave
-
-    Client->>Gateway: Query for the drive's snapshots
-    Gateway->>Client: Return snapshot data
-    Client->>Client: Process snapshot data
-    Client->>Gateway: Query for newer transactions
-    Gateway->>Client: Return newer entities
-    Client->>Client: Merge with snapshot data
-    Client->>Client: Return complete drive state
-```
+Snapshots save a large drive from replaying every entity. A drive can have several snapshots over different block ranges: read all of them, then query only the blocks none of them covers.
 
 ### Snapshot Query
 

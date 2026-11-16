@@ -14,47 +14,69 @@ ClickHouse is an optional analytical database that runs alongside your ar.io gat
   ClickHouse requires version **24.8 or later**. Earlier versions have known issues with projections on ReplacingMergeTree tables. The default Docker image uses ClickHouse 26.3.
 </Callout>
 
-## How It Works
+## How it works
 
-The gateway uses a speed/batch layer architecture:
+The gateway splits the work between two stores:
 
-- **SQLite (speed layer)** — Handles all real-time writes, recent/unstable data, and non-GraphQL operations (data retrieval, chunk fetches, admin APIs)
-- **ClickHouse (batch layer)** — Stores stable historical data exported as Parquet files, optimized for analytical GraphQL queries
+- **SQLite** takes every new write and holds recent data that may still change. It also serves everything that is not GraphQL: data retrieval, chunk fetches and the admin API.
+- **ClickHouse** holds stable history, imported from Parquet files, and answers GraphQL queries over it.
 
 <Mermaid chart={`
 graph LR
-    A[ar.io Node] -->|writes| B[SQLite]
-    B -->|stable data export| C[Parquet Files]
-    C -->|batch import| D[ClickHouse]
-    E[GraphQL Query] -->|height > boundary| B
-    E -->|height ≤ boundary| D
+    accTitle: Stable history moves from SQLite to ClickHouse as Parquet, and GraphQL merges answers from both
+    accDescr: The gateway's indexers write every block, transaction and data item to SQLite. Stable rows are exported as Parquet and imported into ClickHouse, along with any Parquet snapshots or L2 bands you import. A GraphQL query asks ClickHouse for every height it holds and SQLite for the recent heights above the boundary, then merges the two results and removes duplicates.
+    IDX[Gateway indexers]
+    SQL[(SQLite)]
+    PQ[Parquet files]
+    EXT[Snapshots and<br/>L2 bands]
+    CH[(ClickHouse)]
+    Q[GraphQL query]
+    M[Merge and dedupe<br/>on ID]
+    R[GraphQL response]
+
+    IDX -->|blocks, txs, data items| SQL
+    SQL -->|stable rows| PQ
+    EXT -->|Parquet| PQ
+    PQ -->|clickhouse-import| CH
+    Q -->|heights above boundary| SQL
+    Q -->|all heights| CH
+    SQL -->|recent rows| M
+    CH -->|stable rows| M
+    M -->|one result| R
+
+    class CH dg-strong
+    class SQL,PQ dg-soft
+    class EXT dg-dashed
+    class IDX,Q,R dg-muted
 `} />
 
-### Query Routing
+### Query routing
 
-When ClickHouse is enabled, GraphQL queries are split by block height:
+Each GraphQL query goes to both stores at once:
 
-- **ClickHouse** handles blocks up to `(max_imported_height - 10)` — the bulk of historical data
-- **SQLite** handles blocks above that boundary — recent, potentially unstable data
+- **ClickHouse** is asked for the whole height range, and answers for the history it holds.
+- **SQLite** is asked only for heights above ClickHouse's highest imported height minus 10, when `CLICKHOUSE_SQLITE_MIN_HEIGHT_ENABLED=true` (as in the Quick Start). Without it, SQLite is asked for the whole range too.
 
-Results from both backends are merged and deduplicated before being returned to the client. If either backend is unavailable, a circuit breaker degrades gracefully rather than failing the entire query.
+The gateway merges the two results and removes duplicates before it answers. The SQLite half runs behind a circuit breaker, so a slow or failing SQLite degrades the result rather than failing the query; a ClickHouse failure fails the query.
 
-### When to Enable ClickHouse
+With `CLICKHOUSE_STREAMING_ENABLED=true` (off by default), the gateway also streams newly indexed blocks, transactions and data items straight into ClickHouse, so recent rows reach it without waiting for the next Parquet export.
+
+### When to enable ClickHouse
 
 Enable ClickHouse if your gateway:
 
 - Serves heavy GraphQL traffic on historical data
 - Indexes millions of data items (large unbundling filters)
 - Needs faster bootstrapping than a full SQLite reindex (import pre-built Parquet snapshots)
-- Would benefit from 3-5x storage compression on historical data
+- Would benefit from compressed, columnar storage for historical data
 
 Keep it disabled for small deployments, gateways that only serve data retrieval (not GraphQL), or single-node low-resource environments.
 
-## Quick Start
+## Quick start
 
 <Steps>
 <Step>
-### Configure Environment
+### Configure environment
 
 Add ClickHouse settings to your `.env` file:
 
@@ -74,7 +96,7 @@ CLICKHOUSE_USER=your-username
 </Step>
 
 <Step>
-### Configure Unbundling Filters
+### Configure unbundling filters
 
 ClickHouse stores data items exported from SQLite. The more you unbundle, the more data flows into ClickHouse. At minimum, configure filters that match the pre-built snapshot you plan to import.
 
@@ -103,7 +125,7 @@ This starts both the ClickHouse server and the auto-import daemon.
 </Step>
 
 <Step>
-### Import a Parquet Snapshot
+### Import a Parquet snapshot
 
 Download and import a pre-built snapshot to bootstrap your ClickHouse instance:
 
@@ -151,7 +173,7 @@ curl -g -X POST \
 </Step>
 </Steps>
 
-## Auto-Import
+## Auto-import
 
 The `clickhouse-auto-import` container runs a continuous loop that exports new stable data from SQLite to Parquet and imports it into ClickHouse. This keeps ClickHouse up to date without manual intervention.
 
@@ -162,7 +184,7 @@ Each cycle:
 4. Imports Parquet into ClickHouse staging tables
 5. Migrates staging to the final `transactions` table (applying TTL rules)
 
-### Auto-Import Configuration
+### Auto-import configuration
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -174,7 +196,7 @@ Each cycle:
 
 The default 1-hour interval is conservative. For gateways with high unbundling throughput, reduce to 600-900 seconds to keep ClickHouse more current.
 
-## TTL Rules (Data Retention)
+## TTL rules (data retention)
 
 TTL rules control how long data items remain in ClickHouse before automatic expiration. Use them to manage storage costs by expiring ephemeral or low-value data while retaining important content indefinitely.
 
@@ -217,7 +239,7 @@ rules:
     ttl_seconds: 604800
 ```
 
-### Rule Precedence
+### Rule precedence
 
 When multiple rules could apply, the first matching branch wins:
 
@@ -227,10 +249,10 @@ When multiple rules could apply, the first matching branch wins:
 4. `default_ttl_seconds` set → applied to all unmatched rows
 5. Otherwise → kept indefinitely (no expiry)
 
-### Match Modes
+### Match modes
 
-- **`exact`** (default) — O(1) dictionary lookup. Use for specific tag values.
-- **`prefix`** — Matches the beginning of the value. Use for `Content-Type` with parameters (e.g., `image/gif` catches `image/gif; charset=...`) or app name families.
+- **`exact`** (default): a dictionary lookup. Use for specific tag values.
+- **`prefix`**: matches the beginning of the value. Use for `Content-Type` with parameters (e.g., `image/gif` catches `image/gif; charset=...`) or app name families.
 
 <Callout type="warn">
   TTL rules apply only to rows imported after the rules are loaded. Previously
@@ -251,9 +273,9 @@ When multiple rules could apply, the first matching branch wins:
 - Tag values are trimmed but case-preserving
 - Owner values use base64url format (as displayed on Arweave explorers)
 
-## Deployment Topologies
+## Deployment topologies
 
-### Single Gateway (Default)
+### Single gateway (default)
 
 One gateway runs ClickHouse locally. The auto-import daemon handles continuous data export and import.
 
@@ -261,7 +283,7 @@ One gateway runs ClickHouse locally. The auto-import daemon handles continuous d
 docker compose --profile clickhouse up -d
 ```
 
-### Shared ClickHouse Cluster
+### Shared ClickHouse cluster
 
 Multiple gateways share a replicated ClickHouse cluster. Only **one** gateway runs `clickhouse-auto-import` as the writer; others query the same cluster as readers.
 
@@ -279,13 +301,13 @@ CLICKHOUSE_URL=http://clickhouse-reader:8123
   Reader gateways still need `START_WRITERS=true` because SQLite indexing is required for data retrieval, chunk fetches, and other non-GraphQL operations. Only GraphQL queries are routed to ClickHouse.
 </Callout>
 
-### Independent ClickHouse per Gateway
+### Independent ClickHouse per gateway
 
 Each gateway runs its own ClickHouse instance, bootstrapped from a shared Parquet snapshot (downloaded from Arweave, S3, or BitTorrent). No shared state between gateways.
 
 This is the simplest topology for operators who want ClickHouse performance without cluster management.
 
-## Configuration Reference
+## Configuration reference
 
 ### Connection
 
@@ -295,7 +317,7 @@ This is the simplest topology for operators who want ClickHouse performance with
 | `CLICKHOUSE_USER` | `default` | ClickHouse username |
 | `CLICKHOUSE_PASSWORD` | - | ClickHouse password |
 
-### Query Routing
+### Query routing
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -306,7 +328,7 @@ This is the simplest topology for operators who want ClickHouse performance with
 | `CLICKHOUSE_GQL_MAX_ROWS_TO_READ` | `10000000` | Safety guardrail: max rows scanned per query |
 | `CLICKHOUSE_GQL_DEDUPE_HEADROOM` | `4` | Pagination headroom multiplier for deduplication |
 
-### Circuit Breaker
+### Circuit breaker
 
 The circuit breaker protects against cascading failures when the SQLite leg is unhealthy. When tripped, queries degrade to ClickHouse-only results with a partial result warning.
 
@@ -319,7 +341,7 @@ The circuit breaker protects against cascading failures when the SQLite leg is u
 
 ## Tuning
 
-### Short Pages in GraphQL Pagination
+### Short pages in GraphQL pagination
 
 If GraphQL queries return fewer results than expected per page, unmerged duplicates in ClickHouse may be consuming pagination slots. Increase the deduplication headroom:
 
@@ -329,17 +351,17 @@ CLICKHOUSE_GQL_DEDUPE_HEADROOM=8  # default is 4
 
 This makes the inner query fetch more rows to compensate for duplicates that get collapsed.
 
-### Query Timeouts
+### Query timeouts
 
-For queries over very large datasets or complex tag filters, increase the timeout:
+For queries over large datasets or complex tag filters, increase the timeout:
 
 ```bash
 CLICKHOUSE_QUERY_TIMEOUT_SECONDS=10  # default is 3
 ```
 
-### Max Rows Safety Guardrail
+### Max rows safety guardrail
 
-If queries hit the `max_rows_to_read` limit (returns an error), you can raise it — but do so with caution as it removes the protection against runaway full-table scans:
+If queries hit the `max_rows_to_read` limit (returns an error), you can raise it. Do so with care: raising it removes the protection against runaway full-table scans:
 
 ```bash
 CLICKHOUSE_GQL_MAX_ROWS_TO_READ=50000000  # default is 10M
@@ -347,11 +369,11 @@ CLICKHOUSE_GQL_MAX_ROWS_TO_READ=50000000  # default is 10M
 
 ## Upgrading
 
-### Schema Evolution
+### Schema evolution
 
 Schema changes are applied automatically on each import cycle via idempotent `ALTER TABLE` statements. No manual migration steps are needed for routine upgrades.
 
-### Projection Rebuild (One-Time)
+### Projection rebuild (one-time)
 
 Gateways upgrading from pre-24.8 ClickHouse deployments may need to rebuild the owner projection:
 
@@ -368,11 +390,11 @@ If you need to roll back a ClickHouse upgrade:
 1. Drop the `transactions` table
 2. Re-import from your Parquet files using `./scripts/clickhouse-import`
 
-Parquet files are the source of truth — ClickHouse is always rebuildable from them.
+Parquet files are the source of truth: you can always rebuild ClickHouse from them.
 
 ## Troubleshooting
 
-### Import Failures
+### Import failures
 
 Failed imports leave files in `data/etl/staging/` for inspection. Check the auto-import container logs:
 
@@ -380,9 +402,9 @@ Failed imports leave files in `data/etl/staging/` for inspection. Check the auto
 docker compose --profile clickhouse logs clickhouse-auto-import -f
 ```
 
-Fix the underlying issue (disk space, permissions, ClickHouse connectivity) and restart the container — the next cycle will retry.
+Fix the underlying issue (disk space, permissions, ClickHouse connectivity) and restart the container. The next cycle retries.
 
-### Disk Usage Growing
+### Disk usage growing
 
 If ClickHouse disk usage is higher than expected:
 
@@ -398,7 +420,7 @@ If ClickHouse disk usage is higher than expected:
   OPTIMIZE TABLE transactions PARTITION 14 FINAL
   ```
 
-### Checking Import Status
+### Checking import status
 
 View the current max imported height:
 
@@ -408,9 +430,9 @@ docker compose exec clickhouse clickhouse-client \
   -q 'SELECT max(height) FROM transactions'
 ```
 
-Compare this to the gateway's current height (`/height` endpoint) — the difference indicates how far behind ClickHouse is.
+Compare this to the gateway's current height (`/height` endpoint). The difference shows how far behind ClickHouse is.
 
-## Docker Commands
+## Docker commands
 
 ```bash
 # Start gateway with ClickHouse

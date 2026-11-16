@@ -40,7 +40,7 @@ Drive-Id: "<uuid>",
 Drive-Privacy: "<public | private>",
 Drive-Auth-Mode?: "password",
 Entity-Type: "drive",
-Signature-Type?: "1",
+Signature-Type?: "<1 | 2>",
 Unix-Time: "<seconds since unix epoch>"
 
 Metadata JSON {
@@ -123,16 +123,24 @@ Metadata JSON {
 
 Since the version v0.13, ArFS supports Pins. Pins are files whose data may be any transaction uploaded to Arweave, that may or may not be owned by the wallet that created the pin.
 
-When a new File Pin is created, the only created transaction is the Metadata Transaction. The `dataTxId` field will point it to any transaction in Arweave, and the optional `pinnedDataOwner` field is gonna hold the address of the wallet that owns the original copy of the data transaction.
+Creating a pin uploads only a metadata transaction. Its `dataTxId` field points to any transaction on Arweave, and the optional `pinnedDataOwner` field holds the address of the wallet that owns the original data transaction.
+
+On top of the usual file tags, a public pin's metadata transaction carries two more. A pin in a private drive encrypts its metadata JSON and omits them.
+
+| Tag | Value |
+| --- | --- |
+| `ArFS-Pin` | `true` |
+| `Pinned-Data-Tx` | The pinned transaction's ID, the same as `dataTxId` |
 
 ### File Data Transaction Example
 
 The File Data Transaction contains limited information about the file, such as the information required to decrypt it, or the Content-Type (mime-type) needed to view in the browser.
 
 ```json
-Cipher?: "AES256-GCM",
+Cipher?: "<AES256-GCM | AES256-CTR>",
 Cipher-IV?: "<12 byte initialization vector as Base64>",
 Content-Type: "<file mime-type | application/octet-stream>",
+Unix-Time: "<seconds since unix epoch>",
  { File Data - Encrypted if private }
 ```
 
@@ -159,9 +167,9 @@ Unix-Time: "<seconds since unix epoch>",
 
 ArFS applications generate the latest state of a drive by querying for all ArFS transactions made relating to a user's particular `Drive-Id`. This includes both paged queries for indexed ArFS data via GQL, as well as the ArFS JSON metadata entries for each ArFS transaction.
 
-For small drives (less than 1000 files), a few thousand requests for very small volumes of data can be achieved relatively quickly and reliably. For larger drives, however, this results in long sync times to pull every piece of ArFS metadata when the local database cache is empty. This can also potentially trigger rate-limiting related ArWeave Gateway delays.
+For a drive of fewer than 1000 files, that means a few thousand small requests, which complete in reasonable time. For a larger drive with an empty local cache, fetching every piece of ArFS metadata takes a long time and can run into gateway rate limits.
 
-Once a drive state has been completely, and accurately generated, in can be rolled up into a single snapshot and uploaded as an Arweave transaction. ArFS clients can use GQL to find and retrieve this snapshot in order to rapidly reconstitute the total state of the drive, or a large portion of it. They can then query individual transactions performed after the snapshot.
+Once a drive state has been completely, and accurately generated, it can be rolled up into a single snapshot and uploaded as an Arweave transaction. ArFS clients can use GQL to find and retrieve this snapshot in order to rapidly reconstitute the total state of the drive, or a large portion of it. They can then query individual transactions performed after the snapshot.
 
 This optional method offers convenience and resource efficiency when building the drive state, at the cost of paying for uploading the snapshot data. Using this method means a client will only have to iterate through a few snapshots instead of every transaction performed on the drive.
 
@@ -358,44 +366,25 @@ A producer follows these rules:
 - **Build up, never tear down.** Select named columns into an empty database. Copying a database and deleting from it can leave deleted bytes in the file.
 - **Never include key material** or the producer's own sync position.
 
-## Schema Diagrams
+## Drive Tags, Public and Private
 
-The following diagrams show complete examples of Drive, Folder, and File entity Schemas.
+The following table lists every tag on a drive entity's metadata transaction, and which ones only a private drive carries.
 
-### Public Drive
+| Tag | Value | Required | Notes |
+| --- | --- | --- | --- |
+| `ArFS` | `0.15` | Yes | The ArFS version that wrote this revision. Older revisions carry older versions. |
+| `Content-Type` | `application/json`, or `application/octet-stream` when private | Yes | Encrypted metadata is binary, so a private drive uses `application/octet-stream`. |
+| `Entity-Type` | `drive` | Yes | |
+| `Drive-Id` | UUID | Yes | Every folder and file in the drive carries the same value. |
+| `Drive-Privacy` | `public` or `private` | Yes | |
+| `Unix-Time` | Seconds since the Unix epoch | Yes | Breaks ties within a block only. Block height orders revisions. |
+| `Cipher` | `AES256-GCM` | Private only | Drive metadata is always AES256-GCM. |
+| `Cipher-IV` | 12-byte IV, Base64 | Private only | A fresh IV for each revision. |
+| `Drive-Auth-Mode` | `password` | Private only | The drive key comes from a wallet signature and a password. |
+| `Signature-Type` | `1` or `2` | Private only, from v0.15 | Which wallet signature the drive key uses. Absent means `1`. New private drives get `2`. See [Privacy](/build/advanced/arfs/privacy#deriving-keys). |
+| `App-Name`, `App-Version` | The client's name and version | No | ArDrive clients add them to every transaction. They are not ArFS tags. |
 
-```mermaid
-graph TD
-    A[Drive Entity] --> B[Drive Metadata JSON]
-    A --> C[Drive Tags]
-    C --> D[ArFS: 0.15]
-    C --> E[Entity-Type: drive]
-    C --> F[Drive-Id: uuid]
-    C --> G[Drive-Privacy: public]
-    C --> H[Unix-Time: timestamp]
-    B --> I[name: string]
-    B --> J[rootFolderId: uuid]
-    B --> K[isHidden: boolean]
-```
-
-### Private Drive
-
-```mermaid
-graph TD
-    A[Drive Entity] --> B[Encrypted Drive Metadata JSON]
-    A --> C[Drive Tags]
-    C --> D[ArFS: 0.15]
-    C --> E[Entity-Type: drive]
-    C --> F[Drive-Id: uuid]
-    C --> G[Drive-Privacy: private]
-    C --> H[Drive-Auth-Mode: password]
-    C --> I[Signature-Type: 1]
-    C --> J[Cipher: AES256-GCM]
-    C --> K[Cipher-IV: base64]
-    C --> L[Content-Type: application/octet-stream]
-    C --> M[Unix-Time: timestamp]
-    B --> N[Encrypted JSON with name, rootFolderId, isHidden]
-```
+The metadata JSON holds `name`, `rootFolderId` and, when set, `isHidden`. On a private drive the whole JSON is encrypted with the drive key, so none of these fields is readable without it.
 
 ## Next Steps
 

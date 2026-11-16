@@ -1,106 +1,98 @@
 ---
 title: 'Epoch Pipeline'
-description: 'The 6-step permissionless epoch pipeline for observation, reward calculation, and distribution on Solana'
+description: 'The permissionless epoch pipeline for observation, reward calculation, distribution, and cleanup on Solana'
 ---
 
 ## Overview
 
-On Solana, the ar.io epoch lifecycle is broken into six discrete, permissionless steps. Each step is a separate instruction that can be executed by anyone.
+Solana programs cannot run on a timer, so the ar.io epoch lifecycle is split into separate instructions in the `ario-gar` program. Anyone can submit them, except `save_observations`, which only a prescribed observer can sign.
 
-All steps are **idempotent** (safe to run multiple times) and **permissionless** (anyone can crank them). This design ensures the protocol cannot be halted by a single point of failure.
+Each step checks onchain state first and refuses to run twice. A second `create_epoch` waits for the next epoch's start, a second `prescribe_epoch` fails with `PrescriptionsAlreadyDone`, and a second `distribute_epoch` fails with `RewardsAlreadyDistributed`. So several crankers can run at once without coordinating, and the protocol does not depend on any one of them.
 
-## Pipeline Steps
+## Pipeline steps
 
-```mermaid
-graph LR
-    A[create_epoch] --> B[tally_weights]
-    B --> C[prescribe_epoch]
-    C --> D[save_observations]
-    D --> E[distribute_epoch]
-    E --> F[close_epoch]
-```
-
-> _Rent versus rewards:_ Observers pay SOL for both account rent and transaction fees when submitting observations. Closing their completed epoch accounts returns the account rent in SOL, but not the transaction fees. ARIO observer rewards are handled separately by `distribute_epoch`.
-
-### 1. create_epoch
-
-**Initializes the epoch account and computes the reward rate.**
-
-- Creates the epoch account
-- Computes the epoch reward allocation from the protocol balance
-
-### 2. tally_weights
-
-**Batched computation of gateway weights for observer selection.**
-
-- Computes composite weights for gateways:
-  - **Stake weight**: Based on total stake (operator + delegated)
-  - **Tenure weight**: Based on how long the gateway has been in the network
-  - **Gateway performance**: Based on pass rate across recent epochs
-  - **Observer performance**: Based on observation submission history
-- Batches work so large gateway sets can be processed safely on Solana
-
-### 3. prescribe_epoch
-
-**Selects observers and prescribed ArNS names via weighted roulette.**
-
-- Selects observers using weighted random selection
-- Selects prescribed ArNS names that observers use as common test targets
-
-### 4. save_observations
-
-**Observers submit their pass/fail observation reports.**
-
-- Each selected observer submits compact pass/fail results for tested gateways
-- This is the only step that requires a specific signer (the selected observer)
-- Observations are stored on the Epoch account
-
-### 5. distribute_epoch
-
-**Batched reward distribution to gateways and their delegates.**
-
-- Functional gateways receive the Base Gateway Reward (BGR)
-- Functional observers receive the Base Observer Reward (BOR)
-- Deficient observers do not receive observer rewards
-- Operator rewards auto-compound into operator stake
-- Delegate rewards are tracked via the reward-per-share accumulator (settled lazily)
-- Leaving gateways receive 0 rewards
-
-### 6. close_epoch
-
-**Closes completed per-observer epoch accounts and returns each account's remaining SOL rent to that observer's wallet.**
-
-This is separate from `distribute_epoch`, which distributes ARIO rewards. `close_epoch` is permissionless, so any cranker may submit it, but the cranker does not receive the rent returned from observer accounts.
-
-- Returns SOL rent from completed observer epoch accounts to their respective observers
-- Keeps onchain state lean over time
-
-## Timing
-
-The pipeline steps can be executed as the epoch progresses:
+In order, for each epoch:
 
 | Step | When | Batched? |
 |------|------|----------|
-| create_epoch | After previous epoch ends | No |
-| tally_weights | After create_epoch | Yes |
-| prescribe_epoch | After all weights tallied | No |
-| save_observations | During observation window | No (per observer) |
-| distribute_epoch | After observation window | Yes |
-| close_epoch | After epoch state is no longer needed | No |
+| 1. create_epoch | After the epoch's start time, once the previous epoch is distributed | No |
+| 2. tally_weights | After create_epoch | Yes |
+| 3. prescribe_epoch | After all weights are tallied | No |
+| 4. save_observations | Between the epoch's start and end | No (one per observer) |
+| 5. distribute_epoch | After the epoch ends | Yes |
+| 6. close_observation | After distribution | No (one per observation) |
+| 7. close_epoch | At least 7 epochs later, after its observations are closed | No |
 
-## Who Cranks?
+> _Rent versus rewards:_ Observers pay SOL for the Observation account's rent and the transaction fee when they submit. Step 6 returns the rent to the observer, but not the fee. ARIO observer rewards are separate and come from `distribute_epoch`.
 
-A cranker is a permissionless actor that executes the epoch pipeline on Solana. Since Solana programs cannot execute on a timer, an external wallet must call each instruction to advance the epoch lifecycle.
+### 1. create_epoch
 
-The key property is that cranking is **permissionless**: any wallet with SOL for transaction fees can run it. No ARIO tokens, gateway registration, or special authorization is required.
+Creates the epoch account and computes its reward allocation.
 
-Without crankers, the epoch pipeline would stall. Observations would not be prescribed, rewards would not be distributed, and completed epoch state would not be closed. Multiple independent crankers provide redundancy so the network is not dependent on a single operator.
+- Runs once the epoch's start time (genesis plus epoch index times epoch duration) has passed. On mainnet an epoch lasts 24 hours
+- Refuses to create a new epoch until the previous one is distributed
+- Sets the reward allocation as a share of the protocol balance: 0.1% per epoch, decaying linearly to 0.05% between epochs 365 and 547. Mainnet is past epoch 547, so the rate is now 0.05%
+- Derives the epoch's entropy from the slot, the epoch index, and the timestamp
+- The caller can record itself as the epoch's creator, so that `close_epoch` later refunds the epoch's rent to it
 
-Cranking can run as a standalone bot that watches epoch state and submits whichever pipeline instruction is needed next. It can also be embedded directly in ar.io observers:
+### 2. tally_weights
+
+Computes gateway weights for observer selection, in batches.
+
+- Computes composite weights for gateways from:
+  - **Stake weight**: total stake (operator plus delegated) relative to the minimum operator stake
+  - **Tenure weight**: how long the gateway has been in the network, measured at the epoch start
+  - **Gateway performance**: pass rate across past epochs
+  - **Observer performance**: observation submission history
+- Gives zero weight to gateways that joined after the epoch started
+- Runs in batches so large gateway sets fit within Solana's transaction limits
+
+### 3. prescribe_epoch
+
+Selects observers and prescribed ArNS names, in one transaction.
+
+- Selects up to 50 observers by weighted roulette over the tallied weights
+- Selects up to 2 prescribed ArNS names from the name registry, which every observer tests
+
+### 4. save_observations
+
+Each prescribed observer submits its results.
+
+- Accepted only between the epoch's start and end, and only from a prescribed observer address
+- Carries one pass or fail bit for every active gateway, plus the Arweave transaction ID of the observer's full JSON report
+- Creates one Observation account per observer per epoch, so an observer cannot submit twice
+
+### 5. distribute_epoch
+
+Pays rewards in batches, once the epoch has ended.
+
+- A gateway fails the epoch when more than half of the submitted observations mark it as failed
+- Gateways that pass receive the gateway reward; prescribed observers that submitted also receive the observer reward
+- A passing gateway whose observer was prescribed but did not submit has its gateway reward reduced by 25%
+- An epoch with no submitted observations pays nothing and records nothing
+- Operator rewards are added to operator stake. Delegate rewards are tracked per unit of delegated stake and added to each delegation the next time it is updated
+- Leaving gateways receive no rewards
+
+### 6. close_observation
+
+Closes an Observation account and refunds its rent to the observer.
+
+Allowed once the epoch is distributed. Anyone can submit it, but the rent always goes to the observer recorded on the account.
+
+### 7. close_epoch
+
+Closes the epoch account and refunds its rent.
+
+- Allowed only after distribution, at least 7 epochs after the epoch being closed, and once all of its Observation accounts are closed
+- Refunds the rent to the creator recorded at `create_epoch`, or to the caller when no creator was recorded
+
+## Who cranks
+
+A [cranker](/glossary#cranker) is any wallet that submits these instructions. Without crankers the pipeline stalls: no observers are chosen, no rewards are paid, and old epoch accounts stay open. Cranking needs only SOL for transaction fees. It needs no ARIO, gateway registration, or special permission.
+
+You can run the standalone [ar-io-cranker](https://github.com/ar-io/ar-io-cranker) bot, which reads epoch state and submits whichever instruction is due next. The same loop runs other permissionless cleanup: it closes observations, moves expired ArNS names into the [returned-name auction](/learn/arns/returned-names), and removes returned names whose auction has ended. You can also run cranking inside an ar.io observer:
 
 ```bash
 # In your observer's .env file
 ENABLE_EPOCH_CRANKING=true
 ```
-
-Multiple crankers can run at the same time without coordination. The first successful transaction advances the pipeline, and later attempts see that the step is already complete. Because the instructions are idempotent, duplicate calls do not double-distribute rewards or corrupt epoch state.
