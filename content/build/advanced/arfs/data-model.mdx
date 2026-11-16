@@ -3,11 +3,11 @@ title: "Data Model"
 description: "Understanding how ArFS organizes data hierarchically using entity relationships"
 ---
 
-Because of Arweave's permanent and immutable nature, traditional file structure operations such as renaming and moving files or folders cannot be accomplished by simply updating onchain data. ArFS works around this by defining an append-only transaction data model based on the metadata tags found in the Arweave [Transaction Headers.](https://docs.arweave.org/developers/server/http-api#transaction-format)
+Because of Arweave's permanent and immutable nature, you cannot rename or move a file or folder by changing data already on chain. ArFS instead defines an append-only data model built on the metadata tags in Arweave [Transaction Headers.](https://docs.arweave.org/developers/server/http-api#transaction-format)
 
-This model uses a bottom-up reference method, which avoids race conditions in file system updates. Each file contains metadata that refers to the parent folder, and each folder contains metadata that refers to its parent drive. A top-down data model would require the parent model (i.e. a folder) to store references to its children.
+References point from the bottom up, which avoids race conditions when two updates land together. Each file and folder names its parent folder and its drive. A top-down model would make each parent, such as a folder, store a list of its children.
 
-These defined entities allow the state of the drive to be constructed by a client to look and feel like a file system:
+From these entities a client builds a drive that looks and works like a file system:
 
 - Drive Entities contain folders and files
 - Folder Entities contain other folders or files
@@ -17,55 +17,47 @@ These defined entities allow the state of the drive to be constructed by a clien
 
 ## Entity Relationships
 
-The following diagram shows the high level relationships between drive, folder, and file entities, and their associated data. More detailed information about each Entity Type can be found in the ArFS specification documentation.
+The following diagram shows each link between entities and where it is stored. Each entity type's full tag list is in [Entity Types](/build/advanced/arfs/entity-types).
 
 ```mermaid
-graph TD
-    A[Drive Entity] --> B[Root Folder]
-    B --> C[Subfolder 1]
-    B --> D[Subfolder 2]
-    B --> E[File 1]
-    C --> F[File 2]
-    C --> G[File 3]
-    D --> H[File 4]
-    D --> I[Subfolder 3]
-    I --> J[File 5]
+graph BT
+    accTitle: Every entity points up to its parent, and only the drive points down, to its root folder
+    accDescr: The drive entity's metadata JSON names its root folder in rootFolderId. The root folder carries a Drive-Id tag and no Parent-Folder-Id tag. A subfolder and a file each carry a Parent-Folder-Id tag naming their folder, plus a Drive-Id tag. Each file's metadata JSON names its data transaction in dataTxId. Snapshot and Drive State entities name the drive with a Drive-Id tag.
 
-    A --> K[Drive Metadata]
-    B --> L[Folder Metadata]
-    C --> M[Folder Metadata]
-    D --> N[Folder Metadata]
-    I --> O[Folder Metadata]
-    E --> P[File Metadata + Data]
-    F --> Q[File Metadata + Data]
-    G --> R[File Metadata + Data]
-    H --> S[File Metadata + Data]
-    J --> T[File Metadata + Data]
+    D["Drive entity"]
+    R["Root folder entity"]
+    S["Subfolder entity"]
+    FA["File entity A<br/>metadata tx"]
+    FB["File entity B<br/>metadata tx"]
+    DA["Data tx A<br/>file bytes"]
+    DB["Data tx B<br/>file bytes"]
+    C["Snapshot or<br/>Drive State entity"]
 
-    U[Snapshot Entity] --> V[Complete Drive State]
-    V --> A
-    V --> B
-    V --> C
-    V --> D
-    V --> I
-    V --> E
-    V --> F
-    V --> G
-    V --> H
-    V --> J
+    D -->|"rootFolderId in JSON"| R
+    R -->|"Drive-Id tag"| D
+    S -->|"Parent-Folder-Id and<br/>Drive-Id tags"| R
+    FA -->|"Parent-Folder-Id and<br/>Drive-Id tags"| R
+    FB -->|"Parent-Folder-Id and<br/>Drive-Id tags"| S
+    DA ---|"dataTxId in JSON"| FA
+    DB ---|"dataTxId in JSON"| FB
+    C -->|"Drive-Id tag"| D
+
+    class D dg-strong
+    class DA,DB dg-muted
+    class C dg-dashed
 ```
 
-As you can see, each file and folder contains metadata which points to both the parent folder and the parent drive. The drive entity contains metadata about itself, but not the child contents. So clients must build drive states from the lowest level and work their way up.
+Every folder and file carries a `Drive-Id` tag. Every one except the root folder also carries a `Parent-Folder-Id` tag, which is how a client recognizes the root folder. The drive's metadata JSON names only its root folder (`rootFolderId`), so clients build the rest of the drive from the bottom up. Snapshot and Drive State entities are optional caches of the drive's metadata.
 
 ## Metadata Format
 
-Metadata stored in any Arweave transaction tag will be defined in the following manner:
+Metadata stored in a transaction tag is written like this:
 
 ```json
 { "name": "Example-Tag", "value": "example-data" }
 ```
 
-Metadata stored in the Transaction Data Payload will follow JSON formatting like below:
+Metadata stored in the transaction's data is JSON:
 
 ```json
 {
@@ -84,49 +76,25 @@ Fields with a `?` suffix are optional.
 }
 ```
 
-Enumerated field values (those which must adhere to certain values) are defined in the format "value 1 | value 2".
+A field that allows only certain values lists them as "value 1 | value 2".
 
-All UUIDs used for Entity-Ids are based on the [Universally Unique Identifier](https://en.wikipedia.org/wiki/Universally_unique_identifier) standard.
+Every entity ID is a UUID, as defined by the [Universally Unique Identifier](https://en.wikipedia.org/wiki/Universally_unique_identifier) standard.
 
-There are no requirements to list ArFS tags in any specific order.
+ArFS tags can appear in any order.
 
-## Building a Drive's Current State
+## Building a drive's current state
 
-To construct the current state of a drive, a client:
-
-1. **Queries for the drive's entities** by `Drive-Id`, from the wallet that owns the drive
-2. **Orders them by block height**, using `Unix-Time` only to break ties within a block
-3. **Keeps the latest revision** of each drive, folder and file ID
-4. **Builds the hierarchy** by following each entity's `Parent-Folder-Id`
-
-A [Drive State](/build/advanced/arfs/entity-types#drive-state) entity or [snapshots](/build/advanced/arfs/entity-types#snapshot) can replace most of this replay. See [Reading Data](/build/advanced/arfs/reading-data).
-
-### Example Construction
-
-```mermaid
-sequenceDiagram
-    participant Client
-    participant Gateway
-    participant Arweave
-
-    Client->>Gateway: Query Drive-Id abc123, owner's wallet
-    Gateway->>Client: Return entities, one page at a time
-
-    Client->>Client: Order by block height
-    Client->>Client: Keep the latest revision of each entity
-    Client->>Client: Build hierarchy tree
-    Client->>Client: Return complete drive state
-```
+A client rebuilds a drive by reading all its entities, keeping the latest revision of each, and following each `Parent-Folder-Id` to build the folder tree. A [Drive State](/build/advanced/arfs/entity-types#drive-state) entity or [snapshots](/build/advanced/arfs/entity-types#snapshot) let it skip most of that work. [Reading data](/build/advanced/arfs/reading-data#building-a-drives-current-state) has the steps.
 
 ## Entity Lifecycle
 
-Each ArFS entity follows a specific lifecycle pattern:
+Each ArFS entity goes through the same lifecycle:
 
 ### Creation
 
 1. Generate unique UUID for entity
-2. Create metadata transaction with required tags
-3. For files: create separate data transaction
+2. For files: create the data transaction first, because the file's metadata JSON records its ID as `dataTxId`
+3. Create the metadata transaction with the required tags
 4. Upload to Arweave network
 
 ### Updates
@@ -142,26 +110,16 @@ Each ArFS entity follows a specific lifecycle pattern:
 2. Upload new transaction
 3. Entity remains in history but hidden from UI
 
-Nothing is deleted: because Arweave transactions are immutable, hiding an entity is reversible. Every prior revision stays on Arweave, and the entity reappears if a later revision sets `isHidden: false`.
+Nothing is deleted, because Arweave transactions cannot change. Every earlier revision stays on Arweave, and the entity reappears if a later revision sets `isHidden: false`.
 
 ## Data Integrity
 
-ArFS ensures data integrity through:
+ArFS keeps data intact through:
 
 - **Immutable transactions** - Once uploaded, data cannot be modified
 - **Cryptographic signatures** - All transactions are signed by the owner
 - **Version tracking** - Multiple versions of entities can exist
 - **Conflict resolution** - Clients use block height and timestamps to resolve conflicts
-
-## Performance Considerations
-
-For large drives, consider these optimization strategies:
-
-- **Use Drive State entities** to import a drive in one step, then read only later blocks
-- **Use snapshots** for quick state reconstruction
-- **Implement caching** for frequently accessed data
-- **Batch operations** when possible
-- **Query by block range** to read only blocks a client has not seen
 
 ## Next Steps
 

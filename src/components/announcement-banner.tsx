@@ -80,7 +80,7 @@ export function AnnouncementBanner({
   return (
     <div
       ref={bannerRef}
-      className="relative z-[60] w-full border-b border-white/20 bg-[#5B2AD1] text-white"
+      className="relative z-[60] w-full border-b border-white/20 bg-fd-primary dark:bg-[#5427C8] text-white"
     >
       <div className="mx-auto flex max-w-[90rem] flex-col items-center gap-2 px-4 py-3 text-sm sm:flex-row sm:justify-center sm:gap-3 sm:px-4 sm:py-2 sm:pr-12">
         {badge ? (

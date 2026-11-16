@@ -25,7 +25,7 @@ Index Sharing runs in a sidecar container, `index-swarm`, beside your gateway; i
 - `./tools/index-swarm-setup` edits `.env` and, with `--restart`, restarts what the changes need.
 - `./tools/index-swarm-status` checks that everything works and says how to fix what doesn't.
 
-## On by Default
+## On by default
 
 <Callout type="info">
   **Release Requirement**: Release 85 or later. On Release 84, Index Sharing
@@ -80,49 +80,46 @@ From Release 85, BitTorrent is the default, and the torrent engine runs whatever
 
 BitTorrent is the better default: your first pull is faster and free, and each gateway that seeds makes the next one's faster. It works behind NAT or a closed port too, because your gateway connects out to the publisher and to other peers; an open port adds the peers that can only be reached, not reach you. Choose HTTP only if you don't want to upload. [Network and Disk](#network-and-disk) has the details.
 
-What runs on your gateway once it is set up. Dashed boxes are optional: the torrent engine runs by default from Release 85 (on Release 84, only with `--torrent`), and `index-export` (Release 85) only on a publisher that builds its own bands. The tracker answers only when you publish torrents:
+What runs on your gateway once it is set up. Dashed boxes are optional: the torrent engine runs by default from Release 85 (on Release 84, only with `--torrent`), and `index-export` (Release 85) only on a publisher that builds its own bands. The sidecar is the publisher, the subscriber and the tracker; the tracker answers only when you publish torrents. The torrent engine runs on its own Docker network:
 
 ```mermaid
 graph LR
+    accTitle: The sidecar fetches and installs bands, core reads them, and only the sidecar talks to the torrent engine
+    accDescr: Envoy sends index requests to core and tracker announces to the sidecar. The sidecar reads registry entries from core, fetches publications and bands from other gateways over HTTP, drives the torrent engine, and installs verified bands into data/indexes. The engine exchanges pieces with BitTorrent peers and writes downloads into data/indexes. Core reads published and installed bands from that directory, and index-export, on a publisher, writes new bands into it.
     NET[Clients and<br/>other gateways]
     PEERS[BitTorrent peers]
 
     subgraph Host ["Your gateway"]
         ENVOY[Envoy :3000]
         CORE[Core Service]
-        SIDE[index-swarm sidecar<br/>publisher · subscriber<br/>tracker]
-        ENG[Torrent engine :6881<br/>own Docker network]
+        SIDE[index-swarm sidecar]
+        ENG[Torrent engine :6881]
         EXP[index-export]
         DIR[data/indexes]
     end
 
     NET -->|/ar-io/indexes| ENVOY
-    ENVOY --> CORE
-    CORE -->|reads root-TX bands| DIR
-    EXP -->|bands into published/| DIR
-    SIDE -->|publishes, installs| DIR
-    SIDE -->|registry| CORE
-    SIDE -->|bands over HTTP| NET
-    SIDE --> ENG
-    ENG -->|writes swarm/ only| DIR
+    ENVOY -->|/ar-io/indexes| CORE
+    CORE -->|reads bands| DIR
+    EXP -->|new bands| DIR
+    SIDE -->|installs bands| DIR
+    SIDE -->|GET /ar-io/peers| CORE
+    SIDE -->|fetches publications| NET
+    SIDE -->|starts and stops torrents| ENG
+    ENG -->|downloads| DIR
     ENG <-->|pieces| PEERS
-    PEERS -->|announce to<br/>/ar-io/indexes/announce| ENVOY
+    PEERS -->|announces| ENVOY
     ENVOY -->|announces, :6970| SIDE
 
-    classDef service fill:#10b981,stroke:#059669,stroke-width:2px,color:#fff
-    classDef proxy fill:#f59e0b,stroke:#d97706,stroke-width:2px,color:#fff
-    classDef external fill:#8b5cf6,stroke:#7c3aed,stroke-width:2px,color:#fff
-    classDef storage fill:#ef4444,stroke:#dc2626,stroke-width:2px,color:#fff
-    classDef optional fill:#10b981,stroke:#059669,stroke-width:2px,color:#fff,stroke-dasharray: 5 5
-
-    class CORE,SIDE service
-    class ENG,EXP optional
-    class ENVOY proxy
-    class NET,PEERS external
-    class DIR storage
+    class SIDE dg-strong
+    class CORE,DIR dg-soft
+    class ENG,EXP dg-soft
+    class ENG,EXP dg-dashed
+    class ENVOY dg-muted
+    class NET,PEERS dg-muted
 ```
 
-## Subscribe to a Publisher
+## Subscribe to a publisher
 
 Subscribing is what most operators want: your gateway downloads a publisher's index bands, verifies them, and answers lookups from them. From Release 85, your gateway already subscribes to turbo-gateway.com by default ([On by Default](#on-by-default)); follow these steps to add another publisher, to change how bands move, or to turn it on under Release 84.
 
@@ -135,7 +132,7 @@ Subscribing is what most operators want: your gateway downloads a publisher's in
 
 <Steps>
 <Step>
-### Choose a Publisher
+### Choose a publisher
 
 A publisher is identified by its **gateway wallet**, not its URL. Your gateway looks the wallet up in the gateway registry to learn where to fetch from and which key must have signed.
 
@@ -150,7 +147,7 @@ To see whether another gateway publishes, check its `/ar-io/info` for an `indexe
 </Step>
 
 <Step>
-### Run the Setup Script
+### Run the setup script
 
 See what it would change first, then run it for real:
 
@@ -166,14 +163,14 @@ From Release 85, the script keeps the default turbo-gateway.com subscription whe
 </Step>
 
 <Step>
-### Open the Peer Port
+### Open the peer port
 
 With BitTorrent, open the engine's peer port to the internet if you can, as [Ports](#ports) describes. It isn't required: without it, your gateway still downloads from peers and seeds to the peers it connects to. Behind a home router, forward the port yourself; the engine doesn't use UPnP.
 
 </Step>
 
 <Step>
-### Check It
+### Check it
 
 ```bash
 ./tools/index-swarm-status
@@ -186,7 +183,7 @@ Each line says `ok`, `WARN` or `FAIL`, and every problem comes with the fix. Whe
 
 Bands arrive newest heights first, because most lookups are for recent data. A first pull of a full index takes minutes to hours. After that, new bands from the publisher install, and replace the ones they supersede, by themselves; the gateway loads each within 30 seconds, without a restart.
 
-### What to Expect
+### What to expect
 
 The status script's `CDB64 lookups ... found X of Y` line shows how many root transaction lookups the installed bands answered. Don't expect every lookup to hit. A publisher's index covers the bundles it indexed, densest for recent data, and the tip band is rebuilt periodically, so the newest items aren't in it yet. A miss costs nothing: your gateway falls back to its usual lookup order. Following more than one publisher widens coverage.
 
@@ -199,7 +196,7 @@ The status script's `CDB64 lookups ... found X of Y` line shows how many root tr
   stopped, so nothing is lost if your gateway restarts part way through.
 </Callout>
 
-### Take L1 Bands (`parquet-l1`)
+### Take L1 bands (`parquet-l1`)
 
 <Callout type="info">
   **Release Requirement**: L1 bands require Release 85 or later on your
@@ -232,7 +229,7 @@ On a new gateway, run it before the first start, without `--restart` (on a gatew
 
 Taking `parquet-l1` off the subscription retires its bands. History already filled from them stays in `core.db`.
 
-### Take L2 Bands (`parquet-l2`)
+### Take L2 bands (`parquet-l2`)
 
 <Callout type="info">
   **Release Requirement**: L2 bands require Release 85 or later on your
@@ -241,7 +238,7 @@ Taking `parquet-l1` off the subscription retires its bands. History already fill
   sidecar refuses them and keeps the copies it has.
 </Callout>
 
-A publisher can also offer **L2 indexes**: the ANS-104 data items of one app, chosen by a **selection** (a tag name and a value prefix), in Parquet on the same height ranges as L1 bands, with their tags, owners, locations and lookup files. Each selection is its own index under its own name. turbo-gateway.com publishes `ardrive-l2`, the items whose `App-Name` starts with `ArDrive` but not `ArDriver`: ArDrive is one example, and any app's tag can be a selection. Your gateway doesn't read them yet; they are for analytics and for apps that read an index in the browser or a script. See [L2 Datasets](/build/advanced/index-publications#l2-datasets-parquet-l2).
+A publisher can also offer **L2 indexes**: the ANS-104 data items of one app, chosen by a **selection** (a tag name and a value prefix), in Parquet on the same height ranges as L1 bands, with their tags, owners, locations and lookup files. Each selection is its own index under its own name. turbo-gateway.com publishes `ardrive-l2`, the items whose `App-Name` starts with `ArDrive` but not `ArDriver`: ArDrive is one example, and any app's tag can be a selection. They serve analytics and apps that read an index in the browser or a script (see [L2 Datasets](/build/advanced/index-publications#l2-datasets-parquet-l2)), and from Release 88 your gateway can import them, so its GraphQL answers for their items without unbundling them (see below).
 
 A subscription takes an L2 index only when it names it. There is no setup-script flag; add the name to the subscription's `name` list in `.env` and restart the sidecar:
 
@@ -251,7 +248,13 @@ INDEX_SWARM_SUBSCRIBE='[{"publisher":"34LYvMptiDvBP5sqfh1oAd6Q4qFsy4PWaZ1HTFmML7
 
 The sidecar checks each band's files, footers, row counts and selection against the signed publication and installs it under `data/indexes/installed/<name>/`. Every band of an index must declare the same selection; a band or an index `filter` that disagrees is refused whole. Taking an index off `name` retires its bands. To check an installed index row by row, and a sample of its locations against Arweave nodes, run `index-l2-verify` (Release 86): see [Verifying Shared Indexes](/build/advanced/index-verification).
 
-## Publish Your Indexes
+<Callout type="info">
+  **Release Requirement**: Importing L2 bands requires Release 88 or later.
+</Callout>
+
+To load installed L2 bands into your gateway's index, set `L2_BAND_IMPORT_ENABLED=true`, `L2_BAND_IMPORT_INDEXES` to the installed names (for example `ardrive-l2`), and `L2_BAND_IMPORT_PUBLICATION` to the publisher's publication URL (for example `https://turbo-gateway.com/ar-io/indexes`), then restart core. The import writes to ClickHouse by default, which needs `CLICKHOUSE_URL` and the `clickhouse-auto-import` service, which loads the queued bands; a gateway without ClickHouse sets `L2_BAND_IMPORT_TARGET=sqlite` to write into `bundles.db` instead (all of `ardrive-l2` is about 370 GB there). Each band is verified before a row of it is written: bound to the signed publication, its roots found in the installed L1 index, and a sample of its items read from Arweave nodes. A band that fails a check is refused whole, and items your gateway already holds are left alone.
+
+## Publish your indexes
 
 Any registered gateway can publish. Other gateways then find it in the registry and subscribe by its wallet.
 
@@ -266,7 +269,7 @@ Publishing is for gateways that unbundle, so their index holds data items to bui
 
 <Steps>
 <Step>
-### Set the Signing Key
+### Set the signing key
 
 Set your gateway's wallet:
 
@@ -303,7 +306,7 @@ The setup script refuses to publish, and writes nothing, until the key and `AR_I
 </Step>
 
 <Step>
-### Run the Setup Script
+### Run the setup script
 
 <Callout type="info">
   **Release Requirement**: `--start-height`, `--header-check-url` and the
@@ -329,7 +332,7 @@ See what it would change first, then write it to `.env`, without restarting yet:
 </Step>
 
 <Step>
-### Dry-Run the Export
+### Dry-run the export
 
 On Release 85, see what `index-export` would build before it builds anything, with the same `-f` files your gateway was started with:
 
@@ -342,7 +345,7 @@ The report lists each band, its rows, the time and disk it needs, and the result
 </Step>
 
 <Step>
-### Start It
+### Start it
 
 Run the setup script again with `--restart`. It changes nothing more, and restarts what publishing needs by service name: the sidecar, the torrent engine and, on Release 85, `index-export`.
 
@@ -355,7 +358,7 @@ The first scan reads and hashes every band once, which takes a few minutes for t
 </Step>
 
 <Step>
-### Open the Peer Port
+### Open the peer port
 
 With BitTorrent, open 6881, TCP and UDP, to the internet. See [Ports](#ports).
 
@@ -366,7 +369,7 @@ If the script has no public URL for your gateway (no `--public-url`, `INDEXES_PU
 </Step>
 
 <Step>
-### Check What You Publish
+### Check what you publish
 
 ```bash
 ./tools/index-swarm-status
@@ -392,7 +395,7 @@ Both need your gateway's public origin, `INDEXES_PUBLIC_URL`, which defaults to 
 
 A stock client pulls a good share of every band from the WebSeed even while seeders could serve it. If your gateway doesn't meter its byte routes, that is your core's egress, read from disk and outside the torrent engine's upload limits. Meter the byte routes to bound it, or set `INDEXES_TORRENT_WEBSEED=false` to serve torrents without the WebSeed. Gateways that subscribe to you drop the WebSeed either way, and add yours only when peers stall.
 
-### What the Daily Run Does
+### What the daily run does
 
 <Callout type="info">
   **Release Requirement**: `index-export` requires Release 85 or later.
@@ -413,7 +416,7 @@ docker compose --profile index-export run --rm -T index-export --once
 
 If `published/` already holds bands built another way, `index-export` builds nothing until you hand them over with `--adopt`. The [`index-export` reference](https://github.com/ar-io/ar-io-node/blob/develop/docs/index-export.md) covers adoption, disk and memory limits, metrics and troubleshooting.
 
-### Publish L1 Bands
+### Publish L1 bands
 
 <Callout type="info">
   **Release Requirement**: L1 bands require Release 85 or later.
@@ -434,7 +437,7 @@ The first build of the whole chain takes many hours and reads all of `core.db` o
 docker compose --profile index-export run --rm -T index-export --once --dry-run --to 600000 > plan.json
 ```
 
-#### Add Witnesses (Release 87)
+#### Add witnesses (Release 87)
 
 [Witness files](/build/advanced/index-verification#witness-files-l1-4) are what let a subscriber verify and import every block, from genesis, with no `--allow-*` flag. `index-export` builds them for new bands, and adds them to the `l1-3` bands you have already published in place, so those bands keep their ids and subscribers fetch only the new files. It needs inputs for that, set in `.env`:
 
@@ -500,7 +503,7 @@ docker compose --profile index-export run --rm -T index-export --once --dry-run 
 
 A first build over a long history can take days: each run starts frozen bands for `INDEX_EXPORT_L2_RUN_BUDGET_MINUTES` (240 by default) and the next carries on. Alarm on `index_export_last_success_timestamp_seconds{index="<name>",kind="tip"}`. Memory, disk and the remaining `INDEX_EXPORT_L2_*` settings are under [Building Bands](/build/run-a-gateway/manage/environment-variables#building-bands-release-85); the [`index-export` reference](https://github.com/ar-io/ar-io-node/blob/develop/docs/index-export.md#l2-bands) covers where rows come from, the checks and the lifecycle in full.
 
-### By Hand
+### By hand
 
 On Release 84, or to publish bands built some other way, put each band in its own directory under `data/indexes/published/root-tx-index/`, built under a name ending in `.tmp` and renamed into place:
 
@@ -512,7 +515,7 @@ mv data/indexes/published/root-tx-index/band-tip.tmp data/indexes/published/root
 
 This tool runs on the host, so it needs Node.js 20 and `yarn install` in the checkout. Give each band a `heightRange` in its manifest's `metadata` so subscribers install the newest heights first, and replace a band by publishing a new one with `"supersedes": "<old band id>"`. See [Partitioned Indexes](/build/run-a-gateway/manage/cdb64#partitioned-indexes).
 
-## The Setup and Status Scripts
+## The setup and status scripts
 
 ### `index-swarm-setup`
 
@@ -553,7 +556,7 @@ The status script is read-only. It runs inside the sidecar, so it sees exactly w
 
 It exits `1` when a check fails, so it can run from cron or a health script.
 
-## Doing It by Hand
+## Doing it by hand
 
 What the Release 84 setup script writes, if you would rather edit `.env` yourself. From Release 85, the defaults cover everything here except the subscription, and the engine generates its own password; see the notes after the block.
 
@@ -590,7 +593,7 @@ docker compose up -d --no-deps index-swarm-engine-init index-swarm-engine index-
 
 On Release 84, the sidecar and engine sit in compose profiles, so add `--profile index-swarm --profile index-swarm-torrent` to the second command. Without BitTorrent, leave out the `index-swarm-torrent` profile and the two engine services. Name the services as shown: a bare `docker compose up` also starts or recreates every default service, including your observer.
 
-## Network and Disk
+## Network and disk
 
 ### Ports
 
@@ -618,7 +621,7 @@ Some hosting providers restrict BitTorrent traffic in their terms of service. Ch
 
 A first pull of the index turbo-gateway.com publishes is about 22 GB, and it grows with the chain. From Release 85 every default gateway makes that pull when it first starts. After that, the tip band is rebuilt daily and the next band every few days. Upload is bounded by the [upload limits](#bounding-upload): at the defaults, up to 100 GB a day, about 3 TB a month. On a host that charges for bandwidth, lower them.
 
-## Firewalls and Docker Ports
+## Firewalls and Docker ports
 
 The torrent engine publishes only its peer port, `INDEX_SWARM_ENGINE_PORT` (6881, TCP and UDP). The sidecar also publishes the tracker port, `INDEX_SWARM_TRACKER_PORT` (6969, TCP), on every node, but only a node that publishes torrents listens on it. From Release 85 it is published on `127.0.0.1` only, so nothing outside the host reaches it. A subscriber needn't open it. A publisher whose peers announce to it directly, rather than through the gateway, sets `INDEX_SWARM_TRACKER_HOST_IP=0.0.0.0` and opens it. The engine's Web API is never published.
 
@@ -626,7 +629,7 @@ The engine is kept away from the rest of the gateway, because the peers and trac
 
 Ports that Docker publishes are forwarded before the host's `INPUT` chain sees them, so a host firewall such as ufw neither blocks nor protects them. Open them wherever traffic reaches the host (a cloud security group or router, for example). To restrict them on the host, filter where Docker forwards. With Docker's default iptables backend, that is the `DOCKER-USER` chain. Its nftables backend has no `DOCKER-USER`, so use a chain of your own table on the `forward` hook, at a priority before Docker's.
 
-## Bounding Upload
+## Bounding upload
 
 Seeding is free to peers but not to you: every byte is your upload, and a peer can fetch the bands again and again. Every node that runs the engine seeds, subscribers included, so two limits apply to every node, with defaults:
 
@@ -637,7 +640,7 @@ Seeding is free to peers but not to you: every byte is your upload, and a peer c
 
 A large publisher should raise both. The engine's memory also grows with the bytes it seeds: it maps the files, and mapped pages count against a container memory limit.
 
-## Tuning the Torrent Engine
+## Tuning the torrent engine
 
 The defaults suit most gateways. These are the settings worth changing, all in `.env`, applied by restarting the sidecar and engine:
 
@@ -652,16 +655,18 @@ The defaults suit most gateways. These are the settings worth changing, all in `
 | `INDEX_SWARM_MAX_DISK_BYTES` | From Release 85, 64 GiB with the default subscription and no ceiling with one you set; on Release 84, 50 GiB set by the setup script | Subscribing to more publishers or to larger indexes. Also `--max-disk-gib` |
 | `INDEX_SWARM_ENGINE_PUBLIC_HOST` | host of the tracker URL | A publisher whose gateway name doesn't resolve to this node, such as one behind a CDN or a load balancer that doesn't forward the peer port |
 
-### Sharing Between Your Own Gateways
+### Sharing between your own gateways
 
 If you run several gateways on one private network, they can seed bands to each other over it instead of each pulling from the internet. By default the engine refuses private addresses, so that other gateways can't use it to reach your network. For a private swarm, set `INDEX_SWARM_ENGINE_BLOCK_PRIVATE=false` on each node and list your own tracker's announce URL in `INDEX_SWARM_ALLOWED_TRACKERS`. Do this only on a network you control.
 
-## Publishing from a Fleet
+## Publishing from a fleet
 
 A large gateway is often several nodes behind an HTTP load balancer, and only one of them holds the observer key and signs.
 
 ```mermaid
 graph LR
+    accTitle: In a fleet only the signing node publishes and seeds, and the load balancer pins /ar-io/indexes to it
+    accDescr: The load balancer sends /ar-io/indexes requests, including tracker announces, to the signing node's Envoy, and everything else to the other nodes. On the signing node, Envoy forwards announces to the index sidecar, which drives the torrent engine, and the engine exchanges pieces with peers on its own public address. The other nodes' sidecars subscribe over HTTP to the signing node's core directly and install bands for their own core.
     CLIENTS[HTTP clients]
     PEERS[Subscribers and peers]
 
@@ -678,21 +683,20 @@ graph LR
         end
     end
 
-    CLIENTS --> LB
+    CLIENTS -->|data and API requests| LB
     PEERS -->|/ar-io/indexes,<br/>including announces| LB
     LB -->|/ar-io/indexes,<br/>to Envoy :3000| C1
     LB -->|everything else| C2
-    S2 -->|url: signing node :4000,<br/>allowlisted| C1
+    S2 -->|publication and bands from<br/>signing node :4000, allowlisted| C1
+    S2 -->|installed bands| C2
     PEERS <-->|pieces, to the node's<br/>own public address| E1
     C1 -->|/ar-io/indexes/announce,<br/>by Envoy| S1
+    S1 -->|starts and stops torrents| E1
 
-    classDef service fill:#10b981,stroke:#059669,stroke-width:2px,color:#fff
-    classDef proxy fill:#f59e0b,stroke:#d97706,stroke-width:2px,color:#fff
-    classDef external fill:#8b5cf6,stroke:#7c3aed,stroke-width:2px,color:#fff
-
-    class C1,C2,S1,S2,E1 service
-    class LB proxy
-    class CLIENTS,PEERS external
+    class S1 dg-strong
+    class C1,C2,S2,E1 dg-soft
+    class LB dg-muted
+    class CLIENTS,PEERS dg-muted
 ```
 
 For BitTorrent:
@@ -702,11 +706,11 @@ For BitTorrent:
 3. **The tracker, through the load balancer.** Announce to `https://<gateway>/ar-io/indexes/announce`. The `/ar-io/indexes*` pin sends it to the signing node, whose Envoy forwards it to the tracker, so the pin must reach that node's **Envoy (port 3000)**. Pinned to core (port 4000), announces get `404`. The load balancer and any proxy after it must append `X-Forwarded-For` (`proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`), and any that reach the node from a public address go in `INDEX_SWARM_TRACKER_TRUSTED_PROXIES`. Otherwise every peer appears at the proxy's address and the tracker's per-address limits throttle them together. Publishing `INDEX_SWARM_TRACKER_PORT` on the node's public address and announcing to `http://<that address>:6969/announce` also works.
 4. **The `.torrent`, WebSeed, feed and tracker routes** are under `/ar-io/indexes`, so the pin and the [NGINX block](#behind-nginx) for that prefix already cover them.
 
-### Rate Limiting and x402 in a Fleet
+### Rate limiting and x402 in a fleet
 
 Nothing extra to configure. The rate limiter and x402 apply to the byte routes (files by name, by digest, and the WebSeed) the same way they apply to data. The publication, the feeds and the `.torrent` files are free. Peer-to-peer transfer never touches the gateway; the upload budget bounds it instead. A tracker announce is a few hundred bytes through Envoy to the sidecar, never to core. Because `/ar-io/indexes` goes to one node, all metering happens there, so per-address limits stay consistent even if your nodes don't share a rate limiter.
 
-### Advertising From the Other Nodes
+### Advertising from the other nodes
 
 <Callout type="info">
   **Release Requirement**: `INDEXES_ADVERTISE_FROM_URL` requires Release 85
@@ -717,7 +721,7 @@ Nothing extra to configure. The rate limiter and x402 apply to the byte routes (
 
 It advertises the publication's feeds too, when it has a public origin of its own (`INDEXES_PUBLIC_URL` or `ARNS_ROOT_HOST`). The feeds themselves are served by the signing node that the `/ar-io/indexes*` pin reaches, so give that node a public origin as well.
 
-### Giving the Other Nodes the Index
+### Giving the other nodes the index
 
 If your other nodes answer lookups from their own disk, they need the bands installed too. Subscribe each one over HTTP to your own publication, pointed at the publishing node directly:
 
@@ -785,15 +789,15 @@ Run `./tools/index-swarm-status` first: it names most problems and their fix.
 
 **`Gateway is too old to load installed index bands`.** Upgrade the gateway to Release 84 or later. The sidecar notices the upgrade by itself.
 
-## Turning It Off
+## Turning it off
 
 Stopping the sidecar changes nothing your gateway serves: installed bands stay loaded, and published bands stay served from the last publication written.
 
-### Stop Subscribing
+### Stop subscribing
 
 Set `INDEX_SWARM_SUBSCRIBE=[]` in `.env` and recreate the sidecar ([On by Default](#on-by-default)). No new bands are downloaded. Bands already installed stay in use and seeded until you remove them as described in [Remove Index Sharing](#remove-index-sharing).
 
-### HTTP Only
+### HTTP only
 
 <Callout type="info">
   **Release Requirement**: Release 85 or later. On Release 84, the engine runs

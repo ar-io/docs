@@ -1,158 +1,98 @@
 ---
-title: "Wayfinder Protocol"
-description: "Learn about the Wayfinder Protocol - a URI scheme for translating Arweave content requests into user-friendly ar:// URLs"
+title: "Wayfinder"
+description: "How Wayfinder picks an ar.io gateway for each ar:// request, retries when one fails, and can check the data it gets back"
 ---
 
 import { Card, Cards } from 'fumadocs-ui/components/card';
 import { Code, Lightbulb, Network, Globe } from 'lucide-react';
 
-## The Problem: Centralized Gateway Reliance
+## The problem with one gateway
 
-Today, most Arweave content is accessed through a single gateway: `arweave.net`. This creates a critical centralization risk:
+An app that writes one gateway host into its URLs depends on that gateway. If it goes down, the app's content is unreachable. It can block or filter content, every request waits on it, and your users have to trust that it serves the right bytes.
 
-- **Single point of failure** - If arweave.net goes down, content becomes inaccessible
-- **Censorship vulnerability** - A single gateway can block or filter content
-- **Performance bottlenecks** - All traffic flows through one gateway
-- **No content verification** - Users must trust the gateway to serve authentic content
+## What Wayfinder does
 
-## What is Wayfinder?
+Wayfinder is a client library that lets your app read permanent data through any gateway in the ar.io network. Your app asks for `ar://<transaction-id>` or `ar://<name>` instead of a URL tied to one host, such as `https://<gateway-host>/<transaction-id>`, and Wayfinder decides which gateway serves it:
 
-The Wayfinder protocol solves these problems by enabling **decentralized access** to Arweave content through any gateway in the ar.io network. It's a [URI scheme](https://wikipedia.org/wiki/Uniform_Resource_Identifier) that transforms centralized URLs like `https://arweave.net/txid` into decentralized `ar://` URLs that can be resolved by any participating gateway.
+- **Any gateway:** each request can go to a different ar.io gateway, so no single gateway can take your content offline or block it
+- **Retries:** if a gateway returns a server error or does not respond, Wayfinder picks a gateway again and retries, up to three attempts
+- **Your choice of routing:** pick a gateway at random, in turn, by the fastest ping, or prefer one and fall back to others
+- **Optional verification:** check the data against trusted gateways, whichever gateway served it
 
-Key capabilities:
-- **Multi-gateway routing** - Access content through any ar.io gateway
-- **Built-in verification** - Verify content authenticity regardless of which gateway serves it
-- **Automatic failover** - If one gateway is down, requests route to another
-- **User control** - Choose routing strategies based on speed, trust, or randomization
+## How it works
 
-## How Wayfinder Works
+Wayfinder runs inside your app, not on a server. For each `ar://` request it does three things:
 
-The Wayfinder protocol consists of three core components that work together to resolve and serve Arweave content:
+1. A **gateways provider** supplies the list of candidate gateways. By default it asks a trusted gateway (`turbo-gateway.com`) for its peer list at `/ar-io/peers`, falling back to that gateway alone if the list is empty or cannot be fetched. It can instead read the ar.io gateway registry on Solana through the ar.io SDK.
+2. A **routing strategy** picks one gateway from that list for this request.
+3. An optional **verification strategy** checks the bytes as they stream, for example by comparing their SHA-256 hash with the digest a trusted gateway reports.
 
 ```mermaid
-graph TB
-    subgraph "Centralized Access"
-        U1[Users] --> AW[arweave.net]
-        AW --> AR1[Arweave]
-        style AW fill:#ffcccc,stroke:#ff0000,stroke-width:3px,color:#333
-        style U1 fill:#fff,stroke:#333,stroke-width:2px,color:#333
-        style AR1 fill:#fff,stroke:#333,stroke-width:2px,color:#333
+graph LR
+    accTitle: Your app picks a gateway from many peers for each request
+    accDescr: A gateways provider gives the Wayfinder client a list of peer gateways. The routing strategy sends each request to one of them and retries on another if the first fails. An optional verification strategy compares the returned bytes with a digest from a trusted gateway as your code reads them.
+
+    App["Your code"]
+    Prov["Gateways provider<br/>peer list or registry"]
+    subgraph Client["Wayfinder, in your app"]
+        Route["Routing strategy"]
+        Verify["Verification strategy<br/>optional"]
     end
+    subgraph Peers["Peer gateways"]
+        G1["Gateway A"]
+        G2["Gateway B"]
+    end
+    Trusted["Trusted gateway"]
+    Out["Your code reads<br/>the data"]
+
+    App -->|"ar:// URL"| Route
+    Prov -->|gateway URLs| Route
+    Route -->|HTTPS request| G1
+    Route -.->|retry if A fails| G2
+    G1 -->|bytes and data ID| Verify
+    G2 -.->|bytes and data ID| Verify
+    Trusted -->|expected digest| Verify
+    Verify -->|response stream| Out
+
+    class Route dg-strong
+    class Verify dg-soft
+    class Verify dg-dashed
+    class Prov,G1,G2 dg-soft
+    class App,Out,Trusted dg-muted
 ```
 
-<div className="w-full text-center">vs.</div>
+### Transaction IDs
 
-```mermaid
-graph TB
-    subgraph "Decentralized Access"
-        U2[Users] --> WF[ar:// Protocol]
-        WF --> G1[Gateway 1]
-        WF --> G2[Gateway 2]
-        WF --> G3[Gateway 3]
-        WF --> GN[Gateway N]
-        
-        G1 --> AR2[Arweave]
-        G2 --> AR2
-        G3 --> AR2
-        GN --> AR2
-    end
-    
-    style U2 fill:#fff,stroke:#333,stroke-width:2px,color:#333
-    style AR2 fill:#fff,stroke:#333,stroke-width:2px,color:#333
-    style WF fill:#b3d9ff,stroke:#333,stroke-width:3px,color:#333
-    style G1 fill:#b3d9ff,stroke:#333,stroke-width:2px,color:#333
-    style G2 fill:#b3d9ff,stroke:#333,stroke-width:2px,color:#333
-    style G3 fill:#b3d9ff,stroke:#333,stroke-width:2px,color:#333
-    style GN fill:#b3d9ff,stroke:#333,stroke-width:2px,color:#333
-```
-
-Wayfinder enables:
-1. **Decentralized Routing**: Select from multiple gateways instead of relying on arweave.net
-2. **Redundant Retrieval**: If one gateway fails, automatically failover to another
-3. **Trust-minimized Verification**: Verify content authenticity regardless of which gateway serves it
-
-### Transaction ID Resolution
-
-To access content tied to an Arweave Transaction ID (TxId), simply append the TxId to `ar://`:
+To access content by its Arweave transaction ID, append the ID to `ar://`:
 
 ```
 ar://qI19W6spw-kzOGl4qUMNp2gwFH2EBfDXOFsjkcNyK9A
 ```
 
-Inputting this into a WayFinder-equipped browser will route your request through the right ar.io Gateway, translating it as per your `Routing Method` settings.
+Wayfinder picks a gateway with its routing strategy and requests the transaction ID from that gateway, on a sandbox subdomain derived from the ID.
 
-### ArNS Name Resolution
+### ArNS names
 
-Fetching content via an Ar.io Name System (ArNS) name is straightforward. Attach the ArNS name to `ar://`:
+To fetch content by an ar.io Name System (ArNS) name, attach the name to `ar://`:
 
 ```
 ar://good-morning
 ```
 
-The Wayfinder protocol, along with the Wayfinder app, distinguishes between TxIDs and ArNS names. Once the suitable `https://` request is formulated, the chosen gateway resolves the ArNS name through the current ar.io network state.
+Wayfinder tells transaction IDs and ArNS names apart by their format: a transaction ID is exactly 43 characters. For a name, it requests `https://good-morning.<gateway-host>/` from the chosen gateway, and that gateway resolves the name to a transaction ID.
 
-## Detailed Flow
+## Verification
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant Wayfinder
-    participant Gateway as ar.io Gateway
-    participant Arweave
-    
-    User->>Wayfinder: ar://ardrive or ar://txid
-    Wayfinder->>Wayfinder: Select a gateway
-    
-    alt ArNS Name (ar://ardrive)
-        Wayfinder->>Gateway: Request content via ArNS name
-        Gateway->>Gateway: Resolve ArNS to TxID
-        Gateway->>Gateway: Check cache for content
-        alt Content not cached
-            Gateway->>Arweave: Fetch from network
-            Arweave-->>Gateway: Return content
-        end
-        Gateway-->>Wayfinder: Return content
-    else Transaction ID (ar://txid)
-        Wayfinder->>Gateway: Request content via TxID
-        Gateway->>Gateway: Check cache for content
-        alt Content not cached
-            Gateway->>Arweave: Fetch from network
-            Arweave-->>Gateway: Return content
-        end
-        Gateway-->>Wayfinder: Return content
-    end
-    
-    Wayfinder->>Wayfinder: Verify content integrity
-    Wayfinder-->>User: Deliver verified content
-```
+Verification is off unless you turn it on. When it is on, Wayfinder checks the response stream as your app reads it, using one of these strategies:
 
-## Why Decentralized Access Matters
+1. **Hash verification:** Hashes the bytes with SHA-256 and compares the result with the digest that trusted gateways report for the same data
+2. **Data root verification:** Rebuilds the transaction's data root from the bytes and compares it with the data root that trusted gateways report
+3. **Signature verification:** Checks the signature of the transaction or ANS-104 data item, using metadata from trusted gateways
+4. **Remote verification:** Accepts the serving gateway's own claim that it verified the data. It needs no client-side work but trusts that gateway, so it suits testing more than production
 
-### Resilience Against Censorship
-With centralized gateways like arweave.net, content can be blocked or filtered at a single point. Wayfinder distributes access across multiple independent gateways, making censorship significantly more difficult.
-
-### Always-Available Content
-When arweave.net experiences downtime or congestion, all content becomes inaccessible. Wayfinder automatically routes around failed gateways, ensuring your content remains available.
-
-### Trust Through Verification
-Centralized gateways require blind trust - you can't verify if the content served matches what's stored on Arweave. Wayfinder includes built-in verification capabilities, allowing clients to cryptographically verify content authenticity from any gateway.
-
-### Performance Through Competition
-Multiple gateways create a competitive ecosystem where gateways optimize for speed and reliability. Users benefit from automatic routing to the fastest available gateway.
-
-## Verification: Trust but Verify
-
-Wayfinder supports content verification at multiple levels:
-
-1. **Transaction verification** - Verify that content matches the requested transaction ID
-2. **Data integrity checks** - Ensure content hasn't been tampered with during transmission
-3. **Manifest validation** - For bundled content, verify all components are authentic
-4. **ArNS resolution verification** - Confirm ArNS names resolve to the correct transaction IDs
-
-This verification happens transparently, giving users confidence that they're receiving authentic Arweave content regardless of which gateway serves it.
+For an ArNS request, Wayfinder verifies against the transaction ID the gateway reports in its response headers. In strict mode a failed check errors the stream. Otherwise the data is delivered and a verification failure is reported as an event.
 
 For the trust model behind these strategies, including the difference between gateway claims, signed claims, and cryptographic proofs, see [Verification and Accountability](/learn/verification).
-
 
 ## Explore Wayfinder
 

@@ -5,53 +5,52 @@ description: "How persistently underperforming gateways can be removed from the 
 
 ## Overview
 
-Gateway pruning is the mechanism that removes gateways that continue to fail network performance checks. It helps keep the Gateway Address Registry focused on infrastructure that is reachable, useful, and aligned with the network's quality expectations.
+Pruning removes a gateway that keeps failing its [observation](/learn/oip) checks. One bad epoch does not get a gateway pruned. Thirty failed epochs in a row do.
 
-Pruning is based on OIP performance results. A gateway is not removed for a single bad result, but sustained failure can make it eligible for removal.
+## How pruning works
 
-## How Pruning Works
-
-When a gateway remains deficient for a sustained period:
-
-1. **The gateway becomes prunable** after repeated failed observations.
-2. **A permissionless instruction can remove it** from the Gateway Address Registry.
-3. **The operator's required network-join stake is slashed** to the protocol balance.
-4. **Eligible excess and delegated stake follow the normal withdrawal process** instead of being slashed.
+After each epoch, when rewards are paid, the protocol updates every gateway's count of failed epochs in a row. A failed epoch adds one, a passed epoch resets the count to zero, and an epoch with no observations leaves it unchanged. Once a gateway's count reaches the limit (30 on mainnet), anyone can submit a transaction to prune it.
 
 ```mermaid
 graph TD
-    A[Gateway participates in OIP] --> B{Performance result}
-    B -->|Pass| C[Failure history resets]
-    B -->|Fail| D[Failure history accumulates]
-    D --> E{Sustained failure?}
-    E -->|No| A
-    E -->|Yes| F[Gateway becomes prunable]
-    F --> G[Gateway removed from registry]
-    G --> H[Required operator stake slashed]
-    G --> I[Eligible excess and delegated stake withdrawable]
+    accTitle: Pruning takes only the minimum operator stake, and the rest of the stake leaves through locked vaults
+    accDescr: After each epoch a gateway's count of failed epochs in a row either resets to 0, when it passed, or goes up by one, when it failed. Once the count reaches 30, anyone can prune the gateway. Pruning sends the minimum operator stake to the protocol balance. Up to another minimum stake of what remains is locked for 90 days, any excess is locked for the normal 30-day withdrawal period, and delegators withdraw their stake from the leaving gateway.
+
+    D["Epoch rewards paid"] -->|"gateway passed"| R["Count reset to 0"]
+    D -->|"gateway failed"| C["Count plus 1"]
+    C -->|"below 30,<br/>next epoch"| D
+    R -->|"next epoch"| D
+    C -->|"count reaches 30"| P["Gateway pruned<br/>by anyone"]
+    P -->|"minimum operator stake"| T["Protocol balance"]
+    P -->|"next minimum stake<br/>of what remains"| V["Locked 90 days"]
+    P -->|"any excess stake"| W["Locked 30 days"]
+    P -->|"delegated stake"| G["Delegators withdraw<br/>from the leaving gateway"]
+
+    class P dg-strong
+    class T dg-muted
 ```
 
-## Impact on Operators
+Only a gateway that is still part of the network can be pruned. A pruned gateway is marked as leaving.
 
-Pruning is designed to make gateway operation economically accountable. Operators are expected to keep their gateways online, correctly configured, able to resolve ArNS names, and able to participate in observation duties when selected.
+## Impact on operators
 
-When a gateway is pruned, the operator loses the required stake associated with joining the network. Any eligible excess stake follows the normal withdrawal flow.
+A pruned operator loses the minimum operator stake, the amount required to join the network, to the [protocol balance](/glossary#protocol-balance). The rest of the operator stake comes back through two locked vaults: up to another minimum stake after the 90-day leave period, and anything above that after the normal 30-day withdrawal period.
 
-## Impact on Delegators
+## Impact on delegators
 
-Delegated stake is not the target of pruning slashing. If a gateway is pruned, delegated stake follows the normal withdrawal process for leaving gateways. Delegators should still monitor gateway performance because pruning can interrupt reward eligibility and require withdrawal or redelegation decisions.
+Pruning never takes delegated stake. Delegators withdraw from a pruned gateway the same way they would from any gateway that is leaving. A pruned gateway stops earning rewards, so watch the performance of the gateways you delegate to and be ready to withdraw or redelegate.
 
 ## Prevention
 
-Gateway operators can reduce pruning risk by:
+To lower the risk of pruning, operators can:
 
-- Maintaining reliable uptime and public reachability
-- Keeping ArNS resolution working correctly
-- Monitoring OIP performance results and gateway health
-- Funding the observer wallet with SOL for required transaction fees
-- Reviewing gateway status in [gateways.ar.io](https://gateways.ar.io)
+- Keep the gateway online and reachable from the internet
+- Keep ArNS resolution working
+- Watch observation results and gateway health
+- Keep SOL in the observer wallet to pay transaction fees
+- Check gateway status at [gateways.ar.io](https://gateways.ar.io)
 
-## Related Concepts
+## Related concepts
 
 - [Gateway Registry](/learn/gateways/gateway-registry)
 - [Observation and Incentive Protocol](/learn/oip)

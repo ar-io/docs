@@ -26,7 +26,9 @@ export const docs = defineDocs({
 
 export default defineConfig({
   mdxOptions: {
-    remarkPlugins: [remarkMdxMermaid, remarkMath],
+    // Single-dollar inline math is off: prices in prose ("a $100 top up buys
+    // credits worth $65") were being typeset as LaTeX. Use $$...$$ for math.
+    remarkPlugins: [remarkMdxMermaid, [remarkMath, { singleDollarTextMath: false }]],
     rehypePlugins: (v) => [rehypeKatex, ...v],
     // Shiki gives up on a line after 500ms by default and emits it
     // uncoloured. Under a loaded build that fires at random, so identical

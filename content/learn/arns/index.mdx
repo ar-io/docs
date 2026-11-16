@@ -6,70 +6,51 @@ description: "ArNS is a censorship-resistant naming system powered by ARIO and a
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { Globe, Key, DollarSign, ShoppingCart } from "lucide-react";
 
-## What is ArNS?
+## What ArNS does
 
-Arweave URLs and transaction IDs are long, difficult to remember, and occasionally categorized as spam. The Ar.io Name System (ArNS) aims to resolve these problems in a decentralized manner.
+An Arweave transaction ID is a 43-character string that is hard to remember and share. The Ar.io Name System (ArNS) gives your data a friendly name, such as `ardrive`, that works as a subdomain on any ar.io gateway that supports ArNS, for example `https://ardrive.ar.io`.
 
-ArNS is a **censorship-resistant naming system** powered by [ARIO tokens](/learn/token), enabled through [ar.io gateway](/learn/gateways) domains, and used to connect friendly domain names to permaweb apps, web pages, data, and identities.
+ArNS works like DNS, with three differences:
 
-It's an open, permissionless, domain name registrar that doesn't rely on a single TLD.
+- No single company runs the registry. It lives on Solana, so anyone can check who owns a name.
+- You pay for names in [ARIO](/learn/token). You can lease a name for 1 to 5 years or buy it permanently.
+- A name points to data stored on Arweave, not to a server.
 
-## How ArNS Works
+## How names resolve
 
-This system works similarly to traditional DNS services, where users can purchase a name in a registry and DNS Name servers resolve these names to IP addresses. The system is flexible and allows users to purchase names permanently or lease them for a defined duration based on their use case.
+When you register a name, you receive an Ar.io Name Token (ANT), an NFT on Solana that controls the name. Whoever holds the ANT sets its records. Each record points an undername to an Arweave transaction ID, so you can move the name to a new version of your app at any time.
 
-With ArNS, the registry is managed on Solana by the `ario-arns` program, making ownership and registration state globally verifiable. Names are controlled by Ar.io Name Tokens (ANTs), which point to Arweave transaction IDs so gateways can route friendly names to permanent data.
+Undernames use an underscore: `docs_ardrive.ar.io` asks for the `docs` record on the ANT behind `ardrive`, and `ardrive.ar.io` asks for its `@` record.
 
-```mermaid
-graph TD
-    User[User requests friendly name] --> Gateway[ar.io Gateway]
-    Gateway --> Registry[ArNS Registry<br/>ario-arns]
-    Registry --> ANT[Ar.io Name Token<br/>Metaplex Core NFT]
-    ANT --> Target[Arweave Transaction ID]
-    Gateway --> Content[Permaweb app, page, or data]
-    Target --> Content
-```
-
-## Name Resolution
-
-Users can register a name, like `ardrive`, within the ArNS Registry. Ownership is represented by an Ar.io Name Token (ANT), a Metaplex Core NFT on Solana used by ArNS to track control over the name.
-
-ANTs allow the owner to set a mutable pointer to any type of permaweb data, like a page, app or file, via its Arweave transaction ID.
-
-Each ar.io gateway acts as an ArNS name resolver. Gateways fetch the latest state of both the ArNS Registry and associated ANTs from Solana and use that state to route users to the right Arweave transaction.
-
-Ar.io gateways resolve names as gateway subdomains, e.g., `https://ardrive.ar.io`, and proxy requests to the associated Arweave transaction ID. This means an ArNS name can work across ar.io gateways that support ArNS.
-
-Users can easily reference these friendly names in their browsers, and other applications and infrastructure can build rich solutions on top of these ArNS primitives.
+Every [gateway](/learn/gateways) resolves names on its own, by reading the name registry and the ANT's records from Solana:
 
 ```mermaid
 sequenceDiagram
-    participant User
-    participant Gateway as ar.io Gateway
-    participant Registry as ArNS Registry
-    participant ANT as Ar.io Name Token
-    participant Arweave
+    accTitle: A gateway reads the name and its ANT records from Solana, then serves the data
+    accDescr: A user requests docs_ardrive.ar.io from any gateway. If the gateway has no fresh cached answer, it looks up ardrive in the name registry on Solana to get the ANT address, then reads that ANT's records. It takes the transaction ID from the docs record and the TTL, which says how long it may cache the answer. It serves the data from its own cache, or fetches it from Arweave or other gateways first, and returns it with an X-ArNS-Resolved-Id header naming the transaction ID.
 
-    User->>Gateway: Request ardrive.ar.io
-    Gateway->>Registry: Query "ardrive" record
-    Registry-->>Gateway: Returns ANT address
-    Gateway->>ANT: Get target TxID
-    ANT-->>Gateway: Returns TxID (abc123...)
-    Gateway->>Gateway: Check cache for TxID
-    alt TxID not in cache
-        Gateway->>Arweave: Fetch data from TxID
-        Arweave-->>Gateway: Returns permaweb content
+    participant User
+    participant GW as Any ar.io gateway
+    participant REG as Name registry on Solana
+    participant ANT as ANT records on Solana
+    participant DATA as Arweave and peers
+
+    User->>GW: GET docs_ardrive.ar.io
+    alt No fresh cached answer
+        GW->>REG: Look up ardrive
+        REG-->>GW: ANT address
+        GW->>ANT: Read the ANT's records
+        ANT-->>GW: Records by undername
+        Note over GW: Take the docs record's tx ID and TTL
     end
-    Gateway-->>User: Serves content
+    opt Data not in local cache
+        GW->>DATA: Fetch data by tx ID
+        DATA-->>GW: Data
+    end
+    GW-->>User: Content and X-ArNS-Resolved-Id header
 ```
 
-## Key Benefits
-
-- **Human-readable URLs** instead of complex transaction IDs
-- **Censorship-resistant** and decentralized
-- **Permanent data routing** to Arweave transaction IDs
-- **Cross-gateway compatibility** - works on all ar.io gateways
-- **Flexible ownership** - lease names for a defined period or buy them permanently
+If a gateway cannot read a name from Solana, it can ask a trusted gateway for the answer instead.
 
 ## Explore ArNS
 

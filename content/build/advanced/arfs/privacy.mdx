@@ -3,13 +3,13 @@ title: "Privacy & Encryption"
 description: "Secure your data with ArFS private drives and encryption"
 ---
 
-The Arweave blockweave is inherently public. But with apps that use ArFS, like ArDrive, your private data never leaves your computer without using military grade (and [quantum resistant](https://blog.boot.dev/cryptography/is-aes-256-quantum-resistant/#:~:text=Symmetric%20encryption%2C%20or%20more%20specifically,key%20sizes%20are%20large%20enough)) encryption. This privacy layer is applied at the Drive level, and users determine whether a Drive is public or private when they first create it. Private drives must follow the ArFS privacy model.
+Everything on Arweave is public. Apps that use ArFS, such as ArDrive, encrypt private data on your computer before it is uploaded, with AES-256 (which is [quantum resistant](https://blog.boot.dev/cryptography/is-aes-256-quantum-resistant/#:~:text=Symmetric%20encryption%2C%20or%20more%20specifically,key%20sizes%20are%20large%20enough)). Privacy is set per drive: you choose public or private when you create the drive.
 
-With ArDrive specifically, every file within a Private Drive is symmetrically encrypted using [AES-256-GCM](https://iopscience.iop.org/article/10.1088/1742-6596/1019/1/012008/pdf) (for small files and metadata transactions) or [AES-256-CTR](https://xilinx.github.io/Vitis_Libraries/security/2020.1/guide_L1/internals/ctr.html) (for large files, over 100MiB). Every Private drive has a top-level "Drive Key" which uses a combination of the user's Arweave wallet signature, a user defined drive password, and a unique drive identifier ([uuidv4](https://en.wikipedia.org/wiki/Universally_unique_identifier)). Each file has its own "File Key" derived from the "Drive Key". This allows for single files to be shared without exposing access to the other files within the Drive.
+With ArDrive specifically, every file within a Private Drive is symmetrically encrypted using [AES-256-GCM](https://iopscience.iop.org/article/10.1088/1742-6596/1019/1/012008/pdf) (for metadata and for files under 100 MiB) or [AES-256-CTR](https://xilinx.github.io/Vitis_Libraries/security/2020.1/guide_L1/internals/ctr.html) (for files of 100 MiB or more). Every Private drive has a top-level "Drive Key" which uses a combination of the user's Arweave wallet signature, a user defined drive password, and a unique drive identifier ([uuidv4](https://en.wikipedia.org/wiki/Universally_unique_identifier)). Each file has its own "File Key" derived from the "Drive Key". This allows for single files to be shared without exposing access to the other files within the Drive.
 
 Once a file is encrypted and stored on Arweave, it is locked forever and can only be decrypted using its file key.
 
-**NOTE**: Usable encryption standards are not limited to AES-256-GCM or AES-256-CTR. Any Encryption method may be used so long as it is clearly indicated in the `cipher` tag.
+ArFS does not limit you to AES-256-GCM or AES-256-CTR. A client can use any cipher, as long as the `Cipher` tag names it.
 
 ## Deriving Keys
 
@@ -17,36 +17,54 @@ Private drives have a global drive key, `D`, and multiple file keys `F`, for enc
 
 `D` is used for encrypting both Drive and Folder metadata, while `F` is used for encrypting File metadata and the actual stored data. Having these different keys, `D` and `F`, allows a user to share specific files without revealing the contents of their entire drive.
 
-`D` is derived using HKDF-SHA256 with an [unsalted](<https://en.wikipedia.org/wiki/Salt_(cryptography)>) RSA-PSS signature of the drive's id and a user provided password.
+`D` is derived from a wallet signature and the drive password:
 
-`F` is also derived using HKDF-SHA256 with the drive key and the file's id.
+- The owner's wallet signs a message made of the UTF-8 bytes of `drive` followed by the 16 bytes of the `Drive-Id` UUID. The signature is RSA-PSS with SHA-256 and a salt length of 0, so the wallet produces the same signature each time it signs for that drive.
+- HKDF-SHA256, with no salt, takes that signature as its input key material and the UTF-8 password as its `info`, and outputs the 32-byte drive key.
+
+`F` is derived with HKDF-SHA256 too, taking the drive key as its input key material and the 16 bytes of the `File-Id` UUID as its `info`, and outputs a 32-byte file key.
 
 ```mermaid
-graph TD
-    A[User Password] --> B[Drive Key Derivation]
-    C[Wallet Signature] --> B
-    D[Drive ID] --> B
-    B --> E[Drive Key D]
-    E --> F[File Key Derivation]
-    G[File ID] --> F
-    F --> H[File Key F]
+graph TB
+    accTitle: One wallet signature and a password make the drive key, and each file key comes from the drive key
+    accDescr: The owner's wallet signs the bytes of drive plus the Drive-Id. HKDF-SHA256 turns that signature, with the password as info, into the drive key D. HKDF-SHA256 turns D, with the File-Id as info, into the file key F. D encrypts drive and folder metadata with AES256-GCM. F encrypts the file's metadata with AES256-GCM and its data with AES256-GCM, or AES256-CTR for files of 100 MiB or more.
 
-    E --> I[Encrypt Drive Metadata]
-    E --> J[Encrypt Folder Metadata]
-    H --> K[Encrypt File Metadata]
-    H --> L[Encrypt File Data]
+    M["Message<br/>drive + Drive-Id bytes"]
+    W["Wallet signature<br/>RSA-PSS, salt length 0"]
+    P["Drive password"]
+    D["Drive key D<br/>32 bytes"]
+    I["File-Id"]
+    F["File key F<br/>32 bytes"]
+    DM["Drive and folder<br/>metadata"]
+    FM["File metadata<br/>and file data"]
 
-    style A fill:#e1f5fe
-    style C fill:#e1f5fe
-    style D fill:#e1f5fe
-    style G fill:#e1f5fe
-    style E fill:#c8e6c9
-    style H fill:#c8e6c9
+    M -->|"signed by the owner wallet"| W
+    W -->|"HKDF input key"| D
+    P -->|"HKDF info"| D
+    D -->|"HKDF input key"| F
+    I -->|"HKDF info, 16 bytes"| F
+    D -->|"encrypts, AES256-GCM"| DM
+    F -->|"encrypts, AES256-GCM<br/>or AES256-CTR"| FM
+
+    class D,F dg-strong
+    class M,P,I dg-soft
+    class W dg-muted
 ```
 
-Other wallets (like [ArConnect](https://www.arconnect.io/)) integrate with this Key Derivation protocol just exposing an API to collect a signature from a given Arweave Wallet in order to get the SHA-256 signature needed for the [HKDF](https://en.wikipedia.org/wiki/HKDF) to derive the Drive Key.
+### Signature types
 
-An example implementation, using Dart, is available [here](https://github.com/ardriveapp/ardrive-web/blob/187b3fb30808bda452123c2b18931c898df6a3fb/docs/private_drive_kdf_reference.dart), with a Typescript implementation [here](https://github.com/ardriveapp/ardrive-core-js/blob/f19da30efd30a4370be53c9b07834eae764f8535/src/utils/crypto.ts).
+The `Signature-Type` tag on a private drive says how the wallet produced the signature. Both types sign the same message.
+
+| `Signature-Type` | How the wallet signs | Wallet API |
+| --- | --- | --- |
+| `1`, or no tag | Signs the message directly | `signature()`, which Wander is deprecating |
+| `2` | Signs an ANS-104 data item whose data is the message and whose one tag is `Action: Drive-Signature-V2`, and the client keeps the data item's signature | `signDataItem()` |
+
+New private drives use type `2`. A type `1` drive stays type `1`, because its drive key cannot change. [Upgrading Private Drives](/build/advanced/arfs/upgrading-drives) covers how such a drive stays readable once wallets drop `signature()`.
+
+Browser wallets such as [Wander](https://www.wander.app/), formerly ArConnect, take part in this protocol only by producing the signature. The client runs HKDF itself.
+
+An example implementation, using Dart, is available [here](https://github.com/ardriveapp/ardrive-web/blob/187b3fb30808bda452123c2b18931c898df6a3fb/docs/private_drive_kdf_reference.dart), with a Typescript implementation [here](https://github.com/ardriveapp/ardrive-core-js/blob/master/src/utils/crypto.ts).
 
 ## Private Drives
 
@@ -62,9 +80,7 @@ If a Drive entity is private, an additional tag `Drive-Auth-Mode` must also be u
 Drive-Auth-Mode?: 'password'
 ```
 
-On every encrypted Drive Entity, a `Cipher` tag must be specified, along with the public parameters for decrypting the data. This is done by specifying the parameter with a `Cipher-*` tag. eg. `Cipher-IV`. If the parameter is byte data, it must be encoded as Base64 in the tag.
-
-ArDrive uses AES256-GCM for metadata and for files smaller than 100 MiB, and AES256-CTR for files of 100 MiB or more. Both take a Cipher Initialization Vector of 12 random bytes.
+Every encrypted drive entity must carry a `Cipher` tag naming the cipher, plus a `Cipher-*` tag for each public parameter needed to decrypt it, such as `Cipher-IV`. A parameter that is bytes is written in the tag as Base64. Drive metadata uses AES256-GCM with an initialization vector (IV) of 12 random bytes:
 
 ```
 Cipher?: "AES256-GCM"
@@ -77,11 +93,11 @@ Private Drive Entities and their corresponding Root Folder Entities will both us
 
 ## Private Files
 
-When a file is uploaded to a private drive, it by default also becomes private and uses the same drive keys used for its parent drive. Each unique file in a drive will get its own set of file keys based off of that file's unique `FileId`. If a single file gets a new version, its `File-Id` will be reused, so the same File Key is used for all versions in that file's history.
+When a file is uploaded to a private drive, it by default also becomes private and uses the same drive keys used for its parent drive. Each file in a drive gets its own file key, derived from its `File-Id`.
 
 These file keys can be shared by the drive's owner as needed.
 
-Private File entities have both its metadata and data transactions encrypted using the same File Key, ensuring all facets of the data is truly private. As such, both the file's metadata and data transactions must both have a unique `Cipher-IV` and `Cipher` tag. The metadata transaction always uses AES256-GCM; the data transaction uses AES256-CTR when the file is 100 MiB or more:
+A private file's metadata and data transactions are both encrypted with its file key, and each carries its own `Cipher` and `Cipher-IV` tags. The metadata transaction always uses AES256-GCM; the data transaction uses AES256-CTR when the file is 100 MiB or more:
 
 ```
 Cipher?: "AES256-GCM | AES256-CTR"
@@ -96,29 +112,33 @@ Content-Type: "application/octet-stream"
 
 ## Encryption Process
 
-Here's how the encryption process works for private drives:
+The following diagram shows the client creating a private drive and then uploading a file to it:
 
 ```mermaid
 sequenceDiagram
+    accTitle: The wallet signs the drive message, and the client derives the keys and encrypts the data
+    accDescr: To create a private drive, the client generates the Drive-Id, asks the wallet to sign the drive message, derives the drive key, encrypts the drive and root folder metadata with it and uploads both together. To upload a file, the client derives the file key from the drive key and the new File-Id, encrypts and signs the file data transaction, then uploads it with the encrypted file metadata that names it.
+
     participant User
     participant Client
     participant Wallet
     participant Arweave
 
-    User->>Client: Create private drive
-    Client->>Wallet: Request signature
-    Wallet->>Client: Return signature
-    Client->>Client: Derive drive key
-    Client->>Client: Encrypt drive metadata
-    Client->>Arweave: Upload encrypted drive
-
-    User->>Client: Upload file to private drive
-    Client->>Client: Derive file key
-    Client->>Client: Encrypt file metadata
-    Client->>Client: Encrypt file data
-    Client->>Arweave: Upload encrypted metadata
-    Client->>Arweave: Upload encrypted data
+    User->>Client: Create private drive, with password
+    Note over Client: Generate Drive-Id and root Folder-Id
+    Client->>Wallet: Sign drive + Drive-Id bytes
+    Wallet-->>Client: Signature
+    Note over Client: HKDF with password, gives drive key
+    Note over Client: Encrypt drive and root folder JSON
+    Client->>Arweave: Encrypted drive and root folder entities
+    User->>Client: Upload file to the drive
+    Note over Client: Generate File-Id, derive file key
+    Note over Client: Encrypt and sign the data tx
+    Client->>Arweave: Encrypted file data tx
+    Client->>Arweave: Encrypted file metadata, with dataTxId
 ```
+
+The client signs the data transaction before it builds the file's metadata, because the metadata JSON records the data transaction's ID as `dataTxId`. Signing fixes that ID, so the client need not wait for the data upload to finish.
 
 ## Drive State and Snapshots of Private Drives
 
@@ -162,19 +182,20 @@ ArFS v0.15 introduces a new `Drive-Signature` entity type to help bridge signatu
 
 The drive signature entity stores an encrypted version of the pre-v0.15 wallet signature that's necessary for deriving the drive key. This allows continued access to historical drive contents while using modern wallet signing APIs.
 
-```mermaid
-graph TD
-    A[Legacy Wallet Signature] --> B[Encrypt with v0.15 scheme]
-    B --> C[Drive-Signature Entity]
-    C --> D[Store on Arweave]
-    D --> E[Retrieve when needed]
-    E --> F[Decrypt signature]
-    F --> G[Use for drive key derivation]
+A client writes the entity once, when the owner upgrades the drive:
 
-    style A fill:#ffecb3
-    style C fill:#c8e6c9
-    style G fill:#e1f5fe
-```
+1. The wallet makes the type `1` signature for the drive, and the client checks that it, with the password, reproduces the drive key the client already holds.
+2. The wallet makes the type `2` signature for the same drive, twice, and the client checks that both match. A reader always signs afresh, so a wallet whose type `2` signature varies would write an entity no one can open.
+3. The client derives a type `2` drive key from that signature and the same password, and encrypts the type `1` signature with it, using AES256-GCM.
+4. The client uploads a `drive-signature` entity carrying the encrypted signature, with `Drive-Id`, `Signature-Format: 1`, `Cipher` and `Cipher-IV` tags.
+
+A client reading a type `1` drive afterwards:
+
+1. Finds the owner's newest `drive-signature` entity for the `Drive-Id`.
+2. Derives the type `2` drive key from a fresh type `2` signature and the password, and decrypts the stored type `1` signature with it.
+3. Derives the drive key from the stored type `1` signature and the password, as for any type `1` drive.
+
+If no `drive-signature` entity exists, the client falls back to asking the wallet for a type `1` signature.
 
 ## Next Steps
 

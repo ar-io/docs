@@ -8,9 +8,9 @@ export default function Tip({
   children: React.ReactNode;
 }) {
   return (
-    <div className="border-l-4 border-orange-500 bg-gray-800 text-white p-4 rounded-md">
-      <div className="font-semibold text-lg text-orange-300 mb-2">{title}</div>
-      <div className="text-sm">{children}</div>
+    <div className="my-4 rounded-xl border border-fd-border border-l-4 border-l-fd-primary bg-fd-card p-4 text-fd-card-foreground">
+      <div className="mb-2 font-semibold text-fd-primary">{title}</div>
+      <div className="text-sm text-fd-muted-foreground">{children}</div>
     </div>
   );
 }

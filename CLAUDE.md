@@ -112,7 +112,7 @@ Known remaining per-deploy churn: the Orama search index (`api/search`, ~14 MB) 
 ### Styling
 - Tailwind CSS v4 with CSS-driven configuration (no `tailwind.config.*` file)
 - Theme customization in `src/app/global.css` via `@theme` directive
-- Brand colors: ar.io purple `#5427C8`, accent `#DFD6F7`
+- Brand colors: ar.io purple `#5427C8`, lavender `#DFD6F7`; dark mode uses deep dark `#0e0a1c` with `#D4C6FF` accents. Headings use Besley 800 (`--font-heading`, loaded in `layout.tsx`)
 
 ## Code Standards
 
@@ -123,7 +123,10 @@ Known remaining per-deploy churn: the Orama search index (`api/search`, ~14 MB) 
 - Optional frontmatter: `image`, `icon`, `keywords`, `author`, `full` (full-width layout)
 - Custom components available: `<Tip>`, `<CodeGroup>`, `<Mermaid>`, `<APIPage>`, `<AskArieTooltip>`, `<Image>` (`next/image`)
 - The Lucide icons registered in `mdx-components.tsx` shadow same-named tags: in MDX, `<Link />` and `<Search />` are icons (used as `icon={<Link />}` on cards), not a link or a search box
-- Math/LaTeX: Use `$inline$` and `$$block$$` syntax (remark-math + rehype-katex)
+- Mermaid: colour nodes with brand roles, `class A,B dg-strong` (also `dg-soft`, `dg-muted`, `dg-dashed`), never `classDef`/`style` with hex colours; the roles are themed for light and dark in `global.css`. `src/components/Mermaid.tsx` redraws a flowchart in the other direction when it would shrink below 65%, and lets anything still too wide scroll, so prefer `graph TD` for long pipelines
+- Every diagram starts with `accTitle:` (one line stating its point; `Mermaid.tsx` also renders it as the visible `<figcaption>`) and `accDescr:` (the screen-reader text equivalent). Label every arrow, end every path, draw gateways as peers rather than behind a central hub, and keep to about 10 nodes or 5 participants. A straight 3-5 step chain, or a diagram that repeats a list on the same page, should be a numbered list instead; field/value trees should be tables. Write a sequence diagram's internal step as `Note over X:`, not a self-message. Sequence messages wrap automatically (`sequence.wrap`)
+- Math/LaTeX: use `$$...$$` (remark-math + rehype-katex). Single-dollar inline math is off (`singleDollarTextMath: false` in `source.config.ts`), because prices in prose ("$100 ... $65") were typeset as LaTeX
+- Brand: tokens in `src/app/global.css` follow [ar.io/brand-kit](https://ar.io/brand-kit/agents.json): Besley 800 headings, Plus Jakarta Sans body, primary `#5427C8` (lavender `#D4C6FF` on the deep-dark `#0e0a1c` dark theme), text muted by opacity. Use `fd-*` tokens (`text-fd-primary`, `bg-fd-card`) in MDX, never raw Tailwind palette colours such as `green-600`
 - ESLint is relaxed in `.mdx` files: unused vars, unescaped entities, and `<img>` elements are allowed
 - Write internal links without a trailing slash — `check-links` only registers the trailing-slash form for `index.mdx` pages
 

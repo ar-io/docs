@@ -1,25 +1,12 @@
-'use client';
-
-import { useTheme } from 'next-themes';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
 
+// Both variants are rendered and CSS picks one, so the right logo is in the
+// static HTML: no flash of the dark logo on dark pages before hydration.
 export function Logo() {
-  const { resolvedTheme } = useTheme();
-  const [logoSrc, setLogoSrc] = useState('/brand/ario-black.svg'); // Default to light logo
-
-  useEffect(() => {
-    // Update logo after theme is resolved
-    setLogoSrc(resolvedTheme === 'dark' ? '/brand/ario-white.svg' : '/brand/ario-black.svg');
-  }, [resolvedTheme]);
-
   return (
-    <Image
-      src={logoSrc}
-      alt="ar.io Logo"
-      width={24}
-      height={24}
-      className="inline-block"
-    />
+    <>
+      <Image src="/brand/ario-black.svg" alt="ar.io" width={24} height={24} className="inline-block dark:hidden" />
+      <Image src="/brand/ario-white.svg" alt="ar.io" width={24} height={24} className="hidden dark:inline-block" />
+    </>
   );
 }

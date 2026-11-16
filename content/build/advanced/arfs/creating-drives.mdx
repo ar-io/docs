@@ -3,7 +3,7 @@ title: "Creating Drives"
 description: "Learn how to create ArFS drives, folders, and files"
 ---
 
-To properly create a new drive, two new entities need to be created: a new Drive entity and a new Folder entity to serve as the root folder of that drive.
+A new drive is two new entities: a drive entity, and a folder entity that serves as the drive's root folder.
 
 ## New Drive Entity
 
@@ -12,11 +12,12 @@ To properly create a new drive, two new entities need to be created: a new Drive
 - ArDrive also generates a new unique uuidv4 for the drive entity's `rootFolderId`, which will refer to the `Folder-Id` of the new folder entity that will be created.
   - This `rootFolderId` is stored within the Drive Entity's metadata JSON.
 - Drive Entity Metadata transactions must have `Entity-Type: "drive"`.
-- ArDrive will that the current local system time as seconds since Unix epoch for the Drive Entity's `Unix-Time`.
+- ArDrive uses the current local system time as seconds since Unix epoch for the Drive Entity's `Unix-Time`.
 - The Drive Entity's `Drive-Privacy` must also be set to `public` or `private` in order for its subfolders and files to have the correct security settings.
 - If the drive is private:
   - Its `Cipher` tag must be filled out with the correct encryption algorithm (currently `AES256-GCM`).
   - Its `Cipher-IV` tag must be filled out with the generated Initialization Vector for the private drive.
+  - Its `Drive-Auth-Mode` tag must be `password`, its `Signature-Type` tag `2` for a new drive, and its content type `Content-Type: "application/octet-stream"`.
   - The ArFS client must derive the Drive Key and encrypt the Drive Entity's metadata JSON using the assigned `Cipher` and `Cipher-IV`.
 
 ## New Root Folder Entity
@@ -34,7 +35,7 @@ To properly create a new drive, two new entities need to be created: a new Drive
   - Its `Cipher` tag must be filled out with the correct encryption algorithm (currently `AES256-GCM`).
   - Its `Cipher-IV` tag must be filled out with the generated Initialization Vector for the private folder.
   - Its content type must be `Content-Type: "application/octet-stream"`.
-  - The ArFS client must encrypt the Drive Entity's metadata JSON using the assigned `Cipher` and `Cipher-IV`.
+  - The ArFS client must encrypt the Folder Entity's metadata JSON with the Drive Key, using the assigned `Cipher` and `Cipher-IV`.
 
 ## Creating Files
 
@@ -70,15 +71,16 @@ Metadata JSON {
 ### File Data Transaction
 
 ```json
-Cipher?: "AES256-GCM",
+Cipher?: "<AES256-GCM | AES256-CTR>",
 Cipher-IV?: "<12 byte initialization vector as Base64>",
 Content-Type: "<file mime-type | application/octet-stream>",
+Unix-Time: "<seconds since unix epoch>",
 { File Data - Encrypted if private }
 ```
 
 ## Creating Folders
 
-Folders are simpler than files as they only require a metadata transaction:
+A folder needs only a metadata transaction:
 
 ```json
 ArFS: "0.15",
@@ -99,7 +101,7 @@ Metadata JSON {
 
 ## Creating Snapshots
 
-Snapshots provide a way to quickly synchronize drive state by rolling up all metadata into a single transaction. A [Drive State](/build/advanced/arfs/entity-types#drive-state) entity does the same job as one SQLite database covering the drive from block 0. A snapshot carries these tags:
+A snapshot rolls a drive's metadata up into one transaction, so a client can sync the drive faster. A [Drive State](/build/advanced/arfs/entity-types#drive-state) entity does the same job as one SQLite database covering the drive from block 0. A snapshot carries these tags:
 
 ```json
 ArFS: "0.15",
@@ -116,37 +118,35 @@ Unix-Time: "<seconds since unix epoch>"
 
 ## Implementation Example
 
-Here's a practical example of creating a complete drive structure:
+The following diagram shows a client creating a drive, a folder and a file:
 
 ```mermaid
 sequenceDiagram
+    accTitle: A drive starts as two entities, and a file needs its data transaction before its metadata
+    accDescr: The client generates the Drive-Id and root Folder-Id. For a private drive it first asks the wallet for a signature and derives the drive key, then encrypts the metadata. It uploads the drive and root folder entities together. A new folder is one metadata transaction naming its parent. A new file is a data transaction plus a metadata transaction whose JSON names the data transaction's ID.
+
     participant User
     participant Client
     participant Wallet
     participant Arweave
 
-    User->>Client: Create drive "My Project"
-    Client->>Client: Generate drive UUID
-    Client->>Client: Generate root folder UUID
-    Client->>Wallet: Request signature (if private)
-    Wallet->>Client: Return signature
-    Client->>Client: Derive drive key (if private)
-    Client->>Client: Encrypt metadata (if private)
-    Client->>Arweave: Upload drive entity
-    Client->>Arweave: Upload root folder entity
-
-    User->>Client: Create folder "Documents"
-    Client->>Client: Generate folder UUID
-    Client->>Client: Encrypt folder metadata (if private)
-    Client->>Arweave: Upload folder entity
-
-    User->>Client: Upload file "readme.txt"
-    Client->>Client: Generate file UUID
-    Client->>Client: Encrypt file metadata (if private)
-    Client->>Client: Encrypt file data (if private)
-    Client->>Arweave: Upload file metadata
-    Client->>Arweave: Upload file data
+    User->>Client: Create drive My Project
+    Note over Client: Generate Drive-Id and root Folder-Id
+    opt Private drive
+        Client->>Wallet: Sign drive + Drive-Id bytes
+        Wallet-->>Client: Signature
+        Note over Client: Derive drive key, encrypt JSON
+    end
+    Client->>Arweave: Drive entity and root folder entity
+    User->>Client: Create folder Documents
+    Client->>Arweave: Folder entity with Parent-Folder-Id
+    User->>Client: Upload file readme.txt
+    Note over Client: Generate File-Id, sign data tx
+    Client->>Arweave: File data tx
+    Client->>Arweave: File metadata tx with dataTxId
 ```
+
+The client generates the `Drive-Id` before it asks for the signature, because the wallet signs the `Drive-Id` itself. ArDrive clients send the drive and root folder entities together, in one bundle when uploading through Turbo.
 
 ## Best Practices
 
@@ -154,7 +154,7 @@ sequenceDiagram
 
 - Use descriptive names for drives, folders, and files
 - Avoid special characters that might cause issues
-- Keep names under 255 characters
+- Keep names to 255 bytes or fewer, encoded as UTF-8
 - Use consistent casing
 
 ### Organization

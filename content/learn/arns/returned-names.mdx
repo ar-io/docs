@@ -5,56 +5,52 @@ description: 'How returned ArNS names are repriced through a Dutch auction mecha
 
 ## Overview
 
-When an ArNS name expires or is voluntarily returned to the protocol, it enters a **Returned Name Dutch Auction** before becoming available for standard registration. This mechanism prevents name squatting at expiry and provides fair pricing through a time-decaying premium.
+A returned name is an ArNS name that has come back to the registry. This happens when a lease ends and its grace period runs out, or when the owner of a permanent name releases it. The name then goes to a Dutch auction: its price starts high and falls each day until someone buys it or it reaches the standard price. The falling premium stops squatters from grabbing a name the moment it expires, and lets the market set the price.
 
-## Dutch Auction Mechanics
+## Dutch auction mechanics
 
-Returned names start at a high premium and decay to the base price over a return window:
+The auction lasts 14 days from the moment the name is returned. Its price is the normal registration fee for the purchase you choose (a lease of 1 to 5 years, or a permanent purchase) multiplied by a premium that falls in a straight line:
 
-- **Starting price**: premium above the base registration price
-- **Ending price**: standard registration price
-- **Decay**: decreases over time until standard pricing resumes
+$$\text{multiplier} = 50 - \frac{49}{14} \times t$$
 
-```mermaid
-graph LR
-    A[Name Expired<br/>or Released] --> B[Dutch Auction<br/>Starts at 50x]
-    B --> C[Price Decays<br/>Over Time]
-    C --> D[Reaches<br/>Standard Price]
-    D --> E[Standard<br/>Registration]
-```
+where $t$ is the number of days since the name was returned. For example:
 
-## Revenue Split
+| Days since return | Multiplier |
+|-------------------|------------|
+| 0 | 50x |
+| 7 | 25.5x |
+| 14 or later | 1x (standard price) |
 
-When a returned name is purchased during the Dutch auction:
+The gateway operator discount applies on top of the auction price, as it does for a normal purchase.
 
-- **50%** goes to the **protocol balance** (funds epoch rewards)
-- **50%** goes to the **previous owner** (the ANT holder at the time of return)
+## Revenue split
 
-This incentivizes name owners to voluntarily release names they no longer need, since they receive half the resale value.
+Who receives the payment depends on how the name entered the auction:
 
-## How Names Enter the Returned Pool
+- Released by its owner: 50% goes to the [protocol balance](/glossary#protocol-balance) and 50% to the owner who released it. This rewards owners for giving up names they no longer need.
+- Expired lease: 100% goes to the protocol balance. The previous lease holder receives nothing.
 
-### Lease Expiration
-When a leased name's term ends and the grace period elapses without renewal or conversion to permanent ownership, the name enters the returned pool.
+## How names enter the auction
 
-### Voluntary Release
-Permanent name owners can voluntarily release their name back to the protocol. This places the name in the returned pool.
+### Lease expiration
 
-## Lifecycle
+A leased name has a 14-day grace period after its lease ends. During that time the owner can still extend the lease or upgrade the name to permanent. Once the grace period ends, anyone can move the name into the auction. [Crankers](/glossary#cranker) do this as routine cleanup.
 
-| Phase | Duration | Price | Action |
-|-------|----------|-------|--------|
-| **Active lease** | As registered | N/A | Name is in use |
-| **Grace period** | After expiry | N/A | Owner can renew or convert |
-| **Dutch auction** | Return window | Premium → standard price | Anyone can purchase |
-| **Standard registration** | Indefinite | Base price | Normal ArNS purchase |
+### Voluntary release
 
-## Querying Returned Names
+The owner of a permanent name's ANT can release the name. Its registry record is removed and the auction starts at once. A leased name cannot be released this way.
+
+## Query returned names
 
 Use the SDK to check available returned names and their current auction price:
 
 ```typescript
-const ario = ARIO.mainnet();
+import { ARIO } from '@ar.io/sdk';
+import { createSolanaRpc } from '@solana/kit';
+
+const ario = ARIO.init({
+  rpc: createSolanaRpc('https://api.mainnet-beta.solana.com'),
+});
 
 // Get all active returned names
 const returnedNames = await ario.getArNSReturnedNames({
