@@ -115,6 +115,7 @@ Known remaining per-deploy churn: the Orama search index (`api/search`, ~14 MB) 
 - Frontmatter required: `title`, `description`
 - Optional frontmatter: `image`, `icon`, `keywords`, `author`, `full` (full-width layout)
 - Custom components available: `<Tip>`, `<CodeGroup>`, `<Mermaid>`, `<APIPage>`, `<AskArieTooltip>`, `<Image>`
+- Mermaid: colour nodes with brand roles, `class A,B dg-strong` (also `dg-soft`, `dg-muted`, `dg-dashed`), never `classDef`/`style` with hex colours; the roles are themed for light and dark in `global.css`. `src/components/Mermaid.tsx` redraws a flowchart in the other direction when it would shrink below 65%, and lets anything still too wide scroll, so prefer `graph TD` for long pipelines
 - Math/LaTeX: use `$$...$$` (remark-math + rehype-katex). Single-dollar inline math is off (`singleDollarTextMath: false` in `source.config.ts`), because prices in prose ("$100 ... $65") were typeset as LaTeX
 - Brand: tokens in `src/app/global.css` follow [ar.io/brand-kit](https://ar.io/brand-kit/agents.json): Besley 800 headings, Plus Jakarta Sans body, primary `#5427C8` (lavender `#D4C6FF` on the deep-dark `#0e0a1c` dark theme), text muted by opacity. Use `fd-*` tokens (`text-fd-primary`, `bg-fd-card`) in MDX, never raw Tailwind palette colours such as `green-600`
 - ESLint is relaxed in `.mdx` files: unused vars, unescaped entities, and `<img>` elements are allowed
