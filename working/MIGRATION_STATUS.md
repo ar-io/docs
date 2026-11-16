@@ -1,6 +1,6 @@
 # Solana Migration — Documentation Page Status
 
-Updated 2026-06-17. Tracks every content page and its migration status from AO to Solana.
+Updated 2026-06-17; 13 pages reopened 2026-11-14 after a docs audit found v3 (AO-era) SDK code or wrong protocol facts on pages marked done. Tracks every content page and its migration status from AO to Solana.
 
 ## Legend
 
@@ -18,7 +18,7 @@ Updated 2026-06-17. Tracks every content page and its migration status from AO t
 |------|--------|-------|
 | `learn/(introduction)/index.mdx` | ✅ DONE - UPDATED | arns.app → arns.ar.io |
 | `learn/(introduction)/what-is-ario.mdx` | ✅ DONE - UPDATED | "Arweave and AO" → "Arweave + Solana" |
-| `learn/(introduction)/protocol-architecture.mdx` | ✅ DONE - MOVED+UPDATED | Moved from `learn/token/architecture.mdx`; protocol-level 3+1 Solana programs; links to canonical mainnet addresses |
+| `learn/(introduction)/protocol-architecture.mdx` | ⚠️ NEEDS UPDATING | Reopened 2026-11-14 (docs audit): says ANTs allow 10 controllers (code: `MAX_CONTROLLERS = 4`); program count disagrees with solana-developers and token pages; contributor notes citing `.rs` files. Was: ✅ DONE - MOVED+UPDATED; Moved from `learn/token/architecture.mdx`; protocol-level 3+1 Solana programs; links to canonical mainnet addresses |
 | `learn/(introduction)/what-is-arweave.mdx` | ✅ DONE - NO CHANGE | Arweave storage layer |
 | `learn/(introduction)/what-is-permaweb.mdx` | 🗑️ DONE - DELETED | Removed standalone page; light permaweb context moved into `what-is-ario.mdx` |
 | `learn/(introduction)/ans-104-bundles.mdx` | ✅ DONE - NO CHANGE | Bundle standard |
@@ -43,8 +43,7 @@ Updated 2026-06-17. Tracks every content page and its migration status from AO t
 | `learn/arns/ants.mdx` | ✅ DONE - UPDATED | Metaplex Core NFTs, controller model, lazy reconciliation |
 | `learn/arns/name-registration.mdx` | ✅ DONE - UPDATED | Lease/permanent model, validation, returned-name lifecycle; primary-name fee and uniqueness rules aligned with v3.0.0 |
 | `learn/arns/pricing-model.mdx` | ✅ DONE - UPDATED | Trimmed formula-heavy content into conceptual pricing overview; gateway operator discount criteria added |
-| `learn/arns/returned-names.mdx` | ✅ DONE - NEW | Simplified Dutch auction lifecycle and revenue split |
-
+| `learn/arns/returned-names.mdx` | ⚠️ NEEDS UPDATING | Reopened 2026-11-14 (docs audit): uses `ARIO.mainnet()` (gone in SDK v4); revenue split wrong: expired leases pay 100% to the protocol, only voluntary permabuy returns split 50/50. Was: ✅ DONE - NEW; Simplified Dutch auction lifecycle and revenue split |
 ### learn/gateways/
 
 | Page | Status | Notes |
@@ -74,7 +73,7 @@ Updated 2026-06-17. Tracks every content page and its migration status from AO t
 
 | Page | Status | Notes |
 |------|--------|-------|
-| `learn/wayfinder/index.mdx` | ✅ DONE - UPDATED | Removed stale ArNS contract wording |
+| `learn/wayfinder/index.mdx` | ⚠️ NEEDS UPDATING | Reopened 2026-11-14 (docs audit): claims transparent/default verification and ArNS-resolution verification, contradicting the verification pages. Was: ✅ DONE - UPDATED; Removed stale ArNS contract wording |
 | `learn/wayfinder/integration.mdx` | ✅ DONE - UPDATED | Chain-agnostic; refreshed gateway examples and fixed import typo |
 | `learn/wayfinder/use-cases.mdx` | ✅ DONE - UPDATED | Light wording cleanup; chain-agnostic |
 
@@ -91,11 +90,10 @@ Updated 2026-06-17. Tracks every content page and its migration status from AO t
 | Page | Status | Notes |
 |------|--------|-------|
 | `build/access/index.mdx` | ✅ DONE - NO CHANGE | Navigation |
-| `build/access/arns.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Updated ArNS host examples; SDK purchase snippet should be verified |
+| `build/access/arns.mdx` | ⚠️ NEEDS UPDATING | Reopened 2026-11-14 (docs audit): `ARIO.mainnet()`; purchase snippet has no signer/`rpcSubscriptions`, omits `type`, and invents a funding option (real: `fundFrom`). Was: 🔎 NEEDS TECHNICAL REVIEW; Updated ArNS host examples; SDK purchase snippet should be verified |
 | `build/access/fetch-data.mdx` | ✅ DONE - NO CHANGE | HTTP requests |
 | `build/access/find-data.mdx` | ✅ DONE - NO CHANGE | GraphQL |
-| `build/access/wayfinder.mdx` | ✅ DONE - NO CHANGE | Routing |
-
+| `build/access/wayfinder.mdx` | ⚠️ NEEDS UPDATING | Reopened 2026-11-14 (docs audit): `createWayfinderClient({ ario })` is not a v2 option; React example imports the wrong hook. Was: ✅ DONE - NO CHANGE; Routing |
 ### build/upload/
 
 | Page | Status | Notes |
@@ -152,25 +150,25 @@ Updated 2026-06-17. Tracks every content page and its migration status from AO t
 |------|--------|-------|
 | `build/guides/index.mdx` | ✅ DONE - UPDATED | Guide navigation reordered |
 | `build/guides/hosting-decentralised-apps/migrating-your-app-to-new-sdks.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Moved under app hosting guides; final SDK migration examples need review |
-| `build/guides/hosting-decentralised-apps/deploy-permanent-dapp.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Moved under app hosting guides; Solana wallet + Turbo + ArNS flow should be verified |
+| `build/guides/hosting-decentralised-apps/deploy-permanent-dapp.mdx` | ⚠️ NEEDS UPDATING | Reopened 2026-11-14 (docs audit): `ARIO.mainnet()`, un-awaited `ANT.init` without `rpc`; Turbo key is `slice(0, 32)` of the secret key, which yields an empty public key. Was: 🔎 NEEDS TECHNICAL REVIEW; Moved under app hosting guides; Solana wallet + Turbo + ArNS flow should be verified |
 | `build/guides/arns-marketplace.mdx` | ✅ DONE - NO CHANGE | Tensor/Magic Eden marketplace behavior should be verified |
 | `build/guides/working-with-arns/index.mdx` | ✅ DONE - NO CHANGE | ANT/Metaplex/Core program framing should be verified |
-| `build/guides/working-with-arns/register-arns-programmatically.mdx` | 🔎 NEEDS TECHNICAL REVIEW | SDK registration examples need Solana verification |
-| `build/guides/working-with-arns/set-arns-records-programmatically.mdx` | 🔎 NEEDS TECHNICAL REVIEW | SDK record-setting examples need Solana verification |
+| `build/guides/working-with-arns/register-arns-programmatically.mdx` | ⚠️ NEEDS UPDATING | Reopened 2026-11-14 (docs audit): v3 API; `mARIOToken` used without import; name length check (3-63) contradicts the documented 1-51. Was: 🔎 NEEDS TECHNICAL REVIEW; SDK registration examples need Solana verification |
+| `build/guides/working-with-arns/set-arns-records-programmatically.mdx` | ⚠️ NEEDS UPDATING | Reopened 2026-11-14 (docs audit): calls `getBaseNameRecord`/`getUndernameRecord` (do not exist); builds undername URLs with `/` instead of `_`. Was: 🔎 NEEDS TECHNICAL REVIEW; SDK record-setting examples need Solana verification |
 | `build/guides/working-with-arns/purchase-arns-ui.mdx` | 🔎 NEEDS UPDATING | arns.ar.io UI screenshots and flow need product review |
 | `build/guides/working-with-arns/manage-arns-ui.mdx` | 🔎 NEEDS UPDATING | arns.ar.io UI screenshots and flow need product review |
-| `build/guides/working-with-arns/arns-primary-names.mdx` | ✅ DONE - UPDATED | Primary-name concept plus v3.0.0 fee, uniqueness, and base-owner removal rules |
+| `build/guides/working-with-arns/arns-primary-names.mdx` | ⚠️ NEEDS UPDATING | Reopened 2026-11-14 (docs audit): imports `@ar-io/sdk`, uses `new ARIO()` and `ARIO.mainnet()`, Arweave-style example addresses. Was: ✅ DONE - UPDATED; Primary-name concept plus v3.0.0 fee, uniqueness, and base-owner removal rules |
 | `build/guides/hosting-decentralised-apps/index.mdx` | ✅ DONE - UPDATED | Added end-to-end permanent dApp guide entry |
 | `build/guides/hosting-decentralised-apps/deploying-with-ario-deploy.mdx` | ✅ DONE - UPDATED | Replaces `deploying-with-permaweb-deploy.mdx`; migrated to `@ar.io/deploy` / `ario-deploy` CLI and `ar-io/ar-io-deploy` GitHub Action |
-| `build/guides/hosting-decentralised-apps/deploying-with-arlink.mdx` | 🔎 NEEDS TECHNICAL REVIEW | References updated to `ario-deploy`; needs review when ArLink is updated for Solana |
+| `build/guides/hosting-decentralised-apps/deploying-with-arlink.mdx` | ⚠️ NEEDS UPDATING | Reopened 2026-11-14 (docs audit): assumes an Arweave wallet can update ArNS records (AO-era flow). Was: 🔎 NEEDS TECHNICAL REVIEW; References updated to `ario-deploy`; needs review when ArLink is updated for Solana |
 | `build/guides/hosting-decentralised-apps/hosting-with-ardrive.mdx` | ✅ DONE - UPDATED | ArDrive upload flow; arns.ar.io already used |
 | `build/guides/hosting-decentralised-apps/using-undernames-for-versioning.mdx` | ✅ DONE - UPDATED | Updated for `ario-deploy` CLI commands and ArNS host examples |
 | `build/guides/using-turbo-in-a-browser/index.mdx` | ✅ DONE - NO CHANGE | Turbo browser upload guide is wallet/provider specific |
 | `build/guides/using-turbo-in-a-browser/html.mdx` | ✅ DONE - NO CHANGE | Turbo browser upload guide |
 | `build/guides/using-turbo-in-a-browser/nextjs.mdx` | ✅ DONE - NO CHANGE | Turbo browser upload guide |
 | `build/guides/using-turbo-in-a-browser/vite.mdx` | ✅ DONE - NO CHANGE | Turbo browser upload guide |
-| `build/guides/depin.mdx` | ✅ DONE - NO CHANGE | Storage/distribution guide is chain-agnostic |
-| `build/guides/application-distribution.mdx` | ✅ DONE - NO CHANGE | Arweave upload/signing guide |
+| `build/guides/depin.mdx` | ⚠️ NEEDS UPDATING | Reopened 2026-11-14 (docs audit): `ARIO.mainnet()`; Turbo CLI `--tag "K:V"` (real: `--tags k v`); passes Wayfinder an `ario` option it does not accept. Was: ✅ DONE - NO CHANGE; Storage/distribution guide is chain-agnostic |
+| `build/guides/application-distribution.mdx` | ⚠️ NEEDS UPDATING | Reopened 2026-11-14 (docs audit): assumes an Arweave wallet can update ArNS records (AO-era flow). Was: ✅ DONE - NO CHANGE; Arweave upload/signing guide |
 | `build/guides/encrypted-data-nillion.mdx` | ✅ DONE - NO CHANGE | Arweave/Turbo encryption guide |
 | `build/guides/crossmint-nft-minting-app.mdx` | 🗑️ DONE - DELETED | Outdated |
 | `build/guides/storing-nfts.mdx` | ✅ DONE - NO CHANGE | NFT storage guide is chain-agnostic |
@@ -199,7 +197,7 @@ Updated 2026-06-17. Tracks every content page and its migration status from AO t
 
 | Page | Status | Notes |
 |------|--------|-------|
-| `sdks/ar-io-sdk/index.mdx` | 🔎 NEEDS TECHNICAL REVIEW | Handwritten landing page; verify version/signing guidance |
+| `sdks/ar-io-sdk/index.mdx` | ⚠️ NEEDS UPDATING | Reopened 2026-11-14 (docs audit): quick start is the v3 API (`ARIO.mainnet()`, `@ar.io/sdk/node`); claims Solana "since v3.23" (it is v4.0.0); browser tabs never render. Was: 🔎 NEEDS TECHNICAL REVIEW; Handwritten landing page; verify version/signing guidance |
 | Generated ar.io SDK pages | ✅ DONE - UPDATED | Regenerated from upstream README; Solana signer, ArNS, ANT, gateway, epoch, vault, and `processId`/mint-address examples marked complete |
 
 ### sdks/turbo-sdk/ (13 pages)

@@ -5,6 +5,7 @@ import {
   scanURLs,
   validateFiles,
 } from 'next-validate-link';
+import GithubSlugger from 'github-slugger';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -46,25 +47,54 @@ function getUrlFromPath(filePath, contentDir) {
   return '/' + filteredSegments.join('/');
 }
 
-// Function to extract headings from MDX content
+// Strip fenced code so `# comment` lines in shell samples are not read as
+// headings or links.
+function stripCodeFences(content) {
+  return content.replace(/^(\s*)(`{3,}|~{3,})[^\n]*\n[\s\S]*?^\s*\2\s*$/gm, (block) =>
+    block.replace(/[^\n]/g, ' '),
+  );
+}
+
+// Heading ids, built the way Fumadocs builds them: github-slugger over the
+// heading's plain text, deduplicated per page (a second "Usage" is "usage-1"),
+// or an explicit `[#custom-id]` suffix.
 function getHeadingsFromContent(content) {
-  const headingRegex = /^#{1,6}\s+(.+)$/gm;
-  const headings = [];
-  let match;
-  
-  while ((match = headingRegex.exec(content)) !== null) {
-    const heading = match[1].trim();
-    // Convert heading to URL fragment
-    const fragment = heading
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .trim();
-    headings.push(fragment);
+  const slugger = new GithubSlugger();
+  const ids = [];
+  for (const match of stripCodeFences(content).matchAll(/^#{1,6}\s+(.+?)\s*#*\s*$/gm)) {
+    let text = match[1];
+    const custom = /\s*\[#([^\]]+)\]$/.exec(text);
+    if (custom) {
+      ids.push(custom[1]);
+      continue;
+    }
+    text = text
+      .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1') // links and images -> label
+      .replace(/<[^>]+>/g, '') // inline JSX/HTML tags
+      .replace(/[`*_~]/g, ''); // code and emphasis markers
+    ids.push(slugger.slug(text.trim()));
   }
-  
-  return headings;
+  // Explicit anchors: <a id="x">, <div id="x">
+  for (const match of content.matchAll(/\bid=["']([^"']+)["']/g)) ids.push(match[1]);
+  return ids;
+}
+
+// next-validate-link skips links that are only a fragment (`#section`), so
+// check those against the page's own headings here.
+function findBrokenSamePageAnchors(relativePath, content) {
+  const ids = new Set(getHeadingsFromContent(content));
+  const prose = stripCodeFences(content);
+  const errors = [];
+  const patterns = [/\]\(#([^)\s]+)\)/g, /\bhref=["']#([^"']+)["']/g];
+  for (const pattern of patterns) {
+    for (const match of prose.matchAll(pattern)) {
+      const fragment = decodeURIComponent(match[1]);
+      if (ids.has(fragment)) continue;
+      const line = prose.slice(0, match.index).split('\n').length;
+      errors.push(`${relativePath}:${line}: #${fragment} is not a heading on this page`);
+    }
+  }
+  return errors;
 }
 
 async function checkLinks() {
@@ -156,6 +186,24 @@ async function checkLinks() {
       }
     });
     
+    // Pages under content/sdks/<pkg>/ (except index.mdx) are generated from
+    // upstream READMEs. Their anchors break when the generator splits one
+    // README into several pages, so they are reported as warnings to fix in
+    // scripts/generate-sdk-docs.ts rather than failing the check.
+    const isGenerated = (p) =>
+      /^content\/sdks\/(\(clis\)\/)?[^/]+\/.+\.mdx$/.test(p.split(path.sep).join('/')) &&
+      !p.endsWith('index.mdx');
+    const anchorErrors = validFiles.flatMap((file) => findBrokenSamePageAnchors(file.path, file.content));
+    const generated = anchorErrors.filter((e) => isGenerated(e.split(':')[0]));
+    const handWritten = anchorErrors.filter((e) => !isGenerated(e.split(':')[0]));
+    for (const error of handWritten) console.error(error);
+    for (const error of generated) console.warn(`warning (generated page): ${error}`);
+    console.log(
+      `${handWritten.length} broken same-page anchors, ` +
+        `${generated.length} more in generated SDK pages (fix in scripts/generate-sdk-docs.ts)`,
+    );
+    if (handWritten.length > 0 && results.length === 0) process.exitCode = 1;
+
     printErrors(results, true);
   } catch (error) {
     console.error('Validation error:', error);
