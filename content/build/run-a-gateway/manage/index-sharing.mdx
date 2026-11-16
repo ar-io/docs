@@ -109,17 +109,13 @@ graph LR
     PEERS -->|announce to<br/>/ar-io/indexes/announce| ENVOY
     ENVOY -->|announces, :6970| SIDE
 
-    classDef service fill:#10b981,stroke:#059669,stroke-width:2px,color:#fff
-    classDef proxy fill:#f59e0b,stroke:#d97706,stroke-width:2px,color:#fff
-    classDef external fill:#8b5cf6,stroke:#7c3aed,stroke-width:2px,color:#fff
-    classDef storage fill:#ef4444,stroke:#dc2626,stroke-width:2px,color:#fff
-    classDef optional fill:#10b981,stroke:#059669,stroke-width:2px,color:#fff,stroke-dasharray: 5 5
 
-    class CORE,SIDE service
-    class ENG,EXP optional
-    class ENVOY proxy
-    class NET,PEERS external
-    class DIR storage
+    class CORE,SIDE dg-strong
+    class ENG,EXP dg-strong
+    class ENG,EXP dg-dashed
+    class ENVOY dg-muted
+    class NET,PEERS dg-muted
+    class DIR dg-soft
 ```
 
 ## Subscribe to a Publisher
@@ -686,13 +682,10 @@ graph LR
     PEERS <-->|pieces, to the node's<br/>own public address| E1
     C1 -->|/ar-io/indexes/announce,<br/>by Envoy| S1
 
-    classDef service fill:#10b981,stroke:#059669,stroke-width:2px,color:#fff
-    classDef proxy fill:#f59e0b,stroke:#d97706,stroke-width:2px,color:#fff
-    classDef external fill:#8b5cf6,stroke:#7c3aed,stroke-width:2px,color:#fff
 
-    class C1,C2,S1,S2,E1 service
-    class LB proxy
-    class CLIENTS,PEERS external
+    class C1,C2,S1,S2,E1 dg-strong
+    class LB dg-muted
+    class CLIENTS,PEERS dg-muted
 ```
 
 For BitTorrent:

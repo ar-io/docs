@@ -145,3 +145,53 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/*
+ * Diagram node roles. Content tags nodes with `class X dg-strong` (and so
+ * on) instead of a classDef with hex colours, so one diagram works on both
+ * themes. !important beats Mermaid's id-scoped theme rules.
+ */
+.mermaid-diagram {
+  --dg-strong: #5427C8;
+  --dg-strong-text: #FFFFFF;
+  --dg-soft: #DFD6F7;
+  --dg-soft-stroke: #5427C8;
+  --dg-muted: #F6F4EF;
+  --dg-muted-stroke: #E6E4EF;
+  --dg-text: #23232D;
+}
+.dark .mermaid-diagram {
+  --dg-strong: #D4C6FF;
+  --dg-strong-text: #0e0a1c;
+  --dg-soft: rgba(212, 198, 255, 0.16);
+  --dg-soft-stroke: #D4C6FF;
+  --dg-muted: rgba(255, 255, 255, 0.04);
+  --dg-muted-stroke: rgba(255, 255, 255, 0.24);
+  --dg-text: #FFFFFF;
+}
+.mermaid-diagram .node:is(.dg-strong, .dg-soft, .dg-muted) :is(rect, polygon, circle, ellipse, path) {
+  stroke-width: 1.5px !important;
+}
+.mermaid-diagram .node.dg-strong :is(rect, polygon, circle, ellipse, path) {
+  fill: var(--dg-strong) !important;
+  stroke: var(--dg-strong) !important;
+}
+.mermaid-diagram .node.dg-soft :is(rect, polygon, circle, ellipse, path) {
+  fill: var(--dg-soft) !important;
+  stroke: var(--dg-soft-stroke) !important;
+}
+.mermaid-diagram .node.dg-muted :is(rect, polygon, circle, ellipse, path) {
+  fill: var(--dg-muted) !important;
+  stroke: var(--dg-muted-stroke) !important;
+}
+.mermaid-diagram .node.dg-dashed :is(rect, polygon, circle, ellipse, path) {
+  stroke-dasharray: 5 4 !important;
+}
+.mermaid-diagram .node.dg-strong :is(.nodeLabel, .label, text, span) {
+  color: var(--dg-strong-text) !important;
+  fill: var(--dg-strong-text) !important;
+}
+.mermaid-diagram .node:is(.dg-soft, .dg-muted) :is(.nodeLabel, .label, text, span) {
+  color: var(--dg-text) !important;
+  fill: var(--dg-text) !important;
+}
