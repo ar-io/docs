@@ -11,11 +11,19 @@ import {
   AnnouncementBanner,
   type AnnouncementBannerProps,
 } from "@/components/announcement-banner";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Besley, Plus_Jakarta_Sans } from "next/font/google";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
   variable: "--font-plus-jakarta-sans",
+  display: "swap",
+});
+
+// Headline face from the ar.io brand kit; only the Extra Bold weight is used.
+const besley = Besley({
+  subsets: ["latin"],
+  weight: "800",
+  variable: "--font-besley",
   display: "swap",
 });
 
@@ -42,7 +50,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const announcementBanner = getAnnouncementBanner();
 
   return (
-    <html lang="en" className={plusJakartaSans.variable} suppressHydrationWarning>
+    <html lang="en" className={`${plusJakartaSans.variable} ${besley.variable}`} suppressHydrationWarning>
       <body className="flex flex-col min-h-screen">
         {/*
           The chunk-load recovery script is NOT rendered here. Under
