@@ -2,7 +2,7 @@
 
 #### getBalance()
 
-Issues a signed request to get the credit balance of a wallet measured in AR (measured in Winston Credits, or winc).
+Issues a signed request to get the Turbo Credits balance of a wallet, in `winc`.
 
 ```typescript
 const { winc: balance } = await turbo.getBalance();
@@ -49,7 +49,7 @@ const address = await turbo.signer.getNativeAddress();
 
 #### getWincForFiat()
 
-Returns the current amount of Winston Credits including all adjustments for the provided fiat currency, amount, and optional promo codes.
+Returns the current amount of `winc` including all adjustments for the provided fiat currency, amount, and optional promo codes.
 
 ```typescript
 const { winc, paymentAmount, quotedPaymentAmount, adjustments } =
@@ -301,7 +301,7 @@ await turbo.uploadRawX402Data({
 });
 ```
 
-The raw x402 route has no free tier: every upload pays, however small. An unauthenticated client cannot pay, so it gets a `402` with a price. To upload under the free limit without paying, sign a data item and use `upload` or `uploadFile` instead.
+The raw x402 route has no free tier: every upload pays, however small. A request that carries no x402 payment gets a `402` with the price, which `uploadRawX402Data` pays within `maxMUSDCAmount`. To upload under the free limit without paying, sign a data item and use `upload` or `uploadFile` instead.
 
 #### uploadFolder()
 
@@ -865,7 +865,7 @@ days); it is never posted to mainnet Arweave. See
 
 #### getSupportedCurrencies()
 
-Returns the list of currencies supported by the Turbo Payment Service for topping up a user balance of AR Credits (measured in Winston Credits, or winc).
+Returns the list of currencies supported by the Turbo Payment Service for topping up a Turbo Credits balance, which is counted in `winc`.
 
 ```typescript
 const currencies = await turbo.getSupportedCurrencies();
@@ -897,7 +897,7 @@ const rates = await turbo.getFiatRates();
 
 #### getWincForFiat()
 
-Returns the current amount of Winston Credits including all adjustments for the provided fiat currency.
+Returns the current amount of `winc` including all adjustments for the provided fiat currency.
 
 ```typescript
 const { winc, actualPaymentAmount, quotedPaymentAmount, adjustments } =
@@ -908,7 +908,7 @@ const { winc, actualPaymentAmount, quotedPaymentAmount, adjustments } =
 
 #### getWincForToken()
 
-Returns the current amount of Winston Credits including all adjustments for the provided token amount.
+Returns the current amount of `winc` including all adjustments for the provided token amount.
 
 ```typescript
 const { winc, actualTokenAmount, equivalentWincTokenAmount } =
@@ -957,7 +957,7 @@ console.log(tokenPrice); // Estimated SOL Price for 100 MiB
 
 #### getUploadCosts()
 
-Returns the estimated cost in Winston Credits for the provided file sizes, including all upload adjustments and fees.
+Returns the estimated cost in `winc` for the provided file sizes, including all upload adjustments and fees.
 
 ```typescript
 const [uploadCostForFile] = await turbo.getUploadCosts({ bytes: [1024] });
@@ -1185,6 +1185,16 @@ await turbo.setArNSRecord({
   ttlSeconds: 900,
 });
 await turbo.removeArNSRecord({ antId, owner, undername: 'docs' });
+
+// Every action above and below takes an optional `paidBy`: wallets that shared
+// credits with the paying wallet (credit-share approvals), spent in order
+// before its own balance. It is not part of the owner's signed message.
+await turbo.setArNSRecord({
+  antId,
+  owner,
+  transactionId,
+  paidBy: ['\'],
+});
 
 // Record metadata — display name, logo, description, keywords. Same margin,
 // same shape rules as setArNSRecord. `null` clears a field; omit to leave it.

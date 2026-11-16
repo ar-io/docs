@@ -30,6 +30,21 @@ _openapi:
           from this node's own data: its index first, then CDB64 indexes on its
           local disk, such as bands installed by Index Sharing.
 
+          When the root is a stable transaction with a recorded offset, the
+          answer also carries its absolute Arweave offsets
+          (`rootArweaveStartOffset`, `rootArweaveDataSize`,
+          `itemArweaveStartOffset`, `dataArweaveStartOffset`), so a client can
+          fetch the item's chunks by absolute offset from any gateway or node
+          and verify them against the block's `tx_root`
+          (docs/arweave-offset-verification.md). They are omitted for data items
+          nested more than one level deep in this node's bundle index.
+
+          A stable L1 transaction with a recorded offset is answered as its own
+          root: `rootTxId` is the ID itself, with `dataSize`, `contentType` and
+          the Arweave offsets, and no item offsets (`rootOffset`,
+          `rootDataOffset`, `size`), which is how root TX indexes describe an L1
+          root.
+
           This is the cheap counterpart to `HEAD /raw/{id}`, which exposes the
           same values in `X-AR-IO-Root-*` headers but only as a side effect of a
           successful data retrieval — on a cache miss that route runs the node's
