@@ -15,7 +15,9 @@ npm run dev              # Start dev server (Turbo, standalone mode, no trailing
 npm run build            # Production build → static export to out/, then injects chunk-load recovery and strips unused RSC segment files
 npm run lint             # ESLint (src/ and content/, .ts/.tsx/.mdx)
 npx tsc --noEmit         # TypeScript type checking
-npm run check-links      # Validate internal links across all content/ MDX
+npm run check-links      # Validate internal links and #anchors across all content/ MDX
+npm run check-samples    # Type-check SDK code samples against the pinned SDK versions
+npm run lint-prose       # Report writing-guideline violations (--verbose for file:line)
 npm run test:chunk-recovery    # Playwright test for chunk-load recovery (requires ./out + Playwright)
 
 # Content generation
@@ -28,7 +30,12 @@ npm run generate-all-docs      # sdk-docs + llm-text + sdk-llm-texts (NOT api-do
 
 The `postinstall` script runs `fumadocs-mdx` to generate the `.source/` directory (content type definitions and index). This must run before the dev server or build will work. If `.source/` is missing, run `npm install` or `npx fumadocs-mdx`. The package manager is **yarn 1.22.22** (`packageManager` in `package.json`); Node **v22.14.0** is pinned in `.nvmrc`.
 
-There is no unit test suite. `npm run check-links` is the practical correctness gate for content changes and should be clean (it currently reports `0 errored file, 0 errors`). The only other wired-up test is `test:chunk-recovery`, a Playwright integration test in `tests/` that is deliberately not run in build/lint/CI — run it on demand after `npm run build`. The `test-arns` / `test-signer` scripts in `package.json` reference files that no longer exist and are dead.
+There is no unit test suite. The content checks are, and all of them run on every pull request (`.github/workflows/checks.yaml`):
+- **`check-links`** validates internal links, cross-page `#fragments` and same-page `#anchors`. Heading ids are built the way Fumadocs builds them (`github-slugger`, deduplicated per page). Broken anchors in generated SDK pages are warnings to fix in `scripts/generate-sdk-docs.ts`; everywhere else they fail.
+- **`check-samples`** compiles every `ts`/`js`/`tsx`/`jsx` fence that imports an SDK (`@ar.io/sdk`, `@ardrive/turbo-sdk`, `@ar.io/wayfinder-*`, `@ardrive/turbo-upload`, `ardrive-core-js`) against the devDependency versions, which must track what readers install. Fragments may use names they never define, unless the name is an SDK export (a missing import). Known failures are listed in `scripts/code-samples-baseline.json`; CI fails only on new ones. When you fix a sample, run `npm run check-samples -- --update-baseline` to drop it. Opt a deliberate fragment out with `{/* sample: skip */}` on the line before its fence.
+- **`lint-prose`** reports the mechanical subset of the [writing guidelines](https://github.com/vercel-labs/writing-guidelines) (sentence-case headings, no em dashes, no easy/simple/just, tagged fences, host conventions). It is report-only for now.
+
+The only other wired-up test is `test:chunk-recovery`, a Playwright integration test in `tests/` that is deliberately not run in build/lint/CI — run it on demand after `npm run build`.
 
 `README.md` is out of date: it describes `app/docs` and `app/(home)` routes and a `scripts/deploy-to-arweave.mjs`, none of which exist. Trust this file and the code over it.
 
@@ -69,7 +76,7 @@ Known remaining per-deploy churn: the Orama search index (`api/search`, ~14 MB) 
 - `src/app/[[...slug]]/page.tsx` - Renders MDX content, generates static params, handles metadata/OG tags
 - `src/app/api/search/route.ts` - Orama static search endpoint (`staticGET`, built at build time)
 - `src/app/robots.ts` and `src/app/sitemap.ts` - Emit `robots.txt` and `sitemap.xml` at build time (`dynamic = "force-static"`, required under static export). The sitemap lists every page `source.getPages()` knows, generated API pages included, with trailing-slash URLs to match the production export
-- Unmatched pages `redirect("/learn")` rather than rendering a 404
+- The catch-all calls `redirect("/learn")` when no page matches. That only runs on the dev server: under static export, `/` redirects client-side once JavaScript loads, and unknown URLs get Next's default `404.html`
 
 ### Content Source Pipeline
 - `source.config.ts` - Fumadocs MDX configuration: registers remark plugins (Mermaid, math) and rehype plugins (KaTeX)
@@ -114,15 +121,17 @@ Known remaining per-deploy churn: the Orama search index (`api/search`, ~14 MB) 
 - Icons from lucide-react only (imported in mdx-components.tsx)
 - Frontmatter required: `title`, `description`
 - Optional frontmatter: `image`, `icon`, `keywords`, `author`, `full` (full-width layout)
-- Custom components available: `<Tip>`, `<CodeGroup>`, `<Mermaid>`, `<APIPage>`, `<AskArieTooltip>`, `<Image>`
+- Custom components available: `<Tip>`, `<CodeGroup>`, `<Mermaid>`, `<APIPage>`, `<AskArieTooltip>`, `<Image>` (`next/image`)
+- The Lucide icons registered in `mdx-components.tsx` shadow same-named tags: in MDX, `<Link />` and `<Search />` are icons (used as `icon={<Link />}` on cards), not a link or a search box
 - Math/LaTeX: Use `$inline$` and `$$block$$` syntax (remark-math + rehype-katex)
 - ESLint is relaxed in `.mdx` files: unused vars, unescaped entities, and `<img>` elements are allowed
 - Write internal links without a trailing slash — `check-links` only registers the trailing-slash form for `index.mdx` pages
 
 ### Code Examples
 - Use `fetch` instead of `axios` for HTTP requests
-- Use `ARIO.mainnet()` from '@ar.io/sdk' for ArNS operations
-- Call `setRecord` on ANT instances, not ARIO instances
+- Use `@ar.io/sdk` v4 (Solana): `ARIO.init({ rpc })` for reads, `ARIO.init({ rpc, rpcSubscriptions, signer })` for writes, with `rpc` from `@solana/kit`'s `createSolanaRpc`. `ARIO.mainnet()`, `new ARIO()` and `@ar.io/sdk/node` are v3 (AO-era) APIs that no longer exist
+- `ANT.init` is async and needs `rpc` (plus `rpcSubscriptions` and `signer` to write); set records with `setBaseNameRecord` / `setUndernameRecord` on the ANT, not the ARIO client
+- Turbo's Solana `privateKey` is the base58 encoding of the full 64-byte secret key, not the first 32 bytes
 - ArNS undernames use underscores: `api_myapp.gateway-url.tld` (not periods)
 - Host conventions: gateway examples use `turbo-gateway.com`; ArNS names use `<name>.ar.io`; both Turbo services are served from `turbo.ardrive.io` (upload at the root, payment under `/v1`)
 
@@ -133,7 +142,7 @@ Known remaining per-deploy churn: the Orama search index (`api/search`, ~14 MB) 
 - Use `"!folder-name"` to exclude a folder from navigation
 - Optional fields: `"icon"` (Lucide icon name), `"defaultOpen"` (expand on load)
 - `build/guides` is automatically sorted alphabetically (configured in `src/lib/source.ts`)
-- Entries naming a page that does not exist are silently ignored, so they linger — `content/meta.json` still lists a `guides` folder that was never created
+- Entries naming a page that does not exist are silently ignored, so they linger — `content/meta.json` still lists a `guides` folder that was never created, and excludes a `!migrated` folder that no longer exists
 
 ## OpenAPI Integration
 
@@ -179,5 +188,4 @@ Scripts generate AI-friendly text files from docs:
 - **Production**: Deploys to Arweave via GitHub Actions (`.github/workflows/deploy-to-arweave.yaml`) on manual dispatch only (`workflow_dispatch`). Lints, builds, then uses the [`ar-io/ar-io-deploy`](https://github.com/ar-io/ar-io-deploy) action. Requires an ArNS undername input (`@` for the base name). Uploads are paid for in Turbo credits from the `DEPLOY_KEY` wallet — a failed deploy is usually an insufficient-credits error at the pre-flight check, not a build problem. The final step persists the dedupe cache to the unprotected `deploy-cache` branch (never the deployed branch); it is `continue-on-error` and can never fail an otherwise successful deploy. Deploys run with `incremental: "true"`: each file carries a `File-SHA256` tag and every deploy looks the wallet's past uploads up on chain (turbo-gateway.com GraphQL), so a runner with a cold dedupe cache still uploads only what changed; uploads take about 5-7 minutes to become findable. Files are uploaded **gzip-compressed** (`compress` input, default `gzip`; choose `none` to deploy uncompressed) and tagged `Content-Encoding`, which cuts each deploy's upload ~7x; `llm*.txt` and `*.md` are excluded so plain HTTP clients can read them. This depends on gateways sending `Content-Encoding` even for items they have not indexed yet -- true on the ar.io/Turbo gateways since 2026-09-30, and on other operators' gateways once they run the ar-io-node release with #964/#966. If compressed pages ever render as garbage right after a deploy, that is the first thing to check (`curl -sI` a page: a gzip body with no `content-encoding` header).
 - **Preview**: `.github/workflows/deploy-to-pages.yml` publishes to GitHub Pages, also manual dispatch only. It builds with `BASE_PATH=/ar-io-docs`. There is no automatic per-PR preview.
 - **Docker** (`Dockerfile` + `nginx.conf`): an alternative self-hosting path that builds the static export and serves `out/` from nginx. No workflow uses it.
-- `scripts/delete-arns-undername.mjs` is a standalone maintenance utility (env: `DEPLOY_KEY`, `ARNS_NAME`, `UNDERNAME`) that is not wired into `package.json` or CI.
 - **Doc regeneration**: `.github/workflows/regenerate-docs.yaml` runs **weekly (Mondays 07:00 UTC)** and on manual dispatch. Pick a generator (`all`, `api-docs`, `sdk-docs`, `llm-text`, `sdk-llm-texts`); scheduled runs default to `all`. It regenerates, verifies `yarn build`, and opens a PR rather than pushing to `main` — and only when output actually changed. None of the generation scripts run during `yarn build`, so without the weekly run generated content drifts silently. Read its diffs carefully — regeneration reverts hand-edits to generated pages.
