@@ -3,7 +3,6 @@ title: "Application Distribution with ArNS + Manifests"
 description: "Distribute applications permanently using Arweave manifests and ArNS for decentralized, censorship-resistant software delivery"
 ---
 
-import Mermaid from "@/components/Mermaid";
 import { Card, Cards } from "fumadocs-ui/components/card";
 import { Globe, Package, Rocket, Shield } from "lucide-react";
 
@@ -24,19 +23,22 @@ The case study that follows walks through a real implementation for the Harlequi
 
 ### System Components
 
-<Mermaid chart={`graph TB
-    A[GitHub Actions CI] --> B[GoReleaser]
-    B --> C[Multi-Platform Binaries]
-    C --> D[Turbo SDK Upload]
-    D --> E[Arweave Storage]
-    E --> F[Manifest Creation]
-    F --> G[ArNS Routing]
-    G --> H[Global Distribution]
+The system has two halves: a release pipeline that publishes binaries, and an install script that fetches them.
 
-    I[Install Script] --> J[Platform Detection]
-    J --> K[Binary Download]
-    K --> L[Gzip Decompression]
-    L --> M[Installation]`} />
+**Publishing a release** (in CI):
+
+1. GitHub Actions runs GoReleaser, which builds a binary for each platform.
+2. The pipeline compresses each binary with gzip and uploads it to Arweave with the Turbo SDK.
+3. It uploads a manifest that maps release paths to the uploaded transaction IDs.
+4. It calls `setRecord` on the ANT to point the ArNS undername at the new manifest.
+5. It runs the install script in dry-run mode to test it.
+
+**Installing** (on the user's machine):
+
+1. The user downloads the install script from the ArNS URL.
+2. The script detects the operating system and CPU architecture.
+3. It downloads the matching binary through a manifest path and checks that it is valid gzip.
+4. It decompresses the binary and installs it.
 
 ### Core Technologies
 
@@ -273,7 +275,7 @@ jobs:
 
 ### Nx Integration
 
-The system leverages Nx for orchestrating the complex release pipeline:
+Nx runs the release:
 
 ```json
 {
@@ -290,13 +292,6 @@ The system leverages Nx for orchestrating the complex release pipeline:
   }
 }
 ```
-
-**Pipeline Stages:**
-1. **Build**: GoReleaser creates multi-platform binaries
-2. **Upload**: Turbo SDK uploads compressed binaries to Arweave
-3. **<AskArieTooltip term="Arweave manifest">Manifest</AskArieTooltip>**: Creates routing manifest with all binary paths
-4. **ArNS**: Updates domain to point to new manifest
-5. **Verification**: Tests installation script functionality
 
 ## Security & Reliability
 

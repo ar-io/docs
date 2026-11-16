@@ -5,66 +5,62 @@ description: "Learn how ar.io gateways integrate x402 payment protocol to moneti
 
 import { CreditCard, Shield, Zap, Globe } from "lucide-react";
 
-ar.io gateways support the x402 payment protocol, so clients can pay for data access in cryptocurrency. Operators can recover infrastructure costs, and users who need more bandwidth can pay for it.
+ar.io gateways support the x402 payment protocol, so a client can pay for data with a stablecoin when it needs more than the free allowance. Operators recover what serving data costs them, and clients that need more bandwidth can buy it.
 
 ## What is x402?
 
-**x402** is an open-source payment protocol from Coinbase. It uses the HTTP 402 "Payment Required" status code to let clients pay for web APIs in cryptocurrency, without accounts or card payments:
+**x402** is an open payment protocol from Coinbase. A server answers a request with HTTP status 402 "Payment Required" and a price; the client pays by repeating the request with a signed payment attached. There are no accounts, API keys or card details.
 
-### Key Features
+### Key features
 
-- **Zero protocol fees**: No intermediaries or payment processing costs
-- **Fast settlement**: Payments settle in approximately 2 seconds
-- **Minimal integration**: Simple HTTP status codes and headers
-- **Privacy-focused**: No account creation or personal information required
-- **Chain-agnostic**: Works with multiple blockchain networks
-- **Token-agnostic**: Supports various cryptocurrencies
+- **No accounts**: a client pays per request, with no sign-up or personal details.
+- **Plain HTTP**: payment uses one status code and a few headers.
+- **Open**: the protocol works with several blockchains and tokens. ar.io gateways use USDC on Base.
 
-### How x402 Works
-
-The x402 protocol uses an HTTP flow:
+### How x402 works
 
 ```mermaid
 sequenceDiagram
+    accTitle: The gateway verifies and settles a payment through the facilitator before it serves the data
+    accDescr: When a client has used its free allowance, the gateway answers 402 with payment requirements. The client signs a USDC transfer authorization and repeats the request with it in the X-Payment header. The gateway asks the facilitator to verify and then settle the payment, the facilitator submits the USDC transfer on Base, and only then does the gateway add paid tokens to the client's bucket and serve the data with the settlement receipt.
     participant Client
     participant Gateway
     participant Facilitator
+    participant Base as Base network
 
-    Client->>Gateway: Request data
-    Gateway-->>Client: 402 Payment Required, with payment requirements
-    Note over Client: Signs a payment authorization
-    Client->>Gateway: Same request, with X-Payment header
-    Gateway->>Facilitator: Verify payment
+    Client->>Gateway: Request for data, free allowance used up
+    Gateway-->>Client: 402 Payment Required, with the price
+    Note over Client: Sign a USDC transfer authorization
+    Client->>Gateway: Same request, with the X-Payment header
+    Gateway->>Facilitator: Verify the payment
     Facilitator-->>Gateway: Valid
-    Gateway-->>Client: Requested data
-    Gateway->>Facilitator: Settle payment
-    Note over Facilitator: Transfers USDC on-chain
+    Gateway->>Facilitator: Settle the payment
+    Facilitator->>Base: Submit the USDC transfer
+    Facilitator-->>Gateway: Settlement result, with the transaction
+    Note over Gateway: Add paid tokens to the client's bucket
+    Gateway-->>Client: Data, with X-Payment-Response
 ```
 
-The client never talks to the facilitator. The gateway verifies and settles the payment itself, and returns the settlement receipt to the client in the `X-Payment-Response` header.
+The client never talks to the facilitator, the service that checks payments and submits them on chain. The gateway settles the payment before it serves the data, and returns the receipt in the `X-Payment-Response` header. If verification or settlement fails, the client gets another 402 instead of the data.
 
-## ar.io Gateway Integration
+## ar.io gateway integration
 
-ar.io gateways implement x402 with **USDC (USD Coin) on the Base blockchain**, priced per byte of data served. It works as part of the gateway's rate limiter: a client pays only once it has used its free allowance.
+ar.io gateways price data per byte served, in **USDC on Base**. Payment is part of the gateway's rate limiter, so a client pays only once it has used its free allowance:
 
-### Payment Flow in ar.io Gateways
+1. **Free tier**: each request spends tokens from the client's rate-limit buckets.
+2. **Limit reached**: when the buckets are empty, the gateway answers 402 Payment Required.
+3. **Payment**: the client pays in USDC to continue.
+4. **Paid tokens**: one payment buys paid tokens worth 10 times the request's cost, by default.
+5. **Spending order**: free tokens are spent first, then paid tokens.
+6. **Per-resource limits**: paid requests skip per-resource limits. Only the per-IP limit applies.
 
-1. **Free Tier Access**: Users consume regular tokens from their rate limit buckets
-2. **Rate Limit Exceeded**: When limits are reached, gateway sends 402 Payment Required response
-3. **Payment Processing**: Users can make USDC payments to continue access
-4. **Premium Access**: Payments add paid tokens with configurable multiplier (default 10x capacity)
-5. **Priority Consumption**: Regular tokens consumed first, then paid tokens
-6. **Resource Bypass**: Paid requests bypass per-resource limits (only IP limits apply)
+### Browser paywall and Onramp
 
-### Browser Paywall & Onramp Integration
+On mainnet, a gateway can add Coinbase Onramp to its browser paywall, so a user can buy USDC without leaving the page. Onramp needs Coinbase Developer Platform (CDP) API keys. These are separate from the facilitator's keys and play no part in verifying or settling a payment. On testnet they are optional; on mainnet they are required when you use a Coinbase facilitator.
 
-For mainnet deployments, gateways can integrate Coinbase Onramp to enable easy USDC purchases directly in the browser paywall. This requires Coinbase Developer Platform (CDP) API keys, which are separate from payment facilitator authentication. With Onramp, users can buy USDC without leaving the gateway's paywall page.
+## Network options
 
-**Note**: CDP keys are optional for testnet but required for mainnet when using Coinbase facilitators. These keys enable the browser-based purchasing experience and are not related to payment verification or settlement.
-
-## Network Options
-
-ar.io gateways support two Base blockchain networks for x402 payments:
+ar.io gateways support two Base networks for x402 payments:
 
 | Feature                 | Base Sepolia (Testnet)            | Base (Mainnet)                    |
 | ----------------------- | --------------------------------- | --------------------------------- |
@@ -74,78 +70,46 @@ ar.io gateways support two Base blockchain networks for x402 payments:
 | **Use Case**            | Development, testing              | Production monetization           |
 | **Configuration**       | `X_402_USDC_NETWORK=base-sepolia` | `X_402_USDC_NETWORK=base`         |
 
-## Rate Limited Endpoints
+## Rate-limited endpoints
 
-The x402 payment system applies to data egress endpoints where gateways serve actual content:
+x402 applies to the routes that serve data:
 
-### Data Serving Endpoints
+### Data serving endpoints
 
-- **Transaction/Data Item requests**: `/:txid` and `/:txid/path`
-- **Raw data requests**: `/raw/:txid`
-- **ArNS resolved content**: All requests resolved through ArNS names
+- **Transactions and data items**: `/:txid` and `/:txid/path`
+- **Raw data**: `/raw/:txid`
+- **ArNS**: every request resolved through an ArNS name
 - **Farcaster frames**: `/local/farcaster/frame/:txid`
-- **Chunk requests**: `GET /chunk/:offset` and `GET /chunk/:offset/data` (fixed size pricing)
-- **Index Sharing byte routes**: band files by name, by digest, and the WebSeed under `/ar-io/indexes`. The publication document at `/ar-io/indexes` and the `.torrent` files are free
+- **Chunks**: `GET /chunk/:offset` and `GET /chunk/:offset/data`, at a fixed size price
+- **Index Sharing files**: band files by name and by digest, and the WebSeed, under `/ar-io/indexes`. The publication at `/ar-io/indexes` and the `.torrent` files are free
+- **GraphQL** (`/graphql`), only when the operator turns on GraphQL metering (Release 88 or later): a flat cost per operation, 10 KiB by default, charged to the client's IP bucket
 
-### Not Rate Limited
+### Not rate limited
 
-- GraphQL queries (`/graphql`)
-- Chunk POST requests (`POST /chunk`)
-- Administrative and informational endpoints under `/ar-io/*`, except the Index Sharing byte routes above
+- GraphQL queries (`/graphql`), unless GraphQL metering is on
+- Chunk uploads (`POST /chunk`)
+- Admin and information endpoints under `/ar-io/*`, except the Index Sharing files above
 
-## Benefits for Gateway Operators
+## Benefits for gateway operators
 
-### Sustainable Infrastructure
+- **Cost recovery**: charge for data egress, priced per byte, to cover what serving it costs.
+- **Paid capacity**: heavy users can pay for more bandwidth instead of being blocked.
+- **Abuse control**: the rate limiter still stops abuse, while legitimate heavy users can pay to continue.
 
-- **Cost Recovery**: Monetize data egress to cover operational expenses
-- **Premium Services**: Offer higher bandwidth tiers for power users
-- **Flexible Pricing**: Per-byte pricing scales with actual usage
-- **Revenue Generation**: Create sustainable business models
+## Benefits for users
 
-### Traffic Management
+- **No account**: pay without signing up or logging in.
+- **Free tier first**: you pay only after the free allowance runs out.
+- **Clear prices**: a per-byte price, with a minimum and maximum per request.
+- **Browser or code**: pay through the browser paywall, or from a program.
 
-- **Fair Access**: Free tier for casual users with reasonable limits
-- **Premium Access**: Power users can pay for additional capacity
-- **DDoS Protection**: Rate limiting prevents abuse while allowing legitimate paid access
-- **Resource Optimization**: Paid requests bypass resource limits for better performance
+## Use cases
 
-## Benefits for Users
+- **Media and downloads**: charge for large files and high-bandwidth audio and video.
+- **Data APIs**: charge for heavy query or archive access.
+- **High-volume clients**: let a business pay for capacity beyond the free tier.
 
-### Payments Without Accounts
-
-- **No Account Required**: Payments work without registration or OAuth
-- **Fast Settlement**: 2-second payment confirmation
-- **Privacy Preserved**: No personal information collection
-- **Transparent Pricing**: Clear per-byte costs with minimum/maximum limits
-
-### Flexible Access
-
-- **Free Tier**: Reasonable free access for casual users
-- **Pay-as-you-go**: Only pay when you need additional capacity
-- **Predictable Costs**: Clear pricing structure with configurable limits
-- **Multiple Payment Methods**: Browser-based and programmatic payment options
-
-## Use Cases
-
-### Content Delivery Networks
-
-- **Media Streaming**: Monetize high-bandwidth video and audio content
-- **File Downloads**: Charge for large file transfers
-- **API Access**: Premium API tiers with higher rate limits
-
-### Developer Platforms
-
-- **Data APIs**: Monetize access to indexed blockchain data
-- **Archive Services**: Charge for historical data retrieval
-- **Real-time Feeds**: Premium access to live data streams
-
-### Enterprise Services
-
-- **Bulk Data Access**: Corporate clients paying for high-volume access
-- **Priority Support**: Premium service tiers with guaranteed performance
-- **Custom Limits**: Tailored rate limits for specific use cases
-
-## Explore Gateway Monetization
+## Explore gateway monetization
 
 <Cards>
   <Card

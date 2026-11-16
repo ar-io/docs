@@ -8,95 +8,56 @@ import { Target, BarChart, FileText, Coins } from "lucide-react";
 
 ## Overview
 
-The Observation and Incentive Protocol (OIP) helps maintain gateway quality through peer monitoring and performance-based rewards. Gateways are incentivized to serve data reliably while also acting as observers that evaluate their peers.
+The Observation and Incentive Protocol (OIP) pays gateways for serving data well. Gateways check on each other: each [epoch](/learn/oip/epoch-pipeline) (24 hours on mainnet), up to 50 gateways are chosen as [observers](/glossary#observer) and test every gateway. Gateways that pass earn ARIO. Gateways that fail earn no gateway reward for that epoch, and a gateway that fails 30 epochs in a row can be [pruned](/learn/oip/pruning).
 
-The protocol runs in epochs. During each epoch, selected gateways observe other gateways, submit reports, and participate in an onchain pass/fail voting process. Functional gateways and observers become eligible for ARIO rewards, while deficient gateways and observers miss rewards and can lose future selection weight.
+## How an epoch works
 
-## Architecture Overview
-
-The protocol follows a repeatable flow:
+No central server runs the protocol or sends notifications. [Crankers](/glossary#cranker), which can be any wallet with SOL, move each epoch forward. Each observer reads the current epoch on Solana to learn whether it was chosen and which names to test.
 
 ```mermaid
 sequenceDiagram
-    participant SC as ar.io Protocol
-    participant OBS as Observer Gateway
-    participant GW as Target Gateway
-    participant AR as Arweave Network
+    accTitle: Observers test every gateway, and the protocol pays the gateways that most observers passed
+    accDescr: At the start of an epoch a cranker asks the gateway registry program on Solana to pick up to 50 observers and up to 2 shared ArNS names. Each chosen observer reads that assignment and asks every gateway to resolve the shared names plus some names it picks itself. It compares each answer with trusted reference gateways and marks the gateway pass or fail. Before the epoch ends it uploads its full report to Arweave and submits a pass or fail result for each gateway, plus the report's transaction ID. After the epoch ends a cranker triggers payout. A gateway fails if more than half of the submitted reports failed it. Passing gateways, and gateways whose observers reported, get their rewards added to stake.
 
-    Note over SC,AR: Epoch Start
-    SC->>SC: Select observers<br/>(weighted random)
-    SC->>SC: Prescribe ArNS names
-    SC->>OBS: Notify selection & provide names
+    participant CR as Cranker
+    participant GAR as Gateway registry on Solana
+    participant OBS as Observer
+    participant GW as Other gateways
+    participant AR as Arweave
 
-    Note over SC,AR: Observation Phase
-    loop For each gateway to test
-        OBS->>GW: Test ArNS resolution
-        GW-->>OBS: Response data
-        OBS->>OBS: Score: Pass/Fail
+    Note over CR,AR: Epoch start
+    CR->>GAR: Start epoch, pick observers and names
+    OBS->>GAR: Read the epoch
+    GAR-->>OBS: Chosen observers and names
+    Note over CR,AR: Observation
+    loop Every active gateway
+        OBS->>GW: Resolve shared and own ArNS names
+        GW-->>OBS: Resolved tx ID and data
+        Note over OBS: Compare with reference gateways, mark pass or fail
     end
-    Note over SC,AR: Reporting Phase
-    OBS->>AR: Upload detailed JSON report
-    AR-->>OBS: Confirm storage
-    OBS->>SC: Submit compact pass/fail results
-    SC-->>OBS: Confirm interaction
-
-    Note over SC,AR: Evaluation & Rewards
-    SC->>SC: Tally all observer votes
-    SC->>SC: Tally observer votes
-    SC->>SC: Determine rewards
-    SC->>OBS: Distribute observer rewards
-    SC->>GW: Distribute gateway rewards<br/>(if functional)
+    Note over CR,AR: Reporting, before the epoch ends
+    OBS->>AR: Upload full report
+    AR-->>OBS: Report tx ID
+    OBS->>GAR: Pass or fail per gateway and report tx ID
+    Note over CR,AR: After the epoch ends
+    CR->>GAR: Pay out the epoch
+    Note over GAR: Fail gateways that more than half of reports failed
+    Note over GAR: Add rewards to stake of passing gateways and reporting observers
 ```
 
-## Epoch Cycle
+Observers pay SOL to submit their results, so an observer wallet needs SOL. Every report stays on Arweave, and you can browse current observers and results at [gateways.ar.io](https://gateways.ar.io). ArNS name fees and other protocol fees fund the [protocol balance](/glossary#protocol-balance) that pays the rewards. For the transactions behind each step, see [Epoch pipeline](/learn/oip/epoch-pipeline).
 
-Each epoch follows a structured process with specific responsibilities for gateways and observers:
+## What observers check
 
-### Epoch Start
+Observers test whether each gateway can:
 
-- **ar.io protocol**: Selects observers using weighted random selection
-- **ar.io protocol**: Prescribes common ArNS names for observers to test
-- **Selected Observers**: Receive notification of selection and prescribed names
+- Resolve ArNS names to the same transaction ID, cache time (TTL), and content type that reference gateways return
+- Return the same data, compared by its hash
+- Serve Arweave data by its position on the chain (its offset), with proof that it matches the chain
 
-### Observation Phase
+Observers can change how they test without a change to the protocol.
 
-- **Observers**: Test assigned gateways for ArNS resolution and response quality
-- **Observers**: Document pass/fail findings and failure reasons
-- **Target Gateways**: Respond to resolution requests and serve the requested content
-
-### Reporting Phase
-
-- **Observers**: Upload detailed JSON reports to Arweave for transparency
-- **Observers**: Submit compact onchain pass/fail results for consensus voting
-
-### Evaluation and Distribution
-
-- **ar.io protocol**: Tallies observer votes to classify gateways
-- **ar.io protocol**: Distributes rewards based on performance
-- **Functional Gateways/Observers**: Become eligible for ARIO rewards
-
-## Key Features
-
-- **Decentralized Monitoring**: Peer-to-peer evaluation ensures no single point of failure
-- **Consensus-Based Scoring**: Observer submissions determine gateway functionality
-- **Performance Incentives**: Only functional gateways and observers receive ARIO token rewards
-- **Transparent Accountability**: All reports permanently stored on Arweave and viewable at [gateways.ar.io](https://gateways.ar.io)
-- **Sustainable Funding**: Protocol balance funded by ArNS name purchases, aligning rewards with network usage
-
-## What Observers Evaluate
-
-Observer criteria can evolve over time without requiring every detail to live in the protocol itself. At a high level, observers evaluate whether gateways can:
-
-- Resolve prescribed ArNS names correctly
-- Return expected transaction IDs and response data
-- Serve data with acceptable availability and responsiveness
-- Produce reports that can be independently inspected by users and applications
-
----
-
-**View Live Data**: See current observers and performance metrics at [gateways.ar.io](https://gateways.ar.io)
-
-## Explore the Protocol
+## Explore the protocol
 
 <Cards>
   <Card

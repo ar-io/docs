@@ -72,6 +72,10 @@ const MIN_SCALE = 0.65;
 const DIRECTION = /^(\s*(?:graph|flowchart)\s+)(LR|RL|TB|TD|BT)\b/m;
 const FLIP: Record<string, string> = { LR: 'TB', RL: 'TB', TB: 'LR', TD: 'LR', BT: 'LR' };
 
+// `accTitle:` is the diagram's one-line point. Mermaid puts it in the svg's
+// <title> for screen readers; it is also shown as the visible caption.
+const ACC_TITLE = /^\s*accTitle\s*:\s*(.+)$/m;
+
 let counter = 0;
 
 async function render(chart: string): Promise<{ svg: string; width: number }> {
@@ -83,6 +87,7 @@ async function render(chart: string): Promise<{ svg: string; width: number }> {
 export default function Mermaid({ chart }: MermaidProps) {
   const ref = useRef<HTMLDivElement>(null);
   const { resolvedTheme } = useTheme();
+  const caption = ACC_TITLE.exec(chart)?.[1].trim();
 
   useEffect(() => {
     let cancelled = false;
@@ -95,6 +100,9 @@ export default function Mermaid({ chart }: MermaidProps) {
       themeVariables: resolvedTheme === 'dark' ? THEME.dark : THEME.light,
       securityLevel: 'loose',
       fontFamily: 'inherit',
+      // Wrap long messages instead of pushing participants apart, so a
+      // sequence diagram fits the column rather than scrolling.
+      sequence: { wrap: true },
     });
 
     (async () => {
@@ -131,8 +139,13 @@ export default function Mermaid({ chart }: MermaidProps) {
   }, [chart, resolvedTheme]);
 
   return (
-    <figure className="not-prose my-6 overflow-x-auto">
-      <div ref={ref} className="mermaid-diagram flex min-w-fit justify-center [&_svg]:h-auto" />
+    <figure className="not-prose my-6">
+      <div className="overflow-x-auto">
+        <div ref={ref} className="mermaid-diagram flex min-w-fit justify-center [&_svg]:h-auto" />
+      </div>
+      {caption && (
+        <figcaption className="mt-3 text-center text-sm text-fd-muted-foreground">{caption}</figcaption>
+      )}
     </figure>
   );
 }

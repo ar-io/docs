@@ -5,130 +5,69 @@ description: "How ar.io gateways ensure data integrity by verifying chunks are c
 
 import { Database, Cpu, Server, Cog } from 'lucide-react';
 
-Ar.io gateways verify that retrieved and cached data matches what was committed to Arweave. Verification helps users receive authentic, uncorrupted data without trusting a single gateway operator.
+ar.io gateways check that the data they cache matches what was committed to Arweave. This lets you get authentic data without trusting the gateway operator.
 
-Gateway data verification is one layer of ar.io's broader verification architecture. For how gateway verification composes with signed response claims, client-side verification, and OIP accountability, see [Verification and Accountability](/learn/verification).
+Gateway verification is one layer of ar.io's verification. For how it fits with signed responses, checks a client makes itself, and observation, see [Verification and Accountability](/learn/verification).
 
-## How Gateways Verify Data
+## How gateways verify data
 
-Data verification uses Arweave data roots, hashes, and Merkle proofs to check that cached data matches what was originally stored. A gateway can verify data before serving it or re-import data when verification fails:
+Arweave commits to each transaction's data through a **data root**: the root of a Merkle tree built over the data's chunks. A gateway recomputes that root from the bytes it holds and compares it with the one in the transaction header.
+
+Verification runs in the background, after the data is cached. A gateway can serve data before it has verified it, and says which state the data is in with the `X-AR-IO-Verified` response header.
 
 ```mermaid
 sequenceDiagram
-    participant Scheduler
-    participant Worker as DataVerificationWorker
-    participant ContigIndex as ContiguousDataIndex
-    participant RootTxIndex as DataItemRootTxIndex
-    participant DataRootComp as DataRootComputer
-    participant DataSource as ContiguousDataSource
-    participant Importer as DataImporter
-    participant Bundler as BundleQueue
+    accTitle: The verification worker recomputes each root transaction's data root and marks it and its data items verified when it matches
+    accDescr: Every 10 minutes the verification worker reads unverified data IDs from the data index, highest priority first, and groups them by root transaction. If the index holds the root's data root, the worker fetches the root's bytes from a trusted gateway and computes the Merkle data root. A match marks the root and every data item under it verified. A mismatch queues the root to be fetched again from Arweave chunks. A root with no indexed data root may be queued for unbundling instead.
+    participant W as Verification worker
+    participant DB as Data index
+    participant TG as Trusted gateway
+    participant CI as Chunk importer
+    participant UB as Unbundler
 
-    Note over Scheduler,Bundler: Data Discovery Phase
-    Scheduler->>Worker: Triggers queueRootTx() periodically
-    Worker->>ContigIndex: getVerifiableDataIds()
-    ContigIndex-->>Worker: Returns list of data IDs
-    
-    loop For each dataId
-        Worker->>RootTxIndex: getRootTxId(dataId)
-        RootTxIndex-->>Worker: Returns rootTxId
-        Worker->>Worker: Enqueue rootTxId if not processed
-    end
-
-    Note over Scheduler,Bundler: Verification Phase
-    Worker->>ContigIndex: getDataAttributes(rootTxId)
-    ContigIndex-->>Worker: Returns attributes (indexedDataRoot, hash)
-
-    alt indexedDataRoot is present
-        Worker->>DataRootComp: computeDataRoot(rootTxId)
-        DataRootComp->>DataSource: getData(rootTxId)
-        DataSource-->>DataRootComp: Returns data stream
-        DataRootComp-->>Worker: Returns computedDataRoot
-
-        alt computedDataRoot matches indexedDataRoot
-            Worker->>ContigIndex: saveVerificationStatus(rootTxId)
-            ContigIndex-->>Worker: ✓ Verification Success
-            Note over Worker: Data is now verified and cached for serving
-        else computedDataRoot does NOT match
-            Worker->>Importer: queueItem({id: rootTxId}, priority=true)
-            Importer-->>Worker: Queued for re-import from Arweave
+    W->>DB: Ask for unverified IDs, by priority
+    DB-->>W: Unverified data IDs
+    Note over W: Group the IDs by root transaction
+    W->>DB: Look up the root transaction's data root
+    alt Data root is indexed
+        W->>TG: Fetch the root transaction's bytes
+        TG-->>W: Data stream
+        Note over W: Compute the Merkle data root
+        alt Computed root matches
+            W->>DB: Mark the root and its data items verified
+        else Roots differ
+            W->>CI: Queue the root to refetch as chunks
         end
-    else indexedDataRoot is MISSING
-        Worker->>Bundler: queueBundle({id: rootTxId})
-        Bundler-->>Worker: Queued for bundle unbundling
+    else No data root indexed
+        W->>UB: Queue the root bundle for unbundling
     end
 ```
 
-**The Verification Workflow:**
+What the diagram leaves out:
 
-At a high level, verification moves through discovery, retrieval, cryptographic computation, comparison, and recovery:
+- **What gets verified**: by default, only data requested through ArNS names. Each scan takes the highest-priority data first.
+- **Why whole roots**: data items are grouped by their root transaction, because that is what Arweave commits to. One match verifies every item inside it.
+- **Refetching**: after a mismatch, the data is fetched again from Arweave chunks, each proven against the data root.
+- **Giving up**: every attempt that does not end verified counts against the data, and the gateway stops trying after 5. Operators can change these defaults with `MIN_DATA_VERIFICATION_PRIORITY` and `MAX_VERIFICATION_RETRIES`.
 
-**1. Discovery Phase**
-- Periodically scan for unverified data items
-- Priority-based queue management (higher priority items first)
-- Track retry attempts for failed verifications
+## Verification types
 
-**2. Data Retrieval**
-- Fetch data attributes from gateway storage
-- Retrieve the complete data stream
-- Gather metadata needed for verification
+### Transaction data
+For a base-layer Arweave transaction, the gateway recomputes its data root and compares it with the root in the transaction header.
 
-**3. Cryptographic Computation**
-- Calculate Merkle data root from actual data stream
-- Generate cryptographic proofs using the same algorithm as Arweave
-- Create verifiable hash chains
+### Bundled data
+For [data items](/glossary#ans-104-data-item) inside an ANS-104 bundle, the gateway verifies the root transaction that holds the bundle. A match marks every data item under that root verified.
 
-**4. Root Comparison**
-- Compare computed root against indexed root in database
-- Verify data hasn't been corrupted or altered
-- Validate chunk integrity against Merkle proofs
+### Chunks
+Each chunk the gateway fetches from Arweave is proven against its transaction's data root with its Merkle path before it is used.
 
-**5. Action Based on Results**
-- **Success**: Mark data as verified with timestamp
-- **Failure**: Trigger re-import from Arweave or unbundle from parent
-- **Error**: Increment retry counter and requeue for later
+## Why verification matters
 
-## Verification Types
+- **Proof, not trust**: a data root match proves the bytes are the ones committed to Arweave, whoever served them.
+- **Repair**: data whose data root does not match is fetched again from Arweave chunks.
+- **Visibility**: the verification state, and when it was reached, is recorded for each ID and reported in the `X-AR-IO-Verified` header.
 
-Ar.io gateways handle different types of data verification based on the data's origin:
-
-### Transaction Data Verification
-For individual Arweave transactions:
-- **Direct root validation** against transaction data roots stored onchain
-- **Complete data reconstruction** from chunks to ensure availability
-- **Cryptographic proof** that data matches what was originally stored
-
-### Bundle Data Verification
-For ANS-104 data bundles (collections of data items):
-- **Bundle integrity checks** to verify the container is valid
-- **Individual item verification** within each bundle
-- **Recursive unbundling** when verification fails to re-extract items
-- **Nested bundle support** for bundles containing other bundles
-
-### Chunk-Level Validation
-At the most granular level:
-- **Merkle proof validation** for individual data chunks
-- **Sequential integrity** ensuring chunks form complete data
-- **Parallel verification** of multiple chunks for performance
-
-
-
-## Why Verification Matters
-
-### Cryptographic Trust Foundation
-- **Mathematical Proof**: Merkle tree cryptography proves data integrity
-- **Independent Validation**: Multiple gateways verify the same data independently
-
-### Data Integrity Guarantees
-- **Tamper Detection**: Any alteration to data is immediately detectable
-- **Corruption Recovery**: Automatic healing of corrupted data through re-import
-
-### Gateway Reliability
-- **Continuous Monitoring**: Ongoing verification catches issues before users encounter them
-- **Self-Healing System**: Automatic recovery mechanisms maintain data availability
-- **Transparent Operations**: Verification status and timestamps provide audit trails
-
-## Explore Gateway Systems
+## Explore gateway systems
 
 <Cards>
   <Card 

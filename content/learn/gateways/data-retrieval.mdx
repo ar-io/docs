@@ -5,148 +5,85 @@ description: "How ar.io gateways retrieve and share data from multiple sources i
 
 import { Shield, Cpu, Globe, Settings } from 'lucide-react';
 
-Ar.io gateways retrieve and serve Arweave data from multiple sources. They prefer fast local or trusted sources when available, then fall back to broader network peers, chunks, or Arweave nodes as needed.
+ar.io gateways serve Arweave data from their own cache when they can. When they can't, they try other sources in turn and stop at the first one that returns the data.
 
-## How Gateways Retrieve Data
+## How gateways retrieve data
 
-When a gateway needs to serve data, it follows a hierarchical retrieval pattern, trying each source in order until the data is successfully retrieved:
-
-```mermaid
-graph TD
-    REQUEST[Data Request] --> CACHE{Local Cache?}
-    CACHE -->|Hit| SERVE[Serve Data]
-    CACHE -->|Miss| TRUSTED[Trusted Gateways]
-
-    TRUSTED -->|Fail| NETWORK[ar.io]
-    NETWORK -->|Fail| LOCATE[Locate the item:<br/>root transaction and offset]
-    LOCATE --> CHUNKS[Chunk Assembly]
-    CHUNKS -->|Fail| ARWEAVE[Arweave Nodes]
-
-    LOOKUP[(Root TX lookup<br/>local DB · CDB64 indexes<br/>peers · GraphQL)] -.-> LOCATE
-
-    TRUSTED -->|Success| VALIDATE
-    NETWORK -->|Success| VALIDATE
-    CHUNKS -->|Success| VALIDATE
-    ARWEAVE -->|Success| VALIDATE
-
-    VALIDATE{Valid?} -->|Yes| STORE[Cache & Serve]
-    VALIDATE -->|No| NEXT[Try Next Source]
-
-
-    class TRUSTED,NETWORK,CHUNKS,ARWEAVE dg-soft
-    class VALIDATE,SERVE,STORE,LOCATE dg-strong
-    class LOOKUP dg-soft
-```
-
-## Data Sources
-
-Ar.io gateways can retrieve data from multiple sources, each with different characteristics:
-
-### 1. Trusted Gateways
-- **Purpose**: Peer-to-peer data sharing between verified ar.io gateways
-- **Benefits**: Distributed redundancy, load balancing, network resilience
-- **Trust Mechanism**: Operator-defined trust settings, observed performance, and reciprocity
-- **Selection**: Prioritized based on local gateway configuration
-
-### 2. ar.io (Untrusted Peers)
-- **Purpose**: Broader network of ar.io gateways without established trust
-- **Benefits**: Geographic distribution, expanded data availability
-- **Selection**: Chosen based on availability, configuration, and routing strategy
-- **Validation**: Verification is important because the peer may not be trusted
-
-### 3. Chunk Assembly
-- **Purpose**: Direct reconstruction from Arweave chunks via known offsets
-- **Benefits**: Data integrity guarantee, no intermediary trust required
-- **Process**: Fetches individual chunks efficiently and assembles them into complete data
-- **Optimization**: Uses offset awareness for faster chunk retrieval
-- **Locating**: A data item sits inside a bundle, so the gateway first looks up which transaction holds it and at what offset. Its own database answers for what it has indexed; [CDB64 indexes](/build/run-a-gateway/manage/cdb64), kept current by [Index Sharing](/learn/gateways/index-sharing), answer locally for the rest; peers and GraphQL are asked otherwise
-
-### 4. TX Data
-- **Purpose**: Direct access to transaction data from Arweave nodes
-- **Benefits**: Authoritative data source, complete historical access
-- **Trade-off**: Higher latency but guaranteed availability
-- **Use Case**: Final fallback when other sources fail
-
-
-## Retrieval Strategies
-
-Gateways employ different strategies based on the use case:
-
-### On-Demand Retrieval
-Optimized for user requests with emphasis on speed:
-1. **Priority order**: Trusted Gateways → Untrusted Peers (ar.io) → Chunks Assembly → Arweave
-2. **Aggressive timeouts**: Quick fallback to next source
-3. **Parallel attempts**: May query multiple sources simultaneously
-4. **Response streaming**: Begin serving data as soon as available
-
-### Background Retrieval
-Used specifically for unbundling and verification processes:
-1. **Unbundling operations**: Extracting individual data items from ANS-104 bundles
-2. **Data verification**: Checks the integrity of retrieved data
-3. **Integrity focus**: Prefers authoritative sources for accurate processing
-4. **Relaxed timeouts**: Allows for slower but reliable retrieval during verification
-5. **Verification priority**: Extensive validation before caching verified data
-
-## Trust and Validation
-
-### Peer Trust Management
-Gateways can maintain trust relationships with peer gateways:
+By default a gateway tries trusted gateways first, then other ar.io gateways, then Arweave chunks, then whole transactions from Arweave nodes. Operators can reorder these sources or add others, such as S3, with `ON_DEMAND_RETRIEVAL_ORDER` ([environment variables](/build/run-a-gateway/manage/environment-variables)).
 
 ```mermaid
 graph TD
-    PEER[Peer Gateway] --> METRICS[Performance Metrics]
-    METRICS --> LATENCY[Response Time]
-    METRICS --> SUCCESS[Success Rate]
-    METRICS --> VALIDITY[Data Validity]
-    
-    LATENCY --> SCORE[Trust Score]
-    SUCCESS --> SCORE
-    VALIDITY --> SCORE
-    
-    SCORE --> SELECTION{Peer Selection}
-    SELECTION -->|High Trust| PREFER[Preferred]
-    SELECTION -->|Medium Trust| NORMAL[Normal]
-    SELECTION -->|Low Trust| AVOID[Avoided]
-    
-    class LATENCY,SUCCESS,VALIDITY dg-strong
+    accTitle: On a cache miss the gateway tries each source in turn, and caches the bytes unless they contradict a known hash
+    accDescr: A request is served from the local cache when the gateway holds the data. Otherwise the gateway tries trusted gateways, then other ar.io gateways, then Arweave chunks located through a root transaction lookup, then whole transaction data from Arweave nodes, and answers 404 if all fail. Bytes from any source stream to the client while the gateway hashes them. It caches them unless they came from an untrusted source and their hash differs from the one it already knows.
+    CACHE{Requested ID in<br/>the local cache?}
+    CACHE -->|yes, cached bytes| SERVE[Stream to the client]
+    CACHE -->|no| TG[1. Trusted gateways]
+    TG -->|miss or error| AR[2. Other ar.io gateways]
+    AR -->|miss or error| CH[3. Arweave chunks]
+    CH -->|miss or error| TX[4. Transaction data<br/>from Arweave nodes]
+    TX -->|miss or error| NF[404 Not found]
+    LOOKUP[(Root transaction lookup<br/>local index, CDB64, gateways,<br/>GraphQL, HyperBEAM)] -.->|root tx ID and offset| CH
+    TG & AR & CH & TX -->|bytes| SERVE
+    SERVE -->|unless an untrusted<br/>hash disagrees| STORE[Cache for later requests]
+
+    class CACHE,SERVE dg-strong
+    class TG,AR,CH,TX,LOOKUP dg-soft
+    class NF,STORE dg-muted
 ```
 
-Trust factors include:
-- **Response performance**: Latency and throughput metrics
-- **Success rates**: Percentage of successful requests
-- **Data validity**: Cryptographic verification results
-- **Reciprocity**: Mutual data sharing behavior
+## Data sources
 
-### Data Validation Process
-Every piece of retrieved data undergoes validation:
+### 1. Trusted gateways
+- **What**: gateways the operator chooses to trust, each with a priority. Lower numbers are tried first. By default turbo-gateway.com is first, then arweave.net, which is marked untrusted.
+- **Trust**: data from a trusted gateway is cached as trusted. Data from a gateway marked untrusted is handled like data from any untrusted peer.
 
-1. **Hash Verification**: Computed hash must match expected value
-2. **Merkle Proof Validation**: Chunks proven against transaction root
-3. **Signature Verification**: Transaction signatures validated
-4. **Size Confirmation**: Data size matches header declaration
+### 2. ar.io network
+- **What**: the other gateways in the [gateway registry](/learn/gateways/gateway-registry). For each ID the gateway asks a few of them, chosen as described in [Peer selection](#peer-selection).
+- **Trust**: these peers are not trusted, so their responses are checked (see [Data validation](#data-validation-process)).
 
+### 3. Arweave chunks
+- **What**: the gateway rebuilds the data from Arweave chunks, each proven against its transaction's data root, so no middleman has to be trusted.
+- **Locating the data**: a data item sits inside a bundle, so the gateway first finds the [root transaction](/glossary#root-transaction) that holds it and the item's offset inside it. Its own database answers for what it has indexed. [CDB64 indexes](/build/run-a-gateway/manage/cdb64), kept current by [Index Sharing](/learn/gateways/index-sharing), answer locally for the rest. Otherwise it asks trusted gateways, GraphQL and HyperBEAM.
 
+### 4. Transaction data
+- **What**: the whole transaction, fetched from Arweave nodes. This is the last resort.
 
-## Why Multi-Source Retrieval Matters
+## Retrieval strategies
 
-### For Gateway Operators
-- **Reduced infrastructure costs**: Use peer resources
-- **Improved reliability**: Multiple fallback options
-- **Better performance**: Optimal source selection
-- **Network effects**: Benefit from collective infrastructure
+### On-demand retrieval
+Used to answer client requests:
+1. **One source at a time**: the next source is tried only when the current one fails.
+2. **Hedged peer requests**: if an ar.io peer is slow to answer, the gateway also asks the next candidate, after 500 ms by default and up to 3 at once.
+3. **Streaming**: bytes stream to the client as they arrive, and are hashed on the way for the cache.
 
-### For Users
-- **Faster access**: Data served from optimal source
-- **High availability**: Multiple paths to data
-- **Geographic optimization**: Nearby sources preferred
-- **Consistent experience**: Transparent source selection
+### Background retrieval
+Used to fetch bundles for unbundling. By default it uses Arweave chunks only, each proven against its transaction's data root, rather than other gateways.
 
+## Trust and validation
 
----
+### Peer selection
 
-The data retrieval system is central to ar.io's mission of providing reliable, performant access to the permaweb. Multiple retrieval paths help keep permanent data accessible through a distributed gateway network.
+For each ID, a gateway picks a few candidate ar.io peers (5 by default):
 
-## Related Gateway Concepts
+1. **Peer list**: the gateways in the on-chain registry, refreshed periodically. Gateways marked as leaving are skipped.
+2. **Home set**: a consistent hash ring maps each ID to the same 3 peers every time, so repeat requests for an ID tend to land where it is already cached.
+3. **Weights**: each peer has a weight from 1 to 100, starting at 50. A successful fetch raises it, more so when the peer answered faster or with more throughput than the recent average. A failure lowers it, and a busy answer (429 or 503) lowers it a little. Weights drift back toward 50 over time, so a peer recovers after an outage.
+4. **Order**: the home set is tried first, in a random order weighted by each peer's weight, so heavier peers usually go first. The remaining slots are filled by a weighted random draw from the other peers.
+
+### Data validation process
+Checks happen at each stage:
+
+1. **Peer responses**: an ar.io peer must say the data is verified or trusted, and its digest must match the hash the gateway already knows, if it knows one.
+2. **Chunks**: each chunk is proven against its transaction's data root with its Merkle path.
+3. **Caching**: the gateway hashes every response as it streams. Data from a trusted source is cached as trusted. Data from an untrusted source is cached if its hash matches the known one, or, when no hash is known yet, cached as untrusted. A mismatch is not cached.
+4. **Background verification**: later, the gateway recomputes the data root of cached data (by default, data requested through ArNS) and marks it verified. See [Data Verification](/learn/gateways/data-verification).
+
+## Why multi-source retrieval matters
+
+- **For operators**: a gateway does not have to store everything. It can fetch from peers, and keep serving when one source is down.
+- **For users**: there are several paths to the same data, so a request can succeed when one gateway or node fails.
+
+## Related gateway concepts
 
 <Cards>
   <Card 
