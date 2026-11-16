@@ -29,7 +29,7 @@ Four Solana programs: `ario-core` (token/vaults), `ario-gar` (gateways/staking/e
 ## SDKs and Installation
 
 ```bash
-# ar.io SDK (ArNS names, gateways, staking) — requires v3.23+
+# ar.io SDK (ArNS names, gateways, staking): v4 or later (v3 is the retired AO protocol)
 npm install @ar.io/sdk @solana/kit
 
 # Turbo SDK (file/folder uploads to Arweave)
@@ -41,33 +41,42 @@ npm install @ar.io/wayfinder-core @ar.io/sdk
 
 ## Signer Setup
 
-Two separate signer patterns — ar.io SDK uses `@solana/kit`, Turbo uses its own format:
+Two separate signer patterns. The ar.io SDK takes a `@solana/kit` signer plus a Solana RPC connection; Turbo takes the secret key as a base58 string:
 
 ```typescript
-// === ar.io SDK signer (for ArNS, staking, records) ===
+// === ar.io SDK client (for ArNS, staking, records) ===
 import { ARIO, ANT } from '@ar.io/sdk';
-import { createKeyPairSignerFromBytes } from '@solana/kit';
+import {
+  createKeyPairSignerFromBytes,
+  createSolanaRpc,
+  createSolanaRpcSubscriptions,
+} from '@solana/kit';
 import fs from 'fs';
+
+const rpc = createSolanaRpc('https://api.mainnet-beta.solana.com');
+const rpcSubscriptions = createSolanaRpcSubscriptions('wss://api.mainnet-beta.solana.com');
 
 const keypairBytes = new Uint8Array(
   JSON.parse(fs.readFileSync('./solana-keypair.json', 'utf-8')),
 );
 const signer = await createKeyPairSignerFromBytes(keypairBytes);
-const ario = ARIO.mainnet({ signer });
 
-// Browser: const ario = ARIO.init({ signer: phantomWalletAdapter });
+// Writes need the signer and rpcSubscriptions; reads need only rpc.
+const ario = ARIO.init({ rpc, rpcSubscriptions, signer });
 
-// === Turbo signer (for uploading data to Arweave) ===
+// === Turbo client (for uploading data to Arweave) ===
 import { TurboFactory } from '@ardrive/turbo-sdk';
 import bs58 from 'bs58';
 
 const turbo = TurboFactory.authenticated({
-  privateKey: bs58.encode(keypairBytes.slice(0, 32)),
+  privateKey: bs58.encode(keypairBytes), // the full 64-byte secret key
   token: 'solana',
 });
 
 // Browser: TurboFactory.authenticated({ walletAdapter: window.solana, token: 'solana' });
 ```
+
+A public RPC endpoint is rate-limited; use a dedicated RPC provider for anything beyond testing. In the browser, pass the ar.io SDK a `@solana/kit` transaction signer from your wallet adapter.
 
 ## Common Recipes
 
@@ -134,35 +143,41 @@ npx @ar.io/deploy upload --sig-type solana --wallet ~/.ar.io/wallets/<address>.j
 ### Register an ArNS name
 
 ```typescript
-const ario = ARIO.mainnet({ signer });
+// `ario` is the signed client from Signer Setup.
 
-// Check cost first
+// Check cost first (returned in mARIO)
 const cost = await ario.getTokenCost({
   intent: 'Buy-Name', name: 'myapp', type: 'lease', years: 1,
 });
 console.log('Cost:', cost / 1_000_000, 'ARIO');
 
-// Buy (mints an ANT as Metaplex Core NFT)
+// Buy (mints an ANT as a Metaplex Core NFT)
 await ario.buyRecord({ name: 'myapp', type: 'lease', years: 1 });
 // type: 'lease' (1-5 years) or 'permabuy' (forever)
+// fundFrom: 'balance' (default), 'stakes', 'withdrawal', 'plan', 'any' or 'turbo'
 ```
 
 ### Set a record on an ANT (point name to data)
 
 ```typescript
+// `ario`, `rpc`, `rpcSubscriptions` and `signer` are from Signer Setup.
 const record = await ario.getArNSRecord({ name: 'myapp' });
-const ant = ANT.init({ signer, processId: record.processId });
+const ant = await ANT.init({
+  processId: record.processId, // the ANT's MPL Core asset address
+  rpc,
+  rpcSubscriptions,
+  signer,
+});
 
-// Set root record
-await ant.setRecord({
-  undername: '@',
+// Point the base name at an upload
+await ant.setBaseNameRecord({
   transactionId: manifestResponse.id, // Arweave TX ID
   ttlSeconds: 3600,
 });
 // Live at: https://myapp.turbo-gateway.com
 
-// Set undername
-await ant.setRecord({
+// Point an undername at another upload
+await ant.setUndernameRecord({
   undername: 'docs',
   transactionId: docsManifestId,
   ttlSeconds: 3600,
@@ -173,7 +188,11 @@ await ant.setRecord({
 ### Resolve an ArNS name
 
 ```typescript
-const ario = ARIO.mainnet(); // read-only, no signer needed
+import { ARIO } from '@ar.io/sdk';
+import { createSolanaRpc } from '@solana/kit';
+
+// Read-only: no signer needed
+const ario = ARIO.init({ rpc: createSolanaRpc('https://api.mainnet-beta.solana.com') });
 
 // Base name
 const result = await ario.resolveArNSName({ name: 'ardrive' });
@@ -186,23 +205,23 @@ const sub = await ario.resolveArNSName({ name: 'docs_ardrive' });
 ### Fetch data from a gateway
 
 ```typescript
+import { createWayfinderClient } from '@ar.io/wayfinder-core';
+
 // Direct fetch by TX ID
-const res = await fetch('https://turbo-gateway.com/{txId}');
+const byId = await fetch(`https://turbo-gateway.com/${txId}`);
 
 // Fetch via ArNS name
-const res = await fetch('https://ardrive.turbo-gateway.com');
+const byName = await fetch('https://ardrive.turbo-gateway.com');
 
 // Fetch with Wayfinder (verified, multi-gateway fallback)
-import { createWayfinderClient } from '@ar.io/wayfinder-core';
 const wayfinder = createWayfinderClient();
-const res = await wayfinder.request('ar://ardrive');
+const viaWayfinder = await wayfinder.request('ar://ardrive');
 ```
 
 ### Query gateways and balances
 
 ```typescript
-const ario = ARIO.mainnet();
-
+// `ario` can be the read-only client from the previous recipe.
 const { items: gateways } = await ario.getGateways();
 const gateway = await ario.getGateway({ address: 'solana-pubkey-here' });
 const balance = await ario.getBalance({ address: 'solana-pubkey-here' });
@@ -297,14 +316,15 @@ Actual price = Base Fee x Demand Factor. Use `ario.getTokenCost()` to check live
 ## Critical Rules for Code Generation
 
 - **Use `fetch` not `axios`** for HTTP requests
-- **Use `ARIO.mainnet()` from `@ar.io/sdk`** — this defaults to Solana
+- **Create clients with `ARIO.init({ rpc })` from `@ar.io/sdk` v4.** Add `signer` and `rpcSubscriptions` for writes. `ARIO.mainnet()`, `new ARIO()` and the `@ar.io/sdk/node` import are v3 (AO) APIs and do not exist in v4
+- **`ANT.init` is async** (`await ANT.init({ processId, rpc, rpcSubscriptions, signer })`)
 - **ArNS undernames use underscores**: `docs_myapp.turbo-gateway.com` (NOT dots)
-- **Call `setRecord` on ANT instances**, not on the ARIO client
+- **Set records on ANT instances** (`setBaseNameRecord`, `setUndernameRecord`), not on the ARIO client
 - **All token amounts are in mARIO** (multiply ARIO by 1,000,000)
 - **SOL is needed** for every write operation (Solana transaction fees)
 - **`processId` in API responses** refers to the ANT's Metaplex Core NFT mint address (legacy field name)
 - **Do NOT use `@solana/web3.js`** — it is deprecated. Use `@solana/kit`
-- **Turbo and ar.io SDK use different signer formats** — Turbo takes `privateKey` as base58 string with `token: 'solana'`; ar.io SDK takes a `@solana/kit` KeyPairSigner
+- **Turbo and ar.io SDK use different signer formats** — Turbo takes `privateKey` as the base58 encoding of the full 64-byte secret key, with `token: 'solana'`; ar.io SDK takes a `@solana/kit` KeyPairSigner
 - **Files up to 105 KiB upload free** via Turbo, within a 10 MiB lifetime allowance per wallet and another per IP range: no payment needed
 - **ArNS names are NOT case-sensitive** — always lowercase at submission
 
@@ -314,13 +334,15 @@ Actual price = Base Fee x Demand Factor. Use `ario.getTokenCost()` to check live
 `getInfo()`, `getTokenSupply()`, `getBalance({ address })`, `getBalances()`, `getArNSRecord({ name })`, `getArNSRecords()`, `getArNSRecordsForAddress({ address })`, `resolveArNSName({ name })`, `getGateway({ address })`, `getGateways()`, `getCurrentEpoch()`, `getEpoch({ epochIndex })`, `getDemandFactor()`, `getTokenCost({ intent, name, type, years? })`, `getCostDetails({ intent, fromAddress, fundFrom, name, type })`, `getPrimaryName({ address })`, `getPrimaryNames()`, `getArNSReturnedNames()`, `getArNSReturnedName({ name })`, `getRedelegationFee({ address })`
 
 ### ARIO Write Methods (require signer)
-`transfer({ target, qty })`, `buyRecord({ name, type, years?, processId?, referrer? })`, `upgradeRecord({ name })`, `extendLease({ name, years })`, `increaseUndernameLimit({ name, qty })`, `joinNetwork({ qty, allowDelegatedStaking, minDelegatedStake, delegateRewardShareRatio, label, note, fqdn, port, protocol, observerWallet, properties })`, `leaveNetwork()`, `updateGatewaySettings({...})`, `increaseOperatorStake({ qty })`, `decreaseOperatorStake({ qty })`, `delegateStake({ target, qty })`, `decreaseDelegateStake({ target, qty })`, `redelegateStake({ source, target, qty })`, `instantWithdrawal({ gatewayAddress, vaultId })`, `cancelWithdrawal({ gatewayAddress, vaultId })`, `setPrimaryName({ name })`, `requestPrimaryName({ name })`, `createVault({ qty, lockLengthMs })`, `extendVault({ vaultId, extendLength })`, `increaseVault({ vaultId, qty })`, `revokeVault({ vaultId })`, `saveObservations({ reportTxId, failedGateways })`
+Amounts are mARIO (`number` or `mARIOToken`). Name purchases accept `fundFrom` (`'balance'` default, `'stakes'`, `'withdrawal'`, `'plan'`, `'any'`, `'turbo'`).
+
+`transfer({ target, qty })`, `buyRecord({ name, type, years?, processId?, fundFrom? })`, `upgradeRecord({ name })`, `extendLease({ name, years })`, `increaseUndernameLimit({ name, increaseCount })`, `joinNetwork({ operatorStake, observerAddress?, allowDelegatedStaking?, minDelegatedStake?, delegateRewardShareRatio?, label?, note?, fqdn?, port?, protocol?, properties? })`, `leaveNetwork()`, `updateGatewaySettings({...})`, `increaseOperatorStake({ increaseQty })`, `decreaseOperatorStake({ decreaseQty, instant? })`, `delegateStake({ target, stakeQty })`, `decreaseDelegateStake({ target, decreaseQty, instant? })`, `redelegateStake({ source, target, stakeQty, vaultId? })`, `instantWithdrawal({ gatewayAddress?, vaultId })`, `cancelWithdrawal({ gatewayAddress?, vaultId })`, `setPrimaryName({ name })`, `requestPrimaryName({ name })`, `createVault({ quantity, lockLengthMs })`, `extendVault({ vaultId, extendLengthMs })`, `increaseVault({ vaultId, quantity })`, `revokeVault({ vaultId, recipient })`, `saveObservations({ reportTxId, failedGateways })`
 
 ### ANT Methods
-`ANT.init({ signer?, processId })` — initialize ANT client
-`ANT.spawn({ signer, state: { name, ticker, description } })` — mint new ANT (Metaplex Core NFT)
+`await ANT.init({ processId, rpc, rpcSubscriptions?, signer? })` — initialize an ANT client (`rpcSubscriptions` and `signer` for writes)
+`ANT.spawn({ rpc, rpcSubscriptions, signer, state: { name, ... } })` — mint a new ANT (Metaplex Core NFT); returns `{ processId, mint, signature }`
 `getInfo()`, `getState()`, `getRecord({ undername })`, `getRecords()`, `getOwner()`, `getControllers()`
-`setRecord({ undername, transactionId, ttlSeconds })`, `removeRecord({ undername })`, `transfer({ target })`, `addController({ controller })`, `removeController({ controller })`, `setName({ name })`, `setTicker({ ticker })`
+`setBaseNameRecord({ transactionId, ttlSeconds })`, `setUndernameRecord({ undername, transactionId, ttlSeconds })`, `removeRecord({ undername })`, `transfer({ target })`, `addController({ controller })`, `removeController({ controller })`, `setName({ name })`, `setTicker({ ticker })`
 
 ### Turbo Methods
 `TurboFactory.authenticated({ privateKey, token })` or `TurboFactory.unauthenticated()`

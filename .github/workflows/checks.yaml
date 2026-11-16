@@ -1,0 +1,47 @@
+name: Checks
+
+# Content and code checks on every pull request. Deploys are manual, so this
+# is the only place a broken link, a stale SDK sample or a type error is
+# caught before it reaches main.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22.14.0"
+          cache: "yarn"
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Lint
+        run: yarn lint
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Check links and anchors
+        run: yarn check-links
+
+      - name: Check SDK code samples
+        run: yarn check-samples
+
+      # Report-only until the style pass lands; the summary shows the trend.
+      - name: Writing guidelines (report)
+        run: |
+          { echo '### Writing guidelines'; echo '```'; yarn -s lint-prose; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
