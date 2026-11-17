@@ -1,276 +1,125 @@
 ---
-title: "Upgrading your Gateway"
+title: "Upgrading your gateway"
 description: "Step-by-step guide to upgrading your ar.io Gateway to the latest version safely without losing data or progress"
 ---
 
-Upgrade your ar.io gateway to each new release to get its fixes and security updates. Indexed data lives outside Docker, so neither upgrading the gateway nor pruning Docker erases your data or progress.
+Upgrade your gateway to each new release to get its fixes and security updates. Your indexed data is stored in the `data/` directory on the host, not inside the containers, so upgrading keeps your data and indexing progress.
 
-## Prerequisites
+## Before you start
 
-- Your Gateway should have been cloned using git. If you haven't, follow the [installation instructions](/build/run-a-gateway/quick-start).
+- Your gateway must have been set up from a git clone of the `ar-io-node` repository. If it wasn't, follow the [installation instructions](/build/run-a-gateway/quick-start).
+- Find your current release in the `release` field of `https://<your-gateway>/ar-io/info`. A release ending in `-pre` means you run the `develop` branch; the steps below move you to `main`.
+- Read the [release-specific steps](#release-specific-steps) for every release you are upgrading past, and the [GitHub releases](https://github.com/ar-io/ar-io-node/releases) or [CHANGELOG](https://github.com/ar-io/ar-io-node/blob/main/CHANGELOG.md) for new environment variables. New releases are also announced in the [ar.io Discord](https://discord.com/invite/HGG52EtTc2).
 
-## Checking your Release Number
+## Upgrade your gateway
 
-Effective with release 3, you can view the currently implemented release on any gateway by visiting `https://<gateway>/ar-io/info` in a browser. Be sure to replace `<gateway>` with the domain of the gateway you are checking.
-
-If the release number displayed includes `-pre` it means that your gateway is using the `develop` branch of the github repo for the gateway code. Follow steps in our [troubleshooting guide](/build/run-a-gateway/manage/troubleshooting) to switch over to the more stable `main` branch.
-
-Announcements will be made in our [discord server](https://discord.com/invite/HGG52EtTc2) showing each new release.
-
-## Upgrade Process
-
-<Tabs items={['Complete Steps', 'Optional Pruning', 'Environment Variables']}>
-<Tab value="Complete Steps">
-
-### Full Upgrade Process
+Run these commands from your gateway's directory. On Windows, leave out `sudo`.
 
 <Steps>
 <Step>
-### Pull Latest Changes
-
-Navigate to your cloned repository directory and execute:
+### Pull the new release
 
 ```bash
+git checkout main
 git pull
 ```
 
 </Step>
 
 <Step>
-### Shut Down Docker
+### Update `.env`
 
-Stop your gateway:
-
-<Tabs items={['Linux', 'Windows']}>
-<Tab value="Linux">
-
-```bash
-sudo docker compose down -v
-```
-
-</Tab>
-
-<Tab value="Windows">
-
-```bash
-docker compose down -v
-```
-
-</Tab>
-</Tabs>
+- Add or change any variables the release notes ask for.
+- If you pin image tags in `.env` (`CORE_IMAGE_TAG`, `ENVOY_IMAGE_TAG`, `OBSERVER_IMAGE_TAG` and others), update them to the new release's values, or remove them to use the defaults in `docker-compose.yaml`. A pinned tag overrides the default, so a stale pin keeps the old image running.
 
 </Step>
 
 <Step>
-### Check for New Environment Variables
+### Stop the gateway
 
-Read the update release change logs and community announcements to see if the new version includes any new environmental variables that you should set before restarting your gateway.
+```bash
+sudo docker compose down
+```
 
 </Step>
 
 <Step>
-### Restart the Gateway
-
-Start your gateway with the new version:
-
-<Tabs items={['Linux', 'Windows']}>
-<Tab value="Linux">
+### Start the gateway
 
 ```bash
 sudo docker compose up -d
 ```
 
-</Tab>
+Docker pulls the images named in `docker-compose.yaml`, so you don't need `--build`.
 
-<Tab value="Windows">
+If you normally start your gateway with `-f` files or `--profile` flags (for example `-f docker-compose.yaml -f docker-compose.grafana.yaml`, or `--profile clickhouse`), pass the same ones to `down` and `up`. Passing any `-f` stops Docker Compose from loading `docker-compose.override.yaml` automatically, so name it too if you use one.
 
-```bash
-docker compose up -d
-```
+</Step>
 
-</Tab>
-</Tabs>
+<Step>
+### Check the upgrade
+
+Check that `https://<your-gateway>/ar-io/info` shows the new release, that every container is running (`sudo docker compose ps`), and that the core logs show no repeating errors (`sudo docker compose logs -f core`).
 
 </Step>
 </Steps>
 
-You don't need the `--build` flag: Docker uses the image named in `docker-compose.yaml`.
+### Free disk space (optional)
 
-</Tab>
+Old images stay on disk after an upgrade. To remove every image no container uses:
 
-<Tab value="Optional Pruning">
+```bash
+sudo docker image prune -a
+```
 
-### Docker Pruning (Optional)
-
-It's a good practice to clean up unused Docker resources after shutting down your gateway.
-
-<Callout type="warning" title="Important">
-  This will erase all inactive docker containers on your machine. If you use
-  docker for anything beyond running a gateway be extremely careful using this
-  command.
+<Callout type="warning" title="Other Docker projects">
+  This also removes unused images of any other Docker project on the machine.
 </Callout>
 
-<Steps>
-<Step>
-### Shut Down Gateway
+## Release-specific steps
 
-First, stop your gateway:
+Some releases need a step beyond the upgrade above. Do these when you upgrade to the release named, or past it. Each release's [CHANGELOG entry](https://github.com/ar-io/ar-io-node/blob/main/CHANGELOG.md) has the full list of changes.
 
-<Tabs items={['Linux', 'Windows']}>
-<Tab value="Linux">
+### Release 88
 
-```bash
-sudo docker compose down -v
-```
+- **Purge cached JSON wrappers.** Before Release 88, a gateway could cache arweave.net's JSON description of a data item in place of the item, and then serve it with the wrong content type and hash. Observers report these as `dataHashDigest` and `contentType` mismatches. Release 88 fixes the fetch, but copies already cached keep being served until you purge them. A wrapped copy starts with `{"accept-ranges"`. For each affected ID, call the new `POST /ar-io/admin/invalidate-data`, then purge any NGINX or CDN cache in front of the gateway. See [Purging cached JSON wrappers](/build/run-a-gateway/manage/troubleshooting#purging-cached-json-wrappers).
+- **Expect 503s for slow chunks.** `/chunk/<offset>` now answers `503` with `Retry-After: 5`, not `404`, when it couldn't fetch a chunk in time. Your dashboards will count these as 5xx errors.
+- **Raise `GATEWAYS_GQL_MAX_HOPS` on a federation-only gateway.** GraphQL queries fanned out to `GATEWAYS_GQL_URLS` now stop after `GATEWAYS_GQL_MAX_HOPS` gateways (default 2). If your gateway sets `GATEWAYS_GQL_INCLUDE_LOCAL=false` and other gateways query it through one more hop, raise it, for example to 3.
 
-</Tab>
+### Release 87
 
-<Tab value="Windows">
+- **Upgrade gateways that take `parquet-l1` bands.** Gateways that subscribe to `parquet-l1` need Release 87 to take bands published in the new `l1-4` layout. With `l1-4` bands, `L1_BAND_IMPORT_ALLOW_UNVERIFIED` is no longer needed.
+- **Remove `INDEX_EXPORT_L1_WITNESS_MAX_MISSING`** from `.env` if you set it. The setting is gone.
 
-```bash
-docker compose down -v
-```
+### Release 86
 
-</Tab>
-</Tabs>
-
-</Step>
-
-<Step>
-### Prune Docker System
-
-Clean up unused Docker resources:
-
-<Tabs items={['Linux', 'Windows']}>
-<Tab value="Linux">
-
-```bash
-sudo docker system prune
-```
-
-</Tab>
-
-<Tab value="Windows">
-
-```bash
-docker system prune
-```
-
-</Tab>
-</Tabs>
-
-</Step>
-
-<Step>
-### Restart Gateway
-
-Start your gateway:
-
-<Tabs items={['Linux', 'Windows']}>
-<Tab value="Linux">
-
-```bash
-sudo docker compose up -d
-```
-
-</Tab>
-
-<Tab value="Windows">
-
-```bash
-docker compose up -d
-```
-
-</Tab>
-</Tabs>
-
-</Step>
-</Steps>
-
-</Tab>
-
-<Tab value="Environment Variables">
-
-### Checking for New Environment Variables
-
-New gateway releases may introduce new environment variables that you need to configure.
-
-<Steps>
-<Step>
-### Review Release Notes
-
-Check the release notes and community announcements for any new environment variables:
-
-- Review the [GitHub releases](https://github.com/ar-io/ar-io-node/releases)
-- Check the [ar.io Discord](https://discord.com/invite/HGG52EtTc2) for announcements
-- Look for changes in the `.env.example` file
-
-</Step>
-
-<Step>
-### Update Your .env File
-
-Add any new environment variables to your `.env` file:
-
-```bash
-# Example: Add new environment variables
-NEW_FEATURE_ENABLED=true
-NEW_CONFIG_VALUE=default_value
-```
-
-</Step>
-
-<Step>
-### Restart Gateway
-
-Restart your gateway to apply the new environment variables:
-
-<Tabs items={['Linux', 'Windows']}>
-<Tab value="Linux">
-
-```bash
-sudo docker compose up -d
-```
-
-</Tab>
-
-<Tab value="Windows">
-
-```bash
-docker compose up -d
-```
-
-</Tab>
-</Tabs>
-
-</Step>
-</Steps>
-
-</Tab>
-</Tabs>
-
-## Release-Specific Steps
-
-Some releases need a step beyond pulling and restarting. Do these when you upgrade to the release named, or past it.
+- **Upgrade now: this is an urgent security release.** It moves the core image from Node.js 20 to 22.23.4, and the default observer image to Node.js 22.23.4, to fix a remote code execution bug in Node's Brotli decoder (CVE-2026-111497) and two TLS hostname-check bypasses. Upgrade both images.
+- **Update a pinned `OBSERVER_IMAGE_TAG` or `CORE_IMAGE_TAG`.** A tag you set in `.env` overrides the new default and keeps the vulnerable image. Update it, or remove it.
+- **Use Node.js 22 if you run from source.** The repository's `.nvmrc` now names Node.js 22.
+- **Drop a Brotli workaround.** If you stopped Brotli decoding with a `NODE_OPTIONS=--require` shim, you can remove it once you run the new image.
+- **L1 band imports are stricter.** With `L1_BAND_IMPORT_ENABLED=true`, the gateway refuses `l1-3` bands below height 2,000,000 unless you set `L1_BAND_IMPORT_ALLOW_UNVERIFIED=true`. Release 87's `l1-4` bands don't need it.
+- **Publishers of `parquet-l2` indexes: upgrade subscribers first.** Every band is now built in the `l2-2` layout, and a subscriber older than Release 86 refuses `l2-2` bands.
 
 ### Release 85
 
-- **Index Sharing is on by default.** After the upgrade, a plain `docker compose up -d` also starts the [Index Sharing](/build/run-a-gateway/manage/index-sharing#on-by-default) sidecar and its torrent engine. Your gateway subscribes to turbo-gateway.com's root transaction index, downloads about 22 GB of bands, searches them first for root transaction and offset lookups, and seeds them to other gateways. Before upgrading:
+- **Index Sharing is on by default.** A plain `docker compose up -d` now also starts the [Index Sharing](/build/run-a-gateway/manage/index-sharing#on-by-default) sidecar and its torrent engine. Your gateway subscribes to turbo-gateway.com's root transaction index, downloads about 22 GB of bands, searches them first for root transaction and offset lookups, and seeds them to other gateways. Before upgrading:
   - Keep at least 64 GiB free on the filesystem that holds `data/indexes` (`INDEX_SWARM_MAX_DISK_BYTES`, 64 GiB by default with the default subscription), or set a lower budget.
-  - Allow about 0.4 GB more memory: the sidecar about 90 MB, the engine about 300 MB.
-  - Make sure nothing else on the host holds port 6881 (the engine's peer port, TCP and UDP) or 6969 on `127.0.0.1` (the tracker's port, which the sidecar publishes on the loopback address only): either container won't start without its port. Opening 6881 to the internet is recommended, not required.
+  - Allow about 0.4 GB more memory: about 90 MB for the sidecar and 300 MB for the engine.
+  - Make sure nothing else on the host uses port 6881 (the engine's peer port, TCP and UDP) or port 6969 on `127.0.0.1` (the tracker, which the sidecar publishes on the loopback address only). Neither container starts without its port. Opening 6881 to the internet is recommended, not required.
   - On metered bandwidth, lower `INDEX_SWARM_UPLOAD_LIMIT_BYTES_PER_SEC` (10 MB/s by default) and `INDEX_SWARM_UPLOAD_DAILY_LIMIT_BYTES` (100 GB a day).
-  - To opt out, set `INDEX_SWARM_SUBSCRIBE=[]` in `.env` before you upgrade. Bands that are already installed stay in use and seeded; see [Turning It Off](/build/run-a-gateway/manage/index-sharing#turning-it-off).
-  - If you set up Index Sharing on Release 84, your settings in `.env` still apply: an `INDEX_SWARM_SUBSCRIBE`, `INDEX_SWARM_ENGINE_AUTH`, `INDEX_SWARM_MAX_DISK_BYTES`, `CDB64_ROOT_TX_INDEX_SOURCES` or `ROOT_TX_LOOKUP_ORDER` you set is used unchanged, and installed bands are kept, not downloaded again. A subscription you set has no disk cap unless `INDEX_SWARM_MAX_DISK_BYTES` is set; the Release 84 setup script set one.
-  - If your sidecar ran over HTTP only on Release 84, it now gets the torrent engine too, with a generated password. To keep HTTP only, see [HTTP Only](/build/run-a-gateway/manage/index-sharing#http-only).
-- **Range misses now fill the cache in the background.** `BACKGROUND_CACHE_RANGE_MAX_SIZE` defaults to 10 GiB (it was `0`, off) and `BACKGROUND_CACHE_RANGE_CONCURRENCY` to 4 (it was 1). A range request for an uncached item now fetches only the range, and then the whole item, up to 10 GiB, is fetched into the cache in the background. Expect the data cache to grow faster with items read by range, such as video, SQLite or Parquet. To keep the old behaviour, set `BACKGROUND_CACHE_RANGE_MAX_SIZE=0`.
+  - To opt out, set `INDEX_SWARM_SUBSCRIBE=[]` in `.env` before you upgrade. Bands already installed stay in use. On Release 85 they are still seeded; from Release 86 opting out also stops seeding them, and the files are kept. See [Turning it off](/build/run-a-gateway/manage/index-sharing#turning-it-off).
+  - If you set up Index Sharing on Release 84, your settings still apply: an `INDEX_SWARM_SUBSCRIBE`, `INDEX_SWARM_ENGINE_AUTH`, `INDEX_SWARM_MAX_DISK_BYTES`, `CDB64_ROOT_TX_INDEX_SOURCES` or `ROOT_TX_LOOKUP_ORDER` you set is used unchanged, and installed bands are kept, not downloaded again. A subscription you set has no disk cap unless `INDEX_SWARM_MAX_DISK_BYTES` is set; the Release 84 setup script set one.
+  - If your sidecar ran over HTTP only on Release 84, it now gets the torrent engine too, with a generated password. To keep HTTP only, see [HTTP only](/build/run-a-gateway/manage/index-sharing#http-only).
+- **Range misses now fill the cache in the background.** `BACKGROUND_CACHE_RANGE_MAX_SIZE` now defaults to 10 GiB (it was `0`, off) and `BACKGROUND_CACHE_RANGE_CONCURRENCY` to 4 (it was 1). A range request for an uncached item fetches only the range, and then the whole item, up to 10 GiB, is fetched into the cache in the background. Expect the data cache to grow faster with items read by range, such as video, SQLite or Parquet files. To keep the old behaviour, set `BACKGROUND_CACHE_RANGE_MAX_SIZE=0`.
 - **JSON is served without an added charset.** A JSON item is now sent with the `Content-Type` it was uploaded with, not `application/json; charset=utf-8`. Responses an NGINX or CDN cache already holds keep the old header until they expire or are purged.
-- **Drop `tip-5.arweave.xyz` from your own chunk node lists.** Release 85 removes it from the default preferred chunk nodes because it stopped answering. If you set `PREFERRED_CHUNK_GET_NODE_URLS` or `PREFERRED_CHUNK_POST_NODE_URLS`, remove it there too.
-- **Upgrade the Envoy image with core.** Peers now announce to an [Index Sharing](/build/run-a-gateway/manage/index-sharing) publisher's tracker through the gateway, at `/ar-io/indexes/announce`, and that route is Envoy's. An older Envoy passes the path to core, which answers `404`, so every announce fails without an error. If you set `ENVOY_IMAGE_TAG` in `.env`, update it too.
-- **Use the same `-f` files and `--profile` flags.** The `index-swarm` sidecar, the torrent engine's setup step (`index-swarm-engine-init`) and `index-export` run the core image (`CORE_IMAGE_TAG`, or `INDEX_EXPORT_IMAGE_TAG` for `index-export` when set). From Release 85 the sidecar and the engine start by default; `index-export` is still in a compose profile that is off unless you name it. The torrent engine itself is qBittorrent's image. Pass the same `-f` files and `--profile` flags you start them with, so they move to the new core image along with core. Passing `-f` at all turns off loading `docker-compose.override.yaml` automatically, so name every compose file you normally use.
-- **Publishers of torrents: move peers to the gateway's tracker route.** The setup script keeps an existing `INDEX_SWARM_TRACKERS`, so a publisher set up on Release 84 still announces to the tracker's own port (6969), which must stay open. From Release 85 that port is published on `127.0.0.1` only, so until you move peers to the gateway's route, set `INDEX_SWARM_TRACKER_HOST_IP=0.0.0.0` in `.env` before you upgrade, or peers can't reach the tracker. To announce through the gateway instead, set `INDEX_SWARM_TRACKERS=https://<your-gateway>/ar-io/indexes/announce` and restart the sidecar. On its next scan it rebuilds each band's `.torrent` with the new tracker; the infohashes don't change, since trackers sit outside the info dictionary.
-- **Update a pinned `OBSERVER_IMAGE_TAG`.** Release 85 moves the default observer image to `c5e98ddc`, which runs the [offset checks](/build/run-a-gateway/manage/troubleshooting#failed-offset-chunk-proof-checks) on every gateway each epoch. Your own gateway is checked too: a gateway fails when all 4 sampled offsets fail, so upgrade core with the observer. A tag you set in `.env` overrides the compose default, so update it there.
-- **Purge gzip bodies cached before the upgrade.** Before Release 85, a gateway could serve a gzip-compressed upload decoded, either still labelled `Content-Encoding: gzip` or without the header. Bodies an NGINX `proxy_cache` stored before the upgrade keep the wrong body until they expire or are purged. [Cache Bypass Header](/build/run-a-gateway/manage/nginx-caching#cache-bypass-header) shows how to force-refresh one. When your gateway finds a decoded copy in its own cache, it logs a warning and counts it in `served_content_encoding_dropped_total`.
-- **Don't trust gateways older than the gzip fix.** A gateway older than that fix (#964, first released in Release 85) can serve a gzip-compressed upload decoded. Release 85 refuses those bodies when the response's headers give them away, but a decoded body sent with neither `Content-Encoding` nor the tag headers can't be told apart. Don't list such gateways in `TRUSTED_GATEWAYS_URLS` or `TRUSTED_GATEWAY_URL`.
+- **Drop `tip-5.arweave.xyz` from your own chunk node lists.** Release 85 removed it from the default preferred chunk nodes because it stopped answering. If you set `PREFERRED_CHUNK_GET_NODE_URLS` or `PREFERRED_CHUNK_POST_NODE_URLS`, remove it there too.
+- **Upgrade the Envoy image with core.** Peers now announce to an Index Sharing publisher's tracker through the gateway, at `/ar-io/indexes/announce`, and Envoy routes that path. An older Envoy passes it to core, which answers `404`, so every announce fails without an error. If you set `ENVOY_IMAGE_TAG` in `.env`, update it too.
+- **Index Sharing services run the core image.** The `index-swarm` sidecar, the engine's setup step (`index-swarm-engine-init`) and `index-export` run the core image (`CORE_IMAGE_TAG`, or `INDEX_EXPORT_IMAGE_TAG` for `index-export` when set), so they move to the new image with core when you pass your usual `-f` files and `--profile` flags. The sidecar and the engine start by default; `index-export` is in a compose profile that is off unless you name it.
+- **Torrent publishers: move peers to the gateway's tracker route.** The setup script keeps an existing `INDEX_SWARM_TRACKERS`, so a publisher set up on Release 84 still announces to the tracker's own port (6969), which must stay reachable. From Release 85 that port is published on `127.0.0.1` only. Until you move peers to the gateway's route, set `INDEX_SWARM_TRACKER_HOST_IP=0.0.0.0` in `.env` before you upgrade, or peers can't reach the tracker. To announce through the gateway instead, set `INDEX_SWARM_TRACKERS=https://<your-gateway>/ar-io/indexes/announce` and restart the sidecar. On its next scan it rebuilds each band's `.torrent` with the new tracker. The infohashes don't change, since trackers sit outside the info dictionary.
+- **Update a pinned `OBSERVER_IMAGE_TAG`.** Release 85's observer runs the [offset checks](/build/run-a-gateway/manage/troubleshooting#failed-offset-chunk-proof-checks) on every gateway each epoch, including yours: a gateway fails when all 4 sampled offsets fail, so upgrade core with the observer. A tag you set in `.env` overrides the compose default, so update it there.
+- **Purge gzip bodies cached before the upgrade.** Before Release 85, a gateway could serve a gzip-compressed upload decoded, either still labelled `Content-Encoding: gzip` or without the header. Bodies an NGINX `proxy_cache` stored before the upgrade keep the wrong body until they expire or are purged. [Cache bypass header](/build/run-a-gateway/manage/nginx-caching#cache-bypass-header) shows how to refresh one. When your gateway finds a decoded copy in its own cache, it logs a warning and counts it in `served_content_encoding_dropped_total`.
+- **Don't trust gateways older than the gzip fix.** A gateway older than Release 85 can serve a gzip-compressed upload decoded. Release 85 refuses those bodies when the response's headers give them away, but a decoded body sent with neither `Content-Encoding` nor the tag headers can't be told apart. Don't list such gateways in `TRUSTED_GATEWAYS_URLS` or `TRUSTED_GATEWAY_URL`.
 
-That's it! Your ar.io Gateway is now upgraded to the latest version. Ensure to test and verify that everything is functioning as expected. If you encounter any issues, reach out to the [ar.io community](https://discord.com/invite/HGG52EtTc2) for assistance.
+## Getting help
+
+If something doesn't work after an upgrade, see [Troubleshooting](/build/run-a-gateway/manage/troubleshooting) or ask in the [ar.io community Discord](https://discord.com/invite/HGG52EtTc2).

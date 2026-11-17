@@ -5,354 +5,399 @@ description: "Troubleshooting guide and FAQ for ar.io gateway operators: common 
 
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 
-This page collects common gateway problems and their fixes. Start with the quick lookup table, then read the matching section below.
+Find your symptom in the quick lookup table, then open the matching section below for the fix.
 
-## Quick Lookup
+## Quick lookup
 
-Below is a quick summary of what you should check when troubleshooting your gateway. Find more detailed information in the sections below.
+| Symptom | What to check |
+| --- | --- |
+| Release number is old or ends in `-pre` | Upgrade from the `main` branch. |
+| Gateway shows as offline on https://gateways.ar.io | Check that `https://<your-gateway>/ar-io/healthcheck` answers. |
+| `/ar-io/observer/reports/current` says "Report pending" | Nothing. Wait for the report. |
+| Observing your gateway shows failures | `AR_IO_WALLET`, `ARNS_ROOT_HOST`, wildcard DNS and certificates, and `/chunk/<offset>`. |
+| Failed offset (chunk-proof) checks | Upgrade core to Release 85 or later. See [Failed offset (chunk-proof) checks](#failed-offset-chunk-proof-checks). |
+| `.env` changes have no effect | Restart the gateway with `docker compose`. |
+| Out of disk space, but the disk has free space | Inode exhaustion (`df -i`). |
+| ArNS names don't load | `ARNS_ROOT_HOST` in `.env`, and the wildcard DNS record. |
+| "Your connection is not private" | Renew your SSL certificates. |
+| 404 page from NGINX | NGINX configuration, and whether the gateway is running. |
+| 502 from NGINX | The gateway's logs. |
+| certbot can't issue certificates | Wait for the DNS TXT records to propagate. |
 
-| Issue                                                        | What to Check                                                             |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| My release number is wrong                                   | Pull the latest github updates and make sure you are on the `main` branch |
-| Gateway appears offline on Viewblock or https://gateways.ar.io        | Probably fine, but verify that your gateway is still running.             |
-| '/ar-io/observer/reports/current' just says "report pending" | Normal behavior, wait for the report to complete.                         |
-| Observing my gateway shows failures                          | Check `AR_IO_WALLET` and `ARNS_ROOT_HOST` settings, and that `/chunk/<offset>` works. |
-| Failed offset (chunk-proof) checks                           | Upgrade core to Release 85 or later. See [Failed Offset Checks](#failed-offset-chunk-proof-checks). |
-| Updated .env settings not reflected on gateway               | Rebuild your gateway after editing .env file.                             |
-| Out of disk space error                                      | Check for inode exhaustion and delete files if necessary.                 |
-| Can't load ArNS names                                        | Check `ARNS_ROOT_HOST` setting in .env file, and DNS records.             |
-| "Your connection is not private" error                       | Generate or renew SSL certificates.                                       |
-| 404/Nginx error when accessing domain                        | Check Nginx settings and restart Nginx if necessary.                      |
-| 502 error from Nginx                                         | Check for errors in your gateway.                                         |
-| Trouble generating SSL certificates                          | Ensure TXT records have propagated and follow certbot instructions.       |
-
-## General Troubleshooting
-
-### My Gateway Seems to be Running but...
+## General troubleshooting
 
 <Accordions>
-<Accordion title="My release number doesn't match the latest version, or includes'-pre'">
+<Accordion title="My release number is old, or ends in -pre">
 
-If your release number when you go to `<your-gateway>/ar-io/info` is lower than the current release, you simply need to upgrade your gateway in order to reach the latest release.
+Your release number is the `release` field of `https://<your-gateway>/ar-io/info`. If it is lower than the current release, [upgrade your gateway](/build/run-a-gateway/manage/upgrading-a-gateway).
 
-If your release number includes the suffix "-pre" it means you are running your gateway from the development branch of the github repository, instead of the main branch. The development branch is used for staging work that the engineering team is in the middle of. Because of this, it can be much less stable than the main branch used for production and can cause significant issues.
-
-Ensure that you are running the latest release, from the main branch, by running the below commands in your terminal:
+A release ending in `-pre`, such as `89-pre`, means your gateway runs the `develop` branch. That branch holds unreleased work and is less stable than `main`. Switch to `main` from your gateway's directory:
 
 ```console
 sudo docker compose down --rmi all
-
 git checkout main
-
 git pull
-
 sudo docker compose up -d
 ```
 
-If this doesn't resolve the issue, you can also try a more extreme method of clearing out the incorrect docker images:
+If the old images stay in use, remove every unused Docker image and start again:
 
 ```console
 sudo docker compose down
-
 sudo docker system prune -a
-
 sudo docker compose up -d
 ```
 
-</Accordion>
-
-<Accordion title="It appears offline on https://gateways.ar.io">
-
-Viewblock and https://gateways.ar.io use a very simple ping method for determining if a gateway is "up". This ping can fail while the gateway works normally, so showing as down is not cause for concern. Just verify that your gateway is still running, and wait. Your gateway will show as up again soon.
+`docker system prune -a` also removes stopped containers, unused networks and the images of any other Docker project on the machine.
 
 </Accordion>
 
-<Accordion title="<gateway>/ar-io/observer/reports/current just says 'report pending'">
+<Accordion title="My gateway shows as offline on https://gateways.ar.io">
 
-This is normal. Your Observer is working to generate a report and that report will be displayed once it is complete.
+The Network Portal checks a gateway by requesting `https://<your-gateway>/ar-io/healthcheck` from your browser. That request can fail while the gateway works, for example when your own network blocks it. Check the gateway from another machine:
+
+```console
+curl https://<your-gateway>/ar-io/healthcheck
+```
+
+If it answers, your gateway is up and the portal will show it as online again.
+
+</Accordion>
+
+<Accordion title="/ar-io/observer/reports/current says 'Report pending'">
+
+This is normal. The observer answers `{"message":"Report pending"}` until it has a report for the current epoch.
 
 </Accordion>
 
 <Accordion title="Observing my gateway shows failures">
 
-When observing a gateway, there are three pass/fail tests. A gateway must pass all three:
+An observation of a gateway passes only if all three of its checks pass:
 
-- Ownership: This tests to see if the value set in your gateway `AR_IO_WALLET` value (in .env) matches the wallet used to join ar.io. If they don't match, update the value in your .env file and restart your gateway.
+- **Ownership.** The `wallet` your gateway reports at `/ar-io/info` must match the wallet the gateway joined the network with. It comes from `AR_IO_WALLET` in `.env`. If it is wrong, fix it and restart the gateway.
+- **ArNS.** At least 80% of the ArNS names checked must resolve to the same data as on the observer's reference gateway. If they fail, check that `ARNS_ROOT_HOST` is set in `.env`, and that you have a wildcard DNS record and certificate for `*.<your-gateway>`.
+- **Offsets (chunk proofs).** Your gateway must serve `/chunk/<offset>` with a Merkle proof that validates against the chain. See [Failed offset (chunk-proof) checks](#failed-offset-chunk-proof-checks).
 
-- ArNS Assessment: This tests to see if a gateway is able to resolve ArNS names correctly. The first thing you should check is if you have the `ARNS_ROOT_HOST` value set in your .env file. If not, set the value and restart your gateway. If this value is set, check to make sure you have current DNS records and SSL certificates for wildcard subdomains on your gateway.
-
-- Offsets (chunk proofs): Each epoch, every gateway (by default) must serve `/chunk/<offset>` with a Merkle proof that validates against the chain. See [Failed Offset (Chunk-Proof) Checks](#failed-offset-chunk-proof-checks).
-
-By default, each observer checks a gateway 3 times an epoch (`OBSERVATIONS_PER_GATEWAY`) and passes it if at least 2 of those checks pass (`MAJORITY_VOTE_THRESHOLD`), so one bad moment doesn't fail you.
+[Troubleshooting failed epochs](#troubleshooting-failed-epochs) explains how observers count these checks across an epoch.
 
 </Accordion>
 
-<Accordion title="I updated my .env settings, but nothing changed on my gateway">
+<Accordion title="I changed .env, but nothing changed on my gateway">
 
-Once you edit your .env file, you need to "rebuild" your gateway for the changes to take effect. As of release 3, every time you start your gateway with `docker compose` it is automatically rebuilt. So all you need to do is shut your gateway down and restart it.
+The gateway reads `.env` only when its containers start. Restart it from your gateway's directory:
 
-</Accordion>
-
-<Accordion title="I am getting an out of disk space error, but I still have open storage space on my computer">
-
-The most likely cause of this is inode exhaustion. Test this by running the command:
-
+```console
+sudo docker compose down
+sudo docker compose up -d
 ```
+
+</Accordion>
+
+<Accordion title="I get an out of disk space error, but the disk has free space">
+
+The filesystem has probably run out of inodes, so it can't create new files even with space free. Check:
+
+```console
 df -i
 ```
 
-If one of the lines in the output says 100%, you have run out of inodes and so your filesystem is not capable of creating new files, even if you have available space. The solution is to delete files from your `data` folder in order to free up inodes.
-
-This was a common issue prior to release #3, when Redis caching was introduced to reduce the number of small files created. If you are using an older version of the gateway, consider upgrading to mitigate the risk of inode exhaustion.
+If a line shows `IUse%` at 100%, free inodes by deleting files from the gateway's cache directories, `data/chunks` and `data/contiguous`. The gateway fetches deleted cache data again when it needs it. Don't delete `data/sqlite`: it holds your gateway's index.
 
 </Accordion>
 
-<Accordion title="I can't load ArNS names, or my gateway won't resolve them">
+<Accordion title="My gateway won't resolve ArNS names">
 
-The first thing you should check if your gateway is not resolving ArNS names is that you have `ARNS_ROOT_HOST` set in your .env file. If not, set it to your domain name used for the gateway. For example, `ARNS_ROOT_HOST=turbo-gateway.com`.
-
-Once this value is set, restart your gateway for the changes to take effect.
-
-If that doesn't resolve the issue, check your dns records. You need to have a wildcard subdomain ( \*.< your-domain > ) set with your domain registrar so that ArNS names will actually point at your gateway. You can set this record, and generate an SSL certificate for it, in the same way you set the records for your primary domain.
+1. Check that `ARNS_ROOT_HOST` is set in `.env` to your gateway's domain, for example `ARNS_ROOT_HOST=turbo-gateway.com`, then restart the gateway.
+2. Check your DNS. ArNS names are served on subdomains, so you need a wildcard record (`*.<your-domain>`) pointing at your gateway, and a certificate that covers it. Set it up the same way as the record for your main domain.
 
 </Accordion>
 
-<Accordion title="When I try to access my gateway in a browser I get a 'Your connection is not private' error">
+<Accordion title="My browser shows 'Your connection is not private'">
 
-This error message means that your SSL certificates have expired. Expired certificates are also the most common reason a working gateway suddenly stops. Renew them by running the same certbot command you used when you set up your gateway:
+Your SSL certificates have expired. Expired certificates are the most common reason a working gateway suddenly stops. Renew them with the certbot command you used to set up your gateway:
 
-```
+```console
 sudo certbot certonly --manual --preferred-challenges dns -d <your-domain>.com -d '*.<your-domain>.com'
 ```
 
-Certbot certificates expire after 90 days, so you need to rerun this command every time, unless you set up [automatic renewal](/build/run-a-gateway/manage/ssl-certs). After renewing, restart NGINX (`sudo service nginx restart`): it can keep serving the old certificates until it restarts.
+certbot certificates expire after 90 days, so you have to rerun this command each time unless you set up [automatic renewal](/build/run-a-gateway/manage/ssl-certs). After renewing, restart NGINX, which keeps serving the old certificates until it restarts:
 
-</Accordion>
-
-<Accordion title="I set my gateway up, but when I go to my domain I get a 404/Nginx error">
-
-A 404 error from Nginx (the reverse proxy in the setup guide) means your domain points at the machine running your gateway. Either your Nginx settings are not configured correctly, or your gateway is not running.
-
-The "Set Up Networking" step of the [production setup](/build/run-a-gateway/quick-start#production-setup-with-custom-domain) has detailed instructions on configuring your Nginx server. If all else fails, try restarting Nginx, that usually clears any issues with the server clinging to old configurations.
-
-```
+```console
 sudo service nginx restart
 ```
 
 </Accordion>
 
-<Accordion title="When I visit my domain I see a 502 error from Nginx">
+<Accordion title="My domain shows a 404 page from NGINX">
 
-A 502 error from Nginx means that Nginx is working correctly, but it is receiving an error from your gateway when it tries to forward traffic.
+A 404 page from NGINX means your domain points at the right machine, but NGINX isn't forwarding requests to the gateway. Either NGINX is misconfigured or the gateway isn't running.
 
-</Accordion>
+Follow the networking steps in the [production setup](/build/run-a-gateway/quick-start#production-setup-with-custom-domain) to check your NGINX configuration. Restarting NGINX makes it drop an old configuration it is still holding:
 
-<Accordion title="I am having trouble generating my SSL certificates">
-
-When using the manual certbot command from the setup guide, you need to be sure that you are waiting after creating your TXT records for them to completely propagate. You can check propagation using a tool like [dnschecker.org](https://dnschecker.org).
-
-If you continue to have issues, you can check the [official certbot instructions guide](https://certbot.eff.org/instructions).
+```console
+sudo service nginx restart
+```
 
 </Accordion>
 
+<Accordion title="My domain shows a 502 error from NGINX">
 
-<Accordion title="I see an error in my logs, but everything appears to be working">
-
-- ar.io gateways recover from most temporary errors without affecting normal operation. Be concerned only if the error repeats, or your gateway stops working properly.
-
-</Accordion>
-
-<Accordion title="I was selected as an observer, but my logs say a report was not saved">
-
-- Observers generate and submit their reports at specific times throughout the epoch. This is to ensure a healthy network throughout the entire epoch, not just at the start.
-- Your observer wallet must match the observer wallet associated with your gateway in the ar.io contract. You can check this by navigating to your gateway in https://gateways.ar.io.
+A 502 means NGINX is working, but it got an error, or no answer, from your gateway when it forwarded the request. Check that the gateway is running (`sudo docker compose ps`) and read its logs (`sudo docker compose logs core`).
 
 </Accordion>
 
-<Accordion title="My gateway logs just changed, instead of importing blocks I see 'polling for block'">
+<Accordion title="certbot can't generate my SSL certificates">
 
-- This is normal. It means you have reached the current Arweave block and need to wait for more before you can index them.
+With the manual DNS challenge from the setup guide, wait for your TXT records to propagate before you continue. Check propagation with a tool such as [dnschecker.org](https://dnschecker.org). If it still fails, see the [certbot instructions](https://certbot.eff.org/instructions).
 
 </Accordion>
 
-<Accordion title="Error resolving name with resolver Promise timed out">
+<Accordion title="My logs show errors, but everything works">
 
-- This is normal. If a gateway fails to resolve an arns name within 3 seconds, it will fall back to a trusted gateway (turbo-gateway.com by default) to help resolve the name.
+Gateways recover from most temporary errors without affecting service. Investigate only if an error repeats or the gateway stops working.
+
+</Accordion>
+
+<Accordion title="I was selected as an observer, but my logs say no report was submitted">
+
+- Each observer picks a window covering half the epoch, checks every gateway during it, and submits one report after the window closes. Until then there is nothing to submit.
+- The observer submits only in epochs where it is a prescribed observer. In other epochs it logs that it is not prescribed and skips the submission.
+- Your observer wallet must be the one registered for your gateway. Check it on your gateway's page at https://gateways.ar.io.
+
+</Accordion>
+
+<Accordion title="My logs changed from importing blocks to 'Polling for block'">
+
+This is normal. Your gateway has caught up with the newest Arweave block and is waiting for the next one.
+
+</Accordion>
+
+<Accordion title="My logs show 'Error resolving name with resolver'">
+
+This is normal when it happens now and then. Your gateway first resolves an ArNS name itself, from the chain. If that takes more than 3 seconds (`ARNS_COMPOSITE_RESOLVER_TIMEOUT_MS`), it asks a trusted gateway instead (`TRUSTED_ARNS_GATEWAY_URL`, turbo-gateway.com by default).
 
 </Accordion>
 
 <Accordion title="My gateway failed an epoch">
 
-- There are many reasons a gateway could fail an epoch. Following these steps is usually enough to identify and correct the issue:
-  - Try to visit your gateway in a browser and see if your SSL certs are bad
-  - Try to resolve an ArNS name on your gateway. If it fails to resolve, check the console and your gateway logs for errors
-  - Look at the observation reports that failed your gateway, they will list the reason for failure
-  - If the reports show failed offset checks, see [Failed Offset (Chunk-Proof) Checks](#failed-offset-chunk-proof-checks)
+Work through these checks in order:
+
+1. Open your gateway in a browser and check that its certificate is valid.
+2. Load an ArNS name on your gateway. If it fails, read the browser console and your gateway's logs.
+3. Read the reports of the observers that failed your gateway. Each one lists the reason. See [Accessing the observer report](#accessing-the-observer-report).
+4. If the reports show failed offset checks, see [Failed offset (chunk-proof) checks](#failed-offset-chunk-proof-checks).
 
 </Accordion>
 </Accordions>
 
-## Troubleshooting Failed Epochs
+## Troubleshooting failed epochs
 
 ### Overview
 
-The ARIO Network provides several tools to help troubleshoot problems with a gateway. The most useful is the [Observer](/learn/oip).
+Every gateway on the network runs an [observer](/learn/oip). In each epoch, up to 50 gateways are prescribed as observers. Each prescribed observer checks every gateway and submits one report, which records whether each gateway passed and why it failed.
 
-The Observer, which is a component of every gateway joined to the ARIO Network, checks all gateways in the network to ensure that they are functioning properly, and returning the correct data. The Observer then creates a report of the results of these checks, including the reasons why a gateway might have failed the checks.
+Each observer checks each gateway 3 times in an epoch (`OBSERVATIONS_PER_GATEWAY`), at moments spread over a window covering half the epoch. Its report marks a gateway as failed if fewer than 2 of those observations pass (`MAJORITY_VOTE_THRESHOLD`). One observation passes when:
 
-By default, each observer checks a gateway 3 times during an epoch, and reports it as failed if fewer than 2 of those checks pass. If a gateway fails the checks from more than half of the prescribed observers, the gateway is marked as failed for the epoch, and does not receive any rewards for that epoch.
+- the ownership check passes,
+- at least 80% of the ArNS names checked pass, and
+- the offset check passes.
 
-First, try to resolve data on the failed gateway in a browser. If that does not make the issue clear, use the Observer report to diagnose the problem.
+A gateway fails the epoch when more than half of the observers that submitted a report mark it as failed. A gateway that fails an epoch gets no gateway reward for it. If it was also a prescribed observer and submitted its report, it still gets its observer reward.
 
-### Manual Observation
+To diagnose a failure, first try to load data from the gateway in a browser. If that doesn't show the problem, read the observer reports.
 
-Manual observations may be run on a gateway at any time buy using the [Network Portal](https://gateways.ar.io). This allows operators (or anyone with an interest in the gateway's performance) to check the gateway's performance at any time. To run a manual observation:
+### Manual observation
 
-1. Navigate to the [Network Portal](https://gateways.ar.io)
-2. Select the gateway you are interested in from the list of gateways
-3. Click on the "Observe" button in the top right corner of the page.
+You can run an observation of any gateway at any time from the [Network Portal](https://gateways.ar.io):
 
-![Network Portal gateway page with the Observe button highlighted in the top right, next to Reports](https://turbo-gateway.com/0G52dTWe65abQ6qDGvI99ERAaGU7DHR9srimJXnYRGA)
+1. Open the [Network Portal](https://gateways.ar.io).
+2. Select the gateway from the list of gateways.
+3. Click **Observe**, at the right of the gateway's header, next to **Reports**.
 
-4. Click on the "Run Observation" button in the bottom right corner of the page.
+![Gateway header in the Network Portal, with the Observe link highlighted to the right of Reports](/content/portal-observe-button.png)
 
-![Network Portal Observe page with two ArNS names filled in and the Run Observation button highlighted, above an empty Reports table](https://turbo-gateway.com/A_B_58rufQ0Pj4ri0AKuC0DJn61u5ayO5ONWpkMerQw)
+4. Check the **ArNS names** field, at the right of the Observe header. It holds the current epoch's prescribed names. You can change them or add more, separated by commas.
+5. Click **Run Observation**, next to the field.
 
-Two randomly selected ArNS names will be entered automatically in the "ArNS names" field to the left of the "Run Observation" button. These can be changed, or additional ArNS names can be added to the list before running the observation.
+![Observe page with two prescribed ArNS names in the ArNS names field and the Run Observation button highlighted, above an empty Reports table](/content/portal-run-observation.png)
 
-The Manual observation will run the same checks as the observer, and will display the results on the right side of the page.
+The results open in the **Observation Details** panel on the right. The observation also appears in the table below the header, saved in your browser, where you can click it to open it again.
 
-![Observation Details panel showing the gateway, Ownership and ArNS Assessment checks as Passed, with status code, ID and data hash checks passing for each of two ArNS names](https://turbo-gateway.com/vgRXfbx4fa47qGDpjndq128VCHl1wajKaq464KeA0Qg)
+![Observation Details panel for turbo-gateway.com, with the gateway, Ownership and ArNS Assessment all Passed, and status code, ID and data hash passing for each of two ArNS names](/content/portal-observation-details.png)
 
-### Accessing the Observer Report
+A manual observation runs the ownership and ArNS checks from your browser, once. It doesn't run the offset check, and it isn't a majority of 3, so it can pass where an observer's report failed.
 
-The simplest way to access an observer report is via the [Network Portal](https://gateways.ar.io), following the steps below:
+### Accessing the observer report
 
-1. Navigate to the [Network Portal](https://gateways.ar.io)
-2. Select the gateway you are interested in from the list of gateways
-3. In the Observation window, select the epoch you are interested in. This will display a list of the observers that failed the gateway for that epoch.
-4. Click on the "View Report" button to the right any observer on that list. This will display the entire report that observer generated.
+To read the reports that failed a gateway, use the [Network Portal](https://gateways.ar.io):
 
-![Network Portal gateway page with the Failed by observers panel for one epoch listing an observer wallet, and its View Report button highlighted](https://turbo-gateway.com/ynbxYU_8xLRaU1D6a_LMoUq00roWwsMKgr-xrsDE0Sk)
+1. Open the [Network Portal](https://gateways.ar.io).
+2. Select the gateway from the list of gateways.
+3. In the **Observations of this gateway** panel, select the epoch from the dropdown on the right. The panel lists the observers that failed the gateway in that epoch. Click **Read why** to list each observer's reasons in the panel.
+4. To open an observer's full report, click the **View Report** button to the right of that observer's address.
 
-5. Locate the gateway you are interested in in the report, and click on that row. This will display the report for that gateway.
+![Observations of this gateway panel showing Failed by 1 of 17 observers for the current epoch, with the View Report button beside the observer address highlighted](/content/portal-view-report.png)
 
-### Understanding the Observer Report
+5. In the report, find your gateway in the **Observed Host** column and click its row. The **Observation Details** panel opens with that gateway's results.
 
-The observer report will display a list of checked ArNS names, and a reason if the gateway failed to return the correct data for that name. There are several reasons why a gateway might fail to return the correct data for an ArNS name. Below is a list of the most common reasons, and how to resolve them.
+### Understanding the observer report
+
+For each ArNS name checked, the report shows what the observer expected, what your gateway returned, and a failure reason if the check failed. The failure reason is the error message the observer got, or the list of fields that didn't match. Below are the most common reasons and how to fix them.
 
 #### Timeout awaiting 'socket', or Timeout awaiting 'connect'
 
-![Failed ArNS check in an observer report, with no status code, the ID and data hash shown as Not Found, and the failure reason Timeout awaiting 'socket' for 5000ms](https://turbo-gateway.com/_GupbMa-EW_wiCD201MuOkDQrLT0MXTfxDXhLSDmyh4)
+```text
+Timeout awaiting 'socket' for 7000ms
+```
 
-![Failed ArNS check in an observer report, with no status code, the ID and data hash shown as Not Found, and the failure reason Timeout awaiting 'connect' for 5000ms](https://turbo-gateway.com/0WkzxdyN-9hJfv0pSiTs0Ozg_wqFvE3-OWlgzYPimtU)
+```text
+Timeout awaiting 'connect' for 5000ms
+```
 
-This failure means that the observer was unable to connect to the gateway when it tried to check the ArNS name. There are lots of reasons why this might happen, many of them unrelated to the gateway itself. If an observer report has a small number of these failures, among a larger number of successful checks, it is unlikely to be an issue with the gateway.
+The observer couldn't get an answer from your gateway in time. It allows 5 seconds for the DNS lookup, 5 seconds to connect, 2 seconds for the TLS handshake (`secureConnect`), and 7 seconds of silence on an open connection (`socket`).
 
-If this failure occurs persistently for a large number, or all ArNS names checked, it likely means that the observer is having trouble connecting to the gateway at all. You can verify this by:
+Many causes have nothing to do with your gateway. A few of these failures among many passing checks are not a problem.
 
-- Attempting to connect to the gateway in a browser
-- Running manual observations on the gateway using the [Network Portal](https://gateways.ar.io)
-- Using tools like `curl` or `ping` to check the gateway's connectivity
+If most or all names fail this way, the observer can't reach your gateway at all. Check by:
 
-If these methods consistently fail to connect to the gateway, it is likely that the gateway is not properly configured or powered on. If this is the case:
+- opening your gateway in a browser,
+- running a [manual observation](#manual-observation), and
+- using `curl` or `ping` from another network.
 
-- Check Docker and the gateway's logs to see if the gateway is on.
-- Ensure that the SSL certificates are valid for the gateway's domain.
-- Check DNS records for the gateway's domain, misconfigured or conflicting DNS records can cause connectivity issues.
+If those fail too:
 
-Some gateway operators who run their gateways on their personal home networks have also reported issues with their ISP blocking, throttling, or otherwise delaying traffic to a gateway. If none of the above steps resolve the issue, it may be worth checking with your ISP to see if they are blocking or throttling traffic to the gateway.
+- Check Docker and the gateway's logs to see if the gateway is running.
+- Check that the SSL certificates are valid for your gateway's domain.
+- Check your domain's DNS records. Wrong or conflicting records cause connection problems.
 
-Using [Grafana](/build/extensions/grafana) can also provide a visual representation of the gateway's ArNS resolution times. If this is consistently high (above 10 seconds), it is likely that the gateway is not properly configured to resolve ArNS names. Ensure that the gateway is operating on the latest Release.
+Some operators running gateways on home networks have found their internet provider blocking, throttling or delaying traffic to the gateway. If nothing above helps, ask your provider.
+
+[Grafana](/build/extensions/grafana) shows your gateway's ArNS resolution times. If they stay high, make sure the gateway runs the latest release.
 
 #### Cert has expired
 
-This failure means that the gateway's SSL certificate has expired. Obtaining a new SSL certificate and updating the gateway's reverse proxy (nginx, etc) configuration to use the new certificate is the only solution to this issue.
+```text
+certificate has expired
+```
+
+Your gateway's SSL certificate has expired. Renew it, point your reverse proxy (NGINX or another) at the new certificate, and restart the proxy.
 
 #### dataHashDigest mismatch
 
-![Failed ArNS check in an observer report where status code 200 and the ID pass but the data hash differs from the expected hash, with the failure reason dataHashDigest mismatch](https://turbo-gateway.com/xXe0bHne--0JJv-HRf5HT9R1V1UbzaOh2AxvAdQZhjg)
+```text
+dataHashDigest mismatch
+```
 
-This failure means that the gateway did respond to a resolution request, but the data it returned did not match the data that was expected. This could be due to a number of reasons, including:
+Your gateway answered, but the hash of the data it returned differs from the hash of the observer's reference copy. The reason can list other fields that differed too, for example `contentType mismatch, dataHashDigest mismatch`. Causes:
 
-- Cached data was returned by the gateway that doesnt match the most current data on the network.
-- The gateway is configured to operate on testnet or devnet. Gateways joined to the ARIO Network MUST operate on mainnet in order to pass observation checks.
-- The gateway is intentionally returning fraudulent data.
+- **Your gateway cached a JSON wrapper instead of the data (before Release 88).** arweave.net, one of the default trusted gateways, answers some requests with a JSON document describing the data instead of the data itself. Before Release 88, a gateway that fetched from it could cache that wrapper and serve it as the item, with the wrong hash and content type. Release 88 fixes the fetch, but copies cached before the upgrade keep being served until you purge them. See [Purging cached JSON wrappers](#purging-cached-json-wrappers).
+- **The gateway returned cached data that is older than the current data on the network.** This happens occasionally and resolves itself.
+- **The gateway runs on testnet or devnet.** Gateways joined to the ar.io network must run on mainnet to pass observation. If most or all names fail with this reason, check this first.
+- **The gateway returns fraudulent data on purpose.** This takes rewriting the gateway's code, and catching it is a main purpose of the Observation and Incentive Protocol.
 
-A gateway will not return fraudulent data unless that operator intentionally rewrote the gateway's code to do so, and a major purpose of the Observation and Incentive Protocol is to catch and prevent this behavior. A gateway may return mistaken data on occasion, usually due to a cache mismatch between the gateway and the observer's reference gateway. The bundled observer uses its own gateway (`ARNS_ROOT_HOST`) as its reference, or turbo-gateway.com and ar-io.net when that isn't set. A gateway is never used as its own reference. This is a relatively rare occurrence, and should only be considered an issue if it occurs persistently. If most or all of the ArNS names checked are failing for this reason, it is likely that the gateway is not operating on mainnet.
+The bundled observer uses your own gateway (`ARNS_ROOT_HOST`) as its reference, or turbo-gateway.com and ar-io.net when `ARNS_ROOT_HOST` isn't set. It doesn't use a gateway as its own reference while another reference can answer.
+
+##### Purging cached JSON wrappers
+
+A wrapped copy starts with `{"accept-ranges"`. Take the ID from the report (the resolved ID of the failing name), and check what your gateway serves for it:
+
+```console
+curl -s https://<your-gateway>/<id> | head -c 32; echo
+```
+
+If the output starts with `{"accept-ranges"`, make your gateway forget its record of that ID, so the next request fetches the data again. This needs Release 88 and your `ADMIN_API_KEY`:
+
+```console
+curl -X POST 'http://localhost:3000/ar-io/admin/invalidate-data' \
+  -H 'Authorization: Bearer <ADMIN_API_KEY>' \
+  -H 'Content-Type: application/json' \
+  -d '{"id": "<id>"}'
+```
+
+The answer is `{"id":"<id>","removed":true}`, or `"removed":false` if the gateway had no record of the ID. This doesn't reach caches in front of the gateway. If you run an NGINX cache or a CDN, purge the ID there too, for example with the [cache bypass header](/build/run-a-gateway/manage/nginx-caching#cache-bypass-header).
 
 #### Response code 502 (Bad Gateway)
 
-![Failed ArNS check in an observer report, with no status code, the ID and data hash shown as Not Found, and the failure reason Response code 502 (Bad Gateway)](https://turbo-gateway.com/NBQsYUKP6IZt_rYg77QXgzwUUPvimFGXCQqtesbW1_I)
+```text
+Response code 502 (Bad Gateway)
+```
 
-This failure means that the observer was able to connect to the gateway's network, but the reverse proxy returned a 502 error. This is almost always a reverse proxy issue. Ensure that the gateway's reverse proxy is running, and that it is configured to forward requests to the gateway.
+The observer reached your server, but your reverse proxy answered 502. This is almost always a reverse proxy problem. Check that the proxy is running and forwards requests to the gateway.
 
-Test the reverse proxy's configuration file (`sudo nginx -t` on Nginx) for more information. If the file has no problems, reloading the proxy (`sudo nginx -s reload`) often resolves the issue.
+On NGINX, test the configuration with `sudo nginx -t`. If it has no errors, reload NGINX with `sudo nginx -s reload`.
 
-It is also possible that the gateway itself is not running at all. Check Docker and the gateway's logs to see if the gateway is on.
+The gateway itself may also be stopped. Check Docker and the gateway's logs.
 
 #### Response code 503 (Service Unavailable)
 
-![Failed ArNS check in an observer report, with no status code, the ID and data hash shown as Not Found, and the failure reason Response code 503 (Service Unavailable)](https://turbo-gateway.com/7eFKSm-cs81-aJ_H4xkolR2nSlxl5tYWXJdFTei8Dbs)
+```text
+Response code 503 (Service Unavailable)
+```
 
-This failure means that the observer was able to connect to the gateway's network, but the reverse proxy was unable to forward the request to the gateway. It differs from the 502 error in that the reverse proxy is likely able to see that the gateway is running, but is unable to communicate with it. This is often a temporary issue, caused by the gateway not being able to handle a heavy load of requests, or the gateway being in the process of restarting. If this failure occurs once or twice in a report, it is likely a temporary issue and should not be considered an issue with the gateway. However, when this failure occurs persistently, particularly for every ArNS name checked on the report, it is likely that the gateway may have crashed.
-
-Manually restarting the gateway can likely resolve the issue.
+The observer reached your server, but the reverse proxy couldn't get an answer from the gateway behind it. The cause is usually temporary: the gateway is overloaded or restarting. One or two of these in a report are not a problem. If every name in the report fails this way, the gateway has probably crashed. Restart it.
 
 #### connect EHOSTUNREACH
 
-![Failed ArNS check in an observer report, with no status code, the ID and data hash shown as Not Found, and the failure reason connect EHOSTUNREACH followed by the gateway's IP address and port 443](https://turbo-gateway.com/O-uG-yGm5bNxjw2ADH_yBjOcGo-ZEiFym8GeFZZNueY)
+```text
+connect EHOSTUNREACH <gateway-ip>:443
+```
 
-This failure means that the observer was unable to connect to the gateway at all. The connection was either refused, or the gateway was not able to find a target based on the domain name's DNS records.
-
-This is almost always an issue with DNS records or local network configuration. Ensure that the gateway domain has correct DNS records, and that the local network is set up to allow connections. Checking logs from the local network's reverse proxy (nginx, etc) may provide more information about the issue.
+The observer found no network route to your gateway's IP address. This is almost always a DNS or network problem. Check that your domain's DNS records point at the right IP address, and that your firewall and router let connections in on port 443. Your reverse proxy's logs may show more.
 
 #### getaddrinfo ENOTFOUND
 
-![Failed ArNS check in an observer report, with no status code, the ID and data hash shown as Not Found, and the failure reason getaddrinfo ENOTFOUND for the name's subdomain of the gateway](https://turbo-gateway.com/WJDwW0NM29uKC-9puvhXK_n75vgFXLpa6VKFVMhRsLQ)
+```text
+getaddrinfo ENOTFOUND <arns-name>.<gateway-domain>
+```
 
-This is another DNS related issue. Likely, the gateway does not have a valid DNS record either for the top level domain or the required wildcard subdomain. Having this failure occur once or twice in a report could mean that the DNS server being used by the observer is having temporary issues and should not be considered an issue with the gateway. However, when this failure occurs persistently, particularly for every ArNS name checked on the report, it is likely that the gateway's DNS records are not set, or are misconfigured.
+The observer couldn't find a DNS record for the name. Your gateway probably has no valid DNS record for its domain, or for the wildcard subdomain ArNS names need. One or two of these in a report can be a temporary problem with the observer's DNS server. If every name in the report fails this way, your DNS records are missing or wrong.
 
 #### Hostname/IP does not match certificate's altnames: Host: \<gateway-domain\>. is not in the cert's altnames: DNS:\<gateway-domain\>
 
-![Failed ArNS check in an observer report whose failure reason says the name's subdomain host is not in the certificate's altnames, which list only the gateway's apex domain](https://turbo-gateway.com/HfOfpAYm811dWFPNQC7bANEvjGVK4ch3kO7K7qMN9qs)
+```text
+Hostname/IP does not match certificate's altnames: Host: <arns-name>.<gateway-domain>. is not in the cert's altnames: DNS:<gateway-domain>
+```
 
-This failure means that the observer's SSL certificate does not match the gateway's domain name. This is almost always an issue with the gateway's SSL certificate. This most likely occurred because the gateway's operator did not update the gateway's SSL certificate when the gateway's domain name was changed. Obtaining a new SSL certificate and updating the gateway's reverse proxy configuration to use the new certificate is the only solution to this issue.
+Your gateway's SSL certificate doesn't cover the name the observer requested. In the example, the certificate covers only the gateway's domain, not the wildcard `*.<gateway-domain>` that ArNS names are served on. The same error appears when a gateway changes domain and keeps the old certificate. Get a certificate that covers both the domain and its wildcard, point your reverse proxy at it, and restart the proxy.
 
 #### write EPROTO \<connection-id\>:error:\<error-code\>:SSL routines:ssl3_read_bytes:tlsv1 unrecognized name:\<path-to-openssl-source\>:SSL alert number 112
 
-![Failed ArNS check in an observer report whose failure reason is a write EPROTO SSL error, tlsv1 unrecognized name, SSL alert number 112](https://turbo-gateway.com/Hbip_ZmqmFN8-uXijw1aylyYp1YllwgyZTNAcsPCxSg)
+```text
+write EPROTO <connection-id>:error:0A000458:SSL routines:ssl3_read_bytes:tlsv1 unrecognized name:<path-to-openssl-source>:SSL alert number 112
+```
 
-This failure almost always means that the gateway operator did not properly obtain SSL certificates for the gateway's wildcard subdomain. Obtaining a new SSL certificate and updating the gateway's reverse proxy configuration to use the new certificate is the only solution to this issue.
+Your server has no certificate or server block for the name the observer requested. This almost always means the gateway has no certificate set up for its wildcard subdomain. Get a certificate that covers the wildcard, point your reverse proxy at it, and restart the proxy.
 
-### Failed Offset (Chunk-Proof) Checks
+### Failed offset (chunk-proof) checks
 
-Observers on the Release 85 observer image (`c5e98ddc`) check that gateways serve chunks. By default every gateway is checked every epoch (`OFFSET_OBSERVATION_SAMPLE_RATE`, `1.0`); an observer that sets a lower rate checks a share of gateways, the same share as every other observer at that rate. A checked gateway must serve `/chunk/<offset>` with a Merkle proof that validates against the chain. The observer tries up to 4 offsets (`OFFSET_SAMPLE_COUNT`) and stops at the first that validates, so a gateway fails only when every offset fails. Timeouts, error statuses and bad proofs all count as failures.
+From Release 85, observers check that gateways serve chunks. By default every gateway is checked in every epoch (`OFFSET_OBSERVATION_SAMPLE_RATE`, `1.0`). An observer that sets a lower rate checks a share of gateways, the same share as every other observer at that rate.
 
-The check fails gateways by default (`OFFSET_OBSERVATION_ENFORCEMENT_ENABLED=true`). A failed check fails the observation, like a failed ownership or ArNS check, and the 2-of-3 majority still applies. A check the observer could not judge itself, because its own lookups failed, is reported as `inconclusive` and never fails a gateway.
+A checked gateway must serve `/chunk/<offset>` with a Merkle proof that validates against the chain. The observer tries up to 4 offsets (`OFFSET_SAMPLE_COUNT`) and stops at the first that validates, so a gateway fails only when every offset fails. Timeouts, error statuses and bad proofs all count as failures.
+
+By default a failed offset check fails the observation (`OFFSET_OBSERVATION_ENFORCEMENT_ENABLED=true`), like a failed ownership or ArNS check, and the 2-of-3 majority still applies. If the observer couldn't judge the check because its own lookups failed, it records the check as `inconclusive`, which never fails a gateway.
 
 The report lists the samples of the observer's best observation of your gateway under `offsetAssessments`. Each failed sample names its offset and a `failureCategory`:
 
 | `failureCategory` | Meaning |
 | --- | --- |
-| `timeout` | The gateway did not answer `/chunk/<offset>` in time |
-| `network` | The connection failed: DNS, refused, TLS or reset |
-| `http_status` | The gateway answered with an error status. A `404` means it could not serve the chunk |
-| `invalid_chunk` | The response was not a usable chunk: not JSON, an empty or oversized chunk, or a missing or unreadable `data_path` |
-| `bad_proof` | The `data_path` Merkle proof does not validate against the chain |
-| `unverifiable` | The gateway served a chunk, but the observer could not check it against the chain, because its own lookups failed. It never counts as a pass. Only a check whose samples are all `unverifiable` is `inconclusive` and fails no gateway |
+| `timeout` | The gateway didn't answer `/chunk/<offset>` in time. |
+| `network` | The connection failed: DNS, refused, TLS or reset. |
+| `http_status` | The gateway answered with an error status. A `404` means it couldn't serve the chunk. |
+| `invalid_chunk` | The response wasn't a usable chunk: not JSON, an empty or oversized chunk, or a missing or unreadable `data_path`. |
+| `bad_proof` | The `data_path` Merkle proof doesn't validate against the chain. |
+| `unverifiable` | The gateway served a chunk, but the observer couldn't check it against the chain because its own lookups failed. It never counts as a pass. A check is `inconclusive` only when all its samples are `unverifiable`. |
 
 To fix it:
 
-- **Upgrade core to Release 85 or later.** Release 85 fixes chunk fetches that answered `404` for chunks the network holds. A gateway now asks the preferred Arweave nodes first, in the order that serves it best from where it runs, and tries up to 8 peers per chunk instead of 5 (`ARWEAVE_PEER_CHUNK_GET_MAX_PEER_ATTEMPT_COUNT`).
+- **Upgrade core to Release 85 or later.** Release 85 fixed chunk fetches that answered `404` for chunks the network holds. A gateway now asks the preferred Arweave nodes first, in the order that serves it best from where it runs, and tries up to 8 peers per chunk instead of 5 (`ARWEAVE_PEER_CHUNK_GET_MAX_PEER_ATTEMPT_COUNT`).
 - **Test the offset yourself**, with an offset from the report:
 
   ```bash
   curl -s -o /dev/null -w '%{http_code}\n' https://<your-gateway>/chunk/<offset>
   ```
 
-  `200` means your gateway served a chunk. `404` means it couldn't fetch it.
-- **Allow for warm-up.** After each restart, a gateway needs roughly 100 chunk requests to learn which preferred nodes serve it well. Chunks fail more often until then.
+  `200` means your gateway served the chunk. `404` means no source it tried had the chunk. From Release 88, `503` means it couldn't fetch the chunk in time.
+- **Allow for warm-up.** After each restart, a gateway needs about 100 chunk requests to learn which preferred nodes serve it well. Until then, chunk fetches fail more often.
 - **Check your own node lists.** If you set `PREFERRED_CHUNK_GET_NODE_URLS` or `PREFERRED_CHUNK_POST_NODE_URLS`, remove `tip-5.arweave.xyz`. Release 85 dropped it from the defaults because it stopped answering.
 
 ## FAQ
@@ -360,66 +405,65 @@ To fix it:
 <Accordions>
 <Accordion title="Why was my reward different this epoch?">
 
-- Gateway protocol rewards are calculated as 0.1% of the protocol balance (0.05% after August 2025) split between all gateways in the network. A change in the protocol balance or the number of gateways in the network between epochs will result in the reward for an individual gateway changing.
-
-- The Observer rewards are separate from protocol rewards, and if your gateway is selected as an observer for an epoch, assuming it performs its duties well, it will receive additional rewards
-
-</Accordion>
-
-<Accordion title="I have a high stake on my gateway, why am I not an observer?">
-
-The observer selection process uses a weighted random selection method that considers multiple factors beyond just stake:
-
-- **Stake Weight (SW)**: Ratio of your total staked ARIO tokens (including delegated stake) to the network minimum
-- **Tenure Weight (TW)**: How long your gateway has been part of the network (capped at 4 after 2 years)
-- **Gateway Performance Ratio Weight (GPRW)**: Ratio of epochs where you correctly resolved names vs total participation
-- **Observer Performance Ratio Weight (OPRW)**: Ratio of epochs where you successfully submitted reports vs total observer periods
-
-A composite weight (CW) is calculated as: CW = SW × TW × GPRW × OPRW
-
-Up to 50 gateways are chosen as observers per epoch. If there are more than 50 gateways, selection is randomized based on these normalized weights. Even with a high stake, other factors like performance and tenure affect your chances of being selected.
+- Each epoch pays out a share of the protocol balance: 0.1% at first, falling linearly between epochs 365 and 547 to 0.05%, where it stays. 90% of that goes to gateways and 10% to observers. Each gateway's share depends on the protocol balance and the number of gateways, so it changes when either changes.
+- A gateway that fails an epoch gets no gateway reward for it.
+- Observer rewards are separate. If your gateway is a prescribed observer in an epoch and submits its report, it gets an observer reward on top.
 
 </Accordion>
 
-<Accordion title="I withdrew my stake, but now I have less">
+<Accordion title="I have a high stake on my gateway. Why am I not an observer?">
 
-- There is a 30 day locking period when withdrawing delegated stake or excess operator stake from your gateway. This locking period can be skipped, for a fee. The fee starts at 50% of the withdrawal amount, and goes down over time. If you chose to withdraw without waiting, you paid the fee to skip the locking period. The required network-join stake follows the separate network leave process.
+Observers are drawn at random, weighted by more than stake:
 
-</Accordion>
+- **Stake weight**: your total stake, including delegated stake, relative to the network minimum.
+- **Tenure weight**: how long your gateway has been on the network. It grows with tenure and stops at 4, after 2 years.
+- **Gateway performance ratio weight**: the share of epochs your gateway passed.
+- **Observer performance ratio weight**: the share of your observer epochs in which you submitted a report.
 
-<Accordion title="Why Can't I withdraw my stake?">
+The composite weight is the product of the four: stake × tenure × gateway performance × observer performance.
 
-- The minimum operator stake for gateways (20,000 ARIO) cannot be withdrawn while the gateway is active. It can only be returned through the network leave process, and it is unrecoverable if the gateway is pruned for sustained poor performance.
-
-</Accordion>
-
-<Accordion title="I would like to move my node to a new server - how?">
-
-- If possible, leave your original server running while you prepare the new one
-- Set up the new server following the same steps you used to set up the original server
-  - This includes setting up SSL certificates for the new server
-- You must use the same gateway wallet when setting up the new server
-- The observer wallet may be changed at any point, but requires extra steps. It is recommended you use the original observer wallet as well
-- Once the new server is set up, change your DNS A records to point at the new server
-- After your DNS records are set and you have verified your gateway is operating correctly, shut down the original server
-- No changes need to be made in the network contract or on https://gateways.ar.io
+Up to 50 gateways are chosen as observers each epoch. With more than 50 gateways on the network, the draw uses these weights, so tenure and performance affect your chances as much as stake does.
 
 </Accordion>
 
-<Accordion title="Can I change my nodes FQDN?">
+<Accordion title="I withdrew my stake, but received less than I withdrew">
 
-- Yes
-- Configure your new domain to point at your gateway, including setting up SSL certificates
-- Update your NGINX (or other reverse proxy) server to recognize the new domain. This usually requires a restart of NGINX
-- Update the `ARNS_ROOT_HOST` variable in your `.env` and restart the gateway
-- Using https://gateways.ar.io, update your gateway settings to change the FQDN in the contract
-- Your gateway is now using the new domain name for normal operation.
+Withdrawing delegated stake, or operator stake above the minimum, starts a 30-day lock. You can skip the lock for a fee, which starts at 50% of the amount and falls over the lock period to 10%. If you withdrew without waiting, you paid that fee. The minimum operator stake is returned through the separate network leave process.
+
+</Accordion>
+
+<Accordion title="Why can't I withdraw my stake?">
+
+The minimum operator stake (20,000 ARIO) can't be withdrawn while the gateway is on the network. It is returned only through the network leave process, and it is lost if the gateway is removed from the network for failing too many epochs in a row.
+
+</Accordion>
+
+<Accordion title="How do I move my gateway to a new server?">
+
+1. If you can, leave the old server running while you set up the new one.
+2. Set up the new server the same way as the old one, including its SSL certificates.
+3. Use the same gateway wallet on the new server. Keep the same observer wallet too: you can change it, but that takes extra steps.
+4. Point your DNS A records at the new server.
+5. When the records have propagated and the new gateway works, shut down the old server.
+
+You don't need to change anything in the network contract or on https://gateways.ar.io.
+
+</Accordion>
+
+<Accordion title="Can I change my gateway's domain?">
+
+Yes:
+
+1. Point the new domain at your gateway and get SSL certificates for it, including the wildcard.
+2. Add the new domain to NGINX (or your reverse proxy) and restart it.
+3. Set `ARNS_ROOT_HOST` in `.env` to the new domain and restart the gateway.
+4. On https://gateways.ar.io, update your gateway's settings with the new domain.
 
 </Accordion>
 </Accordions>
 
-## Getting Help
+## Getting help
 
-If you encounter any issues during the troubleshooting process, please seek assistance from the [ar.io community](https://discord.com/invite/HGG52EtTc2).
+If you're still stuck, ask in the [ar.io community Discord](https://discord.com/invite/HGG52EtTc2).
 
-**Ready to get back to building?** Once your gateway is running smoothly, check out [Manage your Gateway](/build/run-a-gateway/manage) for guides on optimization, monitoring, and more.
+Once your gateway runs smoothly, see [Manage your gateway](/build/run-a-gateway/manage) for guides on tuning, monitoring and more.
