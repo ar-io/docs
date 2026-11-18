@@ -1,4 +1,4 @@
-# Wayfinder SDK's (/index)
+# Wayfinder SDKs (/index)
 
 **For AI and LLM users**: Access the complete Wayfinder documentation in plain text format at{" "}
   llm.txt for easy
@@ -148,51 +148,11 @@ const wayfinder = new Wayfinder({
 
 **How it works:**
 
-1. Makes a HEAD request to get transaction metadata (root transaction ID, data offset, content length)
-2. Queries `/tx/{root-tx-id}/offset` to get the root transaction's absolute offset in the weave
-3. Calculates the absolute offset for the requested data item
-4. Fetches data in chunks using `/chunk/\/data` and assembles the complete data stream
-5. Validates that chunks belong to the expected root transaction for security
-
-**Sequence Diagram:**
-
-```mermaid
-sequenceDiagram
-    participant Client
-    participant Wayfinder
-    participant Gateway as AR.IO Gateway
-    participant Arweave as Arweave Nodes
-
-    Client->>Wayfinder: request('ar://data-item-id')
-    activate Wayfinder
-
-    Wayfinder->>Gateway: HEAD /tx/{data-item-id}
-    Note over Gateway: Lookup data item metadatafrom indexed bundles
-    Gateway-->>Wayfinder: Headers:- x-root-tx-id (bundle ID)- x-data-offset- content-length
-
-    Wayfinder->>Gateway: GET /tx/{root-tx-id}/offset
-    Gateway->>Arweave: GET /tx/{root-tx-id}/offset
-    Note over Arweave: Lookup transaction offsetin the weave
-    Arweave-->>Gateway: Root transaction offset
-    Gateway-->>Wayfinder: Root transaction offset in weave
-
-    Note over Wayfinder: Calculate absolute offset:absolute = root_offset + data_offset
-
-    loop For each chunk needed
-        Wayfinder->>Gateway: GET /chunk/{absolute-offset}/data
-        
-        Note over Gateway: Serve chunk data fromindexed storage usingroot transaction ID
-        
-        Gateway-->>Wayfinder: Chunk data + validation headers(x-root-tx-id for security)
-        
-        Note over Wayfinder: Validate chunk belongsto expected root TX
-        
-        Wayfinder-->>Client: Stream chunk data
-    end
-
-    Wayfinder-->>Client: Complete response
-    deactivate Wayfinder
-```
+1. Makes a HEAD request for the requested URL and reads the `X-AR-IO-Root-Transaction-Id`, `X-AR-IO-Root-Data-Offset` and `Content-Length` headers
+2. Queries `/tx/{root-tx-id}/offset`, which returns the root transaction's end offset and size in the weave, and computes its start offset as `offset - size + 1`
+3. Adds the root data offset to that start offset to get the absolute offset of the requested data
+4. Fetches `/chunk/{offset}/data` in a loop, keeping the bytes from `X-Arweave-Chunk-Read-Offset` onward and moving to `X-Arweave-Chunk-Start-Offset` plus the chunk length, until `Content-Length` bytes have been streamed
+5. Rejects any chunk whose `X-Arweave-Chunk-Tx-Id` does not match the root transaction ID, and fails if the gateway returns no chunk headers at all
 
 **Example with createWayfinderClient:**
 
@@ -494,44 +454,40 @@ const gatewayProvider = new CompositeGatewaysProvider({
 
 ```mermaid
 sequenceDiagram
+    accTitle: Wayfinder routes each request, retries on failure, and can verify the response
+    accDescr: The client passes an ar URL to Wayfinder. Wayfinder asks the routing strategy for a gateway, and the routing strategy gets its candidates from its own gateways provider. Wayfinder fetches the data from the selected gateway and selects again after a 5xx response or network error, excluding the gateways that failed, up to 3 attempts. If verification is enabled, the verification strategy checks the stream against data from trusted gateways as the client reads it.
+
     participant Client
     participant Wayfinder
-    participant Gateways Provider
-    participant Routing Strategy
-    participant Selected Gateway
-    participant Verification Strategy
-    participant Trusted Gateways
+    participant Routing as Routing strategy
+    participant Gateway as Selected gateway
+    participant Trusted as Trusted gateways
 
-    Client->>Wayfinder: request('ar://example')
-    activate Wayfinder
-
-    Wayfinder->>+Gateways Provider: getGateways()
-    Gateways Provider-->>-Wayfinder: List of gateway URLs
-
-    Wayfinder->>+Routing Strategy: selectGateway()
-    Routing Strategy-->>-Wayfinder: Selected gateway
-
-    Wayfinder->>+Selected Gateway: HTTP request
-    Selected Gateway-->>-Wayfinder: Response data
-
-    opt Verification enabled
-        Wayfinder->>+Verification Strategy: verifyData()
-        Verification Strategy->>Trusted Gateways: Get verification data
-        Trusted Gateways-->>Verification Strategy: Verification headers
-        Verification Strategy-->>-Wayfinder: Verification result
+    Client->>Wayfinder: request ar://example
+    loop Up to 3 attempts on 5xx or network error
+        Wayfinder->>Routing: Select a gateway, excluding failed ones
+        Note over Routing: Get candidates from itsgateways provider, pick one
+        Routing-->>Wayfinder: Gateway URL
+        Wayfinder->>Gateway: Fetch data
+        Gateway-->>Wayfinder: Data stream and headers
     end
-
-    Wayfinder-->>Client: Response or error
-    deactivate Wayfinder
+    opt Verification enabled
+        Wayfinder->>Trusted: Request digest, data root or signature data
+        Trusted-->>Wayfinder: Verification data
+        Note over Wayfinder: Verify the stream asthe client reads it
+    end
+    Wayfinder-->>Client: Response
 ```
+
+Retries cover only failures before the response is returned. A 4xx response is returned without a retry, except with `ChunkDataRetrievalStrategy`, whose metadata HEAD request throws on any error status, so a 404 there is retried and then thrown. An error while the response stream is being read, such as a failed chunk fetch, is not retried: it errors the stream. With `strict: true` in `verificationSettings`, a failed verification errors the response stream; otherwise the data is delivered and a `verification-failed` event is emitted.
 
 # Resiliency (/wayfinder-core/resiliency)
 
 Wayfinder includes built-in resiliency features:
 
-- **Gateway retry**: If a gateway returns a 5xx error or a network failure occurs, Wayfinder automatically re-selects a different gateway and retries (up to 3 attempts). Client errors (4xx) are returned immediately without retry.
+- **Gateway retry**: If a gateway returns a 5xx error or a network failure occurs, Wayfinder selects a gateway again and retries, up to 3 attempts in total. Each new selection passes the gateways that already failed as `exclude`, so the built-in strategies pick a different gateway when they have one: `RandomRoutingStrategy` and `RoundRobinRoutingStrategy` skip the failed gateways, `FastestPingRoutingStrategy` pings the failed gateways only when no other gateway answers, `PreferredWithFallbackRoutingStrategy` moves to its fallback, and `SimpleCacheRoutingStrategy` replaces a cached gateway that failed. When every gateway in the pool has already failed, these strategies return one of the failed gateways rather than throwing, so it is tried again. `StaticRoutingStrategy` has one gateway, so every attempt goes to it. A custom strategy that ignores `exclude` can return the same gateway again. Client errors (4xx) are returned immediately without retry.
 - **Fetch timeouts**: All outbound requests include configurable timeouts — 10s for metadata (HEAD, peer list), 30s for data retrieval — to prevent indefinite hangs on slow or dead gateways.
-- **Gateway health checks**: `PingRoutingStrategy` verifies the selected gateway responds before routing to it, and retries with a different one if not.
+- **Gateway health checks**: `PingRoutingStrategy` verifies the selected gateway responds before routing to it. If it does not, it selects again with that gateway excluded.
 - **Peer list retries**: `TrustedPeersGatewaysProvider` retries when a gateway returns an empty peer list, then fails loudly rather than silently yielding no gateways — and the default provider falls back to the trusted gateway so that failure degrades routing instead of stopping it.
 - **Registry pagination failures are fatal**: `NetworkGatewaysProvider` retries a failed page and throws once retries are exhausted, rather than returning a partial registry. Because `limit` is applied after sorting, a partial read would return the wrong gateways rather than merely fewer.
 - **Full-registry pagination**: `NetworkGatewaysProvider` reads the whole on-chain registry before applying `limit`, so `limit` selects the top-ranked gateways rather than whichever ones happened to come back first. It pages at the SDK maximum, so this is a single request for a registry of the current size.
@@ -546,8 +502,8 @@ Wayfinder supports multiple routing strategies to select target gateways for you
 | `StaticRoutingStrategy`      | Always uses a single gateway                   | When you need to use a specific gateway |
 | `RoundRobinRoutingStrategy`  | Selects gateways in round-robin order          | Good for load balancing and resilience  |
 | `FastestPingRoutingStrategy` | Selects the fastest gateway based on ping time | Good for performance and latency        |
-| `PingRoutingStrategy`        | Wraps another strategy and health-checks its choice, retrying with a different gateway on failure | Filtering out unresponsive gateways. Used by default by `new Wayfinder()` |
-| `PreferredWithFallbackRoutingStrategy` | Uses a preferred gateway, with a fallback strategy if the preferred gateway is not available | Good for performance and resilience. Ideal for builders who run their own gateways. |
+| `PingRoutingStrategy`        | Wraps another strategy and health-checks its choice. On a failed check it asks the wrapped strategy again, excluding the gateways that failed | Filtering out unresponsive gateways. Used by default by `new Wayfinder()` |
+| `PreferredWithFallbackRoutingStrategy` | Uses a preferred gateway, with a fallback strategy if the preferred gateway is not available or has already failed the request | Good for performance and resilience. Ideal for builders who run their own gateways. |
 | `SimpleCacheRoutingStrategy` | Caches the gateway chosen by another strategy for a TTL | Avoids re-running selection on every request |
 | `CompositeRoutingStrategy` | Chains multiple routing strategies together, trying each sequentially until one succeeds | Good for complex fallback scenarios and maximum resilience |
 
@@ -577,9 +533,14 @@ const strategy = new FastestPingRoutingStrategy({
 
 #### PingRoutingStrategy
 
-Wraps another strategy, health-checks the gateway it picked, and retries with a
-different one if the check fails. This is the default strategy used by
-`new Wayfinder()` (wrapping a `RandomRoutingStrategy`).
+Wraps another strategy and health-checks the gateway it picked. If the check
+fails, it asks the wrapped strategy again and passes every gateway that failed
+so far as `exclude`. `RandomRoutingStrategy` and `RoundRobinRoutingStrategy`
+then pick a different gateway when one is left, and
+`FastestPingRoutingStrategy` picks a different one when another answers its
+ping; a wrapped `StaticRoutingStrategy` returns its one gateway each time. This is the
+default strategy used by `new Wayfinder()` (wrapping a
+`RandomRoutingStrategy`).
 
 ```javascript
 
@@ -605,7 +566,7 @@ sandboxed URL reaches ~78% once given 10s. Set `probePath` to
 
 Uses a preferred gateway, with a fallback strategy if the preferred gateway is not available. This is useful for builders who run their own gateways and want to use their own gateway as the preferred gateway, but also want to have a fallback strategy in case their gateway is not available.
 
-This strategy is built using `CompositeRoutingStrategy` internally. It first attempts to ping the preferred gateway (using `PingRoutingStrategy` with `StaticRoutingStrategy`), and if that fails, it falls back to the specified fallback strategy.
+This strategy is built using `CompositeRoutingStrategy` internally. It first attempts to ping the preferred gateway (using `PingRoutingStrategy` with `StaticRoutingStrategy`), and if that fails, it falls back to the specified fallback strategy. When Wayfinder retries a request because the preferred gateway returned a 5xx or a network error, the preferred gateway is excluded and the retry goes to the fallback strategy.
 
 ```javascript
 
@@ -623,8 +584,9 @@ The `CompositeRoutingStrategy` allows you to chain multiple routing strategies t
 
 1. Tries each strategy in the order they're provided
 2. If a strategy successfully returns a gateway, that gateway is used (remaining strategies are skipped)
-3. If a strategy throws an error, moves to the next strategy
-4. If all strategies fail, throws an error
+3. If a strategy throws an error, or returns a gateway in the `exclude` list (one that already failed this request), moves to the next strategy
+4. If every strategy that did not throw returned an excluded gateway, returns the first of those
+5. If all strategies fail, throws an error
 
 **Common use cases:**
 

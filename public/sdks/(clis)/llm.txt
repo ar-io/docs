@@ -316,6 +316,10 @@ ardrive create-drive --wallet-file /path/to/my/wallet.json --drive-name "My Publ
 ardrive create-drive --wallet-file /path/to/my/wallet.json --drive-name "Teenage Love Poetry" -P
 ```
 
+A new private drive's password doesn't have to match your other private drives. When `-P` prompts for the new password, it asks for it twice.
+
+Keep the drive key that `create-drive` prints (`key` in its output). It opens the drive whatever the password, so it is your way back in if you forget which password the drive uses. Store it as carefully as the password.
+
 # List Drive Pipeline Examples (/ardrive-cli/(working-with-drives)/list-drive-pipeline-examples)
 
 You can utilize `jq` and the list commands to reshape the commands' output data into useful forms and stats for many use cases. Here are a few examples:
@@ -350,6 +354,8 @@ ardrive list-drive -d 01ea6ba3-9e58-42e7-899d-622fd110211c | jq '[ .[] | select(
 
 You can list all the drives associated with any Arweave wallet address, though the details of private drives will be obfuscated from you unless you provide the necessary decryption data.
 
+The password or drive key you give is tried on every private drive. Drives it opens are listed in full; the others are listed with `name` and `rootFolderId` set to `ENCRYPTED`. To see a drive with a different password, list again with that password.
+
 ```shell
 ardrive list-all-drives -w /path/to/my/wallet.json -P
 
@@ -375,6 +381,8 @@ ardrive list-drive -d "c7f87712-b54e-4491-bc96-1c5fa7b1da50" --max-depth 2
 # Managing Drive Passwords (/ardrive-cli/(working-with-drives)/managing-drive-passwords)
 
 The ArDrive CLI's private drive and folder functions all require either a drive password OR a drive key. Private file functions require either the drive password or the file key. **Keys and passwords are sensitive data, so manage the entry, display, storage, and transmission of them very carefully.**
+
+Each private drive can have its own password. A new private drive can use any password, whatever your other drives use, so keep a record of which password opens which drive.
 
 Drive passwords are the most portable, and fundamental, encryption facet, so a few options are available during private drive operations for supplying them:
 
