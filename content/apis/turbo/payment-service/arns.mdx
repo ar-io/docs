@@ -92,9 +92,33 @@ _openapi:
 
           proof in the `x-owner-*` headers, verified against the ANT's CURRENT
 
-          ON-CHAIN owner. The proof binds every field it carries, so a signature
+          ON-CHAIN owner. For `set-record` and `remove-record` a current
+          on-chain
 
-          authorizing one set of metadata values does not authorize another.
+          CONTROLLER of the ANT may sign the proof instead, since a controller
+          can
+
+          already write those records on chain. The proof binds every field it
+
+          carries, so a signature authorizing one set of metadata values does
+          not
+
+          authorize another.
+
+
+          **Who pays:** the signer, unless `paidBy` (query or body) or the
+
+          `x-paid-by` header names wallets that granted the signer a
+          credit-share
+
+          approval. Those are spent in the order given, then the signer's own
+
+          balance covers any remainder; if nothing covers the price the call is
+          a
+
+          402 and nothing is debited. An expired or failed action refunds the
+
+          approval that paid. This applies to every action.
 
 
           `set-record-metadata` fields are tri-state: omit one to leave it
